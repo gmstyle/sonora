@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 
 import 'tables/liked_songs_table.dart';
 import 'tables/followed_artists_table.dart';
@@ -37,10 +34,11 @@ class AppDatabase extends _$AppDatabase {
   int get schemaVersion => 1;
 }
 
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'sonora.sqlite'));
-    return NativeDatabase(file);
-  });
+QueryExecutor _openConnection() {
+  return driftDatabase(
+    name: 'sonora',
+    native: const DriftNativeOptions(
+      databaseDirectory: getApplicationDocumentsDirectory,
+    ),
+  );
 }
