@@ -5,6 +5,7 @@ import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 
 import 'core/utils/platform_utils.dart';
 import 'l10n/app_localizations.dart';
+import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
 import 'presentation/providers/player_provider.dart';
 
@@ -37,36 +38,19 @@ Future<void> main() async {
   );
 }
 
-class SonoraApp extends StatelessWidget {
+class SonoraApp extends ConsumerWidget {
   const SonoraApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+    return MaterialApp.router(
       title: 'Sonora',
+      routerConfig: router,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(useMaterial3: true, brightness: Brightness.light),
       darkTheme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.appTitle)),
-      body: Center(
-        child: Text(
-          l10n.helloSonora,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-      ),
     );
   }
 }
