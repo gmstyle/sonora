@@ -26,8 +26,9 @@ dependencies:
 
   # ── Audio Playback ────────────────────────────────────────────
   just_audio: ^0.10.5
-  just_audio_media_kit: ^2.0.0
-  media_kit_libs_linux: ^1.0.0
+  just_audio_media_kit: ^2.1.0
+  media_kit: ^1.2.6
+  media_kit_libs_linux: ^1.2.1
   audio_service: ^0.18.18
 
   # ── State Management ──────────────────────────────────────────
