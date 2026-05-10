@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,25 +24,16 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _focusNode = FocusNode();
-  Timer? _debounceTimer;
 
   @override
   void dispose() {
     _searchController.dispose();
     _focusNode.dispose();
-    _debounceTimer?.cancel();
     super.dispose();
   }
 
   void _onSearchChanged(String query) {
     ref.read(searchQueryProvider.notifier).update(query);
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      if (query.isNotEmpty) {
-        ref.read(libraryRepositoryProvider).insertSearchEntry(query);
-      }
-      ref.read(activeSearchQueryProvider.notifier).update(query);
-    });
   }
 
   void _submitSearch(String query) {
@@ -52,7 +41,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _searchController.selection = TextSelection.fromPosition(
       TextPosition(offset: query.length),
     );
-    _debounceTimer?.cancel();
     ref.read(searchQueryProvider.notifier).update(query);
     ref.read(activeSearchQueryProvider.notifier).update(query);
     if (query.isNotEmpty) {
@@ -63,7 +51,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _clearSearch() {
     _searchController.clear();
-    _debounceTimer?.cancel();
     ref.read(searchQueryProvider.notifier).update('');
     ref.read(activeSearchQueryProvider.notifier).update('');
     _focusNode.requestFocus();
@@ -90,15 +77,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               filled: true,
               fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 0,
+                horizontal: 16,
+              ),
               prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: query.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 20),
-                      onPressed: _clearSearch,
-                    )
-                  : null,
+              suffixIcon:
+                  query.isNotEmpty
+                      ? IconButton(
+                        icon: const Icon(Icons.clear, size: 20),
+                        onPressed: _clearSearch,
+                      )
+                      : null,
             ),
             style: Theme.of(context).textTheme.bodyLarge,
             onChanged: _onSearchChanged,
@@ -115,10 +105,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return _RecentSearches(onTapSearch: _submitSearch);
     }
     if (query.isNotEmpty && query != activeQuery) {
-      return _Suggestions(
-        query: query,
-        onTapSuggestion: _submitSearch,
-      );
+      return _Suggestions(query: query, onTapSuggestion: _submitSearch);
     }
     return _SearchResults(activeQuery: activeQuery);
   }
@@ -169,10 +156,9 @@ class _RecentSearches extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
                 'Recent Searches',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
             Expanded(
@@ -199,10 +185,7 @@ class _Suggestions extends ConsumerWidget {
   final String query;
   final ValueChanged<String> onTapSuggestion;
 
-  const _Suggestions({
-    required this.query,
-    required this.onTapSuggestion,
-  });
+  const _Suggestions({required this.query, required this.onTapSuggestion});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -242,20 +225,23 @@ class _SearchResults extends ConsumerWidget {
         FilterChipBar(
           options: const ['All', 'Songs', 'Artists', 'Albums', 'Playlists'],
           selectedIndex: filter,
-          onSelected: (index) =>
-              ref.read(searchFilterProvider.notifier).update(index),
+          onSelected:
+              (index) => ref.read(searchFilterProvider.notifier).update(index),
         ),
         Expanded(
           child: resultsAsync.when(
-            loading: () => ListView.builder(
-              itemCount: 6,
-              itemBuilder: (_, _) =>
-                  const ShimmerLoading(variant: ShimmerVariant.tile),
-            ),
-            error: (e, _) => ErrorRetryWidget(
-              message: 'Search failed',
-              onRetry: () => ref.invalidate(searchResultsProvider),
-            ),
+            loading:
+                () => ListView.builder(
+                  itemCount: 6,
+                  itemBuilder:
+                      (_, _) =>
+                          const ShimmerLoading(variant: ShimmerVariant.tile),
+                ),
+            error:
+                (e, _) => ErrorRetryWidget(
+                  message: 'Search failed',
+                  onRetry: () => ref.invalidate(searchResultsProvider),
+                ),
             data: (results) {
               if (results.isEmpty) {
                 return EmptyStateWidget(
@@ -267,8 +253,9 @@ class _SearchResults extends ConsumerWidget {
               return ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 itemCount: results.length,
-                itemBuilder: (context, index) =>
-                    _buildResultItem(context, ref, results[index]),
+                itemBuilder:
+                    (context, index) =>
+                        _buildResultItem(context, ref, results[index]),
               );
             },
           ),
@@ -278,7 +265,10 @@ class _SearchResults extends ConsumerWidget {
   }
 
   Widget _buildResultItem(
-      BuildContext context, WidgetRef ref, SearchResult result) {
+    BuildContext context,
+    WidgetRef ref,
+    SearchResult result,
+  ) {
     if (result is SongDetailed) {
       return SongTile(
         videoId: result.videoId,
