@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../core/constants/app_constants.dart';
+import 'layouts/home_mobile_layout.dart';
+import 'layouts/home_tablet_layout.dart';
+import 'layouts/home_wide_layout.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.appTitle)),
-      body: Center(
-        child: Text(
-          l10n.helloSonora,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-      ),
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < kCompactBreakpoint) {
+          return const HomeMobileLayout();
+        } else if (constraints.maxWidth < kExpandedBreakpoint) {
+          return const HomeTabletLayout();
+        } else {
+          return const HomeWideLayout();
+        }
+      },
     );
   }
 }

@@ -5,7 +5,7 @@ import 'package:sonora/presentation/features/player/audio_handler.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 
 void main() {
-  testWidgets('App shows Hello Sonora', (WidgetTester tester) async {
+  testWidgets('App builds and shows title', (WidgetTester tester) async {
     final handler = SonoraAudioHandler();
     await tester.pumpWidget(
       ProviderScope(
@@ -15,9 +15,8 @@ void main() {
         child: const SonoraApp(),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
 
-    expect(find.text('Sonora'), findsOneWidget);
-    expect(find.text('Hello Sonora'), findsOneWidget);
+    expect(find.text('Sonora'), findsAtLeast(1));
   });
 }
