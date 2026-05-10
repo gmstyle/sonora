@@ -2,14 +2,16 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/player/audio_handler.dart';
+import 'music_repository_provider.dart';
 import 'settings_provider.dart';
 
 final audioHandlerProvider = Provider<SonoraAudioHandler>((ref) {
   throw UnimplementedError('Must be overridden in main()');
 });
 
-final playerStateProvider =
-    NotifierProvider<PlayerNotifier, PlayerState>(PlayerNotifier.new);
+final playerStateProvider = NotifierProvider<PlayerNotifier, PlayerState>(
+  PlayerNotifier.new,
+);
 
 class PlayerState {
   final bool isPlaying;
@@ -69,7 +71,9 @@ class PlayerState {
       shuffleMode: shuffleMode ?? this.shuffleMode,
       repeatMode: repeatMode ?? this.repeatMode,
       sleepTimerRemaining:
-          clearSleepTimer ? null : (sleepTimerRemaining ?? this.sleepTimerRemaining),
+          clearSleepTimer
+              ? null
+              : (sleepTimerRemaining ?? this.sleepTimerRemaining),
     );
   }
 }
@@ -92,7 +96,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
       state = state.copyWith(
         isPlaying: s.playing,
         isPaused: !s.playing && s.processingState == AudioProcessingState.ready,
-        isLoading: s.processingState == AudioProcessingState.loading ||
+        isLoading:
+            s.processingState == AudioProcessingState.loading ||
             s.processingState == AudioProcessingState.buffering,
         hasError: s.processingState == AudioProcessingState.error,
         position: s.position,
@@ -132,50 +137,92 @@ class PlayerNotifier extends Notifier<PlayerState> {
     return const PlayerState();
   }
 
-  void play() => _handler.play();
+  Future<void> play() => _handler.play();
 
-  void pause() => _handler.pause();
+  Future<void> pause() => _handler.pause();
 
-  void togglePlayPause() {
+  Future<void> togglePlayPause() async {
     if (state.isPlaying) {
-      _handler.pause();
+      await _handler.pause();
     } else {
-      _handler.play();
+      await _handler.play();
     }
   }
 
-  void seek(Duration position) => _handler.seek(position);
+  Future<void> seek(Duration position) => _handler.seek(position);
 
-  void skipToNext() => _handler.skipToNext();
+  Future<void> skipToNext() => _handler.skipToNext();
 
-  void skipToPrevious() => _handler.skipToPrevious();
+  Future<void> skipToPrevious() => _handler.skipToPrevious();
 
-  void playSong(MediaItem song) {
-    _handler.setQueue([song]);
-    _handler.play();
+  Future<void> playSong(MediaItem song) async {
+    await _handler.setQueue([song]);
+    await _handler.play();
   }
 
-  void playQueue(List<MediaItem> songs, {int initialIndex = 0}) {
-    _handler.setQueue(songs, initialIndex: initialIndex);
-    _handler.play();
+  Future<void> playQueue(List<MediaItem> songs, {int initialIndex = 0}) async {
+    await _handler.setQueue(songs, initialIndex: initialIndex);
+    await _handler.play();
   }
 
-  void setShuffleMode(AudioServiceShuffleMode mode) {
-    _handler.setShuffleMode(mode);
+  Future<void> playVideoId(String videoId) async {
+    final repo = ref.read(musicRepositoryProvider);
+    try {
+      String title, artistName, thumbnailUrl;
+      int durationSec;
+      bool isVideo;
+
+      try {
+        final song = await repo.getSong(videoId);
+        title = song.name;
+        artistName = song.artist.name;
+        durationSec = song.duration;
+        thumbnailUrl =
+            song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '';
+        isVideo = false;
+      } catch (_) {
+        final video = await repo.getVideo(videoId);
+        title = video.name;
+        artistName = video.artist.name;
+        durationSec = video.duration;
+        thumbnailUrl =
+            video.thumbnails.isNotEmpty ? video.thumbnails.last.url : '';
+        isVideo = true;
+      }
+
+      final streamUrl = await repo.getStreamUrl(videoId);
+      final item = MediaItem(
+        id: videoId,
+        title: title,
+        artist: artistName,
+        duration: Duration(seconds: durationSec),
+        artUri: thumbnailUrl.isNotEmpty ? Uri.parse(thumbnailUrl) : null,
+        extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
+      );
+      await playSong(item);
+    } catch (e) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Failed to play video: $e',
+      );
+    }
   }
 
-  void toggleShuffle() {
-    final newMode = state.shuffleMode == AudioServiceShuffleMode.none
-        ? AudioServiceShuffleMode.all
-        : AudioServiceShuffleMode.none;
-    _handler.setShuffleMode(newMode);
+  Future<void> setShuffleMode(AudioServiceShuffleMode mode) =>
+      _handler.setShuffleMode(mode);
+
+  Future<void> toggleShuffle() async {
+    final newMode =
+        state.shuffleMode == AudioServiceShuffleMode.none
+            ? AudioServiceShuffleMode.all
+            : AudioServiceShuffleMode.none;
+    await _handler.setShuffleMode(newMode);
   }
 
-  void setRepeatMode(AudioServiceRepeatMode mode) {
-    _handler.setRepeatMode(mode);
-  }
+  Future<void> setRepeatMode(AudioServiceRepeatMode mode) =>
+      _handler.setRepeatMode(mode);
 
-  void cycleRepeatMode() {
+  Future<void> cycleRepeatMode() async {
     const modes = [
       AudioServiceRepeatMode.none,
       AudioServiceRepeatMode.all,
@@ -183,7 +230,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
     ];
     final idx = modes.indexOf(state.repeatMode);
     final next = modes[(idx + 1) % modes.length];
-    _handler.setRepeatMode(next);
+    await _handler.setRepeatMode(next);
   }
 
   void setSleepTimer(Duration duration) {
