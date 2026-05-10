@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/player/mini_player.dart';
+import '../../features/player/player_sheet.dart';
 
 const _icons = [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings];
 const _labels = ['Home', 'Search', 'Library', 'Downloads', 'Settings'];
@@ -48,13 +48,19 @@ class WideShell extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const MiniPlayer(),
                 ],
               ),
             ),
           ),
           const VerticalDivider(width: 1),
-          Expanded(child: navigationShell),
+          Expanded(
+            child: Stack(
+              children: [
+                navigationShell,
+                const PlayerSheet(),
+              ],
+            ),
+          ),
         ],
       ),
     );

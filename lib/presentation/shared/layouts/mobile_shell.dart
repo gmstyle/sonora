@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/player/mini_player.dart';
+import '../../features/player/player_sheet.dart';
 
 const _destinations = (
   icons: [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings],
@@ -15,10 +15,10 @@ class MobileShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(child: navigationShell),
-          const MiniPlayer(),
+          navigationShell,
+          const PlayerSheet(),
         ],
       ),
       bottomNavigationBar: NavigationBar(

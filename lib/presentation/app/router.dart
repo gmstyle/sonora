@@ -5,7 +5,6 @@ import '../features/search/search_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/downloads/downloads_screen.dart';
 import '../features/settings/settings_screen.dart';
-import '../features/player/full_player_screen.dart';
 import '../shared/layouts/app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -58,10 +57,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
-      ),
-      GoRoute(
-        path: '/player',
-        builder: (context, state) => const FullPlayerScreen(),
       ),
     ],
   );
