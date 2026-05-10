@@ -5,7 +5,9 @@ class StreamDatasource {
 
   Future<String> getStreamUrl(String videoId) async {
     final manifest = await _yt.videos.streamsClient.getManifest(videoId);
-    final audio = manifest.audioOnly.withHighestBitrate();
+    // uso muxed e non audioOnly per bug youtube_explode_dart
+    // https://github.com/Hexer10/youtube_explode_dart/issues/332
+    final audio = manifest.muxed.withHighestBitrate();
     return audio.url.toString();
   }
 

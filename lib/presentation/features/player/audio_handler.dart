@@ -31,41 +31,37 @@ class SonoraAudioHandler extends BaseAudioHandler {
       ProcessingState.completed => AudioProcessingState.completed,
     };
 
-    playbackState.add(playbackState.value.copyWith(
-      processingState: processing,
-      playing: state.playing,
-      controls: [
-        MediaControl.skipToPrevious,
-        if (state.playing) MediaControl.pause else MediaControl.play,
-        MediaControl.skipToNext,
-      ],
-      systemActions: const {
-        MediaAction.seek,
-        MediaAction.seekForward,
-        MediaAction.seekBackward,
-      },
-      androidCompactActionIndices: const [0, 1, 2],
-    ));
+    playbackState.add(
+      playbackState.value.copyWith(
+        processingState: processing,
+        playing: state.playing,
+        controls: [
+          MediaControl.skipToPrevious,
+          if (state.playing) MediaControl.pause else MediaControl.play,
+          MediaControl.skipToNext,
+        ],
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.seekForward,
+          MediaAction.seekBackward,
+        },
+        androidCompactActionIndices: const [0, 1, 2],
+      ),
+    );
   }
 
   void _onPositionChanged(Duration position) {
-    playbackState.add(playbackState.value.copyWith(
-      updatePosition: position,
-    ));
+    playbackState.add(playbackState.value.copyWith(updatePosition: position));
     _handleCrossfade(position);
   }
 
   void _onBufferedPositionChanged(Duration position) {
-    playbackState.add(playbackState.value.copyWith(
-      bufferedPosition: position,
-    ));
+    playbackState.add(playbackState.value.copyWith(bufferedPosition: position));
   }
 
   void _onCurrentIndexChanged(int? index) {
     if (index == null) return;
-    playbackState.add(playbackState.value.copyWith(
-      queueIndex: index,
-    ));
+    playbackState.add(playbackState.value.copyWith(queueIndex: index));
   }
 
   void _onSequenceStateChanged(SequenceState? sequenceState) {
@@ -74,9 +70,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (source != null) {
       mediaItem.add(source.tag as MediaItem);
     }
-    final items = sequenceState.effectiveSequence
-        .map((e) => e.tag as MediaItem)
-        .toList();
+    final items =
+        sequenceState.effectiveSequence.map((e) => e.tag as MediaItem).toList();
     queue.add(items);
 
     if (_crossfadeDuration > Duration.zero && _player.playing) {
@@ -142,20 +137,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     final remaining = duration - position;
     if (remaining > Duration.zero && remaining <= _crossfadeDuration) {
-      _applyVolume(remaining.inMilliseconds / _crossfadeDuration.inMilliseconds);
+      _applyVolume(
+        remaining.inMilliseconds / _crossfadeDuration.inMilliseconds,
+      );
     } else if (remaining > _crossfadeDuration) {
       _applyVolume(1.0);
     }
   }
 
-
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffleModeEnabled(enabled);
-    playbackState.add(playbackState.value.copyWith(
-      shuffleMode: shuffleMode,
-    ));
+    playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
   }
 
   @override
@@ -163,46 +157,37 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final loopMode = switch (repeatMode) {
       AudioServiceRepeatMode.none => LoopMode.off,
       AudioServiceRepeatMode.one => LoopMode.one,
-      AudioServiceRepeatMode.all || AudioServiceRepeatMode.group =>
-        LoopMode.all,
+      AudioServiceRepeatMode.all ||
+      AudioServiceRepeatMode.group => LoopMode.all,
     };
     await _player.setLoopMode(loopMode);
-    playbackState.add(playbackState.value.copyWith(
-      repeatMode: repeatMode,
-    ));
+    playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
   }
 
-  Future<void> setQueue(
-    List<MediaItem> items, {
-    int initialIndex = 0,
-  }) async {
+  Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     queue.add(items);
-    final audioSources = items.map((item) {
-      return AudioSource.uri(
-        Uri.parse(item.extras!['url'] as String),
-        tag: item,
-      );
-    }).toList();
-    await _player.setAudioSources(
-      audioSources,
-      initialIndex: initialIndex,
-    );
+    final audioSources =
+        items.map((item) {
+          return AudioSource.uri(
+            Uri.parse(item.extras!['url'] as String),
+            tag: item,
+          );
+        }).toList();
+    await _player.setAudioSources(audioSources, initialIndex: initialIndex);
   }
 
   @override
   Future<void> addQueueItem(MediaItem mediaItem) async {
-    final current = _player.sequence
-        .map((e) => e.tag as MediaItem)
-        .toList();
-    await setQueue([...current, mediaItem],
-        initialIndex: _player.currentIndex ?? 0);
+    final current = _player.sequence.map((e) => e.tag as MediaItem).toList();
+    await setQueue([
+      ...current,
+      mediaItem,
+    ], initialIndex: _player.currentIndex ?? 0);
   }
 
   @override
   Future<void> removeQueueItemAt(int index) async {
-    final current = _player.sequence
-        .map((e) => e.tag as MediaItem)
-        .toList();
+    final current = _player.sequence.map((e) => e.tag as MediaItem).toList();
     if (index < 0 || index >= current.length) return;
     final updated = [...current]..removeAt(index);
     final ci = _player.currentIndex ?? 0;
@@ -210,9 +195,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
-    final current = _player.sequence
-        .map((e) => e.tag as MediaItem)
-        .toList();
+    final current = _player.sequence.map((e) => e.tag as MediaItem).toList();
     if (oldIndex < 0 || oldIndex >= current.length) return;
     if (newIndex < 0 || newIndex >= current.length) return;
     final updated = [...current];
