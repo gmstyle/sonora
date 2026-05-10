@@ -16,6 +16,7 @@ class YtmusicDatasource {
   Future<void> reinitialize({required String gl, required String hl}) async {
     _gl = gl;
     _hl = hl;
+    client.hasInitialized = false;
     await client.initialize(gl: _gl, hl: _hl);
   }
 

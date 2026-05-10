@@ -1,6 +1,6 @@
-const double kCompactBreakpoint = 600;
-const double kMediumBreakpoint = 840;
-const double kExpandedBreakpoint = 1200;
+const double kCompactBreakpoint = 600.0;
+const double kMediumBreakpoint = 840.0;
+const double kExpandedBreakpoint = 1200.0;
 
 const String kAppVersion = '1.0.0+1';
 const String kGitHubRepoOwner = 'gmstyle';

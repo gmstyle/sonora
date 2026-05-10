@@ -5,7 +5,7 @@ class StreamDatasource {
 
   Future<String> getStreamUrl(String videoId) async {
     final manifest = await _yt.videos.streamsClient.getManifest(videoId);
-    final audio = manifest.audioOnly.first;
+    final audio = manifest.audioOnly.withHighestBitrate();
     return audio.url.toString();
   }
 
