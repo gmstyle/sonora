@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+  "appTitle": "Sonora",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "helloSonora": "Hello Sonora",
+  "@helloSonora": {
+    "description": "Placeholder text for Phase 0"
+  }
+}

@@ -1,0 +1,84 @@
+name: sonora
+description: A Flutter music player powered by YouTube Music.
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # ── Core Utilities ────────────────────────────────────────────
+  path: ^1.9.0
+
+  # ── YTMusic Data Layer ────────────────────────────────────────
+  dart_ytmusic_api:
+    path: ../dart_ytmusic_api
+  # dovrà usare il git mio di dart_ytmusic_api, ma per ora uso questo per lo sviluppo
+  #dart_ytmusic_api:
+  #git:
+  #  url: https://github.com/gmstyle/dart_ytmusic_api.git
+  youtube_explode_dart: ^3.0.5
+
+  # ── Audio Playback ────────────────────────────────────────────
+  just_audio: ^0.10.5
+  just_audio_media_kit: ^2.0.0
+  media_kit_libs_linux: ^1.0.0
+  audio_service: ^0.18.18
+
+  # ── State Management ──────────────────────────────────────────
+  flutter_riverpod: ^3.3.1
+
+  # ── Navigation ────────────────────────────────────────────────
+  go_router: ^17.2.3
+
+  # ── Local Database ────────────────────────────────────────────
+  drift: ^2.33.0
+  sqlite3_flutter_libs: ^0.5.4
+
+  # ── File System & Permissions ─────────────────────────────────
+  path_provider: ^2.1.5
+  permission_handler: ^11.4.0
+
+  # ── Download ─────────────────────────────────────────────────
+  dio: ^5.9.2
+
+  # ── Images ──────────────────────────────────────────────────
+  cached_network_image: ^3.4.1
+
+  # ── Sharing ───────────────────────────────────────────────────
+  share_plus: ^12.0.2
+
+  # ── App Info & Update Check ───────────────────────────────────
+  package_info_plus: ^9.0.1
+  url_launcher: ^6.3.1
+
+  # ── UX ────────────────────────────────────────────────────────
+  shimmer: ^3.0.0
+
+  # ── Settings ─────────────────────────────────────────────────
+  shared_preferences: ^2.5.3
+
+  # ── Localizzazione ────────────────────────────────────────────
+  intl: ^0.20.2
+
+  # ── Backup ──────────────────────────────────────
+  archive: ^4.0.9
+
+  # ── File Picker ──────────────────────────────────────────────
+  file_picker: ^11.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.33.0
+  build_runner: ^2.4.15
+
+flutter:
+  uses-material-design: true
+  generate: true
