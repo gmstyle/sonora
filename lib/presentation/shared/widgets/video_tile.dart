@@ -1,0 +1,35 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'song_tile.dart';
+
+class VideoTile extends ConsumerWidget {
+  final String videoId;
+  final String title;
+  final String artist;
+  final String? thumbnailUrl;
+  final int? duration;
+  final String? albumName;
+
+  const VideoTile({
+    super.key,
+    required this.videoId,
+    required this.title,
+    required this.artist,
+    this.thumbnailUrl,
+    this.duration,
+    this.albumName,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SongTile(
+      videoId: videoId,
+      title: title,
+      artist: artist,
+      thumbnailUrl: thumbnailUrl,
+      duration: duration,
+      isVideo: true,
+      albumName: albumName,
+    );
+  }
+}

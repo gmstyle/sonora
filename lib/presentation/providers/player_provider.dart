@@ -156,17 +156,20 @@ class PlayerNotifier extends Notifier<PlayerState> {
       batch.deleteAll(db.queueItems);
       for (int i = 0; i < queue.length; i++) {
         final item = queue[i];
-        batch.insert(db.queueItems, QueueItemsCompanion.insert(
-          position: Value(i),
-          videoId: item.id,
-          title: item.title,
-          artist: item.artist ?? '',
-          albumTitle: Value(item.album),
-          thumbnailUrl: Value(item.artUri?.toString()),
-          durationSec: Value(item.duration?.inSeconds),
-          isVideo: item.extras?['isVideo'] == true,
-          streamUrl: Value(item.extras?['url'] as String?),
-        ));
+        batch.insert(
+          db.queueItems,
+          QueueItemsCompanion.insert(
+            position: Value(i),
+            videoId: item.id,
+            title: item.title,
+            artist: item.artist ?? '',
+            albumTitle: Value(item.album),
+            thumbnailUrl: Value(item.artUri?.toString()),
+            durationSec: Value(item.duration?.inSeconds),
+            isVideo: item.extras?['isVideo'] == true,
+            streamUrl: Value(item.extras?['url'] as String?),
+          ),
+        );
       }
     });
   }
@@ -189,20 +192,22 @@ class PlayerNotifier extends Notifier<PlayerState> {
             url = await repo.getStreamUrl(row.videoId);
           } catch (_) {}
         }
-        items.add(MediaItem(
-          id: row.videoId,
-          title: row.title,
-          artist: row.artist,
-          album: row.albumTitle,
-          duration: Duration(seconds: row.durationSec ?? 0),
-          artUri:
-              row.thumbnailUrl != null ? Uri.parse(row.thumbnailUrl!) : null,
-          extras: {
-            if (url != null && url.isNotEmpty) 'url': url,
-            'videoId': row.videoId,
-            'isVideo': row.isVideo,
-          },
-        ));
+        items.add(
+          MediaItem(
+            id: row.videoId,
+            title: row.title,
+            artist: row.artist,
+            album: row.albumTitle,
+            duration: Duration(seconds: row.durationSec ?? 0),
+            artUri:
+                row.thumbnailUrl != null ? Uri.parse(row.thumbnailUrl!) : null,
+            extras: {
+              if (url != null && url.isNotEmpty) 'url': url,
+              'videoId': row.videoId,
+              'isVideo': row.isVideo,
+            },
+          ),
+        );
       }
 
       if (items.isNotEmpty) {
@@ -223,9 +228,69 @@ class PlayerNotifier extends Notifier<PlayerState> {
     await _persistQueue();
   }
 
+  Future<void> playNextVideoId(
+    String videoId, {
+    required String title,
+    required String artist,
+    String? thumbnailUrl,
+    int? durationSec,
+    bool isVideo = false,
+    String? albumName,
+  }) async {
+    final repo = ref.read(musicRepositoryProvider);
+    try {
+      final streamUrl = await repo.getStreamUrl(videoId);
+      final item = MediaItem(
+        id: videoId,
+        title: title,
+        artist: artist,
+        album: albumName,
+        duration: Duration(seconds: durationSec ?? 0),
+        artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
+        extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
+      );
+      await playNext(item);
+    } catch (e) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Failed to add to queue: $e',
+      );
+    }
+  }
+
   Future<void> addToQueue(MediaItem item) async {
     await _handler.addToQueue(item);
     await _persistQueue();
+  }
+
+  Future<void> addToQueueVideoId(
+    String videoId, {
+    required String title,
+    required String artist,
+    String? thumbnailUrl,
+    int? durationSec,
+    bool isVideo = false,
+    String? albumName,
+  }) async {
+    final repo = ref.read(musicRepositoryProvider);
+    try {
+      final streamUrl = await repo.getStreamUrl(videoId);
+      final item = MediaItem(
+        id: videoId,
+        title: title,
+        artist: artist,
+        album: albumName,
+        duration: Duration(seconds: durationSec ?? 0),
+        artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
+        extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
+      );
+      await addToQueue(item);
+    } catch (e) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Failed to add to queue: $e',
+      );
+    }
   }
 
   Future<void> addAllToQueue(List<MediaItem> items) async {

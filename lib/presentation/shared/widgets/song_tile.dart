@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
+import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
 class SongTile extends ConsumerWidget {
@@ -64,6 +65,16 @@ class SongTile extends ConsumerWidget {
             )
           : null,
       onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
+      onLongPress: () => ContextMenuSheet.show(
+        context,
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        albumName: albumName,
+      ),
     );
   }
 }
