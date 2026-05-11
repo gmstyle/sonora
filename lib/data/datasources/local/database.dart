@@ -42,7 +42,14 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(queueItems);
       }
       if (from < 3) {
-        await m.addColumn(queueItems, queueItems.streamUrl);
+        final tableInfo =
+            await customSelect('PRAGMA table_info(queue_items)').get();
+        final hasStreamUrl = tableInfo.any(
+          (row) => row.read<String>('name') == 'stream_url',
+        );
+        if (!hasStreamUrl) {
+          await m.addColumn(queueItems, queueItems.streamUrl);
+        }
       }
     },
   );
