@@ -164,38 +164,87 @@ class SonoraAudioHandler extends BaseAudioHandler {
     playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
   }
 
+  List<MediaItem> get _currentQueue =>
+      _player.sequence.map((e) => e.tag as MediaItem).toList();
+
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     queue.add(items);
     final audioSources =
         items.map((item) {
+          final url = item.extras?['url'] as String?;
+          if (url != null && url.isNotEmpty) {
+            return AudioSource.uri(Uri.parse(url), tag: item);
+          }
+          // Fallback to a silent audio source if no URL is provided, to ensure the queue can be set without errors.
+          // TODO(Fase 5/7): questo caso non dovrebbe mai verificarsi a regime.
+          // Ogni MediaItem deve essere inserito in coda solo DOPO che
+          // StreamDatasource.getStreamUrl(videoId) ha risolto l'URL, oppure
+          // l'handler deve risolvere l'URL on-demand in _onCurrentIndexChanged
+          // prima di avviare play(). Rimuovere questo fallback una volta che
+          // il lazy-loading di Fase 5 (playlist YT) e Fase 7 (playlist locale)
+          // è implementato correttamente.
           return AudioSource.uri(
-            Uri.parse(item.extras!['url'] as String),
+            Uri.parse(
+              'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=',
+            ),
             tag: item,
           );
         }).toList();
     await _player.setAudioSources(audioSources, initialIndex: initialIndex);
   }
 
+  Future<void> playNow(List<MediaItem> items) async {
+    await setQueue(items, initialIndex: 0);
+    await _player.play();
+  }
+
+  Future<void> playNext(MediaItem item) async {
+    final current = _currentQueue;
+    final ci = _player.currentIndex ?? 0;
+    final insertAt = (ci + 1).clamp(0, current.length);
+    final updated = [...current];
+    updated.insert(insertAt, item);
+    await setQueue(updated, initialIndex: ci);
+  }
+
   @override
   Future<void> addQueueItem(MediaItem mediaItem) async {
-    final current = _player.sequence.map((e) => e.tag as MediaItem).toList();
+    final current = _currentQueue;
     await setQueue([
       ...current,
       mediaItem,
     ], initialIndex: _player.currentIndex ?? 0);
   }
 
+  Future<void> addToQueue(MediaItem item) async {
+    await addQueueItem(item);
+  }
+
+  Future<void> addAllToQueue(List<MediaItem> items) async {
+    final current = _currentQueue;
+    await setQueue([
+      ...current,
+      ...items,
+    ], initialIndex: _player.currentIndex ?? 0);
+  }
+
   @override
   Future<void> removeQueueItemAt(int index) async {
-    final current = _player.sequence.map((e) => e.tag as MediaItem).toList();
+    final current = _currentQueue;
     if (index < 0 || index >= current.length) return;
     final updated = [...current]..removeAt(index);
     final ci = _player.currentIndex ?? 0;
     await setQueue(updated, initialIndex: ci < updated.length ? ci : 0);
   }
 
+  Future<void> clearQueue() async {
+    await _player.stop();
+    await _player.setAudioSources([]);
+    queue.add([]);
+  }
+
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
-    final current = _player.sequence.map((e) => e.tag as MediaItem).toList();
+    final current = _currentQueue;
     if (oldIndex < 0 || oldIndex >= current.length) return;
     if (newIndex < 0 || newIndex >= current.length) return;
     final updated = [...current];

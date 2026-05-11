@@ -9,6 +9,7 @@ class QueueItems extends Table {
   TextColumn get thumbnailUrl => text().nullable()();
   IntColumn get durationSec => integer().nullable()();
   BoolColumn get isVideo => boolean()();
+  TextColumn get streamUrl => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {position};

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:audio_service/audio_service.dart';
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../data/datasources/local/database.dart';
 import '../features/player/audio_handler.dart';
+import 'database_provider.dart';
 import 'music_repository_provider.dart';
 import 'settings_provider.dart';
 
@@ -21,6 +24,7 @@ class PlayerState {
   final String? errorMessage;
   final MediaItem? currentSong;
   final List<MediaItem> queue;
+  final int currentIndex;
   final Duration position;
   final Duration duration;
   final AudioServiceShuffleMode shuffleMode;
@@ -35,6 +39,7 @@ class PlayerState {
     this.errorMessage,
     this.currentSong,
     this.queue = const [],
+    this.currentIndex = 0,
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.shuffleMode = AudioServiceShuffleMode.none,
@@ -50,6 +55,7 @@ class PlayerState {
     String? errorMessage,
     MediaItem? currentSong,
     List<MediaItem>? queue,
+    int? currentIndex,
     Duration? position,
     Duration? duration,
     AudioServiceShuffleMode? shuffleMode,
@@ -66,6 +72,7 @@ class PlayerState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       currentSong: currentSong ?? this.currentSong,
       queue: queue ?? this.queue,
+      currentIndex: currentIndex ?? this.currentIndex,
       position: position ?? this.position,
       duration: duration ?? this.duration,
       shuffleMode: shuffleMode ?? this.shuffleMode,
@@ -101,6 +108,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
             s.processingState == AudioProcessingState.buffering,
         hasError: s.processingState == AudioProcessingState.error,
         position: s.position,
+        currentIndex: s.queueIndex ?? 0,
         shuffleMode: s.shuffleMode,
         repeatMode: s.repeatMode,
       );
@@ -134,8 +142,109 @@ class PlayerNotifier extends Notifier<PlayerState> {
       }
     });
 
+    if (ref.read(settingsProvider).restoreQueueOnStartup) {
+      _restoreQueue();
+    }
+
     return const PlayerState();
   }
+
+  Future<void> _persistQueue() async {
+    final db = ref.read(databaseProvider);
+    final queue = state.queue;
+    await db.batch((batch) {
+      batch.deleteAll(db.queueItems);
+      for (int i = 0; i < queue.length; i++) {
+        final item = queue[i];
+        batch.insert(db.queueItems, QueueItemsCompanion.insert(
+          position: Value(i),
+          videoId: item.id,
+          title: item.title,
+          artist: item.artist ?? '',
+          albumTitle: Value(item.album),
+          thumbnailUrl: Value(item.artUri?.toString()),
+          durationSec: Value(item.duration?.inSeconds),
+          isVideo: item.extras?['isVideo'] == true,
+          streamUrl: Value(item.extras?['url'] as String?),
+        ));
+      }
+    });
+  }
+
+  Future<void> _restoreQueue() async {
+    try {
+      final db = ref.read(databaseProvider);
+      final rows = await db.select(db.queueItems).get();
+      rows.sort((a, b) => a.position.compareTo(b.position));
+      if (rows.isEmpty) return;
+
+      final repo = ref.read(musicRepositoryProvider);
+      final items = <MediaItem>[];
+
+      for (int i = 0; i < rows.length; i++) {
+        final row = rows[i];
+        String? url = row.streamUrl;
+        if (i == 0 && (url == null || url.isEmpty)) {
+          try {
+            url = await repo.getStreamUrl(row.videoId);
+          } catch (_) {}
+        }
+        items.add(MediaItem(
+          id: row.videoId,
+          title: row.title,
+          artist: row.artist,
+          album: row.albumTitle,
+          duration: Duration(seconds: row.durationSec ?? 0),
+          artUri:
+              row.thumbnailUrl != null ? Uri.parse(row.thumbnailUrl!) : null,
+          extras: {
+            if (url != null && url.isNotEmpty) 'url': url,
+            'videoId': row.videoId,
+            'isVideo': row.isVideo,
+          },
+        ));
+      }
+
+      if (items.isNotEmpty) {
+        await _handler.setQueue(items, initialIndex: 0);
+      }
+    } catch (_) {}
+  }
+
+  // ── API mutazione coda ────────────────────────────────────────
+
+  Future<void> playNow(List<MediaItem> items) async {
+    await _handler.playNow(items);
+    await _persistQueue();
+  }
+
+  Future<void> playNext(MediaItem item) async {
+    await _handler.playNext(item);
+    await _persistQueue();
+  }
+
+  Future<void> addToQueue(MediaItem item) async {
+    await _handler.addToQueue(item);
+    await _persistQueue();
+  }
+
+  Future<void> addAllToQueue(List<MediaItem> items) async {
+    await _handler.addAllToQueue(items);
+    await _persistQueue();
+  }
+
+  Future<void> removeAt(int index) async {
+    await _handler.removeQueueItemAt(index);
+    await _persistQueue();
+  }
+
+  Future<void> clearQueue() async {
+    await _handler.clearQueue();
+    final db = ref.read(databaseProvider);
+    await db.delete(db.queueItems).go();
+  }
+
+  // ── Metodi base ───────────────────────────────────────────────
 
   Future<void> play() => _handler.play();
 
@@ -158,11 +267,12 @@ class PlayerNotifier extends Notifier<PlayerState> {
   Future<void> playSong(MediaItem song) async {
     await _handler.setQueue([song]);
     await _handler.play();
+    await _persistQueue();
   }
 
   Future<void> playQueue(List<MediaItem> songs, {int initialIndex = 0}) async {
-    await _handler.setQueue(songs, initialIndex: initialIndex);
-    await _handler.play();
+    await _handler.playNow(songs);
+    await _persistQueue();
   }
 
   Future<void> playVideoId(String videoId) async {

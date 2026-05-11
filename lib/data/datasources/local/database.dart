@@ -33,13 +33,16 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase create() => AppDatabase._();
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(queueItems);
+      }
+      if (from < 3) {
+        await m.addColumn(queueItems, queueItems.streamUrl);
       }
     },
   );
