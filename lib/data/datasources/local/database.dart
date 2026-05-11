@@ -9,6 +9,7 @@ import 'tables/playlist_entries_table.dart';
 import 'tables/downloads_table.dart';
 import 'tables/history_table.dart';
 import 'tables/search_history_table.dart';
+import 'tables/queue_items_table.dart';
 
 part 'database.g.dart';
 
@@ -21,6 +22,7 @@ part 'database.g.dart';
     Downloads,
     History,
     SearchHistory,
+    QueueItems,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -31,7 +33,16 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase create() => AppDatabase._();
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(queueItems);
+      }
+    },
+  );
 }
 
 QueryExecutor _openConnection() {
