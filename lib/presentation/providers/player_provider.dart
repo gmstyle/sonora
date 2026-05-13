@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'package:audio_service/audio_service.dart';
-import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/datasources/local/database.dart';
 import '../features/player/audio_handler.dart';
-import 'database_provider.dart';
 import 'music_repository_provider.dart';
+import 'queue_repository_provider.dart';
 import 'settings_provider.dart';
 
 final audioHandlerProvider = Provider<SonoraAudioHandler>((ref) {
@@ -150,76 +148,34 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> _persistQueue() async {
-    final db = ref.read(databaseProvider);
-    final queue = state.queue;
-    await db.batch((batch) {
-      batch.deleteAll(db.queueItems);
-      for (int i = 0; i < queue.length; i++) {
-        final item = queue[i];
-        batch.insert(
-          db.queueItems,
-          QueueItemsCompanion.insert(
-            position: Value(i),
-            videoId: item.id,
-            title: item.title,
-            artist: item.artist ?? '',
-            albumTitle: Value(item.album),
-            thumbnailUrl: Value(item.artUri?.toString()),
-            durationSec: Value(item.duration?.inSeconds),
-            isVideo: item.extras?['isVideo'] == true,
-            streamUrl: Value(item.extras?['url'] as String?),
-          ),
-        );
-      }
-    });
+    await ref.read(queueRepositoryProvider).persistQueue(state.queue);
   }
 
   Future<void> _restoreQueue() async {
     try {
-      final db = ref.read(databaseProvider);
-      final rows = await db.select(db.queueItems).get();
-      rows.sort((a, b) => a.position.compareTo(b.position));
-      if (rows.isEmpty) return;
+      var items = await ref.read(queueRepositoryProvider).restoreQueue();
+      if (items.isEmpty) return;
 
-      final repo = ref.read(musicRepositoryProvider);
-      final items = <MediaItem>[];
-
-      for (int i = 0; i < rows.length; i++) {
-        final row = rows[i];
-        String? url = row.streamUrl;
-        if (i == 0 && (url == null || url.isEmpty)) {
-          try {
-            url = await repo.getStreamUrl(row.videoId);
-          } catch (_) {}
-        }
-        items.add(
-          MediaItem(
-            id: row.videoId,
-            title: row.title,
-            artist: row.artist,
-            album: row.albumTitle,
-            duration: Duration(seconds: row.durationSec ?? 0),
-            artUri:
-                row.thumbnailUrl != null ? Uri.parse(row.thumbnailUrl!) : null,
-            extras: {
-              if (url != null && url.isNotEmpty) 'url': url,
-              'videoId': row.videoId,
-              'isVideo': row.isVideo,
-            },
-          ),
-        );
+      // Preload stream URL for the first item if it wasn't persisted.
+      final firstUrl = items[0].extras?['url'] as String?;
+      if (firstUrl == null || firstUrl.isEmpty) {
+        try {
+          final repo = ref.read(musicRepositoryProvider);
+          final url = await repo.getStreamUrl(items[0].id);
+          items[0] = items[0].copyWith(
+            extras: {...?items[0].extras, 'url': url},
+          );
+        } catch (_) {}
       }
 
-      if (items.isNotEmpty) {
-        await _handler.setQueue(items, initialIndex: 0);
-      }
+      await _handler.setQueue(items, initialIndex: 0);
     } catch (_) {}
   }
 
   // ── API mutazione coda ────────────────────────────────────────
 
-  Future<void> playNow(List<MediaItem> items) async {
-    await _handler.playNow(items);
+  Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
+    await _handler.playNow(items, initialIndex: initialIndex);
     await _persistQueue();
   }
 
@@ -305,8 +261,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   Future<void> clearQueue() async {
     await _handler.clearQueue();
-    final db = ref.read(databaseProvider);
-    await db.delete(db.queueItems).go();
+    await ref.read(queueRepositoryProvider).clearQueue();
   }
 
   // ── Metodi base ───────────────────────────────────────────────

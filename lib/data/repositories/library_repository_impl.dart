@@ -1,3 +1,6 @@
+import 'package:drift/drift.dart';
+
+import '../../domain/models/library_models.dart';
 import '../../domain/repositories/library_repository.dart';
 import '../datasources/local/database.dart';
 import '../datasources/local/daos/library_dao.dart';
@@ -18,21 +21,35 @@ class LibraryRepositoryImpl implements LibraryRepository {
     this._historyDao,
   );
 
-  @override
-  Future<List<LikedSong>> getAllLikedSongs() =>
-      _libraryDao.getAllLikedSongs();
+  // ── Liked Songs ──────────────────────────────────────────────
 
   @override
-  Future<LikedSong?> getLikedSong(String videoId) =>
-      _libraryDao.getLikedSong(videoId);
+  Future<List<LikedSongModel>> getAllLikedSongs() async {
+    final rows = await _libraryDao.getAllLikedSongs();
+    return rows.map(_mapLikedSong).toList();
+  }
 
   @override
-  Future<void> toggleLikedSong(LikedSong song) async {
+  Future<LikedSongModel?> getLikedSong(String videoId) async {
+    final row = await _libraryDao.getLikedSong(videoId);
+    return row != null ? _mapLikedSong(row) : null;
+  }
+
+  @override
+  Future<void> toggleLikedSong(LikedSongModel song) async {
     final existing = await _libraryDao.getLikedSong(song.videoId);
     if (existing != null) {
       await _libraryDao.deleteLikedSong(song.videoId);
     } else {
-      await _libraryDao.insertLikedSong(song.toCompanion(true));
+      await _libraryDao.insertLikedSong(
+        LikedSongsCompanion.insert(
+          videoId: song.videoId,
+          title: song.title,
+          artist: song.artist,
+          thumbnailUrl: Value(song.thumbnailUrl),
+          addedAt: song.addedAt,
+        ),
+      );
     }
   }
 
@@ -40,17 +57,33 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> deleteLikedSong(String videoId) =>
       _libraryDao.deleteLikedSong(videoId);
 
-  @override
-  Future<List<FollowedArtist>> getAllFollowedArtists() =>
-      _libraryDao.getAllFollowedArtists();
+  // ── Followed Artists ─────────────────────────────────────────
 
   @override
-  Future<void> toggleFollowedArtist(FollowedArtist artist) async {
+  Future<List<FollowedArtistModel>> getAllFollowedArtists() async {
+    final rows = await _libraryDao.getAllFollowedArtists();
+    return rows.map(_mapFollowedArtist).toList();
+  }
+
+  @override
+  Future<FollowedArtistModel?> getFollowedArtist(String artistId) async {
+    final row = await _libraryDao.getFollowedArtist(artistId);
+    return row != null ? _mapFollowedArtist(row) : null;
+  }
+
+  @override
+  Future<void> toggleFollowedArtist(FollowedArtistModel artist) async {
     final existing = await _libraryDao.getFollowedArtist(artist.artistId);
     if (existing != null) {
       await _libraryDao.deleteFollowedArtist(artist.artistId);
     } else {
-      await _libraryDao.insertFollowedArtist(artist.toCompanion(true));
+      await _libraryDao.insertFollowedArtist(
+        FollowedArtistsCompanion.insert(
+          artistId: artist.artistId,
+          name: artist.name,
+          thumbnailUrl: Value(artist.thumbnailUrl),
+        ),
+      );
     }
   }
 
@@ -58,9 +91,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> deleteFollowedArtist(String artistId) =>
       _libraryDao.deleteFollowedArtist(artistId);
 
+  // ── Playlists ─────────────────────────────────────────────────
+
   @override
-  Future<List<LocalPlaylist>> getAllPlaylists() =>
-      _playlistsDao.getAllPlaylists();
+  Future<List<LocalPlaylistModel>> getAllPlaylists() async {
+    final rows = await _playlistsDao.getAllPlaylists();
+    return rows.map(_mapPlaylist).toList();
+  }
 
   @override
   Future<int> createPlaylist(String name, {String? description}) =>
@@ -70,8 +107,18 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> deletePlaylist(int id) => _playlistsDao.deletePlaylist(id);
 
   @override
-  Future<List<PlaylistEntry>> getPlaylistEntries(int playlistId) =>
-      _playlistsDao.getPlaylistEntries(playlistId);
+  Future<List<PlaylistEntryModel>> getPlaylistEntries(int playlistId) async {
+    final rows = await _playlistsDao.getPlaylistEntries(playlistId);
+    return rows
+        .map(
+          (r) => PlaylistEntryModel(
+            playlistId: r.playlistId,
+            videoId: r.videoId,
+            position: r.position,
+          ),
+        )
+        .toList();
+  }
 
   @override
   Future<void> addEntry(int playlistId, String videoId, int position) =>
@@ -81,20 +128,66 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> removeEntry(int playlistId, String videoId) =>
       _playlistsDao.removeEntry(playlistId, videoId);
 
-  @override
-  Future<List<Download>> getAllDownloads() => _downloadsDao.getAllDownloads();
+  // ── Downloads ─────────────────────────────────────────────────
 
   @override
-  Future<void> insertDownload(DownloadsCompanion entry) =>
-      _downloadsDao.insertDownload(entry);
+  Future<List<DownloadModel>> getAllDownloads() async {
+    final rows = await _downloadsDao.getAllDownloads();
+    return rows
+        .map(
+          (r) => DownloadModel(
+            videoId: r.videoId,
+            localPath: r.localPath,
+            format: r.format,
+            fileSize: r.fileSize,
+            downloadedAt: r.downloadedAt,
+            status: r.status,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<void> insertDownload({
+    required String videoId,
+    required String status,
+    String? localPath,
+    String? format,
+    int? fileSize,
+    DateTime? downloadedAt,
+  }) => _downloadsDao.insertDownload(
+    DownloadsCompanion.insert(
+      videoId: videoId,
+      status: status,
+      localPath: Value(localPath),
+      format: Value(format),
+      fileSize: Value(fileSize),
+      downloadedAt: Value(downloadedAt),
+    ),
+  );
 
   @override
   Future<void> deleteDownload(String videoId) =>
       _downloadsDao.deleteDownload(videoId);
 
+  // ── History ───────────────────────────────────────────────────
+
   @override
-  Future<List<HistoryData>> getRecentHistory({int limit = 50}) =>
-      _historyDao.getRecentHistory(limit: limit);
+  Future<List<HistoryModel>> getRecentHistory({int limit = 50}) async {
+    final rows = await _historyDao.getRecentHistory(limit: limit);
+    return rows
+        .map(
+          (r) => HistoryModel(
+            id: r.id,
+            videoId: r.videoId,
+            title: r.title,
+            artist: r.artist,
+            playedAt: r.playedAt,
+            playCount: r.playCount,
+          ),
+        )
+        .toList();
+  }
 
   @override
   Future<void> recordPlay(String videoId, String title, String artist) =>
@@ -103,14 +196,50 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<void> clearHistory() => _historyDao.clearHistory();
 
+  // ── Search History ────────────────────────────────────────────
+
   @override
   Future<void> insertSearchEntry(String query) =>
       _historyDao.insertSearchEntry(query);
 
   @override
-  Future<List<SearchHistoryData>> getRecentSearches({int limit = 10}) =>
-      _historyDao.getRecentSearches(limit: limit);
+  Future<List<SearchHistoryModel>> getRecentSearches({int limit = 10}) async {
+    final rows = await _historyDao.getRecentSearches(limit: limit);
+    return rows
+        .map(
+          (r) => SearchHistoryModel(
+            id: r.id,
+            query: r.query,
+            searchedAt: r.searchedAt,
+          ),
+        )
+        .toList();
+  }
 
   @override
   Future<void> clearSearchHistory() => _historyDao.clearSearchHistory();
+
+  // ── Mapping helpers ───────────────────────────────────────────
+
+  LikedSongModel _mapLikedSong(LikedSong r) => LikedSongModel(
+    videoId: r.videoId,
+    title: r.title,
+    artist: r.artist,
+    thumbnailUrl: r.thumbnailUrl,
+    addedAt: r.addedAt,
+  );
+
+  FollowedArtistModel _mapFollowedArtist(FollowedArtist r) =>
+      FollowedArtistModel(
+        artistId: r.artistId,
+        name: r.name,
+        thumbnailUrl: r.thumbnailUrl,
+      );
+
+  LocalPlaylistModel _mapPlaylist(LocalPlaylist r) => LocalPlaylistModel(
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    createdAt: r.createdAt,
+  );
 }

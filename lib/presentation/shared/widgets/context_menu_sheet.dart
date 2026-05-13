@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../data/datasources/local/database.dart';
+import '../../../domain/models/library_models.dart';
 import '../../providers/library_repository_provider.dart';
 import '../../providers/player_provider.dart';
 
@@ -281,7 +281,7 @@ class _LikeActionTileState extends ConsumerState<_LikeActionTile> {
               ? () async {
                 final repo = ref.read(libraryRepositoryProvider);
                 await repo.toggleLikedSong(
-                  LikedSong(
+                  LikedSongModel(
                     videoId: widget.videoId,
                     title: widget.title,
                     artist: widget.artist,
@@ -319,7 +319,7 @@ class _PlaylistPickerSheet extends ConsumerStatefulWidget {
 }
 
 class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
-  late Future<List<LocalPlaylist>> _playlistsFuture;
+  late Future<List<LocalPlaylistModel>> _playlistsFuture;
 
   @override
   void initState() {
@@ -332,9 +332,9 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.only(bottom: 16),
-        child: FutureBuilder<List<LocalPlaylist>>(
+        child: FutureBuilder<List<LocalPlaylistModel>>(
           future: _playlistsFuture,
-          builder: (context, snapshot) {
+          builder: (context, AsyncSnapshot<List<LocalPlaylistModel>> snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
             }

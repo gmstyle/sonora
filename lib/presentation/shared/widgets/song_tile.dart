@@ -12,6 +12,7 @@ class SongTile extends ConsumerWidget {
   final int? duration;
   final bool isVideo;
   final String? albumName;
+  final VoidCallback? onTap;
 
   const SongTile({
     super.key,
@@ -22,6 +23,7 @@ class SongTile extends ConsumerWidget {
     this.duration,
     this.isVideo = false,
     this.albumName,
+    this.onTap,
   });
 
   @override
@@ -64,7 +66,7 @@ class SongTile extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodySmall,
             )
           : null,
-      onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
+      onTap: onTap ?? () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
       onLongPress: () => ContextMenuSheet.show(
         context,
         videoId: videoId,

@@ -193,8 +193,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _player.setAudioSources(audioSources, initialIndex: initialIndex);
   }
 
-  Future<void> playNow(List<MediaItem> items) async {
-    await setQueue(items, initialIndex: 0);
+  Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
+    await setQueue(items, initialIndex: initialIndex);
     await _player.play();
   }
 

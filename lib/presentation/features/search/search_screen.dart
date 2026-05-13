@@ -2,7 +2,6 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../providers/library_repository_provider.dart';
 import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/artist_tile.dart';
 import '../../shared/widgets/empty_state_widget.dart';
@@ -42,10 +41,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       TextPosition(offset: query.length),
     );
     ref.read(searchQueryProvider.notifier).update(query);
-    ref.read(activeSearchQueryProvider.notifier).update(query);
-    if (query.isNotEmpty) {
-      ref.read(libraryRepositoryProvider).insertSearchEntry(query);
-    }
+    ref.read(activeSearchQueryProvider.notifier).submit(query);
     _focusNode.unfocus();
   }
 

@@ -15,22 +15,41 @@ class _SearchFilterNotifier extends Notifier<int> {
   void update(int value) => state = value;
 }
 
-final searchQueryProvider =
-    NotifierProvider<_SearchQueryNotifier, String>(_SearchQueryNotifier.new);
+/// Notifier for the active (submitted) search query.
+/// Persists the query to search history as a side-effect of [submit].
+class _ActiveSearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void update(String value) => state = value;
+
+  Future<void> submit(String query) async {
+    state = query;
+    if (query.isNotEmpty) {
+      await ref.read(libraryRepositoryProvider).insertSearchEntry(query);
+    }
+  }
+}
+
+final searchQueryProvider = NotifierProvider<_SearchQueryNotifier, String>(
+  _SearchQueryNotifier.new,
+);
 
 final activeSearchQueryProvider =
-    NotifierProvider<_SearchQueryNotifier, String>(_SearchQueryNotifier.new);
+    NotifierProvider<_ActiveSearchQueryNotifier, String>(
+      _ActiveSearchQueryNotifier.new,
+    );
 
-final searchFilterProvider =
-    NotifierProvider<_SearchFilterNotifier, int>(_SearchFilterNotifier.new);
+final searchFilterProvider = NotifierProvider<_SearchFilterNotifier, int>(
+  _SearchFilterNotifier.new,
+);
 
 final recentSearchesProvider = FutureProvider((ref) {
   final repo = ref.watch(libraryRepositoryProvider);
   return repo.getRecentSearches();
 });
 
-final searchSuggestionsProvider =
-    FutureProvider<List<String>>((ref) {
+final searchSuggestionsProvider = FutureProvider<List<String>>((ref) {
   final query = ref.watch(searchQueryProvider);
   if (query.length < 2) return [];
   final repo = ref.watch(musicRepositoryProvider);
