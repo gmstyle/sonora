@@ -13,7 +13,7 @@ import 'presentation/providers/player_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  JustAudioMediaKit.ensureInitialized(android: true, linux: true);
+  if (isLinux) JustAudioMediaKit.ensureInitialized();
 
   await YTMusic().initialize();
 
