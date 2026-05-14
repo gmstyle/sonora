@@ -4,11 +4,25 @@ import '../../providers/player_provider.dart';
 import 'mini_player_content.dart';
 import 'full_player_content.dart';
 
-class PlayerSheet extends ConsumerWidget {
+class PlayerSheet extends ConsumerStatefulWidget {
   const PlayerSheet({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PlayerSheet> createState() => _PlayerSheetState();
+}
+
+class _PlayerSheetState extends ConsumerState<PlayerSheet> {
+  final DraggableScrollableController _controller =
+      DraggableScrollableController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final playerState = ref.watch(playerStateProvider);
     final currentSong = playerState.currentSong;
 
@@ -24,6 +38,7 @@ class PlayerSheet extends ConsumerWidget {
         final minRatio = 72.0 / availableHeight;
 
         return DraggableScrollableSheet(
+          controller: _controller,
           initialChildSize: minRatio,
           minChildSize: minRatio,
           maxChildSize: 1.0,
@@ -43,18 +58,24 @@ class PlayerSheet extends ConsumerWidget {
                     currentSong: currentSong,
                     playerState: playerState,
                     isVideo: isVideo,
-                    onPlayPause: () =>
-                        ref.read(playerStateProvider.notifier).togglePlayPause(),
-                    onSkipNext: () =>
-                        ref.read(playerStateProvider.notifier).skipToNext(),
+                    onTap:
+                        () => _controller.animateTo(
+                          1.0,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOut,
+                        ),
+                    onPlayPause:
+                        () =>
+                            ref
+                                .read(playerStateProvider.notifier)
+                                .togglePlayPause(),
+                    onSkipNext:
+                        () =>
+                            ref.read(playerStateProvider.notifier).skipToNext(),
                   ),
                   SizedBox(
                     height: availableHeight - 72,
-                    child: FullPlayerContent(
-                      currentSong: currentSong,
-                      playerState: playerState,
-                      isVideo: isVideo,
-                    ),
+                    child: const FullPlayerContent(),
                   ),
                 ],
               ),

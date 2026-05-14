@@ -1,12 +1,11 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/library_repository_provider.dart';
-import '../../providers/music_repository_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
@@ -430,40 +429,17 @@ class _ArtistRadioButton extends ConsumerWidget {
     WidgetRef ref,
     String videoId,
   ) async {
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(startRadioUseCaseProvider);
+
     try {
-      final player = ref.read(playerStateProvider.notifier);
-      final repo = ref.read(musicRepositoryProvider);
-      final upNexts = await repo.getUpNexts(videoId);
+      final result = await useCase.execute(videoId);
+      await player.playNow([result.firstItem]);
 
-      if (upNexts.isEmpty) return;
-
-      final items = <MediaItem>[];
-      for (final item in upNexts) {
-        try {
-          final url = await repo.getStreamUrl(item.videoId);
-          items.add(
-            MediaItem(
-              id: item.videoId,
-              title: item.title,
-              artist: item.artists.name,
-              album: item.album?.name,
-              duration: Duration(seconds: item.duration),
-              artUri:
-                  item.thumbnails.isNotEmpty
-                      ? Uri.parse(item.thumbnails.last.url)
-                      : null,
-              extras: {
-                'url': url,
-                'videoId': item.videoId,
-                'isVideo': item.type == 'VIDEO',
-              },
-            ),
-          );
-        } catch (_) {}
-      }
-
-      if (items.isNotEmpty) {
-        await player.playNow(items);
+      if (result.remaining.isNotEmpty) {
+        useCase.resolveRemaining(result.remaining).then((items) {
+          if (items.isNotEmpty) player.addAllToQueue(items);
+        });
       }
     } catch (e) {
       if (context.mounted) {

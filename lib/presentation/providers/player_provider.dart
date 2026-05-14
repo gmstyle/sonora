@@ -259,6 +259,11 @@ class PlayerNotifier extends Notifier<PlayerState> {
     await _persistQueue();
   }
 
+  Future<void> moveQueueItem(int oldIndex, int newIndex) async {
+    await _handler.moveQueueItem(oldIndex, newIndex);
+    await _persistQueue();
+  }
+
   Future<void> clearQueue() async {
     await _handler.clearQueue();
     await ref.read(queueRepositoryProvider).clearQueue();
