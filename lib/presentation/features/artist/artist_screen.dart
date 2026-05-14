@@ -203,6 +203,24 @@ class _ArtistContent extends ConsumerWidget {
                     ),
                     const SizedBox(height: 24),
                   ],
+                  if (artist.topVideos.isNotEmpty) ...[
+                    _SectionHeader(title: 'Videos'),
+                    const SizedBox(height: 8),
+                    ...artist.topVideos.map(
+                      (video) => SongTile(
+                        videoId: video.videoId,
+                        title: video.name,
+                        artist: video.artist.name,
+                        thumbnailUrl:
+                            video.thumbnails.isNotEmpty
+                                ? video.thumbnails.last.url
+                                : null,
+                        duration: video.duration,
+                        isVideo: true,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   if (artist.similarArtists.isNotEmpty) ...[
                     _SectionHeader(title: 'Similar Artists'),
                     const SizedBox(height: 8),
@@ -514,6 +532,17 @@ class _ArtistShimmer extends StatelessWidget {
                 const _SectionHeader(title: ''),
                 const SizedBox(height: 8),
                 ShimmerLoading(variant: ShimmerVariant.carousel),
+                const SizedBox(height: 16),
+                const _SectionHeader(title: ''),
+                const SizedBox(height: 8),
+                ShimmerLoading(variant: ShimmerVariant.carousel),
+                const SizedBox(height: 16),
+                const _SectionHeader(title: ''),
+                const SizedBox(height: 8),
+                ...List.generate(
+                  2,
+                  (_) => ShimmerLoading(variant: ShimmerVariant.tile),
+                ),
                 const SizedBox(height: 16),
                 const _SectionHeader(title: ''),
                 const SizedBox(height: 8),
