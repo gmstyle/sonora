@@ -4,25 +4,11 @@ import '../../providers/player_provider.dart';
 import 'mini_player_content.dart';
 import 'full_player_content.dart';
 
-class PlayerSheet extends ConsumerStatefulWidget {
+class PlayerSheet extends ConsumerWidget {
   const PlayerSheet({super.key});
 
   @override
-  ConsumerState<PlayerSheet> createState() => _PlayerSheetState();
-}
-
-class _PlayerSheetState extends ConsumerState<PlayerSheet> {
-  final DraggableScrollableController _controller =
-      DraggableScrollableController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(playerStateProvider);
     final currentSong = playerState.currentSong;
 
@@ -30,59 +16,33 @@ class _PlayerSheetState extends ConsumerState<PlayerSheet> {
 
     final isVideo = currentSong.extras?['isVideo'] == true;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableHeight = constraints.maxHeight;
-        if (availableHeight <= 0) return const SizedBox.shrink();
-
-        final minRatio = 72.0 / availableHeight;
-
-        return DraggableScrollableSheet(
-          controller: _controller,
-          initialChildSize: minRatio,
-          minChildSize: minRatio,
-          maxChildSize: 1.0,
-          snap: true,
-          snapSizes: [minRatio, 1.0],
-          builder: (context, scrollController) {
-            return ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-              child: ListView(
-                controller: scrollController,
-                padding: EdgeInsets.zero,
-                children: [
-                  MiniPlayerContent(
-                    currentSong: currentSong,
-                    playerState: playerState,
-                    isVideo: isVideo,
-                    onTap:
-                        () => _controller.animateTo(
-                          1.0,
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.easeInOut,
-                        ),
-                    onPlayPause:
-                        () =>
-                            ref
-                                .read(playerStateProvider.notifier)
-                                .togglePlayPause(),
-                    onSkipNext:
-                        () =>
-                            ref.read(playerStateProvider.notifier).skipToNext(),
-                  ),
-                  SizedBox(
-                    height: availableHeight - 72,
-                    child: const FullPlayerContent(),
-                  ),
-                ],
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(12),
+          topRight: Radius.circular(12),
+        ),
+        child: MiniPlayerContent(
+          currentSong: currentSong,
+          playerState: playerState,
+          isVideo: isVideo,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                builder: (_) => const FullPlayerContent(),
               ),
             );
           },
-        );
-      },
+          onPlayPause:
+              () => ref.read(playerStateProvider.notifier).togglePlayPause(),
+          onSkipNext:
+              () => ref.read(playerStateProvider.notifier).skipToNext(),
+        ),
+      ),
     );
   }
 }

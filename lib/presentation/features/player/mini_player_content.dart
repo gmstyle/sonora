@@ -46,22 +46,32 @@ class MiniPlayerContent extends StatelessWidget {
                 child: SizedBox(
                   width: 48,
                   height: 48,
-                  child: currentSong.artUri != null
-                      ? CachedNetworkImage(
-                          imageUrl: currentSong.artUri!.toString(),
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) => Container(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          ),
-                          errorWidget: (_, _, _) => Icon(
+                  child:
+                      currentSong.artUri != null
+                          ? CachedNetworkImage(
+                            imageUrl: currentSong.artUri!.toString(),
+                            fit: BoxFit.cover,
+                            placeholder:
+                                (_, _) => Container(
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                ),
+                            errorWidget:
+                                (_, _, _) => Icon(
+                                  Icons.music_note,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                ),
+                          )
+                          : Icon(
                             Icons.music_note,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
-                        )
-                      : Icon(
-                          Icons.music_note,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
                 ),
               ),
             ),
@@ -89,13 +99,19 @@ class MiniPlayerContent extends StatelessWidget {
                             vertical: 1,
                           ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.tertiaryContainer,
+                            color:
+                                Theme.of(context).colorScheme.tertiaryContainer,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             'MV',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onTertiaryContainer,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onTertiaryContainer,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

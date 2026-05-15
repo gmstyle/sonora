@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/music_repository_provider.dart';
 
-final lyricsProvider =
-    FutureProvider.family<TimedLyricsRes?, String>((ref, videoId) async {
+final lyricsProvider = FutureProvider.family<TimedLyricsRes?, String>((
+  ref,
+  videoId,
+) async {
   final repo = ref.watch(musicRepositoryProvider);
   final timed = await repo.getTimedLyrics(videoId);
   if (timed != null && timed.timedLyricsData.isNotEmpty) return timed;
   return null;
 });
 
-final plainLyricsProvider =
-    FutureProvider.family<String?, String>((ref, videoId) async {
+final plainLyricsProvider = FutureProvider.family<String?, String>((
+  ref,
+  videoId,
+) async {
   final repo = ref.watch(musicRepositoryProvider);
   return repo.getLyrics(videoId);
 });
@@ -21,11 +25,7 @@ class LyricsView extends ConsumerWidget {
   final String videoId;
   final Duration? position;
 
-  const LyricsView({
-    super.key,
-    required this.videoId,
-    this.position,
-  });
+  const LyricsView({super.key, required this.videoId, this.position});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,19 +83,35 @@ class LyricsView extends ConsumerWidget {
   }
 }
 
-class _TimedLyricsView extends StatelessWidget {
+class _TimedLyricsView extends StatefulWidget {
   final TimedLyricsRes lyrics;
   final Duration? position;
 
-  const _TimedLyricsView({
-    required this.lyrics,
-    this.position,
-  });
+  const _TimedLyricsView({required this.lyrics, this.position});
 
   @override
-  Widget build(BuildContext context) {
-    final data = lyrics.timedLyricsData;
-    final posMs = position?.inMilliseconds ?? 0;
+  State<_TimedLyricsView> createState() => _TimedLyricsViewState();
+}
+
+class _TimedLyricsViewState extends State<_TimedLyricsView> {
+  int _lastActiveIndex = -1;
+  late List<GlobalKey> _keys;
+
+  @override
+  void initState() {
+    super.initState();
+    _keys = List.generate(
+      widget.lyrics.timedLyricsData.length,
+      (_) => GlobalKey(),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _TimedLyricsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final data = widget.lyrics.timedLyricsData;
+    final posMs = widget.position?.inMilliseconds ?? 0;
 
     int activeIndex = 0;
     for (int i = 0; i < data.length; i++) {
@@ -105,38 +121,81 @@ class _TimedLyricsView extends StatelessWidget {
       }
     }
 
-    return ListView.builder(
-      itemCount: data.length,
-      padding: EdgeInsets.symmetric(
-        vertical: MediaQuery.of(context).size.height * 0.3,
-      ),
-      itemBuilder: (context, index) {
-        final line = data[index];
-        final isActive = index == activeIndex;
-        final isPast = index < activeIndex;
+    if (activeIndex != _lastActiveIndex && activeIndex < _keys.length) {
+      _lastActiveIndex = activeIndex;
+      _scrollToActiveIndex(activeIndex);
+    }
+  }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-          child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 300),
-            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : isPast
-                      ? Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant
-                          .withValues(alpha: 0.5)
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            child: Text(
-              line.lyricLine ?? '',
-              textAlign: TextAlign.center,
-            ),
-          ),
+  void _scrollToActiveIndex(int index) {
+    if (index < 0 || index >= _keys.length) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final key = _keys[index];
+      final context = key.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+          alignment: 0.5,
         );
-      },
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.lyrics.timedLyricsData;
+    final posMs = widget.position?.inMilliseconds ?? 0;
+
+    int activeIndex = 0;
+    for (int i = 0; i < data.length; i++) {
+      if (data[i].cueRange != null &&
+          data[i].cueRange!.startTimeMilliseconds <= posMs) {
+        activeIndex = i;
+      }
+    }
+
+    if (_keys.length != data.length) {
+      _keys = List.generate(data.length, (_) => GlobalKey());
+    }
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(
+        vertical: MediaQuery.of(context).size.height * 0.35,
+      ),
+      child: Column(
+        children: List.generate(data.length, (index) {
+          final line = data[index];
+          final isActive = index == activeIndex;
+          final isPast = index < activeIndex;
+
+          return Container(
+            key: _keys[index],
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 300),
+              style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                color:
+                    isActive
+                        ? Theme.of(context).colorScheme.primary
+                        : isPast
+                        ? Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                        : Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
+              child: Text(line.lyricLine ?? '', textAlign: TextAlign.center),
+            ),
+          );
+        }),
+      ),
     );
   }
 }

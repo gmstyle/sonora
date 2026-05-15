@@ -16,13 +16,18 @@ class PlayerControls extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildShuffleButton(context, playerState, notifier),
+          const SizedBox(width: 8),
           _buildSkipButton(context, false, notifier),
+          const SizedBox(width: 16),
           _buildPlayPauseButton(context, playerState, notifier),
+          const SizedBox(width: 16),
           _buildSkipButton(context, true, notifier),
+          const SizedBox(width: 8),
           _buildRepeatButton(context, playerState, notifier),
+          const SizedBox(width: 8),
           _buildTimerButton(context, hasSleepTimer, notifier),
         ],
       ),
@@ -38,9 +43,10 @@ class PlayerControls extends ConsumerWidget {
     return IconButton(
       icon: Icon(
         Icons.shuffle,
-        color: isShuffle
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.onSurfaceVariant,
+        color:
+            isShuffle
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onPressed: notifier.toggleShuffle,
       tooltip: isShuffle ? 'Shuffle on' : 'Shuffle off',
@@ -53,10 +59,7 @@ class PlayerControls extends ConsumerWidget {
     PlayerNotifier notifier,
   ) {
     return IconButton(
-      icon: Icon(
-        isNext ? Icons.skip_next : Icons.skip_previous,
-        size: 32,
-      ),
+      icon: Icon(isNext ? Icons.skip_next : Icons.skip_previous, size: 32),
       onPressed: isNext ? notifier.skipToNext : notifier.skipToPrevious,
     );
   }
@@ -125,9 +128,10 @@ class PlayerControls extends ConsumerWidget {
       icon: Icon(
         Icons.timer,
         size: 22,
-        color: hasTimer
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.onSurfaceVariant,
+        color:
+            hasTimer
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onPressed: () => _showTimerDialog(context, notifier),
       tooltip: hasTimer ? 'Sleep timer active' : 'Sleep timer',
@@ -147,10 +151,7 @@ class PlayerControls extends ConsumerWidget {
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'Sleep Timer',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ),
               ...options.map(
@@ -173,9 +174,7 @@ class PlayerControls extends ConsumerWidget {
                 ),
                 title: Text(
                   'Cancel Timer',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () {
                   notifier.cancelSleepTimer();
