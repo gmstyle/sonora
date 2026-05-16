@@ -13,6 +13,7 @@ abstract class LibraryRepository {
 
   Future<List<LocalPlaylistModel>> getAllPlaylists();
   Future<int> createPlaylist(String name, {String? description});
+  Future<void> updatePlaylist(int id, {String? name, String? description});
   Future<void> deletePlaylist(int id);
   Future<List<PlaylistEntryModel>> getPlaylistEntries(int playlistId);
   Future<void> addEntry(int playlistId, String videoId, int position);
@@ -30,7 +31,7 @@ abstract class LibraryRepository {
   Future<void> deleteDownload(String videoId);
 
   Future<List<HistoryModel>> getRecentHistory({int limit = 50});
-  Future<void> recordPlay(String videoId, String title, String artist);
+  Future<void> recordPlay(String videoId, String title, String artist, {String? thumbnailUrl});
   Future<void> clearHistory();
 
   Future<void> insertSearchEntry(String query);

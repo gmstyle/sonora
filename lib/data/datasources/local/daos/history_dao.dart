@@ -10,7 +10,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
             ..limit(limit))
           .get();
 
-  Future<void> recordPlay(String videoId, String title, String artist) async {
+  Future<void> recordPlay(String videoId, String title, String artist, {String? thumbnailUrl}) async {
     final existing = await (select(db.history)
           ..where((t) => t.videoId.equals(videoId))
           ..orderBy([(t) => OrderingTerm.desc(t.playedAt)])
@@ -28,6 +28,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
         videoId: Value(videoId),
         title: Value(title),
         artist: Value(artist),
+        thumbnailUrl: Value(thumbnailUrl),
         playedAt: Value(DateTime.now()),
         playCount: const Value(1),
       ));

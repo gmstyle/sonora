@@ -80,6 +80,7 @@ class HistoryModel {
   final String videoId;
   final String title;
   final String artist;
+  final String? thumbnailUrl;
   final DateTime playedAt;
   final int playCount;
 
@@ -88,6 +89,7 @@ class HistoryModel {
     required this.videoId,
     required this.title,
     required this.artist,
+    this.thumbnailUrl,
     required this.playedAt,
     required this.playCount,
   });

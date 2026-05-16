@@ -104,6 +104,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
       _playlistsDao.createPlaylist(name, description: description);
 
   @override
+  Future<void> updatePlaylist(int id, {String? name, String? description}) =>
+      _playlistsDao.updatePlaylist(id, name: name, description: description);
+
+  @override
   Future<void> deletePlaylist(int id) => _playlistsDao.deletePlaylist(id);
 
   @override
@@ -182,6 +186,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             videoId: r.videoId,
             title: r.title,
             artist: r.artist,
+            thumbnailUrl: r.thumbnailUrl,
             playedAt: r.playedAt,
             playCount: r.playCount,
           ),
@@ -190,8 +195,8 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
-  Future<void> recordPlay(String videoId, String title, String artist) =>
-      _historyDao.recordPlay(videoId, title, artist);
+  Future<void> recordPlay(String videoId, String title, String artist, {String? thumbnailUrl}) =>
+      _historyDao.recordPlay(videoId, title, artist, thumbnailUrl: thumbnailUrl);
 
   @override
   Future<void> clearHistory() => _historyDao.clearHistory();

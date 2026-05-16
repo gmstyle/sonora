@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/player/audio_handler.dart';
+import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
 import 'queue_repository_provider.dart';
 import 'settings_provider.dart';
@@ -114,6 +115,14 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
     _mediaItemSub = _handler.mediaItem.listen((item) {
       state = state.copyWith(currentSong: item);
+      if (item != null && ref.read(settingsProvider).trackHistory) {
+        ref.read(libraryRepositoryProvider).recordPlay(
+          item.id,
+          item.title,
+          item.artist ?? 'Unknown Artist',
+          thumbnailUrl: item.artUri?.toString(),
+        );
+      }
     });
 
     _queueSub = _handler.queue.listen((items) {
