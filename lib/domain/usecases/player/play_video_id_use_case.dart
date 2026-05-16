@@ -42,4 +42,10 @@ class PlayVideoIdUseCase {
       extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
     );
   }
+
+  /// Resolves only the audio stream URL for [videoId].
+  /// Used when metadata (title, artist, etc.) is already available from the UI.
+  Future<String> resolveStreamUrl(String videoId) async {
+    return _repo.getStreamUrl(videoId);
+  }
 }

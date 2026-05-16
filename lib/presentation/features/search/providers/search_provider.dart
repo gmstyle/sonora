@@ -1,7 +1,8 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../providers/music_repository_provider.dart';
+import '../../../providers/library_notifier.dart';
 import '../../../providers/library_repository_provider.dart';
+import '../../../providers/music_repository_provider.dart';
 
 class _SearchQueryNotifier extends Notifier<String> {
   @override
@@ -26,7 +27,7 @@ class _ActiveSearchQueryNotifier extends Notifier<String> {
   Future<void> submit(String query) async {
     state = query;
     if (query.isNotEmpty) {
-      await ref.read(libraryRepositoryProvider).insertSearchEntry(query);
+      await ref.read(libraryNotifierProvider.notifier).insertSearchEntry(query);
     }
   }
 }

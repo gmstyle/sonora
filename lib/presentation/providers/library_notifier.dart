@@ -93,8 +93,23 @@ class LibraryNotifier extends Notifier<void> {
 
   // ── History ──────────────────────────────────────────────────────────────────
 
+  Future<void> recordPlay(
+    String videoId,
+    String title,
+    String artist, {
+    String? thumbnailUrl,
+  }) async {
+    await _repo.recordPlay(videoId, title, artist, thumbnailUrl: thumbnailUrl);
+  }
+
   Future<void> clearHistory() async {
     await _repo.clearHistory();
+  }
+
+  // ── Search history ────────────────────────────────────────────────────────────
+
+  Future<void> insertSearchEntry(String query) async {
+    await _repo.insertSearchEntry(query);
   }
 
   // ── Read-only helpers exposed to shared widgets ───────────────────────────────

@@ -269,8 +269,9 @@ class _AlbumContent extends ConsumerWidget {
     final useCase = ref.read(playAlbumUseCaseProvider);
     try {
       final items = await useCase.execute(album.songs);
-      if (items.isNotEmpty)
+      if (items.isNotEmpty) {
         await player.playNow(items, initialIndex: startIndex);
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(

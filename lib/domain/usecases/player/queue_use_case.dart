@@ -4,11 +4,11 @@ import '../../repositories/queue_repository.dart';
 
 /// Restores the persisted queue from [QueueRepository] and ensures the first
 /// item has a resolved stream URL (fetched from [MusicRepository] if missing).
-class RestoreQueueUseCase {
+class QueueUseCase {
   final MusicRepository _musicRepository;
   final QueueRepository _queueRepository;
 
-  RestoreQueueUseCase(this._musicRepository, this._queueRepository);
+  QueueUseCase(this._musicRepository, this._queueRepository);
 
   Future<List<MediaItem>> execute() async {
     var items = await _queueRepository.restoreQueue();
@@ -23,5 +23,13 @@ class RestoreQueueUseCase {
     }
 
     return items;
+  }
+
+  Future<void> persistQueue(List<MediaItem> queue) async {
+    await _queueRepository.persistQueue(queue);
+  }
+
+  Future<void> clearQueue() async {
+    await _queueRepository.clearQueue();
   }
 }

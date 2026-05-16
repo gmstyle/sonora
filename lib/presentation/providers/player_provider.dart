@@ -2,11 +2,9 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/player/audio_handler.dart';
-import 'library_repository_provider.dart';
-import 'music_repository_provider.dart';
+import 'library_notifier.dart';
 import 'play_video_id_use_case_provider.dart';
-import 'queue_repository_provider.dart';
-import 'restore_queue_use_case_provider.dart';
+import 'queue_use_case_provider.dart';
 import 'settings_provider.dart';
 
 final audioHandlerProvider = Provider<SonoraAudioHandler>((ref) {
@@ -119,7 +117,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
       state = state.copyWith(currentSong: item);
       if (item != null && ref.read(settingsProvider).trackHistory) {
         ref
-            .read(libraryRepositoryProvider)
+            .read(libraryNotifierProvider.notifier)
             .recordPlay(
               item.id,
               item.title,
@@ -161,12 +159,12 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> _persistQueue() async {
-    await ref.read(queueRepositoryProvider).persistQueue(state.queue);
+    await ref.read(queueUseCaseProvider).persistQueue(state.queue);
   }
 
   Future<void> _restoreQueue() async {
     try {
-      final items = await ref.read(restoreQueueUseCaseProvider).execute();
+      final items = await ref.read(queueUseCaseProvider).execute();
       if (items.isEmpty) return;
       await _handler.setQueue(items, initialIndex: 0);
     } catch (_) {}
@@ -193,9 +191,9 @@ class PlayerNotifier extends Notifier<PlayerState> {
     bool isVideo = false,
     String? albumName,
   }) async {
-    final repo = ref.read(musicRepositoryProvider);
+    final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
-      final streamUrl = await repo.getStreamUrl(videoId);
+      final streamUrl = await useCase.resolveStreamUrl(videoId);
       final item = MediaItem(
         id: videoId,
         title: title,
@@ -228,9 +226,9 @@ class PlayerNotifier extends Notifier<PlayerState> {
     bool isVideo = false,
     String? albumName,
   }) async {
-    final repo = ref.read(musicRepositoryProvider);
+    final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
-      final streamUrl = await repo.getStreamUrl(videoId);
+      final streamUrl = await useCase.resolveStreamUrl(videoId);
       final item = MediaItem(
         id: videoId,
         title: title,
@@ -266,7 +264,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   Future<void> clearQueue() async {
     await _handler.clearQueue();
-    await ref.read(queueRepositoryProvider).clearQueue();
+    await ref.read(queueUseCaseProvider).clearQueue();
   }
 
   // ── Metodi base ───────────────────────────────────────────────
