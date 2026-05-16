@@ -1,12 +1,11 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
-import '../../providers/library_repository_provider.dart';
-import '../../providers/music_repository_provider.dart';
+import '../../providers/library_notifier.dart';
+import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
@@ -138,8 +137,7 @@ class _AlbumContent extends ConsumerWidget {
                     Image.network(
                       thumbnailUrl,
                       fit: BoxFit.cover,
-                      errorBuilder:
-                          (_, _, _) => _placeholderThumbnail(context),
+                      errorBuilder: (_, _, _) => _placeholderThumbnail(context),
                     )
                   else
                     _placeholderThumbnail(context),
@@ -150,10 +148,9 @@ class _AlbumContent extends ConsumerWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Theme.of(context)
-                              .colorScheme
-                              .surface
-                              .withValues(alpha: 0.9),
+                          Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.9),
                         ],
                       ),
                     ),
@@ -167,9 +164,7 @@ class _AlbumContent extends ConsumerWidget {
                       children: [
                         Text(
                           album.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
+                          style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(fontWeight: FontWeight.bold),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -188,7 +183,9 @@ class _AlbumContent extends ConsumerWidget {
                             '${album.songs.length} ${album.songs.length == 1 ? 'song' : 'songs'}',
                             _formatDuration(totalDuration),
                           ].join(' · '),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
                             color:
                                 Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
@@ -203,12 +200,7 @@ class _AlbumContent extends ConsumerWidget {
             ),
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              isWide ? 48 : 16,
-            ),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 48 : 16),
             sliver: SliverToBoxAdapter(
               child: Column(
                 children: [
@@ -225,7 +217,10 @@ class _AlbumContent extends ConsumerWidget {
   }
 
   Widget _buildTracklist(BuildContext context, WidgetRef ref) {
-    final trackNumberWidth = album.songs.length >= 100 ? 36.0 : (album.songs.length >= 10 ? 32.0 : 28.0);
+    final trackNumberWidth =
+        album.songs.length >= 100
+            ? 36.0
+            : (album.songs.length >= 10 ? 32.0 : 28.0);
 
     return Column(
       children: [
@@ -271,39 +266,16 @@ class _AlbumContent extends ConsumerWidget {
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final repo = ref.read(musicRepositoryProvider);
+    final useCase = ref.read(playAlbumUseCaseProvider);
     try {
-      final items = <MediaItem>[];
-      final urls = await Future.wait(
-        album.songs.map((s) => repo.getStreamUrl(s.videoId)),
-      );
-      for (int i = 0; i < album.songs.length; i++) {
-        final s = album.songs[i];
-        items.add(
-          MediaItem(
-            id: s.videoId,
-            title: s.name,
-            artist: s.artist.name,
-            album: s.album?.name,
-            duration: Duration(seconds: s.duration ?? 0),
-            artUri:
-                s.thumbnails.isNotEmpty
-                    ? Uri.parse(s.thumbnails.last.url)
-                    : null,
-            extras: {
-              'url': urls[i],
-              'videoId': s.videoId,
-              'isVideo': false,
-            },
-          ),
-        );
-      }
-      if (items.isNotEmpty) await player.playNow(items, initialIndex: startIndex);
+      final items = await useCase.execute(album.songs);
+      if (items.isNotEmpty)
+        await player.playNow(items, initialIndex: startIndex);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to play album: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play album: $e')));
       }
     }
   }
@@ -355,115 +327,66 @@ class _AlbumActions extends ConsumerWidget {
     AlbumFull album,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final repo = ref.read(musicRepositoryProvider);
-    final songs = List<SongDetailed>.from(album.songs)..shuffle();
+    final useCase = ref.read(playAlbumUseCaseProvider);
+    final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
     try {
-      final items = <MediaItem>[];
-      final urls = await Future.wait(
-        songs.map((s) => repo.getStreamUrl(s.videoId)),
-      );
-      for (int i = 0; i < songs.length; i++) {
-        final s = songs[i];
-        items.add(
-          MediaItem(
-            id: s.videoId,
-            title: s.name,
-            artist: s.artist.name,
-            album: s.album?.name,
-            duration: Duration(seconds: s.duration ?? 0),
-            artUri:
-                s.thumbnails.isNotEmpty
-                    ? Uri.parse(s.thumbnails.last.url)
-                    : null,
-            extras: {
-              'url': urls[i],
-              'videoId': s.videoId,
-              'isVideo': false,
-            },
-          ),
-        );
-      }
+      final items = await useCase.execute(shuffled);
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to play album: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play album: $e')));
       }
     }
   }
 }
 
-class _LikeAlbumButton extends ConsumerStatefulWidget {
+class _LikeAlbumButton extends ConsumerWidget {
   final AlbumFull album;
 
   const _LikeAlbumButton({required this.album});
 
   @override
-  ConsumerState<_LikeAlbumButton> createState() => _LikeAlbumButtonState();
-}
-
-class _LikeAlbumButtonState extends ConsumerState<_LikeAlbumButton> {
-  bool _isLiked = false;
-  bool _isLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLikeStatus();
-  }
-
-  Future<void> _loadLikeStatus() async {
-    if (widget.album.songs.isEmpty) {
-      if (mounted) setState(() => _isLoaded = true);
-      return;
-    }
-    try {
-      final repo = ref.read(libraryRepositoryProvider);
-      final song = await repo.getLikedSong(widget.album.songs.first.videoId);
-      if (mounted) {
-        setState(() {
-          _isLiked = song != null;
-          _isLoaded = true;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoaded = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.tonalIcon(
-      onPressed:
-          _isLoaded
-              ? () async {
-                final repo = ref.read(libraryRepositoryProvider);
-                if (_isLiked) {
-                  for (final s in widget.album.songs) {
-                    await repo.deleteLikedSong(s.videoId);
-                  }
-                } else {
-                  for (final s in widget.album.songs) {
-                    await repo.toggleLikedSong(
-                      LikedSongModel(
-                        videoId: s.videoId,
-                        title: s.name,
-                        artist: s.artist.name,
-                        thumbnailUrl:
-                            s.thumbnails.isNotEmpty
-                                ? s.thumbnails.last.url
-                                : null,
-                        addedAt: DateTime.now(),
-                      ),
-                    );
-                  }
-                }
-                if (mounted) setState(() => _isLiked = !_isLiked);
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (album.songs.isEmpty) return const SizedBox.shrink();
+    final likedAsync = ref.watch(likedSongProvider(album.songs.first.videoId));
+    return likedAsync.when(
+      loading:
+          () => FilledButton.tonalIcon(
+            onPressed: null,
+            icon: const Icon(Icons.favorite_border),
+            label: const Text('Like Album'),
+          ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (liked) {
+        final isLiked = liked != null;
+        return FilledButton.tonalIcon(
+          onPressed: () async {
+            final notifier = ref.read(libraryNotifierProvider.notifier);
+            if (isLiked) {
+              for (final s in album.songs) {
+                await notifier.deleteLikedSong(s.videoId);
               }
-              : null,
-      icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border),
-      label: Text(_isLiked ? 'Unlike Album' : 'Like Album'),
+            } else {
+              for (final s in album.songs) {
+                await notifier.toggleLikedSong(
+                  LikedSongModel(
+                    videoId: s.videoId,
+                    title: s.name,
+                    artist: s.artist.name,
+                    thumbnailUrl:
+                        s.thumbnails.isNotEmpty ? s.thumbnails.last.url : null,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+              }
+            }
+          },
+          icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
+          label: Text(isLiked ? 'Unlike Album' : 'Like Album'),
+        );
+      },
     );
   }
 }
@@ -490,9 +413,13 @@ class _AlbumShimmer extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(child: ShimmerLoading(variant: ShimmerVariant.tile)),
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
                     SizedBox(width: 12),
-                    const Expanded(child: ShimmerLoading(variant: ShimmerVariant.tile)),
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),

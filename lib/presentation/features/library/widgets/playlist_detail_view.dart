@@ -1,9 +1,8 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../domain/models/library_models.dart';
-import '../../../providers/library_repository_provider.dart';
+import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -116,7 +115,7 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
 
   Future<void> _removeEntry(PlaylistEntryModel entry) async {
     await ref
-        .read(libraryRepositoryProvider)
+        .read(libraryNotifierProvider.notifier)
         .removeEntry(entry.playlistId, entry.videoId);
     ref.invalidate(playlistEntriesProvider(widget.playlist.id));
     widget.onUpdated();
@@ -132,10 +131,9 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
     final moved = items.removeAt(oldIndex);
     items.insert(newIndex, moved);
 
-    final repo = ref.read(libraryRepositoryProvider);
-    for (var i = 0; i < items.length; i++) {
-      await repo.addEntry(widget.playlist.id, items[i].videoId, i);
-    }
+    await ref
+        .read(libraryNotifierProvider.notifier)
+        .reorderPlaylistEntries(widget.playlist.id, items);
     ref.invalidate(playlistEntriesProvider(widget.playlist.id));
   }
 
@@ -162,37 +160,10 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
     List<PlaylistEntryModel> entries, {
     required int startIndex,
   }) async {
-    final repo = ref.read(libraryRepositoryProvider);
     final player = ref.read(playerStateProvider.notifier);
-    final items = <MediaItem>[];
-
-    for (final entry in entries) {
-      final liked = await repo.getLikedSong(entry.videoId);
-      if (liked != null) {
-        items.add(
-          MediaItem(
-            id: entry.videoId,
-            title: liked.title,
-            artist: liked.artist,
-            artUri:
-                liked.thumbnailUrl != null
-                    ? Uri.parse(liked.thumbnailUrl!)
-                    : null,
-            extras: {'videoId': entry.videoId, 'isVideo': false},
-          ),
-        );
-      } else {
-        items.add(
-          MediaItem(
-            id: entry.videoId,
-            title: 'Loading...',
-            artist: '',
-            extras: {'videoId': entry.videoId, 'isVideo': false},
-          ),
-        );
-      }
-    }
-
+    final items = await ref
+        .read(libraryNotifierProvider.notifier)
+        .buildLocalPlaylistItems(entries);
     await player.playNow(items, initialIndex: startIndex);
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../domain/models/library_models.dart';
-import '../../../providers/library_repository_provider.dart';
+import '../../../providers/library_notifier.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/song_tile.dart';
@@ -60,9 +60,11 @@ class _LibraryMobileLayoutState extends ConsumerState<LibraryMobileLayout>
               children: [
                 _FavoritesTab(),
                 _ArtistsTab(),
-                _PlaylistsTab(onPlaylistTap: (playlist) {
-                  _showPlaylistDetail(context, ref, playlist);
-                }),
+                _PlaylistsTab(
+                  onPlaylistTap: (playlist) {
+                    _showPlaylistDetail(context, ref, playlist);
+                  },
+                ),
                 _HistoryTab(),
               ],
             ),
@@ -80,12 +82,13 @@ class _LibraryMobileLayoutState extends ConsumerState<LibraryMobileLayout>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PlaylistDetailView(
-          playlist: playlist,
-          onUpdated: () {
-            ref.invalidate(playlistsProvider);
-          },
-        ),
+        builder:
+            (_) => PlaylistDetailView(
+              playlist: playlist,
+              onUpdated: () {
+                ref.invalidate(playlistsProvider);
+              },
+            ),
       ),
     );
   }
@@ -99,10 +102,11 @@ class _FavoritesTab extends ConsumerWidget {
     final async = ref.watch(likedSongsProvider);
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorRetryWidget(
-        message: 'Failed to load favorites',
-        onRetry: () => ref.invalidate(likedSongsProvider),
-      ),
+      error:
+          (e, _) => ErrorRetryWidget(
+            message: 'Failed to load favorites',
+            onRetry: () => ref.invalidate(likedSongsProvider),
+          ),
       data: (songs) {
         if (songs.isEmpty) {
           return const EmptyStateWidget(
@@ -140,10 +144,11 @@ class _ArtistsTab extends ConsumerWidget {
     final async = ref.watch(followedArtistsProvider);
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorRetryWidget(
-        message: 'Failed to load artists',
-        onRetry: () => ref.invalidate(followedArtistsProvider),
-      ),
+      error:
+          (e, _) => ErrorRetryWidget(
+            message: 'Failed to load artists',
+            onRetry: () => ref.invalidate(followedArtistsProvider),
+          ),
       data: (artists) {
         if (artists.isEmpty) {
           return const EmptyStateWidget(
@@ -192,10 +197,11 @@ class _PlaylistsTab extends ConsumerWidget {
     final async = ref.watch(playlistsProvider);
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorRetryWidget(
-        message: 'Failed to load playlists',
-        onRetry: () => ref.invalidate(playlistsProvider),
-      ),
+      error:
+          (e, _) => ErrorRetryWidget(
+            message: 'Failed to load playlists',
+            onRetry: () => ref.invalidate(playlistsProvider),
+          ),
       data: (playlists) {
         if (playlists.isEmpty) {
           return const EmptyStateWidget(
@@ -240,7 +246,9 @@ class _PlaylistsTab extends ConsumerWidget {
                     builder:
                         (ctx) => AlertDialog(
                           title: const Text('Delete playlist'),
-                          content: Text('Are you sure you want to delete "${p.name}"?'),
+                          content: Text(
+                            'Are you sure you want to delete "${p.name}"?',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
@@ -256,7 +264,7 @@ class _PlaylistsTab extends ConsumerWidget {
                 },
                 onDismissed: (_) async {
                   await ref
-                      .read(libraryRepositoryProvider)
+                      .read(libraryNotifierProvider.notifier)
                       .deletePlaylist(p.id);
                   ref.invalidate(playlistsProvider);
                 },
@@ -265,7 +273,11 @@ class _PlaylistsTab extends ConsumerWidget {
                   title: Text(p.name),
                   subtitle:
                       p.description != null && p.description!.isNotEmpty
-                          ? Text(p.description!, maxLines: 1, overflow: TextOverflow.ellipsis)
+                          ? Text(
+                            p.description!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          )
                           : null,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -294,7 +306,7 @@ Future<void> _createPlaylist(BuildContext context, WidgetRef ref) async {
     builder: (_) => const CreatePlaylistDialog(),
   );
   if (result != null && result.isNotEmpty) {
-    await ref.read(libraryRepositoryProvider).createPlaylist(result);
+    await ref.read(libraryNotifierProvider.notifier).createPlaylist(result);
     ref.invalidate(playlistsProvider);
   }
 }
@@ -314,7 +326,7 @@ Future<void> _renamePlaylist(
   );
   if (result != null && result.isNotEmpty && result != playlist.name) {
     await ref
-        .read(libraryRepositoryProvider)
+        .read(libraryNotifierProvider.notifier)
         .updatePlaylist(playlist.id, name: result);
     ref.invalidate(playlistsProvider);
   }
@@ -328,10 +340,11 @@ class _HistoryTab extends ConsumerWidget {
     final async = ref.watch(libraryHistoryProvider);
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => ErrorRetryWidget(
-        message: 'Failed to load history',
-        onRetry: () => ref.invalidate(libraryHistoryProvider),
-      ),
+      error:
+          (e, _) => ErrorRetryWidget(
+            message: 'Failed to load history',
+            onRetry: () => ref.invalidate(libraryHistoryProvider),
+          ),
       data: (history) {
         if (history.isEmpty) {
           return const EmptyStateWidget(
@@ -373,7 +386,7 @@ class _HistoryTab extends ConsumerWidget {
                         );
                         if (confirm == true) {
                           await ref
-                              .read(libraryRepositoryProvider)
+                              .read(libraryNotifierProvider.notifier)
                               .clearHistory();
                           ref.invalidate(libraryHistoryProvider);
                         }

@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/player/audio_handler.dart';
 import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
+import 'play_video_id_use_case_provider.dart';
 import 'queue_repository_provider.dart';
+import 'restore_queue_use_case_provider.dart';
 import 'settings_provider.dart';
 
 final audioHandlerProvider = Provider<SonoraAudioHandler>((ref) {
@@ -116,12 +118,14 @@ class PlayerNotifier extends Notifier<PlayerState> {
     _mediaItemSub = _handler.mediaItem.listen((item) {
       state = state.copyWith(currentSong: item);
       if (item != null && ref.read(settingsProvider).trackHistory) {
-        ref.read(libraryRepositoryProvider).recordPlay(
-          item.id,
-          item.title,
-          item.artist ?? 'Unknown Artist',
-          thumbnailUrl: item.artUri?.toString(),
-        );
+        ref
+            .read(libraryRepositoryProvider)
+            .recordPlay(
+              item.id,
+              item.title,
+              item.artist ?? 'Unknown Artist',
+              thumbnailUrl: item.artUri?.toString(),
+            );
       }
     });
 
@@ -162,21 +166,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   Future<void> _restoreQueue() async {
     try {
-      var items = await ref.read(queueRepositoryProvider).restoreQueue();
+      final items = await ref.read(restoreQueueUseCaseProvider).execute();
       if (items.isEmpty) return;
-
-      // Preload stream URL for the first item if it wasn't persisted.
-      final firstUrl = items[0].extras?['url'] as String?;
-      if (firstUrl == null || firstUrl.isEmpty) {
-        try {
-          final repo = ref.read(musicRepositoryProvider);
-          final url = await repo.getStreamUrl(items[0].id);
-          items[0] = items[0].copyWith(
-            extras: {...?items[0].extras, 'url': url},
-          );
-        } catch (_) {}
-      }
-
       await _handler.setQueue(items, initialIndex: 0);
     } catch (_) {}
   }
@@ -310,39 +301,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> playVideoId(String videoId) async {
-    final repo = ref.read(musicRepositoryProvider);
     try {
-      String title, artistName, thumbnailUrl;
-      int durationSec;
-      bool isVideo;
-
-      try {
-        final song = await repo.getSong(videoId);
-        title = song.name;
-        artistName = song.artist.name;
-        durationSec = song.duration;
-        thumbnailUrl =
-            song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '';
-        isVideo = false;
-      } catch (_) {
-        final video = await repo.getVideo(videoId);
-        title = video.name;
-        artistName = video.artist.name;
-        durationSec = video.duration;
-        thumbnailUrl =
-            video.thumbnails.isNotEmpty ? video.thumbnails.last.url : '';
-        isVideo = true;
-      }
-
-      final streamUrl = await repo.getStreamUrl(videoId);
-      final item = MediaItem(
-        id: videoId,
-        title: title,
-        artist: artistName,
-        duration: Duration(seconds: durationSec),
-        artUri: thumbnailUrl.isNotEmpty ? Uri.parse(thumbnailUrl) : null,
-        extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
-      );
+      final item = await ref.read(playVideoIdUseCaseProvider).execute(videoId);
       await playSong(item);
     } catch (e) {
       state = state.copyWith(

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../domain/models/library_models.dart';
-import '../../providers/library_repository_provider.dart';
+import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 
 class ContextMenuSheet extends ConsumerWidget {
@@ -226,7 +226,7 @@ class _ActionTile extends StatelessWidget {
   }
 }
 
-class _LikeActionTile extends ConsumerStatefulWidget {
+class _LikeActionTile extends ConsumerWidget {
   final String videoId;
   final String title;
   final String artist;
@@ -240,59 +240,40 @@ class _LikeActionTile extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_LikeActionTile> createState() => _LikeActionTileState();
-}
-
-class _LikeActionTileState extends ConsumerState<_LikeActionTile> {
-  bool _isLiked = false;
-  bool _isLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLikedStatus();
-  }
-
-  Future<void> _loadLikedStatus() async {
-    try {
-      final repo = ref.read(libraryRepositoryProvider);
-      final song = await repo.getLikedSong(widget.videoId);
-      if (mounted) {
-        setState(() {
-          _isLiked = song != null;
-          _isLoaded = true;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoaded = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        _isLiked ? Icons.favorite : Icons.favorite_border,
-        color: _isLiked ? Theme.of(context).colorScheme.error : null,
-      ),
-      title: Text(_isLiked ? 'Unlike' : 'Like'),
-      onTap:
-          _isLoaded
-              ? () async {
-                final repo = ref.read(libraryRepositoryProvider);
-                await repo.toggleLikedSong(
-                  LikedSongModel(
-                    videoId: widget.videoId,
-                    title: widget.title,
-                    artist: widget.artist,
-                    thumbnailUrl: widget.thumbnailUrl,
-                    addedAt: DateTime.now(),
-                  ),
-                );
-                setState(() => _isLiked = !_isLiked);
-              }
-              : null,
-      dense: true,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final likedAsync = ref.watch(likedSongProvider(videoId));
+    return likedAsync.when(
+      loading:
+          () => const ListTile(
+            leading: Icon(Icons.favorite_border),
+            title: Text('Like'),
+            enabled: false,
+            dense: true,
+          ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (liked) {
+        final isLiked = liked != null;
+        return ListTile(
+          leading: Icon(
+            isLiked ? Icons.favorite : Icons.favorite_border,
+            color:
+                isLiked ? Theme.of(context).colorScheme.error : null,
+          ),
+          title: Text(isLiked ? 'Unlike' : 'Like'),
+          onTap: () async {
+            await ref.read(libraryNotifierProvider.notifier).toggleLikedSong(
+              LikedSongModel(
+                videoId: videoId,
+                title: title,
+                artist: artist,
+                thumbnailUrl: thumbnailUrl,
+                addedAt: DateTime.now(),
+              ),
+            );
+          },
+          dense: true,
+        );
+      },
     );
   }
 }
@@ -324,7 +305,9 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
   @override
   void initState() {
     super.initState();
-    _playlistsFuture = ref.read(libraryRepositoryProvider).getAllPlaylists();
+    _playlistsFuture = ref
+        .read(libraryNotifierProvider.notifier)
+        .getAllPlaylists();
   }
 
   @override
@@ -367,15 +350,12 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                         leading: const Icon(Icons.playlist_play),
                         title: Text(playlist.name),
                         onTap: () async {
-                          final repo = ref.read(libraryRepositoryProvider);
-                          final entries = await repo.getPlaylistEntries(
-                            playlist.id,
-                          );
-                          await repo.addEntry(
-                            playlist.id,
-                            widget.videoId,
-                            entries.length,
-                          );
+                          await ref
+                              .read(libraryNotifierProvider.notifier)
+                              .addEntryToPlaylist(
+                                playlist.id,
+                                widget.videoId,
+                              );
                           if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(

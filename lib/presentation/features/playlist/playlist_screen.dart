@@ -1,10 +1,9 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../providers/music_repository_provider.dart';
+import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
@@ -54,10 +53,9 @@ class _PlaylistMobileLayout extends ConsumerWidget {
               },
             ),
           ),
-      data: (playlist) => _PlaylistContent(
-        playlist: playlist,
-        videosAsync: videosAsync,
-      ),
+      data:
+          (playlist) =>
+              _PlaylistContent(playlist: playlist, videosAsync: videosAsync),
     );
   }
 }
@@ -84,11 +82,12 @@ class _PlaylistTabletLayout extends ConsumerWidget {
               },
             ),
           ),
-      data: (playlist) => _PlaylistContent(
-        playlist: playlist,
-        videosAsync: videosAsync,
-        isTablet: true,
-      ),
+      data:
+          (playlist) => _PlaylistContent(
+            playlist: playlist,
+            videosAsync: videosAsync,
+            isTablet: true,
+          ),
     );
   }
 }
@@ -115,11 +114,12 @@ class _PlaylistWideLayout extends ConsumerWidget {
               },
             ),
           ),
-      data: (playlist) => _PlaylistContent(
-        playlist: playlist,
-        videosAsync: videosAsync,
-        isWide: true,
-      ),
+      data:
+          (playlist) => _PlaylistContent(
+            playlist: playlist,
+            videosAsync: videosAsync,
+            isWide: true,
+          ),
     );
   }
 }
@@ -142,14 +142,21 @@ class _PlaylistContent extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _PlaylistSliverAppBar(playlist: playlist, isTablet: isTablet, isWide: isWide),
+          _PlaylistSliverAppBar(
+            playlist: playlist,
+            isTablet: isTablet,
+            isWide: isWide,
+          ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 48 : 16),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _PlaylistActions(playlist: playlist, videosAsync: videosAsync),
+                  _PlaylistActions(
+                    playlist: playlist,
+                    videosAsync: videosAsync,
+                  ),
                   const SizedBox(height: 16),
                   videosAsync.when(
                     loading: () => _videoShimmerList(),
@@ -161,9 +168,7 @@ class _PlaylistContent extends ConsumerWidget {
                                 playlistVideosProvider(playlist.playlistId),
                               ),
                         ),
-                    data: (videos) => _VideoTracklist(
-                      videos: videos,
-                    ),
+                    data: (videos) => _VideoTracklist(videos: videos),
                   ),
                 ],
               ),
@@ -213,7 +218,9 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+                    Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.9),
                   ],
                 ),
               ),
@@ -272,10 +279,7 @@ class _PlaylistActions extends ConsumerWidget {
   final PlaylistFull playlist;
   final AsyncValue<List<VideoDetailed>> videosAsync;
 
-  const _PlaylistActions({
-    required this.playlist,
-    required this.videosAsync,
-  });
+  const _PlaylistActions({required this.playlist, required this.videosAsync});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -309,39 +313,16 @@ class _PlaylistActions extends ConsumerWidget {
     List<VideoDetailed> videos,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final repo = ref.read(musicRepositoryProvider);
+    final useCase = ref.read(playPlaylistUseCaseProvider);
     final shuffled = List<VideoDetailed>.from(videos)..shuffle();
     try {
-      final items = <MediaItem>[];
-      final urls = await Future.wait(
-        shuffled.map((v) => repo.getStreamUrl(v.videoId)),
-      );
-      for (int i = 0; i < shuffled.length; i++) {
-        final v = shuffled[i];
-        items.add(
-          MediaItem(
-            id: v.videoId,
-            title: v.name,
-            artist: v.artist.name,
-            duration: Duration(seconds: v.duration ?? 0),
-            artUri:
-                v.thumbnails.isNotEmpty
-                    ? Uri.parse(v.thumbnails.last.url)
-                    : null,
-            extras: {
-              'url': urls[i],
-              'videoId': v.videoId,
-              'isVideo': true,
-            },
-          ),
-        );
-      }
+      final items = await useCase.execute(shuffled);
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to play playlist: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play playlist: $e')));
       }
     }
   }
@@ -350,9 +331,7 @@ class _PlaylistActions extends ConsumerWidget {
 class _VideoTracklist extends ConsumerWidget {
   final List<VideoDetailed> videos;
 
-  const _VideoTracklist({
-    required this.videos,
-  });
+  const _VideoTracklist({required this.videos});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -394,38 +373,16 @@ class _VideoTracklist extends ConsumerWidget {
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final repo = ref.read(musicRepositoryProvider);
+    final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
-      final items = <MediaItem>[];
-      final urls = await Future.wait(
-        videos.map((v) => repo.getStreamUrl(v.videoId)),
-      );
-      for (int i = 0; i < videos.length; i++) {
-        final v = videos[i];
-        items.add(
-          MediaItem(
-            id: v.videoId,
-            title: v.name,
-            artist: v.artist.name,
-            duration: Duration(seconds: v.duration ?? 0),
-            artUri:
-                v.thumbnails.isNotEmpty
-                    ? Uri.parse(v.thumbnails.last.url)
-                    : null,
-            extras: {
-              'url': urls[i],
-              'videoId': v.videoId,
-              'isVideo': true,
-            },
-          ),
-        );
-      }
-      if (items.isNotEmpty) await player.playNow(items, initialIndex: startIndex);
+      final items = await useCase.execute(videos);
+      if (items.isNotEmpty)
+        await player.playNow(items, initialIndex: startIndex);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to play: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play: $e')));
       }
     }
   }
@@ -463,9 +420,13 @@ class _PlaylistShimmer extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(child: ShimmerLoading(variant: ShimmerVariant.tile)),
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
                     SizedBox(width: 12),
-                    const Expanded(child: ShimmerLoading(variant: ShimmerVariant.tile)),
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),

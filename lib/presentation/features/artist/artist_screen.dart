@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
-import '../../providers/library_repository_provider.dart';
+import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -119,7 +119,11 @@ class _ArtistContent extends ConsumerWidget {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _ArtistSliverAppBar(artist: artist, isTablet: isTablet, isWide: isWide),
+          _ArtistSliverAppBar(
+            artist: artist,
+            isTablet: isTablet,
+            isWide: isWide,
+          ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 48 : 16),
             sliver: SliverToBoxAdapter(
@@ -343,63 +347,39 @@ class _ArtistActions extends ConsumerWidget {
   }
 }
 
-class _FollowButton extends ConsumerStatefulWidget {
+class _FollowButton extends ConsumerWidget {
   final ArtistFull artist;
 
   const _FollowButton({required this.artist});
 
   @override
-  ConsumerState<_FollowButton> createState() => _FollowButtonState();
-}
-
-class _FollowButtonState extends ConsumerState<_FollowButton> {
-  bool _isFollowing = false;
-  bool _isLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFollowStatus();
-  }
-
-  Future<void> _loadFollowStatus() async {
-    try {
-      final repo = ref.read(libraryRepositoryProvider);
-      final artist = await repo.getFollowedArtist(widget.artist.artistId);
-      if (mounted) {
-        setState(() {
-          _isFollowing = artist != null;
-          _isLoaded = true;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoaded = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.tonal(
-      onPressed:
-          _isLoaded
-              ? () async {
-                final repo = ref.read(libraryRepositoryProvider);
-                await repo.toggleFollowedArtist(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final followedAsync = ref.watch(followedArtistProvider(artist.artistId));
+    return followedAsync.when(
+      loading:
+          () =>
+              FilledButton.tonal(onPressed: null, child: const Text('Follow')),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (followed) {
+        final isFollowing = followed != null;
+        return FilledButton.tonal(
+          onPressed: () async {
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleFollowedArtist(
                   FollowedArtistModel(
-                    artistId: widget.artist.artistId,
-                    name: widget.artist.name,
+                    artistId: artist.artistId,
+                    name: artist.name,
                     thumbnailUrl:
-                        widget.artist.thumbnails.isNotEmpty
-                            ? widget.artist.thumbnails.last.url
+                        artist.thumbnails.isNotEmpty
+                            ? artist.thumbnails.last.url
                             : null,
                   ),
                 );
-                if (mounted) {
-                  setState(() => _isFollowing = !_isFollowing);
-                }
-              }
-              : null,
-      child: Text(_isFollowing ? 'Following' : 'Follow'),
+          },
+          child: Text(isFollowing ? 'Following' : 'Follow'),
+        );
+      },
     );
   }
 }
@@ -492,9 +472,13 @@ class _ArtistShimmer extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(child: ShimmerLoading(variant: ShimmerVariant.tile)),
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
                     SizedBox(width: 12),
-                    const Expanded(child: ShimmerLoading(variant: ShimmerVariant.tile)),
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
