@@ -416,6 +416,7 @@ class _HistoryTab extends ConsumerWidget {
                     videoId: h.videoId,
                     title: h.title,
                     artist: h.artist,
+                    thumbnailUrl: h.thumbnailUrl,
                   );
                 },
               ),

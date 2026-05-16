@@ -22,6 +22,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
           .write(HistoryCompanion(
         playedAt: Value(DateTime.now()),
         playCount: Value(existing.playCount + 1),
+        thumbnailUrl: Value(thumbnailUrl ?? existing.thumbnailUrl),
       ));
     } else {
       await into(db.history).insert(HistoryCompanion(
