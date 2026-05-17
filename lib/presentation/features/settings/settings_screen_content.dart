@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -352,15 +353,30 @@ class _BackupSection extends StatelessWidget {
         'checkUpdatesOnStartup': settings.checkUpdatesOnStartup,
       };
       final path = await useCase.execute(settings: settingsMap);
-      if (context.mounted) {
+
+      if (!context.mounted) return;
+
+      if (Platform.isLinux) {
+        final dir = await getDownloadsDirectory();
+        final destDir = Directory('${dir?.path}/Sonora');
+        if (!await destDir.exists()) await destDir.create(recursive: true);
+        final file = File(path);
+        final destPath = '${destDir.path}/sonora-backup-${DateTime.now().millisecondsSinceEpoch}.zip';
+        await file.copy(destPath);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Backup saved to $destPath')),
+          );
+        }
+      } else {
         await SharePlus.instance.share(
           ShareParams(files: [XFile(path)], text: 'Sonora backup'),
         );
-      }
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Backup exported successfully')),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Backup exported successfully')),
+          );
+        }
       }
     } catch (e) {
       if (context.mounted) {

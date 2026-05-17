@@ -10,9 +10,7 @@ class ExportBackupUseCase {
 
   ExportBackupUseCase(this.libraryRepository);
 
-  Future<String> execute({
-    Map<String, dynamic>? settings,
-  }) async {
+  Future<String> execute({Map<String, dynamic>? settings}) async {
     final likedSongs = await libraryRepository.getAllLikedSongs();
     final followedArtists = await libraryRepository.getAllFollowedArtists();
     final playlists = await libraryRepository.getAllPlaylists();
@@ -78,7 +76,6 @@ class ExportBackupUseCase {
     final archive = Archive();
     archive.addFile(ArchiveFile('backup.json', jsonBytes.length, jsonBytes));
     final compressed = ZipEncoder().encode(archive);
-
 
     final tempDir = Directory.systemTemp;
     final outputPath =
