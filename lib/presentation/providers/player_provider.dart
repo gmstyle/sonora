@@ -6,6 +6,7 @@ import 'library_notifier.dart';
 import 'play_video_id_use_case_provider.dart';
 import 'queue_use_case_provider.dart';
 import 'settings_provider.dart';
+import 'start_radio_use_case_provider.dart';
 
 final audioHandlerProvider = Provider<SonoraAudioHandler>((ref) {
   throw UnimplementedError('Must be overridden in main()');
@@ -91,6 +92,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   StreamSubscription? _mediaItemSub;
   StreamSubscription? _queueSub;
   StreamSubscription? _durationSub;
+  bool _isFetchingUpNext = false;
   Timer? _sleepTimer;
   Timer? _sleepTimerTick;
   DateTime? _sleepTimerStart;
@@ -111,6 +113,13 @@ class PlayerNotifier extends Notifier<PlayerState> {
         shuffleMode: s.shuffleMode,
         repeatMode: s.repeatMode,
       );
+
+      if (s.processingState == AudioProcessingState.completed &&
+          !_isFetchingUpNext &&
+          ref.read(settingsProvider).autoPlayUpNext) {
+        _isFetchingUpNext = true;
+        _fetchAutoPlayUpNext();
+      }
     });
 
     _mediaItemSub = _handler.mediaItem.listen((item) {
@@ -168,6 +177,30 @@ class PlayerNotifier extends Notifier<PlayerState> {
       if (items.isEmpty) return;
       await _handler.setQueue(items, initialIndex: 0);
     } catch (_) {}
+  }
+
+  Future<void> _fetchAutoPlayUpNext() async {
+    try {
+      final lastItem = state.currentSong;
+      if (lastItem == null) return;
+
+      final radioUseCase = ref.read(startRadioUseCaseProvider);
+      final result = await radioUseCase.execute(lastItem.id);
+      final firstItem = result.firstItem;
+      final remaining = await radioUseCase.resolveRemaining(result.remaining);
+
+      final items = [firstItem, ...remaining];
+      if (items.isEmpty) return;
+
+      final oldLength = state.queue.length;
+      await _handler.addAllToQueue(items);
+      await _handler.skipToQueueItem(oldLength);
+      await _handler.play();
+      await _persistQueue();
+    } catch (_) {
+    } finally {
+      _isFetchingUpNext = false;
+    }
   }
 
   // ── API mutazione coda ────────────────────────────────────────

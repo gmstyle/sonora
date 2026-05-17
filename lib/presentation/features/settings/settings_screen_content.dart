@@ -13,6 +13,8 @@ import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/settings_provider.dart';
+import '../library/providers/library_provider.dart';
+import '../search/providers/search_provider.dart';
 import 'settings_shared.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
@@ -67,8 +69,8 @@ class _AppearanceSection extends StatelessWidget {
               ),
             ),
             selected: {current},
-            onSelectionChanged: (selected) =>
-                notifier.setThemeMode(selected.first),
+            onSelectionChanged:
+                (selected) => notifier.setThemeMode(selected.first),
           ),
         ),
         if (current == ThemeMode.dark || current == ThemeMode.system)
@@ -245,27 +247,29 @@ class _PrivacySection extends StatelessWidget {
   Future<void> _clearSearchHistory(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Clear search history'),
-        content: const Text('This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Clear search history'),
+            content: const Text('This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Clear'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
     );
     if (confirm == true) {
       await ref.read(libraryNotifierProvider.notifier).clearSearchHistory();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Search history cleared')),
-        );
+        ref.invalidate(recentSearchesProvider);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Search history cleared')));
       }
     }
   }
@@ -273,24 +277,26 @@ class _PrivacySection extends StatelessWidget {
   Future<void> _clearListeningHistory(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Clear listening history'),
-        content: const Text('This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Clear listening history'),
+            content: const Text('This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Clear'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
     );
     if (confirm == true) {
       await ref.read(libraryNotifierProvider.notifier).clearHistory();
       if (context.mounted) {
+        ref.invalidate(libraryHistoryProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listening history cleared')),
         );
@@ -358,9 +364,9 @@ class _BackupSection extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     }
   }
@@ -376,29 +382,29 @@ class _BackupSection extends StatelessWidget {
 
       final confirmed = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Import backup'),
-          content: const Text(
-            'This will add backed-up songs, artists, and playlists to your '
-            'existing library. No data will be overwritten.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Import backup'),
+              content: const Text(
+                'This will add backed-up songs, artists, and playlists to your '
+                'existing library. No data will be overwritten.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Import'),
+                ),
+              ],
             ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Import'),
-            ),
-          ],
-        ),
       );
       if (confirmed != true) return;
 
       final useCase = ref.read(importBackupUseCaseProvider);
-      final importedSettings =
-          await useCase.execute(result.files.single.path!);
+      final importedSettings = await useCase.execute(result.files.single.path!);
 
       ref.invalidate(libraryNotifierProvider);
 
@@ -418,9 +424,9 @@ class _BackupSection extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
       }
     }
   }
@@ -477,44 +483,45 @@ class _UpdatesSection extends StatelessWidget {
       if (context.mounted) {
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Update Check'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Current version: $currentVersion'),
-                  Text('Latest version: $latestTag'),
-                  const SizedBox(height: 16),
-                  Text(changelog),
+          builder:
+              (ctx) => AlertDialog(
+                title: const Text('Update Check'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Current version: $currentVersion'),
+                      Text('Latest version: $latestTag'),
+                      const SizedBox(height: 16),
+                      Text(changelog),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Close'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () {
+                      launchUrl(
+                        Uri.parse(kGitHubRepoUrl),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open Releases'),
+                  ),
                 ],
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Close'),
-              ),
-              FilledButton.icon(
-                onPressed: () {
-                  launchUrl(
-                    Uri.parse(kGitHubRepoUrl),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Open Releases'),
-              ),
-            ],
-          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update check failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Update check failed: $e')));
       }
     }
   }
@@ -544,20 +551,20 @@ class _AboutSection extends StatelessWidget {
         SettingsButtonTile(
           title: 'Licenses',
           icon: Icons.description_outlined,
-          onPressed: () => showLicensePage(
-            context: context,
-            applicationName: 'Sonora',
-          ),
+          onPressed:
+              () =>
+                  showLicensePage(context: context, applicationName: 'Sonora'),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
           title: 'GitHub repository',
           icon: Icons.code,
           subtitle: kGitHubRepoUrl,
-          onPressed: () => launchUrl(
-            Uri.parse(kGitHubRepoUrl),
-            mode: LaunchMode.externalApplication,
-          ),
+          onPressed:
+              () => launchUrl(
+                Uri.parse(kGitHubRepoUrl),
+                mode: LaunchMode.externalApplication,
+              ),
         ),
       ],
     );
