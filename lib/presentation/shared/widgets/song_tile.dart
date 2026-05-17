@@ -12,6 +12,8 @@ class SongTile extends ConsumerWidget {
   final int? duration;
   final bool isVideo;
   final String? albumName;
+  final String? artistId;
+  final String? albumId;
   final VoidCallback? onTap;
 
   const SongTile({
@@ -23,6 +25,8 @@ class SongTile extends ConsumerWidget {
     this.duration,
     this.isVideo = false,
     this.albumName,
+    this.artistId,
+    this.albumId,
     this.onTap,
   });
 
@@ -76,6 +80,8 @@ class SongTile extends ConsumerWidget {
         duration: duration,
         isVideo: isVideo,
         albumName: albumName,
+        artistId: artistId,
+        albumId: albumId,
       ),
     );
   }

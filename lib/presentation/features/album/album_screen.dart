@@ -249,7 +249,10 @@ class _AlbumContent extends ConsumerWidget {
                             ? album.songs[i].thumbnails.last.url
                             : null,
                     duration: album.songs[i].duration,
-                    albumName: album.songs[i].album?.name,
+                    albumName: album.name,
+                    albumId: album.albumId,
+                    artistId:
+                        album.songs[i].artist.artistId ?? album.artist.artistId,
                     onTap: () => _playAlbumFromIndex(context, ref, i),
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/library_models.dart';
 import '../../domain/repositories/library_repository.dart';
+import '../features/library/providers/library_provider.dart';
 import 'library_repository_provider.dart';
 
 // ── Single-item query providers ───────────────────────────────────────────────
@@ -41,11 +42,13 @@ class LibraryNotifier extends Notifier<void> {
   Future<void> toggleLikedSong(LikedSongModel song) async {
     await _repo.toggleLikedSong(song);
     ref.invalidate(likedSongProvider(song.videoId));
+    ref.invalidate(likedSongsProvider);
   }
 
   Future<void> deleteLikedSong(String videoId) async {
     await _repo.deleteLikedSong(videoId);
     ref.invalidate(likedSongProvider(videoId));
+    ref.invalidate(likedSongsProvider);
   }
 
   // ── Followed artists ─────────────────────────────────────────────────────────
@@ -53,6 +56,7 @@ class LibraryNotifier extends Notifier<void> {
   Future<void> toggleFollowedArtist(FollowedArtistModel artist) async {
     await _repo.toggleFollowedArtist(artist);
     ref.invalidate(followedArtistProvider(artist.artistId));
+    ref.invalidate(followedArtistsProvider);
   }
 
   // ── Playlists ────────────────────────────────────────────────────────────────

@@ -5,6 +5,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../domain/models/library_models.dart';
+import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import 'widgets/player_controls.dart';
 import 'widgets/progress_bar_widget.dart';
@@ -329,12 +331,14 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             ],
           ),
         ),
+        /*
+        TODO: Add context menu for album/artist actions (e.g. view album, view artist) 
         IconButton(
           icon: const Icon(Icons.more_vert),
           onPressed: () {
             // Context menu logic
           },
-        ),
+        ), */
       ],
     );
   }
@@ -446,7 +450,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           ),
         ),
         const SizedBox(width: 16),
-        _likeButton(),
+        _likeButton(song),
       ],
     );
   }
@@ -460,15 +464,37 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     );
   }
 
-  Widget _likeButton() {
-    return IconButton(
-      icon: const Icon(Icons.favorite_border, size: 28),
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Like — coming in Fase 7 (Library)'),
-            duration: Duration(seconds: 1),
+  Widget _likeButton(MediaItem song) {
+    final videoId = song.extras?['videoId'] as String? ?? song.id;
+    final title = song.title;
+    final artist = song.artist ?? 'Unknown Artist';
+    final thumbnailUrl = song.artUri?.toString();
+
+    final likedAsync = ref.watch(likedSongProvider(videoId));
+    return likedAsync.when(
+      loading: () => const Icon(Icons.favorite_border, size: 28),
+      error: (_, _) => const Icon(Icons.favorite_border, size: 28),
+      data: (liked) {
+        final isLiked = liked != null;
+        return IconButton(
+          icon: Icon(
+            isLiked ? Icons.favorite : Icons.favorite_border,
+            size: 28,
+            color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
+          onPressed: () {
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedSong(
+                  LikedSongModel(
+                    videoId: videoId,
+                    title: title,
+                    artist: artist,
+                    thumbnailUrl: thumbnailUrl,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+          },
         );
       },
     );
@@ -477,14 +503,16 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   Widget _bottomActionsRow(bool isVideo) {
     final theme = Theme.of(context);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        /* 
+        TODO: Add device output selection (e.g. Chromecast, Bluetooth)
         IconButton(
           icon: const Icon(Icons.speaker_group_outlined),
           onPressed: () {},
           tooltip: 'Devices',
           color: theme.colorScheme.onSurfaceVariant,
-        ),
+        ), */
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [

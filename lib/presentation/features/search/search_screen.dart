@@ -274,6 +274,8 @@ class _SearchResults extends ConsumerWidget {
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
         duration: result.duration,
         albumName: result.album?.name,
+        albumId: result.album?.albumId,
+        artistId: result.artist.artistId,
       );
     }
     if (result is VideoDetailed) {

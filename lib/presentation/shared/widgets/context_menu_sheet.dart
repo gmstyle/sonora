@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../domain/models/library_models.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/start_radio_use_case_provider.dart';
+
+import '../../features/library/widgets/create_playlist_dialog.dart';
 
 class ContextMenuSheet extends ConsumerWidget {
   final String videoId;
@@ -15,6 +19,8 @@ class ContextMenuSheet extends ConsumerWidget {
   final int? duration;
   final bool isVideo;
   final String? albumName;
+  final String? artistId;
+  final String? albumId;
 
   const ContextMenuSheet({
     super.key,
@@ -25,6 +31,8 @@ class ContextMenuSheet extends ConsumerWidget {
     this.duration,
     this.isVideo = false,
     this.albumName,
+    this.artistId,
+    this.albumId,
   });
 
   static Future<void> show(
@@ -36,6 +44,8 @@ class ContextMenuSheet extends ConsumerWidget {
     int? duration,
     bool isVideo = false,
     String? albumName,
+    String? artistId,
+    String? albumId,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -49,6 +59,8 @@ class ContextMenuSheet extends ConsumerWidget {
             duration: duration,
             isVideo: isVideo,
             albumName: albumName,
+            artistId: artistId,
+            albumId: albumId,
           ),
     );
   }
@@ -123,87 +135,147 @@ class ContextMenuSheet extends ConsumerWidget {
             ),
           ),
           const Divider(),
-          _ActionTile(
-            icon: Icons.play_arrow,
-            label: 'Play Now',
-            onTap: () {
-              Navigator.pop(context);
-              player.playVideoId(videoId);
-            },
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ActionTile(
+                    icon: Icons.play_arrow,
+                    label: 'Play Now',
+                    onTap: () {
+                      Navigator.pop(context);
+                      player.playVideoId(videoId);
+                    },
+                  ),
+                  _ActionTile(
+                    icon: Icons.playlist_play,
+                    label: 'Play Next',
+                    onTap: () {
+                      Navigator.pop(context);
+                      player.playNextVideoId(
+                        videoId,
+                        title: title,
+                        artist: artist,
+                        thumbnailUrl: thumbnailUrl,
+                        durationSec: duration,
+                        isVideo: isVideo,
+                        albumName: albumName,
+                      );
+                    },
+                  ),
+                  _ActionTile(
+                    icon: Icons.queue_music,
+                    label: 'Add to Queue',
+                    onTap: () {
+                      Navigator.pop(context);
+                      player.addToQueueVideoId(
+                        videoId,
+                        title: title,
+                        artist: artist,
+                        thumbnailUrl: thumbnailUrl,
+                        durationSec: duration,
+                        isVideo: isVideo,
+                        albumName: albumName,
+                      );
+                    },
+                  ),
+                  if (artistId != null)
+                    _ActionTile(
+                      icon: Icons.person,
+                      label: 'Go to Artist',
+                      onTap: () {
+                        context.push('/artist/$artistId');
+                        Navigator.pop(context);
+                      },
+                    ),
+                  if (albumId != null)
+                    _ActionTile(
+                      icon: Icons.album,
+                      label: 'Go to Album',
+                      onTap: () {
+                        context.push('/album/$albumId');
+                        Navigator.pop(context);
+                      },
+                    ),
+                  _ActionTile(
+                    icon: Icons.radio,
+                    label: 'Start Radio',
+                    onTap: () async {
+                      Navigator.pop(context);
+                      try {
+                        final useCase = ref.read(startRadioUseCaseProvider);
+                        final result = await useCase.execute(videoId);
+                        await player.playNow([result.firstItem]);
+                        if (result.remaining.isNotEmpty) {
+                          useCase.resolveRemaining(result.remaining).then((
+                            items,
+                          ) {
+                            if (items.isNotEmpty) {
+                              player.addAllToQueue(items);
+                            }
+                          });
+                        }
+                      } catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to start radio'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                  _ActionTile(
+                    icon: Icons.playlist_add,
+                    label: 'Add to Playlist',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showPlaylistPicker(context, ref, videoId);
+                    },
+                  ),
+                  _LikeActionTile(
+                    videoId: videoId,
+                    title: title,
+                    artist: artist,
+                    thumbnailUrl: thumbnailUrl,
+                  ),
+                  _ActionTile(
+                    icon: Icons.download,
+                    label: 'Download',
+                    onTap: () {
+                      Navigator.pop(context);
+                      ref
+                          .read(activeDownloadsProvider.notifier)
+                          .startDownload(
+                            videoId: videoId,
+                            title: title,
+                            artist: artist,
+                            thumbnailUrl: thumbnailUrl,
+                          );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Download started')),
+                      );
+                    },
+                  ),
+                  _ActionTile(
+                    icon: Icons.share,
+                    label: 'Share',
+                    onTap: () {
+                      Navigator.pop(context);
+                      SharePlus.instance.share(
+                        ShareParams(
+                          text: 'https://music.youtube.com/watch?v=$videoId',
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
           ),
-          _ActionTile(
-            icon: Icons.playlist_play,
-            label: 'Play Next',
-            onTap: () {
-              Navigator.pop(context);
-              player.playNextVideoId(
-                videoId,
-                title: title,
-                artist: artist,
-                thumbnailUrl: thumbnailUrl,
-                durationSec: duration,
-                isVideo: isVideo,
-                albumName: albumName,
-              );
-            },
-          ),
-          _ActionTile(
-            icon: Icons.queue_music,
-            label: 'Add to Queue',
-            onTap: () {
-              Navigator.pop(context);
-              player.addToQueueVideoId(
-                videoId,
-                title: title,
-                artist: artist,
-                thumbnailUrl: thumbnailUrl,
-                durationSec: duration,
-                isVideo: isVideo,
-                albumName: albumName,
-              );
-            },
-          ),
-          _ActionTile(
-            icon: Icons.playlist_add,
-            label: 'Add to Playlist',
-            onTap: () {
-              Navigator.pop(context);
-              _showPlaylistPicker(context, ref, videoId);
-            },
-          ),
-          _LikeActionTile(
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-          ),
-          _ActionTile(
-            icon: Icons.download,
-            label: 'Download',
-            onTap: () {
-              Navigator.pop(context);
-              ref.read(activeDownloadsProvider.notifier).startDownload(
-                videoId: videoId,
-                title: title,
-                artist: artist,
-                thumbnailUrl: thumbnailUrl,
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Download started')),
-              );
-            },
-          ),
-          _ActionTile(
-            icon: Icons.share,
-            label: 'Share',
-            onTap: () {
-              Navigator.pop(context);
-              SharePlus.instance.share(
-                ShareParams(text: 'https://music.youtube.com/watch?v=$videoId'),
-              );
-            },
-          ),
-          const SizedBox(height: 8),
         ],
       ),
     );
@@ -262,20 +334,21 @@ class _LikeActionTile extends ConsumerWidget {
         return ListTile(
           leading: Icon(
             isLiked ? Icons.favorite : Icons.favorite_border,
-            color:
-                isLiked ? Theme.of(context).colorScheme.error : null,
+            color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(isLiked ? 'Unlike' : 'Like'),
           onTap: () async {
-            await ref.read(libraryNotifierProvider.notifier).toggleLikedSong(
-              LikedSongModel(
-                videoId: videoId,
-                title: title,
-                artist: artist,
-                thumbnailUrl: thumbnailUrl,
-                addedAt: DateTime.now(),
-              ),
-            );
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedSong(
+                  LikedSongModel(
+                    videoId: videoId,
+                    title: title,
+                    artist: artist,
+                    thumbnailUrl: thumbnailUrl,
+                    addedAt: DateTime.now(),
+                  ),
+                );
           },
           dense: true,
         );
@@ -312,9 +385,16 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
   @override
   void initState() {
     super.initState();
-    _playlistsFuture = ref
-        .read(libraryNotifierProvider.notifier)
-        .getAllPlaylists();
+    _playlistsFuture =
+        ref.read(libraryNotifierProvider.notifier).getAllPlaylists();
+  }
+
+  Future<void> _createAndAdd(String name) async {
+    final notifier = ref.read(libraryNotifierProvider.notifier);
+    await notifier.createPlaylist(name);
+    final playlists = await notifier.getAllPlaylists();
+    final created = playlists.firstWhere((p) => p.name == name);
+    await notifier.addEntryToPlaylist(created.id, widget.videoId);
   }
 
   @override
@@ -330,10 +410,36 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
             }
             final playlists = snapshot.data ?? [];
             if (playlists.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(
-                  child: Text('No playlists yet. Create one in Library.'),
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Add to Playlist',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create New Playlist'),
+                      onPressed: () async {
+                        final name = await showDialog<String>(
+                          context: context,
+                          builder: (_) => const CreatePlaylistDialog(),
+                        );
+                        if (name != null && name.isNotEmpty) {
+                          await _createAndAdd(name);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Added to "$name"')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ],
                 ),
               );
             }
@@ -359,10 +465,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                         onTap: () async {
                           await ref
                               .read(libraryNotifierProvider.notifier)
-                              .addEntryToPlaylist(
-                                playlist.id,
-                                widget.videoId,
-                              );
+                              .addEntryToPlaylist(playlist.id, widget.videoId);
                           if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(

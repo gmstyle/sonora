@@ -62,20 +62,19 @@ final searchResultsProvider = FutureProvider<List<SearchResult>>((ref) async {
   final filter = ref.watch(searchFilterProvider);
   if (query.isEmpty) return [];
   final repo = ref.watch(musicRepositoryProvider);
-  final results = await repo.search(query);
-  if (filter == 0) return results;
-  return results.where((r) {
-    switch (filter) {
-      case 1:
-        return r is SongDetailed || r is VideoDetailed;
-      case 2:
-        return r is ArtistDetailed;
-      case 3:
-        return r is AlbumDetailed;
-      case 4:
-        return r is PlaylistDetailed;
-      default:
-        return true;
-    }
-  }).toList();
+
+  // Use type-specific endpoints when a filter is active: they return richer
+  // metadata (e.g. albumId / artistId) than the generic mixed search.
+  switch (filter) {
+    case 1:
+      return repo.searchSongs(query);
+    case 2:
+      return repo.searchArtists(query);
+    case 3:
+      return repo.searchAlbums(query);
+    case 4:
+      return repo.searchPlaylists(query);
+    default:
+      return repo.search(query);
+  }
 });

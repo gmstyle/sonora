@@ -148,6 +148,8 @@ class _ArtistContent extends ConsumerWidget {
                                     : null,
                             duration: song.duration,
                             albumName: song.album?.name,
+                            albumId: song.album?.albumId,
+                            artistId: song.artist.artistId,
                           ),
                         ),
                     const SizedBox(height: 24),
