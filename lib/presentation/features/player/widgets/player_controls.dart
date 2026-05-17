@@ -14,20 +14,15 @@ class PlayerControls extends ConsumerWidget {
     final hasSleepTimer = playerState.sleepTimerRemaining != null;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildShuffleButton(context, playerState, notifier),
-          const SizedBox(width: 8),
           _buildSkipButton(context, false, notifier),
-          const SizedBox(width: 16),
           _buildPlayPauseButton(context, playerState, notifier),
-          const SizedBox(width: 16),
           _buildSkipButton(context, true, notifier),
-          const SizedBox(width: 8),
           _buildRepeatButton(context, playerState, notifier),
-          const SizedBox(width: 8),
           _buildTimerButton(context, hasSleepTimer, notifier),
         ],
       ),

@@ -312,14 +312,15 @@ class _AlbumActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
       children: [
         FilledButton.icon(
           onPressed: () => _shufflePlay(context, ref, album),
           icon: const Icon(Icons.shuffle),
           label: const Text('Shuffle Play'),
         ),
-        const SizedBox(width: 12),
         _LikeAlbumButton(album: album),
       ],
     );

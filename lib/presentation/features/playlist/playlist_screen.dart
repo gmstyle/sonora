@@ -285,7 +285,9 @@ class _PlaylistActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
       children: [
         FilledButton.icon(
           onPressed:
@@ -295,7 +297,6 @@ class _PlaylistActions extends ConsumerWidget {
           icon: const Icon(Icons.shuffle),
           label: const Text('Shuffle Play'),
         ),
-        const SizedBox(width: 12),
         _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
       ],
     );

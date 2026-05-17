@@ -339,10 +339,11 @@ class _ArtistActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
       children: [
         _FollowButton(artist: artist),
-        const SizedBox(width: 12),
         _ArtistRadioButton(artist: artist),
       ],
     );
