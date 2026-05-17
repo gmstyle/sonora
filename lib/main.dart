@@ -9,13 +9,29 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
+import 'data/datasources/local/database.dart';
+import 'data/datasources/local/daos/downloads_dao.dart';
+import 'data/datasources/local/daos/history_dao.dart';
+import 'data/datasources/local/daos/library_dao.dart';
+import 'data/datasources/local/daos/playlists_dao.dart';
+import 'data/datasources/remote/stream_datasource.dart';
+import 'data/datasources/remote/ytmusic_datasource.dart';
+import 'data/repositories/library_repository_impl.dart';
+import 'data/repositories/music_repository_impl.dart';
+import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
 import 'presentation/providers/check_for_updates_use_case_provider.dart';
+import 'presentation/providers/database_provider.dart';
+import 'presentation/providers/library_repository_provider.dart';
+import 'presentation/providers/music_repository_provider.dart';
+import 'presentation/providers/play_video_id_use_case_provider.dart';
 import 'presentation/providers/player_provider.dart';
 import 'presentation/providers/settings_provider.dart';
+import 'presentation/providers/stream_datasource_provider.dart';
 import 'presentation/providers/theme_provider.dart';
+import 'presentation/providers/ytmusic_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,18 +52,45 @@ Future<void> main() async {
   await YTMusic().initialize();
 
   final prefs = await SharedPreferences.getInstance();
-  final handler = SonoraAudioHandler();
+
+  // Build shared instances early so SonoraAudioHandler (which runs inside the
+  // background audio service) has access to them before the Flutter widget
+  // tree is rendered.
+  final db = AppDatabase.create();
+  final ytmusicDs = YtmusicDatasource();
+  final streamDs = StreamDatasource();
+  final libraryRepo = LibraryRepositoryImpl(
+    LibraryDao(db),
+    PlaylistsDao(db),
+    DownloadsDao(db),
+    HistoryDao(db),
+  );
+  final musicRepo = MusicRepositoryImpl(ytmusicDs, streamDs);
+  final playVideoIdUseCase = PlayVideoIdUseCase(musicRepo, libraryRepo);
+
+  final handler = SonoraAudioHandler(
+    musicRepo: musicRepo,
+    libraryRepo: libraryRepo,
+    playVideoIdUseCase: playVideoIdUseCase,
+  );
 
   if (isAndroid) {
     await AudioService.init(
       builder: () => handler,
-      config: AudioServiceConfig(
+      config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.sonora.music.channel',
         androidNotificationChannelName: 'Sonora',
-        androidNotificationOngoing: true,
-        androidStopForegroundOnPause: true,
-        fastForwardInterval: const Duration(seconds: 10),
-        rewindInterval: const Duration(seconds: 10),
+        androidNotificationOngoing: false,
+        androidStopForegroundOnPause: false,
+        artDownscaleWidth: 256,
+        artDownscaleHeight: 256,
+        androidBrowsableRootExtras: {
+          'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT': 2,
+          'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 2,
+          'android.media.browse.SEARCH_SUPPORTED': true,
+        },
+        fastForwardInterval: Duration(seconds: 10),
+        rewindInterval: Duration(seconds: 10),
       ),
     );
   }
@@ -57,6 +100,12 @@ Future<void> main() async {
       overrides: [
         audioHandlerProvider.overrideWithValue(handler),
         sharedPreferencesProvider.overrideWithValue(prefs),
+        databaseProvider.overrideWithValue(db),
+        ytmusicDatasourceProvider.overrideWithValue(ytmusicDs),
+        streamDatasourceProvider.overrideWithValue(streamDs),
+        libraryRepositoryProvider.overrideWithValue(libraryRepo),
+        musicRepositoryProvider.overrideWithValue(musicRepo),
+        playVideoIdUseCaseProvider.overrideWithValue(playVideoIdUseCase),
       ],
       child: const SonoraApp(),
     ),
@@ -74,7 +123,9 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdates());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdates();
+    });
   }
 
   Future<void> _checkForUpdates() async {
@@ -100,7 +151,8 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
         await flutterLocalNotificationsPlugin.show(
           id: 0,
           title: 'Update Available',
-          body: 'Sonora ${result.latestVersion} is available'
+          body:
+              'Sonora ${result.latestVersion} is available'
               ' (current: v${info.version})',
           notificationDetails: const NotificationDetails(
             linux: LinuxNotificationDetails(defaultActionName: 'Open Sonora'),
