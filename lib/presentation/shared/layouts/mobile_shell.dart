@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/player/player_sheet.dart';
+import '../../providers/player_provider.dart';
 
 const _destinations = (
   icons: [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings],
   labels: ['Home', 'Search', 'Library', 'Downloads', 'Settings'],
 );
 
-class MobileShell extends StatelessWidget {
+class MobileShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const MobileShell({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPlayerActive = ref.watch(playerStateProvider).currentSong != null;
+
     return Scaffold(
       body: Stack(
         children: [
-          navigationShell,
+          Padding(
+            padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 : 0.0),
+            child: navigationShell,
+          ),
           const PlayerSheet(),
         ],
       ),

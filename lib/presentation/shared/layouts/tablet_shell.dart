@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/player/player_sheet.dart';
+import '../../providers/player_provider.dart';
 
 const _icons = [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings];
 const _labels = ['Home', 'Search', 'Library', 'Downloads', 'Settings'];
 
-class TabletShell extends StatelessWidget {
+class TabletShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const TabletShell({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPlayerActive = ref.watch(playerStateProvider).currentSong != null;
+
     return Scaffold(
       body: Row(
         children: [
@@ -35,7 +39,10 @@ class TabletShell extends StatelessWidget {
           Expanded(
             child: Stack(
               children: [
-                navigationShell,
+                Padding(
+                  padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 : 0.0),
+                  child: navigationShell,
+                ),
                 const PlayerSheet(),
               ],
             ),

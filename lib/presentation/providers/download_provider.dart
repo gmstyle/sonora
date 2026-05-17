@@ -57,8 +57,8 @@ final allDownloadsProvider = FutureProvider<List<DownloadModel>>((ref) {
 
 final activeDownloadsProvider =
     NotifierProvider<DownloadsNotifier, Map<String, ActiveDownload>>(
-  DownloadsNotifier.new,
-);
+      DownloadsNotifier.new,
+    );
 
 class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
   @override
@@ -121,18 +121,14 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
               'Sonora Downloads',
               importance: Importance.defaultImportance,
             ),
-            linux: LinuxNotificationDetails(
-              defaultActionName: 'Open Sonora',
-            ),
+            linux: LinuxNotificationDetails(defaultActionName: 'Open Sonora'),
           ),
         );
       } catch (_) {}
 
       Future.delayed(const Duration(seconds: 3), () {
         if (state[videoId]?.status == DownloadStatus.completed) {
-          state = Map.fromEntries(
-            state.entries.where((e) => e.key != videoId),
-          );
+          state = Map.fromEntries(state.entries.where((e) => e.key != videoId));
         }
       });
     } catch (e) {
@@ -156,16 +152,12 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         if (await file.exists()) await file.delete();
       } catch (_) {}
     }
-    state = Map.fromEntries(
-      state.entries.where((e) => e.key != videoId),
-    );
+    state = Map.fromEntries(state.entries.where((e) => e.key != videoId));
     ref.invalidate(allDownloadsProvider);
   }
 
   void dismiss(String videoId) {
-    state = Map.fromEntries(
-      state.entries.where((e) => e.key != videoId),
-    );
+    state = Map.fromEntries(state.entries.where((e) => e.key != videoId));
   }
 
   Future<void> retry({
@@ -174,9 +166,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     required String artist,
     String? thumbnailUrl,
   }) async {
-    state = Map.fromEntries(
-      state.entries.where((e) => e.key != videoId),
-    );
+    state = Map.fromEntries(state.entries.where((e) => e.key != videoId));
     await startDownload(
       videoId: videoId,
       title: title,
