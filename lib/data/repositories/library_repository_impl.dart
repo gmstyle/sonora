@@ -135,12 +135,32 @@ class LibraryRepositoryImpl implements LibraryRepository {
   // ── Downloads ─────────────────────────────────────────────────
 
   @override
+  Future<DownloadModel?> getDownload(String videoId) async {
+    final row = await _downloadsDao.getDownload(videoId);
+    if (row == null) return null;
+    return DownloadModel(
+      videoId: row.videoId,
+      title: row.title ?? '',
+      artist: row.artist ?? '',
+      thumbnailUrl: row.thumbnailUrl,
+      localPath: row.localPath,
+      format: row.format,
+      fileSize: row.fileSize,
+      downloadedAt: row.downloadedAt,
+      status: row.status,
+    );
+  }
+
+  @override
   Future<List<DownloadModel>> getAllDownloads() async {
     final rows = await _downloadsDao.getAllDownloads();
     return rows
         .map(
           (r) => DownloadModel(
             videoId: r.videoId,
+            title: r.title ?? '',
+            artist: r.artist ?? '',
+            thumbnailUrl: r.thumbnailUrl,
             localPath: r.localPath,
             format: r.format,
             fileSize: r.fileSize,
@@ -154,7 +174,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<void> insertDownload({
     required String videoId,
+    required String title,
+    required String artist,
     required String status,
+    String? thumbnailUrl,
     String? localPath,
     String? format,
     int? fileSize,
@@ -162,6 +185,9 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }) => _downloadsDao.insertDownload(
     DownloadsCompanion.insert(
       videoId: videoId,
+      title: Value<String?>(title),
+      artist: Value<String?>(artist),
+      thumbnailUrl: Value(thumbnailUrl),
       status: status,
       localPath: Value(localPath),
       format: Value(format),

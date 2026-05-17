@@ -112,6 +112,10 @@ class LibraryNotifier extends Notifier<void> {
     await _repo.insertSearchEntry(query);
   }
 
+  Future<void> clearSearchHistory() async {
+    await _repo.clearSearchHistory();
+  }
+
   // ── Read-only helpers exposed to shared widgets ───────────────────────────────
 
   /// Returns all local playlists. Used by shared widgets that cannot import

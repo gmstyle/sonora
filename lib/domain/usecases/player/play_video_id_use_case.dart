@@ -1,14 +1,19 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
+import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
 
 /// Resolves a [videoId] to a fully populated [MediaItem] ready for playback.
 ///
 /// Tries [MusicRepository.getSong] first; falls back to [MusicRepository.getVideo]
-/// for music videos. Always resolves the stream URL before returning.
+/// for music videos. If a local download exists, uses the local file instead of
+/// resolving a stream URL.
 class PlayVideoIdUseCase {
   final MusicRepository _repo;
+  final LibraryRepository? _libraryRepo;
 
-  PlayVideoIdUseCase(this._repo);
+  PlayVideoIdUseCase(this._repo, [this._libraryRepo]);
 
   Future<MediaItem> execute(String videoId) async {
     String title, artist, thumbnailUrl;
@@ -32,15 +37,34 @@ class PlayVideoIdUseCase {
       isVideo = true;
     }
 
-    final streamUrl = await _repo.getStreamUrl(videoId);
+    final url = await _resolveUrl(videoId);
     return MediaItem(
       id: videoId,
       title: title,
       artist: artist,
       duration: Duration(seconds: durationSec),
       artUri: thumbnailUrl.isNotEmpty ? Uri.parse(thumbnailUrl) : null,
-      extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
+      extras: {'url': url, 'videoId': videoId, 'isVideo': isVideo},
     );
+  }
+
+  /// Returns a local file URI if a completed download exists, otherwise
+  /// resolves the stream URL from [MusicRepository].
+  Future<String> _resolveUrl(String videoId) async {
+    if (_libraryRepo != null) {
+      try {
+        final download = await _libraryRepo.getDownload(videoId);
+        if (download != null &&
+            download.status == 'completed' &&
+            download.localPath != null) {
+          final file = File(download.localPath!);
+          if (await file.exists()) {
+            return file.uri.toString();
+          }
+        }
+      } catch (_) {}
+    }
+    return _repo.getStreamUrl(videoId);
   }
 
   /// Resolves only the audio stream URL for [videoId].

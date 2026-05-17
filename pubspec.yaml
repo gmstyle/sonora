@@ -43,10 +43,11 @@ dependencies:
 
   # ── File System & Permissions ─────────────────────────────────
   path_provider: ^2.1.5
-  permission_handler: ^11.4.0
+  permission_handler: ^12.0.1
 
   # ── Download ─────────────────────────────────────────────────
   dio: ^5.9.2
+  connectivity_plus: ^7.1.1 
 
   # ── Images ──────────────────────────────────────────────────
   cached_network_image: ^3.4.1
@@ -72,6 +73,10 @@ dependencies:
 
   # ── File Picker ──────────────────────────────────────────────
   file_picker: ^11.0.2
+
+  # ── Notifications ────────────────────────────────────────────────
+  flutter_local_notifications: ^21.0.0
+  flutter_local_notifications_linux: ^8.0.0
 
 dev_dependencies:
   flutter_test:

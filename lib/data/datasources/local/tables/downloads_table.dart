@@ -2,6 +2,9 @@ import 'package:drift/drift.dart';
 
 class Downloads extends Table {
   TextColumn get videoId => text()();
+  TextColumn get title => text().nullable()();
+  TextColumn get artist => text().nullable()();
+  TextColumn get thumbnailUrl => text().nullable()();
   TextColumn get localPath => text().nullable()();
   TextColumn get format => text().nullable()();
   IntColumn get fileSize => integer().nullable()();

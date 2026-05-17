@@ -59,6 +59,9 @@ class PlaylistEntryModel {
 
 class DownloadModel {
   final String videoId;
+  final String title;
+  final String artist;
+  final String? thumbnailUrl;
   final String? localPath;
   final String? format;
   final int? fileSize;
@@ -67,6 +70,9 @@ class DownloadModel {
 
   const DownloadModel({
     required this.videoId,
+    required this.title,
+    required this.artist,
+    this.thumbnailUrl,
     this.localPath,
     this.format,
     this.fileSize,

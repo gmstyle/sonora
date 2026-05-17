@@ -142,6 +142,7 @@ class PlayerControls extends ConsumerWidget {
     final options = [5, 10, 15, 30, 45, 60];
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder: (ctx) {
         return SafeArea(
           child: Column(

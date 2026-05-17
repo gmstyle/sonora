@@ -20,9 +20,13 @@ abstract class LibraryRepository {
   Future<void> removeEntry(int playlistId, String videoId);
 
   Future<List<DownloadModel>> getAllDownloads();
+  Future<DownloadModel?> getDownload(String videoId);
   Future<void> insertDownload({
     required String videoId,
+    required String title,
+    required String artist,
     required String status,
+    String? thumbnailUrl,
     String? localPath,
     String? format,
     int? fileSize,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../domain/models/library_models.dart';
+import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 
@@ -38,6 +39,7 @@ class ContextMenuSheet extends ConsumerWidget {
   }) {
     return showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       builder:
           (_) => ContextMenuSheet(
             videoId: videoId,
@@ -180,10 +182,14 @@ class ContextMenuSheet extends ConsumerWidget {
             label: 'Download',
             onTap: () {
               Navigator.pop(context);
+              ref.read(activeDownloadsProvider.notifier).startDownload(
+                videoId: videoId,
+                title: title,
+                artist: artist,
+                thumbnailUrl: thumbnailUrl,
+              );
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Download coming in a future update'),
-                ),
+                const SnackBar(content: Text('Download started')),
               );
             },
           ),
@@ -285,6 +291,7 @@ Future<void> _showPlaylistPicker(
 ) {
   return showModalBottomSheet(
     context: context,
+    useRootNavigator: true,
     builder: (_) => _PlaylistPickerSheet(videoId: videoId),
   );
 }

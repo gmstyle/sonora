@@ -115,6 +115,8 @@ void main() {
     test('insert and retrieve download', () async {
       await downloadsDao.insertDownload(DownloadsCompanion(
         videoId: Value('video_1'),
+        title: Value('Test Song'),
+        artist: Value('Test Artist'),
         status: Value('pending'),
       ));
 
@@ -126,6 +128,8 @@ void main() {
     test('update download status', () async {
       await downloadsDao.insertDownload(DownloadsCompanion(
         videoId: Value('video_1'),
+        title: Value('Test Song'),
+        artist: Value('Test Artist'),
         status: Value('pending'),
       ));
 
