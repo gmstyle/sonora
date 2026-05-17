@@ -31,6 +31,40 @@ class FollowedArtistModel {
   });
 }
 
+class LikedAlbumModel {
+  final String albumId;
+  final String name;
+  final String artistName;
+  final String? thumbnailUrl;
+  final int? year;
+  final DateTime addedAt;
+
+  const LikedAlbumModel({
+    required this.albumId,
+    required this.name,
+    required this.artistName,
+    this.thumbnailUrl,
+    this.year,
+    required this.addedAt,
+  });
+}
+
+class LikedPlaylistModel {
+  final String playlistId;
+  final String name;
+  final String? thumbnailUrl;
+  final int? videoCount;
+  final DateTime addedAt;
+
+  const LikedPlaylistModel({
+    required this.playlistId,
+    required this.name,
+    this.thumbnailUrl,
+    this.videoCount,
+    required this.addedAt,
+  });
+}
+
 class LocalPlaylistModel {
   final int id;
   final String name;

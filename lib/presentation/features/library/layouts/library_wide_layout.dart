@@ -21,7 +21,13 @@ class LibraryWideLayout extends ConsumerStatefulWidget {
 class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
   int _selectedIndex = 0;
 
-  static const _tabs = ['Favorites', 'Artists', 'Playlists', 'History'];
+  static const _tabs = [
+    'Favorites',
+    'Artists',
+    'Playlists',
+    'Albums',
+    'History',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -37,23 +43,25 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
             child: Column(
               children: [
                 const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => _createPlaylist(context),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Create Playlist'),
+                if (_selectedIndex == 2)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _createPlaylist(context),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create Playlist'),
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(height: 16),
                 ...List.generate(_tabs.length, (i) {
                   final icons = [
                     Icons.favorite_outline,
                     Icons.person_outline,
                     Icons.playlist_play,
+                    Icons.album_outlined,
                     Icons.history,
                   ];
                   return ListTile(
@@ -79,7 +87,9 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
                     onPlaylistTap: (playlist) {
                       _showPlaylistDetail(context, ref, playlist);
                     },
+                    onCreatePlaylist: () => _createPlaylist(context),
                   ),
+                  _AlbumsTab(),
                   _HistoryTab(),
                 ],
               ),
@@ -233,33 +243,73 @@ class _ArtistsTab extends ConsumerWidget {
 
 class _PlaylistsTab extends ConsumerWidget {
   final void Function(LocalPlaylistModel playlist) onPlaylistTap;
+  final VoidCallback onCreatePlaylist;
 
-  const _PlaylistsTab({required this.onPlaylistTap});
+  const _PlaylistsTab({
+    required this.onPlaylistTap,
+    required this.onCreatePlaylist,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(playlistsProvider);
-    return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: 'Failed to load playlists',
-            onRetry: () => ref.invalidate(playlistsProvider),
+    final myAsync = ref.watch(playlistsProvider);
+    final likedAsync = ref.watch(likedPlaylistsProvider);
+
+    if (myAsync.isLoading || likedAsync.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (myAsync.hasError) {
+      return ErrorRetryWidget(
+        message: 'Failed to load playlists',
+        onRetry: () => ref.invalidate(playlistsProvider),
+      );
+    }
+    if (likedAsync.hasError) {
+      return ErrorRetryWidget(
+        message: 'Failed to load liked playlists',
+        onRetry: () => ref.invalidate(likedPlaylistsProvider),
+      );
+    }
+
+    final playlists = myAsync.value ?? [];
+    final liked = likedAsync.value ?? [];
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+            child: Row(
+              children: [
+                Text(
+                  'My Playlists',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Create Playlist',
+                  onPressed: onCreatePlaylist,
+                ),
+              ],
+            ),
           ),
-      data: (playlists) {
-        if (playlists.isEmpty) {
-          return const EmptyStateWidget(
-            icon: Icons.playlist_play,
-            title: 'No playlists yet',
-            body: 'Create a playlist to organize your music.',
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () => ref.refresh(playlistsProvider.future),
-          child: ListView.builder(
-            itemCount: playlists.length,
-            padding: const EdgeInsets.only(bottom: 16),
-            itemBuilder: (_, i) {
+        ),
+        if (playlists.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'No local playlists yet.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate((_, i) {
               final p = playlists[i];
               return Dismissible(
                 key: ValueKey(p.id),
@@ -274,7 +324,7 @@ class _PlaylistsTab extends ConsumerWidget {
                   ),
                 ),
                 confirmDismiss: (_) async {
-                  return await showDialog<bool>(
+                  return showDialog<bool>(
                     context: context,
                     builder:
                         (ctx) => AlertDialog(
@@ -329,10 +379,80 @@ class _PlaylistsTab extends ConsumerWidget {
                   onTap: () => onPlaylistTap(p),
                 ),
               );
-            },
+            }, childCount: playlists.length),
           ),
-        );
-      },
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Text(
+              'Liked Playlists',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        ),
+        if (liked.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Like a playlist from its page to see it here.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate((_, i) {
+              final p = liked[i];
+              return Dismissible(
+                key: ValueKey(p.playlistId),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 16),
+                  color: Theme.of(context).colorScheme.error,
+                  child: Icon(
+                    Icons.favorite,
+                    color: Theme.of(context).colorScheme.onError,
+                  ),
+                ),
+                onDismissed: (_) async {
+                  await ref
+                      .read(libraryNotifierProvider.notifier)
+                      .toggleLikedPlaylist(p);
+                },
+                child: ListTile(
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child:
+                        p.thumbnailUrl != null
+                            ? Image.network(
+                              p.thumbnailUrl!,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                            )
+                            : const SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Icon(Icons.playlist_play),
+                            ),
+                  ),
+                  title: Text(p.name),
+                  subtitle:
+                      p.videoCount != null
+                          ? Text('${p.videoCount} videos')
+                          : null,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/playlist/${p.playlistId}'),
+                ),
+              );
+            }, childCount: liked.length),
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      ],
     );
   }
 }
@@ -361,7 +481,9 @@ Future<void> _deletePlaylist(
         ),
   );
   if (confirm == true) {
-    await ref.read(libraryNotifierProvider.notifier).deletePlaylist(playlist.id);
+    await ref
+        .read(libraryNotifierProvider.notifier)
+        .deletePlaylist(playlist.id);
     ref.invalidate(playlistsProvider);
   }
 }
@@ -384,6 +506,85 @@ Future<void> _renamePlaylist(
         .read(libraryNotifierProvider.notifier)
         .updatePlaylist(playlist.id, name: result);
     ref.invalidate(playlistsProvider);
+  }
+}
+
+// ── Albums Tab ────────────────────────────────────────────────────
+
+class _AlbumsTab extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(likedAlbumsProvider);
+    return async.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error:
+          (e, _) => ErrorRetryWidget(
+            message: 'Failed to load albums',
+            onRetry: () => ref.invalidate(likedAlbumsProvider),
+          ),
+      data: (albums) {
+        if (albums.isEmpty) {
+          return const EmptyStateWidget(
+            icon: Icons.album_outlined,
+            title: 'No liked albums',
+            body: 'Like an album from its page to see it here.',
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () => ref.refresh(likedAlbumsProvider.future),
+          child: ListView.builder(
+            itemCount: albums.length,
+            itemBuilder: (_, i) {
+              final a = albums[i];
+              return Dismissible(
+                key: ValueKey(a.albumId),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 16),
+                  color: Theme.of(context).colorScheme.error,
+                  child: Icon(
+                    Icons.favorite,
+                    color: Theme.of(context).colorScheme.onError,
+                  ),
+                ),
+                onDismissed: (_) async {
+                  await ref
+                      .read(libraryNotifierProvider.notifier)
+                      .deleteLikedAlbum(a.albumId);
+                },
+                child: ListTile(
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child:
+                        a.thumbnailUrl != null
+                            ? Image.network(
+                              a.thumbnailUrl!,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                            )
+                            : const SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Icon(Icons.album),
+                            ),
+                  ),
+                  title: Text(a.name),
+                  subtitle: Text(
+                    a.year != null
+                        ? '${a.artistName} · ${a.year}'
+                        : a.artistName,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/album/${a.albumId}'),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 }
 

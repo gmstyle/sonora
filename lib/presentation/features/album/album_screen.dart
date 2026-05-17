@@ -353,8 +353,7 @@ class _LikeAlbumButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (album.songs.isEmpty) return const SizedBox.shrink();
-    final likedAsync = ref.watch(likedSongProvider(album.songs.first.videoId));
+    final likedAsync = ref.watch(likedAlbumProvider(album.albumId));
     return likedAsync.when(
       loading:
           () => FilledButton.tonalIcon(
@@ -368,24 +367,19 @@ class _LikeAlbumButton extends ConsumerWidget {
         return FilledButton.tonalIcon(
           onPressed: () async {
             final notifier = ref.read(libraryNotifierProvider.notifier);
-            if (isLiked) {
-              for (final s in album.songs) {
-                await notifier.deleteLikedSong(s.videoId);
-              }
-            } else {
-              for (final s in album.songs) {
-                await notifier.toggleLikedSong(
-                  LikedSongModel(
-                    videoId: s.videoId,
-                    title: s.name,
-                    artist: s.artist.name,
-                    thumbnailUrl:
-                        s.thumbnails.isNotEmpty ? s.thumbnails.last.url : null,
-                    addedAt: DateTime.now(),
-                  ),
-                );
-              }
-            }
+            await notifier.toggleLikedAlbum(
+              LikedAlbumModel(
+                albumId: album.albumId,
+                name: album.name,
+                artistName: album.artist.name,
+                thumbnailUrl:
+                    album.thumbnails.isNotEmpty
+                        ? album.thumbnails.last.url
+                        : null,
+                year: album.year,
+                addedAt: DateTime.now(),
+              ),
+            );
           },
           icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
           label: Text(isLiked ? 'Unlike Album' : 'Like Album'),

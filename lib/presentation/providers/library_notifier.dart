@@ -22,6 +22,20 @@ final followedArtistProvider =
       return ref.watch(libraryRepositoryProvider).getFollowedArtist(artistId);
     });
 
+/// Watches whether a specific album is liked. Invalidated by [LibraryNotifier].
+final likedAlbumProvider = FutureProvider.family<LikedAlbumModel?, String>((
+  ref,
+  albumId,
+) {
+  return ref.watch(libraryRepositoryProvider).getLikedAlbum(albumId);
+});
+
+/// Watches whether a specific playlist is liked. Invalidated by [LibraryNotifier].
+final likedPlaylistProvider =
+    FutureProvider.family<LikedPlaylistModel?, String>((ref, playlistId) {
+      return ref.watch(libraryRepositoryProvider).getLikedPlaylist(playlistId);
+    });
+
 // ── LibraryNotifier ───────────────────────────────────────────────────────────
 
 final libraryNotifierProvider = NotifierProvider<LibraryNotifier, void>(
@@ -57,6 +71,28 @@ class LibraryNotifier extends Notifier<void> {
     await _repo.toggleFollowedArtist(artist);
     ref.invalidate(followedArtistProvider(artist.artistId));
     ref.invalidate(followedArtistsProvider);
+  }
+
+  // ── Liked Albums ─────────────────────────────────────────────────────────────
+
+  Future<void> toggleLikedAlbum(LikedAlbumModel album) async {
+    await _repo.toggleLikedAlbum(album);
+    ref.invalidate(likedAlbumProvider(album.albumId));
+    ref.invalidate(likedAlbumsProvider);
+  }
+
+  Future<void> deleteLikedAlbum(String albumId) async {
+    await _repo.deleteLikedAlbum(albumId);
+    ref.invalidate(likedAlbumProvider(albumId));
+    ref.invalidate(likedAlbumsProvider);
+  }
+
+  // ── Liked Playlists ──────────────────────────────────────────────────────────
+
+  Future<void> toggleLikedPlaylist(LikedPlaylistModel playlist) async {
+    await _repo.toggleLikedPlaylist(playlist);
+    ref.invalidate(likedPlaylistProvider(playlist.playlistId));
+    ref.invalidate(likedPlaylistsProvider);
   }
 
   // ── Playlists ────────────────────────────────────────────────────────────────

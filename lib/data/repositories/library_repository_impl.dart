@@ -91,6 +91,79 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> deleteFollowedArtist(String artistId) =>
       _libraryDao.deleteFollowedArtist(artistId);
 
+  // ── Liked Albums ─────────────────────────────────────────────
+
+  @override
+  Future<List<LikedAlbumModel>> getAllLikedAlbums() async {
+    final rows = await _libraryDao.getAllLikedAlbums();
+    return rows.map(_mapLikedAlbum).toList();
+  }
+
+  @override
+  Future<LikedAlbumModel?> getLikedAlbum(String albumId) async {
+    final row = await _libraryDao.getLikedAlbum(albumId);
+    return row != null ? _mapLikedAlbum(row) : null;
+  }
+
+  @override
+  Future<void> toggleLikedAlbum(LikedAlbumModel album) async {
+    final existing = await _libraryDao.getLikedAlbum(album.albumId);
+    if (existing != null) {
+      await _libraryDao.deleteLikedAlbum(album.albumId);
+    } else {
+      await _libraryDao.insertLikedAlbum(
+        LikedAlbumsCompanion.insert(
+          albumId: album.albumId,
+          name: album.name,
+          artistName: album.artistName,
+          thumbnailUrl: Value(album.thumbnailUrl),
+          year: Value(album.year),
+          addedAt: album.addedAt,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteLikedAlbum(String albumId) =>
+      _libraryDao.deleteLikedAlbum(albumId);
+
+  // ── Liked Playlists ──────────────────────────────────────────
+
+  @override
+  Future<List<LikedPlaylistModel>> getAllLikedPlaylists() async {
+    final rows = await _libraryDao.getAllLikedPlaylists();
+    return rows.map(_mapLikedPlaylist).toList();
+  }
+
+  @override
+  Future<LikedPlaylistModel?> getLikedPlaylist(String playlistId) async {
+    final row = await _libraryDao.getLikedPlaylist(playlistId);
+    return row != null ? _mapLikedPlaylist(row) : null;
+  }
+
+  @override
+  Future<void> toggleLikedPlaylist(LikedPlaylistModel playlist) async {
+    final existing = await _libraryDao.getLikedPlaylist(playlist.playlistId);
+    if (existing != null) {
+      await _libraryDao.deleteLikedPlaylist(playlist.playlistId);
+    } else {
+      await _libraryDao.insertLikedPlaylist(
+        LikedPlaylistsCompanion.insert(
+          playlistId: playlist.playlistId,
+          name: playlist.name,
+          thumbnailUrl: Value(playlist.thumbnailUrl),
+          videoCount: Value(playlist.videoCount),
+          addedAt: playlist.addedAt,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteLikedPlaylist(String playlistId) =>
+      _libraryDao.deleteLikedPlaylist(playlistId);
+
   // ── Playlists ─────────────────────────────────────────────────
 
   @override
@@ -221,8 +294,17 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
-  Future<void> recordPlay(String videoId, String title, String artist, {String? thumbnailUrl}) =>
-      _historyDao.recordPlay(videoId, title, artist, thumbnailUrl: thumbnailUrl);
+  Future<void> recordPlay(
+    String videoId,
+    String title,
+    String artist, {
+    String? thumbnailUrl,
+  }) => _historyDao.recordPlay(
+    videoId,
+    title,
+    artist,
+    thumbnailUrl: thumbnailUrl,
+  );
 
   @override
   Future<void> clearHistory() => _historyDao.clearHistory();
@@ -272,5 +354,22 @@ class LibraryRepositoryImpl implements LibraryRepository {
     name: r.name,
     description: r.description,
     createdAt: r.createdAt,
+  );
+
+  LikedAlbumModel _mapLikedAlbum(LikedAlbum r) => LikedAlbumModel(
+    albumId: r.albumId,
+    name: r.name,
+    artistName: r.artistName,
+    thumbnailUrl: r.thumbnailUrl,
+    year: r.year,
+    addedAt: r.addedAt,
+  );
+
+  LikedPlaylistModel _mapLikedPlaylist(LikedPlaylist r) => LikedPlaylistModel(
+    playlistId: r.playlistId,
+    name: r.name,
+    thumbnailUrl: r.thumbnailUrl,
+    videoCount: r.videoCount,
+    addedAt: r.addedAt,
   );
 }

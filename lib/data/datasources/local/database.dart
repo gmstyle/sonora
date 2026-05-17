@@ -4,6 +4,8 @@ import 'package:path_provider/path_provider.dart';
 
 import 'tables/liked_songs_table.dart';
 import 'tables/followed_artists_table.dart';
+import 'tables/liked_albums_table.dart';
+import 'tables/liked_playlists_table.dart';
 import 'tables/local_playlists_table.dart';
 import 'tables/playlist_entries_table.dart';
 import 'tables/downloads_table.dart';
@@ -17,6 +19,8 @@ part 'database.g.dart';
   tables: [
     LikedSongs,
     FollowedArtists,
+    LikedAlbums,
+    LikedPlaylists,
     LocalPlaylists,
     PlaylistEntries,
     Downloads,
@@ -33,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase create() => AppDatabase._();
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -60,6 +64,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.addColumn(downloads, downloads.thumbnailUrl);
+      }
+      if (from < 7) {
+        await m.createTable(likedAlbums);
+        await m.createTable(likedPlaylists);
       }
     },
   );

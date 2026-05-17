@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../domain/models/library_models.dart';
+import '../../providers/library_notifier.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -294,15 +296,7 @@ class _PlaylistActions extends ConsumerWidget {
           label: const Text('Shuffle Play'),
         ),
         const SizedBox(width: 12),
-        FilledButton.tonalIcon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Add to Playlist — coming soon')),
-            );
-          },
-          icon: const Icon(Icons.playlist_add),
-          label: const Text('Add to Playlist'),
-        ),
+        _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
       ],
     );
   }
@@ -325,6 +319,52 @@ class _PlaylistActions extends ConsumerWidget {
         ).showSnackBar(SnackBar(content: Text('Failed to play playlist: $e')));
       }
     }
+  }
+}
+
+class _LikePlaylistButton extends ConsumerWidget {
+  final PlaylistFull playlist;
+  final AsyncValue<List<VideoDetailed>> videosAsync;
+
+  const _LikePlaylistButton({
+    required this.playlist,
+    required this.videosAsync,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final likedAsync = ref.watch(likedPlaylistProvider(playlist.playlistId));
+    return likedAsync.when(
+      loading:
+          () => FilledButton.tonalIcon(
+            onPressed: null,
+            icon: const Icon(Icons.favorite_border),
+            label: const Text('Like Playlist'),
+          ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (liked) {
+        final isLiked = liked != null;
+        return FilledButton.tonalIcon(
+          onPressed: () async {
+            final notifier = ref.read(libraryNotifierProvider.notifier);
+            await notifier.toggleLikedPlaylist(
+              LikedPlaylistModel(
+                playlistId: playlist.playlistId,
+                name: playlist.name,
+                thumbnailUrl:
+                    playlist.thumbnails.isNotEmpty
+                        ? playlist.thumbnails.last.url
+                        : null,
+                videoCount: playlist.videoCount,
+                addedAt: DateTime.now(),
+              ),
+            );
+          },
+          icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
+          label: Text(isLiked ? 'Unlike Playlist' : 'Like Playlist'),
+        );
+      },
+    );
   }
 }
 
