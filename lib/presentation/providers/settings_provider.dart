@@ -198,3 +198,4 @@ const kDownloadPathKey = 'downloadPath';
 const kDownloadWifiKey = 'downloadOnlyOnWifi';
 const kTrackHistoryKey = 'trackHistory';
 const kCheckUpdatesKey = 'checkUpdatesOnStartup';
+const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';

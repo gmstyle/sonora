@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/utils/notification_utils.dart';
@@ -11,6 +12,7 @@ import 'core/utils/platform_utils.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
+import 'presentation/providers/check_for_updates_use_case_provider.dart';
 import 'presentation/providers/player_provider.dart';
 import 'presentation/providers/settings_provider.dart';
 import 'presentation/providers/theme_provider.dart';
@@ -61,11 +63,55 @@ Future<void> main() async {
   );
 }
 
-class SonoraApp extends ConsumerWidget {
+class SonoraApp extends ConsumerStatefulWidget {
   const SonoraApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SonoraApp> createState() => _SonoraAppState();
+}
+
+class _SonoraAppState extends ConsumerState<SonoraApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdates());
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final settings = ref.read(settingsProvider);
+      if (!settings.checkUpdatesOnStartup) return;
+
+      final prefs = ref.read(sharedPreferencesProvider);
+      final lastCheck = prefs.getInt(kLastUpdateCheckTimeKey) ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - lastCheck < const Duration(hours: 24).inMilliseconds) return;
+
+      await prefs.setInt(kLastUpdateCheckTimeKey, now);
+
+      final useCase = ref.read(checkForUpdatesUseCaseProvider);
+      final info = await PackageInfo.fromPlatform();
+      final result = await useCase.execute(
+        currentVersion: 'v${info.version}',
+        lastCheckEpochMillis: null,
+      );
+
+      if (result.isNewer && mounted) {
+        await flutterLocalNotificationsPlugin.show(
+          id: 0,
+          title: 'Update Available',
+          body: 'Sonora ${result.latestVersion} is available'
+              ' (current: v${info.version})',
+          notificationDetails: const NotificationDetails(
+            linux: LinuxNotificationDetails(defaultActionName: 'Open Sonora'),
+          ),
+        );
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final lightTheme = ref.watch(lightThemeProvider);
     final darkTheme = ref.watch(darkThemeProvider);
