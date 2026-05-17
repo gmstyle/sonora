@@ -92,6 +92,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         artist: artist,
         thumbnailUrl: thumbnailUrl,
         downloadOnlyOnWifi: settings.downloadOnlyOnWifi,
+        downloadPath: settings.downloadPath,
         onProgress: (progress) {
           state = {
             ...state,
