@@ -342,6 +342,10 @@ class _PlaylistsTab extends ConsumerWidget {
                         icon: const Icon(Icons.edit_outlined),
                         onPressed: () => _renamePlaylist(context, ref, p),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _deletePlaylist(context, ref, p),
+                      ),
                       const Icon(Icons.chevron_right),
                     ],
                   ),
@@ -353,6 +357,35 @@ class _PlaylistsTab extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+Future<void> _deletePlaylist(
+  BuildContext context,
+  WidgetRef ref,
+  LocalPlaylistModel playlist,
+) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: const Text('Delete playlist'),
+          content: Text('Are you sure you want to delete "${playlist.name}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+  );
+  if (confirm == true) {
+    await ref.read(libraryNotifierProvider.notifier).deletePlaylist(playlist.id);
+    ref.invalidate(playlistsProvider);
   }
 }
 
