@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../shared/widgets/error_retry_widget.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 
 class DownloadsScreen extends ConsumerWidget {
@@ -22,8 +24,15 @@ class DownloadsScreen extends ConsumerWidget {
         return Scaffold(
           appBar: AppBar(title: const Text('Downloads')),
           body: allDownloadsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            loading: () => ListView.builder(
+              itemCount: 6,
+              padding: const EdgeInsets.only(top: 8),
+              itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
+            ),
+            error: (e, _) => ErrorRetryWidget(
+              message: 'Failed to load downloads',
+              onRetry: () => ref.invalidate(allDownloadsProvider),
+            ),
             data: (completed) {
               final hasActive = activeDownloads.isNotEmpty;
               final hasCompleted = completed.isNotEmpty;

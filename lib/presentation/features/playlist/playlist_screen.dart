@@ -1,6 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
@@ -298,6 +299,15 @@ class _PlaylistActions extends ConsumerWidget {
           label: const Text('Shuffle Play'),
         ),
         _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
+        IconButton(
+          icon: const Icon(Icons.share_outlined),
+          tooltip: 'Share',
+          onPressed: () {
+            SharePlus.instance.share(
+              ShareParams(text: 'https://music.youtube.com/playlist?list=${playlist.playlistId}'),
+            );
+          },
+        ),
       ],
     );
   }

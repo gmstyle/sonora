@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/library_notifier.dart';
@@ -518,7 +519,15 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           children: [
             IconButton(
               icon: const Icon(Icons.share_outlined),
-              onPressed: () {},
+              onPressed: () {
+                final currentSong = ref.read(playerStateProvider).currentSong;
+                final vId = currentSong?.extras?['videoId'] as String? ?? currentSong?.id;
+                if (vId != null) {
+                  SharePlus.instance.share(
+                    ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),
+                  );
+                }
+              },
               tooltip: 'Share',
               color: theme.colorScheme.onSurfaceVariant,
             ),

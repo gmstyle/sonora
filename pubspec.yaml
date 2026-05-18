@@ -1,5 +1,5 @@
-name: sonora
-description: A Flutter music player powered by YouTube Music.
+name: Sonora
+description: A music streaming music app.
 version: 1.0.0+1
 publish_to: none
 
@@ -77,6 +77,10 @@ dependencies:
   # ── Notifications ────────────────────────────────────────────────
   flutter_local_notifications: ^21.0.0
   flutter_local_notifications_linux: ^8.0.0
+
+  # ── App icon launcher and splash screen ────────────────────────────────────────────────
+  flutter_native_splash: ^2.4.7
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:

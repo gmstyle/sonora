@@ -6,6 +6,7 @@ import '../../../../domain/models/library_models.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../providers/library_provider.dart';
 import '../widgets/create_playlist_dialog.dart';
@@ -157,7 +158,7 @@ class _FavoritesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(likedSongsProvider);
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
             message: 'Failed to load favorites',
@@ -199,7 +200,7 @@ class _ArtistsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(followedArtistsProvider);
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const _ShimmerArtistList(),
       error:
           (e, _) => ErrorRetryWidget(
             message: 'Failed to load artists',
@@ -277,7 +278,7 @@ class _PlaylistsTab extends ConsumerWidget {
     final likedAsync = ref.watch(likedPlaylistsProvider);
 
     if (myAsync.isLoading || likedAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const _ShimmerPlaylistList();
     }
     if (myAsync.hasError) {
       return ErrorRetryWidget(
@@ -537,7 +538,7 @@ class _AlbumsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(likedAlbumsProvider);
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
             message: 'Failed to load albums',
@@ -609,6 +610,50 @@ class _AlbumsTab extends ConsumerWidget {
   }
 }
 
+// ── Shimmer Helpers ───────────────────────────────────────────────
+
+class _ShimmerSongList extends StatelessWidget {
+  const _ShimmerSongList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: 8,
+      padding: const EdgeInsets.only(top: 8),
+      itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
+    );
+  }
+}
+
+class _ShimmerArtistList extends StatelessWidget {
+  const _ShimmerArtistList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: 6,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemBuilder: (_, _) => const Padding(
+        padding: EdgeInsets.only(bottom: 8),
+        child: ShimmerLoading(variant: ShimmerVariant.tile),
+      ),
+    );
+  }
+}
+
+class _ShimmerPlaylistList extends StatelessWidget {
+  const _ShimmerPlaylistList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: 6,
+      padding: const EdgeInsets.only(top: 8),
+      itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
+    );
+  }
+}
+
 // ── History Tab ───────────────────────────────────────────────────
 
 class _HistoryTab extends ConsumerWidget {
@@ -616,7 +661,7 @@ class _HistoryTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(libraryHistoryProvider);
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
             message: 'Failed to load history',

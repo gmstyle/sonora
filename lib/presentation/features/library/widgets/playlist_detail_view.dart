@@ -6,6 +6,7 @@ import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../providers/library_provider.dart';
 
 class PlaylistDetailView extends ConsumerStatefulWidget {
@@ -45,7 +46,11 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
         ],
       ),
       body: entriesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => ListView.builder(
+          itemCount: 8,
+          padding: const EdgeInsets.only(top: 8),
+          itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
+        ),
         error:
             (e, _) => ErrorRetryWidget(
               message: 'Failed to load playlist entries',
