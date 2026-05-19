@@ -1,4 +1,4 @@
-name: Sonora
+name: sonora
 description: A music streaming music app.
 version: 1.0.0+1
 publish_to: none
@@ -78,17 +78,35 @@ dependencies:
   flutter_local_notifications: ^21.0.0
   flutter_local_notifications_linux: ^8.0.0
 
-  # ── App icon launcher and splash screen ────────────────────────────────────────────────
-  flutter_native_splash: ^2.4.7
-  flutter_launcher_icons: ^0.14.4
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   drift_dev: ^2.33.0
   build_runner: ^2.4.15
+  flutter_native_splash: ^2.4.7
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  # Questa immagine viene usata per i vecchi Android (< 8.0). Usa l'SVG completo.
+  image_path_android: "assets/logo_full.png" 
+  
+  # Per Android moderni (Adaptive Icons)
+  # Usiamo il colore scuro del tuo brand per lo sfondo
+  adaptive_icon_background: "#131429" 
+  # Consiglio: usa qui la versione del logo rimpicciolita/senza sfondo per evitare ritagli
+  adaptive_icon_foreground: "assets/logo_foreground.png" 
+
+flutter_native_splash:
+  color: "#131429" # Allineato al colore del brand
+  image: assets/logo_full.png # Qui l'SVG completo va benissimo perché è centrato con gravity
+  android: true
+  android_gravity: center
+  fullscreen: true

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente per lo sfondo basato su toni Indigo profondi -->
+    <linearGradient id="indigoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F1026" />
+      <stop offset="50%" stop-color="#1A1B35" />
+      <stop offset="100%" stop-color="#2D2F54" />
+    </linearGradient>
+
+    <!-- Gradiente ad alto contrasto per l'icona centrale -->
+    <linearGradient id="sonoraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="100%" stop-color="#4FACFE" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sfondo Indigo con gradiente e angoli vivi -->
+  <rect width="512" height="512" fill="url(#indigoGradient)" />
+
+  <!-- ICONA CENTRALE (S + Onde) -->
+  <g transform="translate(146, 110)">
+    <rect x="0" y="40" width="20" height="120" rx="10" fill="url(#sonoraGradient)" />
+    <rect x="40" y="10" width="20" height="180" rx="10" fill="url(#sonoraGradient)" />
+    <rect x="80" y="0" width="20" height="200" rx="10" fill="url(#sonoraGradient)" />
+    <rect x="120" y="30" width="20" height="140" rx="10" fill="url(#sonoraGradient)" />
+    <rect x="160" y="10" width="20" height="180" rx="10" fill="url(#sonoraGradient)" />
+    <rect x="200" y="40" width="20" height="120" rx="10" fill="url(#sonoraGradient)" />
+  </g>
+
+  <!-- BRAND TITLE (Avvicinato all'icona modificando la coordinata Y) -->
+  <text x="256" y="375" 
+        text-anchor="middle" 
+        fill="#FFFFFF" 
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+        font-size="48" 
+        font-weight="800" 
+        letter-spacing="10">SONORA</text>
+</svg>
