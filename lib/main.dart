@@ -143,7 +143,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       final useCase = ref.read(checkForUpdatesUseCaseProvider);
       final info = await PackageInfo.fromPlatform();
       final result = await useCase.execute(
-        currentVersion: 'v${info.version}',
+        currentVersion: 'v${info.version}+${info.buildNumber}',
         lastCheckEpochMillis: null,
       );
 

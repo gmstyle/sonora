@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../providers/check_for_updates_use_case_provider.dart';
 import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
 import '../../providers/library_notifier.dart';
@@ -34,7 +34,7 @@ class SettingsScreenContent extends ConsumerWidget {
         _DownloadSection(settings: settings, notifier: notifier),
         _PrivacySection(settings: settings, notifier: notifier, ref: ref),
         _BackupSection(ref: ref),
-        _UpdatesSection(settings: settings, notifier: notifier),
+        _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
         _AboutSection(),
         const SizedBox(height: 32),
       ],
@@ -361,12 +361,13 @@ class _BackupSection extends StatelessWidget {
         final destDir = Directory('${dir?.path}/Sonora');
         if (!await destDir.exists()) await destDir.create(recursive: true);
         final file = File(path);
-        final destPath = '${destDir.path}/sonora-backup-${DateTime.now().millisecondsSinceEpoch}.zip';
+        final destPath =
+            '${destDir.path}/sonora-backup-${DateTime.now().millisecondsSinceEpoch}.zip';
         await file.copy(destPath);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Backup saved to $destPath')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Backup saved to $destPath')));
         }
       } else {
         await SharePlus.instance.share(
@@ -453,8 +454,13 @@ class _BackupSection extends StatelessWidget {
 class _UpdatesSection extends StatelessWidget {
   final Settings settings;
   final SettingsNotifier notifier;
+  final WidgetRef ref;
 
-  const _UpdatesSection({required this.settings, required this.notifier});
+  const _UpdatesSection({
+    required this.settings,
+    required this.notifier,
+    required this.ref,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -480,45 +486,40 @@ class _UpdatesSection extends StatelessWidget {
 
   Future<void> _checkUpdates(BuildContext context) async {
     try {
-      final uri = Uri.parse(
-        'https://api.github.com/repos/$kGitHubRepoOwner/$kGitHubRepoName/releases/latest',
-      );
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
-      request.headers.set('Accept', 'application/json');
-      final response = await request.close();
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-
-      final data = jsonDecode(body) as Map<String, dynamic>;
-      final latestTag = data['tag_name'] as String? ?? 'unknown';
-      final changelog = data['body'] as String? ?? 'No changelog available';
       final info = await PackageInfo.fromPlatform();
-      final currentVersion = info.version;
+      final currentVersion = 'v${info.version}+${info.buildNumber}';
+      final useCase = ref.read(checkForUpdatesUseCaseProvider);
+      final result = await useCase.execute(currentVersion: currentVersion);
 
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: const Text('Update Check'),
-                content: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Current version: $currentVersion'),
-                      Text('Latest version: $latestTag'),
+      if (!context.mounted) return;
+
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(result.isNewer ? 'Update Available' : 'Up to Date'),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Current version: $currentVersion'),
+                    Text(
+                      'Latest version: ${result.latestVersion.isNotEmpty ? result.latestVersion : currentVersion}',
+                    ),
+                    if (result.isNewer && result.changelog.isNotEmpty) ...[
                       const SizedBox(height: 16),
-                      Text(changelog),
+                      Text(result.changelog),
                     ],
-                  ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Close'),
-                  ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Close'),
+                ),
+                if (result.isNewer)
                   FilledButton.icon(
                     onPressed: () {
                       launchUrl(
@@ -527,12 +528,11 @@ class _UpdatesSection extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('Open Releases'),
+                    label: const Text('Download Update'),
                   ),
-                ],
-              ),
-        );
-      }
+              ],
+            ),
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
