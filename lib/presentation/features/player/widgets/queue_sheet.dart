@@ -26,8 +26,7 @@ class QueueSheet extends ConsumerWidget {
 
     return ReorderableListView.builder(
       itemCount: queue.length,
-      onReorder: (oldIndex, newIndex) {
-        if (newIndex > oldIndex) newIndex--;
+      onReorderItem: (oldIndex, newIndex) {
         notifier.moveQueueItem(oldIndex, newIndex);
       },
       itemBuilder: (context, index) {

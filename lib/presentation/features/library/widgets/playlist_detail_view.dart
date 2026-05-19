@@ -46,11 +46,13 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
         ],
       ),
       body: entriesAsync.when(
-        loading: () => ListView.builder(
-          itemCount: 8,
-          padding: const EdgeInsets.only(top: 8),
-          itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
-        ),
+        loading:
+            () => ListView.builder(
+              itemCount: 8,
+              padding: const EdgeInsets.only(top: 8),
+              itemBuilder:
+                  (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
+            ),
         error:
             (e, _) => ErrorRetryWidget(
               message: 'Failed to load playlist entries',
@@ -73,7 +75,7 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
           return ReorderableListView.builder(
             padding: const EdgeInsets.only(bottom: 16),
             itemCount: entries.length,
-            onReorder:
+            onReorderItem:
                 (oldIndex, newIndex) => _reorder(entries, oldIndex, newIndex),
             itemBuilder: (_, i) {
               final entry = entries[i];
@@ -131,7 +133,6 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
     int oldIndex,
     int newIndex,
   ) async {
-    if (newIndex > oldIndex) newIndex--;
     final items = List<PlaylistEntryModel>.from(entries);
     final moved = items.removeAt(oldIndex);
     items.insert(newIndex, moved);
