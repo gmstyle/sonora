@@ -119,10 +119,28 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Setup Android Keystore
         if: steps.version_check.outputs.SKIP_RELEASE == 'false'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+
+          # Convert to JKS format so Android Gradle Plugin can read it regardless
+          # of the PKCS12 cipher variant used when the keystore was created.
+          keytool -importkeystore \
+            -srckeystore android/app/upload-keystore.jks \
+            -destkeystore android/app/upload-keystore-jks.jks \
+            -deststoretype JKS \
+            -srcstorepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -deststorepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -noprompt 2>&1 || true
+          [ -f android/app/upload-keystore-jks.jks ] && \
+            mv android/app/upload-keystore-jks.jks android/app/upload-keystore.jks
+
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
