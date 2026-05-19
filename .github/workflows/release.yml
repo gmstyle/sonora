@@ -174,7 +174,7 @@ jobs:
           mkdir -p "$OUTDIR"
 
           cp -r "$BUNDLE"/* "$OUTDIR/"
-          cp assets/icon.png "$OUTDIR/sonora.png"
+          cp assets/logo_full.png "$OUTDIR/sonora.png"
 
           printf '%s\n'             '[Desktop Entry]'             'Name=Sonora'             'Comment=A music streaming app powered by YouTube Music'             'Exec=sonora'             'Icon=sonora'             'Terminal=false'             'Type=Application'             'Categories=Audio;Music;Player;'             'StartupWMClass=sonora' > "$OUTDIR/sonora.desktop"
 
