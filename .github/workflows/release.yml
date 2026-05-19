@@ -1,0 +1,187 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  build_and_release:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache Pub Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - run: flutter pub get
+
+      - name: Get App Version
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: No version found in pubspec.yaml"
+            exit 1
+          fi
+          APP_VERSION=$(echo "$VERSION" | cut -d'+' -f1)
+          if [[ "$VERSION" == *"+"* ]]; then
+            BUILD_NUMBER=$(echo "$VERSION" | cut -d'+' -f2)
+          else
+            BUILD_NUMBER="0"
+          fi
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Check Version Not Already Released
+        id: version_check
+        run: |
+          TAG="v${{ steps.get_version.outputs.APP_VERSION }}+${{ steps.get_version.outputs.BUILD_NUMBER }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists. Skipping release."
+            echo "SKIP_RELEASE=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "SKIP_RELEASE=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate Release Notes
+        id: release_notes
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --since="1 month ago" --pretty=format:"- %s (%an)" --no-merges)
+            {
+              echo "CHANGELOG<<EOF"
+              echo "## First Release"
+              echo ""
+              echo "### Commits:"
+              echo "$COMMITS"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s (%an)" --no-merges)
+            {
+              echo "CHANGELOG<<EOF"
+              echo "## What's New"
+              echo ""
+              echo "### Changes since $LAST_TAG"
+              echo "$COMMITS"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Android Keystore
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
+
+      - name: Build Android APK
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: |
+          flutter build apk --release \
+            --build-name=${{ steps.get_version.outputs.APP_VERSION }} \
+            --build-number=${{ steps.get_version.outputs.BUILD_NUMBER }}
+
+      - name: Install Linux Build Dependencies
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+
+      - name: Build Linux Bundle
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: flutter build linux --release
+
+      - name: Package Linux Bundle
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: |
+          BUNDLE="build/linux/x64/release/bundle"
+          OUTDIR="sonora-linux-x64"
+          mkdir -p "$OUTDIR"
+
+          cp -r "$BUNDLE"/* "$OUTDIR/"
+          cp assets/icon.png "$OUTDIR/sonora.png"
+
+          printf '%s\n'             '[Desktop Entry]'             'Name=Sonora'             'Comment=A music streaming app powered by YouTube Music'             'Exec=sonora'             'Icon=sonora'             'Terminal=false'             'Type=Application'             'Categories=Audio;Music;Player;'             'StartupWMClass=sonora' > "$OUTDIR/sonora.desktop"
+
+          printf '%s\n'             '#!/bin/bash'             'set -e'             ''             'INSTALL_DIR="/opt/sonora"'             ''             'sudo mkdir -p "$INSTALL_DIR"'             'sudo cp -r "$(dirname "$0")"/* "$INSTALL_DIR/"'             'sudo chmod +x "$INSTALL_DIR/sonora"'             ''             'mkdir -p "$HOME/.local/share/applications"'             'sed "s|Exec=sonora|Exec=$INSTALL_DIR/sonora|" "$INSTALL_DIR/sonora.desktop" > "$HOME/.local/share/applications/sonora.desktop"'             ''             'update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true'             ''             'echo "Sonora installed! Run: $INSTALL_DIR/sonora"' > "$OUTDIR/install.sh"
+
+          chmod +x "$OUTDIR/install.sh"
+
+          tar czf sonora-linux-x64.tar.gz "$OUTDIR"/
+
+      - name: Create GitHub Release
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.APP_VERSION }}+${{ steps.get_version.outputs.BUILD_NUMBER }}
+          name: Release v${{ steps.get_version.outputs.APP_VERSION }} (${{ steps.get_version.outputs.BUILD_NUMBER }})
+          body: |
+            # Sonora v${{ steps.get_version.outputs.APP_VERSION }}
+
+            **Version:** ${{ steps.get_version.outputs.APP_VERSION }}
+            **Build:** ${{ steps.get_version.outputs.BUILD_NUMBER }}
+
+            ---
+
+            ${{ steps.release_notes.outputs.CHANGELOG }}
+
+            ---
+
+            ## Downloads
+            - **Android APK**: attached below
+            - **Linux**: `sonora-linux-x64.tar.gz` attached below
+          files: |
+            build/app/outputs/flutter-apk/*.apk
+            sonora-linux-x64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
