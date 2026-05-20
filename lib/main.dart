@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/utils/notification_utils.dart';
@@ -37,6 +38,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (isLinux) JustAudioMediaKit.ensureInitialized();
+
+  if (isAndroid) await Permission.notification.request();
 
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const linuxSettings = LinuxInitializationSettings(
@@ -78,7 +81,7 @@ Future<void> main() async {
     await AudioService.init(
       builder: () => handler,
       config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.sonora.music.channel',
+        androidNotificationChannelId: 'sonora_channel',
         androidNotificationChannelName: 'Sonora',
         androidNotificationOngoing: false,
         androidStopForegroundOnPause: false,
