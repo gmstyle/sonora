@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "it.gmstyle.sonora"
+    namespace = "com.gmstyle.sonora"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -26,7 +26,7 @@ android {
 
     defaultConfig {
         multiDexEnabled = true
-        applicationId = "it.gmstyle.sonora"
+        applicationId = "com.gmstyle.sonora"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

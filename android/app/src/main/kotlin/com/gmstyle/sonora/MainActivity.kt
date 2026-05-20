@@ -1,4 +1,4 @@
-package it.gmstyle.sonora
+package com.gmstyle.sonora
 
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
 
