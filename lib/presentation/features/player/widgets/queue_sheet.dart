@@ -97,18 +97,7 @@ class QueueSheet extends ConsumerWidget {
                       onPressed: () => notifier.removeAt(index),
                       visualDensity: VisualDensity.compact,
                     ),
-            onTap:
-                isCurrent
-                    ? null
-                    : () {
-                      if (index < currentIndex) {
-                        final remaining = queue.sublist(index);
-                        notifier.playQueue(remaining, initialIndex: 0);
-                      } else {
-                        final remaining = queue.sublist(index);
-                        notifier.playQueue(remaining, initialIndex: 0);
-                      }
-                    },
+            onTap: isCurrent ? null : () => notifier.skipToIndex(index),
           ),
         );
       },

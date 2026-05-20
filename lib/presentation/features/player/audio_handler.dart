@@ -246,22 +246,25 @@ class SonoraAudioHandler extends BaseAudioHandler {
   List<MediaItem> get _currentQueue =>
       _player.sequence.map((e) => e.tag as MediaItem).toList();
 
+  AudioSource _toAudioSource(MediaItem item) {
+    final url = item.extras?['url'] as String?;
+    if (url != null && url.isNotEmpty) {
+      return AudioSource.uri(Uri.parse(url), tag: item);
+    }
+    return AudioSource.uri(
+      Uri.parse(
+        'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=',
+      ),
+      tag: item,
+    );
+  }
+
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     queue.add(items);
-    final audioSources =
-        items.map((item) {
-          final url = item.extras?['url'] as String?;
-          if (url != null && url.isNotEmpty) {
-            return AudioSource.uri(Uri.parse(url), tag: item);
-          }
-          return AudioSource.uri(
-            Uri.parse(
-              'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=',
-            ),
-            tag: item,
-          );
-        }).toList();
-    await _player.setAudioSources(audioSources, initialIndex: initialIndex);
+    await _player.setAudioSources(
+      items.map(_toAudioSource).toList(),
+      initialIndex: initialIndex,
+    );
   }
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
@@ -270,21 +273,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> playNext(MediaItem item) async {
-    final current = _currentQueue;
     final ci = _player.currentIndex ?? 0;
-    final insertAt = (ci + 1).clamp(0, current.length);
-    final updated = [...current];
-    updated.insert(insertAt, item);
-    await setQueue(updated, initialIndex: ci);
+    final insertAt = (ci + 1).clamp(0, _player.sequence.length);
+    await _player.insertAudioSource(insertAt, _toAudioSource(item));
   }
 
   @override
   Future<void> addQueueItem(MediaItem mediaItem) async {
-    final current = _currentQueue;
-    await setQueue([
-      ...current,
-      mediaItem,
-    ], initialIndex: _player.currentIndex ?? 0);
+    await _player.addAudioSource(_toAudioSource(mediaItem));
   }
 
   Future<void> addToQueue(MediaItem item) async {
@@ -292,36 +288,26 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> addAllToQueue(List<MediaItem> items) async {
-    final current = _currentQueue;
-    await setQueue([
-      ...current,
-      ...items,
-    ], initialIndex: _player.currentIndex ?? 0);
+    await _player.addAudioSources(items.map(_toAudioSource).toList());
   }
 
   @override
   Future<void> removeQueueItemAt(int index) async {
-    final current = _currentQueue;
-    if (index < 0 || index >= current.length) return;
-    final updated = [...current]..removeAt(index);
-    final ci = _player.currentIndex ?? 0;
-    await setQueue(updated, initialIndex: ci < updated.length ? ci : 0);
+    if (index < 0 || index >= _player.sequence.length) return;
+    await _player.removeAudioSourceAt(index);
   }
 
   Future<void> clearQueue() async {
     await _player.stop();
-    await _player.setAudioSources([]);
+    await _player.clearAudioSources();
     queue.add([]);
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
-    final current = _currentQueue;
-    if (oldIndex < 0 || oldIndex >= current.length) return;
-    if (newIndex < 0 || newIndex >= current.length) return;
-    final updated = [...current];
-    final item = updated.removeAt(oldIndex);
-    updated.insert(newIndex, item);
-    await setQueue(updated, initialIndex: _player.currentIndex ?? 0);
+    final len = _player.sequence.length;
+    if (oldIndex < 0 || oldIndex >= len) return;
+    if (newIndex < 0 || newIndex >= len) return;
+    await _player.moveAudioSource(oldIndex, newIndex);
   }
 
   @override

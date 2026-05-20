@@ -320,6 +320,11 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   Future<void> skipToPrevious() => _handler.skipToPrevious();
 
+  Future<void> skipToIndex(int index) async {
+    await _handler.skipToQueueItem(index);
+    if (!state.isPlaying) await _handler.play();
+  }
+
   Future<void> playSong(MediaItem song) async {
     await _handler.setQueue([song]);
     await _handler.play();
