@@ -7,9 +7,12 @@ import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
+import 'core/utils/linux_tray_service.dart';
+
 import 'data/datasources/local/database.dart';
 import 'data/datasources/local/daos/downloads_dao.dart';
 import 'data/datasources/local/daos/history_dao.dart';
@@ -33,6 +36,8 @@ import 'presentation/providers/settings_provider.dart';
 import 'presentation/providers/stream_datasource_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/ytmusic_provider.dart';
+
+LinuxTrayService? _trayService;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,11 +82,11 @@ Future<void> main() async {
     playVideoIdUseCase: playVideoIdUseCase,
   );
 
-  if (isAndroid) {
+  if (isAndroid || isLinux) {
     await AudioService.init(
       builder: () => handler,
       config: const AudioServiceConfig(
-        androidNotificationChannelId: 'sonora_channel',
+        androidNotificationChannelId: 'com.sonora.music.channel',
         androidNotificationChannelName: 'Sonora',
         androidNotificationOngoing: false,
         androidStopForegroundOnPause: false,
@@ -96,6 +101,27 @@ Future<void> main() async {
         rewindInterval: Duration(seconds: 10),
       ),
     );
+  }
+
+  if (isLinux) {
+    await windowManager.ensureInitialized();
+    const windowOptions = WindowOptions(
+      size: Size(1200, 800),
+      minimumSize: Size(800, 600),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+      title: 'Sonora',
+    );
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+
+    _trayService = LinuxTrayService();
+    await _trayService!.init();
+    LinuxTrayService.setAudioHandler(handler);
   }
 
   runApp(
@@ -122,13 +148,29 @@ class SonoraApp extends ConsumerStatefulWidget {
   ConsumerState<SonoraApp> createState() => _SonoraAppState();
 }
 
-class _SonoraAppState extends ConsumerState<SonoraApp> {
+class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
   @override
   void initState() {
     super.initState();
+    if (isLinux) {
+      windowManager.addListener(this);
+      windowManager.setPreventClose(true);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
     });
+  }
+
+  @override
+  void dispose() {
+    if (isLinux) windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  // Intercept the window close button: hide to tray instead of quitting.
+  @override
+  void onWindowClose() async {
+    await windowManager.hide();
   }
 
   Future<void> _checkForUpdates() async {
@@ -167,6 +209,19 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLinux) {
+      ref.listen(playerStateProvider, (prev, next) {
+        if (prev?.isPlaying != next.isPlaying ||
+            prev?.currentSong?.id != next.currentSong?.id) {
+          LinuxTrayService.instance?.updatePlaybackState(
+            next.isPlaying,
+            title: next.currentSong?.title,
+            artist: next.currentSong?.artist,
+          );
+        }
+      });
+    }
+
     final router = ref.watch(routerProvider);
     final lightTheme = ref.watch(lightThemeProvider);
     final darkTheme = ref.watch(darkThemeProvider);
