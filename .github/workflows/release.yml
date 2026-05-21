@@ -65,7 +65,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-- name: Setup Android Keystore
+      - name: Setup Android Keystore
         if: steps.version_check.outputs.SKIP_RELEASE == 'false'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
