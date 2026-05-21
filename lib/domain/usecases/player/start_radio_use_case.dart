@@ -26,14 +26,17 @@ class StartRadioUseCase {
   }
 
   Future<List<MediaItem>> resolveRemaining(List<UpNextsDetails> items) async {
-    final result = <MediaItem>[];
-    for (final item in items) {
-      try {
-        final url = await _musicRepository.getStreamUrl(item.videoId);
-        result.add(_mapToMediaItem(item, url));
-      } catch (_) {}
-    }
-    return result;
+    final results = await Future.wait(
+      items.map((item) async {
+        try {
+          final url = await _musicRepository.getStreamUrl(item.videoId);
+          return _mapToMediaItem(item, url);
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+    return results.whereType<MediaItem>().toList();
   }
 
   MediaItem _mapToMediaItem(UpNextsDetails item, String url) {

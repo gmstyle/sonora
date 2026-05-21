@@ -187,16 +187,17 @@ class PlayerNotifier extends Notifier<PlayerState> {
       final radioUseCase = ref.read(startRadioUseCaseProvider);
       final result = await radioUseCase.execute(lastItem.id);
       final firstItem = result.firstItem;
-      final remaining = await radioUseCase.resolveRemaining(result.remaining);
-
-      final items = [firstItem, ...remaining];
-      if (items.isEmpty) return;
 
       final oldLength = state.queue.length;
-      await _handler.addAllToQueue(items);
+      await _handler.addToQueue(firstItem);
       await _handler.skipToQueueItem(oldLength);
       await _handler.play();
       await _persistQueue();
+
+      radioUseCase.resolveRemaining(result.remaining).then((remaining) {
+        if (remaining.isEmpty) return;
+        _handler.addAllToQueue(remaining).then((_) => _persistQueue());
+      });
     } catch (_) {
     } finally {
       _isFetchingUpNext = false;
