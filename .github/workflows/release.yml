@@ -65,23 +65,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android Keystore
+- name: Setup Android Keystore
         if: steps.version_check.outputs.SKIP_RELEASE == 'false'
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
-
-          # Convert PKCS12 to JKS with legacy mode for Java 17+ compatibility
-          # ("Tag number over 30" error occurs without -J-Dkeystore.pkcs12.legacy)
-          keytool -importkeystore \
-            -J-Dkeystore.pkcs12.legacy \
-            -srckeystore android/app/upload-keystore.jks \
-            -destkeystore android/app/upload-keystore-jks.jks \
-            -deststoretype JKS \
-            -srcstorepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            -deststorepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            -noprompt
-          mv android/app/upload-keystore-jks.jks android/app/upload-keystore.jks
-
           echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
