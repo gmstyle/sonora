@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:audio_service/audio_service.dart';
@@ -18,6 +19,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Duration _crossfadeDuration = Duration.zero;
   bool _isFadingIn = false;
   double _lastSetVolume = 1.0;
+  int _retryCount = 0;
+  bool _isRetrying = false;
+  StreamSubscription<PlayerException>? _playerErrorSub;
 
   // ── Android Auto extras ──────────────────────────────────────────────────────
   static const String _kContentStyleBrowsable =
@@ -59,6 +63,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
        _libraryRepo = libraryRepo,
        _playVideoIdUseCase = playVideoIdUseCase {
     _setupListeners();
+    _playerErrorSub = _player.errorStream.listen(_onPlayerError);
   }
 
   Stream<Duration?> get durationStream => _player.durationStream;
@@ -79,6 +84,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
       ProcessingState.ready => AudioProcessingState.ready,
       ProcessingState.completed => AudioProcessingState.completed,
     };
+
+    if (state.processingState == ProcessingState.ready) {
+      _retryCount = 0;
+    }
 
     final current = playbackState.value;
 
@@ -316,7 +325,38 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await super.onTaskRemoved();
   }
 
+  void _onPlayerError(PlayerException error) async {
+    if (_isRetrying || _retryCount >= 1) return;
+    final currentItem = mediaItem.value;
+    final videoId = currentItem?.extras?['videoId'] as String?;
+    if (videoId == null) return;
+
+    _isRetrying = true;
+    _retryCount++;
+    try {
+      dev.log('[AudioHandler] Stream URL expired for "$videoId", resolving fresh URL…');
+      final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
+      final updatedItem = currentItem!.copyWith(
+        extras: {...?currentItem.extras, 'url': freshUrl},
+      );
+      final currentIndex = _player.currentIndex ?? 0;
+      await _player.removeAudioSourceAt(currentIndex);
+      await _player.insertAudioSource(
+        currentIndex,
+        AudioSource.uri(Uri.parse(freshUrl), tag: updatedItem),
+      );
+      mediaItem.add(updatedItem);
+      await _player.seek(Duration.zero, index: currentIndex);
+      await _player.play();
+      dev.log('[AudioHandler] Retry successful for "$videoId"');
+    } catch (e) {
+      dev.log('[AudioHandler] Retry failed for "$videoId": $e');
+    }
+    _isRetrying = false;
+  }
+
   void dispose() {
+    _playerErrorSub?.cancel();
     _player.dispose();
   }
 

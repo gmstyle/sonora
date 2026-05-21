@@ -37,7 +37,7 @@ class PlayVideoIdUseCase {
       isVideo = true;
     }
 
-    final url = await _resolveUrl(videoId);
+    final url = await resolveUrl(videoId);
     return MediaItem(
       id: videoId,
       title: title,
@@ -48,9 +48,10 @@ class PlayVideoIdUseCase {
     );
   }
 
-  /// Returns a local file URI if a completed download exists, otherwise
-  /// resolves the stream URL from [MusicRepository].
-  Future<String> _resolveUrl(String videoId) async {
+  /// Returns a local file URI if a completed download exists and the file
+  /// is still on disk (cleans up stale downloads), otherwise resolves the
+  /// stream URL from [MusicRepository].
+  Future<String> resolveUrl(String videoId) async {
     if (_libraryRepo != null) {
       try {
         final download = await _libraryRepo.getDownload(videoId);
@@ -61,10 +62,11 @@ class PlayVideoIdUseCase {
           if (await file.exists()) {
             return file.uri.toString();
           }
+          await _libraryRepo.deleteDownload(videoId);
         }
       } catch (_) {}
     }
-    return _repo.getStreamUrl(videoId);
+    return await resolveStreamUrl(videoId);
   }
 
   /// Resolves only the audio stream URL for [videoId].
