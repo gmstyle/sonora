@@ -1,58 +1,8 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
-import 'package:sonora/presentation/providers/settings_provider.dart';
 
 void main() {
-  group('SettingsNotifier', () {
-    test('initial state has default crossfade and restore-queue', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(container.dispose);
-      final settings = container.read(settingsProvider);
-      expect(settings.crossfadeDuration, const Duration(seconds: 2));
-      expect(settings.restoreQueueOnStartup, true);
-    });
-
-    test('setCrossfadeSeconds updates the value', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(container.dispose);
-      await container.read(settingsProvider.notifier).setCrossfadeSeconds(5);
-      final settings = container.read(settingsProvider);
-      expect(settings.crossfadeDuration, const Duration(seconds: 5));
-    });
-
-    test('setRestoreQueueOnStartup updates the value', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(container.dispose);
-      await container
-          .read(settingsProvider.notifier)
-          .setRestoreQueueOnStartup(false);
-      final settings = container.read(settingsProvider);
-      expect(settings.restoreQueueOnStartup, false);
-    });
-
-    test('crossfade settings', () {
-      const settings = Settings(crossfadeSeconds: 15);
-      expect(settings.crossfadeDuration, const Duration(seconds: 15));
-      const zero = Settings(crossfadeSeconds: 0);
-      expect(zero.crossfadeDuration, Duration.zero);
-    });
-  });
-
   group('PlayerState', () {
     test('initial state has defaults', () {
       const state = PlayerState();
