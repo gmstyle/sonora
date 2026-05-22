@@ -164,6 +164,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> deleteLikedPlaylist(String playlistId) =>
       _libraryDao.deleteLikedPlaylist(playlistId);
 
+  @override
+  Future<void> updateLikedPlaylistThumbnail(
+    String playlistId,
+    String thumbnailUrl,
+  ) =>
+      _libraryDao.updateLikedPlaylistThumbnail(playlistId, thumbnailUrl);
+
   // ── Playlists ─────────────────────────────────────────────────
 
   @override

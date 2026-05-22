@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/library_models.dart';
 import '../../domain/repositories/library_repository.dart';
+import '../../domain/repositories/music_repository.dart';
 import '../features/library/providers/library_provider.dart';
 import 'library_repository_provider.dart';
+import 'music_repository_provider.dart';
 
 // ── Single-item query providers ───────────────────────────────────────────────
 
@@ -50,6 +52,7 @@ class LibraryNotifier extends Notifier<void> {
   void build() {}
 
   LibraryRepository get _repo => ref.read(libraryRepositoryProvider);
+  MusicRepository get _musicRepo => ref.read(musicRepositoryProvider);
 
   // ── Liked songs ─────────────────────────────────────────────────────────────
 
@@ -93,6 +96,51 @@ class LibraryNotifier extends Notifier<void> {
     await _repo.toggleLikedPlaylist(playlist);
     ref.invalidate(likedPlaylistProvider(playlist.playlistId));
     ref.invalidate(likedPlaylistsProvider);
+  }
+
+  bool _thumbnailRefreshRunning = false;
+  final Set<String> _recentlyRefreshedPlaylists = {};
+
+  /// Refreshes expired YouTube playlist thumbnail URLs by re-fetching
+  /// playlist metadata from the API and persisting fresh URLs to the DB.
+  Future<void> refreshPlaylistThumbnailsIfNeeded() async {
+    if (_thumbnailRefreshRunning) return;
+    _thumbnailRefreshRunning = true;
+    try {
+      final playlists = await _repo.getAllLikedPlaylists();
+      final stale =
+          playlists
+              .where(
+                (p) =>
+                    p.thumbnailUrl != null &&
+                    _isThumbnailStale(p.thumbnailUrl!) &&
+                    !_recentlyRefreshedPlaylists.contains(p.playlistId),
+              )
+              .toList();
+      if (stale.isEmpty) return;
+      var changed = false;
+      for (final playlist in stale) {
+        try {
+          final fresh = await _musicRepo.getPlaylist(playlist.playlistId);
+          final freshUrl =
+              fresh.thumbnails.isNotEmpty ? fresh.thumbnails.last.url : null;
+          if (freshUrl != null && freshUrl != playlist.thumbnailUrl) {
+            await _repo.updateLikedPlaylistThumbnail(
+              playlist.playlistId,
+              freshUrl,
+            );
+            changed = true;
+          }
+          _recentlyRefreshedPlaylists.add(playlist.playlistId);
+          if (_recentlyRefreshedPlaylists.length > 100) {
+            _recentlyRefreshedPlaylists.clear();
+          }
+        } catch (_) {}
+      }
+      if (changed) ref.invalidate(likedPlaylistsProvider);
+    } finally {
+      _thumbnailRefreshRunning = false;
+    }
   }
 
   // ── Playlists ────────────────────────────────────────────────────────────────
@@ -199,4 +247,15 @@ class LibraryNotifier extends Notifier<void> {
     }
     return items;
   }
+}
+
+/// Returns true when [url] looks like a signed YouTube CDN thumbnail that
+/// can expire (e.g. `generated_thumbnail.jpg` with `sqp` parameter).
+bool _isThumbnailStale(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+  if (uri.queryParameters.containsKey('sqp')) return true;
+  if (url.contains('generated_thumbnail')) return true;
+  if (uri.host == 'i.ytimg.com' && uri.path.contains('/pl_c/')) return true;
+  return false;
 }

@@ -59,4 +59,12 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Future<void> deleteLikedPlaylist(String playlistId) =>
       (delete(db.likedPlaylists)
         ..where((t) => t.playlistId.equals(playlistId))).go();
+
+  Future<void> updateLikedPlaylistThumbnail(
+    String playlistId,
+    String thumbnailUrl,
+  ) =>
+      (update(db.likedPlaylists)
+        ..where((t) => t.playlistId.equals(playlistId)))
+          .write(LikedPlaylistsCompanion(thumbnailUrl: Value(thumbnailUrl)));
 }

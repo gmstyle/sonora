@@ -20,6 +20,7 @@ abstract class LibraryRepository {
   Future<LikedPlaylistModel?> getLikedPlaylist(String playlistId);
   Future<void> toggleLikedPlaylist(LikedPlaylistModel playlist);
   Future<void> deleteLikedPlaylist(String playlistId);
+  Future<void> updateLikedPlaylistThumbnail(String playlistId, String thumbnailUrl);
 
   Future<List<LocalPlaylistModel>> getAllPlaylists();
   Future<int> createPlaylist(String name, {String? description});

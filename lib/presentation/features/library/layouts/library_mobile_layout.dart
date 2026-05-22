@@ -8,6 +8,7 @@ import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_tile.dart';
+import '../../../shared/widgets/thumbnail_widget.dart';
 import '../providers/library_provider.dart';
 import '../widgets/create_playlist_dialog.dart';
 import '../widgets/playlist_detail_view.dart';
@@ -192,7 +193,7 @@ class _ArtistsTab extends ConsumerWidget {
 
 // ── Playlists Tab ─────────────────────────────────────────────────
 
-class _PlaylistsTab extends ConsumerWidget {
+class _PlaylistsTab extends ConsumerStatefulWidget {
   final void Function(LocalPlaylistModel playlist) onPlaylistTap;
   final VoidCallback onCreatePlaylist;
 
@@ -202,7 +203,22 @@ class _PlaylistsTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PlaylistsTab> createState() => _PlaylistsTabState();
+}
+
+class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
+  @override
+  void initState() {
+    super.initState();
+    Future(
+      () => ref
+          .read(libraryNotifierProvider.notifier)
+          .refreshPlaylistThumbnailsIfNeeded(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final myAsync = ref.watch(playlistsProvider);
     final likedAsync = ref.watch(likedPlaylistsProvider);
 
@@ -240,7 +256,7 @@ class _PlaylistsTab extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.add),
                   tooltip: 'Create Playlist',
-                  onPressed: onCreatePlaylist,
+                  onPressed: widget.onCreatePlaylist,
                 ),
               ],
             ),
@@ -327,7 +343,7 @@ class _PlaylistsTab extends ConsumerWidget {
                       const Icon(Icons.chevron_right),
                     ],
                   ),
-                  onTap: () => onPlaylistTap(p),
+                  onTap: () => widget.onPlaylistTap(p),
                 ),
               );
             }, childCount: playlists.length),
@@ -375,21 +391,10 @@ class _PlaylistsTab extends ConsumerWidget {
                       .toggleLikedPlaylist(p);
                 },
                 child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child:
-                        p.thumbnailUrl != null
-                            ? Image.network(
-                              p.thumbnailUrl!,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                            )
-                            : const SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: Icon(Icons.playlist_play),
-                            ),
+                  leading: ThumbnailWidget(
+                    imageUrl: p.thumbnailUrl,
+                    size: 48,
+                    shape: ThumbnailShape.rounded,
                   ),
                   title: Text(p.name),
                   subtitle:
@@ -516,21 +521,10 @@ class _AlbumsTab extends ConsumerWidget {
                       .deleteLikedAlbum(a.albumId);
                 },
                 child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child:
-                        a.thumbnailUrl != null
-                            ? Image.network(
-                              a.thumbnailUrl!,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                            )
-                            : const SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: Icon(Icons.album),
-                            ),
+                  leading: ThumbnailWidget(
+                    imageUrl: a.thumbnailUrl,
+                    size: 48,
+                    shape: ThumbnailShape.rounded,
                   ),
                   title: Text(a.name),
                   subtitle: Text(

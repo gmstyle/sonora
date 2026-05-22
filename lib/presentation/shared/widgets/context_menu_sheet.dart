@@ -8,6 +8,7 @@ import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
+import 'thumbnail_widget.dart';
 
 import '../../features/library/widgets/create_playlist_dialog.dart';
 
@@ -77,34 +78,10 @@ class ContextMenuSheet extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child:
-                      thumbnailUrl != null
-                          ? Image.network(
-                            thumbnailUrl!,
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
-                            errorBuilder:
-                                (_, _, _) => Container(
-                                  width: 48,
-                                  height: 48,
-                                  color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.surfaceContainerHighest,
-                                ),
-                          )
-                          : Container(
-                            width: 48,
-                            height: 48,
-                            color:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
-                            child: Icon(Icons.music_note),
-                          ),
+                ThumbnailWidget(
+                  imageUrl: thumbnailUrl,
+                  size: 48,
+                  shape: ThumbnailShape.rounded,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

@@ -19,7 +19,8 @@ class ThumbnailWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveBorderRadius = borderRadius ??
+    final effectiveBorderRadius =
+        borderRadius ??
         switch (shape) {
           ThumbnailShape.square => 0.0,
           ThumbnailShape.circle => size / 2,
@@ -31,25 +32,31 @@ class ThumbnailWidget extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: imageUrl != null
-            ? CachedNetworkImage(
-                imageUrl: imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (_, _) => Container(
+        child:
+            imageUrl != null
+                ? CachedNetworkImage(
+                  imageUrl: imageUrl!,
+                  fit: BoxFit.cover,
+                  placeholder:
+                      (_, _) => Container(
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                      ),
+                  errorWidget:
+                      (_, _, _) => Icon(
+                        Icons.music_note,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                )
+                : Container(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Icon(
+                    Icons.music_note,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
-                errorWidget: (_, _, _) => Icon(
-                  Icons.music_note,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              )
-            : Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  Icons.music_note,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
       ),
     );
   }

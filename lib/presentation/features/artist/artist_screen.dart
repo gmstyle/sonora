@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -286,10 +287,10 @@ class _ArtistSliverAppBar extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (thumbnailUrl != null)
-              Image.network(
-                thumbnailUrl,
+              CachedNetworkImage(
+                imageUrl: thumbnailUrl,
                 fit: BoxFit.cover,
-                errorBuilder:
+                errorWidget:
                     (_, _, _) => Container(
                       color:
                           Theme.of(context).colorScheme.surfaceContainerHighest,
