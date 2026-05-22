@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-enum ShimmerVariant { card, tile, carousel }
+enum ShimmerVariant { card, tile, carousel, miniPlayer, artworkLarge }
 
 class ShimmerLoading extends StatelessWidget {
   final ShimmerVariant variant;
@@ -20,6 +20,8 @@ class ShimmerLoading extends StatelessWidget {
         ShimmerVariant.card => _ShimmerCard(),
         ShimmerVariant.tile => _ShimmerTile(),
         ShimmerVariant.carousel => _ShimmerCarousel(),
+        ShimmerVariant.miniPlayer => _ShimmerMiniPlayer(),
+        ShimmerVariant.artworkLarge => _ShimmerArtworkLarge(),
       },
     );
   }
@@ -80,6 +82,80 @@ class _ShimmerCarousel extends StatelessWidget {
           child: _ShimmerCard(),
         ),
       ),
+    );
+  }
+}
+
+/// Skeleton that mirrors the exact layout of the mini player row:
+/// 12px padding | 48×48 artwork | 12px gap | title + artist bars | play+skip placeholders | 4px padding
+class _ShimmerMiniPlayer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          SizedBox(width: 12),
+          SizedBox(width: 48, height: 48, child: ColoredBox(color: Colors.white)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 14, width: double.infinity, child: ColoredBox(color: Colors.white)),
+                SizedBox(height: 4),
+                SizedBox(height: 12, width: 120, child: ColoredBox(color: Colors.white)),
+              ],
+            ),
+          ),
+          SizedBox(width: 8),
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+}
+
+/// Large square placeholder for full-player artwork.
+class _ShimmerArtworkLarge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: double.infinity,
+      height: double.infinity,
+      child: ColoredBox(color: Colors.white),
     );
   }
 }

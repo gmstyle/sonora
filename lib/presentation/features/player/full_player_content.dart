@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import 'widgets/player_controls.dart';
@@ -29,6 +30,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   @override
   Widget build(BuildContext context) {
     final playerState = ref.watch(playerStateProvider);
+    final playerNotifier = ref.read(playerStateProvider.notifier);
     final currentSong = playerState.currentSong;
     if (currentSong == null) return const SizedBox.shrink();
 
@@ -38,6 +40,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final albumName = currentSong.album;
     final theme = Theme.of(context);
     final padding = MediaQuery.of(context).viewPadding;
+    final hasSleepTimer = playerState.sleepTimerRemaining != null;
 
     return Scaffold(
       body: Container(
@@ -66,6 +69,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 artUrl,
                 albumName,
                 playerState,
+                playerNotifier,
+                hasSleepTimer,
                 availableHeight,
                 availableWidth,
                 padding.bottom,
@@ -79,6 +84,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 artUrl,
                 albumName,
                 playerState,
+                playerNotifier,
+                hasSleepTimer,
                 availableHeight,
                 availableWidth,
                 padding.bottom,
@@ -92,6 +99,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 artUrl,
                 albumName,
                 playerState,
+                playerNotifier,
+                hasSleepTimer,
                 availableHeight,
                 availableWidth,
                 padding.bottom,
@@ -113,6 +122,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     String? artUrl,
     String? albumName,
     PlayerState playerState,
+    PlayerNotifier playerNotifier,
+    bool hasSleepTimer,
     double availHeight,
     double availWidth,
     double bottomInset,
@@ -128,7 +139,13 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             Expanded(
               child:
                   _activeView == PlayerSubView.none
-                      ? Center(child: _artwork(artUrl, availWidth - 48))
+                      ? Center(
+                        child: _artwork(
+                          artUrl,
+                          availWidth - 48,
+                          isSwitching: playerState.isSwitching,
+                        ),
+                      )
                       : _activeView == PlayerSubView.lyrics
                       ? LyricsView(
                         videoId: videoId,
@@ -143,7 +160,11 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             const SizedBox(height: 16),
             const PlayerControls(),
             const SizedBox(height: 8),
-            _bottomActionsRow(isVideo),
+            _bottomActionsRow(
+              isVideo,
+              playerState.sleepTimerRemaining != null,
+              playerNotifier,
+            ),
             const SizedBox(height: 16),
           ],
         ),
@@ -161,6 +182,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     String? artUrl,
     String? albumName,
     PlayerState playerState,
+    PlayerNotifier playerNotifier,
+    bool hasSleepTimer,
     double availHeight,
     double availWidth,
     double bottomInset,
@@ -177,7 +200,11 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _artwork(artUrl, min(availHeight - 100, availWidth / 2 - 48)),
+                  _artwork(
+                    artUrl,
+                    min(availHeight - 100, availWidth / 2 - 48),
+                    isSwitching: playerState.isSwitching,
+                  ),
                 ],
               ),
             ),
@@ -208,7 +235,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(height: 16),
                   const PlayerControls(),
                   const SizedBox(height: 8),
-                  _bottomActionsRow(isVideo),
+                  _bottomActionsRow(isVideo, hasSleepTimer, playerNotifier),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -229,6 +256,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     String? artUrl,
     String? albumName,
     PlayerState playerState,
+    PlayerNotifier playerNotifier,
+    bool hasSleepTimer,
     double availHeight,
     double availWidth,
     double bottomInset,
@@ -248,6 +277,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   _artwork(
                     artUrl,
                     min(availHeight - 150, availWidth / 2 - 100),
+                    isSwitching: playerState.isSwitching,
                   ),
                 ],
               ),
@@ -279,7 +309,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(height: 24),
                   const PlayerControls(),
                   const SizedBox(height: 16),
-                  _bottomActionsRow(isVideo),
+                  _bottomActionsRow(isVideo, hasSleepTimer, playerNotifier),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -344,9 +374,36 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     );
   }
 
-  Widget _artwork(String? artUrl, double size) {
-    // Clamp size for safety
+  Widget _artwork(String? artUrl, double size, {bool isSwitching = false}) {
     final clampedSize = size.clamp(150.0, 600.0);
+    Widget content;
+    if (isSwitching) {
+      content = const ShimmerLoading(variant: ShimmerVariant.artworkLarge);
+    } else if (artUrl != null) {
+      content = CachedNetworkImage(
+        imageUrl: artUrl,
+        fit: BoxFit.cover,
+        placeholder:
+            (_, _) => Container(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+        errorWidget:
+            (_, _, _) => Icon(
+              Icons.music_note,
+              size: 80,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      );
+    } else {
+      content = Container(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Icon(
+          Icons.music_note,
+          size: 80,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
     return Hero(
       tag: 'player_art',
       child: Material(
@@ -358,35 +415,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           child: SizedBox(
             width: clampedSize,
             height: clampedSize,
-            child:
-                artUrl != null
-                    ? CachedNetworkImage(
-                      imageUrl: artUrl,
-                      fit: BoxFit.cover,
-                      placeholder:
-                          (_, _) => Container(
-                            color:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
-                          ),
-                      errorWidget:
-                          (_, _, _) => Icon(
-                            Icons.music_note,
-                            size: 80,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    )
-                    : Container(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child: Icon(
-                        Icons.music_note,
-                        size: 80,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+            child: content,
           ),
         ),
       ),
@@ -501,7 +530,11 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     );
   }
 
-  Widget _bottomActionsRow(bool isVideo) {
+  Widget _bottomActionsRow(
+    bool isVideo,
+    bool hasTimer,
+    PlayerNotifier playerNotifier,
+  ) {
     final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -521,7 +554,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               icon: const Icon(Icons.share_outlined),
               onPressed: () {
                 final currentSong = ref.read(playerStateProvider).currentSong;
-                final vId = currentSong?.extras?['videoId'] as String? ?? currentSong?.id;
+                final vId =
+                    currentSong?.extras?['videoId'] as String? ??
+                    currentSong?.id;
                 if (vId != null) {
                   SharePlus.instance.share(
                     ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),
@@ -572,9 +607,72 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               },
               tooltip: 'Queue',
             ),
+            IconButton(
+              icon: Icon(
+                Icons.timer,
+                size: 22,
+                color:
+                    hasTimer
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              onPressed: () => _showTimerDialog(context, playerNotifier),
+              tooltip: hasTimer ? 'Sleep timer active' : 'Sleep timer',
+            ),
           ],
         ),
       ],
+    );
+  }
+
+  void _showTimerDialog(BuildContext context, PlayerNotifier notifier) {
+    final options = [5, 10, 15, 30, 45, 60];
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Sleep Timer',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ),
+              ...options.map(
+                (minutes) => ListTile(
+                  title: Text(
+                    minutes >= 60
+                        ? '${minutes ~/ 60} hour'
+                        : '$minutes minutes',
+                  ),
+                  onTap: () {
+                    notifier.setSleepTimer(Duration(minutes: minutes));
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.timer_off,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Cancel Timer',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                onTap: () {
+                  notifier.cancelSleepTimer();
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

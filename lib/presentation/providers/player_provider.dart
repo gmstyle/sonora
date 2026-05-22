@@ -19,6 +19,7 @@ final playerStateProvider = NotifierProvider<PlayerNotifier, PlayerState>(
 class PlayerState {
   final bool isPlaying;
   final bool isLoading;
+  final bool isSwitching;
   final bool isPaused;
   final bool hasError;
   final String? errorMessage;
@@ -34,6 +35,7 @@ class PlayerState {
   const PlayerState({
     this.isPlaying = false,
     this.isLoading = false,
+    this.isSwitching = false,
     this.isPaused = false,
     this.hasError = false,
     this.errorMessage,
@@ -50,6 +52,7 @@ class PlayerState {
   PlayerState copyWith({
     bool? isPlaying,
     bool? isLoading,
+    bool? isSwitching,
     bool? isPaused,
     bool? hasError,
     String? errorMessage,
@@ -67,6 +70,7 @@ class PlayerState {
     return PlayerState(
       isPlaying: isPlaying ?? this.isPlaying,
       isLoading: isLoading ?? this.isLoading,
+      isSwitching: isSwitching ?? this.isSwitching,
       isPaused: isPaused ?? this.isPaused,
       hasError: hasError ?? this.hasError,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -93,6 +97,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   StreamSubscription? _queueSub;
   StreamSubscription? _durationSub;
   bool _isFetchingUpNext = false;
+  int _operationVersion = 0;
   Timer? _sleepTimer;
   Timer? _sleepTimerTick;
   DateTime? _sleepTimerStart;
@@ -101,6 +106,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   @override
   PlayerState build() {
     _playbackSub = _handler.playbackState.listen((s) {
+      final wasSwitching = state.isSwitching;
       state = state.copyWith(
         isPlaying: s.playing,
         isPaused: !s.playing && s.processingState == AudioProcessingState.ready,
@@ -112,7 +118,14 @@ class PlayerNotifier extends Notifier<PlayerState> {
         currentIndex: s.queueIndex ?? 0,
         shuffleMode: s.shuffleMode,
         repeatMode: s.repeatMode,
+        isSwitching: wasSwitching && s.processingState != AudioProcessingState.ready
+            ? true
+            : false,
       );
+
+      if (s.processingState == AudioProcessingState.ready) {
+        state = state.copyWith(isSwitching: false);
+      }
 
       if (s.processingState == AudioProcessingState.completed &&
           !_isFetchingUpNext &&
@@ -207,7 +220,11 @@ class PlayerNotifier extends Notifier<PlayerState> {
   // ── API mutazione coda ────────────────────────────────────────
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
     await _handler.playNow(items, initialIndex: initialIndex);
+    if (_operationVersion != v) return;
     await _persistQueue();
   }
 
@@ -327,25 +344,43 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> playSong(MediaItem song) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
     await _handler.setQueue([song]);
+    if (_operationVersion != v) return;
     await _handler.play();
     await _persistQueue();
   }
 
   Future<void> playQueue(List<MediaItem> songs, {int initialIndex = 0}) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
     await _handler.playNow(songs);
+    if (_operationVersion != v) return;
     await _persistQueue();
   }
 
   Future<void> playVideoId(String videoId) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
     try {
       final item = await ref.read(playVideoIdUseCaseProvider).execute(videoId);
-      await playSong(item);
+      if (_operationVersion != v) return;
+      await _handler.setQueue([item]);
+      if (_operationVersion != v) return;
+      await _handler.play();
+      await _persistQueue();
     } catch (e) {
-      state = state.copyWith(
-        hasError: true,
-        errorMessage: 'Failed to play video: $e',
-      );
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          hasError: true,
+          errorMessage: 'Failed to play video: $e',
+          isSwitching: false,
+        );
+      }
     }
   }
 

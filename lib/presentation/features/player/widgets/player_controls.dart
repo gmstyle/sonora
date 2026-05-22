@@ -11,19 +11,26 @@ class PlayerControls extends ConsumerWidget {
     final playerState = ref.watch(playerStateProvider);
     final notifier = ref.read(playerStateProvider.notifier);
 
-    final hasSleepTimer = playerState.sleepTimerRemaining != null;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildShuffleButton(context, playerState, notifier),
-          _buildSkipButton(context, false, notifier),
+          _buildSkipButton(
+            context,
+            false,
+            notifier,
+            disabled: playerState.isSwitching,
+          ),
           _buildPlayPauseButton(context, playerState, notifier),
-          _buildSkipButton(context, true, notifier),
+          _buildSkipButton(
+            context,
+            true,
+            notifier,
+            disabled: playerState.isSwitching,
+          ),
           _buildRepeatButton(context, playerState, notifier),
-          _buildTimerButton(context, hasSleepTimer, notifier),
         ],
       ),
     );
@@ -51,11 +58,15 @@ class PlayerControls extends ConsumerWidget {
   Widget _buildSkipButton(
     BuildContext context,
     bool isNext,
-    PlayerNotifier notifier,
-  ) {
+    PlayerNotifier notifier, {
+    bool disabled = false,
+  }) {
     return IconButton(
       icon: Icon(isNext ? Icons.skip_next : Icons.skip_previous, size: 32),
-      onPressed: isNext ? notifier.skipToNext : notifier.skipToPrevious,
+      onPressed:
+          disabled
+              ? null
+              : (isNext ? notifier.skipToNext : notifier.skipToPrevious),
     );
   }
 
@@ -64,10 +75,14 @@ class PlayerControls extends ConsumerWidget {
     PlayerState state,
     PlayerNotifier notifier,
   ) {
+    final isSwitching = state.isSwitching;
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Theme.of(context).colorScheme.primary,
+        color:
+            isSwitching
+                ? Theme.of(context).colorScheme.primary.withAlpha(128)
+                : Theme.of(context).colorScheme.primary,
       ),
       child: IconButton(
         icon: Icon(
@@ -75,7 +90,7 @@ class PlayerControls extends ConsumerWidget {
           color: Theme.of(context).colorScheme.onPrimary,
           size: 32,
         ),
-        onPressed: notifier.togglePlayPause,
+        onPressed: isSwitching ? null : notifier.togglePlayPause,
         padding: const EdgeInsets.all(12),
       ),
     );
@@ -111,76 +126,6 @@ class PlayerControls extends ConsumerWidget {
       icon: Icon(icon, color: color),
       onPressed: notifier.cycleRepeatMode,
       tooltip: tooltip,
-    );
-  }
-
-  Widget _buildTimerButton(
-    BuildContext context,
-    bool hasTimer,
-    PlayerNotifier notifier,
-  ) {
-    return IconButton(
-      icon: Icon(
-        Icons.timer,
-        size: 22,
-        color:
-            hasTimer
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-      onPressed: () => _showTimerDialog(context, notifier),
-      tooltip: hasTimer ? 'Sleep timer active' : 'Sleep timer',
-    );
-  }
-
-  void _showTimerDialog(BuildContext context, PlayerNotifier notifier) {
-    final options = [5, 10, 15, 30, 45, 60];
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Sleep Timer',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ),
-              ...options.map(
-                (minutes) => ListTile(
-                  title: Text(
-                    minutes >= 60
-                        ? '${minutes ~/ 60} hour'
-                        : '$minutes minutes',
-                  ),
-                  onTap: () {
-                    notifier.setSleepTimer(Duration(minutes: minutes));
-                    Navigator.pop(ctx);
-                  },
-                ),
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.timer_off,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                title: Text(
-                  'Cancel Timer',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                onTap: () {
-                  notifier.cancelSleepTimer();
-                  Navigator.pop(ctx);
-                },
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
