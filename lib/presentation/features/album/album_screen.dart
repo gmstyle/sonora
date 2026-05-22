@@ -318,9 +318,19 @@ class _AlbumActions extends ConsumerWidget {
       runSpacing: 8,
       children: [
         FilledButton.icon(
+          onPressed: () => _playSequential(context, ref, album),
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Play All'),
+        ),
+        FilledButton.icon(
           onPressed: () => _shufflePlay(context, ref, album),
           icon: const Icon(Icons.shuffle),
           label: const Text('Shuffle Play'),
+        ),
+        FilledButton.tonalIcon(
+          onPressed: () => _addToQueue(context, ref, album),
+          icon: const Icon(Icons.queue_music),
+          label: const Text('Add to Queue'),
         ),
         _LikeAlbumButton(album: album),
         IconButton(
@@ -334,6 +344,51 @@ class _AlbumActions extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _addToQueue(
+    BuildContext context,
+    WidgetRef ref,
+    AlbumFull album,
+  ) async {
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playAlbumUseCaseProvider);
+    try {
+      final items = await useCase.execute(album.songs);
+      if (items.isNotEmpty) await player.addAllToQueue(items);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${items.length} song${items.length == 1 ? '' : 's'} to queue'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add to queue: $e')));
+      }
+    }
+  }
+
+  Future<void> _playSequential(
+    BuildContext context,
+    WidgetRef ref,
+    AlbumFull album,
+  ) async {
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playAlbumUseCaseProvider);
+    try {
+      final items = await useCase.execute(album.songs);
+      if (items.isNotEmpty) await player.playNow(items, initialIndex: 0);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play album: $e')));
+      }
+    }
   }
 
   Future<void> _shufflePlay(

@@ -293,10 +293,26 @@ class _PlaylistActions extends ConsumerWidget {
         FilledButton.icon(
           onPressed:
               videosAsync is AsyncData && videosAsync.asData?.value != null
+                  ? () => _playSequential(context, ref, videosAsync.asData!.value)
+                  : null,
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Play All'),
+        ),
+        FilledButton.icon(
+          onPressed:
+              videosAsync is AsyncData && videosAsync.asData?.value != null
                   ? () => _shufflePlay(context, ref, videosAsync.asData!.value)
                   : null,
           icon: const Icon(Icons.shuffle),
           label: const Text('Shuffle Play'),
+        ),
+        FilledButton.tonalIcon(
+          onPressed:
+              videosAsync is AsyncData && videosAsync.asData?.value != null
+                  ? () => _addToQueue(context, ref, videosAsync.asData!.value)
+                  : null,
+          icon: const Icon(Icons.queue_music),
+          label: const Text('Add to Queue'),
         ),
         _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
         IconButton(
@@ -310,6 +326,51 @@ class _PlaylistActions extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _addToQueue(
+    BuildContext context,
+    WidgetRef ref,
+    List<VideoDetailed> videos,
+  ) async {
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playPlaylistUseCaseProvider);
+    try {
+      final items = await useCase.execute(videos);
+      if (items.isNotEmpty) await player.addAllToQueue(items);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${items.length} song${items.length == 1 ? '' : 's'} to queue'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add to queue: $e')));
+      }
+    }
+  }
+
+  Future<void> _playSequential(
+    BuildContext context,
+    WidgetRef ref,
+    List<VideoDetailed> videos,
+  ) async {
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playPlaylistUseCaseProvider);
+    try {
+      final items = await useCase.execute(videos);
+      if (items.isNotEmpty) await player.playNow(items, initialIndex: 0);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play playlist: $e')));
+      }
+    }
   }
 
   Future<void> _shufflePlay(
