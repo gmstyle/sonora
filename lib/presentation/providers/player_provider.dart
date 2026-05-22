@@ -118,17 +118,34 @@ class PlayerNotifier extends Notifier<PlayerState> {
         currentIndex: s.queueIndex ?? 0,
         shuffleMode: s.shuffleMode,
         repeatMode: s.repeatMode,
-        isSwitching: wasSwitching && s.processingState != AudioProcessingState.ready
-            ? true
-            : false,
+        isSwitching:
+            wasSwitching && s.processingState != AudioProcessingState.ready
+                ? true
+                : false,
       );
 
       if (s.processingState == AudioProcessingState.ready) {
         state = state.copyWith(isSwitching: false);
       }
 
+      if (s.processingState == AudioProcessingState.ready && s.playing) {
+        // Use wasSwitching (captured before state update) so this block never
+        // fires on the very first ready event of a user-initiated song change.
+        // On the next event (e.g. position tick) wasSwitching is already false
+        // and the prefetch is allowed to run.
+        if (state.currentIndex >= state.queue.length - 1 &&
+            !wasSwitching &&
+            !_isFetchingUpNext &&
+            ref.read(settingsProvider).autoPlayUpNext) {
+          _isFetchingUpNext = true;
+          _prefetchAutoPlayUpNext();
+        }
+      }
+
       if (s.processingState == AudioProcessingState.completed &&
           !_isFetchingUpNext &&
+          state.queue.isNotEmpty &&
+          state.currentIndex >= state.queue.length - 1 &&
           ref.read(settingsProvider).autoPlayUpNext) {
         _isFetchingUpNext = true;
         _fetchAutoPlayUpNext();
@@ -151,6 +168,20 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
     _queueSub = _handler.queue.listen((items) {
       state = state.copyWith(queue: items);
+
+      // isSwitching is true during playSong/playVideoId/playQueue while the new
+      // queue is being set up. Skipping here prevents a spurious prefetch when
+      // state.currentIndex still holds the old (larger) index from the previous
+      // queue and state.isPlaying hasn't been updated yet from the pending
+      // pause() stream event.
+      if (state.currentIndex >= items.length - 1 &&
+          state.isPlaying &&
+          !state.isSwitching &&
+          !_isFetchingUpNext &&
+          ref.read(settingsProvider).autoPlayUpNext) {
+        _isFetchingUpNext = true;
+        _prefetchAutoPlayUpNext();
+      }
     });
 
     _durationSub = _handler.durationStream.listen((d) {
@@ -192,23 +223,69 @@ class PlayerNotifier extends Notifier<PlayerState> {
     } catch (_) {}
   }
 
+  /// Fallback triggered when the current track has already finished
+  /// (processingState == completed). It fetches related content, appends it
+  /// to the queue and immediately skips to the first new item so playback
+  /// never stalls. Used as a safety net when the background prefetch has
+  /// not completed in time.
+  ///
+  /// Guards _operationVersion after every await so that if the user taps a
+  /// new song while this is running, we abort before touching skipToQueueItem
+  /// or play() – preventing a race that would leave the player stuck loading.
   Future<void> _fetchAutoPlayUpNext() async {
     try {
       final lastItem = state.currentSong;
       if (lastItem == null) return;
+      final v = _operationVersion;
 
       final radioUseCase = ref.read(startRadioUseCaseProvider);
       final result = await radioUseCase.execute(lastItem.id);
-      final firstItem = result.firstItem;
+      if (_operationVersion != v) return;
 
+      final firstItem = result.firstItem;
       final oldLength = state.queue.length;
       await _handler.addToQueue(firstItem);
+      if (_operationVersion != v) return;
+
       await _handler.skipToQueueItem(oldLength);
+      if (_operationVersion != v) return;
+
       await _handler.play();
       await _persistQueue();
 
       radioUseCase.resolveRemaining(result.remaining).then((remaining) {
         if (remaining.isEmpty) return;
+        if (_operationVersion != v) return;
+        _handler.addAllToQueue(remaining).then((_) => _persistQueue());
+      });
+    } catch (_) {
+    } finally {
+      _isFetchingUpNext = false;
+    }
+  }
+
+  /// Background prefetch triggered while the current track is still playing
+  /// (processingState == ready). It fetches related content and appends it
+  /// to the queue without interrupting the current song. When the track
+  /// ends, the player naturally advances to the prefetched items, giving
+  /// a seamless gapless experience.
+  Future<void> _prefetchAutoPlayUpNext() async {
+    try {
+      final seedItem = state.currentSong;
+      if (seedItem == null) return;
+      final seedId = seedItem.id;
+
+      final radioUseCase = ref.read(startRadioUseCaseProvider);
+      final result = await radioUseCase.execute(seedId);
+      if (state.currentSong?.id != seedId) return;
+
+      await _handler.addToQueue(result.firstItem);
+      if (state.currentSong?.id != seedId) return;
+      await _persistQueue();
+
+      radioUseCase.resolveRemaining(result.remaining).then((remaining) {
+        if (remaining.isEmpty) return;
+        if (state.currentSong?.id != seedId) return;
         _handler.addAllToQueue(remaining).then((_) => _persistQueue());
       });
     } catch (_) {
