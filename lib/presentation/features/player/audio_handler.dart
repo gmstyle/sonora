@@ -23,7 +23,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isRetrying = false;
   StreamSubscription<PlayerException>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
-  final StreamController<(String videoId, String title)> _onPlayErrorController =
+  final StreamController<(String videoId, String title)>
+  _onPlayErrorController =
       StreamController<(String videoId, String title)>.broadcast();
 
   Stream<(String videoId, String title)> get onPlayError =>
@@ -390,7 +391,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isRetrying = true;
     _retryCount++;
     try {
-      dev.log('[AudioHandler] Stream URL expired for "$videoId", resolving fresh URL…');
+      dev.log(
+        '[AudioHandler] Stream URL expired for "$videoId", resolving fresh URL…',
+      );
       final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
       final updatedItem = currentItem!.copyWith(
         extras: {...?currentItem.extras, 'url': freshUrl},
@@ -407,10 +410,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       dev.log('[AudioHandler] Retry successful for "$videoId"');
     } catch (e) {
       dev.log('[AudioHandler] Retry failed for "$videoId": $e');
-      _onPlayErrorController.add((
-        videoId,
-        currentItem?.title ?? videoId,
-      ));
+      _onPlayErrorController.add((videoId, currentItem?.title ?? videoId));
       if (_player.sequence.length > (_player.currentIndex ?? 0) + 1) {
         await _player.seekToNext();
       } else {
@@ -966,22 +966,133 @@ class SonoraAudioHandler extends BaseAudioHandler {
     Map<String, dynamic>? extras,
   ]) async {
     try {
-      final results = await _musicRepo.searchSongs(query);
-      return results
-          .map(
-            (s) => MediaItem(
-              id: s.videoId,
-              title: s.name,
-              artist: s.artist.name,
+      // Esegue le ricerche filtrate in parallelo per ottenere risultati ricchi e completi
+      // invece della ricerca mista (che restituisce pochi elementi condensati).
+      final futureArtists = _musicRepo.searchArtists(query);
+      final futureSongs = _musicRepo.searchSongs(query);
+      final futureAlbums = _musicRepo.searchAlbums(query);
+      final futurePlaylists = _musicRepo.searchPlaylists(query);
+
+      final results = await Future.wait([
+        futureArtists,
+        futureSongs,
+        futureAlbums,
+        futurePlaylists,
+      ]);
+
+      final artistsData = results[0];
+      final songsData = results[1];
+      final albumsData = results[2];
+      final playlistsData = results[3];
+
+      final artists = <MediaItem>[];
+      final songs = <MediaItem>[];
+      final albums = <MediaItem>[];
+      final playlists = <MediaItem>[];
+
+      // Mappatura Artisti
+      for (final result in artistsData) {
+        if (result is ArtistDetailed) {
+          artists.add(
+            MediaItem(
+              id: '$_artistPrefix${result.artistId}',
+              title: result.name,
               artUri:
-                  s.thumbnails.isNotEmpty
-                      ? Uri.tryParse(s.thumbnails.last.url)
+                  result.thumbnails.isNotEmpty
+                      ? Uri.tryParse(result.thumbnails.last.url)
                       : null,
-              duration: Duration(seconds: s.duration ?? 0),
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+        }
+      }
+
+      // Mappatura Canzoni (e Video se presenti)
+      for (final result in songsData) {
+        if (result is SongDetailed) {
+          songs.add(
+            MediaItem(
+              id: result.videoId,
+              title: result.name,
+              artist: result.artist.name,
+              artUri:
+                  result.thumbnails.isNotEmpty
+                      ? Uri.tryParse(result.thumbnails.last.url)
+                      : null,
+              duration: Duration(seconds: result.duration ?? 0),
+              playable: true,
               extras: {_kContentStylePlayable: _kStyleList},
             ),
-          )
-          .toList();
+          );
+        } else if (result is VideoDetailed) {
+          songs.add(
+            MediaItem(
+              id: result.videoId,
+              title: result.name,
+              artist: result.artist.name,
+              artUri:
+                  result.thumbnails.isNotEmpty
+                      ? Uri.tryParse(result.thumbnails.last.url)
+                      : null,
+              duration: Duration(seconds: result.duration ?? 0),
+              playable: true,
+              extras: {_kContentStylePlayable: _kStyleList},
+            ),
+          );
+        }
+      }
+
+      // Mappatura Album
+      for (final result in albumsData) {
+        if (result is AlbumDetailed) {
+          albums.add(
+            MediaItem(
+              id: '$_homeAlbumPrefix${result.albumId}',
+              title: result.name,
+              artist: result.artist.name,
+              artUri:
+                  result.thumbnails.isNotEmpty
+                      ? Uri.tryParse(result.thumbnails.last.url)
+                      : null,
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+        }
+      }
+
+      // Mappatura Playlist
+      for (final result in playlistsData) {
+        if (result is PlaylistDetailed) {
+          playlists.add(
+            MediaItem(
+              id: '$_homePlaylistPrefix${result.playlistId}',
+              title: result.name,
+              // Le API delle playlist specifiche non sempre espongono author.name facilmente
+              // ma possiamo ometterlo e mostrare la thumbnail/titolo in Android Auto
+              artUri:
+                  result.thumbnails.isNotEmpty
+                      ? Uri.tryParse(result.thumbnails.last.url)
+                      : null,
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+        }
+      }
+
+      // Ritorna la lista unita con priorità logica: Artisti > Canzoni > Album > Playlist
+      return [...artists, ...songs, ...albums, ...playlists];
     } catch (_) {
       return [];
     }
