@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 
@@ -107,7 +108,7 @@ class MiniPlayerContent extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  'MV',
+                                  AppLocalizations.of(context)!.mv,
                                   style: Theme.of(
                                     context,
                                   ).textTheme.labelSmall?.copyWith(

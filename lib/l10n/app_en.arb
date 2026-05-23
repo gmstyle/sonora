@@ -1,11 +1,402 @@
 {
   "@@locale": "en",
+
   "appTitle": "Sonora",
-  "@appTitle": {
-    "description": "The title of the application"
+
+  "@@sectionMeta": {
+    "nav": "Navigation Labels"
   },
-  "helloSonora": "Hello Sonora",
-  "@helloSonora": {
-    "description": "Placeholder text for Phase 0"
-  }
+  "home": "Home",
+  "search": "Search",
+  "settingsLabel": "Settings",
+
+  "@@sectionMeta": {
+    "artist": "Artist Screen"
+  },
+  "failedToLoadArtist": "Failed to load artist",
+  "failedToLoadAlbum": "Failed to load album",
+  "albums": "Albums",
+  "singles": "Singles",
+  "videos": "Videos",
+  "similarArtists": "Similar Artists",
+  "topSongs": "Top Songs",
+  "showLess": "Show less",
+  "showMore": "Show more",
+  "failedToLoadSongs": "Failed to load songs: {error}",
+  "@failedToLoadSongs": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "playTopSongs": "Play Top Songs",
+  "shuffle": "Shuffle",
+  "share": "Share",
+  "playingArtist": "Playing {artistName}…",
+  "@playingArtist": {
+    "placeholders": {
+      "artistName": {"type": "String"}
+    }
+  },
+  "failedToPlay": "Failed to play: {error}",
+  "@failedToPlay": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "shufflingArtist": "Shuffling {artistName}…",
+  "@shufflingArtist": {
+    "placeholders": {
+      "artistName": {"type": "String"}
+    }
+  },
+  "follow": "Follow",
+  "following": "Following",
+  "artistRadio": "Artist Radio",
+  "failedToStartArtistRadio": "Failed to start artist radio: {error}",
+  "@failedToStartArtistRadio": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+
+  "@@sectionMeta": {
+    "playlist": "Playlist Screen"
+  },
+  "failedToLoadPlaylist": "Failed to load playlist",
+  "failedToLoadVideos": "Failed to load videos",
+  "videoCount": "{count, plural, =1{1 video} other{{count} videos}}",
+  "@videoCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "playAll": "Play All",
+  "shufflePlay": "Shuffle Play",
+  "addToQueue": "Add to Queue",
+  "addedToQueue": "Added {count, plural, =1{1 song} other{{count} songs}} to queue",
+  "@addedToQueue": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "failedToAddToQueue": "Failed to add to queue: {error}",
+  "@failedToAddToQueue": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "playingPlaylist": "Playing {playlistName}…",
+  "@playingPlaylist": {
+    "placeholders": {
+      "playlistName": {"type": "String"}
+    }
+  },
+  "failedToPlayPlaylist": "Failed to play playlist: {error}",
+  "@failedToPlayPlaylist": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "shufflingPlaylist": "Shuffling {playlistName}…",
+  "@shufflingPlaylist": {
+    "placeholders": {
+      "playlistName": {"type": "String"}
+    }
+  },
+  "allSongsAlreadyDownloading": "All songs already downloading",
+  "alreadyDownloaded": "Already downloaded",
+  "alreadyDownloadedSongs": "{count, plural, =1{1 song} other{{count} songs}} from {playlistName} {count, plural, =1{is} other{are}} already downloaded. Downloading again will overwrite existing files. Continue?",
+  "@alreadyDownloadedSongs": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "playlistName": {"type": "String"}
+    }
+  },
+  "cancel": "Cancel",
+  "continueAction": "Continue",
+  "downloadingSongs": "Downloading {count, plural, =1{1 song} other{{count} songs}} from {playlistName}…",
+  "@downloadingSongs": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "playlistName": {"type": "String"}
+    }
+  },
+  "likePlaylist": "Like Playlist",
+  "unlikePlaylist": "Unlike Playlist",
+  "downloadedCount": "Downloaded {downloaded}/{total}",
+  "@downloadedCount": {
+    "placeholders": {
+      "downloaded": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "downloadPlaylist": "Download Playlist",
+  "playlistEmpty": "This playlist is empty",
+  "failedToPlay": "Failed to play: {error}",
+  "@failedToPlay": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+
+  "@@sectionMeta": {
+    "library": "Library Screens"
+  },
+  "library": "Library",
+  "favorites": "Favorites",
+  "artists": "Artists",
+  "playlists": "Playlists",
+  "albums": "Albums",
+  "history": "History",
+  "failedToLoadFavorites": "Failed to load favorites",
+  "failedToLoadArtists": "Failed to load artists",
+  "failedToLoadPlaylists": "Failed to load playlists",
+  "failedToLoadLikedPlaylists": "Failed to load liked playlists",
+  "failedToLoadAlbums": "Failed to load albums",
+  "failedToLoadHistory": "Failed to load history",
+  "noFavoritesYet": "No favorites yet",
+  "noFavoritesHint": "Tap the heart icon on any song to add it here.",
+  "noFollowedArtists": "No followed artists",
+  "noFollowedArtistsHint": "Follow artists from their artist page to see them here.",
+  "myPlaylists": "My Playlists",
+  "createPlaylist": "Create Playlist",
+  "noLocalPlaylistsYet": "No local playlists yet.",
+  "deletePlaylist": "Delete playlist",
+  "deletePlaylistConfirm": "Are you sure you want to delete \"{name}\"?",
+  "@deletePlaylistConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "delete": "Delete",
+  "likedPlaylists": "Liked Playlists",
+  "likePlaylistHint": "Like a playlist from its page to see it here.",
+  "renamePlaylist": "Rename playlist",
+  "noLikedAlbums": "No liked albums",
+  "noLikedAlbumsHint": "Like an album from its page to see it here.",
+  "albumInfo": "{artistName} · {year}",
+  "@albumInfo": {
+    "placeholders": {
+      "artistName": {"type": "String"},
+      "year": {"type": "String"}
+    }
+  },
+  "noListeningHistory": "No listening history",
+  "noListeningHistoryHint": "Your recently played songs will appear here.",
+  "clearHistory": "Clear history",
+  "clearHistoryConfirm": "Are you sure you want to clear all listening history?",
+  "clear": "Clear",
+
+  "@@sectionMeta": {
+    "playlistDetail": "Playlist Detail"
+  },
+  "playAll": "Play all",
+  "shufflePlay": "Shuffle play",
+  "failedToLoadPlaylistEntries": "Failed to load playlist entries",
+  "emptyPlaylist": "Empty playlist",
+  "emptyPlaylistHint": "Add songs from the context menu to grow your playlist.",
+
+  "@@sectionMeta": {
+    "downloads": "Downloads Screen"
+  },
+  "downloads": "Downloads",
+  "failedToLoadDownloads": "Failed to load downloads",
+  "noDownloadsYet": "No downloads yet",
+  "noDownloadsHint": "Long-press on any song and select Download\nto save it for offline playback.",
+  "activeDownloads": "Active Downloads",
+  "downloadFailed": "Download failed",
+  "downloadedSongs": "Downloaded Songs",
+  "unknownSize": "unknown size",
+
+  "@@sectionMeta": {
+    "search": "Search Screen"
+  },
+  "searchHint": "Search songs, artists, albums...",
+  "searchForMusic": "Search for music",
+  "searchForMusicHint": "Find your favorite songs, artists, and albums",
+  "recentSearches": "Recent Searches",
+  "all": "All",
+  "songs": "Songs",
+  "searchArtists": "Artists",
+  "searchAlbums": "Albums",
+  "searchPlaylists": "Playlists",
+  "searchFailed": "Search failed",
+  "noResults": "No results",
+  "noResultsHint": "Try a different search term",
+
+  "@@sectionMeta": {
+    "settings": "Settings Screen"
+  },
+  "system": "System",
+  "light": "Light",
+  "dark": "Dark",
+  "appearance": "Appearance",
+  "amoledDarkMode": "AMOLED dark mode",
+  "amoledDarkModeHint": "Use true black background",
+  "dynamicColor": "Dynamic color",
+  "dynamicColorHint": "Adapt theme to wallpaper (Android 12+)",
+  "content": "Content",
+  "countryGl": "Country (gl)",
+  "languageHl": "Language (hl)",
+  "playback": "Playback",
+  "crossfade": "Crossfade",
+  "duration": "Duration",
+  "restoreQueueOnStartup": "Restore queue on startup",
+  "autoPlayUpNext": "Auto-play Up Next",
+  "autoPlayUpNextHint": "Automatically play related content when queue ends",
+  "downloadsSettings": "Downloads",
+  "downloadFolder": "Download folder",
+  "defaultLocation": "Default location",
+  "downloadOnlyOnWifi": "Download only on Wi-Fi",
+  "privacy": "Privacy",
+  "trackListeningHistory": "Track listening history",
+  "clearSearchHistory": "Clear search history",
+  "clearListeningHistory": "Clear listening history",
+  "clearSearchHistoryConfirm": "This action cannot be undone.",
+  "searchHistoryCleared": "Search history cleared",
+  "listeningHistoryCleared": "Listening history cleared",
+  "backupRestore": "Backup & Restore",
+  "exportData": "Export data",
+  "exportDataHint": "Save playlists, likes, and settings",
+  "importData": "Import data",
+  "importDataHint": "Restore from a backup file",
+  "backupSaved": "Backup saved to {path}",
+  "@backupSaved": {
+    "placeholders": {
+      "path": {"type": "String"}
+    }
+  },
+  "backupExportedSuccessfully": "Backup exported successfully",
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "importBackup": "Import backup",
+  "importBackupConfirm": "This will add backed-up songs, artists, and playlists to your existing library. No data will be overwritten.",
+  "import": "Import",
+  "backupImportedSuccessfully": "Backup imported successfully",
+  "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "updates": "Updates",
+  "checkOnStartup": "Check on startup",
+  "checkOnStartupHint": "Auto-check for updates (max once per 24h)",
+  "checkNow": "Check now",
+  "updateAvailable": "Update Available",
+  "upToDate": "Up to Date",
+  "currentVersion": "Current version: {version}",
+  "@currentVersion": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "latestVersion": "Latest version: {version}",
+  "@latestVersion": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "close": "Close",
+  "downloadUpdate": "Download Update",
+  "updateCheckFailed": "Update check failed: {error}",
+  "@updateCheckFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "about": "About",
+  "appVersion": "App version",
+  "licenses": "Licenses",
+  "gitHubRepository": "GitHub repository",
+
+  "@@sectionMeta": {
+    "player": "Player"
+  },
+  "close": "Close",
+  "playingFrom": "PLAYING FROM",
+  "nowPlaying": "NOW PLAYING",
+  "mv": "MV",
+  "unknownArtist": "Unknown Artist",
+  "share": "Share",
+  "lyrics": "Lyrics",
+  "queue": "Queue",
+  "sleepTimerActive": "Sleep timer active",
+  "sleepTimer": "Sleep timer",
+  "hours": "{count, plural, =1{{count} hour} other{{count} hours}}",
+  "@hours": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "minutes": "{count, plural, =1{{count} minute} other{{count} minutes}}",
+  "@minutes": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "cancelTimer": "Cancel Timer",
+  "devices": "Devices",
+  "shuffleOn": "Shuffle on",
+  "shuffleOff": "Shuffle off",
+  "repeatAll": "Repeat all",
+  "repeatOne": "Repeat one",
+  "repeatOff": "Repeat off",
+  "queueIsEmpty": "Queue is empty",
+  "lyricsNotAvailable": "Lyrics not available",
+
+  "@@sectionMeta": {
+    "contextMenu": "Context Menu"
+  },
+  "playNow": "Play Now",
+  "playNext": "Play Next",
+  "addToQueue": "Add to Queue",
+  "goToArtist": "Go to Artist",
+  "goToAlbum": "Go to Album",
+  "startRadio": "Start Radio",
+  "failedToStartRadio": "Failed to start radio",
+  "addToPlaylist": "Add to Playlist",
+  "downloaded": "Downloaded",
+  "download": "Download",
+  "alreadyDownloaded": "Already downloaded",
+  "alreadyDownloadedConfirm": "This song is already downloaded. Downloading again will overwrite the existing file. Continue?",
+  "continueAction": "Continue",
+  "downloadStarted": "Download started",
+  "like": "Like",
+  "unlike": "Unlike",
+  "createNewPlaylist": "Create New Playlist",
+  "addedTo": "Added to \"{name}\"",
+  "@addedTo": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "addedToPlaylist": "Added to \"{playlistName}\"",
+  "@addedToPlaylist": {
+    "placeholders": {
+      "playlistName": {"type": "String"}
+    }
+  },
+
+  "@@sectionMeta": {
+    "home": "Home Screen"
+  },
+  "continueListening": "Continue Listening",
+  "refresh": "Refresh",
+  "failedToLoadHomeFeed": "Failed to load home feed",
+
+  "@@sectionMeta": {
+    "common": "Common"
+  },
+  "retry": "Retry",
+  "newPlaylist": "New playlist",
+  "playlistName": "Playlist name",
+  "myPlaylist": "My playlist",
+  "save": "Save",
+  "onLabel": "On",
+  "offLabel": "Off"
 }

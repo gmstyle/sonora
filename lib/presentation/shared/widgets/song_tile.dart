@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
 import 'context_menu_sheet.dart';
@@ -47,7 +48,7 @@ class SongTile extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: Text(
-                  'MV',
+                  AppLocalizations.of(context)!.mv,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Theme.of(context).colorScheme.onTertiaryContainer,
                     fontWeight: FontWeight.bold,

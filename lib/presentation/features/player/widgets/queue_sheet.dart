@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/player_provider.dart';
 
@@ -16,7 +17,7 @@ class QueueSheet extends ConsumerWidget {
     if (queue.isEmpty) {
       return Center(
         child: Text(
-          'Queue is empty',
+          AppLocalizations.of(context)!.queueIsEmpty,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

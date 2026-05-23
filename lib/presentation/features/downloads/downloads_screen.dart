@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -22,7 +23,7 @@ class DownloadsScreen extends ConsumerWidget {
         final isTablet = constraints.maxWidth >= kCompactBreakpoint;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Downloads')),
+          appBar: AppBar(title: Text(AppLocalizations.of(context)!.downloads)),
           body: allDownloadsAsync.when(
             loading: () => ListView.builder(
               itemCount: 6,
@@ -30,7 +31,7 @@ class DownloadsScreen extends ConsumerWidget {
               itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
             ),
             error: (e, _) => ErrorRetryWidget(
-              message: 'Failed to load downloads',
+              message: AppLocalizations.of(context)!.failedToLoadDownloads,
               onRetry: () => ref.invalidate(allDownloadsProvider),
             ),
             data: (completed) {
@@ -84,12 +85,12 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No downloads yet',
+              AppLocalizations.of(context)!.noDownloadsYet,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
-              'Long-press on any song and select Download\nto save it for offline playback.',
+              AppLocalizations.of(context)!.noDownloadsHint,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -122,7 +123,7 @@ class _ActiveDownloadsSection extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(16, 16, 16, isTablet ? 4 : 8),
           sliver: SliverToBoxAdapter(
             child: Text(
-              'Active Downloads',
+              AppLocalizations.of(context)!.activeDownloads,
               style: Theme.of(context)
                   .textTheme
                   .titleSmall
@@ -199,7 +200,7 @@ class _ActiveDownloadTile extends StatelessWidget {
                       LinearProgressIndicator(value: download.progress)
                     else if (download.status == DownloadStatus.error)
                       Text(
-                        download.errorMessage ?? 'Download failed',
+                        download.errorMessage ?? AppLocalizations.of(context)!.downloadFailed,
                         style: theme.textTheme.bodySmall
                             ?.copyWith(color: theme.colorScheme.error),
                         maxLines: 1,
@@ -261,7 +262,7 @@ class _CompletedDownloadsSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           sliver: SliverToBoxAdapter(
             child: Text(
-              'Downloaded Songs',
+              AppLocalizations.of(context)!.downloadedSongs,
               style: Theme.of(context)
                   .textTheme
                   .titleSmall

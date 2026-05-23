@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/player_error_listener.dart';
 
 const _icons = [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings];
-const _labels = ['Home', 'Search', 'Library', 'Downloads', 'Settings'];
 
 class WideShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
@@ -33,8 +33,8 @@ class WideShell extends ConsumerWidget {
                         Icon(Icons.music_note,
                             size: 28, color: Theme.of(context).colorScheme.primary),
                         const SizedBox(width: 12),
-                        Text('Sonora',
-                            style: Theme.of(context).textTheme.titleLarge),
+                        Text(AppLocalizations.of(context)!.appTitle,
+                        style: Theme.of(context).textTheme.titleLarge),
                       ],
                     ),
                   ),
@@ -48,7 +48,7 @@ class WideShell extends ConsumerWidget {
                             selectedTileColor:
                                 Theme.of(context).colorScheme.secondaryContainer,
                             leading: Icon(_icons[i]),
-                            title: Text(_labels[i]),
+                            title: Text(_getLabel(AppLocalizations.of(context)!, i)),
                             onTap: () => navigationShell.goBranch(i),
                           ),
                       ],
@@ -76,4 +76,8 @@ class WideShell extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _getLabel(AppLocalizations l10n, int index) {
+  return [l10n.home, l10n.search, l10n.library, l10n.downloads, l10n.settingsLabel][index];
 }

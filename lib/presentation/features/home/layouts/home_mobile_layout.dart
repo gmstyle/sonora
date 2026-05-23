@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_section_renderer.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HomeMobileLayout extends ConsumerWidget {
   const HomeMobileLayout({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sectionsAsync = ref.watch(homeSectionsProvider);
@@ -17,13 +17,13 @@ class HomeMobileLayout extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sonora', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(AppLocalizations.of(context)!.appTitle, style: Theme.of(context).textTheme.titleLarge),
         centerTitle: false,
         actions: [
           if (Platform.isLinux)
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: 'Refresh',
+              tooltip: AppLocalizations.of(context)!.refresh,
               onPressed: () {
                 ref.invalidate(homeSectionsProvider);
                 ref.invalidate(recentHistoryProvider);
@@ -35,7 +35,7 @@ class HomeMobileLayout extends ConsumerWidget {
         loading: () => const HomeShimmer(),
         error:
             (e, _) => ErrorRetryWidget(
-              message: 'Failed to load home feed',
+              message: AppLocalizations.of(context)!.failedToLoadHomeFeed,
               onRetry: () => ref.invalidate(homeSectionsProvider),
             ),
         data:

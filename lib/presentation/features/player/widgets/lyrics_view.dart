@@ -1,5 +1,6 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/music_repository_provider.dart';
 
@@ -53,7 +54,7 @@ class LyricsView extends ConsumerWidget {
       error:
           (_, _) => Center(
             child: Text(
-              'Lyrics not available',
+              AppLocalizations.of(context)!.lyricsNotAvailable,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -63,7 +64,7 @@ class LyricsView extends ConsumerWidget {
         if (text == null || text.isEmpty) {
           return Center(
             child: Text(
-              'Lyrics not available',
+              AppLocalizations.of(context)!.lyricsNotAvailable,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

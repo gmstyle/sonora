@@ -2,6 +2,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/album_card.dart';
@@ -50,7 +51,7 @@ class HomeContinueListening extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Text(
-                'Continue Listening',
+                AppLocalizations.of(context)!.continueListening,
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium

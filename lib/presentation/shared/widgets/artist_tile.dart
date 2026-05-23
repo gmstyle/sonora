@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/app_localizations.dart';
 import 'thumbnail_widget.dart';
 
 class ArtistTile extends StatelessWidget {
@@ -23,7 +24,7 @@ class ArtistTile extends StatelessWidget {
         shape: ThumbnailShape.circle,
       ),
       title: Text(name, overflow: TextOverflow.ellipsis),
-      subtitle: const Text('Artist'),
+      subtitle: Text(AppLocalizations.of(context)!.unknownArtist),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => context.push('/artist/$artistId'),
     );

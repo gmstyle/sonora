@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
@@ -52,7 +53,7 @@ class _PlaylistMobileLayout extends ConsumerWidget {
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
-              message: 'Failed to load playlist',
+              message: AppLocalizations.of(context)!.failedToLoadPlaylist,
               onRetry: () {
                 ref.invalidate(playlistProvider(playlistId));
                 ref.invalidate(playlistVideosProvider(playlistId));
@@ -81,7 +82,7 @@ class _PlaylistTabletLayout extends ConsumerWidget {
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
-              message: 'Failed to load playlist',
+              message: AppLocalizations.of(context)!.failedToLoadPlaylist,
               onRetry: () {
                 ref.invalidate(playlistProvider(playlistId));
                 ref.invalidate(playlistVideosProvider(playlistId));
@@ -113,7 +114,7 @@ class _PlaylistWideLayout extends ConsumerWidget {
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
-              message: 'Failed to load playlist',
+              message: AppLocalizations.of(context)!.failedToLoadPlaylist,
               onRetry: () {
                 ref.invalidate(playlistProvider(playlistId));
                 ref.invalidate(playlistVideosProvider(playlistId));
@@ -168,7 +169,7 @@ class _PlaylistContent extends ConsumerWidget {
                     loading: () => _videoShimmerList(),
                     error:
                         (e, _) => ErrorRetryWidget(
-                          message: 'Failed to load videos',
+                          message: AppLocalizations.of(context)!.failedToLoadVideos,
                           onRetry:
                               () => ref.invalidate(
                                 playlistVideosProvider(playlist.playlistId),
@@ -255,7 +256,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${playlist.videoCount} ${playlist.videoCount == 1 ? 'video' : 'videos'}',
+                    AppLocalizations.of(context)!.videoCount(playlist.videoCount),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -299,7 +300,7 @@ class _PlaylistActions extends ConsumerWidget {
                   ? () => _playSequential(context, ref, videosAsync.asData!.value)
                   : null,
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Play All'),
+          label: Text(AppLocalizations.of(context)!.playAll),
         ),
         FilledButton.icon(
           onPressed:
@@ -307,7 +308,7 @@ class _PlaylistActions extends ConsumerWidget {
                   ? () => _shufflePlay(context, ref, videosAsync.asData!.value)
                   : null,
           icon: const Icon(Icons.shuffle),
-          label: const Text('Shuffle Play'),
+          label: Text(AppLocalizations.of(context)!.shufflePlay),
         ),
         FilledButton.tonalIcon(
           onPressed:
@@ -315,7 +316,7 @@ class _PlaylistActions extends ConsumerWidget {
                   ? () => _addToQueue(context, ref, videosAsync.asData!.value)
                   : null,
           icon: const Icon(Icons.queue_music),
-          label: const Text('Add to Queue'),
+          label: Text(AppLocalizations.of(context)!.addToQueue),
         ),
         _DownloadPlaylistButton(
           playlist: playlist,
@@ -327,7 +328,7 @@ class _PlaylistActions extends ConsumerWidget {
         _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
         IconButton(
           icon: const Icon(Icons.share_outlined),
-          tooltip: 'Share',
+          tooltip: AppLocalizations.of(context)!.share,
           onPressed: () {
             SharePlus.instance.share(
               ShareParams(text: 'https://music.youtube.com/playlist?list=${playlist.playlistId}'),
@@ -352,7 +353,7 @@ class _PlaylistActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added ${items.length} song${items.length == 1 ? '' : 's'} to queue'),
+            content: Text(AppLocalizations.of(context)!.addedToQueue(items.length)),
           ),
         );
       }
@@ -360,7 +361,7 @@ class _PlaylistActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to add to queue: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToAddToQueue(e.toString()))));
       }
     }
   }
@@ -370,7 +371,7 @@ class _PlaylistActions extends ConsumerWidget {
     WidgetRef ref,
     List<VideoDetailed> videos,
   ) async {
-    ref.read(actionFeedbackProvider.notifier).report('Playing ${playlist.name}…');
+    ref.read(actionFeedbackProvider.notifier).report(AppLocalizations.of(context)!.playingPlaylist(playlist.name));
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
@@ -380,7 +381,7 @@ class _PlaylistActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play playlist: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()))));
       }
     }
   }
@@ -390,7 +391,7 @@ class _PlaylistActions extends ConsumerWidget {
     WidgetRef ref,
     List<VideoDetailed> videos,
   ) async {
-    ref.read(actionFeedbackProvider.notifier).report('Shuffling ${playlist.name}…');
+    ref.read(actionFeedbackProvider.notifier).report(AppLocalizations.of(context)!.shufflingPlaylist(playlist.name));
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     final shuffled = List<VideoDetailed>.from(videos)..shuffle();
@@ -401,7 +402,7 @@ class _PlaylistActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play playlist: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()))));
       }
     }
   }
@@ -420,7 +421,7 @@ class _PlaylistActions extends ConsumerWidget {
     if (toDownload.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All songs already downloading')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.allSongsAlreadyDownloading)),
         );
       }
       return;
@@ -435,20 +436,18 @@ class _PlaylistActions extends ConsumerWidget {
         context: context,
         builder:
             (ctx) => AlertDialog(
-              title: const Text('Already downloaded'),
+              title: Text(AppLocalizations.of(context)!.alreadyDownloaded),
               content: Text(
-                '${alreadyDownloaded.length} song${alreadyDownloaded.length > 1 ? 's' : ''} '
-                'from ${playlist.name} ${alreadyDownloaded.length > 1 ? 'are' : 'is'} already downloaded. '
-                'Downloading again will overwrite existing files. Continue?',
+                AppLocalizations.of(context)!.alreadyDownloadedSongs(alreadyDownloaded.length, playlist.name),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Continue'),
+                  child: Text(AppLocalizations.of(context)!.continueAction),
                 ),
               ],
             ),
@@ -457,7 +456,7 @@ class _PlaylistActions extends ConsumerWidget {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Downloading ${toDownload.length} songs from ${playlist.name}…')),
+      SnackBar(content: Text(AppLocalizations.of(context)!.downloadingSongs(toDownload.length, playlist.name))),
     );
 
     final alreadyDownloadedIds = alreadyDownloaded.map((d) => d.videoId).toSet();
@@ -500,7 +499,7 @@ class _LikePlaylistButton extends ConsumerWidget {
           () => FilledButton.tonalIcon(
             onPressed: null,
             icon: const Icon(Icons.favorite_border),
-            label: const Text('Like Playlist'),
+            label: Text(AppLocalizations.of(context)!.likePlaylist),
           ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
@@ -522,7 +521,7 @@ class _LikePlaylistButton extends ConsumerWidget {
             );
           },
           icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
-          label: Text(isLiked ? 'Unlike Playlist' : 'Like Playlist'),
+          label: Text(isLiked ? AppLocalizations.of(context)!.unlikePlaylist : AppLocalizations.of(context)!.likePlaylist),
         );
       },
     );
@@ -553,9 +552,9 @@ class _DownloadPlaylistButton extends ConsumerWidget {
     return FilledButton.tonalIcon(
       onPressed: onDownload,
       icon: Icon(allDownloaded ? Icons.check_circle : Icons.download),
-      label: Text(
-        downloadedCount > 0 ? 'Downloaded $downloadedCount/$totalCount' : 'Download Playlist',
-      ),
+label: Text(
+          downloadedCount > 0 ? AppLocalizations.of(context)!.downloadedCount(downloadedCount, totalCount) : AppLocalizations.of(context)!.downloadPlaylist,
+        ),
     );
   }
 }
@@ -572,7 +571,7 @@ class _VideoTracklist extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 32),
         child: Center(
           child: Text(
-            'This playlist is empty',
+            AppLocalizations.of(context)!.playlistEmpty,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -615,7 +614,7 @@ class _VideoTracklist extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlay(e.toString()))));
       }
     }
   }

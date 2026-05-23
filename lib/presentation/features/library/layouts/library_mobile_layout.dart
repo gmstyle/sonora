@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sonora/l10n/app_localizations.dart';
 
 import '../../../../domain/models/library_models.dart';
 import '../../../providers/library_notifier.dart';
@@ -41,7 +42,10 @@ class _LibraryMobileLayoutState extends ConsumerState<LibraryMobileLayout>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Library', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          AppLocalizations.of(context)!.library,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: false,
       ),
       body: Column(
@@ -50,12 +54,12 @@ class _LibraryMobileLayoutState extends ConsumerState<LibraryMobileLayout>
             controller: _tabController,
             isScrollable: true,
             tabAlignment: TabAlignment.start,
-            tabs: const [
-              Tab(text: 'Favorites'),
-              Tab(text: 'Artists'),
-              Tab(text: 'Playlists'),
-              Tab(text: 'Albums'),
-              Tab(text: 'History'),
+            tabs: [
+              Tab(text: AppLocalizations.of(context)!.favorites),
+              Tab(text: AppLocalizations.of(context)!.artists),
+              Tab(text: AppLocalizations.of(context)!.playlists),
+              Tab(text: AppLocalizations.of(context)!.albums),
+              Tab(text: AppLocalizations.of(context)!.history),
             ],
           ),
           Expanded(
@@ -110,15 +114,15 @@ class _FavoritesTab extends ConsumerWidget {
       loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load favorites',
+            message: AppLocalizations.of(context)!.failedToLoadFavorites,
             onRetry: () => ref.invalidate(likedSongsProvider),
           ),
       data: (songs) {
         if (songs.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.favorite_outline,
-            title: 'No favorites yet',
-            body: 'Tap the heart icon on any song to add it here.',
+            title: AppLocalizations.of(context)!.noFavoritesYet,
+            body: AppLocalizations.of(context)!.noFavoritesHint,
           );
         }
         return RefreshIndicator(
@@ -152,15 +156,15 @@ class _ArtistsTab extends ConsumerWidget {
       loading: () => const _ShimmerArtistList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load artists',
+            message: AppLocalizations.of(context)!.failedToLoadArtists,
             onRetry: () => ref.invalidate(followedArtistsProvider),
           ),
       data: (artists) {
         if (artists.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.person_outline,
-            title: 'No followed artists',
-            body: 'Follow artists from their artist page to see them here.',
+            title: AppLocalizations.of(context)!.noFollowedArtists,
+            body: AppLocalizations.of(context)!.noFollowedArtistsHint,
           );
         }
         return RefreshIndicator(
@@ -211,9 +215,10 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
   void initState() {
     super.initState();
     Future(
-      () => ref
-          .read(libraryNotifierProvider.notifier)
-          .refreshPlaylistThumbnailsIfNeeded(),
+      () =>
+          ref
+              .read(libraryNotifierProvider.notifier)
+              .refreshPlaylistThumbnailsIfNeeded(),
     );
   }
 
@@ -227,13 +232,13 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
     }
     if (myAsync.hasError) {
       return ErrorRetryWidget(
-        message: 'Failed to load playlists',
+        message: AppLocalizations.of(context)!.failedToLoadPlaylists,
         onRetry: () => ref.invalidate(playlistsProvider),
       );
     }
     if (likedAsync.hasError) {
       return ErrorRetryWidget(
-        message: 'Failed to load liked playlists',
+        message: AppLocalizations.of(context)!.failedToLoadLikedPlaylists,
         onRetry: () => ref.invalidate(likedPlaylistsProvider),
       );
     }
@@ -249,13 +254,13 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
             child: Row(
               children: [
                 Text(
-                  'My Playlists',
+                  AppLocalizations.of(context)!.myPlaylists,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.add),
-                  tooltip: 'Create Playlist',
+                  tooltip: AppLocalizations.of(context)!.createPlaylist,
                   onPressed: widget.onCreatePlaylist,
                 ),
               ],
@@ -267,7 +272,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'No local playlists yet.',
+                AppLocalizations.of(context)!.noLocalPlaylistsYet,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -295,18 +300,22 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                     context: context,
                     builder:
                         (ctx) => AlertDialog(
-                          title: const Text('Delete playlist'),
+                          title: Text(
+                            AppLocalizations.of(context)!.deletePlaylist,
+                          ),
                           content: Text(
-                            'Are you sure you want to delete "${p.name}"?',
+                            AppLocalizations.of(
+                              context,
+                            )!.deletePlaylistConfirm(p.name),
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
+                              child: Text(AppLocalizations.of(context)!.cancel),
                             ),
                             FilledButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Delete'),
+                              child: Text(AppLocalizations.of(context)!.delete),
                             ),
                           ],
                         ),
@@ -352,7 +361,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
-              'Liked Playlists',
+              AppLocalizations.of(context)!.likedPlaylists,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -362,7 +371,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Like a playlist from its page to see it here.',
+                AppLocalizations.of(context)!.likePlaylistHint,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -433,16 +442,18 @@ Future<void> _deletePlaylist(
     context: context,
     builder:
         (ctx) => AlertDialog(
-          title: const Text('Delete playlist'),
-          content: Text('Are you sure you want to delete "${playlist.name}"?'),
+          title: Text(AppLocalizations.of(context)!.deletePlaylist),
+          content: Text(
+            AppLocalizations.of(context)!.deletePlaylistConfirm(playlist.name),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete'),
+              child: Text(AppLocalizations.of(context)!.delete),
             ),
           ],
         ),
@@ -465,7 +476,7 @@ Future<void> _renamePlaylist(
     builder:
         (_) => CreatePlaylistDialog(
           initialName: playlist.name,
-          title: 'Rename playlist',
+          title: AppLocalizations.of(context)!.renamePlaylist,
         ),
   );
   if (result != null && result.isNotEmpty && result != playlist.name) {
@@ -486,15 +497,15 @@ class _AlbumsTab extends ConsumerWidget {
       loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load albums',
+            message: AppLocalizations.of(context)!.failedToLoadAlbums,
             onRetry: () => ref.invalidate(likedAlbumsProvider),
           ),
       data: (albums) {
         if (albums.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.album_outlined,
-            title: 'No liked albums',
-            body: 'Like an album from its page to see it here.',
+            title: AppLocalizations.of(context)!.noLikedAlbums,
+            body: AppLocalizations.of(context)!.noLikedAlbumsHint,
           );
         }
         return RefreshIndicator(
@@ -567,10 +578,11 @@ class _ShimmerArtistList extends StatelessWidget {
     return ListView.builder(
       itemCount: 6,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemBuilder: (_, _) => const Padding(
-        padding: EdgeInsets.only(bottom: 8),
-        child: ShimmerLoading(variant: ShimmerVariant.tile),
-      ),
+      itemBuilder:
+          (_, _) => const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: ShimmerLoading(variant: ShimmerVariant.tile),
+          ),
     );
   }
 }
@@ -598,15 +610,15 @@ class _HistoryTab extends ConsumerWidget {
       loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load history',
+            message: AppLocalizations.of(context)!.failedToLoadHistory,
             onRetry: () => ref.invalidate(libraryHistoryProvider),
           ),
       data: (history) {
         if (history.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.history,
-            title: 'No listening history',
-            body: 'Your recently played songs will appear here.',
+            title: AppLocalizations.of(context)!.noListeningHistory,
+            body: AppLocalizations.of(context)!.noListeningHistoryHint,
           );
         }
         return RefreshIndicator(
@@ -624,18 +636,26 @@ class _HistoryTab extends ConsumerWidget {
                           context: context,
                           builder:
                               (ctx) => AlertDialog(
-                                title: const Text('Clear history'),
-                                content: const Text(
-                                  'Are you sure you want to clear all listening history?',
+                                title: Text(
+                                  AppLocalizations.of(context)!.clearHistory,
+                                ),
+                                content: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.clearHistoryConfirm,
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text('Cancel'),
+                                    child: Text(
+                                      AppLocalizations.of(context)!.cancel,
+                                    ),
                                   ),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text('Clear'),
+                                    child: Text(
+                                      AppLocalizations.of(context)!.clear,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -648,7 +668,7 @@ class _HistoryTab extends ConsumerWidget {
                         }
                       },
                       icon: const Icon(Icons.delete_sweep),
-                      label: const Text('Clear'),
+                      label: Text(AppLocalizations.of(context)!.clear),
                     ),
                   ],
                 ),

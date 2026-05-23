@@ -3,6 +3,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -53,7 +54,7 @@ class _ArtistMobileLayout extends ConsumerWidget {
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
-              message: 'Failed to load artist',
+              message: AppLocalizations.of(context)!.failedToLoadArtist,
               onRetry: () => ref.invalidate(artistProvider(artistId)),
             ),
           ),
@@ -76,7 +77,7 @@ class _ArtistTabletLayout extends ConsumerWidget {
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
-              message: 'Failed to load artist',
+              message: AppLocalizations.of(context)!.failedToLoadArtist,
               onRetry: () => ref.invalidate(artistProvider(artistId)),
             ),
           ),
@@ -99,7 +100,7 @@ class _ArtistWideLayout extends ConsumerWidget {
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
-              message: 'Failed to load artist',
+              message: AppLocalizations.of(context)!.failedToLoadArtist,
               onRetry: () => ref.invalidate(artistProvider(artistId)),
             ),
           ),
@@ -143,7 +144,7 @@ class _ArtistContent extends ConsumerWidget {
                       artistId: artist.artistId,
                     ),
                   if (artist.topAlbums.isNotEmpty) ...[
-                    _SectionHeader(title: 'Albums'),
+                    _SectionHeader(title: AppLocalizations.of(context)!.albums),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
@@ -170,7 +171,7 @@ class _ArtistContent extends ConsumerWidget {
                     const SizedBox(height: 24),
                   ],
                   if (artist.topSingles.isNotEmpty) ...[
-                    _SectionHeader(title: 'Singles'),
+                    _SectionHeader(title: AppLocalizations.of(context)!.singles),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
@@ -197,7 +198,7 @@ class _ArtistContent extends ConsumerWidget {
                     const SizedBox(height: 24),
                   ],
                   if (artist.topVideos.isNotEmpty) ...[
-                    _SectionHeader(title: 'Videos'),
+                    _SectionHeader(title: AppLocalizations.of(context)!.videos),
                     const SizedBox(height: 8),
                     ...artist.topVideos.map(
                       (video) => SongTile(
@@ -215,7 +216,7 @@ class _ArtistContent extends ConsumerWidget {
                     const SizedBox(height: 24),
                   ],
                   if (artist.similarArtists.isNotEmpty) ...[
-                    _SectionHeader(title: 'Similar Artists'),
+                    _SectionHeader(title: AppLocalizations.of(context)!.similarArtists),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 180,
@@ -276,7 +277,7 @@ class _ArtistTopSongsSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(title: 'Top Songs'),
+        _SectionHeader(title: AppLocalizations.of(context)!.topSongs),
         const SizedBox(height: 8),
         ...displaySongs.map(
           (song) => SongTile(
@@ -304,7 +305,7 @@ class _ArtistTopSongsSectionState
                     ? TextButton.icon(
                       onPressed: () => setState(() => _expanded = false),
                       icon: const Icon(Icons.expand_less),
-                      label: const Text('Show less'),
+                      label: Text(AppLocalizations.of(context)!.showLess),
                     )
                     : TextButton.icon(
                       onPressed: () {
@@ -315,7 +316,7 @@ class _ArtistTopSongsSectionState
                         }
                       },
                       icon: const Icon(Icons.expand_more),
-                      label: const Text('Show more'),
+                      label: Text(AppLocalizations.of(context)!.showMore),
                     ),
           ),
         const SizedBox(height: 24),
@@ -340,7 +341,7 @@ class _ArtistTopSongsSectionState
       setState(() => _loading = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load songs: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToLoadSongs(e.toString()))));
     }
   }
 }
@@ -433,18 +434,18 @@ class _ArtistActions extends ConsumerWidget {
           onPressed:
               hasSongs ? () => _playSequential(context, ref, artist) : null,
           icon: const Icon(Icons.play_arrow),
-          label: const Text('Play Top Songs'),
+          label: Text(AppLocalizations.of(context)!.playTopSongs),
         ),
         FilledButton.icon(
           onPressed: hasSongs ? () => _shufflePlay(context, ref, artist) : null,
           icon: const Icon(Icons.shuffle),
-          label: const Text('Shuffle'),
+          label: Text(AppLocalizations.of(context)!.shuffle),
         ),
         _FollowButton(artist: artist),
         _ArtistRadioButton(artist: artist),
         IconButton(
           icon: const Icon(Icons.share_outlined),
-          tooltip: 'Share',
+          tooltip: AppLocalizations.of(context)!.share,
           onPressed: () {
             SharePlus.instance.share(
               ShareParams(
@@ -473,7 +474,7 @@ class _ArtistActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlay(e.toString()))));
       }
     }
   }
@@ -497,7 +498,7 @@ class _ArtistActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlay(e.toString()))));
       }
     }
   }
@@ -514,7 +515,7 @@ class _FollowButton extends ConsumerWidget {
     return followedAsync.when(
       loading:
           () =>
-              FilledButton.tonal(onPressed: null, child: const Text('Follow')),
+              FilledButton.tonal(onPressed: null, child: Text(AppLocalizations.of(context)!.follow)),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
         final isFollowing = followed != null;
@@ -533,7 +534,7 @@ class _FollowButton extends ConsumerWidget {
                   ),
                 );
           },
-          child: Text(isFollowing ? 'Following' : 'Follow'),
+          child: Text(isFollowing ? AppLocalizations.of(context)!.following : AppLocalizations.of(context)!.follow),
         );
       },
     );
@@ -556,7 +557,7 @@ class _ArtistRadioButton extends ConsumerWidget {
                   _startArtistRadio(context, ref, artist.topSongs.first.videoId)
               : null,
       icon: const Icon(Icons.radio),
-      label: const Text('Artist Radio'),
+      label: Text(AppLocalizations.of(context)!.artistRadio),
     );
   }
 
@@ -579,7 +580,7 @@ class _ArtistRadioButton extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start artist radio: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.failedToStartArtistRadio(e.toString()))),
         );
       }
     }

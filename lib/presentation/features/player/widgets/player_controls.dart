@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../providers/player_provider.dart';
 
 class PlayerControls extends ConsumerWidget {
@@ -51,7 +52,7 @@ class PlayerControls extends ConsumerWidget {
                 : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onPressed: notifier.toggleShuffle,
-      tooltip: isShuffle ? 'Shuffle on' : 'Shuffle off',
+      tooltip: isShuffle ? AppLocalizations.of(context)!.shuffleOn : AppLocalizations.of(context)!.shuffleOff,
     );
   }
 
@@ -108,17 +109,17 @@ class PlayerControls extends ConsumerWidget {
     switch (state.repeatMode) {
       case AudioServiceRepeatMode.all:
         icon = Icons.repeat;
-        tooltip = 'Repeat all';
+        tooltip = AppLocalizations.of(context)!.repeatAll;
         color = Theme.of(context).colorScheme.primary;
         break;
       case AudioServiceRepeatMode.one:
         icon = Icons.repeat_one;
-        tooltip = 'Repeat one';
+        tooltip = AppLocalizations.of(context)!.repeatOne;
         color = Theme.of(context).colorScheme.primary;
         break;
       default:
         icon = Icons.repeat;
-        tooltip = 'Repeat off';
+        tooltip = AppLocalizations.of(context)!.repeatOff;
         color = Theme.of(context).colorScheme.onSurfaceVariant;
     }
 

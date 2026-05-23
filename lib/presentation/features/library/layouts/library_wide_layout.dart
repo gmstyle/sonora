@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../domain/models/library_models.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -23,19 +24,19 @@ class LibraryWideLayout extends ConsumerStatefulWidget {
 class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
   int _selectedIndex = 0;
 
-  static const _tabs = [
-    'Favorites',
-    'Artists',
-    'Playlists',
-    'Albums',
-    'History',
+  List<String> _getTabs(BuildContext context) => [
+    AppLocalizations.of(context)!.favorites,
+    AppLocalizations.of(context)!.artists,
+    AppLocalizations.of(context)!.playlists,
+    AppLocalizations.of(context)!.albums,
+    AppLocalizations.of(context)!.history,
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Library', style: Theme.of(context).textTheme.titleLarge),
+        title: Text(AppLocalizations.of(context)!.library, style: Theme.of(context).textTheme.titleLarge),
         centerTitle: false,
       ),
       body: Row(
@@ -53,12 +54,12 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
                       child: FilledButton.icon(
                         onPressed: () => _createPlaylist(context),
                         icon: const Icon(Icons.add),
-                        label: const Text('Create Playlist'),
+                        label: Text(AppLocalizations.of(context)!.createPlaylist),
                       ),
                     ),
                   ),
                 const SizedBox(height: 16),
-                ...List.generate(_tabs.length, (i) {
+                ...List.generate(_getTabs(context).length, (i) {
                   final icons = [
                     Icons.favorite_outline,
                     Icons.person_outline,
@@ -69,7 +70,7 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
                   return ListTile(
                     selected: i == _selectedIndex,
                     leading: Icon(icons[i]),
-                    title: Text(_tabs[i]),
+                    title: Text(_getTabs(context)[i]),
                     onTap: () => setState(() => _selectedIndex = i),
                   );
                 }),
@@ -141,15 +142,15 @@ class _FavoritesTab extends ConsumerWidget {
       loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load favorites',
+            message: AppLocalizations.of(context)!.failedToLoadFavorites,
             onRetry: () => ref.invalidate(likedSongsProvider),
           ),
       data: (songs) {
         if (songs.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.favorite_outline,
-            title: 'No favorites yet',
-            body: 'Tap the heart icon on any song to add it here.',
+            title: AppLocalizations.of(context)!.noFavoritesYet,
+            body: AppLocalizations.of(context)!.noFavoritesHint,
           );
         }
         return RefreshIndicator(
@@ -183,15 +184,15 @@ class _ArtistsTab extends ConsumerWidget {
       loading: () => const _ShimmerArtistList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load artists',
+            message: AppLocalizations.of(context)!.failedToLoadArtists,
             onRetry: () => ref.invalidate(followedArtistsProvider),
           ),
       data: (artists) {
         if (artists.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.person_outline,
-            title: 'No followed artists',
-            body: 'Follow artists from their artist page to see them here.',
+            title: AppLocalizations.of(context)!.noFollowedArtists,
+            body: AppLocalizations.of(context)!.noFollowedArtistsHint,
           );
         }
         return RefreshIndicator(
@@ -277,13 +278,13 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
     }
     if (myAsync.hasError) {
       return ErrorRetryWidget(
-        message: 'Failed to load playlists',
+        message: AppLocalizations.of(context)!.failedToLoadPlaylists,
         onRetry: () => ref.invalidate(playlistsProvider),
       );
     }
     if (likedAsync.hasError) {
       return ErrorRetryWidget(
-        message: 'Failed to load liked playlists',
+        message: AppLocalizations.of(context)!.failedToLoadLikedPlaylists,
         onRetry: () => ref.invalidate(likedPlaylistsProvider),
       );
     }
@@ -299,13 +300,13 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
             child: Row(
               children: [
                 Text(
-                  'My Playlists',
+                  AppLocalizations.of(context)!.myPlaylists,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.add),
-                  tooltip: 'Create Playlist',
+                  tooltip: AppLocalizations.of(context)!.createPlaylist,
                   onPressed: widget.onCreatePlaylist,
                 ),
               ],
@@ -317,7 +318,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'No local playlists yet.',
+                AppLocalizations.of(context)!.noLocalPlaylistsYet,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -345,18 +346,18 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                     context: context,
                     builder:
                         (ctx) => AlertDialog(
-                          title: const Text('Delete playlist'),
+                          title: Text(AppLocalizations.of(context)!.deletePlaylist),
                           content: Text(
-                            'Are you sure you want to delete "${p.name}"?',
+                            AppLocalizations.of(context)!.deletePlaylistConfirm(p.name),
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
+                              child: Text(AppLocalizations.of(context)!.cancel),
                             ),
                             FilledButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Delete'),
+                              child: Text(AppLocalizations.of(context)!.delete),
                             ),
                           ],
                         ),
@@ -402,7 +403,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: Text(
-              'Liked Playlists',
+              AppLocalizations.of(context)!.likedPlaylists,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -412,7 +413,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Like a playlist from its page to see it here.',
+                AppLocalizations.of(context)!.likePlaylistHint,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -472,16 +473,16 @@ Future<void> _deletePlaylist(
     context: context,
     builder:
         (ctx) => AlertDialog(
-          title: const Text('Delete playlist'),
-          content: Text('Are you sure you want to delete "${playlist.name}"?'),
+          title: Text(AppLocalizations.of(context)!.deletePlaylist),
+          content: Text(AppLocalizations.of(context)!.deletePlaylistConfirm(playlist.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Delete'),
+              child: Text(AppLocalizations.of(context)!.delete),
             ),
           ],
         ),
@@ -504,7 +505,7 @@ Future<void> _renamePlaylist(
     builder:
         (_) => CreatePlaylistDialog(
           initialName: playlist.name,
-          title: 'Rename playlist',
+          title: AppLocalizations.of(context)!.renamePlaylist,
         ),
   );
   if (result != null && result.isNotEmpty && result != playlist.name) {
@@ -525,15 +526,15 @@ class _AlbumsTab extends ConsumerWidget {
       loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load albums',
+            message: AppLocalizations.of(context)!.failedToLoadAlbums,
             onRetry: () => ref.invalidate(likedAlbumsProvider),
           ),
       data: (albums) {
         if (albums.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.album_outlined,
-            title: 'No liked albums',
-            body: 'Like an album from its page to see it here.',
+            title: AppLocalizations.of(context)!.noLikedAlbums,
+            body: AppLocalizations.of(context)!.noLikedAlbumsHint,
           );
         }
         return RefreshIndicator(
@@ -637,15 +638,15 @@ class _HistoryTab extends ConsumerWidget {
       loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: 'Failed to load history',
+            message: AppLocalizations.of(context)!.failedToLoadHistory,
             onRetry: () => ref.invalidate(libraryHistoryProvider),
           ),
       data: (history) {
         if (history.isEmpty) {
-          return const EmptyStateWidget(
+          return EmptyStateWidget(
             icon: Icons.history,
-            title: 'No listening history',
-            body: 'Your recently played songs will appear here.',
+            title: AppLocalizations.of(context)!.noListeningHistory,
+            body: AppLocalizations.of(context)!.noListeningHistoryHint,
           );
         }
         return Column(
@@ -659,18 +660,18 @@ class _HistoryTab extends ConsumerWidget {
                       context: context,
                       builder:
                           (ctx) => AlertDialog(
-                            title: const Text('Clear history'),
-                            content: const Text(
-                              'Are you sure you want to clear all listening history?',
+                            title: Text(AppLocalizations.of(context)!.clearHistory),
+                            content: Text(
+                              AppLocalizations.of(context)!.clearHistoryConfirm,
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Cancel'),
+                                child: Text(AppLocalizations.of(context)!.cancel),
                               ),
                               FilledButton(
                                 onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Clear'),
+                                child: Text(AppLocalizations.of(context)!.clear),
                               ),
                             ],
                           ),
@@ -683,7 +684,7 @@ class _HistoryTab extends ConsumerWidget {
                     }
                   },
                   icon: const Icon(Icons.delete_sweep),
-                  label: const Text('Clear'),
+                  label: Text(AppLocalizations.of(context)!.clear),
                 ),
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../../../../domain/models/library_models.dart';
 import '../../../providers/library_notifier.dart';
@@ -35,12 +36,12 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.playlist_play),
-            tooltip: 'Play all',
+            tooltip: AppLocalizations.of(context)!.playAll,
             onPressed: () => _playAll(),
           ),
           IconButton(
             icon: const Icon(Icons.shuffle),
-            tooltip: 'Shuffle play',
+            tooltip: AppLocalizations.of(context)!.shufflePlay,
             onPressed: () => _shufflePlay(),
           ),
         ],
@@ -55,7 +56,7 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
             ),
         error:
             (e, _) => ErrorRetryWidget(
-              message: 'Failed to load playlist entries',
+              message: AppLocalizations.of(context)!.failedToLoadPlaylistEntries,
               onRetry:
                   () => ref.invalidate(
                     playlistEntriesProvider(widget.playlist.id),
@@ -63,10 +64,10 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
             ),
         data: (entries) {
           if (entries.isEmpty) {
-            return const EmptyStateWidget(
+            return EmptyStateWidget(
               icon: Icons.playlist_play,
-              title: 'Empty playlist',
-              body: 'Add songs from the context menu to grow your playlist.',
+              title: AppLocalizations.of(context)!.emptyPlaylist,
+              body: AppLocalizations.of(context)!.emptyPlaylistHint,
             );
           }
 

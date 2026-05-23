@@ -1,6 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../l10n/app_localizations.dart';
 
 import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/artist_tile.dart';
@@ -66,7 +67,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             focusNode: _focusNode,
             autofocus: false,
             decoration: InputDecoration(
-              hintText: 'Search songs, artists, albums...',
+              hintText: AppLocalizations.of(context)!.searchHint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide.none,
@@ -131,12 +132,12 @@ class _RecentSearches extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Search for music',
+                  AppLocalizations.of(context)!.searchForMusic,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Find your favorite songs, artists, and albums',
+                  AppLocalizations.of(context)!.searchForMusicHint,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -151,7 +152,7 @@ class _RecentSearches extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
-                'Recent Searches',
+                AppLocalizations.of(context)!.recentSearches,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
@@ -219,7 +220,7 @@ class _SearchResults extends ConsumerWidget {
     return Column(
       children: [
         FilterChipBar(
-          options: const ['All', 'Songs', 'Artists', 'Albums', 'Playlists'],
+          options: [AppLocalizations.of(context)!.all, AppLocalizations.of(context)!.songs, AppLocalizations.of(context)!.searchArtists, AppLocalizations.of(context)!.searchAlbums, AppLocalizations.of(context)!.searchPlaylists],
           selectedIndex: filter,
           onSelected:
               (index) => ref.read(searchFilterProvider.notifier).update(index),
@@ -235,15 +236,15 @@ class _SearchResults extends ConsumerWidget {
                 ),
             error:
                 (e, _) => ErrorRetryWidget(
-                  message: 'Search failed',
+                  message: AppLocalizations.of(context)!.searchFailed,
                   onRetry: () => ref.invalidate(searchResultsProvider),
                 ),
             data: (results) {
               if (results.isEmpty) {
                 return EmptyStateWidget(
                   icon: Icons.search_off,
-                  title: 'No results',
-                  body: 'Try a different search term',
+                  title: AppLocalizations.of(context)!.noResults,
+                  body: AppLocalizations.of(context)!.noResultsHint,
                 );
               }
               return ListView.builder(

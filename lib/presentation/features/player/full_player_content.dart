@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
 import '../../shared/widgets/shimmer_loading.dart';
@@ -330,14 +331,14 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         IconButton(
           icon: const Icon(Icons.keyboard_arrow_down),
           onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Close',
+          tooltip: AppLocalizations.of(context)!.close,
         ),
         Expanded(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'PLAYING FROM',
+                AppLocalizations.of(context)!.playingFrom,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   letterSpacing: 1.2,
@@ -354,7 +355,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 )
               else
                 Text(
-                  'NOW PLAYING',
+                  AppLocalizations.of(context)!.nowPlaying,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -457,7 +458,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'MV',
+                        AppLocalizations.of(context)!.mv,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onTertiaryContainer,
                           fontWeight: FontWeight.bold,
@@ -497,7 +498,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   Widget _likeButton(MediaItem song) {
     final videoId = song.extras?['videoId'] as String? ?? song.id;
     final title = song.title;
-    final artist = song.artist ?? 'Unknown Artist';
+    final artist = song.artist ?? AppLocalizations.of(context)!.unknownArtist;
     final thumbnailUrl = song.artUri?.toString();
 
     final likedAsync = ref.watch(likedSongProvider(videoId));
@@ -544,7 +545,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         IconButton(
           icon: const Icon(Icons.speaker_group_outlined),
           onPressed: () {},
-          tooltip: 'Devices',
+          tooltip: AppLocalizations.of(context)!.devices,
           color: theme.colorScheme.onSurfaceVariant,
         ), */
         Row(
@@ -563,7 +564,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   );
                 }
               },
-              tooltip: 'Share',
+              tooltip: AppLocalizations.of(context)!.share,
               color: theme.colorScheme.onSurfaceVariant,
             ),
             if (!isVideo)
@@ -585,7 +586,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                             : PlayerSubView.lyrics;
                   });
                 },
-                tooltip: 'Lyrics',
+                tooltip: AppLocalizations.of(context)!.lyrics,
               ),
             IconButton(
               icon: Icon(
@@ -605,7 +606,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                           : PlayerSubView.queue;
                 });
               },
-              tooltip: 'Queue',
+              tooltip: AppLocalizations.of(context)!.queue,
             ),
             IconButton(
               icon: Icon(
@@ -617,7 +618,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                         : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               onPressed: () => _showTimerDialog(context, playerNotifier),
-              tooltip: hasTimer ? 'Sleep timer active' : 'Sleep timer',
+              tooltip: hasTimer ? AppLocalizations.of(context)!.sleepTimerActive : AppLocalizations.of(context)!.sleepTimer,
             ),
           ],
         ),
@@ -635,10 +636,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Sleep Timer',
+                  AppLocalizations.of(context)!.sleepTimer,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -661,7 +662,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   color: Theme.of(context).colorScheme.error,
                 ),
                 title: Text(
-                  'Cancel Timer',
+                  AppLocalizations.of(context)!.cancelTimer,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () {

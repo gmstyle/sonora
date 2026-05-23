@@ -12,6 +12,7 @@ import '../../providers/start_radio_use_case_provider.dart';
 import 'thumbnail_widget.dart';
 
 import '../../features/library/widgets/create_playlist_dialog.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ContextMenuSheet extends ConsumerWidget {
   final String videoId;
@@ -122,19 +123,19 @@ class ContextMenuSheet extends ConsumerWidget {
                 children: [
                   _ActionTile(
                     icon: Icons.play_arrow,
-                    label: 'Play Now',
+                    label: AppLocalizations.of(context)!.playNow,
                     onTap: () {
                       Navigator.pop(context);
-                      ref.read(actionFeedbackProvider.notifier).report('Playing…');
+                      ref.read(actionFeedbackProvider.notifier).report(AppLocalizations.of(context)!.playNow);
                       player.playVideoId(videoId);
                     },
                   ),
                   _ActionTile(
                     icon: Icons.playlist_play,
-                    label: 'Play Next',
+                    label: AppLocalizations.of(context)!.playNext,
                     onTap: () {
                       Navigator.pop(context);
-                      ref.read(actionFeedbackProvider.notifier).report('Playing next…');
+                      ref.read(actionFeedbackProvider.notifier).report(AppLocalizations.of(context)!.playNext);
                       player.playNextVideoId(
                         videoId,
                         title: title,
@@ -148,10 +149,10 @@ class ContextMenuSheet extends ConsumerWidget {
                   ),
                   _ActionTile(
                     icon: Icons.queue_music,
-                    label: 'Add to Queue',
+                    label: AppLocalizations.of(context)!.addToQueue,
                     onTap: () {
                       Navigator.pop(context);
-                      ref.read(actionFeedbackProvider.notifier).report('Added to queue');
+                      ref.read(actionFeedbackProvider.notifier).report(AppLocalizations.of(context)!.addToQueue);
                       player.addToQueueVideoId(
                         videoId,
                         title: title,
@@ -166,7 +167,7 @@ class ContextMenuSheet extends ConsumerWidget {
                   if (artistId != null)
                     _ActionTile(
                       icon: Icons.person,
-                      label: 'Go to Artist',
+                      label: AppLocalizations.of(context)!.goToArtist,
                       onTap: () {
                         context.push('/artist/$artistId');
                         Navigator.pop(context);
@@ -175,7 +176,7 @@ class ContextMenuSheet extends ConsumerWidget {
                   if (albumId != null)
                     _ActionTile(
                       icon: Icons.album,
-                      label: 'Go to Album',
+                      label: AppLocalizations.of(context)!.goToAlbum,
                       onTap: () {
                         context.push('/album/$albumId');
                         Navigator.pop(context);
@@ -183,7 +184,7 @@ class ContextMenuSheet extends ConsumerWidget {
                     ),
                   _ActionTile(
                     icon: Icons.radio,
-                    label: 'Start Radio',
+                    label: AppLocalizations.of(context)!.startRadio,
                     onTap: () async {
                       Navigator.pop(context);
                       try {
@@ -199,8 +200,8 @@ class ContextMenuSheet extends ConsumerWidget {
                       } catch (_) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Failed to start radio'),
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!.failedToStartRadio),
                             ),
                           );
                         }
@@ -209,7 +210,7 @@ class ContextMenuSheet extends ConsumerWidget {
                   ),
                   _ActionTile(
                     icon: Icons.playlist_add,
-                    label: 'Add to Playlist',
+                    label: AppLocalizations.of(context)!.addToPlaylist,
                     onTap: () {
                       Navigator.pop(context);
                       _showPlaylistPicker(context, ref, videoId);
@@ -223,7 +224,7 @@ class ContextMenuSheet extends ConsumerWidget {
                   ),
                   _ActionTile(
                     icon: isDownloaded ? Icons.check_circle : Icons.download,
-                    label: isDownloaded ? 'Downloaded' : 'Download',
+                    label: isDownloaded ? AppLocalizations.of(context)!.downloaded : AppLocalizations.of(context)!.download,
                     onTap: () {
                       Navigator.pop(context);
                       if (isDownloaded) {
@@ -231,19 +232,18 @@ class ContextMenuSheet extends ConsumerWidget {
                           context: context,
                           builder:
                               (ctx) => AlertDialog(
-                                title: const Text('Already downloaded'),
-                                content: const Text(
-                                  'This song is already downloaded. '
-                                  'Downloading again will overwrite the existing file. Continue?',
+                                title: Text(AppLocalizations.of(context)!.alreadyDownloaded),
+content: Text(
+                                  AppLocalizations.of(context)!.alreadyDownloadedConfirm,
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text('Cancel'),
+                                    child: Text(AppLocalizations.of(context)!.cancel),
                                   ),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text('Continue'),
+                                    child: Text(AppLocalizations.of(context)!.continueAction),
                                   ),
                                 ],
                               ),
@@ -269,14 +269,14 @@ class ContextMenuSheet extends ConsumerWidget {
                               thumbnailUrl: thumbnailUrl,
                             );
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Download started')),
+                          SnackBar(content: Text(AppLocalizations.of(context)!.downloadStarted)),
                         );
                       }
                     },
                   ),
                   _ActionTile(
                     icon: Icons.share,
-                    label: 'Share',
+                    label: AppLocalizations.of(context)!.share,
                     onTap: () {
                       Navigator.pop(context);
                       SharePlus.instance.share(
@@ -337,9 +337,9 @@ class _LikeActionTile extends ConsumerWidget {
     final likedAsync = ref.watch(likedSongProvider(videoId));
     return likedAsync.when(
       loading:
-          () => const ListTile(
+          () => ListTile(
             leading: Icon(Icons.favorite_border),
-            title: Text('Like'),
+            title: Text(AppLocalizations.of(context)!.like),
             enabled: false,
             dense: true,
           ),
@@ -351,7 +351,7 @@ class _LikeActionTile extends ConsumerWidget {
             isLiked ? Icons.favorite : Icons.favorite_border,
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
-          title: Text(isLiked ? 'Unlike' : 'Like'),
+          title: Text(isLiked ? AppLocalizations.of(context)!.unlike : AppLocalizations.of(context)!.like),
           onTap: () async {
             await ref
                 .read(libraryNotifierProvider.notifier)
@@ -431,13 +431,13 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Add to Playlist',
+                      AppLocalizations.of(context)!.addToPlaylist,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       icon: const Icon(Icons.add),
-                      label: const Text('Create New Playlist'),
+                      label: Text(AppLocalizations.of(context)!.createNewPlaylist),
                       onPressed: () async {
                         final name = await showDialog<String>(
                           context: context,
@@ -448,7 +448,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                           if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Added to "$name"')),
+                              SnackBar(content: Text(AppLocalizations.of(context)!.addedTo(name))),
                             );
                           }
                         }
@@ -464,7 +464,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Text(
-                    'Add to Playlist',
+                    AppLocalizations.of(context)!.addToPlaylist,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -485,7 +485,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Added to "${playlist.name}"'),
+                                content: Text(AppLocalizations.of(context)!.addedToPlaylist(playlist.name)),
                               ),
                             );
                           }

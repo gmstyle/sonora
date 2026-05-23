@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../settings_screen_content.dart';
 
 class SettingsTabletLayout extends ConsumerWidget {
@@ -11,7 +12,7 @@ class SettingsTabletLayout extends ConsumerWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings', style: theme.textTheme.titleLarge),
+        title: Text(AppLocalizations.of(context)!.appearance, style: theme.textTheme.titleLarge),
         centerTitle: false,
       ),
       body: Center(

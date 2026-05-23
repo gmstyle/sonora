@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/check_for_updates_use_case_provider.dart';
 import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
@@ -54,10 +55,10 @@ class _AppearanceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = settings.themeMode;
     const values = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
-    const labels = ['System', 'Light', 'Dark'];
+    final labels = [AppLocalizations.of(context)!.system, AppLocalizations.of(context)!.light, AppLocalizations.of(context)!.dark];
 
     return SettingsSection(
-      title: 'Appearance',
+      title: AppLocalizations.of(context)!.appearance,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -76,15 +77,15 @@ class _AppearanceSection extends StatelessWidget {
         ),
         if (current == ThemeMode.dark || current == ThemeMode.system)
           SettingsSwitchTile(
-            title: 'AMOLED dark mode',
-            subtitle: 'Use true black background',
+            title: AppLocalizations.of(context)!.amoledDarkMode,
+            subtitle: AppLocalizations.of(context)!.amoledDarkModeHint,
             value: settings.useAmoled,
             onChanged: notifier.setUseAmoled,
             icon: Icons.dark_mode,
           ),
         SettingsSwitchTile(
-          title: 'Dynamic color',
-          subtitle: 'Adapt theme to wallpaper (Android 12+)',
+          title: AppLocalizations.of(context)!.dynamicColor,
+          subtitle: AppLocalizations.of(context)!.dynamicColorHint,
           value: settings.useDynamicColor,
           onChanged: notifier.setUseDynamicColor,
           icon: Icons.palette_outlined,
@@ -105,10 +106,10 @@ class _ContentSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      title: 'Content',
+      title: AppLocalizations.of(context)!.content,
       children: [
         SettingsDropdownTile(
-          title: 'Country (gl)',
+          title: AppLocalizations.of(context)!.countryGl,
           value: settings.gl,
           options: kCountryCodes,
           onChanged: (v) {
@@ -117,7 +118,7 @@ class _ContentSection extends StatelessWidget {
         ),
         const Divider(height: 1),
         SettingsDropdownTile(
-          title: 'Language (hl)',
+          title: AppLocalizations.of(context)!.languageHl,
           value: settings.hl,
           options: kLanguageCodes,
           onChanged: (v) {
@@ -140,11 +141,11 @@ class _PlaybackSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      title: 'Playback',
+      title: AppLocalizations.of(context)!.playback,
       children: [
         SettingsSliderTile(
-          title: 'Crossfade',
-          subtitle: 'Duration',
+          title: AppLocalizations.of(context)!.crossfade,
+          subtitle: AppLocalizations.of(context)!.duration,
           value: settings.crossfadeSeconds.toDouble(),
           min: 0,
           max: 12,
@@ -153,15 +154,15 @@ class _PlaybackSection extends StatelessWidget {
         ),
         const Divider(height: 1),
         SettingsSwitchTile(
-          title: 'Restore queue on startup',
+          title: AppLocalizations.of(context)!.restoreQueueOnStartup,
           value: settings.restoreQueueOnStartup,
           onChanged: notifier.setRestoreQueueOnStartup,
           icon: Icons.restore,
         ),
         const Divider(height: 1),
         SettingsSwitchTile(
-          title: 'Auto-play Up Next',
-          subtitle: 'Automatically play related content when queue ends',
+          title: AppLocalizations.of(context)!.autoPlayUpNext,
+          subtitle: AppLocalizations.of(context)!.autoPlayUpNextHint,
           value: settings.autoPlayUpNext,
           onChanged: notifier.setAutoPlayUpNext,
           icon: Icons.playlist_play,
@@ -182,11 +183,11 @@ class _DownloadSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      title: 'Downloads',
+      title: AppLocalizations.of(context)!.downloadsSettings,
       children: [
         SettingsButtonTile(
-          title: 'Download folder',
-          subtitle: settings.downloadPath ?? 'Default location',
+          title: AppLocalizations.of(context)!.downloadFolder,
+          subtitle: settings.downloadPath ?? AppLocalizations.of(context)!.defaultLocation,
           icon: Icons.folder_outlined,
           onPressed: () async {
             final path = await FilePicker.getDirectoryPath();
@@ -195,7 +196,7 @@ class _DownloadSection extends StatelessWidget {
         ),
         const Divider(height: 1),
         SettingsSwitchTile(
-          title: 'Download only on Wi-Fi',
+          title: AppLocalizations.of(context)!.downloadOnlyOnWifi,
           value: settings.downloadOnlyOnWifi,
           onChanged: notifier.setDownloadOnlyOnWifi,
           icon: Icons.wifi,
@@ -221,23 +222,23 @@ class _PrivacySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      title: 'Privacy',
+      title: AppLocalizations.of(context)!.privacy,
       children: [
         SettingsSwitchTile(
-          title: 'Track listening history',
+          title: AppLocalizations.of(context)!.trackListeningHistory,
           value: settings.trackHistory,
           onChanged: notifier.setTrackHistory,
           icon: Icons.history,
         ),
         const Divider(height: 1),
         SettingsButtonTile(
-          title: 'Clear search history',
+          title: AppLocalizations.of(context)!.clearSearchHistory,
           icon: Icons.search_off,
           onPressed: () => _clearSearchHistory(context),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
-          title: 'Clear listening history',
+          title: AppLocalizations.of(context)!.clearListeningHistory,
           icon: Icons.delete_sweep,
           onPressed: () => _clearListeningHistory(context),
         ),
@@ -250,16 +251,16 @@ class _PrivacySection extends StatelessWidget {
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Clear search history'),
-            content: const Text('This action cannot be undone.'),
+            title: Text(AppLocalizations.of(context)!.clearSearchHistory),
+            content: Text(AppLocalizations.of(context)!.clearSearchHistoryConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Clear'),
+                child: Text(AppLocalizations.of(context)!.clear),
               ),
             ],
           ),
@@ -270,7 +271,7 @@ class _PrivacySection extends StatelessWidget {
         ref.invalidate(recentSearchesProvider);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Search history cleared')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.searchHistoryCleared)));
       }
     }
   }
@@ -280,16 +281,16 @@ class _PrivacySection extends StatelessWidget {
       context: context,
       builder:
           (ctx) => AlertDialog(
-            title: const Text('Clear listening history'),
-            content: const Text('This action cannot be undone.'),
+            title: Text(AppLocalizations.of(context)!.clearListeningHistory),
+            content: Text(AppLocalizations.of(context)!.clearSearchHistoryConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Clear'),
+                child: Text(AppLocalizations.of(context)!.clear),
               ),
             ],
           ),
@@ -299,7 +300,7 @@ class _PrivacySection extends StatelessWidget {
       if (context.mounted) {
         ref.invalidate(libraryHistoryProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Listening history cleared')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.listeningHistoryCleared)),
         );
       }
     }
@@ -316,18 +317,18 @@ class _BackupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      title: 'Backup & Restore',
+      title: AppLocalizations.of(context)!.backupRestore,
       children: [
         SettingsButtonTile(
-          title: 'Export data',
-          subtitle: 'Save playlists, likes, and settings',
+          title: AppLocalizations.of(context)!.exportData,
+          subtitle: AppLocalizations.of(context)!.exportDataHint,
           icon: Icons.file_upload_outlined,
           onPressed: () => _exportData(context),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
-          title: 'Import data',
-          subtitle: 'Restore from a backup file',
+          title: AppLocalizations.of(context)!.importData,
+          subtitle: AppLocalizations.of(context)!.importDataHint,
           icon: Icons.file_download_outlined,
           onPressed: () => _importData(context),
         ),
@@ -367,15 +368,15 @@ class _BackupSection extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Backup saved to $destPath')));
+          ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.backupSaved(destPath))));
         }
       } else {
         await SharePlus.instance.share(
-          ShareParams(files: [XFile(path)], text: 'Sonora backup'),
+          ShareParams(files: [XFile(path)], text: AppLocalizations.of(context)!.appTitle),
         );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backup exported successfully')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.backupExportedSuccessfully)),
           );
         }
       }
@@ -383,7 +384,7 @@ class _BackupSection extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.exportFailed(e.toString()))));
       }
     }
   }
@@ -401,19 +402,16 @@ class _BackupSection extends StatelessWidget {
         context: context,
         builder:
             (ctx) => AlertDialog(
-              title: const Text('Import backup'),
-              content: const Text(
-                'This will add backed-up songs, artists, and playlists to your '
-                'existing library. No data will be overwritten.',
-              ),
+              title: Text(AppLocalizations.of(context)!.importBackup),
+              content: Text(AppLocalizations.of(context)!.importBackupConfirm),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Import'),
+                  child: Text(AppLocalizations.of(context)!.import),
                 ),
               ],
             ),
@@ -436,14 +434,14 @@ class _BackupSection extends StatelessWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Backup imported successfully')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.backupImportedSuccessfully)),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.importFailed(e.toString()))));
       }
     }
   }
@@ -465,18 +463,18 @@ class _UpdatesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      title: 'Updates',
+      title: AppLocalizations.of(context)!.updates,
       children: [
         SettingsSwitchTile(
-          title: 'Check on startup',
-          subtitle: 'Auto-check for updates (max once per 24h)',
+          title: AppLocalizations.of(context)!.checkOnStartup,
+          subtitle: AppLocalizations.of(context)!.checkOnStartupHint,
           value: settings.checkUpdatesOnStartup,
           onChanged: notifier.setCheckUpdatesOnStartup,
           icon: Icons.update,
         ),
         const Divider(height: 1),
         SettingsButtonTile(
-          title: 'Check now',
+          title: AppLocalizations.of(context)!.checkNow,
           icon: Icons.refresh,
           onPressed: () => _checkUpdates(context),
         ),
@@ -497,15 +495,15 @@ class _UpdatesSection extends StatelessWidget {
         context: context,
         builder:
             (ctx) => AlertDialog(
-              title: Text(result.isNewer ? 'Update Available' : 'Up to Date'),
+              title: Text(result.isNewer ? AppLocalizations.of(context)!.updateAvailable : AppLocalizations.of(context)!.upToDate),
               content: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Current version: $currentVersion'),
+                    Text(AppLocalizations.of(context)!.currentVersion(currentVersion)),
                     Text(
-                      'Latest version: ${result.latestVersion.isNotEmpty ? result.latestVersion : currentVersion}',
+                      AppLocalizations.of(context)!.latestVersion(result.latestVersion.isNotEmpty ? result.latestVersion : currentVersion),
                     ),
                     if (result.isNewer && result.changelog.isNotEmpty) ...[
                       const SizedBox(height: 16),
@@ -517,7 +515,7 @@ class _UpdatesSection extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
+                  child: Text(AppLocalizations.of(context)!.close),
                 ),
                 if (result.isNewer)
                   FilledButton.icon(
@@ -528,7 +526,7 @@ class _UpdatesSection extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('Download Update'),
+                    label: Text(AppLocalizations.of(context)!.downloadUpdate),
                   ),
               ],
             ),
@@ -537,7 +535,7 @@ class _UpdatesSection extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Update check failed: $e')));
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.updateCheckFailed(e.toString()))));
       }
     }
   }
@@ -549,7 +547,7 @@ class _AboutSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SettingsSection(
-      title: 'About',
+      title: AppLocalizations.of(context)!.about,
       children: [
         FutureBuilder<PackageInfo>(
           future: PackageInfo.fromPlatform(),
@@ -558,22 +556,22 @@ class _AboutSection extends StatelessWidget {
             final buildNumber = snapshot.data?.buildNumber ?? '...';
             return ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('App version'),
+              title: Text(AppLocalizations.of(context)!.appVersion),
               subtitle: Text('$version+$buildNumber'),
             );
           },
         ),
         const Divider(height: 1),
         SettingsButtonTile(
-          title: 'Licenses',
+          title: AppLocalizations.of(context)!.licenses,
           icon: Icons.description_outlined,
           onPressed:
               () =>
-                  showLicensePage(context: context, applicationName: 'Sonora'),
+                  showLicensePage(context: context, applicationName: AppLocalizations.of(context)!.appTitle),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
-          title: 'GitHub repository',
+          title: AppLocalizations.of(context)!.gitHubRepository,
           icon: Icons.code,
           subtitle: kGitHubRepoUrl,
           onPressed:
