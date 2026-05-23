@@ -16,6 +16,9 @@ class PlayVideoIdUseCase {
   PlayVideoIdUseCase(this._repo, [this._libraryRepo]);
 
   Future<MediaItem> execute(String videoId) async {
+    // Pre-warm: start stream URL resolution in parallel with metadata fetch
+    final urlFuture = resolveUrl(videoId);
+
     String title, artist, thumbnailUrl;
     int durationSec;
     bool isVideo;
@@ -37,7 +40,7 @@ class PlayVideoIdUseCase {
       isVideo = true;
     }
 
-    final url = await resolveUrl(videoId);
+    final url = await urlFuture;
     return MediaItem(
       id: videoId,
       title: title,

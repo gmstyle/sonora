@@ -11,10 +11,17 @@ class QueueRepositoryImpl implements QueueRepository {
 
   @override
   Future<void> persistQueue(List<MediaItem> items) async {
+    // Skip pending items (needsUrl) — they have no stream URL and are
+    // ephemeral; the player resolves them lazily when they are about to play.
+    final filtered =
+        items
+            .where((item) => item.extras?['needsUrl'] != true)
+            .toList();
+
     await _db.batch((batch) {
       batch.deleteAll(_db.queueItems);
-      for (int i = 0; i < items.length; i++) {
-        final item = items[i];
+      for (int i = 0; i < filtered.length; i++) {
+        final item = filtered[i];
         batch.insert(
           _db.queueItems,
           QueueItemsCompanion.insert(

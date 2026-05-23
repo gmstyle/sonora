@@ -185,13 +185,10 @@ class ContextMenuSheet extends ConsumerWidget {
                         final result = await useCase.execute(videoId);
                         await player.playNow([result.firstItem]);
                         if (result.remaining.isNotEmpty) {
-                          useCase.resolveRemaining(result.remaining).then((
-                            items,
-                          ) {
-                            if (items.isNotEmpty) {
-                              player.addAllToQueue(items);
-                            }
-                          });
+                          final pendingItems = useCase.toPendingItems(
+                            result.remaining,
+                          );
+                          player.addAllToQueue(pendingItems);
                         }
                       } catch (_) {
                         if (context.mounted) {

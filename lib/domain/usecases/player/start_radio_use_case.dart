@@ -25,18 +25,30 @@ class StartRadioUseCase {
     return RadioResult(firstItem, upNexts.sublist(1));
   }
 
-  Future<List<MediaItem>> resolveRemaining(List<UpNextsDetails> items) async {
-    final results = await Future.wait(
-      items.map((item) async {
-        try {
-          final url = await _musicRepository.getStreamUrl(item.videoId);
-          return _mapToMediaItem(item, url);
-        } catch (_) {
-          return null;
-        }
-      }),
+  /// Creates [MediaItem]s for [items] without resolving stream URLs.
+  /// Items are tagged with [needsUrl] so the player can resolve them
+  /// lazily when they are about to play.
+  List<MediaItem> toPendingItems(List<UpNextsDetails> items) {
+    return items.map(_toPendingMediaItem).toList();
+  }
+
+  MediaItem _toPendingMediaItem(UpNextsDetails item) {
+    return MediaItem(
+      id: item.videoId,
+      title: item.title,
+      artist: item.artists.name,
+      album: item.album?.name,
+      duration: Duration(seconds: item.duration),
+      artUri:
+          item.thumbnails.isNotEmpty
+              ? Uri.parse(item.thumbnails.last.url)
+              : null,
+      extras: {
+        'needsUrl': true,
+        'videoId': item.videoId,
+        'isVideo': item.type == 'VIDEO',
+      },
     );
-    return results.whereType<MediaItem>().toList();
   }
 
   MediaItem _mapToMediaItem(UpNextsDetails item, String url) {

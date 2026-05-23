@@ -232,6 +232,10 @@ class PlayerNotifier extends Notifier<PlayerState> {
   /// Guards _operationVersion after every await so that if the user taps a
   /// new song while this is running, we abort before touching skipToQueueItem
   /// or play() – preventing a race that would leave the player stuck loading.
+  ///
+  /// Only the first up-next item has its stream URL resolved immediately.
+  /// Remaining items are added as pending ([needsUrl]) — the player resolves
+  /// their URLs lazily when they are about to play.
   Future<void> _fetchAutoPlayUpNext() async {
     try {
       final lastItem = state.currentSong;
@@ -253,22 +257,17 @@ class PlayerNotifier extends Notifier<PlayerState> {
       await _handler.play();
       await _persistQueue();
 
-      radioUseCase.resolveRemaining(result.remaining).then((remaining) {
-        if (remaining.isEmpty) return;
+      if (result.remaining.isNotEmpty) {
+        final pendingItems = radioUseCase.toPendingItems(result.remaining);
         if (_operationVersion != v) return;
-        _handler.addAllToQueue(remaining).then((_) => _persistQueue());
-      });
+        await _handler.addAllToQueue(pendingItems);
+      }
     } catch (_) {
     } finally {
       _isFetchingUpNext = false;
     }
   }
 
-  /// Background prefetch triggered while the current track is still playing
-  /// (processingState == ready). It fetches related content and appends it
-  /// to the queue without interrupting the current song. When the track
-  /// ends, the player naturally advances to the prefetched items, giving
-  /// a seamless gapless experience.
   Future<void> _prefetchAutoPlayUpNext() async {
     try {
       final seedItem = state.currentSong;
@@ -283,11 +282,11 @@ class PlayerNotifier extends Notifier<PlayerState> {
       if (state.currentSong?.id != seedId) return;
       await _persistQueue();
 
-      radioUseCase.resolveRemaining(result.remaining).then((remaining) {
-        if (remaining.isEmpty) return;
+      if (result.remaining.isNotEmpty) {
+        final pendingItems = radioUseCase.toPendingItems(result.remaining);
         if (state.currentSong?.id != seedId) return;
-        _handler.addAllToQueue(remaining).then((_) => _persistQueue());
-      });
+        await _handler.addAllToQueue(pendingItems);
+      }
     } catch (_) {
     } finally {
       _isFetchingUpNext = false;

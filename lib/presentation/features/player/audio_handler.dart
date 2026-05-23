@@ -22,6 +22,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   int _retryCount = 0;
   bool _isRetrying = false;
   StreamSubscription<PlayerException>? _playerErrorSub;
+  final Set<String> _pendingResolutions = {};
 
   // ── Android Auto extras ──────────────────────────────────────────────────────
   static const String _kContentStyleBrowsable =
@@ -150,6 +151,56 @@ class SonoraAudioHandler extends BaseAudioHandler {
   void _onCurrentIndexChanged(int? index) {
     if (index == null) return;
     playbackState.add(playbackState.value.copyWith(queueIndex: index));
+    _resolvePendingItems(index);
+  }
+
+  /// Pre-resolves stream URLs for pending items ([needsUrl]) before they
+  /// become current: resolves the item at [currentIndex] if needed (user
+  /// skipped to a pending track), and proactively resolves the next 2 items
+  /// so playback can transition seamlessly.
+  Future<void> _resolvePendingItems(int currentIndex) async {
+    await _resolveSinglePendingItem(currentIndex);
+    await _resolveSinglePendingItem(currentIndex + 1);
+    await _resolveSinglePendingItem(currentIndex + 2);
+  }
+
+  Future<void> _resolveSinglePendingItem(int index) async {
+    if (index < 0) return;
+    final seq = _player.sequenceState.effectiveSequence;
+    if (index >= seq.length) return;
+    final item = seq[index].tag as MediaItem;
+    if (item.extras?['needsUrl'] != true) return;
+
+    final videoId = item.extras?['videoId'] as String?;
+    if (videoId == null || !_pendingResolutions.add(videoId)) return;
+
+    try {
+      final url = await _musicRepo.getStreamUrl(videoId);
+
+      final seq2 = _player.sequenceState.effectiveSequence;
+      if (index >= seq2.length) return;
+      final currentItem = seq2[index].tag as MediaItem;
+      if (currentItem.extras?['videoId'] != videoId) return;
+      if (currentItem.extras?['needsUrl'] != true) return;
+
+      final updatedItem = item.copyWith(
+        extras: {...?item.extras, 'url': url, 'needsUrl': false},
+      );
+
+      await _player.removeAudioSourceAt(index);
+      await _player.insertAudioSource(
+        index,
+        AudioSource.uri(Uri.parse(url), tag: updatedItem),
+      );
+
+      if (index == _player.currentIndex) {
+        await _player.seek(Duration.zero, index: index);
+        await _player.play();
+      }
+    } catch (_) {
+    } finally {
+      _pendingResolutions.remove(videoId);
+    }
   }
 
   void _onSequenceStateChanged(SequenceState? sequenceState) {

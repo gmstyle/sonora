@@ -431,9 +431,8 @@ class _ArtistRadioButton extends ConsumerWidget {
       await player.playNow([result.firstItem]);
 
       if (result.remaining.isNotEmpty) {
-        useCase.resolveRemaining(result.remaining).then((items) {
-          if (items.isNotEmpty) player.addAllToQueue(items);
-        });
+        final pendingItems = useCase.toPendingItems(result.remaining);
+        player.addAllToQueue(pendingItems);
       }
     } catch (e) {
       if (context.mounted) {
