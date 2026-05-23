@@ -5,7 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
+import '../../providers/music_repository_provider.dart';
+import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -134,28 +137,11 @@ class _ArtistContent extends ConsumerWidget {
                 children: [
                   _ArtistActions(artist: artist),
                   const SizedBox(height: 24),
-                  if (artist.topSongs.isNotEmpty) ...[
-                    _SectionHeader(title: 'Top Songs'),
-                    const SizedBox(height: 8),
-                    ...artist.topSongs
-                        .take(isWide ? 10 : 5)
-                        .map(
-                          (song) => SongTile(
-                            videoId: song.videoId,
-                            title: song.name,
-                            artist: song.artist.name,
-                            thumbnailUrl:
-                                song.thumbnails.isNotEmpty
-                                    ? song.thumbnails.last.url
-                                    : null,
-                            duration: song.duration,
-                            albumName: song.album?.name,
-                            albumId: song.album?.albumId,
-                            artistId: song.artist.artistId,
-                          ),
-                        ),
-                    const SizedBox(height: 24),
-                  ],
+                  if (artist.topSongs.isNotEmpty)
+                    _ArtistTopSongsSection(
+                      songs: artist.topSongs,
+                      artistId: artist.artistId,
+                    ),
                   if (artist.topAlbums.isNotEmpty) ...[
                     _SectionHeader(title: 'Albums'),
                     const SizedBox(height: 8),
@@ -263,6 +249,102 @@ class _ArtistContent extends ConsumerWidget {
   }
 }
 
+class _ArtistTopSongsSection extends ConsumerStatefulWidget {
+  final List<SongDetailed> songs;
+  final String artistId;
+
+  const _ArtistTopSongsSection({required this.songs, required this.artistId});
+
+  @override
+  ConsumerState<_ArtistTopSongsSection> createState() =>
+      _ArtistTopSongsSectionState();
+}
+
+class _ArtistTopSongsSectionState
+    extends ConsumerState<_ArtistTopSongsSection> {
+  bool _expanded = false;
+  bool _loading = false;
+  List<SongDetailed>? _allSongs;
+
+  @override
+  Widget build(BuildContext context) {
+    final displaySongs =
+        _expanded && _allSongs != null
+            ? _allSongs!.take(10).toList()
+            : widget.songs.take(5).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: 'Top Songs'),
+        const SizedBox(height: 8),
+        ...displaySongs.map(
+          (song) => SongTile(
+            videoId: song.videoId,
+            title: song.name,
+            artist: song.artist.name,
+            thumbnailUrl:
+                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+            duration: song.duration,
+            albumName: song.album?.name,
+            albumId: song.album?.albumId,
+            artistId: song.artist.artistId,
+          ),
+        ),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        if (!_loading)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child:
+                _expanded
+                    ? TextButton.icon(
+                      onPressed: () => setState(() => _expanded = false),
+                      icon: const Icon(Icons.expand_less),
+                      label: const Text('Show less'),
+                    )
+                    : TextButton.icon(
+                      onPressed: () {
+                        if (_allSongs != null) {
+                          setState(() => _expanded = true);
+                        } else {
+                          _fetchAllSongs();
+                        }
+                      },
+                      icon: const Icon(Icons.expand_more),
+                      label: const Text('Show more'),
+                    ),
+          ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Future<void> _fetchAllSongs() async {
+    setState(() => _loading = true);
+    try {
+      final songs = await ref
+          .read(musicRepositoryProvider)
+          .getArtistSongs(widget.artistId);
+      if (!mounted) return;
+      setState(() {
+        _allSongs = songs;
+        _expanded = true;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load songs: $e')));
+    }
+  }
+}
+
 class _ArtistSliverAppBar extends StatelessWidget {
   final ArtistFull artist;
   final bool isTablet;
@@ -341,10 +423,23 @@ class _ArtistActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hasSongs = artist.topSongs.isNotEmpty;
+
     return Wrap(
       spacing: 12,
       runSpacing: 8,
       children: [
+        FilledButton.icon(
+          onPressed:
+              hasSongs ? () => _playSequential(context, ref, artist) : null,
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Play Top Songs'),
+        ),
+        FilledButton.icon(
+          onPressed: hasSongs ? () => _shufflePlay(context, ref, artist) : null,
+          icon: const Icon(Icons.shuffle),
+          label: const Text('Shuffle'),
+        ),
         _FollowButton(artist: artist),
         _ArtistRadioButton(artist: artist),
         IconButton(
@@ -352,12 +447,59 @@ class _ArtistActions extends ConsumerWidget {
           tooltip: 'Share',
           onPressed: () {
             SharePlus.instance.share(
-              ShareParams(text: 'https://music.youtube.com/channel/${artist.artistId}'),
+              ShareParams(
+                text: 'https://music.youtube.com/channel/${artist.artistId}',
+              ),
             );
           },
         ),
       ],
     );
+  }
+
+  Future<void> _playSequential(
+    BuildContext context,
+    WidgetRef ref,
+    ArtistFull artist,
+  ) async {
+    if (artist.topSongs.isEmpty) return;
+    ref.read(actionFeedbackProvider.notifier).report('Playing ${artist.name}…');
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playAlbumUseCaseProvider);
+    try {
+      final items = await useCase.execute(artist.topSongs);
+      if (items.isNotEmpty) await player.playNow(items);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play: $e')));
+      }
+    }
+  }
+
+  Future<void> _shufflePlay(
+    BuildContext context,
+    WidgetRef ref,
+    ArtistFull artist,
+  ) async {
+    if (artist.topSongs.isEmpty) return;
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report('Shuffling ${artist.name}…');
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playAlbumUseCaseProvider);
+    final shuffled = List<SongDetailed>.from(artist.topSongs)..shuffle();
+    try {
+      final items = await useCase.execute(shuffled);
+      if (items.isNotEmpty) await player.playNow(items);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to play: $e')));
+      }
+    }
   }
 }
 
