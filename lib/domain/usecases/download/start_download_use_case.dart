@@ -26,6 +26,7 @@ class StartDownloadUseCase {
     String? thumbnailUrl,
     bool downloadOnlyOnWifi = false,
     String? downloadPath,
+    String? subdirectory,
     required void Function(double progress) onProgress,
   }) async {
     if (downloadOnlyOnWifi) {
@@ -49,7 +50,7 @@ class StartDownloadUseCase {
     final manifest = await _streamDatasource.getManifest(videoId);
     final audio = manifest.muxed.withHighestBitrate();
 
-    final downloadDir = await _resolveDownloadDir(downloadPath);
+    final downloadDir = await _resolveDownloadDir(downloadPath, subdirectory: subdirectory);
     final ext = audio.container.name;
     final safeName = _sanitizeFilename(title);
     final filePath = '${downloadDir.path}/$safeName-$videoId.$ext';
@@ -80,12 +81,15 @@ class StartDownloadUseCase {
     return filePath;
   }
 
-  Future<Directory> _resolveDownloadDir(String? customPath) async {
+  Future<Directory> _resolveDownloadDir(String? customPath, {String? subdirectory}) async {
     final basePath =
         (customPath != null && customPath.isNotEmpty)
             ? customPath
             : '${(await getDownloadsDirectory())?.path}/Sonora';
-    final dir = Directory(basePath);
+    var dir = Directory(basePath);
+    if (subdirectory != null) {
+      dir = Directory('${dir.path}/${_sanitizeFilename(subdirectory)}');
+    }
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }

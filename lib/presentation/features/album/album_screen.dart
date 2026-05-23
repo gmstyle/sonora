@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
@@ -334,6 +335,10 @@ class _AlbumActions extends ConsumerWidget {
           icon: const Icon(Icons.queue_music),
           label: const Text('Add to Queue'),
         ),
+        _DownloadAlbumButton(
+          album: album,
+          onDownload: () => _downloadAlbum(context, ref, album),
+        ),
         _LikeAlbumButton(album: album),
         IconButton(
           icon: const Icon(Icons.share_outlined),
@@ -415,6 +420,81 @@ class _AlbumActions extends ConsumerWidget {
       }
     }
   }
+
+  Future<void> _downloadAlbum(
+    BuildContext context,
+    WidgetRef ref,
+    AlbumFull album,
+  ) async {
+    const batchSize = 3;
+    final notifier = ref.read(activeDownloadsProvider.notifier);
+    final toDownload = album.songs
+        .where((s) => !notifier.isDownloading(s.videoId))
+        .toList();
+    if (toDownload.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All songs already downloading')),
+        );
+      }
+      return;
+    }
+
+    final alreadyDownloaded = ref.read(allDownloadsProvider).asData?.value
+            .where((d) => toDownload.any((s) => s.videoId == d.videoId))
+            .toList() ??
+        [];
+    if (alreadyDownloaded.isNotEmpty) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Already downloaded'),
+              content: Text(
+                '${alreadyDownloaded.length} song${alreadyDownloaded.length > 1 ? 's' : ''} '
+                'from ${album.name} ${alreadyDownloaded.length > 1 ? 'are' : 'is'} already downloaded. '
+                'Downloading again will overwrite existing files. Continue?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+      );
+      if (proceed != true || !context.mounted) return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Downloading ${toDownload.length} songs from ${album.name}…')),
+    );
+
+    final alreadyDownloadedIds = alreadyDownloaded.map((d) => d.videoId).toSet();
+
+    for (var i = 0; i < toDownload.length; i += batchSize) {
+      final batch = toDownload.skip(i).take(batchSize);
+      await Future.wait(
+        batch.map((song) async {
+          if (alreadyDownloadedIds.contains(song.videoId)) {
+            await notifier.deleteDownload(song.videoId);
+          }
+          await notifier.startDownload(
+            videoId: song.videoId,
+            title: song.name,
+            artist: song.artist.name,
+            thumbnailUrl:
+                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+            subdirectory: album.name,
+          );
+        }),
+      );
+    }
+  }
 }
 
 class _LikeAlbumButton extends ConsumerWidget {
@@ -456,6 +536,29 @@ class _LikeAlbumButton extends ConsumerWidget {
           label: Text(isLiked ? 'Unlike Album' : 'Like Album'),
         );
       },
+    );
+  }
+}
+
+class _DownloadAlbumButton extends ConsumerWidget {
+  final AlbumFull album;
+  final VoidCallback onDownload;
+
+  const _DownloadAlbumButton({required this.album, required this.onDownload});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final downloadedCount =
+        album.songs.where((s) => downloadedIds.contains(s.videoId)).length;
+    final totalCount = album.songs.length;
+    final allDownloaded = downloadedCount == totalCount;
+
+    return FilledButton.tonalIcon(
+      onPressed: onDownload,
+      icon: Icon(allDownloaded ? Icons.check_circle : Icons.download),
+      label:
+          Text(downloadedCount > 0 ? 'Downloaded $downloadedCount/$totalCount' : 'Download Album'),
     );
   }
 }

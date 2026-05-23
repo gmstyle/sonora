@@ -70,6 +70,8 @@ class ContextMenuSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final player = ref.read(playerStateProvider.notifier);
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final isDownloaded = downloadedIds.contains(videoId);
 
     return SafeArea(
       child: Column(
@@ -220,21 +222,56 @@ class ContextMenuSheet extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                   ),
                   _ActionTile(
-                    icon: Icons.download,
-                    label: 'Download',
+                    icon: isDownloaded ? Icons.check_circle : Icons.download,
+                    label: isDownloaded ? 'Downloaded' : 'Download',
                     onTap: () {
                       Navigator.pop(context);
-                      ref
-                          .read(activeDownloadsProvider.notifier)
-                          .startDownload(
-                            videoId: videoId,
-                            title: title,
-                            artist: artist,
-                            thumbnailUrl: thumbnailUrl,
-                          );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Download started')),
-                      );
+                      if (isDownloaded) {
+                        showDialog<bool>(
+                          context: context,
+                          builder:
+                              (ctx) => AlertDialog(
+                                title: const Text('Already downloaded'),
+                                content: const Text(
+                                  'This song is already downloaded. '
+                                  'Downloading again will overwrite the existing file. Continue?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Continue'),
+                                  ),
+                                ],
+                              ),
+                        ).then((proceed) {
+                          if (proceed == true) {
+                            ref
+                                .read(activeDownloadsProvider.notifier)
+                                .startDownload(
+                                  videoId: videoId,
+                                  title: title,
+                                  artist: artist,
+                                  thumbnailUrl: thumbnailUrl,
+                                );
+                          }
+                        });
+                      } else {
+                        ref
+                            .read(activeDownloadsProvider.notifier)
+                            .startDownload(
+                              videoId: videoId,
+                              title: title,
+                              artist: artist,
+                              thumbnailUrl: thumbnailUrl,
+                            );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Download started')),
+                        );
+                      }
                     },
                   ),
                   _ActionTile(

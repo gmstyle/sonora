@@ -60,15 +60,23 @@ final activeDownloadsProvider =
       DownloadsNotifier.new,
     );
 
+final downloadedIdsProvider = Provider<Set<String>>((ref) {
+  final allDownloads = ref.watch(allDownloadsProvider);
+  return allDownloads.asData?.value.map((d) => d.videoId).toSet() ?? {};
+});
+
 class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
   @override
   Map<String, ActiveDownload> build() => {};
+
+  bool isDownloading(String videoId) => state.containsKey(videoId);
 
   Future<void> startDownload({
     required String videoId,
     required String title,
     required String artist,
     String? thumbnailUrl,
+    String? subdirectory,
   }) async {
     if (state.containsKey(videoId)) return;
 
@@ -93,6 +101,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         thumbnailUrl: thumbnailUrl,
         downloadOnlyOnWifi: settings.downloadOnlyOnWifi,
         downloadPath: settings.downloadPath,
+        subdirectory: subdirectory,
         onProgress: (progress) {
           state = {
             ...state,

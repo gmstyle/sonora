@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/player_provider.dart';
@@ -316,6 +317,13 @@ class _PlaylistActions extends ConsumerWidget {
           icon: const Icon(Icons.queue_music),
           label: const Text('Add to Queue'),
         ),
+        _DownloadPlaylistButton(
+          playlist: playlist,
+          videosAsync: videosAsync,
+          onDownload: videosAsync is AsyncData && videosAsync.asData?.value != null
+              ? () => _downloadPlaylist(context, ref, playlist, videosAsync.asData!.value)
+              : null,
+        ),
         _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
         IconButton(
           icon: const Icon(Icons.share_outlined),
@@ -397,6 +405,82 @@ class _PlaylistActions extends ConsumerWidget {
       }
     }
   }
+
+  Future<void> _downloadPlaylist(
+    BuildContext context,
+    WidgetRef ref,
+    PlaylistFull playlist,
+    List<VideoDetailed> videos,
+  ) async {
+    const batchSize = 3;
+    final notifier = ref.read(activeDownloadsProvider.notifier);
+    final toDownload = videos
+        .where((v) => !notifier.isDownloading(v.videoId))
+        .toList();
+    if (toDownload.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All songs already downloading')),
+        );
+      }
+      return;
+    }
+
+    final alreadyDownloaded = ref.read(allDownloadsProvider).asData?.value
+            .where((d) => toDownload.any((v) => v.videoId == d.videoId))
+            .toList() ??
+        [];
+    if (alreadyDownloaded.isNotEmpty) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: const Text('Already downloaded'),
+              content: Text(
+                '${alreadyDownloaded.length} song${alreadyDownloaded.length > 1 ? 's' : ''} '
+                'from ${playlist.name} ${alreadyDownloaded.length > 1 ? 'are' : 'is'} already downloaded. '
+                'Downloading again will overwrite existing files. Continue?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+      );
+      if (proceed != true || !context.mounted) return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Downloading ${toDownload.length} songs from ${playlist.name}…')),
+    );
+
+    final alreadyDownloadedIds = alreadyDownloaded.map((d) => d.videoId).toSet();
+
+    for (var i = 0; i < toDownload.length; i += batchSize) {
+      final batch = toDownload.skip(i).take(batchSize);
+      await Future.wait(
+        batch.map((video) async {
+          if (alreadyDownloadedIds.contains(video.videoId)) {
+            await notifier.deleteDownload(video.videoId);
+          }
+          await notifier.startDownload(
+            videoId: video.videoId,
+            title: video.name,
+            artist: video.artist.name,
+            thumbnailUrl:
+                video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
+            subdirectory: playlist.name,
+          );
+        }),
+      );
+    }
+  }
 }
 
 class _LikePlaylistButton extends ConsumerWidget {
@@ -441,6 +525,37 @@ class _LikePlaylistButton extends ConsumerWidget {
           label: Text(isLiked ? 'Unlike Playlist' : 'Like Playlist'),
         );
       },
+    );
+  }
+}
+
+class _DownloadPlaylistButton extends ConsumerWidget {
+  final PlaylistFull playlist;
+  final AsyncValue<List<VideoDetailed>> videosAsync;
+  final VoidCallback? onDownload;
+
+  const _DownloadPlaylistButton({
+    required this.playlist,
+    required this.videosAsync,
+    required this.onDownload,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final videos = videosAsync.asData?.value ?? [];
+    final downloadedCount =
+        videos.where((v) => downloadedIds.contains(v.videoId)).length;
+    final totalCount = videos.length;
+    final allDownloaded =
+        totalCount > 0 && downloadedCount == totalCount;
+
+    return FilledButton.tonalIcon(
+      onPressed: onDownload,
+      icon: Icon(allDownloaded ? Icons.check_circle : Icons.download),
+      label: Text(
+        downloadedCount > 0 ? 'Downloaded $downloadedCount/$totalCount' : 'Download Playlist',
+      ),
     );
   }
 }
