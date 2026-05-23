@@ -478,7 +478,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             return _buildPlaylistEntryChildren(parentMediaId);
           }
           if (parentMediaId.startsWith(_artistPrefix)) {
-            return _buildArtistSongChildren(parentMediaId);
+            return _buildArtistChildren(parentMediaId);
           }
           if (parentMediaId.startsWith(_homeAlbumPrefix)) {
             return _buildHomeAlbumSongChildren(parentMediaId);
@@ -577,7 +577,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
               artUri:
                   a.thumbnailUrl != null ? Uri.tryParse(a.thumbnailUrl!) : null,
               playable: false,
-              extras: {_kContentStyleBrowsable: _kStyleList},
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
             ),
           )
           .toList(),
@@ -592,7 +595,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
               id: '$_playlistPrefix${p.id}',
               title: p.name,
               playable: false,
-              extras: {_kContentStyleBrowsable: _kStyleList},
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
             ),
           )
           .toList(),
@@ -610,7 +616,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
               artUri:
                   a.thumbnailUrl != null ? Uri.tryParse(a.thumbnailUrl!) : null,
               playable: false,
-              extras: {_kContentStyleBrowsable: _kStyleList},
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
             ),
           )
           .toList(),
@@ -853,25 +862,111 @@ class SonoraAudioHandler extends BaseAudioHandler {
         .toList();
   }
 
-  Future<List<MediaItem>> _buildArtistSongChildren(String parentMediaId) async {
+  Future<List<MediaItem>> _buildArtistChildren(String parentMediaId) async {
     final artistId = parentMediaId.substring(_artistPrefix.length);
-    final songs = await _musicRepo.getArtistSongs(artistId);
-    return songs
-        .take(100)
-        .map(
-          (s) => MediaItem(
-            id: s.videoId,
-            title: s.name,
-            artist: s.artist.name,
-            artUri:
-                s.thumbnails.isNotEmpty
-                    ? Uri.tryParse(s.thumbnails.last.url)
-                    : null,
-            duration: Duration(seconds: s.duration ?? 0),
-            extras: {_kContentStylePlayable: _kStyleList},
-          ),
-        )
-        .toList();
+    final artistInfo = await _musicRepo.getArtist(artistId);
+
+    final mediaItems = <MediaItem>[];
+
+    // 1. Top Songs (Playable)
+    for (final song in artistInfo.topSongs) {
+      mediaItems.add(
+        MediaItem(
+          id: song.videoId,
+          title: song.name,
+          artist: song.artist.name,
+          artUri:
+              song.thumbnails.isNotEmpty
+                  ? Uri.tryParse(song.thumbnails.last.url)
+                  : null,
+          duration: Duration(seconds: song.duration ?? 0),
+          playable: true,
+          extras: {_kContentStylePlayable: _kStyleList},
+        ),
+      );
+    }
+
+    // 2. Albums (Browsable folders)
+    for (final album in artistInfo.topAlbums) {
+      mediaItems.add(
+        MediaItem(
+          id: '$_homeAlbumPrefix${album.albumId}',
+          title: album.name,
+          artist: 'Album',
+          artUri:
+              album.thumbnails.isNotEmpty
+                  ? Uri.tryParse(album.thumbnails.last.url)
+                  : null,
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+    }
+
+    // 3. Singles (Browsable folders)
+    for (final single in artistInfo.topSingles) {
+      mediaItems.add(
+        MediaItem(
+          id: '$_homeAlbumPrefix${single.albumId}',
+          title: single.name,
+          artist: 'Single',
+          artUri:
+              single.thumbnails.isNotEmpty
+                  ? Uri.tryParse(single.thumbnails.last.url)
+                  : null,
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+    }
+
+    // 4. Featured On (Playlists - Browsable folders)
+    for (final playlist in artistInfo.featuredOn) {
+      mediaItems.add(
+        MediaItem(
+          id: '$_homePlaylistPrefix${playlist.playlistId}',
+          title: playlist.name,
+          artist: 'Playlist',
+          artUri:
+              playlist.thumbnails.isNotEmpty
+                  ? Uri.tryParse(playlist.thumbnails.last.url)
+                  : null,
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+    }
+
+    // 5. Similar Artists (Browsable folders)
+    for (final related in artistInfo.similarArtists) {
+      mediaItems.add(
+        MediaItem(
+          id: '$_artistPrefix${related.artistId}',
+          title: related.name,
+          artist: 'Artist',
+          artUri:
+              related.thumbnails.isNotEmpty
+                  ? Uri.tryParse(related.thumbnails.last.url)
+                  : null,
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+    }
+
+    return mediaItems;
   }
 
   Future<List<MediaItem>> _buildLikedAlbumFolders() async {
