@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
+import '../widgets/action_feedback_listener.dart';
 import '../widgets/player_error_listener.dart';
 
 const _destinations = (
@@ -28,6 +29,7 @@ class MobileShell extends ConsumerWidget {
           ),
           const PlayerSheet(),
           const PlayerErrorListener(),
+          const ActionFeedbackListener(),
         ],
       ),
       bottomNavigationBar: NavigationBar(

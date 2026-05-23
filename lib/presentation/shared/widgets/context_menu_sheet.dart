@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../domain/models/library_models.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
@@ -122,6 +123,7 @@ class ContextMenuSheet extends ConsumerWidget {
                     label: 'Play Now',
                     onTap: () {
                       Navigator.pop(context);
+                      ref.read(actionFeedbackProvider.notifier).report('Playing…');
                       player.playVideoId(videoId);
                     },
                   ),
@@ -130,6 +132,7 @@ class ContextMenuSheet extends ConsumerWidget {
                     label: 'Play Next',
                     onTap: () {
                       Navigator.pop(context);
+                      ref.read(actionFeedbackProvider.notifier).report('Playing next…');
                       player.playNextVideoId(
                         videoId,
                         title: title,
@@ -146,6 +149,7 @@ class ContextMenuSheet extends ConsumerWidget {
                     label: 'Add to Queue',
                     onTap: () {
                       Navigator.pop(context);
+                      ref.read(actionFeedbackProvider.notifier).report('Added to queue');
                       player.addToQueueVideoId(
                         videoId,
                         title: title,

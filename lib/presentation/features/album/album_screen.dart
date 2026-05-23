@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
@@ -379,6 +380,7 @@ class _AlbumActions extends ConsumerWidget {
     WidgetRef ref,
     AlbumFull album,
   ) async {
+    ref.read(actionFeedbackProvider.notifier).report('Playing ${album.name}…');
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playAlbumUseCaseProvider);
     try {
@@ -398,6 +400,7 @@ class _AlbumActions extends ConsumerWidget {
     WidgetRef ref,
     AlbumFull album,
   ) async {
+    ref.read(actionFeedbackProvider.notifier).report('Shuffling ${album.name}…');
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playAlbumUseCaseProvider);
     final shuffled = List<SongDetailed>.from(album.songs)..shuffle();

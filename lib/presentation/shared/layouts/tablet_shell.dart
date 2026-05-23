@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
+import '../widgets/action_feedback_listener.dart';
 import '../widgets/player_error_listener.dart';
 
 const _icons = [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings];
@@ -46,6 +47,7 @@ class TabletShell extends ConsumerWidget {
                 ),
                 const PlayerSheet(),
                 const PlayerErrorListener(),
+                const ActionFeedbackListener(),
               ],
             ),
           ),

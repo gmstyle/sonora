@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/player_provider.dart';
@@ -361,6 +362,7 @@ class _PlaylistActions extends ConsumerWidget {
     WidgetRef ref,
     List<VideoDetailed> videos,
   ) async {
+    ref.read(actionFeedbackProvider.notifier).report('Playing ${playlist.name}…');
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
@@ -380,6 +382,7 @@ class _PlaylistActions extends ConsumerWidget {
     WidgetRef ref,
     List<VideoDetailed> videos,
   ) async {
+    ref.read(actionFeedbackProvider.notifier).report('Shuffling ${playlist.name}…');
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     final shuffled = List<VideoDetailed>.from(videos)..shuffle();
