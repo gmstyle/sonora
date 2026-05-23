@@ -557,6 +557,24 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get checkingForUpdates => 'Verifica aggiornamenti…';
+
+  @override
+  String get downloadingUpdate => 'Scaricamento aggiornamento…';
+
+  @override
+  String get downloadComplete => 'Download completato';
+
+  @override
+  String get installUpdate => 'Installa';
+
+  @override
+  String get error => 'Errore';
+
+  @override
+  String get unknownError => 'Errore sconosciuto';
+
+  @override
   String get about => 'Info';
 
   @override

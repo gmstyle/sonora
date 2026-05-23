@@ -9,12 +9,13 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/platform_utils.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../providers/check_for_updates_use_case_provider.dart';
 import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/update_notifier.dart';
 import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
 import 'settings_shared.dart';
@@ -449,10 +450,9 @@ class _BackupSection extends StatelessWidget {
 
 // ── Updates ──────────────────────────────────────────────────────
 
-class _UpdatesSection extends StatelessWidget {
+class _UpdatesSection extends ConsumerWidget {
   final Settings settings;
   final SettingsNotifier notifier;
-  final WidgetRef ref;
 
   const _UpdatesSection({
     required this.settings,
@@ -460,8 +460,10 @@ class _UpdatesSection extends StatelessWidget {
     required this.ref,
   });
 
+  final WidgetRef ref;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SettingsSection(
       title: AppLocalizations.of(context)!.updates,
       children: [
@@ -476,70 +478,240 @@ class _UpdatesSection extends StatelessWidget {
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.checkNow,
           icon: Icons.refresh,
-          onPressed: () => _checkUpdates(context),
+          onPressed: () => _checkUpdates(context, ref),
         ),
       ],
     );
   }
 
-  Future<void> _checkUpdates(BuildContext context) async {
-    try {
-      final info = await PackageInfo.fromPlatform();
-      final currentVersion = 'v${info.version}+${info.buildNumber}';
-      final useCase = ref.read(checkForUpdatesUseCaseProvider);
-      final result = await useCase.execute(currentVersion: currentVersion);
+  void _checkUpdates(BuildContext context, WidgetRef ref) {
+    ref.read(updateProvider.notifier).reset();
+    ref.read(updateProvider.notifier).checkForUpdate();
+    _showUpdateDialog(context);
+  }
 
-      if (!context.mounted) return;
-
-      showDialog(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(result.isNewer ? AppLocalizations.of(context)!.updateAvailable : AppLocalizations.of(context)!.upToDate),
-              content: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(AppLocalizations.of(context)!.currentVersion(currentVersion)),
-                    Text(
-                      AppLocalizations.of(context)!.latestVersion(result.latestVersion.isNotEmpty ? result.latestVersion : currentVersion),
-                    ),
-                    if (result.isNewer && result.changelog.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Text(result.changelog),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(AppLocalizations.of(context)!.close),
-                ),
-                if (result.isNewer)
-                  FilledButton.icon(
-                    onPressed: () {
-                      launchUrl(
-                        Uri.parse(kGitHubRepoUrl),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(AppLocalizations.of(context)!.downloadUpdate),
-                  ),
-              ],
-            ),
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.updateCheckFailed(e.toString()))));
-      }
-    }
+  void _showUpdateDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _UpdateDialog(),
+    );
   }
 }
+
+class _UpdateDialog extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_UpdateDialog> createState() => _UpdateDialogState();
+}
+
+class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
+  String _localVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _localVersion = 'v${info.version}+${info.buildNumber}';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(updateProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final notifier = ref.read(updateProvider.notifier);
+
+    return PopScope(
+      canPop: state.status != UpdateStatus.checking &&
+          state.status != UpdateStatus.downloading,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) notifier.reset();
+      },
+      child: AlertDialog(
+        title: _buildTitle(state, l10n),
+        content: _buildContent(state, l10n),
+        actions: _buildActions(state, l10n, notifier, context),
+      ),
+    );
+  }
+
+  Widget _buildTitle(UpdateState state, AppLocalizations l10n) {
+    switch (state.status) {
+      case UpdateStatus.checking:
+        return Text(l10n.checkingForUpdates);
+      case UpdateStatus.downloading:
+        return Text(l10n.downloadingUpdate);
+      case UpdateStatus.downloadComplete:
+        return Text(l10n.updateAvailable);
+      case UpdateStatus.updateAvailable:
+        return Text(l10n.updateAvailable);
+      case UpdateStatus.noUpdateAvailable:
+        return Text(l10n.upToDate);
+      case UpdateStatus.error:
+        return Text(l10n.error);
+      case UpdateStatus.idle:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildContent(UpdateState state, AppLocalizations l10n) {
+    switch (state.status) {
+      case UpdateStatus.checking:
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        );
+
+      case UpdateStatus.downloading:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LinearProgressIndicator(value: state.progress),
+            const SizedBox(height: 12),
+            Text('${(state.progress * 100).toStringAsFixed(0)}%'),
+          ],
+        );
+
+      case UpdateStatus.downloadComplete:
+        return Text(l10n.downloadComplete);
+
+      case UpdateStatus.updateAvailable:
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_localVersion.isNotEmpty)
+                Text(l10n.currentVersion(_localVersion)),
+              Text(l10n.latestVersion(
+                state.result?.latestVersion ?? '',
+              )),
+              if (state.result?.changelog.isNotEmpty == true) ...[
+                const SizedBox(height: 16),
+                Text(
+                  state.result!.changelog,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ),
+        );
+
+      case UpdateStatus.noUpdateAvailable:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_localVersion.isNotEmpty)
+              Text(l10n.currentVersion(_localVersion)),
+          ],
+        );
+
+      case UpdateStatus.error:
+        return Text(state.errorMessage ?? l10n.unknownError);
+
+      case UpdateStatus.idle:
+        return const SizedBox.shrink();
+    }
+  }
+
+  List<Widget> _buildActions(
+    UpdateState state,
+    AppLocalizations l10n,
+    UpdateNotifier notifier,
+    BuildContext context,
+  ) {
+    switch (state.status) {
+      case UpdateStatus.checking:
+      case UpdateStatus.downloading:
+        return [];
+
+      case UpdateStatus.downloadComplete:
+        return [
+          TextButton(
+            onPressed: () {
+              notifier.reset();
+              Navigator.pop(context);
+            },
+            child: Text(l10n.close),
+          ),
+          FilledButton.icon(
+            onPressed: () => notifier.installApk(),
+            icon: const Icon(Icons.install_mobile),
+            label: Text(l10n.installUpdate),
+          ),
+        ];
+
+      case UpdateStatus.updateAvailable:
+        return [
+          TextButton(
+            onPressed: () {
+              notifier.reset();
+              Navigator.pop(context);
+            },
+            child: Text(l10n.close),
+          ),
+          if (isAndroid)
+            FilledButton.icon(
+              onPressed: () => notifier.downloadAndInstall(),
+              icon: const Icon(Icons.download),
+              label: Text(l10n.downloadUpdate),
+            )
+          else
+            FilledButton.icon(
+              onPressed: () {
+                notifier.reset();
+                Navigator.pop(context);
+                launchUrl(
+                  Uri.parse('$kGitHubRepoUrl/releases/latest'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+              icon: const Icon(Icons.open_in_new),
+              label: Text(l10n.downloadUpdate),
+            ),
+        ];
+
+      case UpdateStatus.noUpdateAvailable:
+        return [
+          FilledButton(
+            onPressed: () {
+              notifier.reset();
+              Navigator.pop(context);
+            },
+            child: Text(l10n.close),
+          ),
+        ];
+
+      case UpdateStatus.error:
+        return [
+          TextButton(
+            onPressed: () {
+              notifier.reset();
+              Navigator.pop(context);
+            },
+            child: Text(l10n.close),
+          ),
+          if (state.result?.isNewer == true)
+            FilledButton.icon(
+              onPressed: () => notifier.downloadAndInstall(),
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.retry),
+            ),
+        ];
+
+      case UpdateStatus.idle:
+        return [];
+    }
+  }
+  }
 
 // ── About ────────────────────────────────────────────────────────
 

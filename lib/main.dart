@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -7,8 +8,10 @@ import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/constants/app_constants.dart';
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
 import 'core/utils/linux_tray_service.dart';
@@ -26,7 +29,6 @@ import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
-import 'presentation/providers/check_for_updates_use_case_provider.dart';
 import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/library_repository_provider.dart';
 import 'presentation/providers/music_repository_provider.dart';
@@ -35,6 +37,7 @@ import 'presentation/providers/player_provider.dart';
 import 'presentation/providers/settings_provider.dart';
 import 'presentation/providers/stream_datasource_provider.dart';
 import 'presentation/providers/theme_provider.dart';
+import 'presentation/providers/update_notifier.dart';
 import 'presentation/providers/ytmusic_provider.dart';
 
 LinuxTrayService? _trayService;
@@ -174,6 +177,8 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
   }
 
   Future<void> _checkForUpdates() async {
+    if (kDebugMode) return;
+
     try {
       final settings = ref.read(settingsProvider);
       if (!settings.checkUpdatesOnStartup) return;
@@ -185,26 +190,26 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
 
       await prefs.setInt(kLastUpdateCheckTimeKey, now);
 
-      final useCase = ref.read(checkForUpdatesUseCaseProvider);
-      final info = await PackageInfo.fromPlatform();
-      final result = await useCase.execute(
-        currentVersion: 'v${info.version}+${info.buildNumber}',
-        lastCheckEpochMillis: null,
-      );
+      final notifier = ref.read(updateProvider.notifier);
+      await notifier.checkForUpdate();
 
-      if (result.isNewer && mounted) {
-        await flutterLocalNotificationsPlugin.show(
-          id: 0,
-          title: 'Update Available',
-          body:
-              'Sonora ${result.latestVersion} is available'
-              ' (current: v${info.version})',
-          notificationDetails: const NotificationDetails(
-            linux: LinuxNotificationDetails(defaultActionName: 'Open Sonora'),
-          ),
-        );
+      if (!mounted) return;
+
+      final state = ref.read(updateProvider);
+      if (state.status == UpdateStatus.updateAvailable && mounted) {
+        _showUpdateDialog();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Startup update check failed: $e');
+    }
+  }
+
+  void _showUpdateDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _StartupUpdateDialog(),
+    );
   }
 
   @override
@@ -236,5 +241,158 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       darkTheme: darkTheme,
       themeMode: themeMode,
     );
+  }
+}
+
+class _StartupUpdateDialog extends ConsumerStatefulWidget {
+  const _StartupUpdateDialog();
+
+  @override
+  ConsumerState<_StartupUpdateDialog> createState() =>
+      _StartupUpdateDialogState();
+}
+
+class _StartupUpdateDialogState extends ConsumerState<_StartupUpdateDialog> {
+  String _localVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _localVersion = 'v${info.version}+${info.buildNumber}';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(updateProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final notifier = ref.read(updateProvider.notifier);
+
+    return PopScope(
+      canPop:
+          state.status != UpdateStatus.checking &&
+          state.status != UpdateStatus.downloading,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) notifier.reset();
+      },
+      child: AlertDialog(
+        title: Text(_title(state, l10n)),
+        content: _content(state, l10n),
+        actions: _actions(state, l10n, notifier),
+      ),
+    );
+  }
+
+  String _title(UpdateState state, AppLocalizations l10n) {
+    switch (state.status) {
+      case UpdateStatus.downloading:
+        return l10n.downloadingUpdate;
+      case UpdateStatus.downloadComplete:
+        return l10n.updateAvailable;
+      default:
+        return l10n.updateAvailable;
+    }
+  }
+
+  Widget _content(UpdateState state, AppLocalizations l10n) {
+    switch (state.status) {
+      case UpdateStatus.downloading:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LinearProgressIndicator(value: state.progress),
+            const SizedBox(height: 12),
+            Text('${(state.progress * 100).toStringAsFixed(0)}%'),
+          ],
+        );
+
+      case UpdateStatus.downloadComplete:
+        return Text(l10n.downloadComplete);
+
+      default:
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_localVersion.isNotEmpty)
+                Text(l10n.currentVersion(_localVersion)),
+              Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
+              if (state.result?.changelog.isNotEmpty == true) ...[
+                const SizedBox(height: 16),
+                Text(
+                  state.result!.changelog,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ),
+        );
+    }
+  }
+
+  List<Widget> _actions(
+    UpdateState state,
+    AppLocalizations l10n,
+    UpdateNotifier notifier,
+  ) {
+    switch (state.status) {
+      case UpdateStatus.downloading:
+        return [];
+
+      case UpdateStatus.downloadComplete:
+        return [
+          TextButton(
+            onPressed: () {
+              notifier.reset();
+              Navigator.pop(context);
+            },
+            child: Text(l10n.close),
+          ),
+          FilledButton.icon(
+            onPressed: () => notifier.installApk(),
+            icon: const Icon(Icons.install_mobile),
+            label: Text(l10n.installUpdate),
+          ),
+        ];
+
+      default:
+        return [
+          TextButton(
+            onPressed: () {
+              notifier.reset();
+              Navigator.pop(context);
+            },
+            child: Text(l10n.close),
+          ),
+          if (isAndroid)
+            FilledButton.icon(
+              onPressed: () => notifier.downloadAndInstall(),
+              icon: const Icon(Icons.download),
+              label: Text(l10n.downloadUpdate),
+            )
+          else
+            FilledButton.icon(
+              onPressed: () {
+                notifier.reset();
+                Navigator.pop(context);
+                launchUrl(
+                  Uri.parse('$kGitHubRepoUrl/releases/latest'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+              icon: const Icon(Icons.open_in_new),
+              label: Text(l10n.downloadUpdate),
+            ),
+        ];
+    }
   }
 }

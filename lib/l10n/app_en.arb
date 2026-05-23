@@ -309,6 +309,12 @@
       "error": {"type": "String"}
     }
   },
+  "checkingForUpdates": "Checking for updates…",
+  "downloadingUpdate": "Downloading update…",
+  "downloadComplete": "Download complete",
+  "installUpdate": "Install",
+  "error": "Error",
+  "unknownError": "Unknown error",
   "about": "About",
   "appVersion": "App version",
   "licenses": "Licenses",

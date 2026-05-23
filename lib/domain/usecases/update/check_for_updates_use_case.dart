@@ -1,15 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+
 class UpdateCheckResult {
   final String latestVersion;
   final String changelog;
   final bool isNewer;
+  final String releaseAssetUrl;
+  final String releaseAssetName;
 
   const UpdateCheckResult({
     this.latestVersion = '',
     this.changelog = '',
     this.isNewer = false,
+    this.releaseAssetUrl = '',
+    this.releaseAssetName = '',
   });
 }
 
@@ -49,14 +56,86 @@ class CheckForUpdatesUseCase {
       final data = jsonDecode(body) as Map<String, dynamic>;
       final latestTag = data['tag_name'] as String? ?? '';
       final changelog = data['body'] as String? ?? '';
+      final assets = (data['assets'] as List<dynamic>?) ?? [];
+
+      final isNewer = _isRemoteVersionNewer(latestTag, currentVersion);
+
+      String assetUrl = '';
+      String assetName = '';
+      for (final asset in assets) {
+        final map = asset as Map<String, dynamic>;
+        final name = map['name'] as String? ?? '';
+        if (name.endsWith('.apk')) {
+          assetUrl = map['browser_download_url'] as String? ?? '';
+          assetName = name;
+          break;
+        }
+      }
 
       return UpdateCheckResult(
         latestVersion: latestTag,
         changelog: changelog,
-        isNewer: latestTag.compareTo(currentVersion) > 0,
+        isNewer: isNewer,
+        releaseAssetUrl: assetUrl,
+        releaseAssetName: assetName,
       );
     } catch (_) {
       return const UpdateCheckResult();
     }
+  }
+
+  Future<String> downloadApk(
+    String url,
+    String fileName, {
+    void Function(double progress)? onProgress,
+  }) async {
+    final dir = await getDownloadsDirectory();
+    if (dir == null) {
+      throw Exception('Downloads directory not available');
+    }
+
+    final filePath = '${dir.path}/$fileName';
+    final dio = Dio();
+
+    await dio.download(
+      url,
+      filePath,
+      onReceiveProgress: (received, total) {
+        if (total > 0 && onProgress != null) {
+          onProgress(received / total);
+        }
+      },
+    );
+
+    return filePath;
+  }
+
+  bool _isRemoteVersionNewer(String remoteTag, String localVersion) {
+    final remote = _parseSemver(_stripVersionPrefix(remoteTag));
+    final local = _parseSemver(_stripVersionPrefix(localVersion));
+    final length = remote.length > local.length ? remote.length : local.length;
+    for (var i = 0; i < length; i++) {
+      final r = i < remote.length ? remote[i] : 0;
+      final l = i < local.length ? local[i] : 0;
+      if (r != l) return r > l;
+    }
+    return false;
+  }
+
+  String _stripVersionPrefix(String version) {
+    var v = version;
+    if (v.startsWith('v')) v = v.substring(1);
+    final plusIndex = v.indexOf('+');
+    if (plusIndex != -1) {
+      v = v.substring(0, plusIndex);
+    }
+    return v;
+  }
+
+  List<int> _parseSemver(String version) {
+    return version
+        .split('.')
+        .map((e) => int.tryParse(e) ?? 0)
+        .toList();
   }
 }
