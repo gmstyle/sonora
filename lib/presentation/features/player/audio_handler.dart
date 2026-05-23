@@ -23,6 +23,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isRetrying = false;
   StreamSubscription<PlayerException>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
+  final StreamController<(String videoId, String title)> _onPlayErrorController =
+      StreamController<(String videoId, String title)>.broadcast();
+
+  Stream<(String videoId, String title)> get onPlayError =>
+      _onPlayErrorController.stream;
 
   // ── Android Auto extras ──────────────────────────────────────────────────────
   static const String _kContentStyleBrowsable =
@@ -402,12 +407,22 @@ class SonoraAudioHandler extends BaseAudioHandler {
       dev.log('[AudioHandler] Retry successful for "$videoId"');
     } catch (e) {
       dev.log('[AudioHandler] Retry failed for "$videoId": $e');
+      _onPlayErrorController.add((
+        videoId,
+        currentItem?.title ?? videoId,
+      ));
+      if (_player.sequence.length > (_player.currentIndex ?? 0) + 1) {
+        await _player.seekToNext();
+      } else {
+        await _player.stop();
+      }
     }
     _isRetrying = false;
   }
 
   void dispose() {
     _playerErrorSub?.cancel();
+    _onPlayErrorController.close();
     _player.dispose();
   }
 

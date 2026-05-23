@@ -337,7 +337,8 @@ class _PlaylistActions extends ConsumerWidget {
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
-      final items = await useCase.execute(videos);
+      // playIndex: -1 → nessuna risoluzione URL (nessun item viene riprodotto subito)
+      final items = await useCase.execute(videos, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -364,7 +365,7 @@ class _PlaylistActions extends ConsumerWidget {
     final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
       final items = await useCase.execute(videos);
-      if (items.isNotEmpty) await player.playNow(items, initialIndex: 0);
+      if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -488,7 +489,7 @@ class _VideoTracklist extends ConsumerWidget {
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
-      final items = await useCase.execute(videos);
+      final items = await useCase.execute(videos, playIndex: startIndex);
       if (items.isNotEmpty) {
         await player.playNow(items, initialIndex: startIndex);
       }

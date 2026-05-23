@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
+import '../widgets/player_error_listener.dart';
 
 const _icons = [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings];
 const _labels = ['Home', 'Search', 'Library', 'Downloads', 'Settings'];
@@ -65,6 +66,7 @@ class WideShell extends ConsumerWidget {
                   child: navigationShell,
                 ),
                 const PlayerSheet(),
+                const PlayerErrorListener(),
               ],
             ),
           ),

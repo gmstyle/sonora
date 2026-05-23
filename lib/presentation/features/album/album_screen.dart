@@ -355,7 +355,8 @@ class _AlbumActions extends ConsumerWidget {
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playAlbumUseCaseProvider);
     try {
-      final items = await useCase.execute(album.songs);
+      // playIndex: -1 → nessuna risoluzione URL (nessun item viene riprodotto subito)
+      final items = await useCase.execute(album.songs, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

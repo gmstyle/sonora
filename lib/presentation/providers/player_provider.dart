@@ -96,6 +96,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   StreamSubscription? _mediaItemSub;
   StreamSubscription? _queueSub;
   StreamSubscription? _durationSub;
+  StreamSubscription? _playErrorSub;
   bool _isFetchingUpNext = false;
   int _operationVersion = 0;
   Timer? _sleepTimer;
@@ -126,6 +127,10 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
       if (s.processingState == AudioProcessingState.ready) {
         state = state.copyWith(isSwitching: false);
+        // Clear transient error message from failed retry
+        if (state.errorMessage != null) {
+          state = state.copyWith(clearError: true);
+        }
       }
 
       if (s.processingState == AudioProcessingState.ready && s.playing) {
@@ -188,11 +193,19 @@ class PlayerNotifier extends Notifier<PlayerState> {
       state = state.copyWith(duration: d);
     });
 
+    _playErrorSub = _handler.onPlayError.listen((error) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Failed to play ${error.$2}',
+      );
+    });
+
     ref.onDispose(() {
       _playbackSub?.cancel();
       _mediaItemSub?.cancel();
       _queueSub?.cancel();
       _durationSub?.cancel();
+      _playErrorSub?.cancel();
       _sleepTimer?.cancel();
       _sleepTimerTick?.cancel();
     });
