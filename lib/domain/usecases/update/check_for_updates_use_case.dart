@@ -122,11 +122,7 @@ class CheckForUpdatesUseCase {
   String _stripVersionPrefix(String version) {
     var v = version;
     if (v.startsWith('v')) v = v.substring(1);
-    final plusIndex = v.indexOf('+');
-    if (plusIndex != -1) {
-      v = v.substring(0, plusIndex);
-    }
-    return v;
+    return v.replaceAll('+', '.');
   }
 
   List<int> _parseSemver(String version) {
