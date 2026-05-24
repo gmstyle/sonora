@@ -21,15 +21,17 @@ jobs:
           flutter-version: '3.44.0'
           channel: stable
           cache: true
+          pub-cache: false
 
       - name: Cache Pub Dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.pub-cache
+          path: ~/.pub-cache/hosted
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-pub-
 
+      - run: rm -rf ~/.pub-cache/git
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter analyze
@@ -51,15 +53,17 @@ jobs:
           flutter-version: '3.44.0'
           channel: stable
           cache: true
+          pub-cache: false
 
       - name: Cache Pub Dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.pub-cache
+          path: ~/.pub-cache/hosted
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: |
             ${{ runner.os }}-pub-
 
+      - run: rm -rf ~/.pub-cache/git
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
 
