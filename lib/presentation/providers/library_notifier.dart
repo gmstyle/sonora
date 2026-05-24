@@ -147,14 +147,17 @@ class LibraryNotifier extends Notifier<void> {
 
   Future<void> createPlaylist(String name) async {
     await _repo.createPlaylist(name);
+    ref.invalidate(playlistsProvider);
   }
 
   Future<void> deletePlaylist(int id) async {
     await _repo.deletePlaylist(id);
+    ref.invalidate(playlistsProvider);
   }
 
   Future<void> updatePlaylist(int id, {String? name}) async {
     await _repo.updatePlaylist(id, name: name);
+    ref.invalidate(playlistsProvider);
   }
 
   // ── Playlist entries ─────────────────────────────────────────────────────────
@@ -163,10 +166,12 @@ class LibraryNotifier extends Notifier<void> {
   Future<void> addEntryToPlaylist(int playlistId, String videoId) async {
     final entries = await _repo.getPlaylistEntries(playlistId);
     await _repo.addEntry(playlistId, videoId, entries.length);
+    ref.invalidate(playlistEntriesProvider(playlistId));
   }
 
   Future<void> removeEntry(int playlistId, String videoId) async {
     await _repo.removeEntry(playlistId, videoId);
+    ref.invalidate(playlistEntriesProvider(playlistId));
   }
 
   /// Persists a new position order for all entries in [playlistId].
