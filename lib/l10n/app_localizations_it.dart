@@ -681,6 +681,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get goToAlbum => 'Vai all\'Album';
 
   @override
+  String get goToPlaylist => 'Vai alla Playlist';
+
+  @override
   String get startRadio => 'Avvia Radio';
 
   @override

@@ -16,6 +16,18 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Future<void> deleteLikedSong(String videoId) =>
       (delete(db.likedSongs)..where((t) => t.videoId.equals(videoId))).go();
 
+  Future<void> updateLikedSongMetadata(
+    String videoId, {
+    required String? artistId,
+    required String? albumId,
+  }) =>
+      (update(db.likedSongs)
+        ..where((t) => t.videoId.equals(videoId)))
+          .write(LikedSongsCompanion(
+            artistId: Value(artistId),
+            albumId: Value(albumId),
+          ));
+
   Future<List<FollowedArtist>> getAllFollowedArtists() =>
       select(db.followedArtists).get();
 

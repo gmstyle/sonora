@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/extensions/stat_format.dart';
+import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
-class ArtistTile extends StatelessWidget {
+class ArtistTile extends ConsumerWidget {
   final String artistId;
   final String name;
   final String? thumbnailUrl;
@@ -19,10 +21,12 @@ class ArtistTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final subtitle = monthlyListeners != null && monthlyListeners!.isNotEmpty
-        ? stripYtLabel(monthlyListeners) ?? AppLocalizations.of(context)!.unknownArtist
-        : AppLocalizations.of(context)!.unknownArtist;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subtitle =
+        monthlyListeners != null && monthlyListeners!.isNotEmpty
+            ? stripYtLabel(monthlyListeners) ??
+                AppLocalizations.of(context)!.unknownArtist
+            : AppLocalizations.of(context)!.unknownArtist;
     return ListTile(
       leading: ThumbnailWidget(
         imageUrl: thumbnailUrl,
@@ -33,6 +37,14 @@ class ArtistTile extends StatelessWidget {
       subtitle: Text(subtitle, overflow: TextOverflow.ellipsis),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => context.push('/artist/$artistId'),
+      onLongPress:
+          () => ContextMenuSheet.showForArtist(
+            context,
+            artistId: artistId,
+            name: name,
+            thumbnailUrl: thumbnailUrl,
+            monthlyListeners: monthlyListeners,
+          ),
     );
   }
 }

@@ -37,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase create() => AppDatabase._();
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -68,6 +68,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 7) {
         await m.createTable(likedAlbums);
         await m.createTable(likedPlaylists);
+      }
+      if (from < 8) {
+        await m.addColumn(likedSongs, likedSongs.artistId);
+        await m.addColumn(likedSongs, likedSongs.albumId);
       }
     },
   );

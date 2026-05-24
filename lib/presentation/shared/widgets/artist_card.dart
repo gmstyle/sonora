@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/extensions/stat_format.dart';
+import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
-class ArtistCard extends StatelessWidget {
+class ArtistCard extends ConsumerWidget {
   final String artistId;
   final String name;
   final String? thumbnailUrl;
@@ -18,12 +20,21 @@ class ArtistCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final listeners = monthlyListeners != null && monthlyListeners!.isNotEmpty
-        ? stripYtLabel(monthlyListeners)
-        : null;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final listeners =
+        monthlyListeners != null && monthlyListeners!.isNotEmpty
+            ? stripYtLabel(monthlyListeners)
+            : null;
     return InkWell(
       onTap: () => context.push('/artist/$artistId'),
+      onLongPress:
+          () => ContextMenuSheet.showForArtist(
+            context,
+            artistId: artistId,
+            name: name,
+            thumbnailUrl: thumbnailUrl,
+            monthlyListeners: monthlyListeners,
+          ),
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 130,

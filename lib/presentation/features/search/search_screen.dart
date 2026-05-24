@@ -290,6 +290,7 @@ class _SearchResults extends ConsumerWidget {
         duration: result.duration,
         isVideo: true,
         playCount: result.viewCount,
+        artistId: result.artist.artistId,
       );
     }
     if (result is ArtistDetailed) {

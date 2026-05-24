@@ -366,6 +366,7 @@
   "addToQueue": "Add to Queue",
   "goToArtist": "Go to Artist",
   "goToAlbum": "Go to Album",
+  "goToPlaylist": "Go to Playlist",
   "startRadio": "Start Radio",
   "failedToStartRadio": "Failed to start radio",
   "addToPlaylist": "Add to Playlist",

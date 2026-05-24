@@ -47,6 +47,8 @@ class LibraryRepositoryImpl implements LibraryRepository {
           title: song.title,
           artist: song.artist,
           thumbnailUrl: Value(song.thumbnailUrl),
+          artistId: Value(song.artistId),
+          albumId: Value(song.albumId),
           addedAt: song.addedAt,
         ),
       );
@@ -56,6 +58,14 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<void> deleteLikedSong(String videoId) =>
       _libraryDao.deleteLikedSong(videoId);
+
+  @override
+  Future<void> updateLikedSongMetadata(
+    String videoId, {
+    String? artistId,
+    String? albumId,
+  }) =>
+      _libraryDao.updateLikedSongMetadata(videoId, artistId: artistId, albumId: albumId);
 
   // ── Followed Artists ─────────────────────────────────────────
 
@@ -346,6 +356,8 @@ class LibraryRepositoryImpl implements LibraryRepository {
     title: r.title,
     artist: r.artist,
     thumbnailUrl: r.thumbnailUrl,
+    artistId: r.artistId,
+    albumId: r.albumId,
     addedAt: r.addedAt,
   );
 

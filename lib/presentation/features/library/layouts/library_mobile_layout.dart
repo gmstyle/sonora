@@ -8,6 +8,7 @@ import '../../../providers/library_notifier.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../providers/library_provider.dart';
@@ -136,6 +137,8 @@ class _FavoritesTab extends ConsumerWidget {
                 title: s.title,
                 artist: s.artist,
                 thumbnailUrl: s.thumbnailUrl,
+                artistId: s.artistId,
+                albumId: s.albumId,
                 isVideo: false,
               );
             },
@@ -186,6 +189,13 @@ class _ArtistsTab extends ConsumerWidget {
                 title: Text(a.name),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/artist/${a.artistId}'),
+                onLongPress:
+                    () => ContextMenuSheet.showForArtist(
+                      context,
+                      artistId: a.artistId,
+                      name: a.name,
+                      thumbnailUrl: a.thumbnailUrl,
+                    ),
               );
             },
           ),
@@ -412,6 +422,13 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                           : null,
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/playlist/${p.playlistId}'),
+                  onLongPress:
+                      () => ContextMenuSheet.showForPlaylist(
+                        context,
+                        playlistId: p.playlistId,
+                        name: p.name,
+                        thumbnailUrl: p.thumbnailUrl,
+                      ),
                 ),
               );
             }, childCount: liked.length),
@@ -545,6 +562,15 @@ class _AlbumsTab extends ConsumerWidget {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/album/${a.albumId}'),
+                  onLongPress:
+                      () => ContextMenuSheet.showForAlbum(
+                        context,
+                        albumId: a.albumId,
+                        name: a.name,
+                        artist: a.artistName,
+                        thumbnailUrl: a.thumbnailUrl,
+                        year: a.year,
+                      ),
                 ),
               );
             },

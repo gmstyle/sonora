@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
-class PlaylistCard extends StatelessWidget {
+class PlaylistCard extends ConsumerWidget {
   final String playlistId;
   final String name;
   final String? artist;
@@ -17,9 +19,17 @@ class PlaylistCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
       onTap: () => context.push('/playlist/$playlistId'),
+      onLongPress:
+          () => ContextMenuSheet.showForPlaylist(
+            context,
+            playlistId: playlistId,
+            name: name,
+            artist: artist,
+            thumbnailUrl: thumbnailUrl,
+          ),
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 150,
@@ -36,7 +46,9 @@ class PlaylistCard extends StatelessWidget {
               name,
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
             if (artist != null) ...[
               const SizedBox(height: 2),

@@ -1232,6 +1232,12 @@ abstract class AppLocalizations {
   /// **'Go to Album'**
   String get goToAlbum;
 
+  /// No description provided for @goToPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Playlist'**
+  String get goToPlaylist;
+
   /// No description provided for @startRadio.
   ///
   /// In en, this message translates to:

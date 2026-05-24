@@ -68,6 +68,16 @@ class LibraryNotifier extends Notifier<void> {
     ref.invalidate(likedSongsProvider);
   }
 
+  Future<void> updateLikedSongMetadata(
+    String videoId, {
+    String? artistId,
+    String? albumId,
+  }) async {
+    await _repo.updateLikedSongMetadata(videoId, artistId: artistId, albumId: albumId);
+    ref.invalidate(likedSongProvider(videoId));
+    ref.invalidate(likedSongsProvider);
+  }
+
   // ── Followed artists ─────────────────────────────────────────────────────────
 
   Future<void> toggleFollowedArtist(FollowedArtistModel artist) async {

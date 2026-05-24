@@ -8,6 +8,8 @@ class LikedSongModel {
   final String title;
   final String artist;
   final String? thumbnailUrl;
+  final String? artistId;
+  final String? albumId;
   final DateTime addedAt;
 
   const LikedSongModel({
@@ -15,6 +17,8 @@ class LikedSongModel {
     required this.title,
     required this.artist,
     this.thumbnailUrl,
+    this.artistId,
+    this.albumId,
     required this.addedAt,
   });
 }

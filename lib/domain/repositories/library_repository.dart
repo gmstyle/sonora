@@ -5,6 +5,7 @@ abstract class LibraryRepository {
   Future<LikedSongModel?> getLikedSong(String videoId);
   Future<void> toggleLikedSong(LikedSongModel song);
   Future<void> deleteLikedSong(String videoId);
+  Future<void> updateLikedSongMetadata(String videoId, {String? artistId, String? albumId});
 
   Future<List<FollowedArtistModel>> getAllFollowedArtists();
   Future<FollowedArtistModel?> getFollowedArtist(String artistId);

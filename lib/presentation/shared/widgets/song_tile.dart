@@ -42,7 +42,11 @@ class SongTile extends ConsumerWidget {
     return ListTile(
       leading: Stack(
         children: [
-          ThumbnailWidget(imageUrl: thumbnailUrl, size: 48, shape: ThumbnailShape.rounded),
+          ThumbnailWidget(
+            imageUrl: thumbnailUrl,
+            size: 48,
+            shape: ThumbnailShape.rounded,
+          ),
           if (isVideo)
             Positioned(
               bottom: 0,
@@ -75,32 +79,38 @@ class SongTile extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
       ),
-      trailing: duration != null
-          ? Text(
-              '${(duration! ~/ 60)}:${(duration! % 60).toString().padLeft(2, '0')}',
-              style: Theme.of(context).textTheme.bodySmall,
-            )
-          : null,
-      onTap: onTap ?? () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
-      onLongPress: () => ContextMenuSheet.show(
-        context,
-        videoId: videoId,
-        title: title,
-        artist: artist,
-        thumbnailUrl: thumbnailUrl,
-        duration: duration,
-        isVideo: isVideo,
-        albumName: albumName,
-        artistId: artistId,
-        albumId: albumId,
-        playCount: playCount,
-        viewCount: viewCount,
-      ),
+      trailing:
+          duration != null
+              ? Text(
+                '${(duration! ~/ 60)}:${(duration! % 60).toString().padLeft(2, '0')}',
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+              : null,
+      onTap:
+          onTap ??
+          () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
+      onLongPress:
+          () => ContextMenuSheet.showForSong(
+            context,
+            videoId: videoId,
+            title: title,
+            artist: artist,
+            thumbnailUrl: thumbnailUrl,
+            duration: duration,
+            isVideo: isVideo,
+            albumName: albumName,
+            artistId: artistId,
+            albumId: albumId,
+            playCount: playCount,
+            viewCount: viewCount,
+          ),
     );
   }
 
   String? _formatStat() {
-    if (playCount != null && playCount!.isNotEmpty) return stripYtLabel(playCount);
+    if (playCount != null && playCount!.isNotEmpty) {
+      return stripYtLabel(playCount);
+    }
     if (viewCount != null) return viewCount!.toCompact();
     return null;
   }

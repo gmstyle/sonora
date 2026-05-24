@@ -676,6 +676,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goToAlbum => 'Go to Album';
 
   @override
+  String get goToPlaylist => 'Go to Playlist';
+
+  @override
   String get startRadio => 'Start Radio';
 
   @override

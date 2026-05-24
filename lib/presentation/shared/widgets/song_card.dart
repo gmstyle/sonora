@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
 import '../../providers/player_provider.dart';
+import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
 class SongCard extends ConsumerWidget {
@@ -12,6 +13,8 @@ class SongCard extends ConsumerWidget {
   final String artist;
   final int? duration;
   final String? playCount;
+  final String? artistId;
+  final String? albumId;
 
   const SongCard({
     super.key,
@@ -21,15 +24,29 @@ class SongCard extends ConsumerWidget {
     required this.artist,
     this.duration,
     this.playCount,
+    this.artistId,
+    this.albumId,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statLabel = playCount != null && playCount!.isNotEmpty
-        ? stripYtLabel(playCount)
-        : null;
+    final statLabel =
+        playCount != null && playCount!.isNotEmpty
+            ? stripYtLabel(playCount)
+            : null;
     return InkWell(
       onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
+      onLongPress:
+          () => ContextMenuSheet.showForSong(
+            context,
+            videoId: videoId,
+            title: title,
+            artist: artist,
+            thumbnailUrl: thumbnailUrl,
+            duration: duration,
+            artistId: artistId,
+            albumId: albumId,
+          ),
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 150,
