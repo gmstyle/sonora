@@ -41,14 +41,23 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
             ..orderBy([(t) => OrderingTerm.asc(t.position)]))
           .get();
 
-  Future<void> addEntry(int playlistId, String videoId, int position) =>
-      into(db.playlistEntries).insert(
-        PlaylistEntriesCompanion(
-          playlistId: Value(playlistId),
-          videoId: Value(videoId),
-          position: Value(position),
-        ),
-      );
+  Future<void> addEntry(
+    int playlistId,
+    String videoId,
+    int position, {
+    String? title,
+    String? artist,
+    String? thumbnailUrl,
+  }) => into(db.playlistEntries).insert(
+    PlaylistEntriesCompanion(
+      playlistId: Value(playlistId),
+      videoId: Value(videoId),
+      position: Value(position),
+      title: Value(title),
+      artist: Value(artist),
+      thumbnailUrl: Value(thumbnailUrl),
+    ),
+  );
 
   Future<void> removeEntry(int playlistId, String videoId) =>
       (delete(db.playlistEntries)..where(

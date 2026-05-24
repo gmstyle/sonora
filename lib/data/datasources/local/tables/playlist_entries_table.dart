@@ -5,6 +5,9 @@ class PlaylistEntries extends Table {
   IntColumn get playlistId => integer().references(LocalPlaylists, #id)();
   TextColumn get videoId => text()();
   IntColumn get position => integer()();
+  TextColumn? get title => text().nullable()();
+  TextColumn? get artist => text().nullable()();
+  TextColumn? get thumbnailUrl => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {playlistId, videoId};

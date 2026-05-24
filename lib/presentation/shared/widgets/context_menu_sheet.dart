@@ -357,7 +357,14 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     label: AppLocalizations.of(context)!.addToPlaylist,
                     onTap: () {
                       Navigator.pop(context);
-                      _showPlaylistPicker(context, ref, videoId);
+                      _showPlaylistPicker(
+                        context,
+                        ref,
+                        videoId,
+                        title: title,
+                        artist: artist,
+                        thumbnailUrl: thumbnailUrl,
+                      );
                     },
                   ),
                   _LikeActionTile(
@@ -1417,19 +1424,36 @@ class _LikePlaylistActionTile extends ConsumerWidget {
 Future<void> _showPlaylistPicker(
   BuildContext context,
   WidgetRef ref,
-  String videoId,
-) {
+  String videoId, {
+  String? title,
+  String? artist,
+  String? thumbnailUrl,
+}) {
   return showModalBottomSheet(
     context: context,
     useRootNavigator: true,
-    builder: (_) => _PlaylistPickerSheet(videoId: videoId),
+    builder:
+        (_) => _PlaylistPickerSheet(
+          videoId: videoId,
+          title: title,
+          artist: artist,
+          thumbnailUrl: thumbnailUrl,
+        ),
   );
 }
 
 class _PlaylistPickerSheet extends ConsumerStatefulWidget {
   final String videoId;
+  final String? title;
+  final String? artist;
+  final String? thumbnailUrl;
 
-  const _PlaylistPickerSheet({required this.videoId});
+  const _PlaylistPickerSheet({
+    required this.videoId,
+    this.title,
+    this.artist,
+    this.thumbnailUrl,
+  });
 
   @override
   ConsumerState<_PlaylistPickerSheet> createState() =>
@@ -1451,7 +1475,13 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
     await notifier.createPlaylist(name);
     final playlists = await notifier.getAllPlaylists();
     final created = playlists.firstWhere((p) => p.name == name);
-    await notifier.addEntryToPlaylist(created.id, widget.videoId);
+    await notifier.addEntryToPlaylist(
+      created.id,
+      widget.videoId,
+      title: widget.title,
+      artist: widget.artist,
+      thumbnailUrl: widget.thumbnailUrl,
+    );
   }
 
   @override
@@ -1528,7 +1558,13 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                         onTap: () async {
                           await ref
                               .read(libraryNotifierProvider.notifier)
-                              .addEntryToPlaylist(playlist.id, widget.videoId);
+                              .addEntryToPlaylist(
+                                playlist.id,
+                                widget.videoId,
+                                title: widget.title,
+                                artist: widget.artist,
+                                thumbnailUrl: widget.thumbnailUrl,
+                              );
                           if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(

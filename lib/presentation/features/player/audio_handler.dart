@@ -896,40 +896,24 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     for (final entry in entries) {
       final liked = await _libraryRepo.getLikedSong(entry.videoId);
-      if (liked != null) {
-        items.add(
-          MediaItem(
-            id: entry.videoId,
-            title: liked.title,
-            artist: liked.artist,
-            artUri:
-                liked.thumbnailUrl != null
-                    ? Uri.tryParse(liked.thumbnailUrl!)
-                    : null,
-            duration: const Duration(seconds: 0),
-            extras: {
-              'needsUrl': true,
-              'videoId': entry.videoId,
-              'isVideo': false,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        );
-      } else {
-        items.add(
-          MediaItem(
-            id: entry.videoId,
-            title: entry.videoId,
-            artist: '',
-            extras: {
-              'needsUrl': true,
-              'videoId': entry.videoId,
-              'isVideo': false,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        );
-      }
+      final title = liked?.title ?? entry.title ?? entry.videoId;
+      final artist = liked?.artist ?? entry.artist ?? '';
+      final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
+      items.add(
+        MediaItem(
+          id: entry.videoId,
+          title: title,
+          artist: artist,
+          artUri: thumbnailUrl != null ? Uri.tryParse(thumbnailUrl) : null,
+          duration: const Duration(seconds: 0),
+          extras: {
+            'needsUrl': true,
+            'videoId': entry.videoId,
+            'isVideo': false,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
     }
     return items;
   }
@@ -1315,15 +1299,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
           final items = <MediaItem>[];
           for (final entry in entries) {
             final liked = await _libraryRepo.getLikedSong(entry.videoId);
+            final title = liked?.title ?? entry.title ?? entry.videoId;
+            final artist = liked?.artist ?? entry.artist ?? '';
+            final thumbUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
             items.add(
               MediaItem(
                 id: entry.videoId,
-                title: liked?.title ?? entry.videoId,
-                artist: liked?.artist ?? '',
-                artUri:
-                    liked?.thumbnailUrl != null
-                        ? Uri.tryParse(liked!.thumbnailUrl!)
-                        : null,
+                title: title,
+                artist: artist,
+                artUri: thumbUrl != null ? Uri.tryParse(thumbUrl) : null,
                 extras: {
                   'needsUrl': true,
                   'videoId': entry.videoId,
@@ -1337,11 +1321,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             try {
               final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
               items[0] = items.first.copyWith(
-                extras: {
-                  ...items.first.extras!,
-                  'url': url,
-                  'needsUrl': false,
-                },
+                extras: {...items.first.extras!, 'url': url, 'needsUrl': false},
               );
             } catch (_) {}
           }
@@ -1363,15 +1343,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
           var items = <MediaItem>[];
           for (final entry in entries) {
             final liked = await _libraryRepo.getLikedSong(entry.videoId);
+            final title = liked?.title ?? entry.title ?? entry.videoId;
+            final artist = liked?.artist ?? entry.artist ?? '';
+            final thumbUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
             items.add(
               MediaItem(
                 id: entry.videoId,
-                title: liked?.title ?? entry.videoId,
-                artist: liked?.artist ?? '',
-                artUri:
-                    liked?.thumbnailUrl != null
-                        ? Uri.tryParse(liked!.thumbnailUrl!)
-                        : null,
+                title: title,
+                artist: artist,
+                artUri: thumbUrl != null ? Uri.tryParse(thumbUrl) : null,
                 extras: {
                   'needsUrl': true,
                   'videoId': entry.videoId,
@@ -1386,11 +1366,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             try {
               final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
               items[0] = items.first.copyWith(
-                extras: {
-                  ...items.first.extras!,
-                  'url': url,
-                  'needsUrl': false,
-                },
+                extras: {...items.first.extras!, 'url': url, 'needsUrl': false},
               );
             } catch (_) {}
           }

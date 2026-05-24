@@ -87,11 +87,17 @@ class PlaylistEntryModel {
   final int playlistId;
   final String videoId;
   final int position;
+  final String? title;
+  final String? artist;
+  final String? thumbnailUrl;
 
   const PlaylistEntryModel({
     required this.playlistId,
     required this.videoId,
     required this.position,
+    this.title,
+    this.artist,
+    this.thumbnailUrl,
   });
 }
 

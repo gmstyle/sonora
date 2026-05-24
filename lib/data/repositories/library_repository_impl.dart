@@ -211,14 +211,30 @@ class LibraryRepositoryImpl implements LibraryRepository {
             playlistId: r.playlistId,
             videoId: r.videoId,
             position: r.position,
+            title: r.title,
+            artist: r.artist,
+            thumbnailUrl: r.thumbnailUrl,
           ),
         )
         .toList();
   }
 
   @override
-  Future<void> addEntry(int playlistId, String videoId, int position) =>
-      _playlistsDao.addEntry(playlistId, videoId, position);
+  Future<void> addEntry(
+    int playlistId,
+    String videoId,
+    int position, {
+    String? title,
+    String? artist,
+    String? thumbnailUrl,
+  }) => _playlistsDao.addEntry(
+    playlistId,
+    videoId,
+    position,
+    title: title,
+    artist: artist,
+    thumbnailUrl: thumbnailUrl,
+  );
 
   @override
   Future<void> removeEntry(int playlistId, String videoId) =>

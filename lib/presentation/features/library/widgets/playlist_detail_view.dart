@@ -82,8 +82,9 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
             itemBuilder: (_, i) {
               final entry = entries[i];
               final liked = _findLiked(likedSongs, entry.videoId);
-              final title = liked?.title ?? 'Video #${entry.videoId}';
-              final artist = liked?.artist ?? '';
+              final title =
+                  liked?.title ?? entry.title ?? 'Video #${entry.videoId}';
+              final artist = liked?.artist ?? entry.artist ?? '';
 
               return ListTile(
                 key: ValueKey('${entry.playlistId}-${entry.videoId}'),

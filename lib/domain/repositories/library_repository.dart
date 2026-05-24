@@ -35,7 +35,14 @@ abstract class LibraryRepository {
   Future<void> updatePlaylist(int id, {String? name, String? description});
   Future<void> deletePlaylist(int id);
   Future<List<PlaylistEntryModel>> getPlaylistEntries(int playlistId);
-  Future<void> addEntry(int playlistId, String videoId, int position);
+  Future<void> addEntry(
+    int playlistId,
+    String videoId,
+    int position, {
+    String? title,
+    String? artist,
+    String? thumbnailUrl,
+  });
   Future<void> removeEntry(int playlistId, String videoId);
 
   Future<List<DownloadModel>> getAllDownloads();

@@ -177,9 +177,22 @@ class LibraryNotifier extends Notifier<void> {
   // ── Playlist entries ─────────────────────────────────────────────────────────
 
   /// Adds [videoId] to playlist, automatically computing the next position.
-  Future<void> addEntryToPlaylist(int playlistId, String videoId) async {
+  Future<void> addEntryToPlaylist(
+    int playlistId,
+    String videoId, {
+    String? title,
+    String? artist,
+    String? thumbnailUrl,
+  }) async {
     final entries = await _repo.getPlaylistEntries(playlistId);
-    await _repo.addEntry(playlistId, videoId, entries.length);
+    await _repo.addEntry(
+      playlistId,
+      videoId,
+      entries.length,
+      title: title,
+      artist: artist,
+      thumbnailUrl: thumbnailUrl,
+    );
     ref.invalidate(playlistEntriesProvider(playlistId));
   }
 
@@ -194,7 +207,15 @@ class LibraryNotifier extends Notifier<void> {
     List<PlaylistEntryModel> reordered,
   ) async {
     for (var i = 0; i < reordered.length; i++) {
-      await _repo.addEntry(playlistId, reordered[i].videoId, i);
+      final e = reordered[i];
+      await _repo.addEntry(
+        playlistId,
+        e.videoId,
+        i,
+        title: e.title,
+        artist: e.artist,
+        thumbnailUrl: e.thumbnailUrl,
+      );
     }
   }
 
@@ -233,36 +254,25 @@ class LibraryNotifier extends Notifier<void> {
 
   /// Resolves metadata for each entry from liked_songs (best-effort) and
   /// returns a list of [MediaItem]s ready for [PlayerNotifier.playNow].
-  /// Items without a match in liked_songs use a minimal placeholder.
+  /// Falls back to stored entry metadata when unavailable in liked_songs.
   Future<List<MediaItem>> buildLocalPlaylistItems(
     List<PlaylistEntryModel> entries,
   ) async {
     final items = <MediaItem>[];
     for (final entry in entries) {
       final liked = await _repo.getLikedSong(entry.videoId);
-      if (liked != null) {
-        items.add(
-          MediaItem(
-            id: entry.videoId,
-            title: liked.title,
-            artist: liked.artist,
-            artUri:
-                liked.thumbnailUrl != null
-                    ? Uri.parse(liked.thumbnailUrl!)
-                    : null,
-            extras: {'videoId': entry.videoId, 'isVideo': false},
-          ),
-        );
-      } else {
-        items.add(
-          MediaItem(
-            id: entry.videoId,
-            title: 'Loading...',
-            artist: '',
-            extras: {'videoId': entry.videoId, 'isVideo': false},
-          ),
-        );
-      }
+      final title = liked?.title ?? entry.title ?? entry.videoId;
+      final artist = liked?.artist ?? entry.artist ?? '';
+      final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
+      items.add(
+        MediaItem(
+          id: entry.videoId,
+          title: title,
+          artist: artist,
+          artUri: thumbnailUrl != null ? Uri.tryParse(thumbnailUrl) : null,
+          extras: {'videoId': entry.videoId, 'isVideo': false},
+        ),
+      );
     }
     return items;
   }
