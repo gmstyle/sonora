@@ -323,6 +323,13 @@
   "licenses": "Licenses",
   "gitHubRepository": "GitHub repository",
 
+  "batteryOptimization": "Battery Optimization",
+  "batteryOptimizationHint": "Allow the app to run uninterrupted in the background",
+  "disableBatteryOptimization": "Disable battery optimization",
+  "disableBatteryOptimizationHint": "Prevents Android from stopping playback when the app is in the background",
+  "manufacturerBatteryOptimization": "Manufacturer battery optimization",
+  "manufacturerBatteryOptimizationHint": "Additional battery saving features from your device manufacturer",
+ 
   "@@sectionMeta": {
     "player": "Player"
   },

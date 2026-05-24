@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.BIND_MEDIA_BROWSER_SERVICE"/>
     <uses-permission android:name="android.permission.MEDIA_CONTENT_CONTROL"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <application
         android:label="Sonora"
         android:name="${applicationName}"

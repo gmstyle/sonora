@@ -34,6 +34,7 @@ class SettingsScreenContent extends ConsumerWidget {
         _ContentSection(settings: settings, notifier: notifier),
         _PlaybackSection(settings: settings, notifier: notifier),
         _DownloadSection(settings: settings, notifier: notifier),
+        if (isAndroid) const _BatterySection(),
         _PrivacySection(settings: settings, notifier: notifier, ref: ref),
         _BackupSection(ref: ref),
         _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
@@ -207,6 +208,49 @@ class _DownloadSection extends StatelessWidget {
           value: settings.downloadOnlyOnWifi,
           onChanged: notifier.setDownloadOnlyOnWifi,
           icon: Icons.wifi,
+        ),
+      ],
+    );
+  }
+}
+
+// ── Battery Optimization (Android) ───────────────────────────────
+
+class _BatterySection extends ConsumerWidget {
+  const _BatterySection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final batteryAsync = ref.watch(batteryOptimizationProvider);
+    final manBatteryAsync = ref.watch(manufacturerBatteryOptimizationProvider);
+
+    final batteryDisabled = batteryAsync.value ?? false;
+    final manBatteryDisabled = manBatteryAsync.value ?? false;
+
+    return SettingsSection(
+      title: l10n.batteryOptimization,
+      children: [
+        SettingsSwitchTile(
+          title: l10n.disableBatteryOptimization,
+          subtitle: l10n.disableBatteryOptimizationHint,
+          value: batteryDisabled,
+          icon: Icons.battery_std,
+          onChanged: (_) async {
+            await ref.read(settingsProvider.notifier).requestDisableBatteryOptimization();
+            ref.invalidate(batteryOptimizationProvider);
+          },
+        ),
+        const Divider(height: 1),
+        SettingsSwitchTile(
+          title: l10n.manufacturerBatteryOptimization,
+          subtitle: l10n.manufacturerBatteryOptimizationHint,
+          value: manBatteryDisabled,
+          icon: Icons.energy_savings_leaf,
+          onChanged: (_) async {
+            await ref.read(settingsProvider.notifier).requestDisableManufacturerOptimization();
+            ref.invalidate(manufacturerBatteryOptimizationProvider);
+          },
         ),
       ],
     );

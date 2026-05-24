@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:disable_battery_optimization/disable_battery_optimization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -206,3 +209,30 @@ const kDownloadWifiKey = 'downloadOnlyOnWifi';
 const kTrackHistoryKey = 'trackHistory';
 const kCheckUpdatesKey = 'checkUpdatesOnStartup';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
+
+// ── Battery Optimization (Android only) ───────────────────────────
+
+final batteryOptimizationProvider = FutureProvider<bool>((ref) async {
+  if (!Platform.isAndroid) return true;
+  final disabled = await DisableBatteryOptimization.isBatteryOptimizationDisabled;
+  return disabled ?? true;
+});
+
+final manufacturerBatteryOptimizationProvider = FutureProvider<bool>((ref) async {
+  if (!Platform.isAndroid) return true;
+  final disabled = await DisableBatteryOptimization.isManufacturerBatteryOptimizationDisabled;
+  return disabled ?? true;
+});
+
+extension BatteryOptimizationNotifier on SettingsNotifier {
+  Future<void> requestDisableBatteryOptimization() async {
+    await DisableBatteryOptimization.showDisableBatteryOptimizationSettings();
+  }
+
+  Future<void> requestDisableManufacturerOptimization() async {
+    await DisableBatteryOptimization.showDisableManufacturerBatteryOptimizationSettings(
+      'Battery Optimization',
+      'Follow the steps to disable manufacturer battery optimization.',
+    );
+  }
+}

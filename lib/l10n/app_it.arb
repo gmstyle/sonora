@@ -203,6 +203,13 @@
   "licenses": "Licenze",
   "gitHubRepository": "Repository GitHub",
 
+  "batteryOptimization": "Ottimizzazione Batteria",
+  "batteryOptimizationHint": "Consenti all'app di funzionare senza interruzioni in background",
+  "disableBatteryOptimization": "Disabilita ottimizzazione batteria",
+  "disableBatteryOptimizationHint": "Impedisce ad Android di fermare la riproduzione quando l'app è in background",
+  "manufacturerBatteryOptimization": "Ottimizzazione batteria produttore",
+  "manufacturerBatteryOptimizationHint": "Funzioni aggiuntive di risparmio energetico del produttore del dispositivo",
+ 
   "@@sectionMeta": {
     "player": "Lettore"
   },

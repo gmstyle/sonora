@@ -70,6 +70,7 @@ dependencies:
 
   # ── Settings ─────────────────────────────────────────────────
   shared_preferences: ^2.5.3
+  disable_battery_optimization: ^1.1.2
 
   # ── Localizzazione ────────────────────────────────────────────
   intl: ^0.20.2

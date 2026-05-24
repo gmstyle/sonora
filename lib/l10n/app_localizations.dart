@@ -1094,6 +1094,42 @@ abstract class AppLocalizations {
   /// **'GitHub repository'**
   String get gitHubRepository;
 
+  /// No description provided for @batteryOptimization.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery Optimization'**
+  String get batteryOptimization;
+
+  /// No description provided for @batteryOptimizationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow the app to run uninterrupted in the background'**
+  String get batteryOptimizationHint;
+
+  /// No description provided for @disableBatteryOptimization.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable battery optimization'**
+  String get disableBatteryOptimization;
+
+  /// No description provided for @disableBatteryOptimizationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Prevents Android from stopping playback when the app is in the background'**
+  String get disableBatteryOptimizationHint;
+
+  /// No description provided for @manufacturerBatteryOptimization.
+  ///
+  /// In en, this message translates to:
+  /// **'Manufacturer battery optimization'**
+  String get manufacturerBatteryOptimization;
+
+  /// No description provided for @manufacturerBatteryOptimizationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional battery saving features from your device manufacturer'**
+  String get manufacturerBatteryOptimizationHint;
+
   /// No description provided for @playingFrom.
   ///
   /// In en, this message translates to:

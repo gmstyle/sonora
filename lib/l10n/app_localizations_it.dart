@@ -596,6 +596,28 @@ class AppLocalizationsIt extends AppLocalizations {
   String get gitHubRepository => 'Repository GitHub';
 
   @override
+  String get batteryOptimization => 'Ottimizzazione Batteria';
+
+  @override
+  String get batteryOptimizationHint =>
+      'Consenti all\'app di funzionare senza interruzioni in background';
+
+  @override
+  String get disableBatteryOptimization => 'Disabilita ottimizzazione batteria';
+
+  @override
+  String get disableBatteryOptimizationHint =>
+      'Impedisce ad Android di fermare la riproduzione quando l\'app è in background';
+
+  @override
+  String get manufacturerBatteryOptimization =>
+      'Ottimizzazione batteria produttore';
+
+  @override
+  String get manufacturerBatteryOptimizationHint =>
+      'Funzioni aggiuntive di risparmio energetico del produttore del dispositivo';
+
+  @override
   String get playingFrom => 'RIPRODOTTO DA';
 
   @override
