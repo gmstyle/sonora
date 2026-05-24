@@ -429,12 +429,14 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final viewCount = song.extras?['viewCount'] as int?;
     final publishDate = song.extras?['publishDate'] as String?;
     final statParts = <String>[];
-    if (viewCount != null)
+    if (viewCount != null) {
       statParts.add(
         '${viewCount.toCompact()} ${AppLocalizations.of(context)!.views}',
       );
-    if (publishDate != null && publishDate.isNotEmpty)
+    }
+    if (publishDate != null && publishDate.isNotEmpty) {
       statParts.add(publishDate);
+    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
