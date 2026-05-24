@@ -237,7 +237,9 @@ class _BatterySection extends ConsumerWidget {
           value: batteryDisabled,
           icon: Icons.battery_std,
           onChanged: (_) async {
-            await ref.read(settingsProvider.notifier).requestDisableBatteryOptimization();
+            await ref
+                .read(settingsProvider.notifier)
+                .requestDisableBatteryOptimization();
             ref.invalidate(batteryOptimizationProvider);
           },
         ),
@@ -248,7 +250,9 @@ class _BatterySection extends ConsumerWidget {
           value: manBatteryDisabled,
           icon: Icons.energy_savings_leaf,
           onChanged: (_) async {
-            await ref.read(settingsProvider.notifier).requestDisableManufacturerOptimization();
+            await ref
+                .read(settingsProvider.notifier)
+                .requestDisableManufacturerOptimization();
             ref.invalidate(manufacturerBatteryOptimizationProvider);
           },
         ),

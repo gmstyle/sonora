@@ -214,13 +214,18 @@ const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 
 final batteryOptimizationProvider = FutureProvider<bool>((ref) async {
   if (!Platform.isAndroid) return true;
-  final disabled = await DisableBatteryOptimization.isBatteryOptimizationDisabled;
+  final disabled =
+      await DisableBatteryOptimization.isBatteryOptimizationDisabled;
   return disabled ?? true;
 });
 
-final manufacturerBatteryOptimizationProvider = FutureProvider<bool>((ref) async {
+final manufacturerBatteryOptimizationProvider = FutureProvider<bool>((
+  ref,
+) async {
   if (!Platform.isAndroid) return true;
-  final disabled = await DisableBatteryOptimization.isManufacturerBatteryOptimizationDisabled;
+  final disabled =
+      await DisableBatteryOptimization
+          .isManufacturerBatteryOptimizationDisabled;
   return disabled ?? true;
 });
 

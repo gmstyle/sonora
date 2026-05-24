@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:audio_service/audio_service.dart';
+import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
 import '../../../domain/repositories/music_repository.dart';
+import '../../../domain/usecases/player/play_album_use_case.dart';
+import '../../../domain/usecases/player/play_playlist_use_case.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 
 class SonoraAudioHandler extends BaseAudioHandler {
@@ -15,6 +18,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final MusicRepository _musicRepo;
   final LibraryRepository _libraryRepo;
   final PlayVideoIdUseCase _playVideoIdUseCase;
+  late final PlayAlbumUseCase _playAlbumUseCase;
+  late final PlayPlaylistUseCase _playPlaylistUseCase;
 
   Duration _crossfadeDuration = Duration.zero;
   bool _isFadingIn = false;
@@ -44,6 +49,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
   static const String _actionLike = 'like';
   static const String _actionSleepTimer = 'sleep_timer';
 
+  // ── AA browse-tree action IDs ──────────────────────────────────────────────
+  static const String _actionPlayAlbum = '__action__:play_album:';
+  static const String _actionShuffleAlbum = '__action__:shuffle_album:';
+  static const String _actionLikeAlbum = '__action__:like_album:';
+  static const String _actionPlayArtist = '__action__:play_artist:';
+  static const String _actionShuffleArtist = '__action__:shuffle_artist:';
+  static const String _actionFollowArtist = '__action__:follow_artist:';
+  static const String _actionPlayPlaylist = '__action__:play_playlist:';
+  static const String _actionShufflePlaylist = '__action__:shuffle_playlist:';
+  static const String _actionLikePlaylist = '__action__:like_playlist:';
+
   // ── AA content tree IDs ──────────────────────────────────────────────────────
   // audio_service returns BrowserRoot("/") to AA, so the root parentMediaId is "/"
   static const String _rootId = '/';
@@ -71,6 +87,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }) : _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
        _playVideoIdUseCase = playVideoIdUseCase {
+    _playAlbumUseCase = PlayAlbumUseCase(musicRepo);
+    _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo);
     _setupListeners();
     _playerErrorSub = _player.errorStream.listen(_onPlayerError);
   }
@@ -208,7 +226,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (videoId == null || !_pendingResolutions.add(videoId)) return;
 
     try {
-      final url = await _musicRepo.getStreamUrl(videoId);
+      final url = await _playVideoIdUseCase.resolveUrl(videoId);
 
       final seq2 = _player.sequenceState.effectiveSequence;
       if (index >= seq2.length) return;
@@ -715,7 +733,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
                   ? Uri.tryParse(content.thumbnails.last.url)
                   : null,
           duration: Duration(seconds: content.duration ?? 0),
-          extras: {_kContentStylePlayable: _kStyleList},
+          extras: {
+            'needsUrl': true,
+            'videoId': content.videoId,
+            'isVideo': false,
+            _kContentStylePlayable: _kStyleList,
+          },
         ),
       ];
     } else if (content is VideoDetailed) {
@@ -729,7 +752,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
                   ? Uri.tryParse(content.thumbnails.last.url)
                   : null,
           duration: Duration(seconds: content.duration ?? 0),
-          extras: {_kContentStylePlayable: _kStyleList},
+          extras: {
+            'needsUrl': true,
+            'videoId': content.videoId,
+            'isVideo': true,
+            _kContentStylePlayable: _kStyleList,
+          },
         ),
       ];
     } else if (content is AlbumDetailed) {
@@ -792,7 +820,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
             artist: h.artist,
             artUri:
                 h.thumbnailUrl != null ? Uri.tryParse(h.thumbnailUrl!) : null,
-            extras: {_kContentStylePlayable: _kStyleList},
+            extras: {
+              'needsUrl': true,
+              'videoId': h.videoId,
+              'isVideo': false,
+              _kContentStylePlayable: _kStyleList,
+            },
           ),
         )
         .toList();
@@ -808,7 +841,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
             artist: s.artist,
             artUri:
                 s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
-            extras: {_kContentStylePlayable: _kStyleList},
+            extras: {
+              'needsUrl': true,
+              'videoId': s.videoId,
+              'isVideo': false,
+              _kContentStylePlayable: _kStyleList,
+            },
           ),
         )
         .toList();
@@ -839,8 +877,23 @@ class SonoraAudioHandler extends BaseAudioHandler {
       parentMediaId.substring(_playlistPrefix.length),
     );
     final entries = await _libraryRepo.getPlaylistEntries(playlistId);
+    final playlistIdStr = playlistId.toString();
 
-    final items = <MediaItem>[];
+    final items = <MediaItem>[
+      MediaItem(
+        id: '$_actionPlayPlaylist$playlistIdStr',
+        title: 'Play All',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionShufflePlaylist$playlistIdStr',
+        title: 'Shuffle',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+    ];
+
     for (final entry in entries) {
       final liked = await _libraryRepo.getLikedSong(entry.videoId);
       if (liked != null) {
@@ -854,7 +907,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
                     ? Uri.tryParse(liked.thumbnailUrl!)
                     : null,
             duration: const Duration(seconds: 0),
-            extras: {_kContentStylePlayable: _kStyleList},
+            extras: {
+              'needsUrl': true,
+              'videoId': entry.videoId,
+              'isVideo': false,
+              _kContentStylePlayable: _kStyleList,
+            },
           ),
         );
       } else {
@@ -863,7 +921,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
             id: entry.videoId,
             title: entry.videoId,
             artist: '',
-            extras: {_kContentStylePlayable: _kStyleList},
+            extras: {
+              'needsUrl': true,
+              'videoId': entry.videoId,
+              'isVideo': false,
+              _kContentStylePlayable: _kStyleList,
+            },
           ),
         );
       }
@@ -894,8 +957,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<List<MediaItem>> _buildArtistChildren(String parentMediaId) async {
     final artistId = parentMediaId.substring(_artistPrefix.length);
     final artistInfo = await _musicRepo.getArtist(artistId);
+    final followed = await _libraryRepo.getFollowedArtist(artistId);
 
-    final mediaItems = <MediaItem>[];
+    final mediaItems = <MediaItem>[
+      MediaItem(
+        id: '$_actionPlayArtist$artistId',
+        title: 'Play Top Songs',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionShuffleArtist$artistId',
+        title: 'Shuffle',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionFollowArtist$artistId',
+        title: followed != null ? 'Following' : 'Follow',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+    ];
 
     // 1. Top Songs (Playable)
     for (final song in artistInfo.topSongs) {
@@ -1023,23 +1106,53 @@ class SonoraAudioHandler extends BaseAudioHandler {
   ) async {
     final albumId = parentMediaId.substring(_homeAlbumPrefix.length);
     final album = await _musicRepo.getAlbum(albumId);
-    return album.songs
-        .take(100)
-        .map(
-          (s) => MediaItem(
-            id: s.videoId,
-            title: s.name,
-            artist: s.artist.name,
-            album: album.name,
-            artUri:
-                album.thumbnails.isNotEmpty
-                    ? Uri.tryParse(album.thumbnails.last.url)
-                    : null,
-            duration: Duration(seconds: s.duration ?? 0),
-            extras: {_kContentStylePlayable: _kStyleList},
+    final liked = await _libraryRepo.getLikedAlbum(albumId);
+
+    final items = <MediaItem>[
+      MediaItem(
+        id: '$_actionPlayAlbum$albumId',
+        title: 'Play All',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionShuffleAlbum$albumId',
+        title: 'Shuffle',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionLikeAlbum$albumId',
+        title: liked != null ? 'Unlike Album' : 'Like Album',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+    ];
+
+    items.addAll(
+      album.songs
+          .take(100)
+          .map(
+            (s) => MediaItem(
+              id: s.videoId,
+              title: s.name,
+              artist: s.artist.name,
+              album: album.name,
+              artUri:
+                  album.thumbnails.isNotEmpty
+                      ? Uri.tryParse(album.thumbnails.last.url)
+                      : null,
+              duration: Duration(seconds: s.duration ?? 0),
+              extras: {
+                'needsUrl': true,
+                'videoId': s.videoId,
+                'isVideo': false,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
           ),
-        )
-        .toList();
+    );
+    return items;
   }
 
   Future<List<MediaItem>> _buildHomePlaylistVideoChildren(
@@ -1047,22 +1160,52 @@ class SonoraAudioHandler extends BaseAudioHandler {
   ) async {
     final playlistId = parentMediaId.substring(_homePlaylistPrefix.length);
     final videos = await _musicRepo.getPlaylistVideos(playlistId);
-    return videos
-        .take(100)
-        .map(
-          (v) => MediaItem(
-            id: v.videoId,
-            title: v.name,
-            artist: v.artist.name,
-            artUri:
-                v.thumbnails.isNotEmpty
-                    ? Uri.tryParse(v.thumbnails.last.url)
-                    : null,
-            duration: Duration(seconds: v.duration ?? 0),
-            extras: {_kContentStylePlayable: _kStyleList},
+    final liked = await _libraryRepo.getLikedPlaylist(playlistId);
+
+    final items = <MediaItem>[
+      MediaItem(
+        id: '$_actionPlayPlaylist$playlistId',
+        title: 'Play All',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionShufflePlaylist$playlistId',
+        title: 'Shuffle',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionLikePlaylist$playlistId',
+        title: liked != null ? 'Unlike Playlist' : 'Like Playlist',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+    ];
+
+    items.addAll(
+      videos
+          .take(100)
+          .map(
+            (v) => MediaItem(
+              id: v.videoId,
+              title: v.name,
+              artist: v.artist.name,
+              artUri:
+                  v.thumbnails.isNotEmpty
+                      ? Uri.tryParse(v.thumbnails.last.url)
+                      : null,
+              duration: Duration(seconds: v.duration ?? 0),
+              extras: {
+                'needsUrl': true,
+                'videoId': v.videoId,
+                'isVideo': true,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
           ),
-        )
-        .toList();
+    );
+    return items;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1075,6 +1218,222 @@ class SonoraAudioHandler extends BaseAudioHandler {
     Map<String, dynamic>? extras,
   ]) async {
     try {
+      // ── Album actions ────────────────────────────────────────────
+      if (mediaId.startsWith(_actionPlayAlbum)) {
+        final albumId = mediaId.substring(_actionPlayAlbum.length);
+        final album = await _musicRepo.getAlbum(albumId);
+        final items = await _playAlbumUseCase.execute(album.songs);
+        await playNow(items);
+        return;
+      }
+      if (mediaId.startsWith(_actionShuffleAlbum)) {
+        final albumId = mediaId.substring(_actionShuffleAlbum.length);
+        final album = await _musicRepo.getAlbum(albumId);
+        final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
+        final items = await _playAlbumUseCase.execute(shuffled);
+        await playNow(items);
+        return;
+      }
+      if (mediaId.startsWith(_actionLikeAlbum)) {
+        final albumId = mediaId.substring(_actionLikeAlbum.length);
+        final existing = await _libraryRepo.getLikedAlbum(albumId);
+        if (existing != null) {
+          await _libraryRepo.deleteLikedAlbum(albumId);
+        } else {
+          final album = await _musicRepo.getAlbum(albumId);
+          await _libraryRepo.toggleLikedAlbum(
+            LikedAlbumModel(
+              albumId: albumId,
+              name: album.name,
+              artistName: album.artist.name,
+              thumbnailUrl:
+                  album.thumbnails.isNotEmpty
+                      ? album.thumbnails.last.url
+                      : null,
+              year: album.year,
+              addedAt: DateTime.now(),
+            ),
+          );
+        }
+        AudioServicePlatform.instance.notifyChildrenChanged(
+          NotifyChildrenChangedRequest(
+            parentMediaId: '$_homeAlbumPrefix$albumId',
+          ),
+        );
+        return;
+      }
+
+      // ── Artist actions ───────────────────────────────────────────
+      if (mediaId.startsWith(_actionPlayArtist)) {
+        final artistId = mediaId.substring(_actionPlayArtist.length);
+        final artist = await _musicRepo.getArtist(artistId);
+        final items = await _playAlbumUseCase.execute(artist.topSongs);
+        await playNow(items);
+        return;
+      }
+      if (mediaId.startsWith(_actionShuffleArtist)) {
+        final artistId = mediaId.substring(_actionShuffleArtist.length);
+        final artist = await _musicRepo.getArtist(artistId);
+        final shuffled = List<SongDetailed>.from(artist.topSongs)..shuffle();
+        final items = await _playAlbumUseCase.execute(shuffled);
+        await playNow(items);
+        return;
+      }
+      if (mediaId.startsWith(_actionFollowArtist)) {
+        final artistId = mediaId.substring(_actionFollowArtist.length);
+        final existing = await _libraryRepo.getFollowedArtist(artistId);
+        if (existing != null) {
+          await _libraryRepo.deleteFollowedArtist(artistId);
+        } else {
+          final artist = await _musicRepo.getArtist(artistId);
+          await _libraryRepo.toggleFollowedArtist(
+            FollowedArtistModel(
+              artistId: artistId,
+              name: artist.name,
+              thumbnailUrl:
+                  artist.thumbnails.isNotEmpty
+                      ? artist.thumbnails.last.url
+                      : null,
+            ),
+          );
+        }
+        AudioServicePlatform.instance.notifyChildrenChanged(
+          NotifyChildrenChangedRequest(
+            parentMediaId: '$_artistPrefix$artistId',
+          ),
+        );
+        return;
+      }
+
+      // ── Playlist actions ─────────────────────────────────────────
+      if (mediaId.startsWith(_actionPlayPlaylist)) {
+        final playlistId = mediaId.substring(_actionPlayPlaylist.length);
+        final localId = int.tryParse(playlistId);
+        if (localId != null) {
+          // Local playlist — read entries from DB
+          final entries = await _libraryRepo.getPlaylistEntries(localId);
+          final items = <MediaItem>[];
+          for (final entry in entries) {
+            final liked = await _libraryRepo.getLikedSong(entry.videoId);
+            items.add(
+              MediaItem(
+                id: entry.videoId,
+                title: liked?.title ?? entry.videoId,
+                artist: liked?.artist ?? '',
+                artUri:
+                    liked?.thumbnailUrl != null
+                        ? Uri.tryParse(liked!.thumbnailUrl!)
+                        : null,
+                extras: {
+                  'needsUrl': true,
+                  'videoId': entry.videoId,
+                  'isVideo': false,
+                  _kContentStylePlayable: _kStyleList,
+                },
+              ),
+            );
+          }
+          if (items.isNotEmpty) {
+            try {
+              final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
+              items[0] = items.first.copyWith(
+                extras: {
+                  ...items.first.extras!,
+                  'url': url,
+                  'needsUrl': false,
+                },
+              );
+            } catch (_) {}
+          }
+          await playNow(items);
+        } else {
+          // YT Music playlist — fetch videos from API
+          final videos = await _musicRepo.getPlaylistVideos(playlistId);
+          final items = await _playPlaylistUseCase.execute(videos);
+          await playNow(items);
+        }
+        return;
+      }
+      if (mediaId.startsWith(_actionShufflePlaylist)) {
+        final playlistId = mediaId.substring(_actionShufflePlaylist.length);
+        final localId = int.tryParse(playlistId);
+        if (localId != null) {
+          // Local playlist — read entries from DB
+          final entries = await _libraryRepo.getPlaylistEntries(localId);
+          var items = <MediaItem>[];
+          for (final entry in entries) {
+            final liked = await _libraryRepo.getLikedSong(entry.videoId);
+            items.add(
+              MediaItem(
+                id: entry.videoId,
+                title: liked?.title ?? entry.videoId,
+                artist: liked?.artist ?? '',
+                artUri:
+                    liked?.thumbnailUrl != null
+                        ? Uri.tryParse(liked!.thumbnailUrl!)
+                        : null,
+                extras: {
+                  'needsUrl': true,
+                  'videoId': entry.videoId,
+                  'isVideo': false,
+                  _kContentStylePlayable: _kStyleList,
+                },
+              ),
+            );
+          }
+          if (items.isNotEmpty) {
+            items = List<MediaItem>.from(items)..shuffle();
+            try {
+              final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
+              items[0] = items.first.copyWith(
+                extras: {
+                  ...items.first.extras!,
+                  'url': url,
+                  'needsUrl': false,
+                },
+              );
+            } catch (_) {}
+          }
+          await playNow(items);
+        } else {
+          // YT Music playlist — fetch videos from API
+          final videos = await _musicRepo.getPlaylistVideos(playlistId);
+          final shuffled = List<VideoDetailed>.from(videos)..shuffle();
+          final items = await _playPlaylistUseCase.execute(shuffled);
+          await playNow(items);
+        }
+        return;
+      }
+      if (mediaId.startsWith(_actionLikePlaylist)) {
+        final playlistId = mediaId.substring(_actionLikePlaylist.length);
+        final existing = await _libraryRepo.getLikedPlaylist(playlistId);
+        if (existing != null) {
+          await _libraryRepo.deleteLikedPlaylist(playlistId);
+        } else {
+          // Fetch playlist metadata — getPlaylist for YT Music playlists
+          final playlist = await _musicRepo.getPlaylist(playlistId);
+          await _libraryRepo.toggleLikedPlaylist(
+            LikedPlaylistModel(
+              playlistId: playlistId,
+              name: playlist.name,
+              thumbnailUrl:
+                  playlist.thumbnails.isNotEmpty
+                      ? playlist.thumbnails.last.url
+                      : null,
+              videoCount: playlist.videoCount,
+              addedAt: DateTime.now(),
+            ),
+          );
+        }
+        AudioServicePlatform.instance.notifyChildrenChanged(
+          NotifyChildrenChangedRequest(
+            parentMediaId: '$_homePlaylistPrefix$playlistId',
+          ),
+        );
+        return;
+      }
+
+      // ── Default: single song play ───────────────────────────
       final item = await _playVideoIdUseCase.execute(mediaId);
       await playNow([item]);
     } catch (_) {}
