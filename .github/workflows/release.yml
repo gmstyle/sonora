@@ -129,17 +129,22 @@ jobs:
 
           cp -r "$BUNDLE"/* "$OUTDIR/"
           cp assets/logo_full.png "$OUTDIR/sonora.png"
+          # Copy and optionally downscale tray icon (system trays expect small icons)
+          cp assets/icons/tray/tray_icon.png "$OUTDIR/tray_icon.png"
+          if command -v convert &>/dev/null; then
+            convert "$OUTDIR/tray_icon.png" -resize 48x48 "$OUTDIR/tray_icon.png"
+          fi
 
-          cat > "$OUTDIR/sonora.desktop" << 'DESKTOP'
+          cat > "$OUTDIR/it.gmstyle.sonora.desktop" << 'DESKTOP'
           [Desktop Entry]
           Name=Sonora
           Comment=A music streaming app powered by YouTube Music
           Exec=sonora
-          Icon=sonora
+          Icon=/opt/sonora/sonora.png
           Terminal=false
           Type=Application
           Categories=Audio;Music;Player;
-          StartupWMClass=sonora
+          StartupWMClass=it.gmstyle.sonora
           DESKTOP
 
           cat > "$OUTDIR/install.sh" << 'INSTALL'
@@ -153,14 +158,54 @@ jobs:
           sudo chmod +x "$INSTALL_DIR/sonora"
 
           mkdir -p "$HOME/.local/share/applications"
-          sed "s|Exec=sonora|Exec=$INSTALL_DIR/sonora|" "$INSTALL_DIR/sonora.desktop" > "$HOME/.local/share/applications/sonora.desktop"
+          sed "s|Exec=sonora|Exec=$INSTALL_DIR/sonora|" "$INSTALL_DIR/it.gmstyle.sonora.desktop" > "$HOME/.local/share/applications/it.gmstyle.sonora.desktop"
+
+          # Install icon to standard XDG paths so it's found by launcher/taskbar
+          for SIZE in 48 64 128 256; do
+            mkdir -p "$HOME/.local/share/icons/hicolor/${SIZE}x${SIZE}/apps"
+            if command -v convert &>/dev/null; then
+              convert "$INSTALL_DIR/sonora.png" -resize "${SIZE}x${SIZE}" \
+                "$HOME/.local/share/icons/hicolor/${SIZE}x${SIZE}/apps/sonora.png"
+            else
+              cp "$INSTALL_DIR/sonora.png" "$HOME/.local/share/icons/hicolor/${SIZE}x${SIZE}/apps/sonora.png"
+            fi
+          done
+          gtk-update-icon-cache "$HOME/.local/share/icons/hicolor/" 2>/dev/null || true
 
           update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true
 
           echo "Sonora installed! Run: $INSTALL_DIR/sonora"
           INSTALL
 
+          cat > "$OUTDIR/uninstall.sh" << 'UNINSTALL'
+          #!/bin/bash
+          set -e
+
+          INSTALL_DIR="/opt/sonora"
+
+          echo "Removing Sonora..."
+
+          # Remove installation directory
+          if [ -d "$INSTALL_DIR" ]; then
+            sudo rm -rf "$INSTALL_DIR"
+          fi
+
+          # Remove desktop entry
+          rm -f "$HOME/.local/share/applications/it.gmstyle.sonora.desktop"
+
+          # Remove icons
+          for SIZE in 48 64 128 256; do
+            rm -f "$HOME/.local/share/icons/hicolor/${SIZE}x${SIZE}/apps/sonora.png"
+          done
+          gtk-update-icon-cache "$HOME/.local/share/icons/hicolor/" 2>/dev/null || true
+
+          update-desktop-database "$HOME/.local/share/applications/" 2>/dev/null || true
+
+          echo "Sonora uninstalled."
+          UNINSTALL
+
           chmod +x "$OUTDIR/install.sh"
+          chmod +x "$OUTDIR/uninstall.sh"
           tar czf sonora-linux-x64.tar.gz "$OUTDIR"/
 
       - name: Create GitHub Release

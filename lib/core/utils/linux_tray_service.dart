@@ -33,21 +33,11 @@ class LinuxTrayService {
   }
 
   String _getTrayIcon() {
-    // tray_manager on Linux needs an absolute filesystem path.
-    // In a Flutter linux bundle the structure is:
-    //   bundle/sonora  (executable)
-    //   bundle/data/flutter_assets/assets/icons/tray/tray_icon.png
+    // In the installed bundle, tray_icon.png sits alongside the executable.
     final execDir = p.dirname(Platform.resolvedExecutable);
-    final bundlePath = p.join(
-      execDir,
-      'data',
-      'flutter_assets',
-      'assets',
-      'icons',
-      'tray',
-      'tray_icon.png',
-    );
-    // During `flutter run` (debug/profile) the asset is in the project dir
+    final bundlePath = p.join(execDir, 'tray_icon.png');
+
+    // During `flutter run` (debug/profile) the asset is in the project dir.
     final devPath = p.join(
       Directory.current.path,
       'assets',
@@ -55,6 +45,7 @@ class LinuxTrayService {
       'tray',
       'tray_icon.png',
     );
+
     return File(bundlePath).existsSync() ? bundlePath : devPath;
   }
 

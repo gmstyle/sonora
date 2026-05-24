@@ -52,6 +52,19 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "sonora");
   }
 
+  // Set window icon from sonora.png bundled alongside the executable.
+  g_autofree gchar* exe_path = g_file_read_link("/proc/self/exe", nullptr);
+  if (exe_path != nullptr) {
+    g_autofree gchar* exe_dir = g_path_get_dirname(exe_path);
+    g_autofree gchar* icon_path = g_build_filename(exe_dir, "sonora.png", nullptr);
+    g_autoptr(GError) icon_err = nullptr;
+    if (!gtk_window_set_icon_from_file(window, icon_path, &icon_err)) {
+      g_warning("Failed to set window icon: %s", icon_err->message);
+    }
+  } else {
+    g_warning("Could not resolve executable path for window icon");
+  }
+
   gtk_window_set_default_size(window, 1280, 720);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
