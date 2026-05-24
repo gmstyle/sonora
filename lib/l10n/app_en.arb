@@ -53,6 +53,9 @@
   "following": "Following",
   "artistRadio": "Artist Radio",
   "failedToStartArtistRadio": "Failed to start artist radio: {error}",
+  "subscribers": "subscribers",
+  "views": "views",
+  "description": "Description",
   "@failedToStartArtistRadio": {
     "placeholders": {
       "error": {"type": "String"}

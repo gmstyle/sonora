@@ -33,6 +33,9 @@
   "following": "Seguito",
   "artistRadio": "Radio Artista",
   "failedToStartArtistRadio": "Impossibile avviare radio artista: {error}",
+  "subscribers": "iscritti",
+  "views": "visualizzazioni",
+  "description": "Descrizione",
 
   "@@sectionMeta": {
     "playlist": "Schermata Playlist"

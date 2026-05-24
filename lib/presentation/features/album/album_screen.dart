@@ -257,6 +257,7 @@ class _AlbumContent extends ConsumerWidget {
                     albumId: album.albumId,
                     artistId:
                         album.songs[i].artist.artistId ?? album.artist.artistId,
+                    playCount: album.songs[i].playCount,
                     onTap: () => _playAlbumFromIndex(context, ref, i),
                   ),
                 ),

@@ -242,6 +242,24 @@ abstract class AppLocalizations {
   /// **'Failed to start artist radio: {error}'**
   String failedToStartArtistRadio(String error);
 
+  /// No description provided for @subscribers.
+  ///
+  /// In en, this message translates to:
+  /// **'subscribers'**
+  String get subscribers;
+
+  /// No description provided for @views.
+  ///
+  /// In en, this message translates to:
+  /// **'views'**
+  String get views;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get description;
+
   /// No description provided for @failedToLoadPlaylist.
   ///
   /// In en, this message translates to:

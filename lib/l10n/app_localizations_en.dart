@@ -91,6 +91,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get subscribers => 'subscribers';
+
+  @override
+  String get views => 'views';
+
+  @override
+  String get description => 'Description';
+
+  @override
   String get failedToLoadPlaylist => 'Failed to load playlist';
 
   @override

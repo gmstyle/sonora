@@ -137,6 +137,10 @@ class _ArtistContent extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ArtistActions(artist: artist),
+                  if (artist.description != null && artist.description!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _ExpandableText(text: artist.description!),
+                  ],
                   const SizedBox(height: 24),
                   if (artist.topSongs.isNotEmpty)
                     _ArtistTopSongsSection(
@@ -211,6 +215,7 @@ class _ArtistContent extends ConsumerWidget {
                                 : null,
                         duration: video.duration,
                         isVideo: true,
+                        playCount: video.viewCount,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -234,6 +239,7 @@ class _ArtistContent extends ConsumerWidget {
                                 similar.thumbnails.isNotEmpty
                                     ? similar.thumbnails.last.url
                                     : null,
+                            monthlyListeners: similar.monthlyListeners,
                           );
                         },
                       ),
@@ -290,6 +296,7 @@ class _ArtistTopSongsSectionState
             albumName: song.album?.name,
             albumId: song.album?.albumId,
             artistId: song.artist.artistId,
+            playCount: song.playCount,
           ),
         ),
         if (_loading)
@@ -401,13 +408,37 @@ class _ArtistSliverAppBar extends StatelessWidget {
               bottom: 16,
               left: 16,
               right: 16,
-              child: Text(
-                artist.name,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    artist.name,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if ([artist.subscriberCount, artist.monthlyListeners, artist.totalViews].any((e) => e != null && e.isNotEmpty))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        [
+                          if (artist.subscriberCount != null && artist.subscriberCount!.isNotEmpty)
+                            '${artist.subscriberCount} ${AppLocalizations.of(context)!.subscribers}',
+                          if (artist.monthlyListeners != null && artist.monthlyListeners!.isNotEmpty)
+                            artist.monthlyListeners,
+                          if (artist.totalViews != null && artist.totalViews!.isNotEmpty)
+                            artist.totalViews,
+                        ].join(' · '),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -602,6 +633,61 @@ class _SectionHeader extends StatelessWidget {
           context,
         ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
+    );
+  }
+}
+
+class _ExpandableText extends StatefulWidget {
+  final String text;
+
+  const _ExpandableText({required this.text});
+
+  @override
+  State<_ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<_ExpandableText> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedCrossFade(
+          firstChild: Text(
+            widget.text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          secondChild: Text(
+            widget.text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          crossFadeState:
+              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
+        ),
+        TextButton.icon(
+          onPressed: () => setState(() => _expanded = !_expanded),
+          icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+          label: Text(
+            _expanded
+                ? AppLocalizations.of(context)!.showLess
+                : AppLocalizations.of(context)!.showMore,
+          ),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+      ],
     );
   }
 }

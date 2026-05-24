@@ -346,6 +346,7 @@ class _HorizontalCardRow extends StatelessWidget {
         title: item.name,
         artist: item.artist.name,
         duration: item.duration,
+        playCount: item.playCount,
       );
     }
     if (item is AlbumDetailed) {

@@ -277,6 +277,7 @@ class _SearchResults extends ConsumerWidget {
         albumName: result.album?.name,
         albumId: result.album?.albumId,
         artistId: result.artist.artistId,
+        playCount: result.playCount,
       );
     }
     if (result is VideoDetailed) {
@@ -288,6 +289,7 @@ class _SearchResults extends ConsumerWidget {
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
         duration: result.duration,
         isVideo: true,
+        playCount: result.viewCount,
       );
     }
     if (result is ArtistDetailed) {
@@ -296,6 +298,7 @@ class _SearchResults extends ConsumerWidget {
         name: result.name,
         thumbnailUrl:
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        monthlyListeners: result.monthlyListeners,
       );
     }
     if (result is AlbumDetailed) {

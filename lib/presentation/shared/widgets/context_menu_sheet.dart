@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/extensions/stat_format.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/download_provider.dart';
@@ -24,6 +25,8 @@ class ContextMenuSheet extends ConsumerWidget {
   final String? albumName;
   final String? artistId;
   final String? albumId;
+  final String? playCount;
+  final int? viewCount;
 
   const ContextMenuSheet({
     super.key,
@@ -36,6 +39,8 @@ class ContextMenuSheet extends ConsumerWidget {
     this.albumName,
     this.artistId,
     this.albumId,
+    this.playCount,
+    this.viewCount,
   });
 
   static Future<void> show(
@@ -49,6 +54,8 @@ class ContextMenuSheet extends ConsumerWidget {
     String? albumName,
     String? artistId,
     String? albumId,
+    String? playCount,
+    int? viewCount,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -64,8 +71,16 @@ class ContextMenuSheet extends ConsumerWidget {
             albumName: albumName,
             artistId: artistId,
             albumId: albumId,
+            playCount: playCount,
+            viewCount: viewCount,
           ),
     );
+  }
+
+  String? _formatStat() {
+    if (playCount != null && playCount!.isNotEmpty) return stripYtLabel(playCount);
+    if (viewCount != null) return viewCount!.toCompact();
+    return null;
   }
 
   @override
@@ -109,6 +124,17 @@ class ContextMenuSheet extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (_formatStat() != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatStat()!,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),

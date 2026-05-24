@@ -22,6 +22,9 @@ class PlayVideoIdUseCase {
     String title, artist, thumbnailUrl;
     int durationSec;
     bool isVideo;
+    int? viewCount;
+    String? publishDate;
+    String? musicVideoType;
 
     try {
       final song = await _repo.getSong(videoId);
@@ -30,6 +33,8 @@ class PlayVideoIdUseCase {
       durationSec = song.duration;
       thumbnailUrl = song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '';
       isVideo = false;
+      viewCount = song.viewCount;
+      publishDate = song.publishDate;
     } catch (_) {
       final video = await _repo.getVideo(videoId);
       title = video.name;
@@ -38,16 +43,28 @@ class PlayVideoIdUseCase {
       thumbnailUrl =
           video.thumbnails.isNotEmpty ? video.thumbnails.last.url : '';
       isVideo = true;
+      viewCount = video.viewCount;
+      publishDate = video.publishDate;
+      musicVideoType = video.musicVideoType;
     }
 
     final url = await urlFuture;
+    final extras = <String, dynamic>{
+      'url': url,
+      'videoId': videoId,
+      'isVideo': isVideo,
+    };
+    if (viewCount != null) extras['viewCount'] = viewCount;
+    if (publishDate != null) extras['publishDate'] = publishDate;
+    if (musicVideoType != null) extras['musicVideoType'] = musicVideoType;
+
     return MediaItem(
       id: videoId,
       title: title,
       artist: artist,
       duration: Duration(seconds: durationSec),
       artUri: thumbnailUrl.isNotEmpty ? Uri.parse(thumbnailUrl) : null,
-      extras: {'url': url, 'videoId': videoId, 'isVideo': isVideo},
+      extras: extras,
     );
   }
 

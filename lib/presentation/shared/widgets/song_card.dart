@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
+import 'package:sonora/core/extensions/stat_format.dart';
 import '../../providers/player_provider.dart';
 import 'thumbnail_widget.dart';
 
@@ -10,6 +11,7 @@ class SongCard extends ConsumerWidget {
   final String title;
   final String artist;
   final int? duration;
+  final String? playCount;
 
   const SongCard({
     super.key,
@@ -18,16 +20,20 @@ class SongCard extends ConsumerWidget {
     required this.title,
     required this.artist,
     this.duration,
+    this.playCount,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final statLabel = playCount != null && playCount!.isNotEmpty
+        ? stripYtLabel(playCount)
+        : null;
     return InkWell(
       onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 150,
-        height: 220,
+        height: statLabel != null ? 236 : 220,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -73,7 +79,7 @@ class SongCard extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              artist,
+              [artist, if (statLabel != null) statLabel].join(' · '),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(

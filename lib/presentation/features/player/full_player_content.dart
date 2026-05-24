@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/extensions/stat_format.dart';
 import '../../../domain/models/library_models.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../providers/library_notifier.dart';
@@ -425,6 +426,11 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
 
   Widget _trackInfoAndLikeRow(MediaItem song, bool isVideo, String? albumName) {
     final theme = Theme.of(context);
+    final viewCount = song.extras?['viewCount'] as int?;
+    final publishDate = song.extras?['publishDate'] as String?;
+    final statParts = <String>[];
+    if (viewCount != null) statParts.add('${viewCount.toCompact()} ${AppLocalizations.of(context)!.views}');
+    if (publishDate != null && publishDate.isNotEmpty) statParts.add(publishDate);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -477,6 +483,17 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (statParts.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  statParts.join(' · '),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
           ),
         ),

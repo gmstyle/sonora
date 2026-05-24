@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/extensions/stat_format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
 import 'context_menu_sheet.dart';
@@ -15,6 +16,8 @@ class SongTile extends ConsumerWidget {
   final String? albumName;
   final String? artistId;
   final String? albumId;
+  final String? playCount;
+  final int? viewCount;
   final VoidCallback? onTap;
 
   const SongTile({
@@ -28,11 +31,14 @@ class SongTile extends ConsumerWidget {
     this.albumName,
     this.artistId,
     this.albumId,
+    this.playCount,
+    this.viewCount,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final statLabel = _formatStat();
     return ListTile(
       leading: Stack(
         children: [
@@ -61,7 +67,11 @@ class SongTile extends ConsumerWidget {
       ),
       title: Text(title, overflow: TextOverflow.ellipsis, maxLines: 1),
       subtitle: Text(
-        [artist, if (albumName != null) albumName].join(' · '),
+        [
+          artist,
+          if (albumName != null) albumName,
+          if (statLabel != null) statLabel,
+        ].join(' · '),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
       ),
@@ -83,7 +93,15 @@ class SongTile extends ConsumerWidget {
         albumName: albumName,
         artistId: artistId,
         albumId: albumId,
+        playCount: playCount,
+        viewCount: viewCount,
       ),
     );
+  }
+
+  String? _formatStat() {
+    if (playCount != null && playCount!.isNotEmpty) return stripYtLabel(playCount);
+    if (viewCount != null) return viewCount!.toCompact();
+    return null;
   }
 }
