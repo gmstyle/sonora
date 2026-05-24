@@ -19,5 +19,5 @@ class ActionFeedbackNotifier extends Notifier<ActionFeedback?> {
 
 final actionFeedbackProvider =
     NotifierProvider<ActionFeedbackNotifier, ActionFeedback?>(
-  ActionFeedbackNotifier.new,
-);
+      ActionFeedbackNotifier.new,
+    );

@@ -220,7 +220,13 @@ class _SearchResults extends ConsumerWidget {
     return Column(
       children: [
         FilterChipBar(
-          options: [AppLocalizations.of(context)!.all, AppLocalizations.of(context)!.songs, AppLocalizations.of(context)!.searchArtists, AppLocalizations.of(context)!.searchAlbums, AppLocalizations.of(context)!.searchPlaylists],
+          options: [
+            AppLocalizations.of(context)!.all,
+            AppLocalizations.of(context)!.songs,
+            AppLocalizations.of(context)!.searchArtists,
+            AppLocalizations.of(context)!.searchAlbums,
+            AppLocalizations.of(context)!.searchPlaylists,
+          ],
           selectedIndex: filter,
           onSelected:
               (index) => ref.read(searchFilterProvider.notifier).update(index),

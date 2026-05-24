@@ -137,7 +137,8 @@ class _ArtistContent extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ArtistActions(artist: artist),
-                  if (artist.description != null && artist.description!.isNotEmpty) ...[
+                  if (artist.description != null &&
+                      artist.description!.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _ExpandableText(text: artist.description!),
                   ],
@@ -175,7 +176,9 @@ class _ArtistContent extends ConsumerWidget {
                     const SizedBox(height: 24),
                   ],
                   if (artist.topSingles.isNotEmpty) ...[
-                    _SectionHeader(title: AppLocalizations.of(context)!.singles),
+                    _SectionHeader(
+                      title: AppLocalizations.of(context)!.singles,
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
@@ -221,7 +224,9 @@ class _ArtistContent extends ConsumerWidget {
                     const SizedBox(height: 24),
                   ],
                   if (artist.similarArtists.isNotEmpty) ...[
-                    _SectionHeader(title: AppLocalizations.of(context)!.similarArtists),
+                    _SectionHeader(
+                      title: AppLocalizations.of(context)!.similarArtists,
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 180,
@@ -346,9 +351,13 @@ class _ArtistTopSongsSectionState
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToLoadSongs(e.toString()))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.failedToLoadSongs(e.toString()),
+          ),
+        ),
+      );
     }
   }
 }
@@ -419,16 +428,23 @@ class _ArtistSliverAppBar extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if ([artist.subscriberCount, artist.monthlyListeners, artist.totalViews].any((e) => e != null && e.isNotEmpty))
+                  if ([
+                    artist.subscriberCount,
+                    artist.monthlyListeners,
+                    artist.totalViews,
+                  ].any((e) => e != null && e.isNotEmpty))
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         [
-                          if (artist.subscriberCount != null && artist.subscriberCount!.isNotEmpty)
+                          if (artist.subscriberCount != null &&
+                              artist.subscriberCount!.isNotEmpty)
                             '${artist.subscriberCount} ${AppLocalizations.of(context)!.subscribers}',
-                          if (artist.monthlyListeners != null && artist.monthlyListeners!.isNotEmpty)
+                          if (artist.monthlyListeners != null &&
+                              artist.monthlyListeners!.isNotEmpty)
                             artist.monthlyListeners,
-                          if (artist.totalViews != null && artist.totalViews!.isNotEmpty)
+                          if (artist.totalViews != null &&
+                              artist.totalViews!.isNotEmpty)
                             artist.totalViews,
                         ].join(' · '),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -503,9 +519,13 @@ class _ArtistActions extends ConsumerWidget {
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlay(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToPlay(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -527,9 +547,13 @@ class _ArtistActions extends ConsumerWidget {
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlay(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToPlay(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -545,8 +569,10 @@ class _FollowButton extends ConsumerWidget {
     final followedAsync = ref.watch(followedArtistProvider(artist.artistId));
     return followedAsync.when(
       loading:
-          () =>
-              FilledButton.tonal(onPressed: null, child: Text(AppLocalizations.of(context)!.follow)),
+          () => FilledButton.tonal(
+            onPressed: null,
+            child: Text(AppLocalizations.of(context)!.follow),
+          ),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
         final isFollowing = followed != null;
@@ -565,7 +591,11 @@ class _FollowButton extends ConsumerWidget {
                   ),
                 );
           },
-          child: Text(isFollowing ? AppLocalizations.of(context)!.following : AppLocalizations.of(context)!.follow),
+          child: Text(
+            isFollowing
+                ? AppLocalizations.of(context)!.following
+                : AppLocalizations.of(context)!.follow,
+          ),
         );
       },
     );
@@ -611,7 +641,13 @@ class _ArtistRadioButton extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.failedToStartArtistRadio(e.toString()))),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.failedToStartArtistRadio(e.toString()),
+            ),
+          ),
         );
       }
     }

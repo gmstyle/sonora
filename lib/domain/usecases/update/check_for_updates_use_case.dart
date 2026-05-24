@@ -24,10 +24,7 @@ class CheckForUpdatesUseCase {
   final String repoOwner;
   final String repoName;
 
-  CheckForUpdatesUseCase({
-    required this.repoOwner,
-    required this.repoName,
-  });
+  CheckForUpdatesUseCase({required this.repoOwner, required this.repoName});
 
   Future<UpdateCheckResult> execute({
     required String currentVersion,
@@ -133,9 +130,6 @@ class CheckForUpdatesUseCase {
   }
 
   List<int> _parseSemver(String version) {
-    return version
-        .split('.')
-        .map((e) => int.tryParse(e) ?? 0)
-        .toList();
+    return version.split('.').map((e) => int.tryParse(e) ?? 0).toList();
   }
 }

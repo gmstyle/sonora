@@ -7,7 +7,13 @@ import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/player_error_listener.dart';
 
-const _icons = [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings];
+const _icons = [
+  Icons.home,
+  Icons.search,
+  Icons.library_music,
+  Icons.download,
+  Icons.settings,
+];
 
 class TabletShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
@@ -58,5 +64,11 @@ class TabletShell extends ConsumerWidget {
 }
 
 String _getLabel(AppLocalizations l10n, int index) {
-  return [l10n.home, l10n.search, l10n.library, l10n.downloads, l10n.settingsLabel][index];
+  return [
+    l10n.home,
+    l10n.search,
+    l10n.library,
+    l10n.downloads,
+    l10n.settingsLabel,
+  ][index];
 }

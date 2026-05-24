@@ -150,7 +150,9 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      await container.read(settingsProvider.notifier).setThemeMode(ThemeMode.dark);
+      await container
+          .read(settingsProvider.notifier)
+          .setThemeMode(ThemeMode.dark);
       final settings = container.read(settingsProvider);
       expect(settings.themeMode, ThemeMode.dark);
       expect(prefs.getInt(kThemeModeKey), ThemeMode.dark.index);
@@ -241,9 +243,7 @@ void main() {
     });
 
     test('setDownloadPath null clears persisted path', () async {
-      SharedPreferences.setMockInitialValues({
-        kDownloadPathKey: '/old',
-      });
+      SharedPreferences.setMockInitialValues({kDownloadPathKey: '/old'});
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
@@ -263,7 +263,9 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      await container.read(settingsProvider.notifier).setDownloadOnlyOnWifi(true);
+      await container
+          .read(settingsProvider.notifier)
+          .setDownloadOnlyOnWifi(true);
       expect(container.read(settingsProvider).downloadOnlyOnWifi, true);
       expect(prefs.getBool(kDownloadWifiKey), true);
     });

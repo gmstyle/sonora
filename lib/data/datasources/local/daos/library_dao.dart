@@ -20,13 +20,9 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
     String videoId, {
     required String? artistId,
     required String? albumId,
-  }) =>
-      (update(db.likedSongs)
-        ..where((t) => t.videoId.equals(videoId)))
-          .write(LikedSongsCompanion(
-            artistId: Value(artistId),
-            albumId: Value(albumId),
-          ));
+  }) => (update(db.likedSongs)..where((t) => t.videoId.equals(videoId))).write(
+    LikedSongsCompanion(artistId: Value(artistId), albumId: Value(albumId)),
+  );
 
   Future<List<FollowedArtist>> getAllFollowedArtists() =>
       select(db.followedArtists).get();
@@ -75,8 +71,7 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Future<void> updateLikedPlaylistThumbnail(
     String playlistId,
     String thumbnailUrl,
-  ) =>
-      (update(db.likedPlaylists)
-        ..where((t) => t.playlistId.equals(playlistId)))
-          .write(LikedPlaylistsCompanion(thumbnailUrl: Value(thumbnailUrl)));
+  ) => (update(db.likedPlaylists)..where(
+    (t) => t.playlistId.equals(playlistId),
+  )).write(LikedPlaylistsCompanion(thumbnailUrl: Value(thumbnailUrl)));
 }

@@ -60,12 +60,15 @@ class Settings {
       gl: gl ?? this.gl,
       hl: hl ?? this.hl,
       crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
-      restoreQueueOnStartup: restoreQueueOnStartup ?? this.restoreQueueOnStartup,
+      restoreQueueOnStartup:
+          restoreQueueOnStartup ?? this.restoreQueueOnStartup,
       autoPlayUpNext: autoPlayUpNext ?? this.autoPlayUpNext,
-      downloadPath: clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
+      downloadPath:
+          clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
       downloadOnlyOnWifi: downloadOnlyOnWifi ?? this.downloadOnlyOnWifi,
       trackHistory: trackHistory ?? this.trackHistory,
-      checkUpdatesOnStartup: checkUpdatesOnStartup ?? this.checkUpdatesOnStartup,
+      checkUpdatesOnStartup:
+          checkUpdatesOnStartup ?? this.checkUpdatesOnStartup,
     );
   }
 
@@ -132,7 +135,9 @@ class SettingsNotifier extends Notifier<Settings> {
     if (state.gl == gl) return;
     state = state.copyWith(gl: gl);
     await _save();
-    await ref.read(ytmusicDatasourceProvider).reinitialize(gl: gl, hl: state.hl);
+    await ref
+        .read(ytmusicDatasourceProvider)
+        .reinitialize(gl: gl, hl: state.hl);
     ref.invalidate(homeSectionsProvider);
   }
 
@@ -140,7 +145,9 @@ class SettingsNotifier extends Notifier<Settings> {
     if (state.hl == hl) return;
     state = state.copyWith(hl: hl);
     await _save();
-    await ref.read(ytmusicDatasourceProvider).reinitialize(gl: state.gl, hl: hl);
+    await ref
+        .read(ytmusicDatasourceProvider)
+        .reinitialize(gl: state.gl, hl: hl);
     ref.invalidate(homeSectionsProvider);
   }
 

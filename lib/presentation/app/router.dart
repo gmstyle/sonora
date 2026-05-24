@@ -27,21 +27,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'artist/:artistId',
-                    builder: (context, state) => ArtistScreen(
-                      artistId: state.pathParameters['artistId']!,
-                    ),
+                    builder:
+                        (context, state) => ArtistScreen(
+                          artistId: state.pathParameters['artistId']!,
+                        ),
                   ),
                   GoRoute(
                     path: 'album/:albumId',
-                    builder: (context, state) => AlbumScreen(
-                      albumId: state.pathParameters['albumId']!,
-                    ),
+                    builder:
+                        (context, state) => AlbumScreen(
+                          albumId: state.pathParameters['albumId']!,
+                        ),
                   ),
                   GoRoute(
                     path: 'playlist/:playlistId',
-                    builder: (context, state) => PlaylistScreen(
-                      playlistId: state.pathParameters['playlistId']!,
-                    ),
+                    builder:
+                        (context, state) => PlaylistScreen(
+                          playlistId: state.pathParameters['playlistId']!,
+                        ),
                   ),
                 ],
               ),

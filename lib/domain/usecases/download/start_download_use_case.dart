@@ -50,7 +50,10 @@ class StartDownloadUseCase {
     final manifest = await _streamDatasource.getManifest(videoId);
     final audio = manifest.muxed.withHighestBitrate();
 
-    final downloadDir = await _resolveDownloadDir(downloadPath, subdirectory: subdirectory);
+    final downloadDir = await _resolveDownloadDir(
+      downloadPath,
+      subdirectory: subdirectory,
+    );
     final ext = audio.container.name;
     final safeName = _sanitizeFilename(title);
     final filePath = '${downloadDir.path}/$safeName-$videoId.$ext';
@@ -81,7 +84,10 @@ class StartDownloadUseCase {
     return filePath;
   }
 
-  Future<Directory> _resolveDownloadDir(String? customPath, {String? subdirectory}) async {
+  Future<Directory> _resolveDownloadDir(
+    String? customPath, {
+    String? subdirectory,
+  }) async {
     final basePath =
         (customPath != null && customPath.isNotEmpty)
             ? customPath

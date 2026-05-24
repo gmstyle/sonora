@@ -12,7 +12,10 @@ class SettingsTabletLayout extends ConsumerWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.appearance, style: theme.textTheme.titleLarge),
+        title: Text(
+          AppLocalizations.of(context)!.appearance,
+          style: theme.textTheme.titleLarge,
+        ),
         centerTitle: false,
       ),
       body: Center(

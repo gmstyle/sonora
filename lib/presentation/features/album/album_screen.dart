@@ -346,7 +346,10 @@ class _AlbumActions extends ConsumerWidget {
           tooltip: 'Share',
           onPressed: () {
             SharePlus.instance.share(
-              ShareParams(text: 'https://music.youtube.com/playlist?list=${album.albumId}'),
+              ShareParams(
+                text:
+                    'https://music.youtube.com/playlist?list=${album.albumId}',
+              ),
             );
           },
         ),
@@ -368,7 +371,9 @@ class _AlbumActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added ${items.length} song${items.length == 1 ? '' : 's'} to queue'),
+            content: Text(
+              'Added ${items.length} song${items.length == 1 ? '' : 's'} to queue',
+            ),
           ),
         );
       }
@@ -406,7 +411,9 @@ class _AlbumActions extends ConsumerWidget {
     WidgetRef ref,
     AlbumFull album,
   ) async {
-    ref.read(actionFeedbackProvider.notifier).report('Shuffling ${album.name}…');
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report('Shuffling ${album.name}…');
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playAlbumUseCaseProvider);
     final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
@@ -429,9 +436,8 @@ class _AlbumActions extends ConsumerWidget {
   ) async {
     const batchSize = 3;
     final notifier = ref.read(activeDownloadsProvider.notifier);
-    final toDownload = album.songs
-        .where((s) => !notifier.isDownloading(s.videoId))
-        .toList();
+    final toDownload =
+        album.songs.where((s) => !notifier.isDownloading(s.videoId)).toList();
     if (toDownload.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -441,7 +447,11 @@ class _AlbumActions extends ConsumerWidget {
       return;
     }
 
-    final alreadyDownloaded = ref.read(allDownloadsProvider).asData?.value
+    final alreadyDownloaded =
+        ref
+            .read(allDownloadsProvider)
+            .asData
+            ?.value
             .where((d) => toDownload.any((s) => s.videoId == d.videoId))
             .toList() ??
         [];
@@ -472,10 +482,15 @@ class _AlbumActions extends ConsumerWidget {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Downloading ${toDownload.length} songs from ${album.name}…')),
+      SnackBar(
+        content: Text(
+          'Downloading ${toDownload.length} songs from ${album.name}…',
+        ),
+      ),
     );
 
-    final alreadyDownloadedIds = alreadyDownloaded.map((d) => d.videoId).toSet();
+    final alreadyDownloadedIds =
+        alreadyDownloaded.map((d) => d.videoId).toSet();
 
     for (var i = 0; i < toDownload.length; i += batchSize) {
       final batch = toDownload.skip(i).take(batchSize);
@@ -558,8 +573,11 @@ class _DownloadAlbumButton extends ConsumerWidget {
     return FilledButton.tonalIcon(
       onPressed: onDownload,
       icon: Icon(allDownloaded ? Icons.check_circle : Icons.download),
-      label:
-          Text(downloadedCount > 0 ? 'Downloaded $downloadedCount/$totalCount' : 'Download Album'),
+      label: Text(
+        downloadedCount > 0
+            ? 'Downloaded $downloadedCount/$totalCount'
+            : 'Download Album',
+      ),
     );
   }
 }

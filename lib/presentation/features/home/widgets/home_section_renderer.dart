@@ -52,10 +52,9 @@ class HomeContinueListening extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Text(
                 AppLocalizations.of(context)!.continueListening,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
             SizedBox(
@@ -87,8 +86,9 @@ class _ContinueListeningItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
-      onTap: () =>
-          ref.read(playerStateProvider.notifier).playVideoId(item.videoId),
+      onTap:
+          () =>
+              ref.read(playerStateProvider.notifier).playVideoId(item.videoId),
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 100,
@@ -114,8 +114,7 @@ class _ContinueListeningItem extends ConsumerWidget {
                     child: Icon(
                       Icons.play_arrow_rounded,
                       size: 16,
-                      color:
-                          Theme.of(context).colorScheme.onPrimaryContainer,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
                   ),
                 ),
@@ -162,23 +161,23 @@ class HomeSectionRow extends ConsumerWidget {
           padding: sectionPadding,
           child: Text(
             section.title,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         SizedBox(
           height: 220,
-          child: isFirst
-              ? _HeroCarousel(
-                  items: section.contents,
-                  viewportFraction: heroViewportFraction,
-                )
-              : _HorizontalCardRow(
-                  items: section.contents,
-                  cardWidth: cardWidth,
-                ),
+          child:
+              isFirst
+                  ? _HeroCarousel(
+                    items: section.contents,
+                    viewportFraction: heroViewportFraction,
+                  )
+                  : _HorizontalCardRow(
+                    items: section.contents,
+                    cardWidth: cardWidth,
+                  ),
         ),
       ],
     );
@@ -189,10 +188,7 @@ class _HeroCarousel extends StatelessWidget {
   final List<dynamic> items;
   final double viewportFraction;
 
-  const _HeroCarousel({
-    required this.items,
-    this.viewportFraction = 0.85,
-  });
+  const _HeroCarousel({required this.items, this.viewportFraction = 0.85});
 
   @override
   Widget build(BuildContext context) {
@@ -281,13 +277,10 @@ class _HeroCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -295,10 +288,9 @@ class _HeroCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle!,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.white70),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.white70),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -317,10 +309,7 @@ class _HorizontalCardRow extends StatelessWidget {
   final List<dynamic> items;
   final double cardWidth;
 
-  const _HorizontalCardRow({
-    required this.items,
-    this.cardWidth = 150,
-  });
+  const _HorizontalCardRow({required this.items, this.cardWidth = 150});
 
   @override
   Widget build(BuildContext context) {

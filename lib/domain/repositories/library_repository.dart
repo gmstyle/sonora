@@ -5,7 +5,11 @@ abstract class LibraryRepository {
   Future<LikedSongModel?> getLikedSong(String videoId);
   Future<void> toggleLikedSong(LikedSongModel song);
   Future<void> deleteLikedSong(String videoId);
-  Future<void> updateLikedSongMetadata(String videoId, {String? artistId, String? albumId});
+  Future<void> updateLikedSongMetadata(
+    String videoId, {
+    String? artistId,
+    String? albumId,
+  });
 
   Future<List<FollowedArtistModel>> getAllFollowedArtists();
   Future<FollowedArtistModel?> getFollowedArtist(String artistId);
@@ -21,7 +25,10 @@ abstract class LibraryRepository {
   Future<LikedPlaylistModel?> getLikedPlaylist(String playlistId);
   Future<void> toggleLikedPlaylist(LikedPlaylistModel playlist);
   Future<void> deleteLikedPlaylist(String playlistId);
-  Future<void> updateLikedPlaylistThumbnail(String playlistId, String thumbnailUrl);
+  Future<void> updateLikedPlaylistThumbnail(
+    String playlistId,
+    String thumbnailUrl,
+  );
 
   Future<List<LocalPlaylistModel>> getAllPlaylists();
   Future<int> createPlaylist(String name, {String? description});

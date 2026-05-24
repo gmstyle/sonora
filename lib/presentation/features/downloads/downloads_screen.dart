@@ -25,15 +25,19 @@ class DownloadsScreen extends ConsumerWidget {
         return Scaffold(
           appBar: AppBar(title: Text(AppLocalizations.of(context)!.downloads)),
           body: allDownloadsAsync.when(
-            loading: () => ListView.builder(
-              itemCount: 6,
-              padding: const EdgeInsets.only(top: 8),
-              itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
-            ),
-            error: (e, _) => ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadDownloads,
-              onRetry: () => ref.invalidate(allDownloadsProvider),
-            ),
+            loading:
+                () => ListView.builder(
+                  itemCount: 6,
+                  padding: const EdgeInsets.only(top: 8),
+                  itemBuilder:
+                      (_, _) =>
+                          const ShimmerLoading(variant: ShimmerVariant.tile),
+                ),
+            error:
+                (e, _) => ErrorRetryWidget(
+                  message: AppLocalizations.of(context)!.failedToLoadDownloads,
+                  onRetry: () => ref.invalidate(allDownloadsProvider),
+                ),
             data: (completed) {
               final hasActive = activeDownloads.isNotEmpty;
               final hasCompleted = completed.isNotEmpty;
@@ -46,16 +50,18 @@ class DownloadsScreen extends ConsumerWidget {
 
               return CustomScrollView(
                 slivers: [
-                  if (hasActive) _ActiveDownloadsSection(
-                    activeDownloads: activeDownloads,
-                    isTablet: isTablet,
-                    ref: ref,
-                  ),
-                  if (hasCompleted) _CompletedDownloadsSection(
-                    completed: completed,
-                    crossAxisCount: crossAxisCount,
-                    ref: ref,
-                  ),
+                  if (hasActive)
+                    _ActiveDownloadsSection(
+                      activeDownloads: activeDownloads,
+                      isTablet: isTablet,
+                      ref: ref,
+                    ),
+                  if (hasCompleted)
+                    _CompletedDownloadsSection(
+                      completed: completed,
+                      crossAxisCount: crossAxisCount,
+                      ref: ref,
+                    ),
                 ],
               );
             },
@@ -124,21 +130,17 @@ class _ActiveDownloadsSection extends StatelessWidget {
           sliver: SliverToBoxAdapter(
             child: Text(
               AppLocalizations.of(context)!.activeDownloads,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
         SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final d = items[index];
-              return _ActiveDownloadTile(download: d, ref: ref);
-            },
-            childCount: items.length,
-          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final d = items[index];
+            return _ActiveDownloadTile(download: d, ref: ref);
+          }, childCount: items.length),
         ),
       ],
     );
@@ -149,10 +151,7 @@ class _ActiveDownloadTile extends StatelessWidget {
   final ActiveDownload download;
   final WidgetRef ref;
 
-  const _ActiveDownloadTile({
-    required this.download,
-    required this.ref,
-  });
+  const _ActiveDownloadTile({required this.download, required this.ref});
 
   @override
   Widget build(BuildContext context) {
@@ -181,8 +180,9 @@ class _ActiveDownloadTile extends StatelessWidget {
                   children: [
                     Text(
                       download.title,
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -200,9 +200,11 @@ class _ActiveDownloadTile extends StatelessWidget {
                       LinearProgressIndicator(value: download.progress)
                     else if (download.status == DownloadStatus.error)
                       Text(
-                        download.errorMessage ?? AppLocalizations.of(context)!.downloadFailed,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.error),
+                        download.errorMessage ??
+                            AppLocalizations.of(context)!.downloadFailed,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -220,19 +222,23 @@ class _ActiveDownloadTile extends StatelessWidget {
                   ),
                 )
               else if (download.status == DownloadStatus.completed)
-                Icon(Icons.check_circle,
-                    color: theme.colorScheme.primary, size: 24)
+                Icon(
+                  Icons.check_circle,
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                )
               else if (download.status == DownloadStatus.error)
                 IconButton(
                   icon: Icon(Icons.refresh, color: theme.colorScheme.error),
-                  onPressed: () => ref
-                      .read(activeDownloadsProvider.notifier)
-                      .retry(
-                        videoId: download.videoId,
-                        title: download.title,
-                        artist: download.artist,
-                        thumbnailUrl: download.thumbnailUrl,
-                      ),
+                  onPressed:
+                      () => ref
+                          .read(activeDownloadsProvider.notifier)
+                          .retry(
+                            videoId: download.videoId,
+                            title: download.title,
+                            artist: download.artist,
+                            thumbnailUrl: download.thumbnailUrl,
+                          ),
                   visualDensity: VisualDensity.compact,
                 ),
             ],
@@ -263,23 +269,19 @@ class _CompletedDownloadsSection extends StatelessWidget {
           sliver: SliverToBoxAdapter(
             child: Text(
               AppLocalizations.of(context)!.downloadedSongs,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         ),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final d = completed[index];
-                return _CompletedDownloadTile(download: d, ref: ref);
-              },
-              childCount: completed.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final d = completed[index];
+              return _CompletedDownloadTile(download: d, ref: ref);
+            }, childCount: completed.length),
           ),
         ),
         const SliverPadding(padding: EdgeInsets.only(bottom: 16)),
@@ -292,10 +294,7 @@ class _CompletedDownloadTile extends StatelessWidget {
   final dynamic download;
   final WidgetRef ref;
 
-  const _CompletedDownloadTile({
-    required this.download,
-    required this.ref,
-  });
+  const _CompletedDownloadTile({required this.download, required this.ref});
 
   @override
   Widget build(BuildContext context) {
@@ -312,8 +311,9 @@ class _CompletedDownloadTile extends StatelessWidget {
           ),
           title: Text(
             download.title,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -324,17 +324,19 @@ class _CompletedDownloadTile extends StatelessWidget {
             ),
           ),
           trailing: IconButton(
-            icon: Icon(Icons.delete_outline,
-                color: theme.colorScheme.onSurfaceVariant),
-            onPressed: () =>
-                ref.read(activeDownloadsProvider.notifier).deleteDownload(
-                      download.videoId as String,
-                    ),
+            icon: Icon(
+              Icons.delete_outline,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            onPressed:
+                () => ref
+                    .read(activeDownloadsProvider.notifier)
+                    .deleteDownload(download.videoId as String),
           ),
           onTap: () {
-            ref.read(playerStateProvider.notifier).playVideoId(
-                  download.videoId as String,
-                );
+            ref
+                .read(playerStateProvider.notifier)
+                .playVideoId(download.videoId as String);
           },
         ),
       ),

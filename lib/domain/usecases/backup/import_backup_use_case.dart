@@ -21,8 +21,7 @@ class ImportBackupUseCase {
     final likedSongs =
         (data['likedSongs'] as List<dynamic>).cast<Map<String, dynamic>>();
     final followedArtists =
-        (data['followedArtists'] as List<dynamic>)
-            .cast<Map<String, dynamic>>();
+        (data['followedArtists'] as List<dynamic>).cast<Map<String, dynamic>>();
     final playlistsRaw =
         (data['playlists'] as List<dynamic>).cast<Map<String, dynamic>>();
     final settings = data['settings'] as Map<String, dynamic>?;

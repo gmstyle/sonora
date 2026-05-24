@@ -35,7 +35,7 @@ class PlayPlaylistUseCase {
       for (int i = 0; i < videos.length; i++)
         i == playIndex && firstUrl != null
             ? _toMediaItem(videos[i], firstUrl)
-            : _toPendingMediaItem(videos[i])
+            : _toPendingMediaItem(videos[i]),
     ];
   }
 
@@ -45,13 +45,8 @@ class PlayPlaylistUseCase {
       title: v.name,
       artist: v.artist.name,
       duration: Duration(seconds: v.duration ?? 0),
-      artUri:
-          v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
-      extras: {
-        'url': url,
-        'videoId': v.videoId,
-        'isVideo': true,
-      },
+      artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
+      extras: {'url': url, 'videoId': v.videoId, 'isVideo': true},
     );
   }
 
@@ -61,13 +56,8 @@ class PlayPlaylistUseCase {
       title: v.name,
       artist: v.artist.name,
       duration: Duration(seconds: v.duration ?? 0),
-      artUri:
-          v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
-      extras: {
-        'needsUrl': true,
-        'videoId': v.videoId,
-        'isVideo': true,
-      },
+      artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
+      extras: {'needsUrl': true, 'videoId': v.videoId, 'isVideo': true},
     );
   }
 }

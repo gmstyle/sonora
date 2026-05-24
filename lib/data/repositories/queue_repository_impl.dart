@@ -14,9 +14,7 @@ class QueueRepositoryImpl implements QueueRepository {
     // Skip pending items (needsUrl) — they have no stream URL and are
     // ephemeral; the player resolves them lazily when they are about to play.
     final filtered =
-        items
-            .where((item) => item.extras?['needsUrl'] != true)
-            .toList();
+        items.where((item) => item.extras?['needsUrl'] != true).toList();
 
     await _db.batch((batch) {
       batch.deleteAll(_db.queueItems);

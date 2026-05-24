@@ -73,7 +73,11 @@ class LibraryNotifier extends Notifier<void> {
     String? artistId,
     String? albumId,
   }) async {
-    await _repo.updateLikedSongMetadata(videoId, artistId: artistId, albumId: albumId);
+    await _repo.updateLikedSongMetadata(
+      videoId,
+      artistId: artistId,
+      albumId: albumId,
+    );
     ref.invalidate(likedSongProvider(videoId));
     ref.invalidate(likedSongsProvider);
   }

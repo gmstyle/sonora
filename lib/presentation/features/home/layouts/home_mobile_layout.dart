@@ -17,7 +17,10 @@ class HomeMobileLayout extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.appTitle, style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          AppLocalizations.of(context)!.appTitle,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         centerTitle: false,
         actions: [
           if (Platform.isLinux)

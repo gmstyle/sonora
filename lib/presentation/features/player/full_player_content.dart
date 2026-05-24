@@ -429,8 +429,12 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final viewCount = song.extras?['viewCount'] as int?;
     final publishDate = song.extras?['publishDate'] as String?;
     final statParts = <String>[];
-    if (viewCount != null) statParts.add('${viewCount.toCompact()} ${AppLocalizations.of(context)!.views}');
-    if (publishDate != null && publishDate.isNotEmpty) statParts.add(publishDate);
+    if (viewCount != null)
+      statParts.add(
+        '${viewCount.toCompact()} ${AppLocalizations.of(context)!.views}',
+      );
+    if (publishDate != null && publishDate.isNotEmpty)
+      statParts.add(publishDate);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -635,7 +639,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                         : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               onPressed: () => _showTimerDialog(context, playerNotifier),
-              tooltip: hasTimer ? AppLocalizations.of(context)!.sleepTimerActive : AppLocalizations.of(context)!.sleepTimer,
+              tooltip:
+                  hasTimer
+                      ? AppLocalizations.of(context)!.sleepTimerActive
+                      : AppLocalizations.of(context)!.sleepTimer,
             ),
           ],
         ),

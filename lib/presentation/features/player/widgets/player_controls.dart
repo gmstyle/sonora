@@ -52,7 +52,10 @@ class PlayerControls extends ConsumerWidget {
                 : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onPressed: notifier.toggleShuffle,
-      tooltip: isShuffle ? AppLocalizations.of(context)!.shuffleOn : AppLocalizations.of(context)!.shuffleOff,
+      tooltip:
+          isShuffle
+              ? AppLocalizations.of(context)!.shuffleOn
+              : AppLocalizations.of(context)!.shuffleOff,
     );
   }
 

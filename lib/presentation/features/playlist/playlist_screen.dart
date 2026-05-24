@@ -169,7 +169,8 @@ class _PlaylistContent extends ConsumerWidget {
                     loading: () => _videoShimmerList(),
                     error:
                         (e, _) => ErrorRetryWidget(
-                          message: AppLocalizations.of(context)!.failedToLoadVideos,
+                          message:
+                              AppLocalizations.of(context)!.failedToLoadVideos,
                           onRetry:
                               () => ref.invalidate(
                                 playlistVideosProvider(playlist.playlistId),
@@ -256,7 +257,9 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    AppLocalizations.of(context)!.videoCount(playlist.videoCount),
+                    AppLocalizations.of(
+                      context,
+                    )!.videoCount(playlist.videoCount),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -297,7 +300,8 @@ class _PlaylistActions extends ConsumerWidget {
         FilledButton.icon(
           onPressed:
               videosAsync is AsyncData && videosAsync.asData?.value != null
-                  ? () => _playSequential(context, ref, videosAsync.asData!.value)
+                  ? () =>
+                      _playSequential(context, ref, videosAsync.asData!.value)
                   : null,
           icon: const Icon(Icons.play_arrow),
           label: Text(AppLocalizations.of(context)!.playAll),
@@ -321,9 +325,15 @@ class _PlaylistActions extends ConsumerWidget {
         _DownloadPlaylistButton(
           playlist: playlist,
           videosAsync: videosAsync,
-          onDownload: videosAsync is AsyncData && videosAsync.asData?.value != null
-              ? () => _downloadPlaylist(context, ref, playlist, videosAsync.asData!.value)
-              : null,
+          onDownload:
+              videosAsync is AsyncData && videosAsync.asData?.value != null
+                  ? () => _downloadPlaylist(
+                    context,
+                    ref,
+                    playlist,
+                    videosAsync.asData!.value,
+                  )
+                  : null,
         ),
         _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
         IconButton(
@@ -331,7 +341,10 @@ class _PlaylistActions extends ConsumerWidget {
           tooltip: AppLocalizations.of(context)!.share,
           onPressed: () {
             SharePlus.instance.share(
-              ShareParams(text: 'https://music.youtube.com/playlist?list=${playlist.playlistId}'),
+              ShareParams(
+                text:
+                    'https://music.youtube.com/playlist?list=${playlist.playlistId}',
+              ),
             );
           },
         ),
@@ -353,15 +366,21 @@ class _PlaylistActions extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.addedToQueue(items.length)),
+            content: Text(
+              AppLocalizations.of(context)!.addedToQueue(items.length),
+            ),
           ),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToAddToQueue(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToAddToQueue(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -371,7 +390,9 @@ class _PlaylistActions extends ConsumerWidget {
     WidgetRef ref,
     List<VideoDetailed> videos,
   ) async {
-    ref.read(actionFeedbackProvider.notifier).report(AppLocalizations.of(context)!.playingPlaylist(playlist.name));
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(AppLocalizations.of(context)!.playingPlaylist(playlist.name));
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
@@ -379,9 +400,13 @@ class _PlaylistActions extends ConsumerWidget {
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -391,7 +416,9 @@ class _PlaylistActions extends ConsumerWidget {
     WidgetRef ref,
     List<VideoDetailed> videos,
   ) async {
-    ref.read(actionFeedbackProvider.notifier).report(AppLocalizations.of(context)!.shufflingPlaylist(playlist.name));
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(AppLocalizations.of(context)!.shufflingPlaylist(playlist.name));
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPlaylistUseCaseProvider);
     final shuffled = List<VideoDetailed>.from(videos)..shuffle();
@@ -400,9 +427,13 @@ class _PlaylistActions extends ConsumerWidget {
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -415,19 +446,26 @@ class _PlaylistActions extends ConsumerWidget {
   ) async {
     const batchSize = 3;
     final notifier = ref.read(activeDownloadsProvider.notifier);
-    final toDownload = videos
-        .where((v) => !notifier.isDownloading(v.videoId))
-        .toList();
+    final toDownload =
+        videos.where((v) => !notifier.isDownloading(v.videoId)).toList();
     if (toDownload.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.allSongsAlreadyDownloading)),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.allSongsAlreadyDownloading,
+            ),
+          ),
         );
       }
       return;
     }
 
-    final alreadyDownloaded = ref.read(allDownloadsProvider).asData?.value
+    final alreadyDownloaded =
+        ref
+            .read(allDownloadsProvider)
+            .asData
+            ?.value
             .where((d) => toDownload.any((v) => v.videoId == d.videoId))
             .toList() ??
         [];
@@ -438,7 +476,10 @@ class _PlaylistActions extends ConsumerWidget {
             (ctx) => AlertDialog(
               title: Text(AppLocalizations.of(context)!.alreadyDownloaded),
               content: Text(
-                AppLocalizations.of(context)!.alreadyDownloadedSongs(alreadyDownloaded.length, playlist.name),
+                AppLocalizations.of(context)!.alreadyDownloadedSongs(
+                  alreadyDownloaded.length,
+                  playlist.name,
+                ),
               ),
               actions: [
                 TextButton(
@@ -456,10 +497,17 @@ class _PlaylistActions extends ConsumerWidget {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.downloadingSongs(toDownload.length, playlist.name))),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(
+            context,
+          )!.downloadingSongs(toDownload.length, playlist.name),
+        ),
+      ),
     );
 
-    final alreadyDownloadedIds = alreadyDownloaded.map((d) => d.videoId).toSet();
+    final alreadyDownloadedIds =
+        alreadyDownloaded.map((d) => d.videoId).toSet();
 
     for (var i = 0; i < toDownload.length; i += batchSize) {
       final batch = toDownload.skip(i).take(batchSize);
@@ -521,7 +569,11 @@ class _LikePlaylistButton extends ConsumerWidget {
             );
           },
           icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
-          label: Text(isLiked ? AppLocalizations.of(context)!.unlikePlaylist : AppLocalizations.of(context)!.likePlaylist),
+          label: Text(
+            isLiked
+                ? AppLocalizations.of(context)!.unlikePlaylist
+                : AppLocalizations.of(context)!.likePlaylist,
+          ),
         );
       },
     );
@@ -546,15 +598,18 @@ class _DownloadPlaylistButton extends ConsumerWidget {
     final downloadedCount =
         videos.where((v) => downloadedIds.contains(v.videoId)).length;
     final totalCount = videos.length;
-    final allDownloaded =
-        totalCount > 0 && downloadedCount == totalCount;
+    final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
 
     return FilledButton.tonalIcon(
       onPressed: onDownload,
       icon: Icon(allDownloaded ? Icons.check_circle : Icons.download),
-label: Text(
-          downloadedCount > 0 ? AppLocalizations.of(context)!.downloadedCount(downloadedCount, totalCount) : AppLocalizations.of(context)!.downloadPlaylist,
-        ),
+      label: Text(
+        downloadedCount > 0
+            ? AppLocalizations.of(
+              context,
+            )!.downloadedCount(downloadedCount, totalCount)
+            : AppLocalizations.of(context)!.downloadPlaylist,
+      ),
     );
   }
 }
@@ -612,9 +667,13 @@ class _VideoTracklist extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.failedToPlay(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToPlay(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }

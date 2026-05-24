@@ -56,7 +56,11 @@ class _AppearanceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = settings.themeMode;
     const values = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
-    final labels = [AppLocalizations.of(context)!.system, AppLocalizations.of(context)!.light, AppLocalizations.of(context)!.dark];
+    final labels = [
+      AppLocalizations.of(context)!.system,
+      AppLocalizations.of(context)!.light,
+      AppLocalizations.of(context)!.dark,
+    ];
 
     return SettingsSection(
       title: AppLocalizations.of(context)!.appearance,
@@ -188,7 +192,9 @@ class _DownloadSection extends StatelessWidget {
       children: [
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.downloadFolder,
-          subtitle: settings.downloadPath ?? AppLocalizations.of(context)!.defaultLocation,
+          subtitle:
+              settings.downloadPath ??
+              AppLocalizations.of(context)!.defaultLocation,
           icon: Icons.folder_outlined,
           onPressed: () async {
             final path = await FilePicker.getDirectoryPath();
@@ -253,7 +259,9 @@ class _PrivacySection extends StatelessWidget {
       builder:
           (ctx) => AlertDialog(
             title: Text(AppLocalizations.of(context)!.clearSearchHistory),
-            content: Text(AppLocalizations.of(context)!.clearSearchHistoryConfirm),
+            content: Text(
+              AppLocalizations.of(context)!.clearSearchHistoryConfirm,
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -270,9 +278,11 @@ class _PrivacySection extends StatelessWidget {
       await ref.read(libraryNotifierProvider.notifier).clearSearchHistory();
       if (context.mounted) {
         ref.invalidate(recentSearchesProvider);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.searchHistoryCleared)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.searchHistoryCleared),
+          ),
+        );
       }
     }
   }
@@ -283,7 +293,9 @@ class _PrivacySection extends StatelessWidget {
       builder:
           (ctx) => AlertDialog(
             title: Text(AppLocalizations.of(context)!.clearListeningHistory),
-            content: Text(AppLocalizations.of(context)!.clearSearchHistoryConfirm),
+            content: Text(
+              AppLocalizations.of(context)!.clearSearchHistoryConfirm,
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
@@ -301,7 +313,11 @@ class _PrivacySection extends StatelessWidget {
       if (context.mounted) {
         ref.invalidate(libraryHistoryProvider);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.listeningHistoryCleared)),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.listeningHistoryCleared,
+            ),
+          ),
         );
       }
     }
@@ -367,25 +383,40 @@ class _BackupSection extends StatelessWidget {
             '${destDir.path}/sonora-backup-${DateTime.now().millisecondsSinceEpoch}.zip';
         await file.copy(destPath);
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.backupSaved(destPath))));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.backupSaved(destPath),
+              ),
+            ),
+          );
         }
       } else {
         await SharePlus.instance.share(
-          ShareParams(files: [XFile(path)], text: AppLocalizations.of(context)!.appTitle),
+          ShareParams(
+            files: [XFile(path)],
+            text: AppLocalizations.of(context)!.appTitle,
+          ),
         );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.backupExportedSuccessfully)),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.backupExportedSuccessfully,
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.exportFailed(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.exportFailed(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -435,14 +466,22 @@ class _BackupSection extends StatelessWidget {
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.backupImportedSuccessfully)),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.backupImportedSuccessfully,
+            ),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.importFailed(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.importFailed(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -529,7 +568,8 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
     final notifier = ref.read(updateProvider.notifier);
 
     return PopScope(
-      canPop: state.status != UpdateStatus.checking &&
+      canPop:
+          state.status != UpdateStatus.checking &&
           state.status != UpdateStatus.downloading,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) notifier.reset();
@@ -590,9 +630,7 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
             children: [
               if (_localVersion.isNotEmpty)
                 Text(l10n.currentVersion(_localVersion)),
-              Text(l10n.latestVersion(
-                state.result?.latestVersion ?? '',
-              )),
+              Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
               if (state.result?.changelog.isNotEmpty == true) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -711,7 +749,7 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
         return [];
     }
   }
-  }
+}
 
 // ── About ────────────────────────────────────────────────────────
 
@@ -738,8 +776,10 @@ class _AboutSection extends StatelessWidget {
           title: AppLocalizations.of(context)!.licenses,
           icon: Icons.description_outlined,
           onPressed:
-              () =>
-                  showLicensePage(context: context, applicationName: AppLocalizations.of(context)!.appTitle),
+              () => showLicensePage(
+                context: context,
+                applicationName: AppLocalizations.of(context)!.appTitle,
+              ),
         ),
         const Divider(height: 1),
         SettingsButtonTile(

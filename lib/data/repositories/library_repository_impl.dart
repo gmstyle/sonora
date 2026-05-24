@@ -64,8 +64,11 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String videoId, {
     String? artistId,
     String? albumId,
-  }) =>
-      _libraryDao.updateLikedSongMetadata(videoId, artistId: artistId, albumId: albumId);
+  }) => _libraryDao.updateLikedSongMetadata(
+    videoId,
+    artistId: artistId,
+    albumId: albumId,
+  );
 
   // ── Followed Artists ─────────────────────────────────────────
 
@@ -178,8 +181,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> updateLikedPlaylistThumbnail(
     String playlistId,
     String thumbnailUrl,
-  ) =>
-      _libraryDao.updateLikedPlaylistThumbnail(playlistId, thumbnailUrl);
+  ) => _libraryDao.updateLikedPlaylistThumbnail(playlistId, thumbnailUrl);
 
   // ── Playlists ─────────────────────────────────────────────────
 

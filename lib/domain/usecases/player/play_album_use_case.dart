@@ -36,7 +36,7 @@ class PlayAlbumUseCase {
       for (int i = 0; i < songs.length; i++)
         i == playIndex && firstUrl != null
             ? _toMediaItem(songs[i], firstUrl)
-            : _toPendingMediaItem(songs[i])
+            : _toPendingMediaItem(songs[i]),
     ];
   }
 
@@ -47,13 +47,8 @@ class PlayAlbumUseCase {
       artist: s.artist.name,
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
-      artUri:
-          s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
-      extras: {
-        'url': url,
-        'videoId': s.videoId,
-        'isVideo': false,
-      },
+      artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
+      extras: {'url': url, 'videoId': s.videoId, 'isVideo': false},
     );
   }
 
@@ -64,13 +59,8 @@ class PlayAlbumUseCase {
       artist: s.artist.name,
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
-      artUri:
-          s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
-      extras: {
-        'needsUrl': true,
-        'videoId': s.videoId,
-        'isVideo': false,
-      },
+      artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
+      extras: {'needsUrl': true, 'videoId': s.videoId, 'isVideo': false},
     );
   }
 }

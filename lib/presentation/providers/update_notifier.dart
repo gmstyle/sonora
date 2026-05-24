@@ -157,5 +157,6 @@ class UpdateNotifier extends Notifier<UpdateState> {
   }
 }
 
-final updateProvider =
-    NotifierProvider<UpdateNotifier, UpdateState>(UpdateNotifier.new);
+final updateProvider = NotifierProvider<UpdateNotifier, UpdateState>(
+  UpdateNotifier.new,
+);

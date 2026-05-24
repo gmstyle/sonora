@@ -7,7 +7,13 @@ import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/player_error_listener.dart';
 
-final _icons = const [Icons.home, Icons.search, Icons.library_music, Icons.download, Icons.settings];
+final _icons = const [
+  Icons.home,
+  Icons.search,
+  Icons.library_music,
+  Icons.download,
+  Icons.settings,
+];
 
 class MobileShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
@@ -31,22 +37,25 @@ class MobileShell extends ConsumerWidget {
         ],
       ),
       bottomNavigationBar: Builder(
-          builder: (context) {
-            final l10n = AppLocalizations.of(context)!;
-            final labels = [l10n.home, l10n.search, l10n.library, l10n.downloads, l10n.settingsLabel];
-            return NavigationBar(
-              selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: (index) => navigationShell.goBranch(index),
-              destinations: [
-                for (var i = 0; i < _icons.length; i++)
-                  NavigationDestination(
-                    icon: Icon(_icons[i]),
-                    label: labels[i],
-                  ),
-              ],
-            );
-          },
-        ),
+        builder: (context) {
+          final l10n = AppLocalizations.of(context)!;
+          final labels = [
+            l10n.home,
+            l10n.search,
+            l10n.library,
+            l10n.downloads,
+            l10n.settingsLabel,
+          ];
+          return NavigationBar(
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: (index) => navigationShell.goBranch(index),
+            destinations: [
+              for (var i = 0; i < _icons.length; i++)
+                NavigationDestination(icon: Icon(_icons[i]), label: labels[i]),
+            ],
+          );
+        },
+      ),
     );
   }
 }

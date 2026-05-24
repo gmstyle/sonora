@@ -5,7 +5,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme: dynamicColorScheme ??
+      colorScheme:
+          dynamicColorScheme ??
           ColorScheme.fromSeed(
             seedColor: Colors.indigo,
             brightness: Brightness.light,
@@ -17,7 +18,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: dynamicColorScheme ??
+      colorScheme:
+          dynamicColorScheme ??
           ColorScheme.fromSeed(
             seedColor: Colors.indigo,
             brightness: Brightness.dark,

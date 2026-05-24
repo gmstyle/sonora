@@ -32,26 +32,21 @@ BackupData deserializeBackup(String json) {
   final map = jsonDecode(json) as Map<String, dynamic>;
   return BackupData(
     likedSongs:
-        (map['likedSongs'] as List<dynamic>?)
-                ?.cast<Map<String, dynamic>>() ??
-            [],
+        (map['likedSongs'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
+        [],
     followedArtists:
         (map['followedArtists'] as List<dynamic>?)
-                ?.cast<Map<String, dynamic>>() ??
-            [],
+            ?.cast<Map<String, dynamic>>() ??
+        [],
     playlists:
-        (map['playlists'] as List<dynamic>?)
-                ?.cast<Map<String, dynamic>>() ??
-            [],
+        (map['playlists'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
+        [],
     playlistEntries:
-        (map['playlistEntries'] as Map<String, dynamic>?)
-                ?.map(
-                  (k, v) => MapEntry(
-                    k,
-                    (v as List<dynamic>).cast<Map<String, dynamic>>(),
-                  ),
-                ) ??
-            {},
+        (map['playlistEntries'] as Map<String, dynamic>?)?.map(
+          (k, v) =>
+              MapEntry(k, (v as List<dynamic>).cast<Map<String, dynamic>>()),
+        ) ??
+        {},
     settings: map['settings'] as Map<String, dynamic>?,
   );
 }

@@ -31,8 +31,10 @@ import '../../../l10n/app_localizations.dart';
 // TODO: remove once all LikedSongModel rows in the local DB have
 // non-null artistId/albumId (enrichment backfill completed).
 
-final _songFullProvider =
-    FutureProvider.family<SongFull, String>((ref, videoId) {
+final _songFullProvider = FutureProvider.family<SongFull, String>((
+  ref,
+  videoId,
+) {
   final repo = ref.watch(musicRepositoryProvider);
   return repo.getSong(videoId);
 });
@@ -193,7 +195,8 @@ class _SongContextMenuSheet extends ConsumerWidget {
     // TODO: remove once enrichment backfill is complete — resolvedArtistId
     //       will always equal artistId (the constructor field).
     final songAsync = ref.watch(_songFullProvider(videoId));
-    final resolvedArtistId = artistId ?? songAsync.asData?.value.artist.artistId;
+    final resolvedArtistId =
+        artistId ?? songAsync.asData?.value.artist.artistId;
     // TODO: remove ref.listen block once enrichment backfill is complete.
     ref.listen(_songFullProvider(videoId), (_, next) {
       if (next is AsyncData && artistId == null) {
@@ -201,10 +204,9 @@ class _SongContextMenuSheet extends ConsumerWidget {
         if (data == null) return;
         final fullId = data.artist.artistId;
         if (fullId != null) {
-          ref.read(libraryNotifierProvider.notifier).updateLikedSongMetadata(
-            videoId,
-            artistId: fullId,
-          );
+          ref
+              .read(libraryNotifierProvider.notifier)
+              .updateLikedSongMetadata(videoId, artistId: fullId);
         }
       }
     });

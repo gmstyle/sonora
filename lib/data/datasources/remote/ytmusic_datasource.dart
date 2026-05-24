@@ -54,8 +54,7 @@ class YtmusicDatasource {
   Future<List<UpNextsDetails>> getUpNexts(String videoId) =>
       client.getUpNexts(videoId);
 
-  Future<ArtistFull> getArtist(String artistId) =>
-      client.getArtist(artistId);
+  Future<ArtistFull> getArtist(String artistId) => client.getArtist(artistId);
 
   Future<List<SongDetailed>> getArtistSongs(String artistId) =>
       client.getArtistSongs(artistId);

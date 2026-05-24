@@ -15,10 +15,12 @@ class _PlayerErrorListenerState extends ConsumerState<PlayerErrorListener> {
   @override
   Widget build(BuildContext context) {
     ref.listen(playerStateProvider, (prev, next) {
-      if (next.hasError && next.errorMessage != null && prev?.errorMessage != next.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage!)),
-        );
+      if (next.hasError &&
+          next.errorMessage != null &&
+          prev?.errorMessage != next.errorMessage) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
       }
     });
     return const SizedBox.shrink();

@@ -116,10 +116,7 @@ class _WaveformPainter extends CustomPainter {
       if (fraction < progress) {
         canvas.drawRRect(rect, Paint()..color = color);
       } else {
-        canvas.drawRRect(
-          rect,
-          Paint()..color = color.withValues(alpha: 0.24),
-        );
+        canvas.drawRRect(rect, Paint()..color = color.withValues(alpha: 0.24));
       }
     }
   }

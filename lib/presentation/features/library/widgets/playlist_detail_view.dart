@@ -56,7 +56,8 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
             ),
         error:
             (e, _) => ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadPlaylistEntries,
+              message:
+                  AppLocalizations.of(context)!.failedToLoadPlaylistEntries,
               onRetry:
                   () => ref.invalidate(
                     playlistEntriesProvider(widget.playlist.id),

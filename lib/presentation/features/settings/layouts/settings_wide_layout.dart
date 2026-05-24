@@ -13,7 +13,10 @@ class SettingsWideLayout extends ConsumerWidget {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.appearance, style: theme.textTheme.titleLarge),
+        title: Text(
+          AppLocalizations.of(context)!.appearance,
+          style: theme.textTheme.titleLarge,
+        ),
         centerTitle: false,
       ),
       body: Row(
@@ -26,10 +29,7 @@ class SettingsWideLayout extends ConsumerWidget {
               child: const SettingsScreenContent(),
             ),
           ),
-          Container(
-            width: 1,
-            color: theme.colorScheme.outlineVariant,
-          ),
+          Container(width: 1, color: theme.colorScheme.outlineVariant),
           const Expanded(flex: 1, child: _InfoPanel()),
         ],
       ),
@@ -50,10 +50,7 @@ class _InfoPanel extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Current Configuration',
-            style: theme.textTheme.titleMedium,
-          ),
+          Text('Current Configuration', style: theme.textTheme.titleMedium),
           const SizedBox(height: 16),
           _infoRow(theme, 'Theme', settings.themeMode.name),
           _infoRow(

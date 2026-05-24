@@ -28,13 +28,15 @@ void main() {
 
   group('LibraryDao', () {
     test('insert and retrieve liked song', () async {
-      await libraryDao.insertLikedSong(LikedSongsCompanion(
-        videoId: Value('test_video'),
-        title: Value('Test Song'),
-        artist: Value('Test Artist'),
-        thumbnailUrl: Value('https://example.com/thumb.jpg'),
-        addedAt: Value(DateTime.now()),
-      ));
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('test_video'),
+          title: Value('Test Song'),
+          artist: Value('Test Artist'),
+          thumbnailUrl: Value('https://example.com/thumb.jpg'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
 
       final songs = await libraryDao.getAllLikedSongs();
       expect(songs.length, 1);
@@ -48,18 +50,22 @@ void main() {
     });
 
     test('getLikedSong returns the correct song', () async {
-      await libraryDao.insertLikedSong(LikedSongsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Song 1'),
-        artist: Value('Artist 1'),
-        addedAt: Value(DateTime.now()),
-      ));
-      await libraryDao.insertLikedSong(LikedSongsCompanion(
-        videoId: Value('video_2'),
-        title: Value('Song 2'),
-        artist: Value('Artist 2'),
-        addedAt: Value(DateTime.now()),
-      ));
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Song 1'),
+          artist: Value('Artist 1'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('video_2'),
+          title: Value('Song 2'),
+          artist: Value('Artist 2'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
 
       final song = await libraryDao.getLikedSong('video_1');
       expect(song, isNotNull);
@@ -71,18 +77,22 @@ void main() {
     });
 
     test('insert likesong upsert on conflict', () async {
-      await libraryDao.insertLikedSong(LikedSongsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Original'),
-        artist: Value('Artist'),
-        addedAt: Value(DateTime.now()),
-      ));
-      await libraryDao.insertLikedSong(LikedSongsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Updated'),
-        artist: Value('Artist'),
-        addedAt: Value(DateTime.now()),
-      ));
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Original'),
+          artist: Value('Artist'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Updated'),
+          artist: Value('Artist'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
 
       final songs = await libraryDao.getAllLikedSongs();
       expect(songs.length, 1);
@@ -90,12 +100,14 @@ void main() {
     });
 
     test('delete liked song', () async {
-      await libraryDao.insertLikedSong(LikedSongsCompanion(
-        videoId: Value('test_video'),
-        title: Value('Test Song'),
-        artist: Value('Test Artist'),
-        addedAt: Value(DateTime.now()),
-      ));
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('test_video'),
+          title: Value('Test Song'),
+          artist: Value('Test Artist'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
 
       await libraryDao.deleteLikedSong('test_video');
       final songs = await libraryDao.getAllLikedSongs();
@@ -109,11 +121,13 @@ void main() {
     });
 
     test('insert and retrieve followed artist', () async {
-      await libraryDao.insertFollowedArtist(FollowedArtistsCompanion(
-        artistId: Value('artist_1'),
-        name: Value('Test Artist'),
-        thumbnailUrl: Value('https://example.com/artist.jpg'),
-      ));
+      await libraryDao.insertFollowedArtist(
+        FollowedArtistsCompanion(
+          artistId: Value('artist_1'),
+          name: Value('Test Artist'),
+          thumbnailUrl: Value('https://example.com/artist.jpg'),
+        ),
+      );
 
       final artists = await libraryDao.getAllFollowedArtists();
       expect(artists.length, 1);
@@ -126,14 +140,18 @@ void main() {
     });
 
     test('getFollowedArtist returns the correct artist', () async {
-      await libraryDao.insertFollowedArtist(FollowedArtistsCompanion(
-        artistId: Value('artist_1'),
-        name: Value('Artist 1'),
-      ));
-      await libraryDao.insertFollowedArtist(FollowedArtistsCompanion(
-        artistId: Value('artist_2'),
-        name: Value('Artist 2'),
-      ));
+      await libraryDao.insertFollowedArtist(
+        FollowedArtistsCompanion(
+          artistId: Value('artist_1'),
+          name: Value('Artist 1'),
+        ),
+      );
+      await libraryDao.insertFollowedArtist(
+        FollowedArtistsCompanion(
+          artistId: Value('artist_2'),
+          name: Value('Artist 2'),
+        ),
+      );
 
       final artist = await libraryDao.getFollowedArtist('artist_1');
       expect(artist, isNotNull);
@@ -144,10 +162,12 @@ void main() {
     });
 
     test('delete followed artist', () async {
-      await libraryDao.insertFollowedArtist(FollowedArtistsCompanion(
-        artistId: Value('artist_1'),
-        name: Value('Test Artist'),
-      ));
+      await libraryDao.insertFollowedArtist(
+        FollowedArtistsCompanion(
+          artistId: Value('artist_1'),
+          name: Value('Test Artist'),
+        ),
+      );
 
       await libraryDao.deleteFollowedArtist('artist_1');
       final artists = await libraryDao.getAllFollowedArtists();
@@ -161,14 +181,18 @@ void main() {
     });
 
     test('followed artist upsert on conflict', () async {
-      await libraryDao.insertFollowedArtist(FollowedArtistsCompanion(
-        artistId: Value('artist_1'),
-        name: Value('Original'),
-      ));
-      await libraryDao.insertFollowedArtist(FollowedArtistsCompanion(
-        artistId: Value('artist_1'),
-        name: Value('Updated'),
-      ));
+      await libraryDao.insertFollowedArtist(
+        FollowedArtistsCompanion(
+          artistId: Value('artist_1'),
+          name: Value('Original'),
+        ),
+      );
+      await libraryDao.insertFollowedArtist(
+        FollowedArtistsCompanion(
+          artistId: Value('artist_1'),
+          name: Value('Updated'),
+        ),
+      );
 
       final artists = await libraryDao.getAllFollowedArtists();
       expect(artists.length, 1);
@@ -177,14 +201,16 @@ void main() {
 
     group('LikedAlbums', () {
       test('insert and retrieve liked album', () async {
-        await libraryDao.insertLikedAlbum(LikedAlbumsCompanion(
-          albumId: Value('album_1'),
-          name: Value('Test Album'),
-          artistName: Value('Test Artist'),
-          thumbnailUrl: Value('https://example.com/album.jpg'),
-          year: Value(2024),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedAlbum(
+          LikedAlbumsCompanion(
+            albumId: Value('album_1'),
+            name: Value('Test Album'),
+            artistName: Value('Test Artist'),
+            thumbnailUrl: Value('https://example.com/album.jpg'),
+            year: Value(2024),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         final albums = await libraryDao.getAllLikedAlbums();
         expect(albums.length, 1);
@@ -199,12 +225,14 @@ void main() {
       });
 
       test('getLikedAlbum returns correct album', () async {
-        await libraryDao.insertLikedAlbum(LikedAlbumsCompanion(
-          albumId: Value('album_1'),
-          name: Value('Album 1'),
-          artistName: Value('Artist'),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedAlbum(
+          LikedAlbumsCompanion(
+            albumId: Value('album_1'),
+            name: Value('Album 1'),
+            artistName: Value('Artist'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         final album = await libraryDao.getLikedAlbum('album_1');
         expect(album, isNotNull);
@@ -215,12 +243,14 @@ void main() {
       });
 
       test('delete liked album', () async {
-        await libraryDao.insertLikedAlbum(LikedAlbumsCompanion(
-          albumId: Value('album_1'),
-          name: Value('Test Album'),
-          artistName: Value('Artist'),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedAlbum(
+          LikedAlbumsCompanion(
+            albumId: Value('album_1'),
+            name: Value('Test Album'),
+            artistName: Value('Artist'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         await libraryDao.deleteLikedAlbum('album_1');
         final albums = await libraryDao.getAllLikedAlbums();
@@ -228,18 +258,22 @@ void main() {
       });
 
       test('liked album upsert on conflict', () async {
-        await libraryDao.insertLikedAlbum(LikedAlbumsCompanion(
-          albumId: Value('album_1'),
-          name: Value('Original'),
-          artistName: Value('Artist'),
-          addedAt: Value(DateTime.now()),
-        ));
-        await libraryDao.insertLikedAlbum(LikedAlbumsCompanion(
-          albumId: Value('album_1'),
-          name: Value('Updated'),
-          artistName: Value('Artist'),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedAlbum(
+          LikedAlbumsCompanion(
+            albumId: Value('album_1'),
+            name: Value('Original'),
+            artistName: Value('Artist'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
+        await libraryDao.insertLikedAlbum(
+          LikedAlbumsCompanion(
+            albumId: Value('album_1'),
+            name: Value('Updated'),
+            artistName: Value('Artist'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         final albums = await libraryDao.getAllLikedAlbums();
         expect(albums.length, 1);
@@ -249,13 +283,15 @@ void main() {
 
     group('LikedPlaylists', () {
       test('insert and retrieve liked playlist', () async {
-        await libraryDao.insertLikedPlaylist(LikedPlaylistsCompanion(
-          playlistId: Value('playlist_1'),
-          name: Value('Test Playlist'),
-          thumbnailUrl: Value('https://example.com/playlist.jpg'),
-          videoCount: Value(10),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedPlaylist(
+          LikedPlaylistsCompanion(
+            playlistId: Value('playlist_1'),
+            name: Value('Test Playlist'),
+            thumbnailUrl: Value('https://example.com/playlist.jpg'),
+            videoCount: Value(10),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         final playlists = await libraryDao.getAllLikedPlaylists();
         expect(playlists.length, 1);
@@ -264,18 +300,22 @@ void main() {
         expect(playlists.first.videoCount, 10);
       });
 
-      test('getLikedPlaylist returns null for non-existing playlistId', () async {
-        final playlist =
-            await libraryDao.getLikedPlaylist('nonexistent');
-        expect(playlist, isNull);
-      });
+      test(
+        'getLikedPlaylist returns null for non-existing playlistId',
+        () async {
+          final playlist = await libraryDao.getLikedPlaylist('nonexistent');
+          expect(playlist, isNull);
+        },
+      );
 
       test('getLikedPlaylist returns correct playlist', () async {
-        await libraryDao.insertLikedPlaylist(LikedPlaylistsCompanion(
-          playlistId: Value('p1'),
-          name: Value('Playlist 1'),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedPlaylist(
+          LikedPlaylistsCompanion(
+            playlistId: Value('p1'),
+            name: Value('Playlist 1'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         final playlist = await libraryDao.getLikedPlaylist('p1');
         expect(playlist, isNotNull);
@@ -286,11 +326,13 @@ void main() {
       });
 
       test('delete liked playlist', () async {
-        await libraryDao.insertLikedPlaylist(LikedPlaylistsCompanion(
-          playlistId: Value('playlist_1'),
-          name: Value('Test Playlist'),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedPlaylist(
+          LikedPlaylistsCompanion(
+            playlistId: Value('playlist_1'),
+            name: Value('Test Playlist'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         await libraryDao.deleteLikedPlaylist('playlist_1');
         final playlists = await libraryDao.getAllLikedPlaylists();
@@ -298,16 +340,20 @@ void main() {
       });
 
       test('liked playlist upsert on conflict', () async {
-        await libraryDao.insertLikedPlaylist(LikedPlaylistsCompanion(
-          playlistId: Value('p1'),
-          name: Value('Original'),
-          addedAt: Value(DateTime.now()),
-        ));
-        await libraryDao.insertLikedPlaylist(LikedPlaylistsCompanion(
-          playlistId: Value('p1'),
-          name: Value('Updated'),
-          addedAt: Value(DateTime.now()),
-        ));
+        await libraryDao.insertLikedPlaylist(
+          LikedPlaylistsCompanion(
+            playlistId: Value('p1'),
+            name: Value('Original'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
+        await libraryDao.insertLikedPlaylist(
+          LikedPlaylistsCompanion(
+            playlistId: Value('p1'),
+            name: Value('Updated'),
+            addedAt: Value(DateTime.now()),
+          ),
+        );
 
         final playlists = await libraryDao.getAllLikedPlaylists();
         expect(playlists.length, 1);
@@ -338,8 +384,10 @@ void main() {
 
   group('PlaylistsDao', () {
     test('create and retrieve playlist', () async {
-      await playlistsDao.createPlaylist('My Playlist',
-          description: 'A test playlist');
+      await playlistsDao.createPlaylist(
+        'My Playlist',
+        description: 'A test playlist',
+      );
       final playlists = await playlistsDao.getAllPlaylists();
       expect(playlists.length, 1);
       expect(playlists.first.name, 'My Playlist');
@@ -352,8 +400,7 @@ void main() {
     });
 
     test('getPlaylist returns correct playlist', () async {
-      final id =
-          await playlistsDao.createPlaylist('Test', description: 'desc');
+      final id = await playlistsDao.createPlaylist('Test', description: 'desc');
       final playlist = await playlistsDao.getPlaylist(id);
       expect(playlist, isNotNull);
       expect(playlist!.name, 'Test');
@@ -368,16 +415,20 @@ void main() {
     });
 
     test('updatePlaylist updates description only', () async {
-      final id =
-          await playlistsDao.createPlaylist('Test', description: 'Original');
+      final id = await playlistsDao.createPlaylist(
+        'Test',
+        description: 'Original',
+      );
       await playlistsDao.updatePlaylist(id, description: 'Updated');
       final playlist = await playlistsDao.getPlaylist(id);
       expect(playlist!.description, 'Updated');
     });
 
     test('updatePlaylist updates both name and description', () async {
-      final id = await playlistsDao.createPlaylist('Original Name',
-          description: 'Original Desc');
+      final id = await playlistsDao.createPlaylist(
+        'Original Name',
+        description: 'Original Desc',
+      );
       await playlistsDao.updatePlaylist(
         id,
         name: 'New Name',
@@ -429,11 +480,7 @@ void main() {
       await playlistsDao.addEntry(id, 'video_b', 1);
       await playlistsDao.addEntry(id, 'video_c', 2);
 
-      await playlistsDao.reorderEntries(id, [
-        'video_c',
-        'video_a',
-        'video_b',
-      ]);
+      await playlistsDao.reorderEntries(id, ['video_c', 'video_a', 'video_b']);
       final entries = await playlistsDao.getPlaylistEntries(id);
       expect(entries.length, 3);
       expect(entries[0].videoId, 'video_c');
@@ -461,13 +508,15 @@ void main() {
 
   group('DownloadsDao', () {
     test('insert and retrieve download', () async {
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Test Song'),
-        artist: Value('Test Artist'),
-        status: Value('pending'),
-        thumbnailUrl: Value('https://example.com/thumb.jpg'),
-      ));
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Test Song'),
+          artist: Value('Test Artist'),
+          status: Value('pending'),
+          thumbnailUrl: Value('https://example.com/thumb.jpg'),
+        ),
+      );
 
       final downloads = await downloadsDao.getAllDownloads();
       expect(downloads.length, 1);
@@ -481,18 +530,22 @@ void main() {
     });
 
     test('getDownload returns correct download', () async {
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Song 1'),
-        artist: Value('Artist 1'),
-        status: Value('downloading'),
-      ));
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_2'),
-        title: Value('Song 2'),
-        artist: Value('Artist 2'),
-        status: Value('completed'),
-      ));
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Song 1'),
+          artist: Value('Artist 1'),
+          status: Value('downloading'),
+        ),
+      );
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_2'),
+          title: Value('Song 2'),
+          artist: Value('Artist 2'),
+          status: Value('completed'),
+        ),
+      );
 
       final d1 = await downloadsDao.getDownload('video_1');
       expect(d1, isNotNull);
@@ -504,12 +557,14 @@ void main() {
     });
 
     test('update download status', () async {
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Test Song'),
-        artist: Value('Test Artist'),
-        status: Value('pending'),
-      ));
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Test Song'),
+          artist: Value('Test Artist'),
+          status: Value('pending'),
+        ),
+      );
 
       await downloadsDao.updateStatus('video_1', 'completed');
       final download = await downloadsDao.getDownload('video_1');
@@ -521,18 +576,22 @@ void main() {
     });
 
     test('delete download removes the record', () async {
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Song 1'),
-        artist: Value('Artist 1'),
-        status: Value('completed'),
-      ));
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_2'),
-        title: Value('Song 2'),
-        artist: Value('Artist 2'),
-        status: Value('pending'),
-      ));
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Song 1'),
+          artist: Value('Artist 1'),
+          status: Value('completed'),
+        ),
+      );
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_2'),
+          title: Value('Song 2'),
+          artist: Value('Artist 2'),
+          status: Value('pending'),
+        ),
+      );
 
       await downloadsDao.deleteDownload('video_1');
       final downloads = await downloadsDao.getAllDownloads();
@@ -550,18 +609,22 @@ void main() {
     });
 
     test('upsert download replaces existing', () async {
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Original'),
-        artist: Value('Artist'),
-        status: Value('pending'),
-      ));
-      await downloadsDao.insertDownload(DownloadsCompanion(
-        videoId: Value('video_1'),
-        title: Value('Original'),
-        artist: Value('Artist'),
-        status: Value('completed'),
-      ));
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Original'),
+          artist: Value('Artist'),
+          status: Value('pending'),
+        ),
+      );
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Original'),
+          artist: Value('Artist'),
+          status: Value('completed'),
+        ),
+      );
 
       final download = await downloadsDao.getDownload('video_1');
       expect(download!.status, 'completed');
@@ -608,8 +671,12 @@ void main() {
     });
 
     test('recordPlay with thumbnail URL', () async {
-      await historyDao.recordPlay('video_1', 'Song 1', 'Artist 1',
-          thumbnailUrl: 'https://example.com/thumb.jpg');
+      await historyDao.recordPlay(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        thumbnailUrl: 'https://example.com/thumb.jpg',
+      );
 
       final history = await historyDao.getRecentHistory();
       expect(history.length, 1);
@@ -617,8 +684,12 @@ void main() {
     });
 
     test('recordPlay thumbnail persists across replays', () async {
-      await historyDao.recordPlay('video_1', 'Song 1', 'Artist 1',
-          thumbnailUrl: 'https://example.com/thumb.jpg');
+      await historyDao.recordPlay(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        thumbnailUrl: 'https://example.com/thumb.jpg',
+      );
       await historyDao.recordPlay('video_1', 'Song 1', 'Artist 1');
 
       final history = await historyDao.getRecentHistory();
@@ -633,8 +704,7 @@ void main() {
 
     test('getRecentHistory respects limit', () async {
       for (var i = 0; i < 10; i++) {
-        await historyDao
-            .recordPlay('video_$i', 'Song $i', 'Artist $i');
+        await historyDao.recordPlay('video_$i', 'Song $i', 'Artist $i');
       }
 
       final limited = await historyDao.getRecentHistory(limit: 3);

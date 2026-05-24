@@ -39,8 +39,7 @@ class PlayerSheet extends ConsumerWidget {
           },
           onPlayPause:
               () => ref.read(playerStateProvider.notifier).togglePlayPause(),
-          onSkipNext:
-              () => ref.read(playerStateProvider.notifier).skipToNext(),
+          onSkipNext: () => ref.read(playerStateProvider.notifier).skipToNext(),
         ),
       ),
     );

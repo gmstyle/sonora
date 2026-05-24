@@ -58,8 +58,7 @@ class MusicRepositoryImpl implements MusicRepository {
       _ytmusic.getUpNexts(videoId);
 
   @override
-  Future<ArtistFull> getArtist(String artistId) =>
-      _ytmusic.getArtist(artistId);
+  Future<ArtistFull> getArtist(String artistId) => _ytmusic.getArtist(artistId);
 
   @override
   Future<List<SongDetailed>> getArtistSongs(String artistId) =>
@@ -85,6 +84,5 @@ class MusicRepositoryImpl implements MusicRepository {
       _ytmusic.getPlaylistVideos(playlistId);
 
   @override
-  Future<String> getStreamUrl(String videoId) =>
-      _stream.getStreamUrl(videoId);
+  Future<String> getStreamUrl(String videoId) => _stream.getStreamUrl(videoId);
 }
