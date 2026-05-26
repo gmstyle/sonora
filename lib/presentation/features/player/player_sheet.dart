@@ -31,15 +31,42 @@ class PlayerSheet extends ConsumerWidget {
           isVideo: isVideo,
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
+              PageRouteBuilder(
+                pageBuilder:
+                    (context, animation, secondaryAnimation) =>
+                        const FullPlayerContent(),
+                transitionsBuilder: (
+                  context,
+                  animation,
+                  secondaryAnimation,
+                  child,
+                ) {
+                  const begin = Offset(0.0, 1.0);
+                  const end = Offset.zero;
+                  const curve = Curves.easeOutCubic;
+
+                  var tween = Tween(
+                    begin: begin,
+                    end: end,
+                  ).chain(CurveTween(curve: curve));
+                  var offsetAnimation = animation.drive(tween);
+
+                  return SlideTransition(
+                    position: offsetAnimation,
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 350),
+                reverseTransitionDuration: const Duration(milliseconds: 300),
                 fullscreenDialog: true,
-                builder: (_) => const FullPlayerContent(),
               ),
             );
           },
           onPlayPause:
               () => ref.read(playerStateProvider.notifier).togglePlayPause(),
           onSkipNext: () => ref.read(playerStateProvider.notifier).skipToNext(),
+          onSkipPrevious:
+              () => ref.read(playerStateProvider.notifier).skipToPrevious(),
         ),
       ),
     );

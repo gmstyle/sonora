@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -16,6 +17,8 @@ import 'widgets/player_controls.dart';
 import 'widgets/progress_bar_widget.dart';
 import 'widgets/queue_sheet.dart';
 import 'widgets/lyrics_view.dart';
+import 'package:marquee/marquee.dart';
+import '../../providers/palette_provider.dart';
 
 enum PlayerSubView { none, lyrics, queue }
 
@@ -28,6 +31,11 @@ class FullPlayerContent extends ConsumerStatefulWidget {
 
 class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   PlayerSubView _activeView = PlayerSubView.none;
+
+  // Updated every build() from paletteNotifierProvider — used by
+  // _buildPlayerBackground, _artwork, and sub-layouts.
+  Color _dominantColor = Colors.black87;
+  bool _isDark = true;
 
   @override
   Widget build(BuildContext context) {
@@ -44,72 +52,87 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final padding = MediaQuery.of(context).viewPadding;
     final hasSleepTimer = playerState.sleepTimerRemaining != null;
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-              theme.colorScheme.surface,
-            ],
-          ),
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final availableHeight =
-                constraints.maxHeight - padding.top - padding.bottom;
-            final availableWidth = constraints.maxWidth;
+    // ── Palette ───────────────────────────────────────────────────
+    // Read cached palette for the current song. If not yet extracted,
+    // schedule extraction after this frame (safe: PaletteNotifier guards
+    // against duplicate work with containsKey).
+    final paletteMap = ref.watch(paletteNotifierProvider);
+    final paletteData = paletteMap[videoId];
+    _dominantColor =
+        paletteData?.dominantColor ?? theme.colorScheme.primaryContainer;
+    _isDark = paletteData?.isDark ?? true;
+    if (paletteData == null && artUrl != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref
+              .read(paletteNotifierProvider.notifier)
+              .extractPalette(videoId, artUrl);
+        }
+      });
+    }
 
-            if (constraints.maxWidth < kCompactBreakpoint) {
-              return _mobileLayout(
-                theme,
-                currentSong,
-                isVideo,
-                videoId,
-                artUrl,
-                albumName,
-                playerState,
-                playerNotifier,
-                hasSleepTimer,
-                availableHeight,
-                availableWidth,
-                padding.bottom,
-              );
-            } else if (constraints.maxWidth < kExpandedBreakpoint) {
-              return _tabletLayout(
-                theme,
-                currentSong,
-                isVideo,
-                videoId,
-                artUrl,
-                albumName,
-                playerState,
-                playerNotifier,
-                hasSleepTimer,
-                availableHeight,
-                availableWidth,
-                padding.bottom,
-              );
-            } else {
-              return _wideLayout(
-                theme,
-                currentSong,
-                isVideo,
-                videoId,
-                artUrl,
-                albumName,
-                playerState,
-                playerNotifier,
-                hasSleepTimer,
-                availableHeight,
-                availableWidth,
-                padding.bottom,
-              );
-            }
-          },
-        ),
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Layer 1 — blurred artwork + animated gradient overlay.
+          Positioned.fill(child: _buildPlayerBackground(artUrl, theme)),
+          // Layer 2 — content (layouts are transparent over the background).
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final availableHeight =
+                  constraints.maxHeight - padding.top - padding.bottom;
+              final availableWidth = constraints.maxWidth;
+
+              if (constraints.maxWidth < kCompactBreakpoint) {
+                return _mobileLayout(
+                  theme,
+                  currentSong,
+                  isVideo,
+                  videoId,
+                  artUrl,
+                  albumName,
+                  playerState,
+                  playerNotifier,
+                  hasSleepTimer,
+                  availableHeight,
+                  availableWidth,
+                  padding.bottom,
+                );
+              } else if (constraints.maxWidth < kExpandedBreakpoint) {
+                return _tabletLayout(
+                  theme,
+                  currentSong,
+                  isVideo,
+                  videoId,
+                  artUrl,
+                  albumName,
+                  playerState,
+                  playerNotifier,
+                  hasSleepTimer,
+                  availableHeight,
+                  availableWidth,
+                  padding.bottom,
+                );
+              } else {
+                return _wideLayout(
+                  theme,
+                  currentSong,
+                  isVideo,
+                  videoId,
+                  artUrl,
+                  albumName,
+                  playerState,
+                  playerNotifier,
+                  hasSleepTimer,
+                  availableHeight,
+                  availableWidth,
+                  padding.bottom,
+                );
+              }
+            },
+          ),
+        ],
       ),
     );
   }
@@ -131,44 +154,65 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     double bottomInset,
   ) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            _topBar(albumName),
-            const SizedBox(height: 24),
-            Expanded(
-              child:
-                  _activeView == PlayerSubView.none
-                      ? Center(
-                        child: _artwork(
-                          artUrl,
-                          availWidth - 48,
-                          isSwitching: playerState.isSwitching,
-                        ),
-                      )
-                      : _activeView == PlayerSubView.lyrics
-                      ? LyricsView(
-                        videoId: videoId,
-                        position: playerState.position,
-                      )
-                      : const QueueSheet(),
-            ),
-            const SizedBox(height: 32),
-            _trackInfoAndLikeRow(currentSong, isVideo, albumName),
-            const SizedBox(height: 16),
-            _progressBar(playerState, videoId),
-            const SizedBox(height: 16),
-            const PlayerControls(),
-            const SizedBox(height: 8),
-            _bottomActionsRow(
-              isVideo,
-              playerState.sleepTimerRemaining != null,
-              playerNotifier,
-            ),
-            const SizedBox(height: 16),
-          ],
+      child: GestureDetector(
+        onVerticalDragEnd: (details) {
+          if (details.primaryVelocity != null &&
+              details.primaryVelocity! > 300) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            children: [
+              // Drag handle — visual affordance for the swipe-down gesture.
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 8, bottom: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.3,
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              _topBar(albumName),
+              const SizedBox(height: 24),
+              Expanded(
+                child:
+                    _activeView == PlayerSubView.none
+                        ? Center(
+                          child: _artwork(
+                            artUrl,
+                            availWidth - 48,
+                            isSwitching: playerState.isSwitching,
+                          ),
+                        )
+                        : _activeView == PlayerSubView.lyrics
+                        ? LyricsView(
+                          videoId: videoId,
+                          position: playerState.position,
+                        )
+                        : const QueueSheet(),
+              ),
+              const SizedBox(height: 32),
+              _trackInfoAndLikeRow(currentSong, isVideo, albumName),
+              const SizedBox(height: 16),
+              _progressBar(playerState, videoId),
+              const SizedBox(height: 16),
+              const PlayerControls(),
+              const SizedBox(height: 8),
+              _bottomActionsRow(
+                isVideo,
+                playerState.sleepTimerRemaining != null,
+                playerNotifier,
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -322,6 +366,59 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     );
   }
 
+  // ─── Background ──────────────────────────────────────────────
+
+  /// Two-layer background: blurred artwork image (Layer 1) covered by an
+  /// animated gradient overlay driven by [_dominantColor] (Layer 2).
+  /// The gradient fades from the dominant color (top) to the theme surface
+  /// color (bottom) to keep text and controls always readable.
+  Widget _buildPlayerBackground(String? artUrl, ThemeData theme) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Layer 1: artwork blurred to ∞ — acts as a "coloured wallpaper".
+        if (artUrl != null)
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            child: ImageFiltered(
+              key: ValueKey(artUrl),
+              imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: CachedNetworkImage(
+                imageUrl: artUrl,
+                fit: BoxFit.cover,
+                // Scale up slightly so blur doesn't show transparent edges.
+                alignment: Alignment.center,
+                placeholder: (_, _) => const ColoredBox(color: Colors.black),
+                errorWidget:
+                    (_, _, _) => const ColoredBox(color: Colors.black87),
+              ),
+            ),
+          )
+        else
+          const ColoredBox(color: Colors.black87),
+        // Layer 2: animated colour wash — transitions smoothly when song changes.
+        // When the dominant colour is light (_isDark == false), we increase the
+        // overlay alpha to preserve text readability (contrast adaptation).
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 700),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0.0, 0.55, 1.0],
+              colors: [
+                _dominantColor.withValues(alpha: _isDark ? 0.72 : 0.85),
+                _dominantColor.withValues(alpha: _isDark ? 0.45 : 0.62),
+                theme.colorScheme.surface.withValues(alpha: 0.95),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // ─── Shared Widgets ──────────────────────────────────────────
 
   Widget _topBar(String? albumName) {
@@ -382,19 +479,37 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     if (isSwitching) {
       content = const ShimmerLoading(variant: ShimmerVariant.artworkLarge);
     } else if (artUrl != null) {
-      content = CachedNetworkImage(
-        imageUrl: artUrl,
-        fit: BoxFit.cover,
-        placeholder:
-            (_, _) => Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      // AnimatedSwitcher crossfades to the new artwork when the song changes.
+      // Custom layoutBuilder with StackFit.expand ensures the crossfade Stack
+      // fills the SizedBox rather than shrinking to the image's natural size.
+      content = AnimatedSwitcher(
+        duration: const Duration(milliseconds: 400),
+        layoutBuilder:
+            (currentChild, previousChildren) => Stack(
+              fit: StackFit.expand,
+              alignment: Alignment.center,
+              children: [
+                ...previousChildren,
+                if (currentChild != null) currentChild,
+              ],
             ),
-        errorWidget:
-            (_, _, _) => Icon(
-              Icons.music_note,
-              size: 80,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+        child: CachedNetworkImage(
+          key: ValueKey(artUrl),
+          imageUrl: artUrl,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          placeholder:
+              (_, _) => Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+          errorWidget:
+              (_, _, _) => Icon(
+                Icons.music_note,
+                size: 80,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
       );
     } else {
       content = Container(
@@ -406,12 +521,22 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         ),
       );
     }
+    // Dynamic glow shadow: colour and intensity driven by the dominant palette
+    // colour of the current artwork instead of the fixed black shadow.
     return Hero(
       tag: 'player_art',
-      child: Material(
-        elevation: 8,
-        shadowColor: Colors.black45,
-        borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: _dominantColor.withValues(alpha: 0.55),
+              blurRadius: 32,
+              spreadRadius: 4,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
@@ -448,14 +573,40 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Flexible(
-                    child: Text(
-                      song.title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final titleStyle = theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                        );
+                        // Measure natural text width at single line.
+                        final tp = TextPainter(
+                          text: TextSpan(text: song.title, style: titleStyle),
+                          maxLines: 1,
+                          textDirection: TextDirection.ltr,
+                        )..layout(maxWidth: double.infinity);
+                        // Only activate Marquee when the title overflows.
+                        if (tp.width > constraints.maxWidth) {
+                          return SizedBox(
+                            height: 32,
+                            child: Marquee(
+                              text: song.title,
+                              style: titleStyle,
+                              blankSpace: 48.0,
+                              velocity: 40.0,
+                              pauseAfterRound: const Duration(seconds: 2),
+                              fadingEdgeStartFraction: 0.05,
+                              fadingEdgeEndFraction: 0.1,
+                            ),
+                          );
+                        }
+                        return Text(
+                          song.title,
+                          style: titleStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
                     ),
                   ),
                   if (isVideo) ...[

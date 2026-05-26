@@ -1,11 +1,13 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:audio_service/audio_service.dart';
 import '../../../providers/player_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PlayerControls extends ConsumerWidget {
-  const PlayerControls({super.key});
+  final Color? iconColor;
+
+  const PlayerControls({super.key, this.iconColor});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,7 +51,7 @@ class PlayerControls extends ConsumerWidget {
         color:
             isShuffle
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
+                : iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onPressed: notifier.toggleShuffle,
       tooltip:
@@ -66,7 +68,11 @@ class PlayerControls extends ConsumerWidget {
     bool disabled = false,
   }) {
     return IconButton(
-      icon: Icon(isNext ? Icons.skip_next : Icons.skip_previous, size: 32),
+      icon: Icon(
+        isNext ? Icons.skip_next : Icons.skip_previous,
+        size: 32,
+        color: iconColor,
+      ),
       onPressed:
           disabled
               ? null
@@ -80,18 +86,24 @@ class PlayerControls extends ConsumerWidget {
     PlayerNotifier notifier,
   ) {
     final isSwitching = state.isSwitching;
+    final primaryColor = iconColor ?? Theme.of(context).colorScheme.primary;
+    final onPrimaryColor =
+        iconColor != null
+            ? (ThemeData.estimateBrightnessForColor(iconColor!) ==
+                    Brightness.dark
+                ? Colors.white
+                : Colors.black)
+            : Theme.of(context).colorScheme.onPrimary;
+
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color:
-            isSwitching
-                ? Theme.of(context).colorScheme.primary.withAlpha(128)
-                : Theme.of(context).colorScheme.primary,
+        color: isSwitching ? primaryColor.withAlpha(128) : primaryColor,
       ),
       child: IconButton(
         icon: Icon(
           state.isPlaying ? Icons.pause : Icons.play_arrow,
-          color: Theme.of(context).colorScheme.onPrimary,
+          color: onPrimaryColor,
           size: 32,
         ),
         onPressed: isSwitching ? null : notifier.togglePlayPause,
@@ -123,7 +135,7 @@ class PlayerControls extends ConsumerWidget {
       default:
         icon = Icons.repeat;
         tooltip = AppLocalizations.of(context)!.repeatOff;
-        color = Theme.of(context).colorScheme.onSurfaceVariant;
+        color = iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant;
     }
 
     return IconButton(
