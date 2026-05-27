@@ -17,6 +17,7 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/artist_card.dart';
+import '../../shared/widgets/horizontal_scroll_row.dart';
 import 'providers/artist_provider.dart';
 
 class ArtistScreen extends ConsumerWidget {
@@ -153,24 +154,28 @@ class _ArtistContent extends ConsumerWidget {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
+                      child: HorizontalScrollRow(
                         padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.topAlbums.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final album = artist.topAlbums[index];
-                          return AlbumCard(
-                            albumId: album.albumId,
-                            name: album.name,
-                            artist: album.artist.name,
-                            thumbnailUrl:
-                                album.thumbnails.isNotEmpty
-                                    ? album.thumbnails.last.url
-                                    : null,
-                            year: album.year,
-                          );
-                        },
+                        builder: (context, controller) => ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          controller: controller,
+                          itemCount: artist.topAlbums.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final album = artist.topAlbums[index];
+                            return AlbumCard(
+                              albumId: album.albumId,
+                              name: album.name,
+                              artist: album.artist.name,
+                              thumbnailUrl:
+                                  album.thumbnails.isNotEmpty
+                                      ? album.thumbnails.last.url
+                                      : null,
+                              year: album.year,
+                            );
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -182,24 +187,28 @@ class _ArtistContent extends ConsumerWidget {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
+                      child: HorizontalScrollRow(
                         padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.topSingles.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final single = artist.topSingles[index];
-                          return AlbumCard(
-                            albumId: single.albumId,
-                            name: single.name,
-                            artist: single.artist.name,
-                            thumbnailUrl:
-                                single.thumbnails.isNotEmpty
-                                    ? single.thumbnails.last.url
-                                    : null,
-                            year: single.year,
-                          );
-                        },
+                        builder: (context, controller) => ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          controller: controller,
+                          itemCount: artist.topSingles.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final single = artist.topSingles[index];
+                            return AlbumCard(
+                              albumId: single.albumId,
+                              name: single.name,
+                              artist: single.artist.name,
+                              thumbnailUrl:
+                                  single.thumbnails.isNotEmpty
+                                      ? single.thumbnails.last.url
+                                      : null,
+                              year: single.year,
+                            );
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -228,27 +237,31 @@ class _ArtistContent extends ConsumerWidget {
                       title: AppLocalizations.of(context)!.similarArtists,
                     ),
                     const SizedBox(height: 8),
-                    SizedBox(
-                      height: 180,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.similarArtists.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final similar = artist.similarArtists[index];
-                          return ArtistCard(
-                            artistId: similar.artistId,
-                            name: similar.name,
-                            thumbnailUrl:
-                                similar.thumbnails.isNotEmpty
-                                    ? similar.thumbnails.last.url
-                                    : null,
-                            monthlyListeners: similar.monthlyListeners,
-                          );
-                        },
-                      ),
-                    ),
+SizedBox(
+                       height: 180,
+                       child: HorizontalScrollRow(
+                         padding: const EdgeInsets.only(right: 16),
+                         builder: (context, controller) => ListView.separated(
+                           scrollDirection: Axis.horizontal,
+                           padding: const EdgeInsets.only(right: 16),
+                           controller: controller,
+                           itemCount: artist.similarArtists.length,
+                           separatorBuilder: (_, _) => const SizedBox(width: 12),
+                           itemBuilder: (context, index) {
+                             final similar = artist.similarArtists[index];
+                             return ArtistCard(
+                               artistId: similar.artistId,
+                               name: similar.name,
+                               thumbnailUrl:
+                                   similar.thumbnails.isNotEmpty
+                                       ? similar.thumbnails.last.url
+                                       : null,
+                               monthlyListeners: similar.monthlyListeners,
+                             );
+                           },
+                         ),
+                       ),
+                     ),
                     const SizedBox(height: 24),
                   ],
                 ],
