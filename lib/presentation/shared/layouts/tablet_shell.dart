@@ -6,6 +6,7 @@ import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/player_error_listener.dart';
+import '../widgets/sonora_logo.dart';
 
 const _icons = [
   Icons.home,
@@ -33,7 +34,19 @@ class TabletShell extends ConsumerWidget {
             labelType: NavigationRailLabelType.all,
             leading: Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Icon(Icons.music_note, size: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SonoraLogo.icon(36),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppLocalizations.of(context)!.appTitle,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
             destinations: [
               for (var i = 0; i < _icons.length; i++)

@@ -6,6 +6,7 @@ import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/player_error_listener.dart';
+import '../widgets/sonora_logo.dart';
 
 const _icons = [
   Icons.home,
@@ -34,20 +35,7 @@ class WideShell extends ConsumerWidget {
               child: Column(
                 children: [
                   DrawerHeader(
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.music_note,
-                          size: 28,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          AppLocalizations.of(context)!.appTitle,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ],
-                    ),
+                    child: const SonoraLogo.full(44),
                   ),
                   Expanded(
                     child: ListView(

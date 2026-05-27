@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/error_retry_widget.dart';
+import '../../../shared/widgets/sonora_logo.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_section_renderer.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -17,9 +18,17 @@ class HomeMobileLayout extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          AppLocalizations.of(context)!.appTitle,
-          style: Theme.of(context).textTheme.titleLarge,
+        title: Row(
+          children: [
+            const SonoraLogo.icon(28),
+            const SizedBox(width: 8),
+            Text(
+              AppLocalizations.of(context)!.appTitle,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
         centerTitle: false,
         actions: [

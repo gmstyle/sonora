@@ -1,38 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <!-- Gradiente per lo sfondo basato su toni Indigo profondi -->
     <linearGradient id="indigoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0F1026" />
       <stop offset="50%" stop-color="#1A1B35" />
       <stop offset="100%" stop-color="#2D2F54" />
     </linearGradient>
-
-    <!-- Gradiente ad alto contrasto per l'icona centrale -->
-    <linearGradient id="sonoraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="sg" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#00F2FE" />
       <stop offset="100%" stop-color="#4FACFE" />
     </linearGradient>
   </defs>
-
-  <!-- Sfondo Indigo con gradiente e angoli vivi -->
   <rect width="512" height="512" fill="url(#indigoGradient)" />
-
-  <!-- ICONA CENTRALE (S + Onde) -->
-  <g transform="translate(146, 110)">
-    <rect x="0" y="40" width="20" height="120" rx="10" fill="url(#sonoraGradient)" />
-    <rect x="40" y="10" width="20" height="180" rx="10" fill="url(#sonoraGradient)" />
-    <rect x="80" y="0" width="20" height="200" rx="10" fill="url(#sonoraGradient)" />
-    <rect x="120" y="30" width="20" height="140" rx="10" fill="url(#sonoraGradient)" />
-    <rect x="160" y="10" width="20" height="180" rx="10" fill="url(#sonoraGradient)" />
-    <rect x="200" y="40" width="20" height="120" rx="10" fill="url(#sonoraGradient)" />
+  <g transform="translate(146, 120)">
+    <rect x="0" y="80" width="20" height="120" rx="10" fill="url(#sg)" />
+    <rect x="40" y="20" width="20" height="180" rx="10" fill="url(#sg)" />
+    <rect x="80" y="0" width="20" height="200" rx="10" fill="url(#sg)" />
+    <rect x="120" y="60" width="20" height="140" rx="10" fill="url(#sg)" />
+    <rect x="160" y="20" width="20" height="180" rx="10" fill="url(#sg)" />
+    <rect x="200" y="80" width="20" height="120" rx="10" fill="url(#sg)" />
   </g>
-
-  <!-- BRAND TITLE (Avvicinato all'icona modificando la coordinata Y) -->
-  <text x="256" y="375" 
-        text-anchor="middle" 
-        fill="#FFFFFF" 
-        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
-        font-size="48" 
-        font-weight="800" 
-        letter-spacing="10">SONORA</text>
+  <g transform="translate(119.76, 0)" fill="#FFFFFF">
+    <path d="M15.024 375.576C24.624 375.576 29.28 370.776 29.28 365.16C29.28 352.824 9.744 357.096 9.744 350.904C9.744 348.792 11.52 347.064 16.128 347.064C19.104 347.064 22.32 347.928 25.44 349.704L27.84 343.8C24.72 341.832 20.4 340.824 16.176 340.824C6.624 340.824 2.016 345.576 2.016 351.288C2.016 363.768 21.552 359.448 21.552 365.736C21.552 367.8 19.68 369.336 15.072 369.336C11.04 369.336 6.816 367.896 3.984 365.832L1.344 371.688C4.32 373.992 9.696 375.576 15.024 375.576Z" />
+    <path d="M60.88 375.576C71.44 375.576 79.264 368.232 79.264 358.2C79.264 348.168 71.44 340.824 60.88 340.824C50.272 340.824 42.496 348.216 42.496 358.2C42.496 368.184 50.272 375.576 60.88 375.576ZM60.88 368.952C54.88 368.952 50.368 364.584 50.368 358.2C50.368 351.816 54.88 347.448 60.88 347.448C66.88 347.448 71.392 351.816 71.392 358.2C71.392 364.584 66.88 368.952 60.88 368.952Z" />
+    <path d="M95.12 375H102.8V354.552L119.552 375H125.936V341.4H118.256V361.848L101.552 341.4H95.12Z" />
+    <path d="M160.176 375.576C170.736 375.576 178.56 368.232 178.56 358.2C178.56 348.168 170.736 340.824 160.176 340.824C149.568 340.824 141.792 348.216 141.792 358.2C141.792 368.184 149.568 375.576 160.176 375.576ZM160.176 368.952C154.176 368.952 149.664 364.584 149.664 358.2C149.664 351.816 154.176 347.448 160.176 347.448C166.176 347.448 170.688 351.816 170.688 358.2C170.688 364.584 166.176 368.952 160.176 368.952Z" />
+    <path d="M194.416 375H202.192V365.64H208.96C209.056 365.64 209.2 365.64 209.344 365.64L215.824 375H224.176L216.688 364.2C221.056 362.328 223.552 358.632 223.552 353.592C223.552 346.056 218.128 341.4 208.768 341.4H194.416ZM202.192 359.448V347.736H208.528C213.28 347.736 215.68 349.896 215.68 353.592C215.68 357.24 213.28 359.448 208.528 359.448Z" />
+    <path d="M235.28 375H243.248L246.224 367.8H261.824L264.8 375H272.96L257.936 341.4H250.256ZM248.672 361.896L254.048 349.08 259.376 361.896Z" />
+  </g>
 </svg>
