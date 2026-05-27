@@ -4,6 +4,7 @@ import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
 import '../../providers/player_provider.dart';
 import 'context_menu_sheet.dart';
+import 'scale_button.dart';
 import 'thumbnail_widget.dart';
 
 class SongCard extends ConsumerWidget {
@@ -34,7 +35,7 @@ class SongCard extends ConsumerWidget {
         playCount != null && playCount!.isNotEmpty
             ? stripYtLabel(playCount)
             : null;
-    return InkWell(
+    return ScaleButton(
       onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
       onLongPress:
           () => ContextMenuSheet.showForSong(
@@ -47,7 +48,6 @@ class SongCard extends ConsumerWidget {
             artistId: artistId,
             albumId: albumId,
           ),
-      borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 150,
         height: statLabel != null ? 236 : 220,

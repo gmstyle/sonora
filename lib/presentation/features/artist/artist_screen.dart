@@ -386,14 +386,19 @@ class _ArtistSliverAppBar extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (thumbnailUrl != null)
-              CachedNetworkImage(
-                imageUrl: thumbnailUrl,
-                fit: BoxFit.cover,
-                errorWidget:
-                    (_, _, _) => Container(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                    ),
+              Hero(
+                tag: 'artist_art_${artist.artistId}',
+                child: CachedNetworkImage(
+                  imageUrl: thumbnailUrl,
+                  fit: BoxFit.cover,
+                  errorWidget:
+                      (_, _, _) => Container(
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                      ),
+                ),
               )
             else
               Container(

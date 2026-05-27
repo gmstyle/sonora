@@ -212,10 +212,13 @@ class _PlaylistSliverAppBar extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (thumbnailUrl != null)
-              CachedNetworkImage(
-                imageUrl: thumbnailUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, _, _) => _placeholder(context),
+              Hero(
+                tag: 'playlist_art_${playlist.playlistId}',
+                child: CachedNetworkImage(
+                  imageUrl: thumbnailUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => _placeholder(context),
+                ),
               )
             else
               _placeholder(context),

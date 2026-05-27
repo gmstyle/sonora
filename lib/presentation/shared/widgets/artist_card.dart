@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/extensions/stat_format.dart';
 import 'context_menu_sheet.dart';
+import 'scale_button.dart';
 import 'thumbnail_widget.dart';
 
 class ArtistCard extends ConsumerWidget {
@@ -25,7 +26,7 @@ class ArtistCard extends ConsumerWidget {
         monthlyListeners != null && monthlyListeners!.isNotEmpty
             ? stripYtLabel(monthlyListeners)
             : null;
-    return InkWell(
+    return ScaleButton(
       onTap: () => context.push('/artist/$artistId'),
       onLongPress:
           () => ContextMenuSheet.showForArtist(
@@ -35,16 +36,18 @@ class ArtistCard extends ConsumerWidget {
             thumbnailUrl: thumbnailUrl,
             monthlyListeners: monthlyListeners,
           ),
-      borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 130,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            ThumbnailWidget(
-              imageUrl: thumbnailUrl,
-              size: 120,
-              shape: ThumbnailShape.circle,
+            Hero(
+              tag: 'artist_art_$artistId',
+              child: ThumbnailWidget(
+                imageUrl: thumbnailUrl,
+                size: 120,
+                shape: ThumbnailShape.circle,
+              ),
             ),
             const SizedBox(height: 8),
             Text(

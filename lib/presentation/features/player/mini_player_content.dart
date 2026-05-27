@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
@@ -8,6 +9,7 @@ import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
+import 'widgets/animated_play_pause_icon.dart';
 
 class MiniPlayerContent extends ConsumerWidget {
   final MediaItem currentSong;
@@ -72,8 +74,10 @@ class MiniPlayerContent extends ConsumerWidget {
         if (isSwitching) return;
         if (details.primaryVelocity == null) return;
         if (details.primaryVelocity! < -250) {
+          HapticFeedback.lightImpact();
           onSkipNext?.call();
         } else if (details.primaryVelocity! > 250) {
+          HapticFeedback.lightImpact();
           onSkipPrevious?.call();
         }
       },
@@ -160,8 +164,10 @@ class MiniPlayerContent extends ConsumerWidget {
         if (isSwitching) return;
         if (details.primaryVelocity == null) return;
         if (details.primaryVelocity! < -250) {
+          HapticFeedback.lightImpact();
           onSkipNext?.call();
         } else if (details.primaryVelocity! > 250) {
+          HapticFeedback.lightImpact();
           onSkipPrevious?.call();
         }
       },
@@ -260,8 +266,10 @@ class MiniPlayerContent extends ConsumerWidget {
         if (isSwitching) return;
         if (details.primaryVelocity == null) return;
         if (details.primaryVelocity! < -250) {
+          HapticFeedback.lightImpact();
           onSkipNext?.call();
         } else if (details.primaryVelocity! > 250) {
+          HapticFeedback.lightImpact();
           onSkipPrevious?.call();
         }
       },
@@ -481,21 +489,15 @@ class MiniPlayerContent extends ConsumerWidget {
 
   Widget _playPauseButton(ColorScheme cs) {
     return IconButton(
-      icon: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 150),
-        transitionBuilder:
-            (child, anim) => ScaleTransition(
-              scale: anim,
-              child: FadeTransition(opacity: anim, child: child),
-            ),
-        child: Icon(
-          key: ValueKey(playerState.isPlaying),
-          playerState.isPlaying ? Icons.pause : Icons.play_arrow,
-          color: cs.onPrimary,
-          size: 24,
-        ),
+      icon: AnimatedPlayPauseIcon(
+        isPlaying: playerState.isPlaying,
+        color: cs.onPrimary,
+        size: 24,
       ),
-      onPressed: onPlayPause,
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        onPlayPause?.call();
+      },
       style: IconButton.styleFrom(
         backgroundColor: cs.primary,
         foregroundColor: cs.onPrimary,
@@ -510,11 +512,18 @@ class MiniPlayerContent extends ConsumerWidget {
     required Color color,
     required VoidCallback? onPressed,
     double size = 20,
+    bool haptic = false,
   }) {
     return IconButton(
       icon: Icon(icon, size: size),
       color: color,
-      onPressed: onPressed,
+      onPressed:
+          onPressed != null && haptic
+              ? () {
+                HapticFeedback.lightImpact();
+                onPressed();
+              }
+              : onPressed,
       constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       padding: EdgeInsets.zero,
       splashRadius: 18,
@@ -546,10 +555,24 @@ class MiniPlayerContent extends ConsumerWidget {
           ),
       data: (liked) {
         final isLiked = liked != null;
-        return _iconButton(
-          icon: isLiked ? Icons.favorite : Icons.favorite_border,
+        return IconButton(
+          icon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder:
+                (child, anim) => ScaleTransition(
+                  scale: anim,
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+            child: Icon(
+              isLiked ? Icons.favorite : Icons.favorite_border,
+              key: ValueKey(isLiked),
+              color: isLiked ? cs.error : cs.onSurfaceVariant,
+              size: 20,
+            ),
+          ),
           color: isLiked ? cs.error : cs.onSurfaceVariant,
           onPressed: () {
+            HapticFeedback.lightImpact();
             ref
                 .read(libraryNotifierProvider.notifier)
                 .toggleLikedSong(
@@ -562,7 +585,9 @@ class MiniPlayerContent extends ConsumerWidget {
                   ),
                 );
           },
-          size: 20,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          padding: EdgeInsets.zero,
+          splashRadius: 18,
         );
       },
     );

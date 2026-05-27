@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'context_menu_sheet.dart';
+import 'scale_button.dart';
 import 'thumbnail_widget.dart';
 
 class AlbumCard extends ConsumerWidget {
@@ -24,7 +25,7 @@ class AlbumCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
+    return ScaleButton(
       onTap: () => context.push('/album/$albumId'),
       onLongPress:
           () => ContextMenuSheet.showForAlbum(
@@ -36,16 +37,18 @@ class AlbumCard extends ConsumerWidget {
             thumbnailUrl: thumbnailUrl,
             year: year,
           ),
-      borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 150,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ThumbnailWidget(
-              imageUrl: thumbnailUrl,
-              size: 150,
-              shape: ThumbnailShape.rounded,
+            Hero(
+              tag: 'album_art_$albumId',
+              child: ThumbnailWidget(
+                imageUrl: thumbnailUrl,
+                size: 150,
+                shape: ThumbnailShape.rounded,
+              ),
             ),
             const SizedBox(height: 8),
             Text(

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../l10n/app_localizations.dart';
@@ -35,20 +36,22 @@ class FullPlayerContent extends ConsumerStatefulWidget {
 class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   Color _dominantColor = Colors.black87;
   bool _isDark = true;
+  late final PlayerSubViewNotifier _subViewNotifier;
 
   @override
   void initState() {
     super.initState();
+    _subViewNotifier = ref.read(playerSubViewProvider.notifier);
     if (widget.initialSubView != PlayerSubView.none) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(playerSubViewProvider.notifier).set(widget.initialSubView);
+        _subViewNotifier.set(widget.initialSubView);
       });
     }
   }
 
   @override
   void dispose() {
-    ref.read(playerSubViewProvider.notifier).set(PlayerSubView.none);
+    Future.microtask(() => _subViewNotifier.set(PlayerSubView.none));
     super.dispose();
   }
 
@@ -715,12 +718,22 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
       data: (liked) {
         final isLiked = liked != null;
         return IconButton(
-          icon: Icon(
-            isLiked ? Icons.favorite : Icons.favorite_border,
-            size: 28,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+          icon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder:
+                (child, anim) => ScaleTransition(
+                  scale: anim,
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+            child: Icon(
+              isLiked ? Icons.favorite : Icons.favorite_border,
+              key: ValueKey(isLiked),
+              size: 28,
+              color: isLiked ? Theme.of(context).colorScheme.error : null,
+            ),
           ),
           onPressed: () {
+            HapticFeedback.lightImpact();
             ref
                 .read(libraryNotifierProvider.notifier)
                 .toggleLikedSong(

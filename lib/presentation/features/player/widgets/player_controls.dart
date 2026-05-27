@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_service/audio_service.dart';
 import '../../../providers/player_provider.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'animated_play_pause_icon.dart';
 
 class PlayerControls extends ConsumerWidget {
   final Color? iconColor;
@@ -46,14 +48,26 @@ class PlayerControls extends ConsumerWidget {
   ) {
     final isShuffle = state.shuffleMode == AudioServiceShuffleMode.all;
     return IconButton(
-      icon: Icon(
-        Icons.shuffle,
-        color:
-            isShuffle
-                ? Theme.of(context).colorScheme.primary
-                : iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 150),
+        transitionBuilder:
+            (child, anim) => ScaleTransition(
+              scale: anim,
+              child: FadeTransition(opacity: anim, child: child),
+            ),
+        child: Icon(
+          Icons.shuffle,
+          key: ValueKey(isShuffle),
+          color:
+              isShuffle
+                  ? Theme.of(context).colorScheme.primary
+                  : iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
-      onPressed: notifier.toggleShuffle,
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        notifier.toggleShuffle();
+      },
       tooltip:
           isShuffle
               ? AppLocalizations.of(context)!.shuffleOn
@@ -76,7 +90,10 @@ class PlayerControls extends ConsumerWidget {
       onPressed:
           disabled
               ? null
-              : (isNext ? notifier.skipToNext : notifier.skipToPrevious),
+              : () {
+                HapticFeedback.lightImpact();
+                isNext ? notifier.skipToNext() : notifier.skipToPrevious();
+              },
     );
   }
 
@@ -101,12 +118,18 @@ class PlayerControls extends ConsumerWidget {
         color: isSwitching ? primaryColor.withAlpha(128) : primaryColor,
       ),
       child: IconButton(
-        icon: Icon(
-          state.isPlaying ? Icons.pause : Icons.play_arrow,
+        icon: AnimatedPlayPauseIcon(
+          isPlaying: state.isPlaying,
           color: onPrimaryColor,
           size: 32,
         ),
-        onPressed: isSwitching ? null : notifier.togglePlayPause,
+        onPressed:
+            isSwitching
+                ? null
+                : () {
+                  HapticFeedback.lightImpact();
+                  notifier.togglePlayPause();
+                },
         padding: const EdgeInsets.all(12),
       ),
     );
@@ -139,8 +162,19 @@ class PlayerControls extends ConsumerWidget {
     }
 
     return IconButton(
-      icon: Icon(icon, color: color),
-      onPressed: notifier.cycleRepeatMode,
+      icon: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 150),
+        transitionBuilder:
+            (child, anim) => ScaleTransition(
+              scale: anim,
+              child: FadeTransition(opacity: anim, child: child),
+            ),
+        child: Icon(icon, key: ValueKey('${state.repeatMode}'), color: color),
+      ),
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        notifier.cycleRepeatMode();
+      },
       tooltip: tooltip,
     );
   }

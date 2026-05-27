@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'context_menu_sheet.dart';
+import 'scale_button.dart';
 import 'thumbnail_widget.dart';
 
 class PlaylistCard extends ConsumerWidget {
@@ -20,7 +21,7 @@ class PlaylistCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
+    return ScaleButton(
       onTap: () => context.push('/playlist/$playlistId'),
       onLongPress:
           () => ContextMenuSheet.showForPlaylist(
@@ -30,16 +31,18 @@ class PlaylistCard extends ConsumerWidget {
             artist: artist,
             thumbnailUrl: thumbnailUrl,
           ),
-      borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 150,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ThumbnailWidget(
-              imageUrl: thumbnailUrl,
-              size: 150,
-              shape: ThumbnailShape.rounded,
+            Hero(
+              tag: 'playlist_art_$playlistId',
+              child: ThumbnailWidget(
+                imageUrl: thumbnailUrl,
+                size: 150,
+                shape: ThumbnailShape.rounded,
+              ),
             ),
             const SizedBox(height: 8),
             Text(

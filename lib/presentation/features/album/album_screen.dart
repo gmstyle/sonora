@@ -138,10 +138,14 @@ class _AlbumContent extends ConsumerWidget {
                 fit: StackFit.expand,
                 children: [
                   if (thumbnailUrl != null)
-                    CachedNetworkImage(
-                      imageUrl: thumbnailUrl,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => _placeholderThumbnail(context),
+                    Hero(
+                      tag: 'album_art_${album.albumId}',
+                      child: CachedNetworkImage(
+                        imageUrl: thumbnailUrl,
+                        fit: BoxFit.cover,
+                        errorWidget:
+                            (_, _, _) => _placeholderThumbnail(context),
+                      ),
                     )
                   else
                     _placeholderThumbnail(context),

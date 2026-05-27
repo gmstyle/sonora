@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/player_provider.dart';
+import 'feedback_toast.dart';
 
 class PlayerErrorListener extends ConsumerStatefulWidget {
   const PlayerErrorListener({super.key});
@@ -18,9 +19,7 @@ class _PlayerErrorListenerState extends ConsumerState<PlayerErrorListener> {
       if (next.hasError &&
           next.errorMessage != null &&
           prev?.errorMessage != next.errorMessage) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        FeedbackToast.show(context, next.errorMessage!);
       }
     });
     return const SizedBox.shrink();
