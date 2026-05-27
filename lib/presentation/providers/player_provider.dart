@@ -16,6 +16,22 @@ final playerStateProvider = NotifierProvider<PlayerNotifier, PlayerState>(
   PlayerNotifier.new,
 );
 
+enum PlayerSubView { none, lyrics, queue }
+
+class PlayerSubViewNotifier extends Notifier<PlayerSubView> {
+  @override
+  PlayerSubView build() => PlayerSubView.none;
+
+  void set(PlayerSubView view) {
+    state = view;
+  }
+}
+
+final playerSubViewProvider =
+    NotifierProvider<PlayerSubViewNotifier, PlayerSubView>(
+      PlayerSubViewNotifier.new,
+    );
+
 class PlayerState {
   final bool isPlaying;
   final bool isLoading;

@@ -7,6 +7,39 @@ import 'full_player_content.dart';
 class PlayerSheet extends ConsumerWidget {
   const PlayerSheet({super.key});
 
+  void _navigateToFullPlayer(
+    BuildContext context,
+    WidgetRef ref, {
+    PlayerSubView subView = PlayerSubView.none,
+  }) {
+    if (subView != PlayerSubView.none) {
+      ref.read(playerSubViewProvider.notifier).set(subView);
+    }
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder:
+            (context, animation, secondaryAnimation) =>
+                FullPlayerContent(initialSubView: subView),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        fullscreenDialog: true,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(playerStateProvider);
@@ -29,44 +62,24 @@ class PlayerSheet extends ConsumerWidget {
           currentSong: currentSong,
           playerState: playerState,
           isVideo: isVideo,
-          onTap: () {
-            Navigator.of(context).push(
-              PageRouteBuilder(
-                pageBuilder:
-                    (context, animation, secondaryAnimation) =>
-                        const FullPlayerContent(),
-                transitionsBuilder: (
-                  context,
-                  animation,
-                  secondaryAnimation,
-                  child,
-                ) {
-                  const begin = Offset(0.0, 1.0);
-                  const end = Offset.zero;
-                  const curve = Curves.easeOutCubic;
-
-                  var tween = Tween(
-                    begin: begin,
-                    end: end,
-                  ).chain(CurveTween(curve: curve));
-                  var offsetAnimation = animation.drive(tween);
-
-                  return SlideTransition(
-                    position: offsetAnimation,
-                    child: child,
-                  );
-                },
-                transitionDuration: const Duration(milliseconds: 350),
-                reverseTransitionDuration: const Duration(milliseconds: 300),
-                fullscreenDialog: true,
-              ),
-            );
-          },
+          onTap: () => _navigateToFullPlayer(context, ref),
           onPlayPause:
               () => ref.read(playerStateProvider.notifier).togglePlayPause(),
           onSkipNext: () => ref.read(playerStateProvider.notifier).skipToNext(),
           onSkipPrevious:
               () => ref.read(playerStateProvider.notifier).skipToPrevious(),
+          onOpenLyrics:
+              () => _navigateToFullPlayer(
+                context,
+                ref,
+                subView: PlayerSubView.lyrics,
+              ),
+          onOpenQueue:
+              () => _navigateToFullPlayer(
+                context,
+                ref,
+                subView: PlayerSubView.queue,
+              ),
         ),
       ),
     );

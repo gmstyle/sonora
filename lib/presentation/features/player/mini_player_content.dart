@@ -17,6 +17,8 @@ class MiniPlayerContent extends ConsumerWidget {
   final VoidCallback? onPlayPause;
   final VoidCallback? onSkipNext;
   final VoidCallback? onSkipPrevious;
+  final VoidCallback? onOpenLyrics;
+  final VoidCallback? onOpenQueue;
 
   const MiniPlayerContent({
     super.key,
@@ -27,6 +29,8 @@ class MiniPlayerContent extends ConsumerWidget {
     this.onPlayPause,
     this.onSkipNext,
     this.onSkipPrevious,
+    this.onOpenLyrics,
+    this.onOpenQueue,
   });
 
   @override
@@ -244,6 +248,7 @@ class MiniPlayerContent extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final activeView = ref.watch(playerSubViewProvider);
     final elapsed = _formatDuration(playerState.position);
     final remaining =
         playerState.duration > playerState.position
@@ -381,15 +386,27 @@ class MiniPlayerContent extends ConsumerWidget {
                             children: [
                               _likeButton(context, ref, cs),
                               _iconButton(
-                                icon: Icons.lyrics_outlined,
-                                color: cs.onSurfaceVariant,
-                                onPressed: onTap,
+                                icon:
+                                    activeView == PlayerSubView.lyrics
+                                        ? Icons.lyrics
+                                        : Icons.lyrics_outlined,
+                                color:
+                                    activeView == PlayerSubView.lyrics
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant,
+                                onPressed: onOpenLyrics,
                                 size: 20,
                               ),
                               _iconButton(
-                                icon: Icons.queue_music_outlined,
-                                color: cs.onSurfaceVariant,
-                                onPressed: onTap,
+                                icon:
+                                    activeView == PlayerSubView.queue
+                                        ? Icons.queue_music
+                                        : Icons.queue_music_outlined,
+                                color:
+                                    activeView == PlayerSubView.queue
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant,
+                                onPressed: onOpenQueue,
                                 size: 20,
                               ),
                               _iconButton(

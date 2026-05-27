@@ -20,27 +20,43 @@ import 'widgets/lyrics_view.dart';
 import 'package:marquee/marquee.dart';
 import '../../providers/palette_provider.dart';
 
-enum PlayerSubView { none, lyrics, queue }
-
 class FullPlayerContent extends ConsumerStatefulWidget {
-  const FullPlayerContent({super.key});
+  final PlayerSubView initialSubView;
+
+  const FullPlayerContent({
+    super.key,
+    this.initialSubView = PlayerSubView.none,
+  });
 
   @override
   ConsumerState<FullPlayerContent> createState() => _FullPlayerContentState();
 }
 
 class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
-  PlayerSubView _activeView = PlayerSubView.none;
-
-  // Updated every build() from paletteNotifierProvider — used by
-  // _buildPlayerBackground, _artwork, and sub-layouts.
   Color _dominantColor = Colors.black87;
   bool _isDark = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialSubView != PlayerSubView.none) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(playerSubViewProvider.notifier).set(widget.initialSubView);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    ref.read(playerSubViewProvider.notifier).set(PlayerSubView.none);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final playerState = ref.watch(playerStateProvider);
     final playerNotifier = ref.read(playerStateProvider.notifier);
+    final activeView = ref.watch(playerSubViewProvider);
     final currentSong = playerState.currentSong;
     if (currentSong == null) return const SizedBox.shrink();
 
@@ -98,6 +114,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   availableHeight,
                   availableWidth,
                   padding.bottom,
+                  activeView,
                 );
               } else if (constraints.maxWidth < kExpandedBreakpoint) {
                 return _tabletLayout(
@@ -113,6 +130,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   availableHeight,
                   availableWidth,
                   padding.bottom,
+                  activeView,
                 );
               } else {
                 return _wideLayout(
@@ -128,6 +146,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   availableHeight,
                   availableWidth,
                   padding.bottom,
+                  activeView,
                 );
               }
             },
@@ -152,6 +171,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     double availHeight,
     double availWidth,
     double bottomInset,
+    PlayerSubView activeView,
   ) {
     return SafeArea(
       child: GestureDetector(
@@ -183,7 +203,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               const SizedBox(height: 24),
               Expanded(
                 child:
-                    _activeView == PlayerSubView.none
+                    activeView == PlayerSubView.none
                         ? Center(
                           child: _artwork(
                             artUrl,
@@ -191,7 +211,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                             isSwitching: playerState.isSwitching,
                           ),
                         )
-                        : _activeView == PlayerSubView.lyrics
+                        : activeView == PlayerSubView.lyrics
                         ? LyricsView(
                           videoId: videoId,
                           position: playerState.position,
@@ -209,6 +229,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 isVideo,
                 playerState.sleepTimerRemaining != null,
                 playerNotifier,
+                activeView,
               ),
               const SizedBox(height: 16),
             ],
@@ -233,6 +254,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     double availHeight,
     double availWidth,
     double bottomInset,
+    PlayerSubView activeView,
   ) {
     // 2-column layout for tablet
     return SafeArea(
@@ -264,10 +286,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(height: 24),
                   _trackInfoAndLikeRow(currentSong, isVideo, albumName),
                   const SizedBox(height: 16),
-                  if (_activeView != PlayerSubView.none)
+                  if (activeView != PlayerSubView.none)
                     Expanded(
                       child:
-                          _activeView == PlayerSubView.lyrics
+                          activeView == PlayerSubView.lyrics
                               ? LyricsView(
                                 videoId: videoId,
                                 position: playerState.position,
@@ -281,7 +303,12 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(height: 16),
                   const PlayerControls(),
                   const SizedBox(height: 8),
-                  _bottomActionsRow(isVideo, hasSleepTimer, playerNotifier),
+                  _bottomActionsRow(
+                    isVideo,
+                    hasSleepTimer,
+                    playerNotifier,
+                    activeView,
+                  ),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -307,6 +334,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     double availHeight,
     double availWidth,
     double bottomInset,
+    PlayerSubView activeView,
   ) {
     // More spacious 2-column layout for wide
     return SafeArea(
@@ -338,10 +366,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(height: 32),
                   _trackInfoAndLikeRow(currentSong, isVideo, albumName),
                   const SizedBox(height: 16),
-                  if (_activeView != PlayerSubView.none)
+                  if (activeView != PlayerSubView.none)
                     Expanded(
                       child:
-                          _activeView == PlayerSubView.lyrics
+                          activeView == PlayerSubView.lyrics
                               ? LyricsView(
                                 videoId: videoId,
                                 position: playerState.position,
@@ -355,7 +383,12 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(height: 24),
                   const PlayerControls(),
                   const SizedBox(height: 16),
-                  _bottomActionsRow(isVideo, hasSleepTimer, playerNotifier),
+                  _bottomActionsRow(
+                    isVideo,
+                    hasSleepTimer,
+                    playerNotifier,
+                    activeView,
+                  ),
                   const SizedBox(height: 16),
                 ],
               ),
@@ -709,6 +742,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     bool isVideo,
     bool hasTimer,
     PlayerNotifier playerNotifier,
+    PlayerSubView activeView,
   ) {
     final theme = Theme.of(context);
     return Row(
@@ -744,41 +778,43 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             if (!isVideo)
               IconButton(
                 icon: Icon(
-                  _activeView == PlayerSubView.lyrics
+                  activeView == PlayerSubView.lyrics
                       ? Icons.lyrics
                       : Icons.lyrics_outlined,
                   color:
-                      _activeView == PlayerSubView.lyrics
+                      activeView == PlayerSubView.lyrics
                           ? theme.colorScheme.primary
                           : theme.colorScheme.onSurfaceVariant,
                 ),
                 onPressed: () {
-                  setState(() {
-                    _activeView =
-                        _activeView == PlayerSubView.lyrics
+                  ref
+                      .read(playerSubViewProvider.notifier)
+                      .set(
+                        activeView == PlayerSubView.lyrics
                             ? PlayerSubView.none
-                            : PlayerSubView.lyrics;
-                  });
+                            : PlayerSubView.lyrics,
+                      );
                 },
                 tooltip: AppLocalizations.of(context)!.lyrics,
               ),
             IconButton(
               icon: Icon(
-                _activeView == PlayerSubView.queue
+                activeView == PlayerSubView.queue
                     ? Icons.queue_music
                     : Icons.queue_music_outlined,
                 color:
-                    _activeView == PlayerSubView.queue
+                    activeView == PlayerSubView.queue
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
-                setState(() {
-                  _activeView =
-                      _activeView == PlayerSubView.queue
+                ref
+                    .read(playerSubViewProvider.notifier)
+                    .set(
+                      activeView == PlayerSubView.queue
                           ? PlayerSubView.none
-                          : PlayerSubView.queue;
-                });
+                          : PlayerSubView.queue,
+                    );
               },
               tooltip: AppLocalizations.of(context)!.queue,
             ),
