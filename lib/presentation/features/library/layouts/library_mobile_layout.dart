@@ -13,6 +13,7 @@ import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/playlist_card.dart';
+import '../../../shared/widgets/artist_tile.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../../../providers/settings_provider.dart';
 import '../providers/library_provider.dart';
@@ -205,25 +206,10 @@ class _ArtistsTab extends ConsumerWidget {
             itemCount: artists.length,
             itemBuilder: (_, i) {
               final a = artists[i];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundImage:
-                      a.thumbnailUrl != null
-                          ? NetworkImage(a.thumbnailUrl!)
-                          : null,
-                  child:
-                      a.thumbnailUrl == null ? const Icon(Icons.person) : null,
-                ),
-                title: Text(a.name),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/artist/${a.artistId}'),
-                onLongPress:
-                    () => ContextMenuSheet.showForArtist(
-                      context,
-                      artistId: a.artistId,
-                      name: a.name,
-                      thumbnailUrl: a.thumbnailUrl,
-                    ),
+              return ArtistTile(
+                artistId: a.artistId,
+                name: a.name,
+                thumbnailUrl: a.thumbnailUrl,
               );
             },
           ),

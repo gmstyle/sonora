@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/extensions/stat_format.dart';
+import '../../../l10n/app_localizations.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'thumbnail_widget.dart';
@@ -22,10 +23,13 @@ class ArtistCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final listeners =
+    final subtitle =
         monthlyListeners != null && monthlyListeners!.isNotEmpty
             ? stripYtLabel(monthlyListeners)
-            : null;
+            : AppLocalizations.of(
+              context,
+            )!.artists; // Fallback "Artisti" / "Artists"
+
     return ScaleButton(
       onTap: () => context.push('/artist/$artistId'),
       onLongPress:
@@ -37,7 +41,7 @@ class ArtistCard extends ConsumerWidget {
             monthlyListeners: monthlyListeners,
           ),
       child: SizedBox(
-        width: 130,
+        width: 120,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -45,30 +49,31 @@ class ArtistCard extends ConsumerWidget {
               tag: 'artist_art_$artistId',
               child: ThumbnailWidget(
                 imageUrl: thumbnailUrl,
-                size: 120,
+                size: 110,
                 shape: ThumbnailShape.circle,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               name,
               overflow: TextOverflow.ellipsis,
-              maxLines: 2,
+              maxLines: 1,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
-            if (listeners != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                listeners,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle ?? '',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w400,
               ),
-            ],
+            ),
           ],
         ),
       ),

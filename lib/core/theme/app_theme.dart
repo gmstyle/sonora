@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static ThemeData light({ColorScheme? dynamicColorScheme}) {
@@ -9,21 +10,52 @@ class AppTheme {
           brightness: Brightness.light,
         );
 
-    return ThemeData(
+    final baseTheme = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: colorScheme,
+    );
+
+    final baseTextTheme = GoogleFonts.montserratTextTheme(baseTheme.textTheme);
+    final customTextTheme = baseTextTheme.copyWith(
+      headlineLarge: baseTextTheme.headlineLarge?.copyWith(
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.0,
+      ),
+      headlineMedium: baseTextTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+      ),
+      titleLarge: baseTextTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+      ),
+      titleMedium: baseTextTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w400,
+      ),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(fontWeight: FontWeight.w300),
+      labelSmall: baseTextTheme.labelSmall?.copyWith(
+        fontWeight: FontWeight.w400,
+      ),
+    );
+
+    return baseTheme.copyWith(
+      textTheme: customTextTheme,
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: colorScheme.surfaceContainerLow,
         indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
         selectedIconTheme: IconThemeData(color: colorScheme.primary),
         unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
-        selectedLabelTextStyle: TextStyle(
+        selectedLabelTextStyle: GoogleFonts.montserrat(
           color: colorScheme.primary,
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),
-        unselectedLabelTextStyle: TextStyle(
+        unselectedLabelTextStyle: GoogleFonts.montserrat(
           color: colorScheme.onSurfaceVariant,
           fontSize: 12,
         ),
@@ -39,21 +71,52 @@ class AppTheme {
           brightness: Brightness.dark,
         );
 
-    return ThemeData(
+    final baseTheme = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
+    );
+
+    final baseTextTheme = GoogleFonts.montserratTextTheme(baseTheme.textTheme);
+    final customTextTheme = baseTextTheme.copyWith(
+      headlineLarge: baseTextTheme.headlineLarge?.copyWith(
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.0,
+      ),
+      headlineMedium: baseTextTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+      ),
+      titleLarge: baseTextTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+      ),
+      titleMedium: baseTextTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w400,
+      ),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(fontWeight: FontWeight.w300),
+      labelSmall: baseTextTheme.labelSmall?.copyWith(
+        fontWeight: FontWeight.w400,
+      ),
+    );
+
+    return baseTheme.copyWith(
+      textTheme: customTextTheme,
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: colorScheme.surfaceContainerLow,
         indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
         selectedIconTheme: IconThemeData(color: colorScheme.primary),
         unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
-        selectedLabelTextStyle: TextStyle(
+        selectedLabelTextStyle: GoogleFonts.montserrat(
           color: colorScheme.primary,
           fontWeight: FontWeight.bold,
           fontSize: 12,
         ),
-        unselectedLabelTextStyle: TextStyle(
+        unselectedLabelTextStyle: GoogleFonts.montserrat(
           color: colorScheme.onSurfaceVariant,
           fontSize: 12,
         ),

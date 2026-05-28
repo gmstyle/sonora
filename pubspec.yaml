@@ -67,8 +67,12 @@ dependencies:
   url_launcher: ^6.3.1
   open_filex: ^4.7.0
 
-  # ── UX ────────────────────────────────────────────────────────
+  # ── UI-UX ────────────────────────────────────────────────────────
   shimmer: ^3.0.0
+  dynamic_color: ^1.8.1
+  marquee: ^2.3.0
+  palette_generator_master: ^1.1.0
+  google_fonts: ^8.1.0
 
   # ── Settings ─────────────────────────────────────────────────
   shared_preferences: ^2.5.3
@@ -86,9 +90,8 @@ dependencies:
   # ── Notifications ────────────────────────────────────────────────
   flutter_local_notifications: ^21.0.0
   flutter_local_notifications_linux: ^8.0.0
-  dynamic_color: ^1.8.1
-  marquee: ^2.3.0
-  palette_generator_master: ^1.1.0
+  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

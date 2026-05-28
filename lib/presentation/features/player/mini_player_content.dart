@@ -601,9 +601,9 @@ class MiniPlayerContent extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
           decoration: BoxDecoration(
-            color: cs.tertiaryContainer.withValues(alpha: 0.15),
+            color: cs.tertiary.withValues(alpha: 0.15),
             border: Border.all(
-              color: cs.onSurface.withValues(alpha: 0.5),
+              color: cs.tertiary.withValues(alpha: 0.3),
               width: 1,
             ),
             borderRadius: BorderRadius.circular(4),
@@ -611,7 +611,7 @@ class MiniPlayerContent extends ConsumerWidget {
           child: Text(
             AppLocalizations.of(context)!.mv,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: cs.onSurface,
+              color: cs.tertiary,
               fontWeight: FontWeight.bold,
             ),
           ),

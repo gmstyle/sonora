@@ -653,13 +653,21 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.tertiaryContainer,
+                        color: theme.colorScheme.tertiary.withValues(
+                          alpha: 0.15,
+                        ),
                         borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: theme.colorScheme.tertiary.withValues(
+                            alpha: 0.3,
+                          ),
+                          width: 1,
+                        ),
                       ),
                       child: Text(
                         AppLocalizations.of(context)!.mv,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onTertiaryContainer,
+                          color: theme.colorScheme.tertiary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

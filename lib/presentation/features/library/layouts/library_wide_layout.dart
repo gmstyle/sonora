@@ -13,6 +13,7 @@ import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/playlist_card.dart';
+import '../../../shared/widgets/artist_card.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../../../providers/settings_provider.dart';
 import '../providers/library_provider.dart';
@@ -231,47 +232,19 @@ class _ArtistsTab extends ConsumerWidget {
           onRefresh: () => ref.refresh(followedArtistsProvider.future),
           child: GridView.builder(
             padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              childAspectRatio: 0.85,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 140.0,
+              childAspectRatio: 0.68,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
             itemCount: artists.length,
             itemBuilder: (_, i) {
               final a = artists[i];
-              return InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => context.push('/artist/${a.artistId}'),
-                onLongPress:
-                    () => ContextMenuSheet.showForArtist(
-                      context,
-                      artistId: a.artistId,
-                      name: a.name,
-                      thumbnailUrl: a.thumbnailUrl,
-                    ),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundImage:
-                          a.thumbnailUrl != null
-                              ? NetworkImage(a.thumbnailUrl!)
-                              : null,
-                      child:
-                          a.thumbnailUrl == null
-                              ? const Icon(Icons.person, size: 48)
-                              : null,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      a.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+              return ArtistCard(
+                artistId: a.artistId,
+                name: a.name,
+                thumbnailUrl: a.thumbnailUrl,
               );
             },
           ),
@@ -370,8 +343,8 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 170.0,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
                 childAspectRatio: 0.68,
@@ -497,8 +470,8 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 170.0,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
                 childAspectRatio: 0.68,
@@ -650,8 +623,8 @@ class _AlbumsTab extends ConsumerWidget {
                   ? GridView.builder(
                     padding: const EdgeInsets.all(16),
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 170.0,
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
                           childAspectRatio: 0.68,
