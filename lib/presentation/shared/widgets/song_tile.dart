@@ -3,6 +3,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../core/extensions/stat_format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/download_provider.dart';
 import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
@@ -39,6 +40,9 @@ class SongTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statLabel = _formatStat();
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final isDownloaded = downloadedIds.contains(videoId);
+
     return ListTile(
       leading: Stack(
         children: [
@@ -50,7 +54,8 @@ class SongTile extends ConsumerWidget {
           if (isVideo)
             Positioned(
               bottom: 0,
-              right: 0,
+              right: isDownloaded ? null : 0,
+              left: isDownloaded ? 0 : null,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                 decoration: BoxDecoration(
@@ -64,6 +69,23 @@ class SongTile extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                     fontSize: 9,
                   ),
+                ),
+              ),
+            ),
+          if (isDownloaded)
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.download_done_rounded,
+                  size: 10,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/download_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'thumbnail_widget.dart';
@@ -35,6 +36,9 @@ class SongCard extends ConsumerWidget {
         playCount != null && playCount!.isNotEmpty
             ? stripYtLabel(playCount)
             : null;
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final isDownloaded = downloadedIds.contains(videoId);
+
     return ScaleButton(
       onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
       onLongPress:
@@ -80,6 +84,23 @@ class SongCard extends ConsumerWidget {
                           color: Colors.white,
                           fontSize: 11,
                         ),
+                      ),
+                    ),
+                  ),
+                if (isDownloaded)
+                  Positioned(
+                    bottom: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.download_done_rounded,
+                        size: 12,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),

@@ -11,6 +11,10 @@ import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
+import '../../../shared/widgets/album_card.dart';
+import '../../../shared/widgets/playlist_card.dart';
+import '../../../shared/widgets/scale_button.dart';
+import '../../../providers/settings_provider.dart';
 import '../providers/library_provider.dart';
 import '../widgets/create_playlist_dialog.dart';
 import '../widgets/playlist_detail_view.dart';
@@ -44,6 +48,10 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
 
   @override
   Widget build(BuildContext context) {
+    final isGridView = ref.watch(settingsProvider).isLibraryGridView;
+    final isAlbumsOrPlaylists =
+        _tabController.index == 2 || _tabController.index == 3;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -51,6 +59,23 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
           style: Theme.of(context).textTheme.titleLarge,
         ),
         centerTitle: false,
+        actions: [
+          if (isAlbumsOrPlaylists)
+            IconButton(
+              icon: Icon(
+                isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+              ),
+              tooltip:
+                  isGridView
+                      ? AppLocalizations.of(context)!.viewList
+                      : AppLocalizations.of(context)!.viewGrid,
+              onPressed: () {
+                ref
+                    .read(settingsProvider.notifier)
+                    .setLibraryGridView(!isGridView);
+              },
+            ),
+        ],
       ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -309,6 +334,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
   Widget build(BuildContext context) {
     final myAsync = ref.watch(playlistsProvider);
     final likedAsync = ref.watch(likedPlaylistsProvider);
+    final isGridView = ref.watch(settingsProvider).isLibraryGridView;
 
     if (myAsync.isLoading || likedAsync.isLoading) {
       return const _ShimmerPlaylistList();
@@ -360,6 +386,34 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
+            ),
+          )
+        else if (isGridView)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.68,
+              ),
+              delegate: SliverChildBuilderDelegate((_, i) {
+                final p = playlists[i];
+                return _LocalPlaylistCard(
+                  name: p.name,
+                  description: p.description,
+                  thumbnailUrl: null,
+                  onTap: () => widget.onPlaylistTap(p),
+                  onLongPress:
+                      () => ContextMenuSheet.showForPlaylist(
+                        context,
+                        playlistId: p.id.toString(),
+                        name: p.name,
+                        thumbnailUrl: null,
+                      ),
+                );
+              }, childCount: playlists.length),
             ),
           )
         else
@@ -459,6 +513,28 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
+            ),
+          )
+        else if (isGridView)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.68,
+              ),
+              delegate: SliverChildBuilderDelegate((_, i) {
+                final p = liked[i];
+                return PlaylistCard(
+                  playlistId: p.playlistId,
+                  name: p.name,
+                  thumbnailUrl: p.thumbnailUrl,
+                  artist:
+                      p.videoCount != null ? '${p.videoCount} videos' : null,
+                );
+              }, childCount: liked.length),
             ),
           )
         else
@@ -572,6 +648,8 @@ class _AlbumsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(likedAlbumsProvider);
+    final isGridView = ref.watch(settingsProvider).isLibraryGridView;
+
     return async.when(
       loading: () => const _ShimmerSongList(),
       error:
@@ -589,54 +667,77 @@ class _AlbumsTab extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () => ref.refresh(likedAlbumsProvider.future),
-          child: ListView.builder(
-            itemCount: albums.length,
-            itemBuilder: (_, i) {
-              final a = albums[i];
-              return Dismissible(
-                key: ValueKey(a.albumId),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 16),
-                  color: Theme.of(context).colorScheme.error,
-                  child: Icon(
-                    Icons.favorite,
-                    color: Theme.of(context).colorScheme.onError,
-                  ),
-                ),
-                onDismissed: (_) async {
-                  await ref
-                      .read(libraryNotifierProvider.notifier)
-                      .deleteLikedAlbum(a.albumId);
-                },
-                child: ListTile(
-                  leading: ThumbnailWidget(
-                    imageUrl: a.thumbnailUrl,
-                    size: 48,
-                    shape: ThumbnailShape.rounded,
-                  ),
-                  title: Text(a.name),
-                  subtitle: Text(
-                    a.year != null
-                        ? '${a.artistName} · ${a.year}'
-                        : a.artistName,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/album/${a.albumId}'),
-                  onLongPress:
-                      () => ContextMenuSheet.showForAlbum(
-                        context,
+          child:
+              isGridView
+                  ? GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.68,
+                        ),
+                    itemCount: albums.length,
+                    itemBuilder: (context, i) {
+                      final a = albums[i];
+                      return AlbumCard(
                         albumId: a.albumId,
                         name: a.name,
                         artist: a.artistName,
                         thumbnailUrl: a.thumbnailUrl,
                         year: a.year,
-                      ),
-                ),
-              );
-            },
-          ),
+                      );
+                    },
+                  )
+                  : ListView.builder(
+                    itemCount: albums.length,
+                    itemBuilder: (_, i) {
+                      final a = albums[i];
+                      return Dismissible(
+                        key: ValueKey(a.albumId),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 16),
+                          color: Theme.of(context).colorScheme.error,
+                          child: Icon(
+                            Icons.favorite,
+                            color: Theme.of(context).colorScheme.onError,
+                          ),
+                        ),
+                        onDismissed: (_) async {
+                          await ref
+                              .read(libraryNotifierProvider.notifier)
+                              .deleteLikedAlbum(a.albumId);
+                        },
+                        child: ListTile(
+                          leading: ThumbnailWidget(
+                            imageUrl: a.thumbnailUrl,
+                            size: 48,
+                            shape: ThumbnailShape.rounded,
+                          ),
+                          title: Text(a.name),
+                          subtitle: Text(
+                            a.year != null
+                                ? '${a.artistName} · ${a.year}'
+                                : a.artistName,
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push('/album/${a.albumId}'),
+                          onLongPress:
+                              () => ContextMenuSheet.showForAlbum(
+                                context,
+                                albumId: a.albumId,
+                                name: a.name,
+                                artist: a.artistName,
+                                thumbnailUrl: a.thumbnailUrl,
+                                year: a.year,
+                              ),
+                        ),
+                      );
+                    },
+                  ),
         );
       },
     );
@@ -779,6 +880,63 @@ class _HistoryTab extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _LocalPlaylistCard extends StatelessWidget {
+  final String name;
+  final String? description;
+  final String? thumbnailUrl;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _LocalPlaylistCard({
+    required this.name,
+    this.description,
+    this.thumbnailUrl,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleButton(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: SizedBox(
+        width: 150,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ThumbnailWidget(
+              imageUrl: thumbnailUrl,
+              size: 150,
+              shape: ThumbnailShape.rounded,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            ),
+            if (description != null && description!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                description!,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

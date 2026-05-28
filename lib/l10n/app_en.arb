@@ -146,6 +146,8 @@
     "library": "Library Screens"
   },
   "library": "Library",
+  "viewList": "View List",
+  "viewGrid": "View Grid",
   "favorites": "Favorites",
   "artists": "Artists",
   "playlists": "Playlists",

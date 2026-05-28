@@ -67,6 +67,8 @@
     "library": "Schermate Libreria"
   },
   "library": "Libreria",
+  "viewList": "Visualizza lista",
+  "viewGrid": "Visualizza griglia",
   "favorites": "Preferiti",
   "artists": "Artisti",
   "playlists": "Playlist",

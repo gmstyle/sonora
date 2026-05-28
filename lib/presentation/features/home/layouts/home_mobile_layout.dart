@@ -24,9 +24,9 @@ class HomeMobileLayout extends ConsumerWidget {
             const SizedBox(width: 8),
             Text(
               AppLocalizations.of(context)!.appTitle,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),

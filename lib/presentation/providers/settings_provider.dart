@@ -25,6 +25,7 @@ class Settings {
   final bool downloadOnlyOnWifi;
   final bool trackHistory;
   final bool checkUpdatesOnStartup;
+  final bool isLibraryGridView;
 
   const Settings({
     this.themeMode = ThemeMode.system,
@@ -39,6 +40,7 @@ class Settings {
     this.downloadOnlyOnWifi = false,
     this.trackHistory = true,
     this.checkUpdatesOnStartup = true,
+    this.isLibraryGridView = false,
   });
 
   Settings copyWith({
@@ -54,6 +56,7 @@ class Settings {
     bool? downloadOnlyOnWifi,
     bool? trackHistory,
     bool? checkUpdatesOnStartup,
+    bool? isLibraryGridView,
     bool clearDownloadPath = false,
   }) {
     return Settings(
@@ -72,6 +75,7 @@ class Settings {
       trackHistory: trackHistory ?? this.trackHistory,
       checkUpdatesOnStartup:
           checkUpdatesOnStartup ?? this.checkUpdatesOnStartup,
+      isLibraryGridView: isLibraryGridView ?? this.isLibraryGridView,
     );
   }
 
@@ -97,6 +101,7 @@ class SettingsNotifier extends Notifier<Settings> {
       downloadOnlyOnWifi: _prefs.getBool(kDownloadWifiKey) ?? false,
       trackHistory: _prefs.getBool(kTrackHistoryKey) ?? true,
       checkUpdatesOnStartup: _prefs.getBool(kCheckUpdatesKey) ?? true,
+      isLibraryGridView: _prefs.getBool(kIsLibraryGridViewKey) ?? false,
     );
   }
 
@@ -117,6 +122,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kDownloadWifiKey, state.downloadOnlyOnWifi);
     await _prefs.setBool(kTrackHistoryKey, state.trackHistory);
     await _prefs.setBool(kCheckUpdatesKey, state.checkUpdatesOnStartup);
+    await _prefs.setBool(kIsLibraryGridViewKey, state.isLibraryGridView);
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -188,6 +194,11 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(checkUpdatesOnStartup: value);
     await _save();
   }
+
+  Future<void> setLibraryGridView(bool value) async {
+    state = state.copyWith(isLibraryGridView: value);
+    await _save();
+  }
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
@@ -208,6 +219,7 @@ const kDownloadPathKey = 'downloadPath';
 const kDownloadWifiKey = 'downloadOnlyOnWifi';
 const kTrackHistoryKey = 'trackHistory';
 const kCheckUpdatesKey = 'checkUpdatesOnStartup';
+const kIsLibraryGridViewKey = 'isLibraryGridView';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 
 // ── Battery Optimization (Android only) ───────────────────────────

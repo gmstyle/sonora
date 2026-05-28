@@ -217,6 +217,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get library => 'Libreria';
 
   @override
+  String get viewList => 'Visualizza lista';
+
+  @override
+  String get viewGrid => 'Visualizza griglia';
+
+  @override
   String get favorites => 'Preferiti';
 
   @override

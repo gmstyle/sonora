@@ -106,7 +106,7 @@ class _AlbumWideLayout extends ConsumerWidget {
   }
 }
 
-class _AlbumContent extends ConsumerWidget {
+class _AlbumContent extends ConsumerStatefulWidget {
   final AlbumFull album;
   final bool isTablet;
   final bool isWide;
@@ -118,28 +118,79 @@ class _AlbumContent extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final thumbnailUrl =
-        album.thumbnails.isNotEmpty ? album.thumbnails.last.url : null;
+  ConsumerState<_AlbumContent> createState() => _AlbumContentState();
+}
 
-    final totalDuration = album.songs.fold<Duration>(
+class _AlbumContentState extends ConsumerState<_AlbumContent> {
+  late final ScrollController _scrollController;
+  double _scrollProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final double expandedHeight =
+        widget.isTablet || widget.isWide ? 360.0 : 300.0;
+    final double collapsedHeight =
+        kToolbarHeight + MediaQuery.of(context).padding.top;
+    final double delta = expandedHeight - collapsedHeight;
+    final double progress = (_scrollController.offset / delta).clamp(0.0, 1.0);
+    if (progress != _scrollProgress) {
+      setState(() {
+        _scrollProgress = progress;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbnailUrl =
+        widget.album.thumbnails.isNotEmpty
+            ? widget.album.thumbnails.last.url
+            : null;
+
+    final totalDuration = widget.album.songs.fold<Duration>(
       Duration.zero,
       (sum, song) => sum + Duration(seconds: song.duration ?? 0),
     );
 
     return Scaffold(
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
-            expandedHeight: isTablet || isWide ? 360 : 300,
+            expandedHeight: widget.isTablet || widget.isWide ? 360 : 300,
             pinned: true,
+            title: AnimatedOpacity(
+              opacity:
+                  _scrollProgress > 0.8 ? (_scrollProgress - 0.8) / 0.2 : 0.0,
+              duration: const Duration(milliseconds: 150),
+              child: Text(
+                widget.album.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
                 children: [
                   if (thumbnailUrl != null)
                     Hero(
-                      tag: 'album_art_${album.albumId}',
+                      tag: 'album_art_${widget.album.albumId}',
                       child: CachedNetworkImage(
                         imageUrl: thumbnailUrl,
                         fit: BoxFit.cover,
@@ -167,40 +218,44 @@ class _AlbumContent extends ConsumerWidget {
                     bottom: 16,
                     left: 16,
                     right: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          album.name,
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          album.artist.name,
-                          style: Theme.of(context).textTheme.titleMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          [
-                            if (album.year != null) '${album.year}',
-                            '${album.songs.length} ${album.songs.length == 1 ? 'song' : 'songs'}',
-                            _formatDuration(totalDuration),
-                          ].join(' · '),
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                    child: Opacity(
+                      opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.album.name,
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.album.artist.name,
+                            style: Theme.of(context).textTheme.titleMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            [
+                              if (widget.album.year != null)
+                                '${widget.album.year}',
+                              '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
+                              _formatDuration(totalDuration),
+                            ].join(' · '),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -208,11 +263,11 @@ class _AlbumContent extends ConsumerWidget {
             ),
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 48 : 16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
             sliver: SliverToBoxAdapter(
               child: Column(
                 children: [
-                  _AlbumActions(album: album),
+                  _AlbumActions(album: widget.album),
                   const SizedBox(height: 16),
                   _buildTracklist(context, ref),
                 ],
@@ -226,13 +281,13 @@ class _AlbumContent extends ConsumerWidget {
 
   Widget _buildTracklist(BuildContext context, WidgetRef ref) {
     final trackNumberWidth =
-        album.songs.length >= 100
+        widget.album.songs.length >= 100
             ? 36.0
-            : (album.songs.length >= 10 ? 32.0 : 28.0);
+            : (widget.album.songs.length >= 10 ? 32.0 : 28.0);
 
     return Column(
       children: [
-        for (int i = 0; i < album.songs.length; i++)
+        for (int i = 0; i < widget.album.songs.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 2),
             child: Row(
@@ -249,19 +304,20 @@ class _AlbumContent extends ConsumerWidget {
                 ),
                 Expanded(
                   child: SongTile(
-                    videoId: album.songs[i].videoId,
-                    title: album.songs[i].name,
-                    artist: album.songs[i].artist.name,
+                    videoId: widget.album.songs[i].videoId,
+                    title: widget.album.songs[i].name,
+                    artist: widget.album.songs[i].artist.name,
                     thumbnailUrl:
-                        album.songs[i].thumbnails.isNotEmpty
-                            ? album.songs[i].thumbnails.last.url
+                        widget.album.songs[i].thumbnails.isNotEmpty
+                            ? widget.album.songs[i].thumbnails.last.url
                             : null,
-                    duration: album.songs[i].duration,
-                    albumName: album.name,
-                    albumId: album.albumId,
+                    duration: widget.album.songs[i].duration,
+                    albumName: widget.album.name,
+                    albumId: widget.album.albumId,
                     artistId:
-                        album.songs[i].artist.artistId ?? album.artist.artistId,
-                    playCount: album.songs[i].playCount,
+                        widget.album.songs[i].artist.artistId ??
+                        widget.album.artist.artistId,
+                    playCount: widget.album.songs[i].playCount,
                     onTap: () => _playAlbumFromIndex(context, ref, i),
                   ),
                 ),
@@ -280,7 +336,7 @@ class _AlbumContent extends ConsumerWidget {
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playAlbumUseCaseProvider);
     try {
-      final items = await useCase.execute(album.songs);
+      final items = await useCase.execute(widget.album.songs);
       if (items.isNotEmpty) {
         await player.playNow(items, initialIndex: startIndex);
       }

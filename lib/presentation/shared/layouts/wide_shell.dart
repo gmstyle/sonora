@@ -34,9 +34,7 @@ class WideShell extends ConsumerWidget {
               color: Theme.of(context).colorScheme.surfaceContainerLow,
               child: Column(
                 children: [
-                  DrawerHeader(
-                    child: const SonoraLogo.full(44),
-                  ),
+                  DrawerHeader(child: const SonoraLogo.full(44)),
                   Expanded(
                     child: ListView(
                       padding: EdgeInsets.zero,

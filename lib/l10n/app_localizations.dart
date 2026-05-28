@@ -398,6 +398,18 @@ abstract class AppLocalizations {
   /// **'Library'**
   String get library;
 
+  /// No description provided for @viewList.
+  ///
+  /// In en, this message translates to:
+  /// **'View List'**
+  String get viewList;
+
+  /// No description provided for @viewGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'View Grid'**
+  String get viewGrid;
+
   /// No description provided for @favorites.
   ///
   /// In en, this message translates to:

@@ -17,7 +17,6 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/artist_card.dart';
-import '../../shared/widgets/horizontal_scroll_row.dart';
 import 'providers/artist_provider.dart';
 
 class ArtistScreen extends ConsumerWidget {
@@ -110,7 +109,7 @@ class _ArtistWideLayout extends ConsumerWidget {
   }
 }
 
-class _ArtistContent extends ConsumerWidget {
+class _ArtistContent extends ConsumerStatefulWidget {
   final ArtistFull artist;
   final bool isTablet;
   final bool isWide;
@@ -122,101 +121,132 @@ class _ArtistContent extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ArtistContent> createState() => _ArtistContentState();
+}
+
+class _ArtistContentState extends ConsumerState<_ArtistContent> {
+  late final ScrollController _scrollController;
+  double _scrollProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final double expandedHeight =
+        widget.isTablet || widget.isWide ? 360.0 : 280.0;
+    final double collapsedHeight =
+        kToolbarHeight + MediaQuery.of(context).padding.top;
+    final double delta = expandedHeight - collapsedHeight;
+    final double progress = (_scrollController.offset / delta).clamp(0.0, 1.0);
+    if (progress != _scrollProgress) {
+      setState(() {
+        _scrollProgress = progress;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           _ArtistSliverAppBar(
-            artist: artist,
-            isTablet: isTablet,
-            isWide: isWide,
+            artist: widget.artist,
+            isTablet: widget.isTablet,
+            isWide: widget.isWide,
+            scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 48 : 16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ArtistActions(artist: artist),
-                  if (artist.description != null &&
-                      artist.description!.isNotEmpty) ...[
+                  _ArtistActions(artist: widget.artist),
+                  if (widget.artist.description != null &&
+                      widget.artist.description!.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    _ExpandableText(text: artist.description!),
+                    _ExpandableText(text: widget.artist.description!),
                   ],
                   const SizedBox(height: 24),
-                  if (artist.topSongs.isNotEmpty)
+                  if (widget.artist.topSongs.isNotEmpty)
                     _ArtistTopSongsSection(
-                      songs: artist.topSongs,
-                      artistId: artist.artistId,
+                      songs: widget.artist.topSongs,
+                      artistId: widget.artist.artistId,
                     ),
-                  if (artist.topAlbums.isNotEmpty) ...[
+                  if (widget.artist.topAlbums.isNotEmpty) ...[
                     _SectionHeader(title: AppLocalizations.of(context)!.albums),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: HorizontalScrollRow(
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 16),
-                        builder: (context, controller) => ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          controller: controller,
-                          itemCount: artist.topAlbums.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final album = artist.topAlbums[index];
-                            return AlbumCard(
-                              albumId: album.albumId,
-                              name: album.name,
-                              artist: album.artist.name,
-                              thumbnailUrl:
-                                  album.thumbnails.isNotEmpty
-                                      ? album.thumbnails.last.url
-                                      : null,
-                              year: album.year,
-                            );
-                          },
-                        ),
+                        itemCount: widget.artist.topAlbums.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final album = widget.artist.topAlbums[index];
+                          return AlbumCard(
+                            albumId: album.albumId,
+                            name: album.name,
+                            artist: album.artist.name,
+                            thumbnailUrl:
+                                album.thumbnails.isNotEmpty
+                                    ? album.thumbnails.last.url
+                                    : null,
+                            year: album.year,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (artist.topSingles.isNotEmpty) ...[
+                  if (widget.artist.topSingles.isNotEmpty) ...[
                     _SectionHeader(
                       title: AppLocalizations.of(context)!.singles,
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: HorizontalScrollRow(
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 16),
-                        builder: (context, controller) => ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          controller: controller,
-                          itemCount: artist.topSingles.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final single = artist.topSingles[index];
-                            return AlbumCard(
-                              albumId: single.albumId,
-                              name: single.name,
-                              artist: single.artist.name,
-                              thumbnailUrl:
-                                  single.thumbnails.isNotEmpty
-                                      ? single.thumbnails.last.url
-                                      : null,
-                              year: single.year,
-                            );
-                          },
-                        ),
+                        itemCount: widget.artist.topSingles.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final single = widget.artist.topSingles[index];
+                          return AlbumCard(
+                            albumId: single.albumId,
+                            name: single.name,
+                            artist: single.artist.name,
+                            thumbnailUrl:
+                                single.thumbnails.isNotEmpty
+                                    ? single.thumbnails.last.url
+                                    : null,
+                            year: single.year,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (artist.topVideos.isNotEmpty) ...[
+                  if (widget.artist.topVideos.isNotEmpty) ...[
                     _SectionHeader(title: AppLocalizations.of(context)!.videos),
                     const SizedBox(height: 8),
-                    ...artist.topVideos.map(
+                    ...widget.artist.topVideos.map(
                       (video) => SongTile(
                         videoId: video.videoId,
                         title: video.name,
@@ -232,36 +262,32 @@ class _ArtistContent extends ConsumerWidget {
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (artist.similarArtists.isNotEmpty) ...[
+                  if (widget.artist.similarArtists.isNotEmpty) ...[
                     _SectionHeader(
                       title: AppLocalizations.of(context)!.similarArtists,
                     ),
                     const SizedBox(height: 8),
-SizedBox(
-                       height: 180,
-                       child: HorizontalScrollRow(
-                         padding: const EdgeInsets.only(right: 16),
-                         builder: (context, controller) => ListView.separated(
-                           scrollDirection: Axis.horizontal,
-                           padding: const EdgeInsets.only(right: 16),
-                           controller: controller,
-                           itemCount: artist.similarArtists.length,
-                           separatorBuilder: (_, _) => const SizedBox(width: 12),
-                           itemBuilder: (context, index) {
-                             final similar = artist.similarArtists[index];
-                             return ArtistCard(
-                               artistId: similar.artistId,
-                               name: similar.name,
-                               thumbnailUrl:
-                                   similar.thumbnails.isNotEmpty
-                                       ? similar.thumbnails.last.url
-                                       : null,
-                               monthlyListeners: similar.monthlyListeners,
-                             );
-                           },
-                         ),
-                       ),
-                     ),
+                    SizedBox(
+                      height: 180,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(right: 16),
+                        itemCount: widget.artist.similarArtists.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final similar = widget.artist.similarArtists[index];
+                          return ArtistCard(
+                            artistId: similar.artistId,
+                            name: similar.name,
+                            thumbnailUrl:
+                                similar.thumbnails.isNotEmpty
+                                    ? similar.thumbnails.last.url
+                                    : null,
+                            monthlyListeners: similar.monthlyListeners,
+                          );
+                        },
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ],
@@ -379,11 +405,13 @@ class _ArtistSliverAppBar extends StatelessWidget {
   final ArtistFull artist;
   final bool isTablet;
   final bool isWide;
+  final double scrollProgress;
 
   const _ArtistSliverAppBar({
     required this.artist,
     this.isTablet = false,
     this.isWide = false,
+    required this.scrollProgress,
   });
 
   @override
@@ -394,6 +422,16 @@ class _ArtistSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 280,
       pinned: true,
+      title: AnimatedOpacity(
+        opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
+        duration: const Duration(milliseconds: 150),
+        child: Text(
+          artist.name,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -435,44 +473,49 @@ class _ArtistSliverAppBar extends StatelessWidget {
               bottom: 16,
               left: 16,
               right: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    artist.name,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+              child: Opacity(
+                opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      artist.name,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if ([
-                    artist.subscriberCount,
-                    artist.monthlyListeners,
-                    artist.totalViews,
-                  ].any((e) => e != null && e.isNotEmpty))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        [
-                          if (artist.subscriberCount != null &&
-                              artist.subscriberCount!.isNotEmpty)
-                            '${artist.subscriberCount} ${AppLocalizations.of(context)!.subscribers}',
-                          if (artist.monthlyListeners != null &&
-                              artist.monthlyListeners!.isNotEmpty)
-                            artist.monthlyListeners,
-                          if (artist.totalViews != null &&
-                              artist.totalViews!.isNotEmpty)
-                            artist.totalViews,
-                        ].join(' · '),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    if ([
+                      artist.subscriberCount,
+                      artist.monthlyListeners,
+                      artist.totalViews,
+                    ].any((e) => e != null && e.isNotEmpty))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          [
+                            if (artist.subscriberCount != null &&
+                                artist.subscriberCount!.isNotEmpty)
+                              '${artist.subscriberCount} ${AppLocalizations.of(context)!.subscribers}',
+                            if (artist.monthlyListeners != null &&
+                                artist.monthlyListeners!.isNotEmpty)
+                              artist.monthlyListeners,
+                            if (artist.totalViews != null &&
+                                artist.totalViews!.isNotEmpty)
+                              artist.totalViews,
+                          ].join(' · '),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

@@ -131,7 +131,7 @@ class _PlaylistWideLayout extends ConsumerWidget {
   }
 }
 
-class _PlaylistContent extends ConsumerWidget {
+class _PlaylistContent extends ConsumerStatefulWidget {
   final PlaylistFull playlist;
   final AsyncValue<List<VideoDetailed>> videosAsync;
   final bool isTablet;
@@ -145,27 +145,66 @@ class _PlaylistContent extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PlaylistContent> createState() => _PlaylistContentState();
+}
+
+class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
+  late final ScrollController _scrollController;
+  double _scrollProgress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final double expandedHeight =
+        widget.isTablet || widget.isWide ? 360.0 : 300.0;
+    final double collapsedHeight =
+        kToolbarHeight + MediaQuery.of(context).padding.top;
+    final double delta = expandedHeight - collapsedHeight;
+    final double progress = (_scrollController.offset / delta).clamp(0.0, 1.0);
+    if (progress != _scrollProgress) {
+      setState(() {
+        _scrollProgress = progress;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           _PlaylistSliverAppBar(
-            playlist: playlist,
-            isTablet: isTablet,
-            isWide: isWide,
+            playlist: widget.playlist,
+            isTablet: widget.isTablet,
+            isWide: widget.isWide,
+            scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 48 : 16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _PlaylistActions(
-                    playlist: playlist,
-                    videosAsync: videosAsync,
+                    playlist: widget.playlist,
+                    videosAsync: widget.videosAsync,
                   ),
                   const SizedBox(height: 16),
-                  videosAsync.when(
+                  widget.videosAsync.when(
                     loading: () => _videoShimmerList(),
                     error:
                         (e, _) => ErrorRetryWidget(
@@ -173,7 +212,9 @@ class _PlaylistContent extends ConsumerWidget {
                               AppLocalizations.of(context)!.failedToLoadVideos,
                           onRetry:
                               () => ref.invalidate(
-                                playlistVideosProvider(playlist.playlistId),
+                                playlistVideosProvider(
+                                  widget.playlist.playlistId,
+                                ),
                               ),
                         ),
                     data: (videos) => _VideoTracklist(videos: videos),
@@ -192,11 +233,13 @@ class _PlaylistSliverAppBar extends StatelessWidget {
   final PlaylistFull playlist;
   final bool isTablet;
   final bool isWide;
+  final double scrollProgress;
 
   const _PlaylistSliverAppBar({
     required this.playlist,
     this.isTablet = false,
     this.isWide = false,
+    required this.scrollProgress,
   });
 
   @override
@@ -207,6 +250,16 @@ class _PlaylistSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 300,
       pinned: true,
+      title: AnimatedOpacity(
+        opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
+        duration: const Duration(milliseconds: 150),
+        child: Text(
+          playlist.name,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           fit: StackFit.expand,
@@ -240,36 +293,38 @@ class _PlaylistSliverAppBar extends StatelessWidget {
               bottom: 16,
               left: 16,
               right: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    playlist.name,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+              child: Opacity(
+                opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      playlist.name,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    playlist.artist.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.videoCount(playlist.videoCount),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 4),
+                    Text(
+                      playlist.artist.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.videoCount(playlist.videoCount),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
