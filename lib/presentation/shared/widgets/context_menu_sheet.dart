@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/extensions/stat_format.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/usecases/player/play_album_use_case.dart';
 import '../../../domain/usecases/player/play_playlist_use_case.dart';
@@ -60,6 +61,34 @@ class ContextMenuSheet {
     String? playCount,
     int? viewCount,
   }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _SongContextMenuSheet(
+                videoId: videoId,
+                title: title,
+                artist: artist,
+                thumbnailUrl: thumbnailUrl,
+                duration: duration,
+                isVideo: isVideo,
+                albumName: albumName,
+                artistId: artistId,
+                albumId: albumId,
+                playCount: playCount,
+                viewCount: viewCount,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -87,6 +116,27 @@ class ContextMenuSheet {
     String? thumbnailUrl,
     String? monthlyListeners,
   }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _ArtistContextMenuSheet(
+                artistId: artistId,
+                name: name,
+                thumbnailUrl: thumbnailUrl,
+                monthlyListeners: monthlyListeners,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -109,6 +159,29 @@ class ContextMenuSheet {
     String? thumbnailUrl,
     int? year,
   }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _AlbumContextMenuSheet(
+                albumId: albumId,
+                name: name,
+                artist: artist,
+                artistId: artistId,
+                thumbnailUrl: thumbnailUrl,
+                year: year,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -131,6 +204,27 @@ class ContextMenuSheet {
     String? artist,
     String? thumbnailUrl,
   }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _PlaylistContextMenuSheet(
+                playlistId: playlistId,
+                name: name,
+                artist: artist,
+                thumbnailUrl: thumbnailUrl,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,

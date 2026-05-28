@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/home_screen.dart';
@@ -27,24 +28,75 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'artist/:artistId',
-                    builder:
-                        (context, state) => ArtistScreen(
-                          artistId: state.pathParameters['artistId']!,
-                        ),
+                    pageBuilder: (context, state) => CustomTransitionPage(
+                      key: state.pageKey,
+                      child: ArtistScreen(
+                        artistId: state.pathParameters['artistId']!,
+                      ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return SlideTransition(
+                          position: animation.drive(
+                            Tween(
+                              begin: const Offset(0.0, 1.0),
+                              end: Offset.zero,
+                            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                          ),
+                          child: child,
+                        );
+                      },
+                      transitionDuration: const Duration(milliseconds: 300),
+                      reverseTransitionDuration:
+                          const Duration(milliseconds: 250),
+                    ),
                   ),
                   GoRoute(
                     path: 'album/:albumId',
-                    builder:
-                        (context, state) => AlbumScreen(
-                          albumId: state.pathParameters['albumId']!,
-                        ),
+                    pageBuilder: (context, state) => CustomTransitionPage(
+                      key: state.pageKey,
+                      child: AlbumScreen(
+                        albumId: state.pathParameters['albumId']!,
+                      ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return SlideTransition(
+                          position: animation.drive(
+                            Tween(
+                              begin: const Offset(0.0, 1.0),
+                              end: Offset.zero,
+                            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                          ),
+                          child: child,
+                        );
+                      },
+                      transitionDuration: const Duration(milliseconds: 300),
+                      reverseTransitionDuration:
+                          const Duration(milliseconds: 250),
+                    ),
                   ),
                   GoRoute(
                     path: 'playlist/:playlistId',
-                    builder:
-                        (context, state) => PlaylistScreen(
-                          playlistId: state.pathParameters['playlistId']!,
-                        ),
+                    pageBuilder: (context, state) => CustomTransitionPage(
+                      key: state.pageKey,
+                      child: PlaylistScreen(
+                        playlistId: state.pathParameters['playlistId']!,
+                      ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return SlideTransition(
+                          position: animation.drive(
+                            Tween(
+                              begin: const Offset(0.0, 1.0),
+                              end: Offset.zero,
+                            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                          ),
+                          child: child,
+                        );
+                      },
+                      transitionDuration: const Duration(milliseconds: 300),
+                      reverseTransitionDuration:
+                          const Duration(milliseconds: 250),
+                    ),
                   ),
                 ],
               ),

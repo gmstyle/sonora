@@ -62,7 +62,15 @@ class TabletShell extends ConsumerWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 : 0.0),
-                  child: navigationShell,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeInOut,
+                    switchOutCurve: Curves.easeInOut,
+                    child: SizedBox(
+                      key: ValueKey(navigationShell.currentIndex),
+                      child: navigationShell,
+                    ),
+                  ),
                 ),
                 const PlayerSheet(),
                 const PlayerErrorListener(),
