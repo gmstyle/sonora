@@ -31,7 +31,9 @@ class MobileShell extends ConsumerWidget {
       body: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 + navBarHeight : navBarHeight),
+            padding: EdgeInsets.only(
+              bottom: isPlayerActive ? 72.0 + navBarHeight : navBarHeight,
+            ),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               switchInCurve: Curves.easeInOut,

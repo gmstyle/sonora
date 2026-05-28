@@ -65,28 +65,29 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => Center(
-          child: SizedBox(
-            width: 360,
-            child: Card(
-              elevation: 8,
-              clipBehavior: Clip.hardEdge,
-              child: _SongContextMenuSheet(
-                videoId: videoId,
-                title: title,
-                artist: artist,
-                thumbnailUrl: thumbnailUrl,
-                duration: duration,
-                isVideo: isVideo,
-                albumName: albumName,
-                artistId: artistId,
-                albumId: albumId,
-                playCount: playCount,
-                viewCount: viewCount,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _SongContextMenuSheet(
+                    videoId: videoId,
+                    title: title,
+                    artist: artist,
+                    thumbnailUrl: thumbnailUrl,
+                    duration: duration,
+                    isVideo: isVideo,
+                    albumName: albumName,
+                    artistId: artistId,
+                    albumId: albumId,
+                    playCount: playCount,
+                    viewCount: viewCount,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
       );
     }
     return showModalBottomSheet(
@@ -120,21 +121,22 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => Center(
-          child: SizedBox(
-            width: 360,
-            child: Card(
-              elevation: 8,
-              clipBehavior: Clip.hardEdge,
-              child: _ArtistContextMenuSheet(
-                artistId: artistId,
-                name: name,
-                thumbnailUrl: thumbnailUrl,
-                monthlyListeners: monthlyListeners,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _ArtistContextMenuSheet(
+                    artistId: artistId,
+                    name: name,
+                    thumbnailUrl: thumbnailUrl,
+                    monthlyListeners: monthlyListeners,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
       );
     }
     return showModalBottomSheet(
@@ -163,23 +165,24 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => Center(
-          child: SizedBox(
-            width: 360,
-            child: Card(
-              elevation: 8,
-              clipBehavior: Clip.hardEdge,
-              child: _AlbumContextMenuSheet(
-                albumId: albumId,
-                name: name,
-                artist: artist,
-                artistId: artistId,
-                thumbnailUrl: thumbnailUrl,
-                year: year,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _AlbumContextMenuSheet(
+                    albumId: albumId,
+                    name: name,
+                    artist: artist,
+                    artistId: artistId,
+                    thumbnailUrl: thumbnailUrl,
+                    year: year,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
       );
     }
     return showModalBottomSheet(
@@ -208,21 +211,22 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder: (_) => Center(
-          child: SizedBox(
-            width: 360,
-            child: Card(
-              elevation: 8,
-              clipBehavior: Clip.hardEdge,
-              child: _PlaylistContextMenuSheet(
-                playlistId: playlistId,
-                name: name,
-                artist: artist,
-                thumbnailUrl: thumbnailUrl,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _PlaylistContextMenuSheet(
+                    playlistId: playlistId,
+                    name: name,
+                    artist: artist,
+                    thumbnailUrl: thumbnailUrl,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
       );
     }
     return showModalBottomSheet(

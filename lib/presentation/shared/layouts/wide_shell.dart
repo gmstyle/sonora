@@ -43,17 +43,41 @@ class WideShell extends ConsumerWidget {
                       padding: EdgeInsets.zero,
                       children: [
                         for (var i = 0; i < _icons.length; i++)
-                          ListTile(
-                            selected: navigationShell.currentIndex == i,
-                            selectedTileColor:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.secondaryContainer,
-                            leading: Icon(_icons[i]),
-                            title: Text(
-                              _getLabel(AppLocalizations.of(context)!, i),
-                            ),
-                            onTap: () => navigationShell.goBranch(i),
+                          Stack(
+                            children: [
+                              ListTile(
+                                selected: navigationShell.currentIndex == i,
+                                selectedTileColor: Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer
+                                    .withValues(alpha: 0.5),
+                                leading: Icon(_icons[i]),
+                                title: Text(
+                                  _getLabel(AppLocalizations.of(context)!, i),
+                                ),
+                                onTap: () => navigationShell.goBranch(i),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                              ),
+                              if (navigationShell.currentIndex == i)
+                                Positioned(
+                                  left: 0,
+                                  top: 10,
+                                  bottom: 10,
+                                  width: 4,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      borderRadius: const BorderRadius.only(
+                                        topRight: Radius.circular(4),
+                                        bottomRight: Radius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                       ],
                     ),
@@ -117,14 +141,23 @@ class _NowPlayingPanel extends ConsumerWidget {
         onTap: () {
           Navigator.of(context).push(
             PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  const FullPlayerContent(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              pageBuilder:
+                  (context, animation, secondaryAnimation) =>
+                      const FullPlayerContent(),
+              transitionsBuilder: (
+                context,
+                animation,
+                secondaryAnimation,
+                child,
+              ) {
                 const begin = Offset(0.0, 1.0);
                 const end = Offset.zero;
                 const curve = Curves.easeOutCubic;
 
-                var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                var tween = Tween(
+                  begin: begin,
+                  end: end,
+                ).chain(CurveTween(curve: curve));
                 var offsetAnimation = animation.drive(tween);
 
                 return SlideTransition(position: offsetAnimation, child: child);
@@ -140,7 +173,9 @@ class _NowPlayingPanel extends ConsumerWidget {
             color: Theme.of(context).colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
               width: 1,
             ),
           ),
@@ -151,7 +186,8 @@ class _NowPlayingPanel extends ConsumerWidget {
             children: [
               ThumbnailWidget(
                 imageUrl: currentSong.artUri?.toString(),
-                size: 224, // 280 width - 32 parent padding - 24 container padding = 224px perfect fit!
+                size:
+                    224, // 280 width - 32 parent padding - 24 container padding = 224px perfect fit!
                 shape: ThumbnailShape.rounded,
               ),
               const SizedBox(height: 12),
@@ -159,9 +195,9 @@ class _NowPlayingPanel extends ConsumerWidget {
                 currentSong.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 2),
               Text(
@@ -169,8 +205,8 @@ class _NowPlayingPanel extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

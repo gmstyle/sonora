@@ -28,75 +28,93 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'artist/:artistId',
-                    pageBuilder: (context, state) => CustomTransitionPage(
-                      key: state.pageKey,
-                      child: ArtistScreen(
-                        artistId: state.pathParameters['artistId']!,
-                      ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return SlideTransition(
-                          position: animation.drive(
-                            Tween(
-                              begin: const Offset(0.0, 1.0),
-                              end: Offset.zero,
-                            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                    pageBuilder:
+                        (context, state) => CustomTransitionPage(
+                          key: state.pageKey,
+                          child: ArtistScreen(
+                            artistId: state.pathParameters['artistId']!,
                           ),
-                          child: child,
-                        );
-                      },
-                      transitionDuration: const Duration(milliseconds: 300),
-                      reverseTransitionDuration:
-                          const Duration(milliseconds: 250),
-                    ),
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) {
+                            return SlideTransition(
+                              position: animation.drive(
+                                Tween(
+                                  begin: const Offset(0.0, 1.0),
+                                  end: Offset.zero,
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                              ),
+                              child: child,
+                            );
+                          },
+                          transitionDuration: const Duration(milliseconds: 300),
+                          reverseTransitionDuration: const Duration(
+                            milliseconds: 250,
+                          ),
+                        ),
                   ),
                   GoRoute(
                     path: 'album/:albumId',
-                    pageBuilder: (context, state) => CustomTransitionPage(
-                      key: state.pageKey,
-                      child: AlbumScreen(
-                        albumId: state.pathParameters['albumId']!,
-                      ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return SlideTransition(
-                          position: animation.drive(
-                            Tween(
-                              begin: const Offset(0.0, 1.0),
-                              end: Offset.zero,
-                            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                    pageBuilder:
+                        (context, state) => CustomTransitionPage(
+                          key: state.pageKey,
+                          child: AlbumScreen(
+                            albumId: state.pathParameters['albumId']!,
                           ),
-                          child: child,
-                        );
-                      },
-                      transitionDuration: const Duration(milliseconds: 300),
-                      reverseTransitionDuration:
-                          const Duration(milliseconds: 250),
-                    ),
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) {
+                            return SlideTransition(
+                              position: animation.drive(
+                                Tween(
+                                  begin: const Offset(0.0, 1.0),
+                                  end: Offset.zero,
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                              ),
+                              child: child,
+                            );
+                          },
+                          transitionDuration: const Duration(milliseconds: 300),
+                          reverseTransitionDuration: const Duration(
+                            milliseconds: 250,
+                          ),
+                        ),
                   ),
                   GoRoute(
                     path: 'playlist/:playlistId',
-                    pageBuilder: (context, state) => CustomTransitionPage(
-                      key: state.pageKey,
-                      child: PlaylistScreen(
-                        playlistId: state.pathParameters['playlistId']!,
-                      ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return SlideTransition(
-                          position: animation.drive(
-                            Tween(
-                              begin: const Offset(0.0, 1.0),
-                              end: Offset.zero,
-                            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                    pageBuilder:
+                        (context, state) => CustomTransitionPage(
+                          key: state.pageKey,
+                          child: PlaylistScreen(
+                            playlistId: state.pathParameters['playlistId']!,
                           ),
-                          child: child,
-                        );
-                      },
-                      transitionDuration: const Duration(milliseconds: 300),
-                      reverseTransitionDuration:
-                          const Duration(milliseconds: 250),
-                    ),
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) {
+                            return SlideTransition(
+                              position: animation.drive(
+                                Tween(
+                                  begin: const Offset(0.0, 1.0),
+                                  end: Offset.zero,
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                              ),
+                              child: child,
+                            );
+                          },
+                          transitionDuration: const Duration(milliseconds: 300),
+                          reverseTransitionDuration: const Duration(
+                            milliseconds: 250,
+                          ),
+                        ),
                   ),
                 ],
               ),

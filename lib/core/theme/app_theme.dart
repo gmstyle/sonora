@@ -2,28 +2,62 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static ThemeData light({ColorScheme? dynamicColorScheme}) {
+    final colorScheme =
+        dynamicColorScheme ??
+        ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.light,
+        );
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme:
-          dynamicColorScheme ??
-          ColorScheme.fromSeed(
-            seedColor: Colors.indigo,
-            brightness: Brightness.light,
-          ),
+      colorScheme: colorScheme,
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
+        selectedIconTheme: IconThemeData(color: colorScheme.primary),
+        unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
+        selectedLabelTextStyle: TextStyle(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+        unselectedLabelTextStyle: TextStyle(
+          color: colorScheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 
   static ThemeData dark({ColorScheme? dynamicColorScheme}) {
+    final colorScheme =
+        dynamicColorScheme ??
+        ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
+        );
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme:
-          dynamicColorScheme ??
-          ColorScheme.fromSeed(
-            seedColor: Colors.indigo,
-            brightness: Brightness.dark,
-          ),
+      colorScheme: colorScheme,
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        indicatorColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
+        selectedIconTheme: IconThemeData(color: colorScheme.primary),
+        unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
+        selectedLabelTextStyle: TextStyle(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+        unselectedLabelTextStyle: TextStyle(
+          color: colorScheme.onSurfaceVariant,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 
@@ -46,6 +80,9 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
       bottomNavigationBarTheme: baseDark.bottomNavigationBarTheme.copyWith(
+        backgroundColor: Colors.black,
+      ),
+      navigationRailTheme: baseDark.navigationRailTheme.copyWith(
         backgroundColor: Colors.black,
       ),
     );
