@@ -5,7 +5,8 @@ import 'mini_player_content.dart';
 import 'full_player_content.dart';
 
 class PlayerSheet extends ConsumerWidget {
-  const PlayerSheet({super.key});
+  final double bottom;
+  const PlayerSheet({super.key, this.bottom = 0.0});
 
   void _navigateToFullPlayer(
     BuildContext context,
@@ -50,7 +51,7 @@ class PlayerSheet extends ConsumerWidget {
     final isVideo = currentSong.extras?['isVideo'] == true;
 
     return Positioned(
-      bottom: 0,
+      bottom: bottom,
       left: 0,
       right: 0,
       child: ClipRRect(
