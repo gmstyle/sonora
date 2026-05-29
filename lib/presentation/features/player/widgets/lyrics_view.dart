@@ -111,6 +111,14 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
   void didUpdateWidget(covariant _TimedLyricsView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    if (widget.lyrics.timedLyricsData.length !=
+        oldWidget.lyrics.timedLyricsData.length) {
+      _keys = List.generate(
+        widget.lyrics.timedLyricsData.length,
+        (_) => GlobalKey(),
+      );
+    }
+
     final data = widget.lyrics.timedLyricsData;
     final posMs = widget.position?.inMilliseconds ?? 0;
 
@@ -157,10 +165,6 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
           data[i].cueRange!.startTimeMilliseconds <= posMs) {
         activeIndex = i;
       }
-    }
-
-    if (_keys.length != data.length) {
-      _keys = List.generate(data.length, (_) => GlobalKey());
     }
 
     return SingleChildScrollView(
