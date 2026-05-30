@@ -42,6 +42,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get topSongs => 'Brani Popolari';
 
   @override
+  String get featuredOn => 'In Primo Piano';
+
+  @override
   String get showLess => 'Mostra meno';
 
   @override

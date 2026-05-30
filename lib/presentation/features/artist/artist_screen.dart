@@ -18,6 +18,7 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/artist_card.dart';
+import '../../shared/widgets/playlist_card.dart';
 import 'providers/artist_provider.dart';
 
 class ArtistScreen extends ConsumerWidget {
@@ -259,6 +260,34 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                         duration: video.duration,
                         isVideo: true,
                         playCount: video.viewCount,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  if (widget.artist.featuredOn.isNotEmpty) ...[
+                    _SectionHeader(
+                      title: AppLocalizations.of(context)!.featuredOn,
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 220,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(right: 16),
+                        itemCount: widget.artist.featuredOn.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final playlist = widget.artist.featuredOn[index];
+                          return PlaylistCard(
+                            playlistId: playlist.playlistId,
+                            name: playlist.name,
+                            artist: playlist.artist.name,
+                            thumbnailUrl:
+                                playlist.thumbnails.isNotEmpty
+                                    ? playlist.thumbnails.last.url
+                                    : null,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 24),

@@ -20,6 +20,7 @@
   "videos": "Videos",
   "similarArtists": "Similar Artists",
   "topSongs": "Top Songs",
+  "featuredOn": "Featured On",
   "showLess": "Show less",
   "showMore": "Show more",
   "failedToLoadSongs": "Failed to load songs: {error}",
