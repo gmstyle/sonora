@@ -11,6 +11,7 @@ import '../../../shared/widgets/playlist_card.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
+import '../../../shared/widgets/hover_carousel_arrows.dart';
 
 class HomeShimmer extends StatelessWidget {
   final int tileCount;
@@ -34,14 +35,33 @@ class HomeShimmer extends StatelessWidget {
   }
 }
 
-class HomeContinueListening extends StatelessWidget {
+class HomeContinueListening extends StatefulWidget {
   final AsyncValue historyAsync;
 
   const HomeContinueListening(this.historyAsync, {super.key});
 
   @override
+  State<HomeContinueListening> createState() => _HomeContinueListeningState();
+}
+
+class _HomeContinueListeningState extends State<HomeContinueListening> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return historyAsync.when(
+    return widget.historyAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
       data: (history) {
@@ -60,15 +80,20 @@ class HomeContinueListening extends StatelessWidget {
             ),
             SizedBox(
               height: 120,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: history.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final item = history[index];
-                  return _ContinueListeningItem(item: item);
-                },
+              child: HoverCarouselArrows(
+                controller: _scrollController,
+                scrollAmount: 300.0,
+                child: ListView.separated(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: history.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final item = history[index];
+                    return _ContinueListeningItem(item: item);
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -306,24 +331,48 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
-class _HorizontalCardRow extends StatelessWidget {
+class _HorizontalCardRow extends StatefulWidget {
   final List<dynamic> items;
   final double cardWidth;
 
   const _HorizontalCardRow({required this.items, this.cardWidth = 150});
 
   @override
+  State<_HorizontalCardRow> createState() => _HorizontalCardRowState();
+}
+
+class _HorizontalCardRowState extends State<_HorizontalCardRow> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      physics: const PageScrollPhysics(),
-      itemCount: items.length,
-      separatorBuilder: (_, _) => const SizedBox(width: 8),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return _buildItem(context, item);
-      },
+    return HoverCarouselArrows(
+      controller: _scrollController,
+      scrollAmount: widget.cardWidth * 3, // Scroll by 3 cards at a time
+      child: ListView.separated(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        physics: const PageScrollPhysics(),
+        itemCount: widget.items.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final item = widget.items[index];
+          return _buildItem(context, item);
+        },
+      ),
     );
   }
 

@@ -18,6 +18,7 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
+import '../../shared/widgets/hover_carousel_arrows.dart';
 import 'providers/album_provider.dart';
 
 class AlbumScreen extends ConsumerWidget {
@@ -127,6 +128,7 @@ class _AlbumContent extends ConsumerStatefulWidget {
 
 class _AlbumContentState extends ConsumerState<_AlbumContent> {
   late final ScrollController _scrollController;
+  late final ScrollController _relatedReleasesScrollController;
   double _scrollProgress = 0.0;
 
   @override
@@ -134,12 +136,14 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+    _relatedReleasesScrollController = ScrollController();
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _relatedReleasesScrollController.dispose();
     super.dispose();
   }
 
@@ -282,24 +286,29 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 16),
-                        itemCount: widget.album.relatedReleases.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final release = widget.album.relatedReleases[index];
-                          return AlbumCard(
-                            albumId: release.albumId,
-                            name: release.name,
-                            artist: release.artist.name,
-                            thumbnailUrl:
-                                release.thumbnails.isNotEmpty
-                                    ? release.thumbnails.last.url
-                                    : null,
-                            year: release.year,
-                          );
-                        },
+                      child: HoverCarouselArrows(
+                        controller: _relatedReleasesScrollController,
+                        scrollAmount: 480.0,
+                        child: ListView.separated(
+                          controller: _relatedReleasesScrollController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          itemCount: widget.album.relatedReleases.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final release = widget.album.relatedReleases[index];
+                            return AlbumCard(
+                              albumId: release.albumId,
+                              name: release.name,
+                              artist: release.artist.name,
+                              thumbnailUrl:
+                                  release.thumbnails.isNotEmpty
+                                      ? release.thumbnails.last.url
+                                      : null,
+                              year: release.year,
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ],

@@ -21,6 +21,7 @@ import '../../shared/widgets/release_card.dart';
 import '../../shared/widgets/video_card.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
+import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../providers/download_provider.dart';
 import 'providers/artist_provider.dart';
 
@@ -131,6 +132,11 @@ class _ArtistContent extends ConsumerStatefulWidget {
 
 class _ArtistContentState extends ConsumerState<_ArtistContent> {
   late final ScrollController _scrollController;
+  late final ScrollController _albumsScrollController;
+  late final ScrollController _singlesScrollController;
+  late final ScrollController _videosScrollController;
+  late final ScrollController _featuredOnScrollController;
+  late final ScrollController _similarArtistsScrollController;
   double _scrollProgress = 0.0;
 
   @override
@@ -138,12 +144,22 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+    _albumsScrollController = ScrollController();
+    _singlesScrollController = ScrollController();
+    _videosScrollController = ScrollController();
+    _featuredOnScrollController = ScrollController();
+    _similarArtistsScrollController = ScrollController();
   }
 
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _albumsScrollController.dispose();
+    _singlesScrollController.dispose();
+    _videosScrollController.dispose();
+    _featuredOnScrollController.dispose();
+    _similarArtistsScrollController.dispose();
     super.dispose();
   }
 
@@ -200,26 +216,31 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.topAlbums.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final album = artist.topAlbums[index];
-                          return ReleaseCard(
-                            albumId: album.albumId,
-                            name: album.name,
-                            artist: album.artist.name,
-                            thumbnailUrl:
-                                album.thumbnails.isNotEmpty
-                                    ? album.thumbnails.last.url
-                                    : null,
-                            year: album.year,
-                            artistId: album.artist.artistId,
-                            type: ReleaseType.album,
-                          );
-                        },
+                      child: HoverCarouselArrows(
+                        controller: _albumsScrollController,
+                        scrollAmount: 480.0,
+                        child: ListView.separated(
+                          controller: _albumsScrollController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          itemCount: artist.topAlbums.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final album = artist.topAlbums[index];
+                            return ReleaseCard(
+                              albumId: album.albumId,
+                              name: album.name,
+                              artist: album.artist.name,
+                              thumbnailUrl:
+                                  album.thumbnails.isNotEmpty
+                                      ? album.thumbnails.last.url
+                                      : null,
+                              year: album.year,
+                              artistId: album.artist.artistId,
+                              type: ReleaseType.album,
+                            );
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -229,26 +250,31 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.topSingles.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final single = artist.topSingles[index];
-                          return ReleaseCard(
-                            albumId: single.albumId,
-                            name: single.name,
-                            artist: single.artist.name,
-                            thumbnailUrl:
-                                single.thumbnails.isNotEmpty
-                                    ? single.thumbnails.last.url
-                                    : null,
-                            year: single.year,
-                            artistId: single.artist.artistId,
-                            type: ReleaseType.single,
-                          );
-                        },
+                      child: HoverCarouselArrows(
+                        controller: _singlesScrollController,
+                        scrollAmount: 480.0,
+                        child: ListView.separated(
+                          controller: _singlesScrollController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          itemCount: artist.topSingles.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final single = artist.topSingles[index];
+                            return ReleaseCard(
+                              albumId: single.albumId,
+                              name: single.name,
+                              artist: single.artist.name,
+                              thumbnailUrl:
+                                  single.thumbnails.isNotEmpty
+                                      ? single.thumbnails.last.url
+                                      : null,
+                              year: single.year,
+                              artistId: single.artist.artistId,
+                              type: ReleaseType.single,
+                            );
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -258,24 +284,29 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 180,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.topVideos.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final video = artist.topVideos[index];
-                          return VideoCard(
-                            videoId: video.videoId,
-                            title: video.name,
-                            artist: video.artist.name,
-                            thumbnailUrl:
-                                video.thumbnails.isNotEmpty
-                                    ? video.thumbnails.last.url
-                                    : null,
-                            artistId: video.artist.artistId,
-                          );
-                        },
+                      child: HoverCarouselArrows(
+                        controller: _videosScrollController,
+                        scrollAmount: 600.0,
+                        child: ListView.separated(
+                          controller: _videosScrollController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          itemCount: artist.topVideos.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final video = artist.topVideos[index];
+                            return VideoCard(
+                              videoId: video.videoId,
+                              title: video.name,
+                              artist: video.artist.name,
+                              thumbnailUrl:
+                                  video.thumbnails.isNotEmpty
+                                      ? video.thumbnails.last.url
+                                      : null,
+                              artistId: video.artist.artistId,
+                            );
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -287,23 +318,28 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.featuredOn.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final playlist = artist.featuredOn[index];
-                          return PlaylistCard(
-                            playlistId: playlist.playlistId,
-                            name: playlist.name,
-                            artist: playlist.artist.name,
-                            thumbnailUrl:
-                                playlist.thumbnails.isNotEmpty
-                                    ? playlist.thumbnails.last.url
-                                    : null,
-                          );
-                        },
+                      child: HoverCarouselArrows(
+                        controller: _featuredOnScrollController,
+                        scrollAmount: 480.0,
+                        child: ListView.separated(
+                          controller: _featuredOnScrollController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          itemCount: artist.featuredOn.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final playlist = artist.featuredOn[index];
+                            return PlaylistCard(
+                              playlistId: playlist.playlistId,
+                              name: playlist.name,
+                              artist: playlist.artist.name,
+                              thumbnailUrl:
+                                  playlist.thumbnails.isNotEmpty
+                                      ? playlist.thumbnails.last.url
+                                      : null,
+                            );
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -315,23 +351,28 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 180,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.only(right: 16),
-                        itemCount: artist.similarArtists.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final similar = artist.similarArtists[index];
-                          return ArtistCard(
-                            artistId: similar.artistId,
-                            name: similar.name,
-                            thumbnailUrl:
-                                similar.thumbnails.isNotEmpty
-                                    ? similar.thumbnails.last.url
-                                    : null,
-                            monthlyListeners: similar.monthlyListeners,
-                          );
-                        },
+                      child: HoverCarouselArrows(
+                        controller: _similarArtistsScrollController,
+                        scrollAmount: 360.0,
+                        child: ListView.separated(
+                          controller: _similarArtistsScrollController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.only(right: 16),
+                          itemCount: artist.similarArtists.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final similar = artist.similarArtists[index];
+                            return ArtistCard(
+                              artistId: similar.artistId,
+                              name: similar.name,
+                              thumbnailUrl:
+                                  similar.thumbnails.isNotEmpty
+                                      ? similar.thumbnails.last.url
+                                      : null,
+                              monthlyListeners: similar.monthlyListeners,
+                            );
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
