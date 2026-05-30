@@ -12,6 +12,7 @@ import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
+import '../../../shared/widgets/scale_button.dart';
 
 class HomeShimmer extends StatelessWidget {
   final int tileCount;
@@ -210,28 +211,51 @@ class HomeSectionRow extends ConsumerWidget {
   }
 }
 
-class _HeroCarousel extends StatelessWidget {
+class _HeroCarousel extends StatefulWidget {
   final List<dynamic> items;
   final double viewportFraction;
 
   const _HeroCarousel({required this.items, this.viewportFraction = 0.85});
 
   @override
+  State<_HeroCarousel> createState() => _HeroCarouselState();
+}
+
+class _HeroCarouselState extends State<_HeroCarousel> {
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: widget.viewportFraction);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: PageController(viewportFraction: viewportFraction),
-      padEnds: false,
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Padding(
-          padding: EdgeInsets.only(
-            left: index == 0 ? 16 : 8,
-            right: index == items.length - 1 ? 16 : 8,
-          ),
-          child: _buildItem(context, item),
-        );
-      },
+    return HoverCarouselArrows(
+      controller: _pageController,
+      scrollAmount: 600.0,
+      child: PageView.builder(
+        controller: _pageController,
+        padEnds: false,
+        itemCount: widget.items.length,
+        itemBuilder: (context, index) {
+          final item = widget.items[index];
+          return Padding(
+            padding: EdgeInsets.only(
+              left: index == 0 ? 16 : 8,
+              right: index == widget.items.length - 1 ? 16 : 8,
+            ),
+            child: _buildItem(context, item),
+          );
+        },
+      ),
     );
   }
 
@@ -273,54 +297,84 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return ScaleButton(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          fit: StackFit.expand,
+      child: Container(
+        height: 220,
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            width: 1.0,
+          ),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            ThumbnailWidget(imageUrl: thumbnailUrl, size: double.infinity),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
-                  ],
-                ),
+            Hero(
+              tag: 'hero_art_$title',
+              child: ThumbnailWidget(
+                imageUrl: thumbnailUrl,
+                size: 188,
+                shape: ThumbnailShape.rounded,
               ),
             ),
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
+            const SizedBox(width: 20),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 12),
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                   if (subtitle != null) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       subtitle!,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.white70),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: colorScheme.primary.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          LucideIcons.play,
+                          color: colorScheme.onPrimary,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

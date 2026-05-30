@@ -196,14 +196,17 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
               duration: const Duration(milliseconds: 300),
               style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                color: isActive
-                    ? Colors.white
-                    : isPast
+                color:
+                    isActive
+                        ? Colors.white
+                        : isPast
                         ? Colors.white.withValues(alpha: 0.35)
                         : Colors.white.withValues(alpha: 0.65),
                 shadows: [
                   Shadow(
-                    color: Colors.black.withValues(alpha: isActive ? 0.45 : 0.3),
+                    color: Colors.black.withValues(
+                      alpha: isActive ? 0.45 : 0.3,
+                    ),
                     offset: const Offset(0, 1.5),
                     blurRadius: isActive ? 5 : 3,
                   ),
