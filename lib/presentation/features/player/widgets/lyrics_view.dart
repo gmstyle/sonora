@@ -72,10 +72,21 @@ class LyricsView extends ConsumerWidget {
           );
         }
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           child: Text(
             text,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.8),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              height: 1.8,
+              color: Colors.white.withValues(alpha: 0.95),
+              fontWeight: FontWeight.w500,
+              shadows: [
+                Shadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  offset: const Offset(0, 1.5),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
             textAlign: TextAlign.center,
           ),
         );
@@ -185,16 +196,18 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
               duration: const Duration(milliseconds: 300),
               style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                color:
-                    isActive
-                        ? Theme.of(context).colorScheme.primary
-                        : isPast
-                        ? Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                        : Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                color: isActive
+                    ? Colors.white
+                    : isPast
+                        ? Colors.white.withValues(alpha: 0.35)
+                        : Colors.white.withValues(alpha: 0.65),
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: isActive ? 0.45 : 0.3),
+                    offset: const Offset(0, 1.5),
+                    blurRadius: isActive ? 5 : 3,
+                  ),
+                ],
               ),
               child: Text(line.lyricLine ?? '', textAlign: TextAlign.center),
             ),
