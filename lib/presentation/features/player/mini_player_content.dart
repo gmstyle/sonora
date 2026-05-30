@@ -346,10 +346,10 @@ class MiniPlayerContent extends ConsumerWidget {
                                   const SizedBox(width: 8),
                                   _iconButton(
                                     icon: LucideIcons.skipForward,
-                          color: cs.onSurfaceVariant,
-                          onPressed: onSkipNext,
-                          size: 20,
-                        ),
+                                    color: cs.onSurfaceVariant,
+                                    onPressed: onSkipNext,
+                                    size: 20,
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 4),
@@ -475,11 +475,11 @@ class MiniPlayerContent extends ConsumerWidget {
                       placeholder:
                           (_, _) =>
                               Container(color: cs.surfaceContainerHighest),
-errorWidget:
-                            (_, _, _) => Icon(
-                              LucideIcons.music,
-                              color: cs.onSurfaceVariant,
-                            ),
+                      errorWidget:
+                          (_, _, _) => Icon(
+                            LucideIcons.music,
+                            color: cs.onSurfaceVariant,
+                          ),
                     ),
                   )
                   : Icon(LucideIcons.music, color: cs.onSurfaceVariant),

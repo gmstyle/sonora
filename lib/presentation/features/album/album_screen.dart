@@ -633,7 +633,9 @@ class _DownloadAlbumButton extends ConsumerWidget {
 
     return FilledButton.tonalIcon(
       onPressed: onDownload,
-      icon: Icon(allDownloaded ? LucideIcons.checkCircle : LucideIcons.download),
+      icon: Icon(
+        allDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
+      ),
       label: Text(
         downloadedCount > 0
             ? 'Downloaded $downloadedCount/$totalCount'

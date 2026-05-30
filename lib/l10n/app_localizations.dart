@@ -164,6 +164,12 @@ abstract class AppLocalizations {
   /// **'Top Songs'**
   String get topSongs;
 
+  /// No description provided for @popular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get popular;
+
   /// No description provided for @featuredOn.
   ///
   /// In en, this message translates to:

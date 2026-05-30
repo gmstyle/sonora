@@ -422,10 +422,10 @@ class _SongContextMenuSheet extends ConsumerWidget {
                   ),
                   if (resolvedArtistId != null)
                     _ActionTile(
-icon: LucideIcons.user,
-                    label: AppLocalizations.of(context)!.goToArtist,
-                    onTap: () {
-                      context.push('/artist/$resolvedArtistId');
+                      icon: LucideIcons.user,
+                      label: AppLocalizations.of(context)!.goToArtist,
+                      onTap: () {
+                        context.push('/artist/$resolvedArtistId');
                         Navigator.pop(context);
                       },
                     ),
@@ -475,7 +475,10 @@ icon: LucideIcons.user,
                     albumId: albumId,
                   ),
                   _ActionTile(
-                    icon: isDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
+                    icon:
+                        isDownloaded
+                            ? LucideIcons.checkCircle
+                            : LucideIcons.download,
                     label:
                         isDownloaded
                             ? AppLocalizations.of(context)!.downloaded

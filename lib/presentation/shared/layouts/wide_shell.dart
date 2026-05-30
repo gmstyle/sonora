@@ -95,7 +95,7 @@ class WideShell extends ConsumerWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 : 0.0),
-child: BranchFadeTransition(navigationShell: navigationShell),
+                  child: BranchFadeTransition(navigationShell: navigationShell),
                 ),
                 const PlayerSheet(),
                 const PlayerErrorListener(),

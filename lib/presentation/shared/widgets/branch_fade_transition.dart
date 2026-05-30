@@ -49,9 +49,6 @@ class _BranchFadeTransitionState extends State<BranchFadeTransition>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _animation,
-      child: widget.navigationShell,
-    );
+    return FadeTransition(opacity: _animation, child: widget.navigationShell);
   }
 }

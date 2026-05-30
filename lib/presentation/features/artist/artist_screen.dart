@@ -15,10 +15,13 @@ import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
-import '../../shared/widgets/song_tile.dart';
-import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/playlist_card.dart';
+import '../../shared/widgets/release_card.dart';
+import '../../shared/widgets/video_card.dart';
+import '../../shared/widgets/thumbnail_widget.dart';
+import '../../shared/widgets/context_menu_sheet.dart';
+import '../../providers/download_provider.dart';
 import 'providers/artist_provider.dart';
 
 class ArtistScreen extends ConsumerWidget {
@@ -161,12 +164,15 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
 
   @override
   Widget build(BuildContext context) {
+    final artist = widget.artist;
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
           _ArtistSliverAppBar(
-            artist: widget.artist,
+            artist: artist,
             isTablet: widget.isTablet,
             isWide: widget.isWide,
             scrollProgress: _scrollProgress,
@@ -177,31 +183,31 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ArtistActions(artist: widget.artist),
-                  if (widget.artist.description != null &&
-                      widget.artist.description!.isNotEmpty) ...[
+                  _ArtistActions(artist: artist),
+                  if (artist.description != null &&
+                      artist.description!.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    _ExpandableText(text: widget.artist.description!),
+                    _ExpandableText(text: artist.description!),
                   ],
                   const SizedBox(height: 24),
-                  if (widget.artist.topSongs.isNotEmpty)
+                  if (artist.topSongs.isNotEmpty)
                     _ArtistTopSongsSection(
-                      songs: widget.artist.topSongs,
-                      artistId: widget.artist.artistId,
+                      songs: artist.topSongs,
+                      artistId: artist.artistId,
                     ),
-                  if (widget.artist.topAlbums.isNotEmpty) ...[
-                    _SectionHeader(title: AppLocalizations.of(context)!.albums),
+                  if (artist.topAlbums.isNotEmpty) ...[
+                    _SectionHeader(title: l10n.albums),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 16),
-                        itemCount: widget.artist.topAlbums.length,
+                        itemCount: artist.topAlbums.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
-                          final album = widget.artist.topAlbums[index];
-                          return AlbumCard(
+                          final album = artist.topAlbums[index];
+                          return ReleaseCard(
                             albumId: album.albumId,
                             name: album.name,
                             artist: album.artist.name,
@@ -210,27 +216,27 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                                     ? album.thumbnails.last.url
                                     : null,
                             year: album.year,
+                            artistId: album.artist.artistId,
+                            type: ReleaseType.album,
                           );
                         },
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (widget.artist.topSingles.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: AppLocalizations.of(context)!.singles,
-                    ),
+                  if (artist.topSingles.isNotEmpty) ...[
+                    _SectionHeader(title: l10n.singles),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 16),
-                        itemCount: widget.artist.topSingles.length,
+                        itemCount: artist.topSingles.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
-                          final single = widget.artist.topSingles[index];
-                          return AlbumCard(
+                          final single = artist.topSingles[index];
+                          return ReleaseCard(
                             albumId: single.albumId,
                             name: single.name,
                             artist: single.artist.name,
@@ -239,32 +245,42 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                                     ? single.thumbnails.last.url
                                     : null,
                             year: single.year,
+                            artistId: single.artist.artistId,
+                            type: ReleaseType.single,
                           );
                         },
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (widget.artist.topVideos.isNotEmpty) ...[
-                    _SectionHeader(title: AppLocalizations.of(context)!.videos),
+                  if (artist.topVideos.isNotEmpty) ...[
+                    _SectionHeader(title: l10n.videos),
                     const SizedBox(height: 8),
-                    ...widget.artist.topVideos.map(
-                      (video) => SongTile(
-                        videoId: video.videoId,
-                        title: video.name,
-                        artist: video.artist.name,
-                        thumbnailUrl:
-                            video.thumbnails.isNotEmpty
-                                ? video.thumbnails.last.url
-                                : null,
-                        duration: video.duration,
-                        isVideo: true,
-                        playCount: video.viewCount,
+                    SizedBox(
+                      height: 180,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(right: 16),
+                        itemCount: artist.topVideos.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final video = artist.topVideos[index];
+                          return VideoCard(
+                            videoId: video.videoId,
+                            title: video.name,
+                            artist: video.artist.name,
+                            thumbnailUrl:
+                                video.thumbnails.isNotEmpty
+                                    ? video.thumbnails.last.url
+                                    : null,
+                            artistId: video.artist.artistId,
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (widget.artist.featuredOn.isNotEmpty) ...[
+                  if (artist.featuredOn.isNotEmpty) ...[
                     _SectionHeader(
                       title: AppLocalizations.of(context)!.featuredOn,
                     ),
@@ -274,10 +290,10 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 16),
-                        itemCount: widget.artist.featuredOn.length,
+                        itemCount: artist.featuredOn.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
-                          final playlist = widget.artist.featuredOn[index];
+                          final playlist = artist.featuredOn[index];
                           return PlaylistCard(
                             playlistId: playlist.playlistId,
                             name: playlist.name,
@@ -292,7 +308,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (widget.artist.similarArtists.isNotEmpty) ...[
+                  if (artist.similarArtists.isNotEmpty) ...[
                     _SectionHeader(
                       title: AppLocalizations.of(context)!.similarArtists,
                     ),
@@ -302,10 +318,10 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.only(right: 16),
-                        itemCount: widget.artist.similarArtists.length,
+                        itemCount: artist.similarArtists.length,
                         separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
-                          final similar = widget.artist.similarArtists[index];
+                          final similar = artist.similarArtists[index];
                           return ArtistCard(
                             artistId: similar.artistId,
                             name: similar.name,
@@ -357,21 +373,10 @@ class _ArtistTopSongsSectionState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(title: AppLocalizations.of(context)!.topSongs),
+        _SectionHeader(title: AppLocalizations.of(context)!.popular),
         const SizedBox(height: 8),
-        ...displaySongs.map(
-          (song) => SongTile(
-            videoId: song.videoId,
-            title: song.name,
-            artist: song.artist.name,
-            thumbnailUrl:
-                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
-            duration: song.duration,
-            albumName: song.album?.name,
-            albumId: song.album?.albumId,
-            artistId: song.artist.artistId,
-            playCount: song.playCount,
-          ),
+        ...displaySongs.asMap().entries.map(
+          (entry) => _NumberedSongTile(index: entry.key + 1, song: entry.value),
         ),
         if (_loading)
           const Padding(
@@ -428,6 +433,105 @@ class _ArtistTopSongsSectionState
         ),
       );
     }
+  }
+}
+
+class _NumberedSongTile extends ConsumerWidget {
+  final int index;
+  final SongDetailed song;
+
+  const _NumberedSongTile({required this.index, required this.song});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final isDownloaded = downloadedIds.contains(song.videoId);
+
+    return ListTile(
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text(
+              '$index',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Stack(
+            children: [
+              ThumbnailWidget(
+                imageUrl:
+                    song.thumbnails.isNotEmpty
+                        ? song.thumbnails.last.url
+                        : null,
+                size: 48,
+                shape: ThumbnailShape.rounded,
+              ),
+              if (isDownloaded)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      LucideIcons.checkCircle,
+                      size: 10,
+                      color: colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+      title: Text(song.name, overflow: TextOverflow.ellipsis, maxLines: 1),
+      subtitle: Text(
+        [
+          song.artist.name,
+          if (song.album?.name != null) song.album!.name,
+          if (song.playCount != null && song.playCount!.isNotEmpty)
+            song.playCount,
+        ].join(' · '),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+      trailing:
+          song.duration != null
+              ? Text(
+                '${(song.duration! ~/ 60)}:${(song.duration! % 60).toString().padLeft(2, '0')}',
+                style: textTheme.bodySmall,
+              )
+              : null,
+      onTap:
+          () =>
+              ref.read(playerStateProvider.notifier).playVideoId(song.videoId),
+      onLongPress:
+          () => ContextMenuSheet.showForSong(
+            context,
+            videoId: song.videoId,
+            title: song.name,
+            artist: song.artist.name,
+            thumbnailUrl:
+                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+            duration: song.duration,
+            albumName: song.album?.name,
+            artistId: song.artist.artistId,
+            albumId: song.album?.albumId,
+            playCount: song.playCount,
+          ),
+    );
   }
 }
 
@@ -802,7 +906,9 @@ class _ExpandableTextState extends State<_ExpandableText> {
         ),
         TextButton.icon(
           onPressed: () => setState(() => _expanded = !_expanded),
-          icon: Icon(_expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown),
+          icon: Icon(
+            _expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+          ),
           label: Text(
             _expanded
                 ? AppLocalizations.of(context)!.showLess
@@ -857,6 +963,10 @@ class _ArtistShimmer extends StatelessWidget {
                   3,
                   (_) => ShimmerLoading(variant: ShimmerVariant.tile),
                 ),
+                const SizedBox(height: 16),
+                const _SectionHeader(title: ''),
+                const SizedBox(height: 8),
+                ShimmerLoading(variant: ShimmerVariant.carousel),
                 const SizedBox(height: 16),
                 const _SectionHeader(title: ''),
                 const SizedBox(height: 8),

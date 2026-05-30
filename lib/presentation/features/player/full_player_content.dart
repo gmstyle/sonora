@@ -540,12 +540,12 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               (_, _) => Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
-errorWidget:
-                (_, _, _) => Icon(
-                  LucideIcons.music,
-                  size: 80,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+          errorWidget:
+              (_, _, _) => Icon(
+                LucideIcons.music,
+                size: 80,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         ),
       );
     } else {
@@ -800,9 +800,9 @@ errorWidget:
             if (!isVideo)
               IconButton(
                 icon: Icon(
-activeView == PlayerSubView.lyrics
-                       ? LucideIcons.text
-                       : LucideIcons.text,
+                  activeView == PlayerSubView.lyrics
+                      ? LucideIcons.text
+                      : LucideIcons.text,
                   color:
                       activeView == PlayerSubView.lyrics
                           ? theme.colorScheme.primary
@@ -841,8 +841,8 @@ activeView == PlayerSubView.lyrics
               tooltip: AppLocalizations.of(context)!.queue,
             ),
             IconButton(
-icon: Icon(
-                  LucideIcons.timer,
+              icon: Icon(
+                LucideIcons.timer,
                 size: 22,
                 color:
                     hasTimer

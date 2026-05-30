@@ -230,7 +230,10 @@ class _ActiveDownloadTile extends StatelessWidget {
                 )
               else if (download.status == DownloadStatus.error)
                 IconButton(
-                  icon: Icon(LucideIcons.refreshCw, color: theme.colorScheme.error),
+                  icon: Icon(
+                    LucideIcons.refreshCw,
+                    color: theme.colorScheme.error,
+                  ),
                   onPressed:
                       () => ref
                           .read(activeDownloadsProvider.notifier)
