@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
+import '../widgets/branch_fade_transition.dart';
 import '../widgets/player_error_listener.dart';
 import '../widgets/sonora_logo.dart';
 import '../widgets/thumbnail_widget.dart';
@@ -93,15 +94,7 @@ class WideShell extends ConsumerWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 : 0.0),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    switchInCurve: Curves.easeInOut,
-                    switchOutCurve: Curves.easeInOut,
-                    child: SizedBox(
-                      key: ValueKey(navigationShell.currentIndex),
-                      child: navigationShell,
-                    ),
-                  ),
+child: BranchFadeTransition(navigationShell: navigationShell),
                 ),
                 const PlayerSheet(),
                 const PlayerErrorListener(),
