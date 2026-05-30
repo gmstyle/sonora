@@ -21,71 +21,101 @@ final _icons = [
   LucideIcons.settings,
 ];
 
-class WideShell extends ConsumerWidget {
+class WideShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const WideShell({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WideShell> createState() => _WideShellState();
+}
+
+class _WideShellState extends ConsumerState<WideShell> {
+  bool _isCollapsed = true;
+
+  @override
+  Widget build(BuildContext context) {
     final isPlayerActive = ref.watch(playerStateProvider).currentSong != null;
+    final colorScheme = Theme.of(context).colorScheme;
+    final targetWidth = _isCollapsed ? 72.0 : 240.0;
 
     return Scaffold(
       body: Row(
         children: [
-          SizedBox(
-            width: 280,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            width: targetWidth,
             child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerLow,
-              child: Column(
-                children: [
-                  DrawerHeader(child: const SonoraLogo.full(44)),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.zero,
+              color: colorScheme.surfaceContainerLow,
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.topLeft,
+                  minWidth: targetWidth,
+                  maxWidth: targetWidth,
+                  child: SizedBox(
+                    width: targetWidth,
+                    child: Column(
                       children: [
-                        for (var i = 0; i < _icons.length; i++)
-                          Stack(
+                        Container(
+                          height: 80,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: _isCollapsed ? 12 : 24,
+                          ),
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            mainAxisAlignment:
+                                _isCollapsed
+                                    ? MainAxisAlignment.center
+                                    : MainAxisAlignment.spaceBetween,
                             children: [
-                              ListTile(
-                                selected: navigationShell.currentIndex == i,
-                                selectedTileColor: Theme.of(context)
-                                    .colorScheme
-                                    .secondaryContainer
-                                    .withValues(alpha: 0.5),
-                                leading: Icon(_icons[i]),
-                                title: Text(
-                                  _getLabel(AppLocalizations.of(context)!, i),
-                                ),
-                                onTap: () => navigationShell.goBranch(i),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                              ),
-                              if (navigationShell.currentIndex == i)
-                                Positioned(
-                                  left: 0,
-                                  top: 10,
-                                  bottom: 10,
-                                  width: 4,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                      borderRadius: const BorderRadius.only(
-                                        topRight: Radius.circular(4),
-                                        bottomRight: Radius.circular(4),
+                              if (!_isCollapsed) ...[
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SonoraLogo.icon(32),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'SONORA',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 2,
+                                        color: colorScheme.primary,
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ),
+                              ],
+                              IconButton(
+                                icon: Icon(
+                                  _isCollapsed
+                                      ? LucideIcons.menu
+                                      : LucideIcons.chevronLeft,
+                                ),
+                                onPressed:
+                                    () => setState(
+                                      () => _isCollapsed = !_isCollapsed,
+                                    ),
+                              ),
                             ],
                           ),
+                        ),
+                        Expanded(
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            children: [
+                              for (var i = 0; i < _icons.length; i++)
+                                _buildNavItem(i, context),
+                            ],
+                          ),
+                        ),
+                        _NowPlayingPanel(isCollapsed: _isCollapsed),
                       ],
                     ),
                   ),
-                  const _NowPlayingPanel(),
-                ],
+                ),
               ),
             ),
           ),
@@ -95,7 +125,9 @@ class WideShell extends ConsumerWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 : 0.0),
-                  child: BranchFadeTransition(navigationShell: navigationShell),
+                  child: BranchFadeTransition(
+                    navigationShell: widget.navigationShell,
+                  ),
                 ),
                 const PlayerSheet(),
                 const PlayerErrorListener(),
@@ -104,6 +136,86 @@ class WideShell extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int i, BuildContext context) {
+    final isSelected = widget.navigationShell.currentIndex == i;
+    final colorScheme = Theme.of(context).colorScheme;
+    final label = _getLabel(AppLocalizations.of(context)!, i);
+
+    if (_isCollapsed) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Tooltip(
+          message: label,
+          child: SizedBox(
+            height: 48,
+            width: double.infinity,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                backgroundColor:
+                    isSelected
+                        ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                        : null,
+                foregroundColor:
+                    isSelected ? colorScheme.primary : colorScheme.onSurface,
+                padding: EdgeInsets.zero,
+              ),
+              onPressed: () => widget.navigationShell.goBranch(i),
+              child: Icon(_icons[i]),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      child: ScaleButton(
+        onTap: () => widget.navigationShell.goBranch(i),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color:
+                isSelected
+                    ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Icon(
+                _icons[i],
+                color:
+                    isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color:
+                        isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -120,7 +232,35 @@ String _getLabel(AppLocalizations l10n, int index) {
 }
 
 class _NowPlayingPanel extends ConsumerWidget {
-  const _NowPlayingPanel();
+  final bool isCollapsed;
+
+  const _NowPlayingPanel({required this.isCollapsed});
+
+  void _openFullPlayer(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder:
+            (context, animation, secondaryAnimation) =>
+                const FullPlayerContent(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeOutCubic;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        fullscreenDialog: true,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -129,39 +269,39 @@ class _NowPlayingPanel extends ConsumerWidget {
 
     if (currentSong == null) return const SizedBox.shrink();
 
+    if (isCollapsed) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Tooltip(
+          message: '${currentSong.title} - ${currentSong.artist ?? ''}',
+          child: ScaleButton(
+            onTap: () => _openFullPlayer(context),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ThumbnailWidget(
+                imageUrl: currentSong.artUri?.toString(),
+                size: 48,
+                shape: ThumbnailShape.rounded,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: ScaleButton(
-        onTap: () {
-          Navigator.of(context).push(
-            PageRouteBuilder(
-              pageBuilder:
-                  (context, animation, secondaryAnimation) =>
-                      const FullPlayerContent(),
-              transitionsBuilder: (
-                context,
-                animation,
-                secondaryAnimation,
-                child,
-              ) {
-                const begin = Offset(0.0, 1.0);
-                const end = Offset.zero;
-                const curve = Curves.easeOutCubic;
-
-                var tween = Tween(
-                  begin: begin,
-                  end: end,
-                ).chain(CurveTween(curve: curve));
-                var offsetAnimation = animation.drive(tween);
-
-                return SlideTransition(position: offsetAnimation, child: child);
-              },
-              transitionDuration: const Duration(milliseconds: 350),
-              reverseTransitionDuration: const Duration(milliseconds: 300),
-              fullscreenDialog: true,
-            ),
-          );
-        },
+        onTap: () => _openFullPlayer(context),
         child: Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainer,
@@ -181,7 +321,7 @@ class _NowPlayingPanel extends ConsumerWidget {
               ThumbnailWidget(
                 imageUrl: currentSong.artUri?.toString(),
                 size:
-                    224, // 280 width - 32 parent padding - 24 container padding = 224px perfect fit!
+                    184, // 240 width - 32 parent padding - 24 container padding = 184px perfect fit!
                 shape: ThumbnailShape.rounded,
               ),
               const SizedBox(height: 12),

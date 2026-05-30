@@ -33,22 +33,10 @@ class TabletShell extends ConsumerWidget {
           NavigationRail(
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: (index) => navigationShell.goBranch(index),
-            labelType: NavigationRailLabelType.all,
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SonoraLogo.icon(36),
-                  const SizedBox(height: 4),
-                  Text(
-                    AppLocalizations.of(context)!.appTitle,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+            labelType: NavigationRailLabelType.none,
+            leading: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: SonoraLogo.icon(36),
             ),
             destinations: [
               for (var i = 0; i < _icons.length; i++)
