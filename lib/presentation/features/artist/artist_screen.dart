@@ -667,6 +667,75 @@ class _ArtistActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasSongs = artist.topSongs.isNotEmpty;
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < kCompactBreakpoint;
+
+    if (isMobile) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _FollowButton(artist: artist, iconOnly: true),
+                IconButton(
+                  icon: const Icon(LucideIcons.shuffle),
+                  onPressed:
+                      hasSongs
+                          ? () => _shufflePlay(context, ref, artist)
+                          : null,
+                  tooltip: AppLocalizations.of(context)!.shuffle,
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.share2),
+                  tooltip: AppLocalizations.of(context)!.share,
+                  onPressed: () {
+                    SharePlus.instance.share(
+                      ShareParams(
+                        text:
+                            'https://music.youtube.com/channel/${artist.artistId}',
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(LucideIcons.moreVertical),
+                  onPressed: () {
+                    ContextMenuSheet.showForArtist(
+                      context,
+                      artistId: artist.artistId,
+                      name: artist.name,
+                      thumbnailUrl:
+                          artist.thumbnails.isNotEmpty
+                              ? artist.thumbnails.last.url
+                              : null,
+                      monthlyListeners: artist.monthlyListeners,
+                    );
+                  },
+                ),
+              ],
+            ),
+            SizedBox(
+              width: 56,
+              height: 56,
+              child: FilledButton(
+                onPressed:
+                    hasSongs
+                        ? () => _playSequential(context, ref, artist)
+                        : null,
+                style: FilledButton.styleFrom(
+                  shape: const CircleBorder(),
+                  padding: EdgeInsets.zero,
+                ),
+                child: const Icon(LucideIcons.play, size: 28),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Wrap(
       spacing: 12,
@@ -756,21 +825,54 @@ class _ArtistActions extends ConsumerWidget {
 
 class _FollowButton extends ConsumerWidget {
   final ArtistFull artist;
+  final bool iconOnly;
 
-  const _FollowButton({required this.artist});
+  const _FollowButton({required this.artist, this.iconOnly = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final followedAsync = ref.watch(followedArtistProvider(artist.artistId));
     return followedAsync.when(
       loading:
-          () => FilledButton.tonal(
-            onPressed: null,
-            child: Text(AppLocalizations.of(context)!.follow),
-          ),
+          () =>
+              iconOnly
+                  ? const IconButton(
+                    onPressed: null,
+                    icon: Icon(LucideIcons.userPlus),
+                  )
+                  : FilledButton.tonal(
+                    onPressed: null,
+                    child: Text(AppLocalizations.of(context)!.follow),
+                  ),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
         final isFollowing = followed != null;
+        if (iconOnly) {
+          return IconButton(
+            onPressed: () async {
+              await ref
+                  .read(libraryNotifierProvider.notifier)
+                  .toggleFollowedArtist(
+                    FollowedArtistModel(
+                      artistId: artist.artistId,
+                      name: artist.name,
+                      thumbnailUrl:
+                          artist.thumbnails.isNotEmpty
+                              ? artist.thumbnails.last.url
+                              : null,
+                    ),
+                  );
+            },
+            icon: Icon(
+              isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
+            ),
+            color: isFollowing ? Theme.of(context).colorScheme.primary : null,
+            tooltip:
+                isFollowing
+                    ? AppLocalizations.of(context)!.following
+                    : AppLocalizations.of(context)!.follow,
+          );
+        }
         return FilledButton.tonal(
           onPressed: () async {
             await ref
