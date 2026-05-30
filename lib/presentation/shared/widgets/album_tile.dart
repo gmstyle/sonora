@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
@@ -35,7 +36,7 @@ class AlbumTile extends ConsumerWidget {
         [artist, if (year != null) '$year'].join(' · '),
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const Icon(LucideIcons.chevronRight),
       onTap: () => context.push('/album/$albumId'),
       onLongPress:
           () => ContextMenuSheet.showForAlbum(

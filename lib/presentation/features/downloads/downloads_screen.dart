@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
@@ -85,7 +86,7 @@ class _EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.download_outlined,
+              LucideIcons.download,
               size: 72,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -170,7 +171,7 @@ class _ActiveDownloadTile extends StatelessWidget {
                   width: 48,
                   height: 48,
                   color: theme.colorScheme.surfaceContainerHighest,
-                  child: const Icon(Icons.music_note, size: 24),
+                  child: const Icon(LucideIcons.music, size: 24),
                 ),
               ),
               const SizedBox(width: 12),
@@ -223,13 +224,13 @@ class _ActiveDownloadTile extends StatelessWidget {
                 )
               else if (download.status == DownloadStatus.completed)
                 Icon(
-                  Icons.check_circle,
+                  LucideIcons.checkCircle,
                   color: theme.colorScheme.primary,
                   size: 24,
                 )
               else if (download.status == DownloadStatus.error)
                 IconButton(
-                  icon: Icon(Icons.refresh, color: theme.colorScheme.error),
+                  icon: Icon(LucideIcons.refreshCw, color: theme.colorScheme.error),
                   onPressed:
                       () => ref
                           .read(activeDownloadsProvider.notifier)
@@ -325,7 +326,7 @@ class _CompletedDownloadTile extends StatelessWidget {
           ),
           trailing: IconButton(
             icon: Icon(
-              Icons.delete_outline,
+              LucideIcons.trash2,
               color: theme.colorScheme.onSurfaceVariant,
             ),
             onPressed:

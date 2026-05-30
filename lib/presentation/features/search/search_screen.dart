@@ -1,6 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../../shared/widgets/album_tile.dart';
@@ -78,11 +79,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 vertical: 0,
                 horizontal: 16,
               ),
-              prefixIcon: const Icon(Icons.search, size: 20),
+              prefixIcon: const Icon(LucideIcons.search, size: 20),
               suffixIcon:
                   query.isNotEmpty
                       ? IconButton(
-                        icon: const Icon(Icons.clear, size: 20),
+                        icon: const Icon(LucideIcons.x, size: 20),
                         onPressed: _clearSearch,
                       )
                       : null,
@@ -126,7 +127,7 @@ class _RecentSearches extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.search,
+                  LucideIcons.search,
                   size: 64,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -248,7 +249,7 @@ class _SearchResults extends ConsumerWidget {
             data: (results) {
               if (results.isEmpty) {
                 return EmptyStateWidget(
-                  icon: Icons.search_off,
+                  icon: LucideIcons.searchX,
                   title: AppLocalizations.of(context)!.noResults,
                   body: AppLocalizations.of(context)!.noResultsHint,
                 );

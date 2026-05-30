@@ -18,6 +18,7 @@ import 'widgets/player_controls.dart';
 import 'widgets/progress_bar_widget.dart';
 import 'widgets/queue_sheet.dart';
 import 'widgets/lyrics_view.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:marquee/marquee.dart';
 import '../../providers/palette_provider.dart';
 
@@ -463,7 +464,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.keyboard_arrow_down),
+          icon: const Icon(LucideIcons.chevronDown),
           onPressed: () => Navigator.of(context).pop(),
           tooltip: AppLocalizations.of(context)!.close,
         ),
@@ -500,7 +501,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         /*
         TODO: Add context menu for album/artist actions (e.g. view album, view artist) 
         IconButton(
-          icon: const Icon(Icons.more_vert),
+          icon: const Icon(LucideIcons.moreVertical),
           onPressed: () {
             // Context menu logic
           },
@@ -539,19 +540,19 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               (_, _) => Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
-          errorWidget:
-              (_, _, _) => Icon(
-                Icons.music_note,
-                size: 80,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+errorWidget:
+                (_, _, _) => Icon(
+                  LucideIcons.music,
+                  size: 80,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
         ),
       );
     } else {
       content = Container(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Icon(
-          Icons.music_note,
+          LucideIcons.music,
           size: 80,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
@@ -721,8 +722,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
 
     final likedAsync = ref.watch(likedSongProvider(videoId));
     return likedAsync.when(
-      loading: () => const Icon(Icons.favorite_border, size: 28),
-      error: (_, _) => const Icon(Icons.favorite_border, size: 28),
+      loading: () => const Icon(LucideIcons.heart, size: 28),
+      error: (_, _) => const Icon(LucideIcons.heart, size: 28),
       data: (liked) {
         final isLiked = liked != null;
         return IconButton(
@@ -734,7 +735,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   child: FadeTransition(opacity: anim, child: child),
                 ),
             child: Icon(
-              isLiked ? Icons.favorite : Icons.favorite_border,
+              LucideIcons.heart,
               key: ValueKey(isLiked),
               size: 28,
               color: isLiked ? Theme.of(context).colorScheme.error : null,
@@ -772,7 +773,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         /* 
         TODO: Add device output selection (e.g. Chromecast, Bluetooth)
         IconButton(
-          icon: const Icon(Icons.speaker_group_outlined),
+          icon: const Icon(LucideIcons.speaker),
           onPressed: () {},
           tooltip: AppLocalizations.of(context)!.devices,
           color: theme.colorScheme.onSurfaceVariant,
@@ -781,7 +782,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.share_outlined),
+              icon: const Icon(LucideIcons.share2),
               onPressed: () {
                 final currentSong = ref.read(playerStateProvider).currentSong;
                 final vId =
@@ -799,9 +800,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             if (!isVideo)
               IconButton(
                 icon: Icon(
-                  activeView == PlayerSubView.lyrics
-                      ? Icons.lyrics
-                      : Icons.lyrics_outlined,
+activeView == PlayerSubView.lyrics
+                       ? LucideIcons.text
+                       : LucideIcons.text,
                   color:
                       activeView == PlayerSubView.lyrics
                           ? theme.colorScheme.primary
@@ -821,8 +822,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             IconButton(
               icon: Icon(
                 activeView == PlayerSubView.queue
-                    ? Icons.queue_music
-                    : Icons.queue_music_outlined,
+                    ? LucideIcons.listMusic
+                    : LucideIcons.listMusic,
                 color:
                     activeView == PlayerSubView.queue
                         ? theme.colorScheme.primary
@@ -840,8 +841,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               tooltip: AppLocalizations.of(context)!.queue,
             ),
             IconButton(
-              icon: Icon(
-                Icons.timer,
+icon: Icon(
+                  LucideIcons.timer,
                 size: 22,
                 color:
                     hasTimer
@@ -892,7 +893,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               ),
               ListTile(
                 leading: Icon(
-                  Icons.timer_off,
+                  LucideIcons.timerOff,
                   color: Theme.of(context).colorScheme.error,
                 ),
                 title: Text(

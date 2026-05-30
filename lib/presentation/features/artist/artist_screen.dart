@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/constants/app_constants.dart';
@@ -355,7 +356,7 @@ class _ArtistTopSongsSectionState
                 _expanded
                     ? TextButton.icon(
                       onPressed: () => setState(() => _expanded = false),
-                      icon: const Icon(Icons.expand_less),
+                      icon: const Icon(LucideIcons.chevronUp),
                       label: Text(AppLocalizations.of(context)!.showLess),
                     )
                     : TextButton.icon(
@@ -366,7 +367,7 @@ class _ArtistTopSongsSectionState
                           _fetchAllSongs();
                         }
                       },
-                      icon: const Icon(Icons.expand_more),
+                      icon: const Icon(LucideIcons.chevronDown),
                       label: Text(AppLocalizations.of(context)!.showMore),
                     ),
           ),
@@ -541,18 +542,18 @@ class _ArtistActions extends ConsumerWidget {
         FilledButton.icon(
           onPressed:
               hasSongs ? () => _playSequential(context, ref, artist) : null,
-          icon: const Icon(Icons.play_arrow),
+          icon: const Icon(LucideIcons.play),
           label: Text(AppLocalizations.of(context)!.playTopSongs),
         ),
         FilledButton.icon(
           onPressed: hasSongs ? () => _shufflePlay(context, ref, artist) : null,
-          icon: const Icon(Icons.shuffle),
+          icon: const Icon(LucideIcons.shuffle),
           label: Text(AppLocalizations.of(context)!.shuffle),
         ),
         _FollowButton(artist: artist),
         _ArtistRadioButton(artist: artist),
         IconButton(
-          icon: const Icon(Icons.share_outlined),
+          icon: const Icon(LucideIcons.share2),
           tooltip: AppLocalizations.of(context)!.share,
           onPressed: () {
             SharePlus.instance.share(
@@ -678,7 +679,7 @@ class _ArtistRadioButton extends ConsumerWidget {
               ? () =>
                   _startArtistRadio(context, ref, artist.topSongs.first.videoId)
               : null,
-      icon: const Icon(Icons.radio),
+      icon: const Icon(LucideIcons.radio),
       label: Text(AppLocalizations.of(context)!.artistRadio),
     );
   }
@@ -772,7 +773,7 @@ class _ExpandableTextState extends State<_ExpandableText> {
         ),
         TextButton.icon(
           onPressed: () => setState(() => _expanded = !_expanded),
-          icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+          icon: Icon(_expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown),
           label: Text(
             _expanded
                 ? AppLocalizations.of(context)!.showLess

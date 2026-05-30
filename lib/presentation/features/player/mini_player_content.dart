@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -126,7 +127,7 @@ class MiniPlayerContent extends ConsumerWidget {
                         ),
                         _playPauseButton(cs),
                         _iconButton(
-                          icon: Icons.skip_next,
+                          icon: LucideIcons.skipForward,
                           color: cs.onSurfaceVariant,
                           onPressed: onSkipNext,
                           size: 20,
@@ -215,14 +216,14 @@ class MiniPlayerContent extends ConsumerWidget {
                           ),
                         ),
                         _iconButton(
-                          icon: Icons.skip_previous,
+                          icon: LucideIcons.skipBack,
                           color: cs.onSurfaceVariant,
                           onPressed: onSkipPrevious,
                           size: 20,
                         ),
                         _playPauseButton(cs),
                         _iconButton(
-                          icon: Icons.skip_next,
+                          icon: LucideIcons.skipForward,
                           color: cs.onSurfaceVariant,
                           onPressed: onSkipNext,
                           size: 20,
@@ -335,7 +336,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   _iconButton(
-                                    icon: Icons.skip_previous,
+                                    icon: LucideIcons.skipBack,
                                     color: cs.onSurfaceVariant,
                                     onPressed: onSkipPrevious,
                                     size: 20,
@@ -344,11 +345,11 @@ class MiniPlayerContent extends ConsumerWidget {
                                   _playPauseButton(cs),
                                   const SizedBox(width: 8),
                                   _iconButton(
-                                    icon: Icons.skip_next,
-                                    color: cs.onSurfaceVariant,
-                                    onPressed: onSkipNext,
-                                    size: 20,
-                                  ),
+                                    icon: LucideIcons.skipForward,
+                          color: cs.onSurfaceVariant,
+                          onPressed: onSkipNext,
+                          size: 20,
+                        ),
                                 ],
                               ),
                               const SizedBox(height: 4),
@@ -396,8 +397,8 @@ class MiniPlayerContent extends ConsumerWidget {
                               _iconButton(
                                 icon:
                                     activeView == PlayerSubView.lyrics
-                                        ? Icons.lyrics
-                                        : Icons.lyrics_outlined,
+                                        ? LucideIcons.text
+                                        : LucideIcons.text,
                                 color:
                                     activeView == PlayerSubView.lyrics
                                         ? cs.primary
@@ -408,8 +409,8 @@ class MiniPlayerContent extends ConsumerWidget {
                               _iconButton(
                                 icon:
                                     activeView == PlayerSubView.queue
-                                        ? Icons.queue_music
-                                        : Icons.queue_music_outlined,
+                                        ? LucideIcons.listMusic
+                                        : LucideIcons.listMusic,
                                 color:
                                     activeView == PlayerSubView.queue
                                         ? cs.primary
@@ -418,7 +419,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                 size: 20,
                               ),
                               _iconButton(
-                                icon: Icons.more_vert,
+                                icon: LucideIcons.moreVertical,
                                 color: cs.onSurfaceVariant,
                                 onPressed: () {
                                   final videoId =
@@ -474,14 +475,14 @@ class MiniPlayerContent extends ConsumerWidget {
                       placeholder:
                           (_, _) =>
                               Container(color: cs.surfaceContainerHighest),
-                      errorWidget:
-                          (_, _, _) => Icon(
-                            Icons.music_note,
-                            color: cs.onSurfaceVariant,
-                          ),
+errorWidget:
+                            (_, _, _) => Icon(
+                              LucideIcons.music,
+                              color: cs.onSurfaceVariant,
+                            ),
                     ),
                   )
-                  : Icon(Icons.music_note, color: cs.onSurfaceVariant),
+                  : Icon(LucideIcons.music, color: cs.onSurfaceVariant),
         ),
       ),
     );
@@ -541,14 +542,14 @@ class MiniPlayerContent extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => _iconButton(
-            icon: Icons.favorite_border,
+            icon: LucideIcons.heart,
             color: cs.onSurfaceVariant,
             onPressed: null,
             size: 20,
           ),
       error:
           (_, _) => _iconButton(
-            icon: Icons.favorite_border,
+            icon: LucideIcons.heart,
             color: cs.onSurfaceVariant,
             onPressed: null,
             size: 20,
@@ -564,7 +565,7 @@ class MiniPlayerContent extends ConsumerWidget {
                   child: FadeTransition(opacity: anim, child: child),
                 ),
             child: Icon(
-              isLiked ? Icons.favorite : Icons.favorite_border,
+              LucideIcons.heart,
               key: ValueKey(isLiked),
               color: isLiked ? cs.error : cs.onSurfaceVariant,
               size: 20,

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -362,7 +363,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     return Container(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Icon(
-        Icons.album,
+        LucideIcons.disc,
         size: 80,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
@@ -383,17 +384,17 @@ class _AlbumActions extends ConsumerWidget {
       children: [
         FilledButton.icon(
           onPressed: () => _playSequential(context, ref, album),
-          icon: const Icon(Icons.play_arrow),
+          icon: const Icon(LucideIcons.play),
           label: const Text('Play All'),
         ),
         FilledButton.icon(
           onPressed: () => _shufflePlay(context, ref, album),
-          icon: const Icon(Icons.shuffle),
+          icon: const Icon(LucideIcons.shuffle),
           label: const Text('Shuffle Play'),
         ),
         FilledButton.tonalIcon(
           onPressed: () => _addToQueue(context, ref, album),
-          icon: const Icon(Icons.queue_music),
+          icon: const Icon(LucideIcons.listMusic),
           label: const Text('Add to Queue'),
         ),
         _DownloadAlbumButton(
@@ -402,7 +403,7 @@ class _AlbumActions extends ConsumerWidget {
         ),
         _LikeAlbumButton(album: album),
         IconButton(
-          icon: const Icon(Icons.share_outlined),
+          icon: const Icon(LucideIcons.share2),
           tooltip: 'Share',
           onPressed: () {
             SharePlus.instance.share(
@@ -585,7 +586,7 @@ class _LikeAlbumButton extends ConsumerWidget {
       loading:
           () => FilledButton.tonalIcon(
             onPressed: null,
-            icon: const Icon(Icons.favorite_border),
+            icon: const Icon(LucideIcons.heart),
             label: const Text('Like Album'),
           ),
       error: (e, _) => const SizedBox.shrink(),
@@ -608,7 +609,7 @@ class _LikeAlbumButton extends ConsumerWidget {
               ),
             );
           },
-          icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
+          icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart),
           label: Text(isLiked ? 'Unlike Album' : 'Like Album'),
         );
       },
@@ -632,7 +633,7 @@ class _DownloadAlbumButton extends ConsumerWidget {
 
     return FilledButton.tonalIcon(
       onPressed: onDownload,
-      icon: Icon(allDownloaded ? Icons.check_circle : Icons.download),
+      icon: Icon(allDownloaded ? LucideIcons.checkCircle : LucideIcons.download),
       label: Text(
         downloadedCount > 0
             ? 'Downloaded $downloadedCount/$totalCount'

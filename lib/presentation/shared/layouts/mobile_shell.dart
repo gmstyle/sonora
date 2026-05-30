@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
@@ -9,12 +10,12 @@ import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
 import '../widgets/player_error_listener.dart';
 
-final _icons = const [
-  Icons.home,
-  Icons.search,
-  Icons.library_music,
-  Icons.download,
-  Icons.settings,
+final _icons = [
+  LucideIcons.home,
+  LucideIcons.search,
+  LucideIcons.library,
+  LucideIcons.download,
+  LucideIcons.settings,
 ];
 
 class MobileShell extends ConsumerWidget {

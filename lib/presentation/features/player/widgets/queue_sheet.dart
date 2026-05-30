@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -59,7 +60,7 @@ class QueueSheet extends ConsumerWidget {
                           fit: BoxFit.cover,
                           errorWidget:
                               (_, _, _) => Icon(
-                                Icons.music_note,
+                                LucideIcons.music,
                                 color:
                                     Theme.of(
                                       context,
@@ -67,7 +68,7 @@ class QueueSheet extends ConsumerWidget {
                               ),
                         )
                         : Icon(
-                          Icons.music_note,
+                          LucideIcons.music,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
               ),
@@ -89,12 +90,12 @@ class QueueSheet extends ConsumerWidget {
             trailing:
                 isCurrent
                     ? Icon(
-                      Icons.play_arrow,
+                      LucideIcons.play,
                       size: 20,
                       color: Theme.of(context).colorScheme.primary,
                     )
                     : IconButton(
-                      icon: const Icon(Icons.close, size: 18),
+                      icon: const Icon(LucideIcons.x, size: 18),
                       onPressed: () => notifier.removeAt(index),
                       visualDensity: VisualDensity.compact,
                     ),

@@ -1,3 +1,4 @@
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,7 +57,7 @@ class PlayerControls extends ConsumerWidget {
               child: FadeTransition(opacity: anim, child: child),
             ),
         child: Icon(
-          Icons.shuffle,
+          LucideIcons.shuffle,
           key: ValueKey(isShuffle),
           color:
               isShuffle
@@ -83,7 +84,7 @@ class PlayerControls extends ConsumerWidget {
   }) {
     return IconButton(
       icon: Icon(
-        isNext ? Icons.skip_next : Icons.skip_previous,
+        isNext ? LucideIcons.skipForward : LucideIcons.skipBack,
         size: 32,
         color: iconColor,
       ),
@@ -146,17 +147,17 @@ class PlayerControls extends ConsumerWidget {
 
     switch (state.repeatMode) {
       case AudioServiceRepeatMode.all:
-        icon = Icons.repeat;
+        icon = LucideIcons.repeat;
         tooltip = AppLocalizations.of(context)!.repeatAll;
         color = Theme.of(context).colorScheme.primary;
         break;
       case AudioServiceRepeatMode.one:
-        icon = Icons.repeat_one;
+        icon = LucideIcons.repeat1;
         tooltip = AppLocalizations.of(context)!.repeatOne;
         color = Theme.of(context).colorScheme.primary;
         break;
       default:
-        icon = Icons.repeat;
+        icon = LucideIcons.repeat;
         tooltip = AppLocalizations.of(context)!.repeatOff;
         color = iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant;
     }

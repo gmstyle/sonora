@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class EmptyStateWidget extends StatelessWidget {
   final IconData icon;
@@ -9,7 +10,7 @@ class EmptyStateWidget extends StatelessWidget {
 
   const EmptyStateWidget({
     super.key,
-    this.icon = Icons.inbox_outlined,
+    this.icon = LucideIcons.inbox,
     required this.title,
     this.body,
     this.buttonLabel,

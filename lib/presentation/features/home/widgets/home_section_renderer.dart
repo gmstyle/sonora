@@ -1,6 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../l10n/app_localizations.dart';
 
@@ -112,7 +113,7 @@ class _ContinueListeningItem extends ConsumerWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.play_arrow_rounded,
+                      LucideIcons.play,
                       size: 16,
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),

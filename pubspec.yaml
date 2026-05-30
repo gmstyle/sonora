@@ -73,6 +73,7 @@ dependencies:
   marquee: ^2.3.0
   palette_generator_master: ^1.1.0
   google_fonts: ^8.1.0
+  lucide_icons_flutter: ^3.1.14+2
 
   # ── Settings ─────────────────────────────────────────────────
   shared_preferences: ^2.5.3

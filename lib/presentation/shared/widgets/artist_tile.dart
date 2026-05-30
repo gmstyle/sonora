@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/extensions/stat_format.dart';
 import 'context_menu_sheet.dart';
@@ -35,7 +36,7 @@ class ArtistTile extends ConsumerWidget {
       ),
       title: Text(name, overflow: TextOverflow.ellipsis),
       subtitle: Text(subtitle, overflow: TextOverflow.ellipsis),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const Icon(LucideIcons.chevronRight),
       onTap: () => context.push('/artist/$artistId'),
       onLongPress:
           () => ContextMenuSheet.showForArtist(

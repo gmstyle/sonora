@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 // ── Section container ────────────────────────────────────────────
 
@@ -126,7 +127,7 @@ class SettingsButtonTile extends StatelessWidget {
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle!) : null,
       leading: icon != null ? Icon(icon) : null,
-      trailing: trailing ?? const Icon(Icons.chevron_right),
+      trailing: trailing ?? const Icon(LucideIcons.chevronRight),
       onTap: onPressed,
     );
   }

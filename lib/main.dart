@@ -4,6 +4,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -365,7 +366,7 @@ class _StartupUpdateDialogState extends ConsumerState<_StartupUpdateDialog> {
           ),
           FilledButton.icon(
             onPressed: () => notifier.installApk(),
-            icon: const Icon(Icons.install_mobile),
+            icon: const Icon(LucideIcons.smartphone),
             label: Text(l10n.installUpdate),
           ),
         ];
@@ -382,7 +383,7 @@ class _StartupUpdateDialogState extends ConsumerState<_StartupUpdateDialog> {
           if (isAndroid)
             FilledButton.icon(
               onPressed: () => notifier.downloadAndInstall(),
-              icon: const Icon(Icons.download),
+              icon: const Icon(LucideIcons.download),
               label: Text(l10n.downloadUpdate),
             )
           else
@@ -395,7 +396,7 @@ class _StartupUpdateDialogState extends ConsumerState<_StartupUpdateDialog> {
                   mode: LaunchMode.externalApplication,
                 );
               },
-              icon: const Icon(Icons.open_in_new),
+              icon: const Icon(LucideIcons.externalLink),
               label: Text(l10n.downloadUpdate),
             ),
         ];

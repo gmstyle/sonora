@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
@@ -28,7 +29,7 @@ class PlaylistTile extends ConsumerWidget {
       ),
       title: Text(name, overflow: TextOverflow.ellipsis),
       subtitle: Text('$artist · Playlist', overflow: TextOverflow.ellipsis),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: const Icon(LucideIcons.chevronRight),
       onTap: () => context.push('/playlist/$playlistId'),
       onLongPress:
           () => ContextMenuSheet.showForPlaylist(

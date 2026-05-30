@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -64,7 +65,7 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
           if (isAlbumsOrPlaylists)
             IconButton(
               icon: Icon(
-                isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+                isGridView ? LucideIcons.list : LucideIcons.layoutGrid,
               ),
               tooltip:
                   isGridView
@@ -87,28 +88,28 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
             labelType: NavigationRailLabelType.all,
             destinations: [
               NavigationRailDestination(
-                icon: Icon(Icons.favorite_outline),
-                selectedIcon: Icon(Icons.favorite),
+                icon: Icon(LucideIcons.heart),
+                selectedIcon: Icon(LucideIcons.heart),
                 label: Text(AppLocalizations.of(context)!.favorites),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
+                icon: Icon(LucideIcons.user),
+                selectedIcon: Icon(LucideIcons.user),
                 label: Text(AppLocalizations.of(context)!.artists),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.playlist_play),
-                selectedIcon: Icon(Icons.playlist_play),
+                icon: Icon(LucideIcons.listVideo),
+                selectedIcon: Icon(LucideIcons.listVideo),
                 label: Text(AppLocalizations.of(context)!.playlists),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.album_outlined),
-                selectedIcon: Icon(Icons.album),
+                icon: Icon(LucideIcons.disc),
+                selectedIcon: Icon(LucideIcons.disc),
                 label: Text(AppLocalizations.of(context)!.albums),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.history),
-                selectedIcon: Icon(Icons.history),
+                icon: Icon(LucideIcons.history),
+                selectedIcon: Icon(LucideIcons.history),
                 label: Text(AppLocalizations.of(context)!.history),
               ),
             ],
@@ -124,7 +125,7 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: () => _createPlaylist(context),
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(LucideIcons.plus),
                         label: Text(
                           AppLocalizations.of(context)!.createPlaylist,
                         ),
@@ -201,7 +202,7 @@ class _FavoritesTab extends ConsumerWidget {
       data: (songs) {
         if (songs.isEmpty) {
           return EmptyStateWidget(
-            icon: Icons.favorite_outline,
+            icon: LucideIcons.heart,
             title: AppLocalizations.of(context)!.noFavoritesYet,
             body: AppLocalizations.of(context)!.noFavoritesHint,
           );
@@ -245,7 +246,7 @@ class _ArtistsTab extends ConsumerWidget {
       data: (artists) {
         if (artists.isEmpty) {
           return EmptyStateWidget(
-            icon: Icons.person_outline,
+            icon: LucideIcons.user,
             title: AppLocalizations.of(context)!.noFollowedArtists,
             body: AppLocalizations.of(context)!.noFollowedArtistsHint,
           );
@@ -341,7 +342,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(LucideIcons.plus),
                   tooltip: AppLocalizations.of(context)!.createPlaylist,
                   onPressed: widget.onCreatePlaylist,
                 ),
@@ -401,7 +402,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   padding: const EdgeInsets.only(right: 16),
                   color: Theme.of(context).colorScheme.error,
                   child: Icon(
-                    Icons.delete,
+                    LucideIcons.trash2,
                     color: Theme.of(context).colorScheme.onError,
                   ),
                 ),
@@ -438,7 +439,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   ref.invalidate(playlistsProvider);
                 },
                 child: ListTile(
-                  leading: const Icon(Icons.playlist_play),
+                  leading: const Icon(LucideIcons.listVideo),
                   title: Text(p.name),
                   subtitle:
                       p.description != null && p.description!.isNotEmpty
@@ -452,14 +453,14 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined),
+                        icon: const Icon(LucideIcons.pencil),
                         onPressed: () => _renamePlaylist(context, ref, p),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline),
+                        icon: const Icon(LucideIcons.trash2),
                         onPressed: () => _deletePlaylist(context, ref, p),
                       ),
-                      const Icon(Icons.chevron_right),
+                      const Icon(LucideIcons.chevronRight),
                     ],
                   ),
                   onTap: () => widget.onPlaylistTap(p),
@@ -522,7 +523,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   padding: const EdgeInsets.only(right: 16),
                   color: Theme.of(context).colorScheme.error,
                   child: Icon(
-                    Icons.favorite,
+                    LucideIcons.heart,
                     color: Theme.of(context).colorScheme.onError,
                   ),
                 ),
@@ -542,7 +543,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                       p.videoCount != null
                           ? Text('${p.videoCount} videos')
                           : null,
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: const Icon(LucideIcons.chevronRight),
                   onTap: () => context.push('/playlist/${p.playlistId}'),
                   onLongPress:
                       () => ContextMenuSheet.showForPlaylist(
@@ -633,7 +634,7 @@ class _AlbumsTab extends ConsumerWidget {
       data: (albums) {
         if (albums.isEmpty) {
           return EmptyStateWidget(
-            icon: Icons.album_outlined,
+            icon: LucideIcons.disc,
             title: AppLocalizations.of(context)!.noLikedAlbums,
             body: AppLocalizations.of(context)!.noLikedAlbumsHint,
           );
@@ -675,7 +676,7 @@ class _AlbumsTab extends ConsumerWidget {
                           padding: const EdgeInsets.only(right: 16),
                           color: Theme.of(context).colorScheme.error,
                           child: Icon(
-                            Icons.favorite,
+                            LucideIcons.heart,
                             color: Theme.of(context).colorScheme.onError,
                           ),
                         ),
@@ -696,7 +697,7 @@ class _AlbumsTab extends ConsumerWidget {
                                 ? '${a.artistName} · ${a.year}'
                                 : a.artistName,
                           ),
-                          trailing: const Icon(Icons.chevron_right),
+                          trailing: const Icon(LucideIcons.chevronRight),
                           onTap: () => context.push('/album/${a.albumId}'),
                           onLongPress:
                               () => ContextMenuSheet.showForAlbum(
@@ -778,7 +779,7 @@ class _HistoryTab extends ConsumerWidget {
       data: (history) {
         if (history.isEmpty) {
           return EmptyStateWidget(
-            icon: Icons.history,
+            icon: LucideIcons.history,
             title: AppLocalizations.of(context)!.noListeningHistory,
             body: AppLocalizations.of(context)!.noListeningHistoryHint,
           );
@@ -829,7 +830,7 @@ class _HistoryTab extends ConsumerWidget {
                           ref.invalidate(libraryHistoryProvider);
                         }
                       },
-                      icon: const Icon(Icons.delete_sweep),
+                      icon: const Icon(LucideIcons.trash2),
                       label: Text(AppLocalizations.of(context)!.clear),
                     ),
                   ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../l10n/app_localizations.dart';
 
 import '../../../../domain/models/library_models.dart';
@@ -35,12 +36,12 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
         title: Text(widget.playlist.name),
         actions: [
           IconButton(
-            icon: const Icon(Icons.playlist_play),
+            icon: const Icon(LucideIcons.listVideo),
             tooltip: AppLocalizations.of(context)!.playAll,
             onPressed: () => _playAll(),
           ),
           IconButton(
-            icon: const Icon(Icons.shuffle),
+            icon: const Icon(LucideIcons.shuffle),
             tooltip: AppLocalizations.of(context)!.shufflePlay,
             onPressed: () => _shufflePlay(),
           ),
@@ -66,7 +67,7 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
         data: (entries) {
           if (entries.isEmpty) {
             return EmptyStateWidget(
-              icon: Icons.playlist_play,
+              icon: LucideIcons.listVideo,
               title: AppLocalizations.of(context)!.emptyPlaylist,
               body: AppLocalizations.of(context)!.emptyPlaylistHint,
             );
@@ -90,7 +91,7 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
                 key: ValueKey('${entry.playlistId}-${entry.videoId}'),
                 leading: ReorderableDragStartListener(
                   index: i,
-                  child: const Icon(Icons.drag_handle),
+                  child: const Icon(LucideIcons.gripVertical),
                 ),
                 title: Text(
                   title,
@@ -102,7 +103,7 @@ class _PlaylistDetailViewState extends ConsumerState<PlaylistDetailView> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
+                      icon: const Icon(LucideIcons.minusCircle),
                       onPressed: () => _removeEntry(entry),
                     ),
                   ],

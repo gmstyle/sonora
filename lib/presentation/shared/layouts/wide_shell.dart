@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
@@ -12,12 +13,12 @@ import '../widgets/thumbnail_widget.dart';
 import '../widgets/scale_button.dart';
 import '../../features/player/full_player_content.dart';
 
-const _icons = [
-  Icons.home,
-  Icons.search,
-  Icons.library_music,
-  Icons.download,
-  Icons.settings,
+final _icons = [
+  LucideIcons.home,
+  LucideIcons.search,
+  LucideIcons.library,
+  LucideIcons.download,
+  LucideIcons.settings,
 ];
 
 class WideShell extends ConsumerWidget {

@@ -2,6 +2,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/extensions/stat_format.dart';
@@ -371,7 +372,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ActionTile(
-                    icon: Icons.play_arrow,
+                    icon: LucideIcons.play,
                     label: AppLocalizations.of(context)!.playNow,
                     onTap: () {
                       Navigator.pop(context);
@@ -382,7 +383,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.playlist_play,
+                    icon: LucideIcons.listVideo,
                     label: AppLocalizations.of(context)!.playNext,
                     onTap: () {
                       Navigator.pop(context);
@@ -401,7 +402,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.queue_music,
+                    icon: LucideIcons.listMusic,
                     label: AppLocalizations.of(context)!.addToQueue,
                     onTap: () {
                       Navigator.pop(context);
@@ -421,16 +422,16 @@ class _SongContextMenuSheet extends ConsumerWidget {
                   ),
                   if (resolvedArtistId != null)
                     _ActionTile(
-                      icon: Icons.person,
-                      label: AppLocalizations.of(context)!.goToArtist,
-                      onTap: () {
-                        context.push('/artist/$resolvedArtistId');
+icon: LucideIcons.user,
+                    label: AppLocalizations.of(context)!.goToArtist,
+                    onTap: () {
+                      context.push('/artist/$resolvedArtistId');
                         Navigator.pop(context);
                       },
                     ),
                   if (albumId != null)
                     _ActionTile(
-                      icon: Icons.album,
+                      icon: LucideIcons.disc,
                       label: AppLocalizations.of(context)!.goToAlbum,
                       onTap: () {
                         context.push('/album/$albumId');
@@ -438,7 +439,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                       },
                     ),
                   _ActionTile(
-                    icon: Icons.radio,
+                    icon: LucideIcons.radio,
                     label: AppLocalizations.of(context)!.startRadio,
                     onTap: () {
                       final useCase = ref.read(startRadioUseCaseProvider);
@@ -451,7 +452,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.playlist_add,
+                    icon: LucideIcons.plus,
                     label: AppLocalizations.of(context)!.addToPlaylist,
                     onTap: () {
                       Navigator.pop(context);
@@ -474,7 +475,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     albumId: albumId,
                   ),
                   _ActionTile(
-                    icon: isDownloaded ? Icons.check_circle : Icons.download,
+                    icon: isDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
                     label:
                         isDownloaded
                             ? AppLocalizations.of(context)!.downloaded
@@ -545,7 +546,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.share,
+                    icon: LucideIcons.share2,
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
                       Navigator.pop(context);
@@ -657,7 +658,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ActionTile(
-                    icon: Icons.play_arrow,
+                    icon: LucideIcons.play,
                     label: AppLocalizations.of(context)!.playTopSongs,
                     onTap: () {
                       final artistFuture = ref.read(
@@ -673,7 +674,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.shuffle,
+                    icon: LucideIcons.shuffle,
                     label: AppLocalizations.of(context)!.shuffle,
                     onTap: () {
                       final artistFuture = ref.read(
@@ -689,7 +690,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.person,
+                    icon: LucideIcons.user,
                     label: AppLocalizations.of(context)!.goToArtist,
                     onTap: () {
                       context.push('/artist/$artistId');
@@ -702,7 +703,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                   ),
                   _ActionTile(
-                    icon: Icons.radio,
+                    icon: LucideIcons.radio,
                     label: AppLocalizations.of(context)!.artistRadio,
                     onTap: () {
                       final artistFuture = ref.read(
@@ -718,7 +719,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.share,
+                    icon: LucideIcons.share2,
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
                       Navigator.pop(context);
@@ -873,7 +874,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ActionTile(
-                    icon: Icons.play_arrow,
+                    icon: LucideIcons.play,
                     label: AppLocalizations.of(context)!.playAll,
                     onTap: () {
                       final albumFuture = ref.read(
@@ -894,7 +895,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.shuffle,
+                    icon: LucideIcons.shuffle,
                     label: AppLocalizations.of(context)!.shufflePlay,
                     onTap: () {
                       final albumFuture = ref.read(
@@ -910,7 +911,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.queue_music,
+                    icon: LucideIcons.listMusic,
                     label: AppLocalizations.of(context)!.addToQueue,
                     onTap: () {
                       final albumFuture = ref.read(
@@ -926,7 +927,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.album,
+                    icon: LucideIcons.disc,
                     label: AppLocalizations.of(context)!.goToAlbum,
                     onTap: () {
                       context.push('/album/$albumId');
@@ -935,7 +936,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                   ),
                   if (artistId != null)
                     _ActionTile(
-                      icon: Icons.person,
+                      icon: LucideIcons.user,
                       label: AppLocalizations.of(context)!.goToArtist,
                       onTap: () {
                         context.push('/artist/$artistId');
@@ -950,7 +951,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     year: year,
                   ),
                   _ActionTile(
-                    icon: Icons.share,
+                    icon: LucideIcons.share2,
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
                       Navigator.pop(context);
@@ -1106,7 +1107,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ActionTile(
-                    icon: Icons.play_arrow,
+                    icon: LucideIcons.play,
                     label: AppLocalizations.of(context)!.playAll,
                     onTap: () {
                       final videosFuture = ref.read(
@@ -1127,7 +1128,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.shuffle,
+                    icon: LucideIcons.shuffle,
                     label: AppLocalizations.of(context)!.shufflePlay,
                     onTap: () {
                       final videosFuture = ref.read(
@@ -1148,7 +1149,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.queue_music,
+                    icon: LucideIcons.listMusic,
                     label: AppLocalizations.of(context)!.addToQueue,
                     onTap: () {
                       final videosFuture = ref.read(
@@ -1169,7 +1170,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon: Icons.playlist_play,
+                    icon: LucideIcons.listVideo,
                     label: AppLocalizations.of(context)!.goToPlaylist,
                     onTap: () {
                       context.push('/playlist/$playlistId');
@@ -1182,7 +1183,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                   ),
                   _ActionTile(
-                    icon: Icons.share,
+                    icon: LucideIcons.share2,
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
                       Navigator.pop(context);
@@ -1308,7 +1309,7 @@ class _LikeActionTile extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => ListTile(
-            leading: Icon(Icons.favorite_border),
+            leading: Icon(LucideIcons.heart),
             title: Text(AppLocalizations.of(context)!.like),
             enabled: false,
             dense: true,
@@ -1318,7 +1319,7 @@ class _LikeActionTile extends ConsumerWidget {
         final isLiked = liked != null;
         return ListTile(
           leading: Icon(
-            isLiked ? Icons.favorite : Icons.favorite_border,
+            isLiked ? LucideIcons.heart : LucideIcons.heart,
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(
@@ -1365,7 +1366,7 @@ class _FollowArtistActionTile extends ConsumerWidget {
     return followedAsync.when(
       loading:
           () => ListTile(
-            leading: Icon(Icons.person_add_outlined),
+            leading: Icon(LucideIcons.userPlus),
             title: Text(AppLocalizations.of(context)!.follow),
             enabled: false,
             dense: true,
@@ -1375,7 +1376,7 @@ class _FollowArtistActionTile extends ConsumerWidget {
         final isFollowing = followed != null;
         return ListTile(
           leading: Icon(
-            isFollowing ? Icons.person_remove : Icons.person_add_outlined,
+            isFollowing ? LucideIcons.userMinus : LucideIcons.userPlus,
             color: isFollowing ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(
@@ -1422,7 +1423,7 @@ class _LikeAlbumActionTile extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => ListTile(
-            leading: Icon(Icons.favorite_border),
+            leading: Icon(LucideIcons.heart),
             title: Text(AppLocalizations.of(context)!.like),
             enabled: false,
             dense: true,
@@ -1432,7 +1433,7 @@ class _LikeAlbumActionTile extends ConsumerWidget {
         final isLiked = liked != null;
         return ListTile(
           leading: Icon(
-            isLiked ? Icons.favorite : Icons.favorite_border,
+            isLiked ? LucideIcons.heart : LucideIcons.heart,
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(
@@ -1478,7 +1479,7 @@ class _LikePlaylistActionTile extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => ListTile(
-            leading: Icon(Icons.favorite_border),
+            leading: Icon(LucideIcons.heart),
             title: Text(AppLocalizations.of(context)!.like),
             enabled: false,
             dense: true,
@@ -1488,7 +1489,7 @@ class _LikePlaylistActionTile extends ConsumerWidget {
         final isLiked = liked != null;
         return ListTile(
           leading: Icon(
-            isLiked ? Icons.favorite : Icons.favorite_border,
+            isLiked ? LucideIcons.heart : LucideIcons.heart,
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(
@@ -1606,7 +1607,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
-                      icon: const Icon(Icons.add),
+                      icon: const Icon(LucideIcons.plus),
                       label: Text(
                         AppLocalizations.of(context)!.createNewPlaylist,
                       ),
@@ -1651,7 +1652,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                     itemBuilder: (context, index) {
                       final playlist = playlists[index];
                       return ListTile(
-                        leading: const Icon(Icons.playlist_play),
+                        leading: const Icon(LucideIcons.listVideo),
                         title: Text(playlist.name),
                         onTap: () async {
                           await ref

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -336,7 +337,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
   Widget _placeholder(BuildContext context) => Container(
     color: Theme.of(context).colorScheme.surfaceContainerHighest,
     child: Icon(
-      Icons.playlist_play,
+      LucideIcons.listVideo,
       size: 80,
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     ),
@@ -361,7 +362,7 @@ class _PlaylistActions extends ConsumerWidget {
                   ? () =>
                       _playSequential(context, ref, videosAsync.asData!.value)
                   : null,
-          icon: const Icon(Icons.play_arrow),
+          icon: const Icon(LucideIcons.play),
           label: Text(AppLocalizations.of(context)!.playAll),
         ),
         FilledButton.icon(
@@ -369,7 +370,7 @@ class _PlaylistActions extends ConsumerWidget {
               videosAsync is AsyncData && videosAsync.asData?.value != null
                   ? () => _shufflePlay(context, ref, videosAsync.asData!.value)
                   : null,
-          icon: const Icon(Icons.shuffle),
+          icon: const Icon(LucideIcons.shuffle),
           label: Text(AppLocalizations.of(context)!.shufflePlay),
         ),
         FilledButton.tonalIcon(
@@ -377,7 +378,7 @@ class _PlaylistActions extends ConsumerWidget {
               videosAsync is AsyncData && videosAsync.asData?.value != null
                   ? () => _addToQueue(context, ref, videosAsync.asData!.value)
                   : null,
-          icon: const Icon(Icons.queue_music),
+          icon: const Icon(LucideIcons.listMusic),
           label: Text(AppLocalizations.of(context)!.addToQueue),
         ),
         _DownloadPlaylistButton(
@@ -395,7 +396,7 @@ class _PlaylistActions extends ConsumerWidget {
         ),
         _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
         IconButton(
-          icon: const Icon(Icons.share_outlined),
+          icon: const Icon(LucideIcons.share2),
           tooltip: AppLocalizations.of(context)!.share,
           onPressed: () {
             SharePlus.instance.share(
@@ -604,7 +605,7 @@ class _LikePlaylistButton extends ConsumerWidget {
       loading:
           () => FilledButton.tonalIcon(
             onPressed: null,
-            icon: const Icon(Icons.favorite_border),
+            icon: const Icon(LucideIcons.heart),
             label: Text(AppLocalizations.of(context)!.likePlaylist),
           ),
       error: (e, _) => const SizedBox.shrink(),
@@ -626,7 +627,7 @@ class _LikePlaylistButton extends ConsumerWidget {
               ),
             );
           },
-          icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
+          icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart),
           label: Text(
             isLiked
                 ? AppLocalizations.of(context)!.unlikePlaylist
@@ -660,7 +661,7 @@ class _DownloadPlaylistButton extends ConsumerWidget {
 
     return FilledButton.tonalIcon(
       onPressed: onDownload,
-      icon: Icon(allDownloaded ? Icons.check_circle : Icons.download),
+      icon: Icon(allDownloaded ? LucideIcons.checkCircle : LucideIcons.download),
       label: Text(
         downloadedCount > 0
             ? AppLocalizations.of(

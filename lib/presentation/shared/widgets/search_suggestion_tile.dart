@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class SearchSuggestionTile extends StatelessWidget {
   final String query;
@@ -16,7 +17,7 @@ class SearchSuggestionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(
-        isHistory ? Icons.history : Icons.search,
+        isHistory ? LucideIcons.history : Icons.search,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       title: Text(query),

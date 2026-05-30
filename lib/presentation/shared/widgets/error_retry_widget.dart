@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 
 class ErrorRetryWidget extends StatelessWidget {
@@ -20,7 +21,7 @@ class ErrorRetryWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.error_outline,
+              LucideIcons.alertCircle,
               size: 64,
               color: Theme.of(context).colorScheme.error,
             ),
@@ -33,7 +34,7 @@ class ErrorRetryWidget extends StatelessWidget {
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(LucideIcons.refreshCw),
               label: Text(AppLocalizations.of(context)!.retry),
             ),
           ],

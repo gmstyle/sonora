@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
 import '../../providers/player_provider.dart';
@@ -98,7 +99,7 @@ class SongCard extends ConsumerWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.download_done_rounded,
+                        LucideIcons.checkCircle,
                         size: 12,
                         color: Theme.of(context).colorScheme.onPrimary,
                       ),

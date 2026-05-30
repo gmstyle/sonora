@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/sonora_logo.dart';
@@ -34,7 +35,7 @@ class HomeTabletLayout extends ConsumerWidget {
         actions: [
           if (Platform.isLinux)
             IconButton(
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(LucideIcons.refreshCw),
               tooltip: AppLocalizations.of(context)!.refresh,
               onPressed: () {
                 ref.invalidate(homeSectionsProvider);

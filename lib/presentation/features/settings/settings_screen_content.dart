@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -87,14 +88,14 @@ class _AppearanceSection extends StatelessWidget {
             subtitle: AppLocalizations.of(context)!.amoledDarkModeHint,
             value: settings.useAmoled,
             onChanged: notifier.setUseAmoled,
-            icon: Icons.dark_mode,
+            icon: LucideIcons.moon,
           ),
         SettingsSwitchTile(
           title: AppLocalizations.of(context)!.dynamicColor,
           subtitle: AppLocalizations.of(context)!.dynamicColorHint,
           value: settings.useDynamicColor,
           onChanged: notifier.setUseDynamicColor,
-          icon: Icons.palette_outlined,
+          icon: LucideIcons.palette,
         ),
       ],
     );
@@ -163,7 +164,7 @@ class _PlaybackSection extends StatelessWidget {
           title: AppLocalizations.of(context)!.restoreQueueOnStartup,
           value: settings.restoreQueueOnStartup,
           onChanged: notifier.setRestoreQueueOnStartup,
-          icon: Icons.restore,
+          icon: LucideIcons.rotateCcw,
         ),
         const Divider(height: 1),
         SettingsSwitchTile(
@@ -171,7 +172,7 @@ class _PlaybackSection extends StatelessWidget {
           subtitle: AppLocalizations.of(context)!.autoPlayUpNextHint,
           value: settings.autoPlayUpNext,
           onChanged: notifier.setAutoPlayUpNext,
-          icon: Icons.playlist_play,
+          icon: LucideIcons.listVideo,
         ),
       ],
     );
@@ -196,7 +197,7 @@ class _DownloadSection extends StatelessWidget {
           subtitle:
               settings.downloadPath ??
               AppLocalizations.of(context)!.defaultLocation,
-          icon: Icons.folder_outlined,
+          icon: LucideIcons.folder,
           onPressed: () async {
             final path = await FilePicker.getDirectoryPath();
             if (path != null) notifier.setDownloadPath(path);
@@ -207,7 +208,7 @@ class _DownloadSection extends StatelessWidget {
           title: AppLocalizations.of(context)!.downloadOnlyOnWifi,
           value: settings.downloadOnlyOnWifi,
           onChanged: notifier.setDownloadOnlyOnWifi,
-          icon: Icons.wifi,
+          icon: LucideIcons.wifi,
         ),
       ],
     );
@@ -235,7 +236,7 @@ class _BatterySection extends ConsumerWidget {
           title: l10n.disableBatteryOptimization,
           subtitle: l10n.disableBatteryOptimizationHint,
           value: batteryDisabled,
-          icon: Icons.battery_std,
+          icon: LucideIcons.batteryFull,
           onChanged: (_) async {
             await ref
                 .read(settingsProvider.notifier)
@@ -248,7 +249,7 @@ class _BatterySection extends ConsumerWidget {
           title: l10n.manufacturerBatteryOptimization,
           subtitle: l10n.manufacturerBatteryOptimizationHint,
           value: manBatteryDisabled,
-          icon: Icons.energy_savings_leaf,
+          icon: LucideIcons.leaf,
           onChanged: (_) async {
             await ref
                 .read(settingsProvider.notifier)
@@ -283,18 +284,18 @@ class _PrivacySection extends StatelessWidget {
           title: AppLocalizations.of(context)!.trackListeningHistory,
           value: settings.trackHistory,
           onChanged: notifier.setTrackHistory,
-          icon: Icons.history,
+          icon: LucideIcons.history,
         ),
         const Divider(height: 1),
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.clearSearchHistory,
-          icon: Icons.search_off,
+          icon: LucideIcons.searchX,
           onPressed: () => _clearSearchHistory(context),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.clearListeningHistory,
-          icon: Icons.delete_sweep,
+          icon: LucideIcons.trash2,
           onPressed: () => _clearListeningHistory(context),
         ),
       ],
@@ -387,14 +388,14 @@ class _BackupSection extends StatelessWidget {
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.exportData,
           subtitle: AppLocalizations.of(context)!.exportDataHint,
-          icon: Icons.file_upload_outlined,
+          icon: LucideIcons.fileUp,
           onPressed: () => _exportData(context),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.importData,
           subtitle: AppLocalizations.of(context)!.importDataHint,
-          icon: Icons.file_download_outlined,
+          icon: LucideIcons.fileDown,
           onPressed: () => _importData(context),
         ),
       ],
@@ -559,12 +560,12 @@ class _UpdatesSection extends ConsumerWidget {
           subtitle: AppLocalizations.of(context)!.checkOnStartupHint,
           value: settings.checkUpdatesOnStartup,
           onChanged: notifier.setCheckUpdatesOnStartup,
-          icon: Icons.update,
+          icon: LucideIcons.refreshCw,
         ),
         const Divider(height: 1),
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.checkNow,
-          icon: Icons.refresh,
+          icon: LucideIcons.refreshCw,
           onPressed: () => _checkUpdates(context, ref),
         ),
       ],
@@ -730,7 +731,7 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
           ),
           FilledButton.icon(
             onPressed: () => notifier.installApk(),
-            icon: const Icon(Icons.install_mobile),
+            icon: const Icon(LucideIcons.smartphone),
             label: Text(l10n.installUpdate),
           ),
         ];
@@ -747,7 +748,7 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
           if (isAndroid)
             FilledButton.icon(
               onPressed: () => notifier.downloadAndInstall(),
-              icon: const Icon(Icons.download),
+              icon: const Icon(LucideIcons.download),
               label: Text(l10n.downloadUpdate),
             )
           else
@@ -760,7 +761,7 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
                   mode: LaunchMode.externalApplication,
                 );
               },
-              icon: const Icon(Icons.open_in_new),
+              icon: const Icon(LucideIcons.externalLink),
               label: Text(l10n.downloadUpdate),
             ),
         ];
@@ -788,7 +789,7 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
           if (state.result?.isNewer == true)
             FilledButton.icon(
               onPressed: () => notifier.downloadAndInstall(),
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(LucideIcons.refreshCw),
               label: Text(l10n.retry),
             ),
         ];
@@ -813,7 +814,7 @@ class _AboutSection extends StatelessWidget {
             final version = snapshot.data?.version ?? '...';
             final buildNumber = snapshot.data?.buildNumber ?? '...';
             return ListTile(
-              leading: const Icon(Icons.info_outline),
+              leading: const Icon(LucideIcons.info),
               title: Text(AppLocalizations.of(context)!.appVersion),
               subtitle: Text('$version+$buildNumber'),
             );
@@ -822,7 +823,7 @@ class _AboutSection extends StatelessWidget {
         const Divider(height: 1),
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.licenses,
-          icon: Icons.description_outlined,
+          icon: LucideIcons.fileText,
           onPressed:
               () => showLicensePage(
                 context: context,
@@ -832,7 +833,7 @@ class _AboutSection extends StatelessWidget {
         const Divider(height: 1),
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.gitHubRepository,
-          icon: Icons.code,
+          icon: LucideIcons.code2,
           subtitle: kGitHubRepoUrl,
           onPressed:
               () => launchUrl(

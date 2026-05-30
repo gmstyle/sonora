@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/extensions/stat_format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,7 +84,7 @@ class SongTile extends ConsumerWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.download_done_rounded,
+                  LucideIcons.checkCircle,
                   size: 10,
                   color: Theme.of(context).colorScheme.onPrimary,
                 ),
