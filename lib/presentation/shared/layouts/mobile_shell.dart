@@ -62,6 +62,7 @@ class MobileShell extends ConsumerWidget {
                 ).colorScheme.surface.withValues(alpha: 0.65),
                 elevation: 0,
                 selectedIndex: navigationShell.currentIndex,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
                 onDestinationSelected:
                     (index) => navigationShell.goBranch(index),
                 destinations: [

@@ -46,7 +46,12 @@ class TabletShell extends ConsumerWidget {
                 ),
             ],
           ),
-          const VerticalDivider(width: 1),
+          VerticalDivider(
+            width: 1,
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
           Expanded(
             child: Stack(
               children: [

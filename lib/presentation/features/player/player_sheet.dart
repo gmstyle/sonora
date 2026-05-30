@@ -49,38 +49,63 @@ class PlayerSheet extends ConsumerWidget {
     if (currentSong == null) return const SizedBox.shrink();
 
     final isVideo = currentSong.extras?['isVideo'] == true;
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+
+    // Responsive margins for floating island
+    final horizontalMargin = isMobile ? 12.0 : 24.0;
+    final bottomMargin = isMobile ? bottom + 12.0 : 16.0;
 
     return Positioned(
-      bottom: bottom,
-      left: 0,
-      right: 0,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(12),
-          topRight: Radius.circular(12),
+      bottom: bottomMargin,
+      left: horizontalMargin,
+      right: horizontalMargin,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 16,
+              spreadRadius: 0,
+              offset: const Offset(0, 6),
+            ),
+          ],
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+            width: 1.0,
+          ),
         ),
-        child: MiniPlayerContent(
-          currentSong: currentSong,
-          playerState: playerState,
-          isVideo: isVideo,
-          onTap: () => _navigateToFullPlayer(context, ref),
-          onPlayPause:
-              () => ref.read(playerStateProvider.notifier).togglePlayPause(),
-          onSkipNext: () => ref.read(playerStateProvider.notifier).skipToNext(),
-          onSkipPrevious:
-              () => ref.read(playerStateProvider.notifier).skipToPrevious(),
-          onOpenLyrics:
-              () => _navigateToFullPlayer(
-                context,
-                ref,
-                subView: PlayerSubView.lyrics,
-              ),
-          onOpenQueue:
-              () => _navigateToFullPlayer(
-                context,
-                ref,
-                subView: PlayerSubView.queue,
-              ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(
+            15,
+          ), // Slightly smaller to prevent bleed outside the border
+          child: MiniPlayerContent(
+            currentSong: currentSong,
+            playerState: playerState,
+            isVideo: isVideo,
+            onTap: () => _navigateToFullPlayer(context, ref),
+            onPlayPause:
+                () => ref.read(playerStateProvider.notifier).togglePlayPause(),
+            onSkipNext:
+                () => ref.read(playerStateProvider.notifier).skipToNext(),
+            onSkipPrevious:
+                () => ref.read(playerStateProvider.notifier).skipToPrevious(),
+            onOpenLyrics:
+                () => _navigateToFullPlayer(
+                  context,
+                  ref,
+                  subView: PlayerSubView.lyrics,
+                ),
+            onOpenQueue:
+                () => _navigateToFullPlayer(
+                  context,
+                  ref,
+                  subView: PlayerSubView.queue,
+                ),
+          ),
         ),
       ),
     );

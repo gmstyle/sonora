@@ -119,7 +119,12 @@ class _WideShellState extends ConsumerState<WideShell> {
               ),
             ),
           ),
-          const VerticalDivider(width: 1),
+          VerticalDivider(
+            width: 1,
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
           Expanded(
             child: Stack(
               children: [
@@ -176,46 +181,63 @@ class _WideShellState extends ConsumerState<WideShell> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-      child: ScaleButton(
-        onTap: () => widget.navigationShell.goBranch(i),
-        child: Container(
-          height: 48,
-          decoration: BoxDecoration(
-            color:
-                isSelected
-                    ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Icon(
-                _icons[i],
+      child: Stack(
+        children: [
+          ScaleButton(
+            onTap: () => widget.navigationShell.goBranch(i),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
                 color:
                     isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
+                        ? colorScheme.secondaryContainer.withValues(alpha: 0.4)
+                        : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.clip,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    _icons[i],
                     color:
                         isSelected
                             ? colorScheme.primary
-                            : colorScheme.onSurface,
+                            : colorScheme.onSurfaceVariant,
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color:
+                            isSelected
+                                ? colorScheme.primary
+                                : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isSelected)
+            Positioned(
+              left: 0,
+              top: 14,
+              bottom: 14,
+              width: 3.5,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }
