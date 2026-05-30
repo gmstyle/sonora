@@ -16,6 +16,7 @@ import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
+import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import 'providers/album_provider.dart';
 
@@ -273,6 +274,35 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                   _AlbumActions(album: widget.album),
                   const SizedBox(height: 16),
                   _buildTracklist(context, ref),
+                  if (widget.album.relatedReleases.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _SectionHeader(
+                      title: AppLocalizations.of(context)!.relatedReleases,
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 220,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.only(right: 16),
+                        itemCount: widget.album.relatedReleases.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final release = widget.album.relatedReleases[index];
+                          return AlbumCard(
+                            albumId: release.albumId,
+                            name: release.name,
+                            artist: release.artist.name,
+                            thumbnailUrl:
+                                release.thumbnails.isNotEmpty
+                                    ? release.thumbnails.last.url
+                                    : null,
+                            year: release.year,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -776,7 +806,7 @@ class _AlbumShimmer extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         SliverAppBar(
-          expandedHeight: 300,
+          expandedHeight: 280,
           flexibleSpace: FlexibleSpaceBar(
             background: Container(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -801,17 +831,33 @@ class _AlbumShimmer extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ...List.generate(
-                  8,
-                  (_) => const Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: ShimmerLoading(variant: ShimmerVariant.tile),
-                  ),
+                  10,
+                  (_) => ShimmerLoading(variant: ShimmerVariant.tile),
                 ),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 4),
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
     );
   }
 }
