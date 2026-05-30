@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/constants/app_constants.dart';
 
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/album_card.dart';
@@ -181,6 +182,10 @@ class HomeSectionRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (section.contents.isEmpty) return const SizedBox.shrink();
 
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < kCompactBreakpoint;
+    final double carouselHeight = isFirst ? (isMobile ? 180.0 : 220.0) : 220.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -194,7 +199,7 @@ class HomeSectionRow extends ConsumerWidget {
           ),
         ),
         SizedBox(
-          height: 220,
+          height: carouselHeight,
           child:
               isFirst
                   ? _HeroCarousel(
@@ -299,11 +304,19 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600; // kCompactBreakpoint is 600
+
+    final cardHeight = isMobile ? 180.0 : 220.0;
+    final thumbnailSize = isMobile ? 140.0 : 188.0;
+    final gap = isMobile ? 14.0 : 20.0;
+    final playBtnSize = isMobile ? 38.0 : 44.0;
+    final playIconSize = isMobile ? 18.0 : 20.0;
 
     return ScaleButton(
       onTap: onTap,
       child: Container(
-        height: 220,
+        height: cardHeight,
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(16),
@@ -312,41 +325,42 @@ class _HeroCard extends StatelessWidget {
             width: 1.0,
           ),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
         child: Row(
           children: [
             Hero(
               tag: 'hero_art_$title',
               child: ThumbnailWidget(
                 imageUrl: thumbnailUrl,
-                size: 188,
+                size: thumbnailSize,
                 shape: ThumbnailShape.rounded,
               ),
             ),
-            const SizedBox(width: 20),
+            SizedBox(width: gap),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 12),
+                  SizedBox(height: isMobile ? 4.0 : 12.0),
                   Text(
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: isMobile ? 16 : 18,
                     ),
                   ),
                   if (subtitle != null) ...[
-                    const SizedBox(height: 6),
+                    SizedBox(height: isMobile ? 4.0 : 6.0),
                     Text(
                       subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      style: (isMobile
+                              ? textTheme.bodySmall
+                              : textTheme.bodyMedium)
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                   const Spacer(),
@@ -354,8 +368,8 @@ class _HeroCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: playBtnSize,
+                        height: playBtnSize,
                         decoration: BoxDecoration(
                           color: colorScheme.primary,
                           shape: BoxShape.circle,
@@ -370,7 +384,7 @@ class _HeroCard extends StatelessWidget {
                         child: Icon(
                           LucideIcons.play,
                           color: colorScheme.onPrimary,
-                          size: 20,
+                          size: playIconSize,
                         ),
                       ),
                     ],
