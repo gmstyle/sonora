@@ -519,7 +519,9 @@ class _BackupSection extends StatelessWidget {
           );
         }
         if (importedSettings.containsKey('useDynamicColor')) {
-          notifier.setUseDynamicColor(importedSettings['useDynamicColor'] as bool);
+          notifier.setUseDynamicColor(
+            importedSettings['useDynamicColor'] as bool,
+          );
         }
         if (importedSettings.containsKey('useAmoled')) {
           notifier.setUseAmoled(importedSettings['useAmoled'] as bool);
@@ -531,25 +533,37 @@ class _BackupSection extends StatelessWidget {
           notifier.setHl(importedSettings['hl'] as String);
         }
         if (importedSettings.containsKey('crossfadeSeconds')) {
-          notifier.setCrossfadeSeconds(importedSettings['crossfadeSeconds'] as int);
+          notifier.setCrossfadeSeconds(
+            importedSettings['crossfadeSeconds'] as int,
+          );
         }
         if (importedSettings.containsKey('restoreQueueOnStartup')) {
-          notifier.setRestoreQueueOnStartup(importedSettings['restoreQueueOnStartup'] as bool);
+          notifier.setRestoreQueueOnStartup(
+            importedSettings['restoreQueueOnStartup'] as bool,
+          );
         }
         if (importedSettings.containsKey('autoPlayUpNext')) {
-          notifier.setAutoPlayUpNext(importedSettings['autoPlayUpNext'] as bool);
+          notifier.setAutoPlayUpNext(
+            importedSettings['autoPlayUpNext'] as bool,
+          );
         }
         if (importedSettings.containsKey('downloadOnlyOnWifi')) {
-          notifier.setDownloadOnlyOnWifi(importedSettings['downloadOnlyOnWifi'] as bool);
+          notifier.setDownloadOnlyOnWifi(
+            importedSettings['downloadOnlyOnWifi'] as bool,
+          );
         }
         if (importedSettings.containsKey('trackHistory')) {
           notifier.setTrackHistory(importedSettings['trackHistory'] as bool);
         }
         if (importedSettings.containsKey('checkUpdatesOnStartup')) {
-          notifier.setCheckUpdatesOnStartup(importedSettings['checkUpdatesOnStartup'] as bool);
+          notifier.setCheckUpdatesOnStartup(
+            importedSettings['checkUpdatesOnStartup'] as bool,
+          );
         }
         if (importedSettings.containsKey('isLibraryGridView')) {
-          notifier.setLibraryGridView(importedSettings['isLibraryGridView'] as bool);
+          notifier.setLibraryGridView(
+            importedSettings['isLibraryGridView'] as bool,
+          );
         }
       }
 

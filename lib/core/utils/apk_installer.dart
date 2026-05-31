@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class ApkInstaller {
-  static const MethodChannel _channel =
-      MethodChannel('com.gmstyle.sonora/apk_installer');
+  static const MethodChannel _channel = MethodChannel(
+    'com.gmstyle.sonora/apk_installer',
+  );
 
   static Future<void> installApk(String filePath) async {
     if (!Platform.isAndroid) {
@@ -14,8 +15,6 @@ class ApkInstaller {
       );
     }
 
-    await _channel.invokeMethod<void>('installApk', {
-      'filePath': filePath,
-    });
+    await _channel.invokeMethod<void>('installApk', {'filePath': filePath});
   }
 }

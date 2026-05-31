@@ -95,9 +95,6 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     String query, {
     required DateTime searchedAt,
   }) => into(db.searchHistory).insert(
-    SearchHistoryCompanion(
-      query: Value(query),
-      searchedAt: Value(searchedAt),
-    ),
+    SearchHistoryCompanion(query: Value(query), searchedAt: Value(searchedAt)),
   );
 }

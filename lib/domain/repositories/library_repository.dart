@@ -36,7 +36,11 @@ abstract class LibraryRepository {
 
   Future<List<LocalPlaylistModel>> getAllPlaylists();
   Future<int> createPlaylist(String name, {String? description});
-  Future<int> createPlaylistWithDate(String name, {String? description, required DateTime createdAt});
+  Future<int> createPlaylistWithDate(
+    String name, {
+    String? description,
+    required DateTime createdAt,
+  });
   Future<void> updatePlaylist(int id, {String? name, String? description});
   Future<void> deletePlaylist(int id);
   Future<List<PlaylistEntryModel>> getPlaylistEntries(int playlistId);
@@ -83,7 +87,10 @@ abstract class LibraryRepository {
   Future<void> clearHistory();
 
   Future<void> insertSearchEntry(String query);
-  Future<void> insertSearchEntryWithDate(String query, {required DateTime searchedAt});
+  Future<void> insertSearchEntryWithDate(
+    String query, {
+    required DateTime searchedAt,
+  });
   Future<List<SearchHistoryModel>> getRecentSearches({int limit = 10});
   Future<void> clearSearchHistory();
 }

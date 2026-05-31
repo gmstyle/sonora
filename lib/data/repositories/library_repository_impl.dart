@@ -249,8 +249,15 @@ class LibraryRepositoryImpl implements LibraryRepository {
       _playlistsDao.createPlaylist(name, description: description);
 
   @override
-  Future<int> createPlaylistWithDate(String name, {String? description, required DateTime createdAt}) =>
-      _playlistsDao.createPlaylistWithDate(name, description: description, createdAt: createdAt);
+  Future<int> createPlaylistWithDate(
+    String name, {
+    String? description,
+    required DateTime createdAt,
+  }) => _playlistsDao.createPlaylistWithDate(
+    name,
+    description: description,
+    createdAt: createdAt,
+  );
 
   @override
   Future<void> updatePlaylist(int id, {String? name, String? description}) =>
@@ -425,8 +432,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
       _historyDao.insertSearchEntry(query);
 
   @override
-  Future<void> insertSearchEntryWithDate(String query, {required DateTime searchedAt}) =>
-      _historyDao.insertSearchEntryRaw(query, searchedAt: searchedAt);
+  Future<void> insertSearchEntryWithDate(
+    String query, {
+    required DateTime searchedAt,
+  }) => _historyDao.insertSearchEntryRaw(query, searchedAt: searchedAt);
 
   @override
   Future<List<SearchHistoryModel>> getRecentSearches({int limit = 10}) async {

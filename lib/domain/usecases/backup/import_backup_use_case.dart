@@ -24,23 +24,21 @@ class ImportBackupUseCase {
         (data['followedArtists'] as List<dynamic>).cast<Map<String, dynamic>>();
     final likedAlbums =
         (data['likedAlbums'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
-            [];
+        [];
     final likedPlaylists =
         (data['likedPlaylists'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
-            [];
+        [];
     final playlistsRaw =
         (data['playlists'] as List<dynamic>).cast<Map<String, dynamic>>();
     final playlistEntriesRaw =
         data['playlistEntries'] as Map<String, dynamic>? ?? {};
     final history =
-        (data['history'] as List<dynamic>?)
-            ?.cast<Map<String, dynamic>>() ??
-            [];
+        (data['history'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     final searchHistory =
         (data['searchHistory'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
-            [];
+        [];
     final settings = data['settings'] as Map<String, dynamic>?;
 
     for (final s in likedSongs) {
@@ -95,9 +93,10 @@ class ImportBackupUseCase {
     final oldToNewId = <int, int>{};
     for (final p in playlistsRaw) {
       final oldId = p['id'] as int;
-      final createdAt = p['createdAt'] != null
-          ? DateTime.tryParse(p['createdAt'] as String) ?? DateTime.now()
-          : DateTime.now();
+      final createdAt =
+          p['createdAt'] != null
+              ? DateTime.tryParse(p['createdAt'] as String) ?? DateTime.now()
+              : DateTime.now();
       final newId = await libraryRepository.createPlaylistWithDate(
         p['name'] as String,
         description: p['description'] as String?,
@@ -109,7 +108,8 @@ class ImportBackupUseCase {
     for (final entry in oldToNewId.entries) {
       final oldId = entry.key;
       final newId = entry.value;
-      final entries = (playlistEntriesRaw[oldId.toString()] as List<dynamic>?)
+      final entries =
+          (playlistEntriesRaw[oldId.toString()] as List<dynamic>?)
               ?.cast<Map<String, dynamic>>() ??
           [];
       for (final e in entries) {
