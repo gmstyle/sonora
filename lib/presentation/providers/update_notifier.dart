@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/apk_installer.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -137,11 +135,6 @@ class UpdateNotifier extends Notifier<UpdateState> {
 
     try {
       await ApkInstaller.installApk(path);
-
-      final file = File(path);
-      if (await file.exists()) {
-        await file.delete();
-      }
 
       state = const UpdateState(status: UpdateStatus.idle);
     } catch (e) {
