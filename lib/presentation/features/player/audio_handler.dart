@@ -97,7 +97,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void _setupListeners() {
     _player.playerStateStream.listen(_onPlayerStateChanged);
-    _player.positionStream.listen(_onPositionChanged);
+    _player.positionStream.listen(_handleCrossfade);
     _player.bufferedPositionStream.listen(_onBufferedPositionChanged);
     _player.currentIndexStream.listen(_onCurrentIndexChanged);
     _player.sequenceStateStream.listen(_onSequenceStateChanged);
@@ -123,6 +123,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         processingState: processing,
         playing: state.playing,
         controls: _buildControls(current),
+        updatePosition: _player.position,
         systemActions: const {
           MediaAction.seek,
           MediaAction.seekForward,
@@ -188,11 +189,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } catch (_) {
       // Silently fall back to unliked state.
     }
-  }
-
-  void _onPositionChanged(Duration position) {
-    playbackState.add(playbackState.value.copyWith(updatePosition: position));
-    _handleCrossfade(position);
   }
 
   void _onBufferedPositionChanged(Duration position) {
@@ -285,7 +281,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> seek(Duration position) => _player.seek(position);
+  Future<void> seek(Duration position) async {
+    await _player.seek(position);
+    playbackState.add(playbackState.value.copyWith(updatePosition: position));
+  }
 
   @override
   Future<void> skipToNext() => _player.seekToNext();
