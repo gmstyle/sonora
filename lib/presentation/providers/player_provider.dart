@@ -112,6 +112,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   StreamSubscription? _mediaItemSub;
   StreamSubscription? _queueSub;
   StreamSubscription? _durationSub;
+  StreamSubscription? _positionSub;
   StreamSubscription? _playErrorSub;
   bool _isFetchingUpNext = false;
   int _operationVersion = 0;
@@ -122,6 +123,13 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   @override
   PlayerState build() {
+    // Subscribe to position separately so that frequent position ticks
+    // do not flow through playbackState (which would cause Android Auto
+    // to re-render the queue view and reset scroll on every tick).
+    _positionSub = _handler.positionStream.listen((pos) {
+      state = state.copyWith(position: pos);
+    });
+
     _playbackSub = _handler.playbackState.listen((s) {
       final wasSwitching = state.isSwitching;
       state = state.copyWith(
@@ -131,7 +139,9 @@ class PlayerNotifier extends Notifier<PlayerState> {
             s.processingState == AudioProcessingState.loading ||
             s.processingState == AudioProcessingState.buffering,
         hasError: s.processingState == AudioProcessingState.error,
-        position: s.position,
+        // position is now tracked via positionStream — skip here to avoid
+        // overwriting the more frequent update with a stale value from
+        // playbackState (which is no longer updated on every tick).
         currentIndex: s.queueIndex ?? 0,
         shuffleMode: s.shuffleMode,
         repeatMode: s.repeatMode,
@@ -221,6 +231,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
       _mediaItemSub?.cancel();
       _queueSub?.cancel();
       _durationSub?.cancel();
+      _positionSub?.cancel();
       _playErrorSub?.cancel();
       _sleepTimer?.cancel();
       _sleepTimerTick?.cancel();

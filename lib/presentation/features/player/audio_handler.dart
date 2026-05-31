@@ -28,6 +28,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isRetrying = false;
   bool _isCurrentSongLiked = false;
   String? _currentVideoId;
+  String? _lastEmittedMediaItemId;
+  AudioProcessingState? _lastEmittedProcessingState;
+  bool? _lastEmittedPlaying;
   StreamSubscription<PlayerException>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
   final StreamController<(String videoId, String title)>
@@ -95,18 +98,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Stream<Duration?> get durationStream => _player.durationStream;
 
+  /// Exposes the raw position stream from just_audio so that UI layers can
+  /// subscribe to it directly without going through [playbackState], which
+  /// would cause Android Auto to re-render the queue view on every tick.
+  Stream<Duration> get positionStream => _player.positionStream;
+
   void _setupListeners() {
     _player.playerStateStream.listen(_onPlayerStateChanged);
 
-    // Sincronizzazione: unisce la gestione del crossfade al tracking continuo della barra
-    _player.positionStream.listen((position) {
-      _handleCrossfade(position);
-      if (_player.playing) {
-        playbackState.add(
-          playbackState.value.copyWith(updatePosition: position),
-        );
-      }
-    });
+    // Crossfade only — do NOT emit playbackState here.
+    // Android Auto interpolates position from the updatePosition+updateTime
+    // already set in _onPlayerStateChanged. Emitting playbackState on every
+    // position tick (~5 Hz) causes AA to continuously re-render the queue
+    // view, producing visible flashes and preventing scrolling.
+    _player.positionStream.listen(_handleCrossfade);
 
     _player.bufferedPositionStream.listen(_onBufferedPositionChanged);
     _player.currentIndexStream.listen(_onCurrentIndexChanged);
@@ -126,6 +131,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _retryCount = 0;
     }
 
+    // Skip redundant playbackState emissions to avoid Android Auto
+    // continuously re-rendering the queue view. just_audio fires
+    // playerStateStream frequently (e.g. buffering ↔ ready transitions
+    // during network streaming). We only need to notify AA when the
+    // logical state visible to the user has actually changed.
+    final stateUnchanged =
+        processing == _lastEmittedProcessingState &&
+        state.playing == _lastEmittedPlaying;
+    if (stateUnchanged) return;
+
+    _lastEmittedProcessingState = processing;
+    _lastEmittedPlaying = state.playing;
+
     final current = playbackState.value;
 
     playbackState.add(
@@ -134,9 +152,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         playing: state.playing,
         controls: _buildControls(current),
         updatePosition: _player.position,
-        speed:
-            _player
-                .speed, // Fondamentale per calcolare l'interpolazione temporale
+        speed: _player.speed,
         systemActions: const {
           MediaAction.seek,
           MediaAction.seekForward,
@@ -205,7 +221,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _onBufferedPositionChanged(Duration position) {
-    playbackState.add(playbackState.value.copyWith(bufferedPosition: position));
+    // Throttle: update AA only when the buffered position has advanced by at
+    // least 2 seconds to avoid continuous PlaybackState emissions that cause
+    // the Android Auto queue view to flash and reset its scroll position.
+    final prev = playbackState.value.bufferedPosition;
+    if ((position - prev).abs() >= const Duration(seconds: 2)) {
+      playbackState.add(
+        playbackState.value.copyWith(bufferedPosition: position),
+      );
+    }
   }
 
   void _onCurrentIndexChanged(int? index) {
@@ -276,12 +300,42 @@ class SonoraAudioHandler extends BaseAudioHandler {
         item = item.copyWith(duration: _player.duration);
       }
 
-      mediaItem.add(item);
-      _checkCurrentSongLiked(item.id);
+      // Emit mediaItem only when something meaningful changes:
+      // - the track ID changed (new song), or
+      // - the duration was previously unknown and is now available.
+      // just_audio fires sequenceStateStream for many internal reasons
+      // (buffer updates, URL resolution, shuffle state) even when the
+      // current track hasn't changed. Every mediaItem.add triggers an
+      // Android Auto UI refresh that resets the queue scroll position.
+      final trackChanged = item.id != _lastEmittedMediaItemId;
+      final durationResolved =
+          !trackChanged &&
+          (mediaItem.value?.duration == null ||
+              mediaItem.value?.duration == Duration.zero) &&
+          (item.duration != null && item.duration != Duration.zero);
+      if (trackChanged || durationResolved) {
+        _lastEmittedMediaItemId = item.id;
+        mediaItem.add(item);
+        if (trackChanged) _checkCurrentSongLiked(item.id);
+      }
     }
     final items =
         sequenceState.effectiveSequence.map((e) => e.tag as MediaItem).toList();
-    queue.add(items);
+
+    // Emit queue only when the list of IDs changes (i.e. songs are added/removed/reordered).
+    // Skipping re-emission when only internal metadata (e.g. resolved URL) changed prevents
+    // Android Auto from resetting the queue scroll position on every URL resolution.
+    final newIds = items.map((e) => e.id).toList();
+    final currentIds = queue.value.map((e) => e.id).toList();
+    final queueStructureChanged =
+        newIds.length != currentIds.length ||
+        !List.generate(
+          newIds.length,
+          (i) => newIds[i] == currentIds[i],
+        ).every((match) => match);
+    if (queueStructureChanged) {
+      queue.add(items);
+    }
 
     if (_crossfadeDuration > Duration.zero && _player.playing) {
       _isFadingIn = true;
