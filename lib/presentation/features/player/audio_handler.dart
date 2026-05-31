@@ -97,7 +97,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void _setupListeners() {
     _player.playerStateStream.listen(_onPlayerStateChanged);
-    _player.positionStream.listen(_onPositionChanged);
+
+    // Sincronizzazione: unisce la gestione del crossfade al tracking continuo della barra
+    _player.positionStream.listen((position) {
+      _handleCrossfade(position);
+      if (_player.playing) {
+        playbackState.add(
+          playbackState.value.copyWith(updatePosition: position),
+        );
+      }
+    });
+
     _player.bufferedPositionStream.listen(_onBufferedPositionChanged);
     _player.currentIndexStream.listen(_onCurrentIndexChanged);
     _player.sequenceStateStream.listen(_onSequenceStateChanged);
@@ -123,6 +133,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
         processingState: processing,
         playing: state.playing,
         controls: _buildControls(current),
+        updatePosition: _player.position,
+        speed:
+            _player
+                .speed, // Fondamentale per calcolare l'interpolazione temporale
         systemActions: const {
           MediaAction.seek,
           MediaAction.seekForward,
@@ -190,11 +204,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
-  void _onPositionChanged(Duration position) {
-    playbackState.add(playbackState.value.copyWith(updatePosition: position));
-    _handleCrossfade(position);
-  }
-
   void _onBufferedPositionChanged(Duration position) {
     playbackState.add(playbackState.value.copyWith(bufferedPosition: position));
   }
@@ -258,7 +267,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (sequenceState == null) return;
     final source = sequenceState.currentSource;
     if (source != null) {
-      final item = source.tag as MediaItem;
+      var item = source.tag as MediaItem;
+
+      // Se il MediaItem dinamico o late-binded non ha durata impostata,
+      // recuperiamo la durata effettiva dal player per non bloccare la progress bar.
+      if ((item.duration == null || item.duration == Duration.zero) &&
+          _player.duration != null) {
+        item = item.copyWith(duration: _player.duration);
+      }
+
       mediaItem.add(item);
       _checkCurrentSongLiked(item.id);
     }
@@ -285,7 +302,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> seek(Duration position) => _player.seek(position);
+  Future<void> seek(Duration position) async {
+    await _player.seek(position);
+    playbackState.add(playbackState.value.copyWith(updatePosition: position));
+  }
 
   @override
   Future<void> skipToNext() => _player.seekToNext();
@@ -495,28 +515,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
       switch (parentMediaId) {
         case _homeId:
           return _buildHomeChildren();
-
         case _libraryId:
           return _buildLibraryChildren();
-
         case _recentId:
           return _buildRecentChildren();
-
         case _likedId:
           return _buildLikedChildren();
-
         case _playlistsId:
           return _buildPlaylistFolders();
-
         case _artistsId:
           return _buildArtistFolders();
-
         case _albumsId:
           return _buildLikedAlbumFolders();
-
         case _historyId:
           return _buildRecentChildren();
-
         default:
           if (parentMediaId.startsWith(_homeSectionPrefix)) {
             return _buildHomeSectionChildren(parentMediaId);
