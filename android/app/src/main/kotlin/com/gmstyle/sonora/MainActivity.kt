@@ -2,6 +2,7 @@ package com.gmstyle.sonora
 
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -9,8 +10,14 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity : AudioServiceFragmentActivity() {
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        DRAWABLE_IDS
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "com.gmstyle.sonora/apk_installer"
@@ -46,5 +53,17 @@ class MainActivity : AudioServiceFragmentActivity() {
                 result.notImplemented()
             }
         }
+    }
+
+    companion object {
+        @Keep
+        @JvmField
+        val DRAWABLE_IDS = intArrayOf(
+            R.drawable.ic_shuffle,
+            R.drawable.ic_repeat,
+            R.drawable.ic_favorite,
+            R.drawable.ic_favorite_border,
+            R.drawable.ic_timer,
+        )
     }
 }

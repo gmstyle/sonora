@@ -4,4 +4,4 @@
   at runtime via Resources.getIdentifier() by audio_service.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_shuffle,@drawable/ic_repeat,@drawable/ic_favorite,@drawable/ic_timer,@mipmap/ic_launcher" />
+    tools:keep="@drawable/ic_shuffle,@drawable/ic_repeat,@drawable/ic_favorite,@drawable/ic_favorite_border,@drawable/ic_timer,@mipmap/ic_launcher" />
