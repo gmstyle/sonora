@@ -418,6 +418,7 @@ class _BackupSection extends StatelessWidget {
         'downloadOnlyOnWifi': settings.downloadOnlyOnWifi,
         'trackHistory': settings.trackHistory,
         'checkUpdatesOnStartup': settings.checkUpdatesOnStartup,
+        'isLibraryGridView': settings.isLibraryGridView,
       };
       final path = await useCase.execute(settings: settingsMap);
 
@@ -503,14 +504,53 @@ class _BackupSection extends StatelessWidget {
       final importedSettings = await useCase.execute(result.files.single.path!);
 
       ref.invalidate(libraryNotifierProvider);
+      ref.invalidate(likedSongsProvider);
+      ref.invalidate(followedArtistsProvider);
+      ref.invalidate(likedAlbumsProvider);
+      ref.invalidate(likedPlaylistsProvider);
+      ref.invalidate(playlistsProvider);
+      ref.invalidate(libraryHistoryProvider);
 
       if (importedSettings != null && context.mounted) {
         final notifier = ref.read(settingsProvider.notifier);
-        notifier.setThemeMode(
-          ThemeMode.values[importedSettings['themeMode'] as int? ?? 0],
-        );
-        notifier.setGl(importedSettings['gl'] as String? ?? 'US');
-        notifier.setHl(importedSettings['hl'] as String? ?? 'en');
+        if (importedSettings.containsKey('themeMode')) {
+          notifier.setThemeMode(
+            ThemeMode.values[importedSettings['themeMode'] as int],
+          );
+        }
+        if (importedSettings.containsKey('useDynamicColor')) {
+          notifier.setUseDynamicColor(importedSettings['useDynamicColor'] as bool);
+        }
+        if (importedSettings.containsKey('useAmoled')) {
+          notifier.setUseAmoled(importedSettings['useAmoled'] as bool);
+        }
+        if (importedSettings.containsKey('gl')) {
+          notifier.setGl(importedSettings['gl'] as String);
+        }
+        if (importedSettings.containsKey('hl')) {
+          notifier.setHl(importedSettings['hl'] as String);
+        }
+        if (importedSettings.containsKey('crossfadeSeconds')) {
+          notifier.setCrossfadeSeconds(importedSettings['crossfadeSeconds'] as int);
+        }
+        if (importedSettings.containsKey('restoreQueueOnStartup')) {
+          notifier.setRestoreQueueOnStartup(importedSettings['restoreQueueOnStartup'] as bool);
+        }
+        if (importedSettings.containsKey('autoPlayUpNext')) {
+          notifier.setAutoPlayUpNext(importedSettings['autoPlayUpNext'] as bool);
+        }
+        if (importedSettings.containsKey('downloadOnlyOnWifi')) {
+          notifier.setDownloadOnlyOnWifi(importedSettings['downloadOnlyOnWifi'] as bool);
+        }
+        if (importedSettings.containsKey('trackHistory')) {
+          notifier.setTrackHistory(importedSettings['trackHistory'] as bool);
+        }
+        if (importedSettings.containsKey('checkUpdatesOnStartup')) {
+          notifier.setCheckUpdatesOnStartup(importedSettings['checkUpdatesOnStartup'] as bool);
+        }
+        if (importedSettings.containsKey('isLibraryGridView')) {
+          notifier.setLibraryGridView(importedSettings['isLibraryGridView'] as bool);
+        }
       }
 
       if (context.mounted) {

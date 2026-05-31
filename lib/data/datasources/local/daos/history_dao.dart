@@ -72,4 +72,32 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
           .get();
 
   Future<void> clearSearchHistory() => delete(db.searchHistory).go();
+
+  Future<void> insertHistoryRaw(
+    String videoId,
+    String title,
+    String artist, {
+    String? thumbnailUrl,
+    required DateTime playedAt,
+    int playCount = 1,
+  }) => into(db.history).insert(
+    HistoryCompanion(
+      videoId: Value(videoId),
+      title: Value(title),
+      artist: Value(artist),
+      thumbnailUrl: Value(thumbnailUrl),
+      playedAt: Value(playedAt),
+      playCount: Value(playCount),
+    ),
+  );
+
+  Future<void> insertSearchEntryRaw(
+    String query, {
+    required DateTime searchedAt,
+  }) => into(db.searchHistory).insert(
+    SearchHistoryCompanion(
+      query: Value(query),
+      searchedAt: Value(searchedAt),
+    ),
+  );
 }

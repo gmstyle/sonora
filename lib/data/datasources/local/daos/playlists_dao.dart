@@ -20,6 +20,18 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
         ),
       );
 
+  Future<int> createPlaylistWithDate(
+    String name, {
+    String? description,
+    required DateTime createdAt,
+  }) => into(db.localPlaylists).insert(
+        LocalPlaylistsCompanion(
+          name: Value(name),
+          description: Value(description),
+          createdAt: Value(createdAt),
+        ),
+      );
+
   Future<void> updatePlaylist(int id, {String? name, String? description}) =>
       (update(db.localPlaylists)..where((t) => t.id.equals(id))).write(
         LocalPlaylistsCompanion(

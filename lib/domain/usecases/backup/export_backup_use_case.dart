@@ -13,7 +13,11 @@ class ExportBackupUseCase {
   Future<String> execute({Map<String, dynamic>? settings}) async {
     final likedSongs = await libraryRepository.getAllLikedSongs();
     final followedArtists = await libraryRepository.getAllFollowedArtists();
+    final likedAlbums = await libraryRepository.getAllLikedAlbums();
+    final likedPlaylists = await libraryRepository.getAllLikedPlaylists();
     final playlists = await libraryRepository.getAllPlaylists();
+    final history = await libraryRepository.getRecentHistory(limit: 500);
+    final searchHistory = await libraryRepository.getRecentSearches(limit: 100);
 
     final playlistEntries = <String, List<Map<String, dynamic>>>{};
     for (final p in playlists) {
@@ -25,13 +29,16 @@ class ExportBackupUseCase {
                   'playlistId': e.playlistId,
                   'videoId': e.videoId,
                   'position': e.position,
+                  'title': e.title,
+                  'artist': e.artist,
+                  'thumbnailUrl': e.thumbnailUrl,
                 },
               )
               .toList();
     }
 
     final data = <String, dynamic>{
-      'version': 1,
+      'version': 2,
       'exportedAt': DateTime.now().toIso8601String(),
       'likedSongs':
           likedSongs
@@ -41,6 +48,8 @@ class ExportBackupUseCase {
                   'title': s.title,
                   'artist': s.artist,
                   'thumbnailUrl': s.thumbnailUrl,
+                  'artistId': s.artistId,
+                  'albumId': s.albumId,
                   'addedAt': s.addedAt.toIso8601String(),
                 },
               )
@@ -52,6 +61,31 @@ class ExportBackupUseCase {
                   'artistId': a.artistId,
                   'name': a.name,
                   'thumbnailUrl': a.thumbnailUrl,
+                },
+              )
+              .toList(),
+      'likedAlbums':
+          likedAlbums
+              .map(
+                (a) => {
+                  'albumId': a.albumId,
+                  'name': a.name,
+                  'artistName': a.artistName,
+                  'thumbnailUrl': a.thumbnailUrl,
+                  'year': a.year,
+                  'addedAt': a.addedAt.toIso8601String(),
+                },
+              )
+              .toList(),
+      'likedPlaylists':
+          likedPlaylists
+              .map(
+                (p) => {
+                  'playlistId': p.playlistId,
+                  'name': p.name,
+                  'thumbnailUrl': p.thumbnailUrl,
+                  'videoCount': p.videoCount,
+                  'addedAt': p.addedAt.toIso8601String(),
                 },
               )
               .toList(),
@@ -67,6 +101,28 @@ class ExportBackupUseCase {
               )
               .toList(),
       'playlistEntries': playlistEntries,
+      'history':
+          history
+              .map(
+                (h) => {
+                  'videoId': h.videoId,
+                  'title': h.title,
+                  'artist': h.artist,
+                  'thumbnailUrl': h.thumbnailUrl,
+                  'playedAt': h.playedAt.toIso8601String(),
+                  'playCount': h.playCount,
+                },
+              )
+              .toList(),
+      'searchHistory':
+          searchHistory
+              .map(
+                (s) => {
+                  'query': s.query,
+                  'searchedAt': s.searchedAt.toIso8601String(),
+                },
+              )
+              .toList(),
       'settings': settings,
     };
 

@@ -56,6 +56,21 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Future<void> ensureLikedSong(LikedSongModel song) async {
+    await _libraryDao.insertLikedSong(
+      LikedSongsCompanion.insert(
+        videoId: song.videoId,
+        title: song.title,
+        artist: song.artist,
+        thumbnailUrl: Value(song.thumbnailUrl),
+        artistId: Value(song.artistId),
+        albumId: Value(song.albumId),
+        addedAt: song.addedAt,
+      ),
+    );
+  }
+
+  @override
   Future<void> deleteLikedSong(String videoId) =>
       _libraryDao.deleteLikedSong(videoId);
 
@@ -101,6 +116,17 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Future<void> ensureFollowedArtist(FollowedArtistModel artist) async {
+    await _libraryDao.insertFollowedArtist(
+      FollowedArtistsCompanion.insert(
+        artistId: artist.artistId,
+        name: artist.name,
+        thumbnailUrl: Value(artist.thumbnailUrl),
+      ),
+    );
+  }
+
+  @override
   Future<void> deleteFollowedArtist(String artistId) =>
       _libraryDao.deleteFollowedArtist(artistId);
 
@@ -135,6 +161,20 @@ class LibraryRepositoryImpl implements LibraryRepository {
         ),
       );
     }
+  }
+
+  @override
+  Future<void> ensureLikedAlbum(LikedAlbumModel album) async {
+    await _libraryDao.insertLikedAlbum(
+      LikedAlbumsCompanion.insert(
+        albumId: album.albumId,
+        name: album.name,
+        artistName: album.artistName,
+        thumbnailUrl: Value(album.thumbnailUrl),
+        year: Value(album.year),
+        addedAt: album.addedAt,
+      ),
+    );
   }
 
   @override
@@ -174,6 +214,19 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Future<void> ensureLikedPlaylist(LikedPlaylistModel playlist) async {
+    await _libraryDao.insertLikedPlaylist(
+      LikedPlaylistsCompanion.insert(
+        playlistId: playlist.playlistId,
+        name: playlist.name,
+        thumbnailUrl: Value(playlist.thumbnailUrl),
+        videoCount: Value(playlist.videoCount),
+        addedAt: playlist.addedAt,
+      ),
+    );
+  }
+
+  @override
   Future<void> deleteLikedPlaylist(String playlistId) =>
       _libraryDao.deleteLikedPlaylist(playlistId);
 
@@ -194,6 +247,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<int> createPlaylist(String name, {String? description}) =>
       _playlistsDao.createPlaylist(name, description: description);
+
+  @override
+  Future<int> createPlaylistWithDate(String name, {String? description, required DateTime createdAt}) =>
+      _playlistsDao.createPlaylistWithDate(name, description: description, createdAt: createdAt);
 
   @override
   Future<void> updatePlaylist(int id, {String? name, String? description}) =>
@@ -344,11 +401,32 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<void> clearHistory() => _historyDao.clearHistory();
 
+  @override
+  Future<void> insertHistoryEntry(
+    String videoId,
+    String title,
+    String artist, {
+    String? thumbnailUrl,
+    required DateTime playedAt,
+    int playCount = 1,
+  }) => _historyDao.insertHistoryRaw(
+    videoId,
+    title,
+    artist,
+    thumbnailUrl: thumbnailUrl,
+    playedAt: playedAt,
+    playCount: playCount,
+  );
+
   // ── Search History ────────────────────────────────────────────
 
   @override
   Future<void> insertSearchEntry(String query) =>
       _historyDao.insertSearchEntry(query);
+
+  @override
+  Future<void> insertSearchEntryWithDate(String query, {required DateTime searchedAt}) =>
+      _historyDao.insertSearchEntryRaw(query, searchedAt: searchedAt);
 
   @override
   Future<List<SearchHistoryModel>> getRecentSearches({int limit = 10}) async {
