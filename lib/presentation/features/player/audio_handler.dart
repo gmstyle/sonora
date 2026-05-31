@@ -30,6 +30,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   String? _currentVideoId;
   StreamSubscription<PlayerException>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
+  bool _isResolving = false;
+  List<MediaItem>? _pendingQueueEmission;
   final StreamController<(String videoId, String title)>
   _onPlayErrorController =
       StreamController<(String videoId, String title)>.broadcast();
@@ -206,9 +208,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// skipped to a pending track), and proactively resolves the next 2 items
   /// so playback can transition seamlessly.
   Future<void> _resolvePendingItems(int currentIndex) async {
-    await _resolveSinglePendingItem(currentIndex);
-    await _resolveSinglePendingItem(currentIndex + 1);
-    await _resolveSinglePendingItem(currentIndex + 2);
+    if (_isResolving) return;
+    _isResolving = true;
+    try {
+      await _resolveSinglePendingItem(currentIndex);
+      await _resolveSinglePendingItem(currentIndex + 1);
+      await _resolveSinglePendingItem(currentIndex + 2);
+    } finally {
+      _isResolving = false;
+      if (_pendingQueueEmission != null) {
+        queue.add(_pendingQueueEmission!);
+        _pendingQueueEmission = null;
+      }
+    }
   }
 
   Future<void> _resolveSinglePendingItem(int index) async {
@@ -260,7 +272,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
     final items =
         sequenceState.effectiveSequence.map((e) => e.tag as MediaItem).toList();
-    queue.add(items);
+
+    if (_isResolving) {
+      _pendingQueueEmission = items;
+    } else {
+      queue.add(items);
+    }
 
     if (_crossfadeDuration > Duration.zero && _player.playing) {
       _isFadingIn = true;
