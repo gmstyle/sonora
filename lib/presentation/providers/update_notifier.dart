@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:open_filex/open_filex.dart';
+import '../../../core/utils/apk_installer.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -136,7 +136,7 @@ class UpdateNotifier extends Notifier<UpdateState> {
     if (path == null) return;
 
     try {
-      await OpenFilex.open(path);
+      await ApkInstaller.installApk(path);
 
       final file = File(path);
       if (await file.exists()) {
