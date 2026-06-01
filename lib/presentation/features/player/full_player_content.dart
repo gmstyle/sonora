@@ -499,7 +499,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           ),
         ),
         /*
-        TODO: Add context menu for album/artist actions (e.g. view album, view artist) 
+        TODO: Add context menu for album/artist actions (e.g. view album, view artist)
         IconButton(
           icon: const Icon(LucideIcons.moreVertical),
           onPressed: () {
@@ -770,7 +770,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        /* 
+        /*
         TODO: Add device output selection (e.g. Chromecast, Bluetooth)
         IconButton(
           icon: const Icon(LucideIcons.speaker),
@@ -800,9 +800,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             if (!isVideo)
               IconButton(
                 icon: Icon(
-                  activeView == PlayerSubView.lyrics
-                      ? LucideIcons.text
-                      : LucideIcons.text,
+                  LucideIcons.micVocal,
                   color:
                       activeView == PlayerSubView.lyrics
                           ? theme.colorScheme.primary
@@ -821,9 +819,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               ),
             IconButton(
               icon: Icon(
-                activeView == PlayerSubView.queue
-                    ? LucideIcons.listMusic
-                    : LucideIcons.listMusic,
+                LucideIcons.listMusic,
                 color:
                     activeView == PlayerSubView.queue
                         ? theme.colorScheme.primary

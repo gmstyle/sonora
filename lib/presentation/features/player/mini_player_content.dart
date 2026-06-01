@@ -387,18 +387,20 @@ class MiniPlayerContent extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        // RIGHT — like + lyrics + queue + more
+                        // RIGHT — full - like + lyrics + queue + more
                         Expanded(
                           flex: 3,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
+                              _iconButton(
+                                icon: Icons.fullscreen_outlined,
+                                color: cs.onSurfaceVariant,
+                                onPressed: isSwitching ? null : onTap,
+                              ),
                               _likeButton(context, ref, cs),
                               _iconButton(
-                                icon:
-                                    activeView == PlayerSubView.lyrics
-                                        ? LucideIcons.text
-                                        : LucideIcons.text,
+                                icon: LucideIcons.micVocal,
                                 color:
                                     activeView == PlayerSubView.lyrics
                                         ? cs.primary
@@ -407,10 +409,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                 size: 20,
                               ),
                               _iconButton(
-                                icon:
-                                    activeView == PlayerSubView.queue
-                                        ? LucideIcons.listMusic
-                                        : LucideIcons.listMusic,
+                                icon: LucideIcons.listMusic,
                                 color:
                                     activeView == PlayerSubView.queue
                                         ? cs.primary
