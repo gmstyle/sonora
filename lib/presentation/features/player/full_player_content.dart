@@ -264,56 +264,62 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
           children: [
+            _topBar(albumName),
             Expanded(
-              flex: 1,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _artwork(
-                    artUrl,
-                    min(availHeight - 100, availWidth / 2 - 48),
-                    isSwitching: playerState.isSwitching,
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _artwork(
+                          artUrl,
+                          min(availHeight - 100, availWidth / 2 - 48),
+                          isSwitching: playerState.isSwitching,
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 48),
-            Expanded(
-              flex: 1,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _topBar(albumName),
-                  const SizedBox(height: 24),
-                  _trackInfoAndLikeRow(currentSong, isVideo, albumName),
-                  const SizedBox(height: 16),
-                  if (activeView != PlayerSubView.none)
-                    Expanded(
-                      child:
-                          activeView == PlayerSubView.lyrics
-                              ? LyricsView(
-                                videoId: videoId,
-                                position: playerState.position,
-                              )
-                              : const QueueSheet(),
-                    )
-                  else
-                    const Spacer(),
-                  const SizedBox(height: 16),
-                  _progressBar(playerState, videoId),
-                  const SizedBox(height: 16),
-                  const PlayerControls(),
-                  const SizedBox(height: 8),
-                  _bottomActionsRow(
-                    isVideo,
-                    hasSleepTimer,
-                    playerNotifier,
-                    activeView,
+                  const SizedBox(width: 48),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 24),
+                        _trackInfoAndLikeRow(currentSong, isVideo, albumName),
+                        const SizedBox(height: 16),
+                        if (activeView != PlayerSubView.none)
+                          Expanded(
+                            child:
+                                activeView == PlayerSubView.lyrics
+                                    ? LyricsView(
+                                      videoId: videoId,
+                                      position: playerState.position,
+                                    )
+                                    : const QueueSheet(),
+                          )
+                        else
+                          const Spacer(),
+                        const SizedBox(height: 16),
+                        _progressBar(playerState, videoId),
+                        const SizedBox(height: 16),
+                        const PlayerControls(),
+                        const SizedBox(height: 8),
+                        _bottomActionsRow(
+                          isVideo,
+                          hasSleepTimer,
+                          playerNotifier,
+                          activeView,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -344,56 +350,62 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 64.0, vertical: 32.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
           children: [
+            _topBar(albumName),
             Expanded(
-              flex: 4,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _artwork(
-                    artUrl,
-                    min(availHeight - 150, availWidth / 2 - 100),
-                    isSwitching: playerState.isSwitching,
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _artwork(
+                          artUrl,
+                          min(availHeight - 150, availWidth / 2 - 100),
+                          isSwitching: playerState.isSwitching,
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 80),
-            Expanded(
-              flex: 5,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _topBar(albumName),
-                  const SizedBox(height: 32),
-                  _trackInfoAndLikeRow(currentSong, isVideo, albumName),
-                  const SizedBox(height: 16),
-                  if (activeView != PlayerSubView.none)
-                    Expanded(
-                      child:
-                          activeView == PlayerSubView.lyrics
-                              ? LyricsView(
-                                videoId: videoId,
-                                position: playerState.position,
-                              )
-                              : const QueueSheet(),
-                    )
-                  else
-                    const Spacer(),
-                  const SizedBox(height: 16),
-                  _progressBar(playerState, videoId),
-                  const SizedBox(height: 24),
-                  const PlayerControls(),
-                  const SizedBox(height: 16),
-                  _bottomActionsRow(
-                    isVideo,
-                    hasSleepTimer,
-                    playerNotifier,
-                    activeView,
+                  const SizedBox(width: 80),
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 32),
+                        _trackInfoAndLikeRow(currentSong, isVideo, albumName),
+                        const SizedBox(height: 16),
+                        if (activeView != PlayerSubView.none)
+                          Expanded(
+                            child:
+                                activeView == PlayerSubView.lyrics
+                                    ? LyricsView(
+                                      videoId: videoId,
+                                      position: playerState.position,
+                                    )
+                                    : const QueueSheet(),
+                          )
+                        else
+                          const Spacer(),
+                        const SizedBox(height: 16),
+                        _progressBar(playerState, videoId),
+                        const SizedBox(height: 24),
+                        const PlayerControls(),
+                        const SizedBox(height: 16),
+                        _bottomActionsRow(
+                          isVideo,
+                          hasSleepTimer,
+                          playerNotifier,
+                          activeView,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
                 ],
               ),
             ),
