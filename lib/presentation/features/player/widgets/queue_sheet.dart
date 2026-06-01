@@ -1,6 +1,7 @@
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/player_provider.dart';
@@ -15,19 +16,34 @@ class QueueSheet extends ConsumerWidget {
     final currentIndex = playerState.currentIndex;
     final notifier = ref.read(playerStateProvider.notifier);
 
+    // All colours from PlayerColors — single source of truth for the
+    // player overlay surface.
+    final pc = PlayerColors.of(context);
+
     if (queue.isEmpty) {
       return Center(
-        child: Text(
-          AppLocalizations.of(context)!.queueIsEmpty,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(LucideIcons.listMusic, size: 40, color: pc.labelMuted),
+            const SizedBox(height: 12),
+            Text(
+              AppLocalizations.of(context)!.queueIsEmpty,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+            ),
+          ],
         ),
       );
     }
 
     return ReorderableListView.builder(
       itemCount: queue.length,
+      // Make the drag handle icon white so it's visible on the dark bg.
+      proxyDecorator:
+          (child, index, animation) =>
+              Material(color: Colors.transparent, child: child),
       onReorderItem: (oldIndex, newIndex) {
         notifier.moveQueueItem(oldIndex, newIndex);
       },
@@ -35,13 +51,14 @@ class QueueSheet extends ConsumerWidget {
         final item = queue[index];
         final isCurrent = index == currentIndex;
 
-        double opacity;
+        // Opacity steps give hierarchy without relying on colour changes alone.
+        final double opacity;
         if (isCurrent) {
           opacity = 1.0;
         } else if (index == currentIndex + 1) {
-          opacity = 0.87;
+          opacity = 0.85;
         } else {
-          opacity = 0.6;
+          opacity = 0.55;
         }
 
         return Opacity(
@@ -61,16 +78,10 @@ class QueueSheet extends ConsumerWidget {
                           errorWidget:
                               (_, _, _) => Icon(
                                 LucideIcons.music,
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                                color: pc.iconSecondary,
                               ),
                         )
-                        : Icon(
-                          LucideIcons.music,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                        : Icon(LucideIcons.music, color: pc.iconSecondary),
               ),
             ),
             title: Text(
@@ -78,24 +89,25 @@ class QueueSheet extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                color: isCurrent ? Theme.of(context).colorScheme.primary : null,
+                fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                color: isCurrent ? pc.titlePrimary : pc.titleSecondary,
               ),
             ),
             subtitle: Text(
               item.artist ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: pc.subtitle),
             ),
             trailing:
                 isCurrent
-                    ? Icon(
-                      LucideIcons.play,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.primary,
-                    )
+                    ? Icon(LucideIcons.play, size: 20, color: pc.iconPrimary)
                     : IconButton(
-                      icon: const Icon(LucideIcons.x, size: 18),
+                      icon: Icon(
+                        LucideIcons.x,
+                        size: 18,
+                        color: pc.iconSecondary,
+                      ),
                       onPressed: () => notifier.removeAt(index),
                       visualDensity: VisualDensity.compact,
                     ),

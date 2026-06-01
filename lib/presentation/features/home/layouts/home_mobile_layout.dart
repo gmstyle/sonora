@@ -55,7 +55,9 @@ class HomeMobileLayout extends ConsumerWidget {
             (sections) => RefreshIndicator(
               onRefresh: () => ref.refresh(homeSectionsProvider.future),
               child: ListView(
-                padding: const EdgeInsets.only(bottom: 16),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 16,
+                ),
                 children: [
                   HomeContinueListening(historyAsync),
                   for (var i = 0; i < sections.length; i++)

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'player_colors.dart';
+
 class AppTheme {
   static ThemeData light({ColorScheme? dynamicColorScheme}) {
     final colorScheme =
@@ -61,6 +63,8 @@ class AppTheme {
 
     return baseTheme.copyWith(
       textTheme: customTextTheme,
+      // ── Player colours (full-player + artwork-header overlay) ─────────────
+      extensions: [PlayerColors.standard()],
       // ── Slider Theme (Ultra-sottile, stile Spotify) ───────────────────────
       sliderTheme: SliderThemeData(
         trackHeight: 3.0,
@@ -173,6 +177,8 @@ class AppTheme {
 
     return baseTheme.copyWith(
       textTheme: customTextTheme,
+      // ── Player colours (full-player + artwork-header overlay) ─────────────
+      extensions: [PlayerColors.standard()],
       // ── Slider Theme (Ultra-sottile, stile Spotify) ───────────────────────
       sliderTheme: SliderThemeData(
         trackHeight: 3.0,
@@ -241,6 +247,8 @@ class AppTheme {
     return baseDark.copyWith(
       scaffoldBackgroundColor: Colors.black,
       colorScheme: amoledColorScheme,
+      // ── Player colours — re-declared so copyWith does not drop them ────────
+      extensions: [PlayerColors.standard()],
       // ── Slider Theme ───────────────────────────────────────────────────────
       sliderTheme: baseDark.sliderTheme.copyWith(
         activeTrackColor: amoledColorScheme.primary,

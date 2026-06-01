@@ -1,5 +1,6 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/music_repository_provider.dart';
@@ -45,47 +46,46 @@ class LyricsView extends ConsumerWidget {
     );
   }
 
+  Widget _buildNotAvailable(BuildContext context) {
+    final pc = PlayerColors.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.music_off_rounded, size: 48, color: pc.labelMuted),
+          const SizedBox(height: 16),
+          Text(
+            AppLocalizations.of(context)!.lyricsNotAvailable,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPlainLyrics(
     BuildContext context,
     AsyncValue<String?> fallbackAsync,
   ) {
     return fallbackAsync.when(
       loading: () => const _LyricsLoading(),
-      error:
-          (_, _) => Center(
-            child: Text(
-              AppLocalizations.of(context)!.lyricsNotAvailable,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
+      error: (_, _) => _buildNotAvailable(context),
       data: (text) {
         if (text == null || text.isEmpty) {
-          return Center(
-            child: Text(
-              AppLocalizations.of(context)!.lyricsNotAvailable,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          );
+          return _buildNotAvailable(context);
         }
+        final pc = PlayerColors.of(context);
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Text(
             text,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               height: 1.8,
-              color: Colors.white.withValues(alpha: 0.95),
+              color: pc.titleSecondary,
               fontWeight: FontWeight.w500,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  offset: const Offset(0, 1.5),
-                  blurRadius: 4,
-                ),
-              ],
             ),
             textAlign: TextAlign.center,
           ),
@@ -198,19 +198,10 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
                 color:
                     isActive
-                        ? Colors.white
+                        ? PlayerColors.of(context).titlePrimary
                         : isPast
-                        ? Colors.white.withValues(alpha: 0.35)
-                        : Colors.white.withValues(alpha: 0.65),
-                shadows: [
-                  Shadow(
-                    color: Colors.black.withValues(
-                      alpha: isActive ? 0.45 : 0.3,
-                    ),
-                    offset: const Offset(0, 1.5),
-                    blurRadius: isActive ? 5 : 3,
-                  ),
-                ],
+                        ? PlayerColors.of(context).labelMuted
+                        : PlayerColors.of(context).subtitle,
               ),
               child: Text(line.lyricLine ?? '', textAlign: TextAlign.center),
             ),
@@ -228,7 +219,7 @@ class _LyricsLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: CircularProgressIndicator(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        color: PlayerColors.of(context).subtitle,
         strokeWidth: 2,
       ),
     );

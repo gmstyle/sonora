@@ -85,9 +85,15 @@ class MiniPlayerContent extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            height: 72,
-            decoration: BoxDecoration(color: cs.surfaceContainerHigh),
+          if (!isSwitching)
+            LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+            ),
+          _glassBar(
+            cs: cs,
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
@@ -136,13 +142,6 @@ class MiniPlayerContent extends ConsumerWidget {
                       ],
                     ),
           ),
-          if (!isSwitching)
-            LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 2,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-            ),
         ],
       ),
     );
@@ -175,9 +174,15 @@ class MiniPlayerContent extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            height: 72,
-            decoration: BoxDecoration(color: cs.surfaceContainerHigh),
+          if (!isSwitching)
+            LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+            ),
+          _glassBar(
+            cs: cs,
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
@@ -233,13 +238,6 @@ class MiniPlayerContent extends ConsumerWidget {
                       ],
                     ),
           ),
-          if (!isSwitching)
-            LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 2,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-            ),
         ],
       ),
     );
@@ -277,9 +275,8 @@ class MiniPlayerContent extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            height: 72,
-            decoration: BoxDecoration(color: cs.surfaceContainerHigh),
+          _glassBar(
+            cs: cs,
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
@@ -451,38 +448,51 @@ class MiniPlayerContent extends ConsumerWidget {
 
   // ── Shared Widgets ──────────────────────────────────────────────
 
+  /// 72 px semi-transparent bar — the blur is applied by the parent wrapper
+  /// ([PlayerSheet] on tablet/wide, [PlayerSheetMobile] on mobile) so it is
+  /// not duplicated here.  This widget provides only the colour + border.
+  Widget _glassBar({required ColorScheme cs, required Widget child}) {
+    return Container(
+      height: 72,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHigh.withValues(alpha: 0.82),
+        border: Border(
+          top: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.35),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: child,
+    );
+  }
+
   Widget _artwork({
     required double size,
     required double radius,
     required ColorScheme cs,
   }) {
-    return Hero(
-      tag: 'player_art',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: SizedBox(
-          width: size,
-          height: size,
-          child:
-              currentSong.artUri != null
-                  ? AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: CachedNetworkImage(
-                      key: ValueKey(currentSong.artUri!.toString()),
-                      imageUrl: currentSong.artUri!.toString(),
-                      fit: BoxFit.cover,
-                      placeholder:
-                          (_, _) =>
-                              Container(color: cs.surfaceContainerHighest),
-                      errorWidget:
-                          (_, _, _) => Icon(
-                            LucideIcons.music,
-                            color: cs.onSurfaceVariant,
-                          ),
-                    ),
-                  )
-                  : Icon(LucideIcons.music, color: cs.onSurfaceVariant),
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child:
+            currentSong.artUri != null
+                ? AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: CachedNetworkImage(
+                    key: ValueKey(currentSong.artUri!.toString()),
+                    imageUrl: currentSong.artUri!.toString(),
+                    fit: BoxFit.cover,
+                    placeholder:
+                        (_, _) => Container(color: cs.surfaceContainerHighest),
+                    errorWidget:
+                        (_, _, _) =>
+                            Icon(LucideIcons.music, color: cs.onSurfaceVariant),
+                  ),
+                )
+                : Icon(LucideIcons.music, color: cs.onSurfaceVariant),
       ),
     );
   }

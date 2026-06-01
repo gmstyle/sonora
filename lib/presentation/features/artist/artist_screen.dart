@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/player_colors.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
@@ -597,14 +598,18 @@ class _ArtistSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 280,
       pinned: true,
+      // Back button and actions always white — readable on any artwork.
+      iconTheme: const IconThemeData(color: Colors.white),
+      foregroundColor: Colors.white,
       title: AnimatedOpacity(
         opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
         duration: const Duration(milliseconds: 150),
         child: Text(
           artist.name,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
@@ -630,6 +635,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
               Container(
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
+            // Bottom gradient: artwork → surface (metadata readability).
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -644,6 +650,8 @@ class _ArtistSliverAppBar extends StatelessWidget {
                 ),
               ),
             ),
+            // Top scrim from PlayerColors.
+            _artworkTopScrim(context),
             Positioned(
               bottom: 16,
               left: 16,
@@ -655,8 +663,12 @@ class _ArtistSliverAppBar extends StatelessWidget {
                   children: [
                     Text(
                       artist.name,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: PlayerColors.of(context).titlePrimary,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -682,8 +694,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
                           style: Theme.of(
                             context,
                           ).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: PlayerColors.of(context).labelMuted,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1136,4 +1147,19 @@ class _ArtistShimmer extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Top dark scrim for artwork headers — reads colours from [PlayerColors].
+Widget _artworkTopScrim(BuildContext context) {
+  final pc = PlayerColors.of(context);
+  return DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        stops: const [0.0, 0.20, 0.32],
+        colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
+      ),
+    ),
+  );
 }

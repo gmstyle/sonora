@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -252,14 +253,18 @@ class _PlaylistSliverAppBar extends StatelessWidget {
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 300,
       pinned: true,
+      // Back button and actions always white — readable on any artwork.
+      iconTheme: const IconThemeData(color: Colors.white),
+      foregroundColor: Colors.white,
       title: AnimatedOpacity(
         opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
         duration: const Duration(milliseconds: 150),
         child: Text(
           playlist.name,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
@@ -277,6 +282,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
               )
             else
               _placeholder(context),
+            // Bottom gradient: artwork → surface (metadata readability).
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -291,6 +297,8 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                 ),
               ),
             ),
+            // Top scrim from PlayerColors.
+            _artworkTopScrim(context),
             Positioned(
               bottom: 16,
               left: 16,
@@ -302,15 +310,21 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                   children: [
                     Text(
                       playlist.name,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: PlayerColors.of(context).titlePrimary,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       playlist.artist.name,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: PlayerColors.of(context).titleSecondary,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -320,7 +334,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                         context,
                       )!.videoCount(playlist.videoCount),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: PlayerColors.of(context).labelMuted,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -922,4 +936,19 @@ class _PlaylistShimmer extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Top dark scrim for artwork headers — reads colours from [PlayerColors].
+Widget _artworkTopScrim(BuildContext context) {
+  final pc = PlayerColors.of(context);
+  return DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        stops: const [0.0, 0.20, 0.32],
+        colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
+      ),
+    ),
+  );
 }

@@ -10,8 +10,19 @@ class ShimmerLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final highlightColor = Theme.of(context).colorScheme.surfaceContainerLow;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // On dark themes the highlight must be lighter than the base; on light
+    // themes it must be lighter still.  Using fixed opacity steps on white/black
+    // guarantees visible contrast regardless of the accent palette.
+    final baseColor =
+        isDark
+            ? const Color(0xFF2C2C2E) // dark: mid-grey base
+            : const Color(0xFFE0E0E0); // light: light-grey base
+    final highlightColor =
+        isDark
+            ? const Color(0xFF48484A) // dark: noticeably lighter sweep
+            : const Color(0xFFF5F5F5); // light: near-white sweep
 
     return Shimmer.fromColors(
       baseColor: baseColor,

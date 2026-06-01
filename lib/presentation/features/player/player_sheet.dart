@@ -1,9 +1,15 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
 import 'mini_player_content.dart';
 import 'full_player_content.dart';
 
+/// Push-based player navigation used by [TabletShell] and [WideShell] (≥600 px).
+///
+/// Mobile shells (<600 px) use [PlayerSheetMobile] instead, which keeps the
+/// player inside a [DraggableScrollableSheet] without any route push.
 class PlayerSheet extends ConsumerWidget {
   final double bottom;
   const PlayerSheet({super.key, this.bottom = 0.0});
@@ -79,32 +85,34 @@ class PlayerSheet extends ConsumerWidget {
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(
-            15,
-          ), // Slightly smaller to prevent bleed outside the border
-          child: MiniPlayerContent(
-            currentSong: currentSong,
-            playerState: playerState,
-            isVideo: isVideo,
-            onTap: () => _navigateToFullPlayer(context, ref),
-            onPlayPause:
-                () => ref.read(playerStateProvider.notifier).togglePlayPause(),
-            onSkipNext:
-                () => ref.read(playerStateProvider.notifier).skipToNext(),
-            onSkipPrevious:
-                () => ref.read(playerStateProvider.notifier).skipToPrevious(),
-            onOpenLyrics:
-                () => _navigateToFullPlayer(
-                  context,
-                  ref,
-                  subView: PlayerSubView.lyrics,
-                ),
-            onOpenQueue:
-                () => _navigateToFullPlayer(
-                  context,
-                  ref,
-                  subView: PlayerSubView.queue,
-                ),
+          borderRadius: BorderRadius.circular(15),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: MiniPlayerContent(
+              currentSong: currentSong,
+              playerState: playerState,
+              isVideo: isVideo,
+              onTap: () => _navigateToFullPlayer(context, ref),
+              onPlayPause:
+                  () =>
+                      ref.read(playerStateProvider.notifier).togglePlayPause(),
+              onSkipNext:
+                  () => ref.read(playerStateProvider.notifier).skipToNext(),
+              onSkipPrevious:
+                  () => ref.read(playerStateProvider.notifier).skipToPrevious(),
+              onOpenLyrics:
+                  () => _navigateToFullPlayer(
+                    context,
+                    ref,
+                    subView: PlayerSubView.lyrics,
+                  ),
+              onOpenQueue:
+                  () => _navigateToFullPlayer(
+                    context,
+                    ref,
+                    subView: PlayerSubView.queue,
+                  ),
+            ),
           ),
         ),
       ),
