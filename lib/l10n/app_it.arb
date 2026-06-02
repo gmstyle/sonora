@@ -104,6 +104,12 @@
   "clearHistory": "Cancella cronologia",
   "clearHistoryConfirm": "Sei sicuro di voler cancellare tutta la cronologia di ascolto?",
   "clear": "Cancella",
+  "searchLibraryHint": "Cerca nella libreria...",
+  "sortBy": "Ordina per",
+  "recentlyAdded": "Aggiunti di recente",
+  "leastRecentlyAdded": "Meno recenti",
+  "alphabetical": "Alfabetico (A - Z)",
+  "alphabeticalReverse": "Alfabetico (Z - A)",
 
   "@@sectionMeta": {
     "playlistDetail": "Dettagli Playlist"

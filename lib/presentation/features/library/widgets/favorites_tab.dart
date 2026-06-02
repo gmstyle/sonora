@@ -21,7 +21,7 @@ class FavoritesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(likedSongsProvider);
+    final async = ref.watch(sortedLikedSongsProvider);
     return async.when(
       loading: () => const _ShimmerSongList(),
       error:

@@ -194,6 +194,12 @@
   "clearHistory": "Clear history",
   "clearHistoryConfirm": "Are you sure you want to clear all listening history?",
   "clear": "Clear",
+  "searchLibraryHint": "Search in library...",
+  "sortBy": "Sort by",
+  "recentlyAdded": "Recently added",
+  "leastRecentlyAdded": "Least recently added",
+  "alphabetical": "Alphabetical (A - Z)",
+  "alphabeticalReverse": "Alphabetical (Z - A)",
 
   "@@sectionMeta": {
     "playlistDetail": "Playlist Detail"

@@ -614,6 +614,42 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get clear;
 
+  /// No description provided for @searchLibraryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in library...'**
+  String get searchLibraryHint;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get sortBy;
+
+  /// No description provided for @recentlyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently added'**
+  String get recentlyAdded;
+
+  /// No description provided for @leastRecentlyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Least recently added'**
+  String get leastRecentlyAdded;
+
+  /// No description provided for @alphabetical.
+  ///
+  /// In en, this message translates to:
+  /// **'Alphabetical (A - Z)'**
+  String get alphabetical;
+
+  /// No description provided for @alphabeticalReverse.
+  ///
+  /// In en, this message translates to:
+  /// **'Alphabetical (Z - A)'**
+  String get alphabeticalReverse;
+
   /// No description provided for @failedToLoadPlaylistEntries.
   ///
   /// In en, this message translates to:

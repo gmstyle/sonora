@@ -336,6 +336,24 @@ class AppLocalizationsIt extends AppLocalizations {
   String get clear => 'Cancella';
 
   @override
+  String get searchLibraryHint => 'Cerca nella libreria...';
+
+  @override
+  String get sortBy => 'Ordina per';
+
+  @override
+  String get recentlyAdded => 'Aggiunti di recente';
+
+  @override
+  String get leastRecentlyAdded => 'Meno recenti';
+
+  @override
+  String get alphabetical => 'Alfabetico (A - Z)';
+
+  @override
+  String get alphabeticalReverse => 'Alfabetico (Z - A)';
+
+  @override
   String get failedToLoadPlaylistEntries =>
       'Impossibile caricare gli elementi della playlist';
 

@@ -334,6 +334,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clear => 'Clear';
 
   @override
+  String get searchLibraryHint => 'Search in library...';
+
+  @override
+  String get sortBy => 'Sort by';
+
+  @override
+  String get recentlyAdded => 'Recently added';
+
+  @override
+  String get leastRecentlyAdded => 'Least recently added';
+
+  @override
+  String get alphabetical => 'Alphabetical (A - Z)';
+
+  @override
+  String get alphabeticalReverse => 'Alphabetical (Z - A)';
+
+  @override
   String get failedToLoadPlaylistEntries => 'Failed to load playlist entries';
 
   @override
