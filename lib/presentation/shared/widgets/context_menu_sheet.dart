@@ -331,18 +331,21 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
 
     final songAsync = ref.watch(_songFullProvider(videoId));
     final resolvedArtistId = songAsync.asData?.value.artist.artistId;
-    // SongFull has no album info, so albumId stays null until the player
-    // enriches MediaItem extras with it.
-    final String? albumId = null;
+    final String? albumId = songAsync.asData?.value.album?.albumId;
     ref.listen(_songFullProvider(videoId), (_, next) {
       if (next is AsyncData) {
         final data = next.value;
         if (data == null) return;
         final fullId = data.artist.artistId;
-        if (fullId != null) {
+        final fullAlbumId = data.album?.albumId;
+        if (fullId != null || fullAlbumId != null) {
           ref
               .read(libraryNotifierProvider.notifier)
-              .updateLikedSongMetadata(videoId, artistId: fullId);
+              .updateLikedSongMetadata(
+                videoId,
+                artistId: fullId,
+                albumId: fullAlbumId,
+              );
         }
       }
     });
@@ -403,10 +406,8 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                         onGoToArtist(resolvedArtistId);
                       },
                     ),
-                  // Go to Album — conditionally shown when albumId is available.
-                  // Currently SongFull never carries album info; this branch
-                  // is kept so it lights up automatically once the player
-                  // propagates albumId into the song metadata.
+                  // Go to Album — conditionally shown when SongFull carries
+                  // album info (albumId is resolved from songAsync above).
                   if (albumId != null)
                     _ActionTile(
                       icon: LucideIcons.disc,
@@ -598,16 +599,22 @@ class _SongContextMenuSheet extends ConsumerWidget {
     final songAsync = ref.watch(_songFullProvider(videoId));
     final resolvedArtistId =
         artistId ?? songAsync.asData?.value.artist.artistId;
+    final resolvedAlbumId = albumId ?? songAsync.asData?.value.album?.albumId;
     // TODO: remove ref.listen block once enrichment backfill is complete.
     ref.listen(_songFullProvider(videoId), (_, next) {
-      if (next is AsyncData && artistId == null) {
+      if (next is AsyncData && (artistId == null || albumId == null)) {
         final data = next.value;
         if (data == null) return;
         final fullId = data.artist.artistId;
-        if (fullId != null) {
+        final fullAlbumId = data.album?.albumId;
+        if (fullId != null || fullAlbumId != null) {
           ref
               .read(libraryNotifierProvider.notifier)
-              .updateLikedSongMetadata(videoId, artistId: fullId);
+              .updateLikedSongMetadata(
+                videoId,
+                artistId: artistId ?? fullId,
+                albumId: albumId ?? fullAlbumId,
+              );
         }
       }
     });
@@ -731,12 +738,12 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         Navigator.pop(context);
                       },
                     ),
-                  if (albumId != null)
+                  if (resolvedAlbumId != null)
                     _ActionTile(
                       icon: LucideIcons.disc,
                       label: AppLocalizations.of(context)!.goToAlbum,
                       onTap: () {
-                        context.push('/album/$albumId');
+                        context.push('/album/$resolvedAlbumId');
                         Navigator.pop(context);
                       },
                     ),
