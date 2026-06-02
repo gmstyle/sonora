@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
@@ -13,6 +14,7 @@ import 'widgets/lyrics_view.dart';
 import 'widgets/player_shared_widgets.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../providers/palette_provider.dart';
+import '../../shared/widgets/context_menu_sheet.dart';
 
 class FullPlayerContent extends ConsumerStatefulWidget {
   final PlayerSubView initialSubView;
@@ -195,7 +197,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   ),
                 ),
               ),
-              _topBar(albumName),
+              _topBar(currentSong, isVideo, albumName),
               const SizedBox(height: 24),
               Expanded(
                 child:
@@ -258,7 +260,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
         child: Column(
           children: [
-            _topBar(albumName),
+            _topBar(currentSong, isVideo, albumName),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -344,7 +346,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         padding: const EdgeInsets.symmetric(horizontal: 64.0, vertical: 32.0),
         child: Column(
           children: [
-            _topBar(albumName),
+            _topBar(currentSong, isVideo, albumName),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -424,9 +426,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
 
   // ─── Shared Widgets ──────────────────────────────────────────
 
-  Widget _topBar(String? albumName) {
+  Widget _topBar(MediaItem currentSong, bool isVideo, String? albumName) {
     final theme = Theme.of(context);
     final pc = PlayerColors.of(context);
+    final videoId = currentSong.extras?['videoId'] as String? ?? currentSong.id;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -468,8 +471,29 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
             ],
           ),
         ),
-        // Balance spacer matching the chevron button width.
-        const SizedBox(width: 48),
+        IconButton(
+          icon: Icon(LucideIcons.moreVertical, color: pc.iconPrimary),
+          onPressed: () {
+            final router = GoRouter.of(context);
+            ContextMenuSheet.showForNowPlaying(
+              context,
+              videoId: videoId,
+              title: currentSong.title,
+              artist: currentSong.artist ?? '',
+              thumbnailUrl: currentSong.artUri?.toString(),
+              albumName: albumName,
+              isVideo: isVideo,
+              onGoToArtist: (artistId) {
+                Navigator.of(context).pop();
+                router.push('/artist/$artistId');
+              },
+              onGoToAlbum: (albumId) {
+                Navigator.of(context).pop();
+                router.push('/album/$albumId');
+              },
+            );
+          },
+        ),
       ],
     );
   }

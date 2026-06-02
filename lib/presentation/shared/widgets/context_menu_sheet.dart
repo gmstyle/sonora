@@ -242,6 +242,308 @@ class ContextMenuSheet {
           ),
     );
   }
+
+  static Future<void> showForNowPlaying(
+    BuildContext context, {
+    required String videoId,
+    required String title,
+    required String artist,
+    String? thumbnailUrl,
+    bool isVideo = false,
+    String? albumName,
+    required void Function(String artistId) onGoToArtist,
+    required void Function(String albumId) onGoToAlbum,
+  }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _NowPlayingContextMenuSheet(
+                    videoId: videoId,
+                    title: title,
+                    artist: artist,
+                    thumbnailUrl: thumbnailUrl,
+                    isVideo: isVideo,
+                    albumName: albumName,
+                    onGoToArtist: onGoToArtist,
+                    onGoToAlbum: onGoToAlbum,
+                  ),
+                ),
+              ),
+            ),
+      );
+    }
+    return showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder:
+          (_) => _NowPlayingContextMenuSheet(
+            videoId: videoId,
+            title: title,
+            artist: artist,
+            thumbnailUrl: thumbnailUrl,
+            isVideo: isVideo,
+            albumName: albumName,
+            onGoToArtist: onGoToArtist,
+            onGoToAlbum: onGoToAlbum,
+          ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Now‑playing context menu (full‑player top‑bar)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _NowPlayingContextMenuSheet extends ConsumerWidget {
+  final String videoId;
+  final String title;
+  final String artist;
+  final String? thumbnailUrl;
+  final bool isVideo;
+  final String? albumName;
+  final void Function(String artistId) onGoToArtist;
+  final void Function(String albumId) onGoToAlbum;
+
+  const _NowPlayingContextMenuSheet({
+    required this.videoId,
+    required this.title,
+    required this.artist,
+    this.thumbnailUrl,
+    this.isVideo = false,
+    this.albumName,
+    required this.onGoToArtist,
+    required this.onGoToAlbum,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final player = ref.read(playerStateProvider.notifier);
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final isDownloaded = downloadedIds.contains(videoId);
+
+    final songAsync = ref.watch(_songFullProvider(videoId));
+    final resolvedArtistId = songAsync.asData?.value.artist.artistId;
+    // SongFull has no album info, so albumId stays null until the player
+    // enriches MediaItem extras with it.
+    final String? albumId = null;
+    ref.listen(_songFullProvider(videoId), (_, next) {
+      if (next is AsyncData) {
+        final data = next.value;
+        if (data == null) return;
+        final fullId = data.artist.artistId;
+        if (fullId != null) {
+          ref
+              .read(libraryNotifierProvider.notifier)
+              .updateLikedSongMetadata(videoId, artistId: fullId);
+        }
+      }
+    });
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                ThumbnailWidget(
+                  imageUrl: thumbnailUrl,
+                  size: 48,
+                  shape: ThumbnailShape.rounded,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        artist,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (resolvedArtistId != null)
+                    _ActionTile(
+                      icon: LucideIcons.user,
+                      label: AppLocalizations.of(context)!.goToArtist,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onGoToArtist(resolvedArtistId);
+                      },
+                    ),
+                  // Go to Album — conditionally shown when albumId is available.
+                  // Currently SongFull never carries album info; this branch
+                  // is kept so it lights up automatically once the player
+                  // propagates albumId into the song metadata.
+                  if (albumId != null)
+                    _ActionTile(
+                      icon: LucideIcons.disc,
+                      label: AppLocalizations.of(context)!.goToAlbum,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onGoToAlbum(albumId);
+                      },
+                    ),
+                  _ActionTile(
+                    icon: LucideIcons.radio,
+                    label: AppLocalizations.of(context)!.startRadio,
+                    onTap: () {
+                      final useCase = ref.read(startRadioUseCaseProvider);
+                      final feedback = ref.read(
+                        actionFeedbackProvider.notifier,
+                      );
+                      final currentPlayer = player;
+                      Navigator.pop(context);
+                      _startSongRadio(useCase, currentPlayer, feedback);
+                    },
+                  ),
+                  _ActionTile(
+                    icon:
+                        isDownloaded
+                            ? LucideIcons.checkCircle
+                            : LucideIcons.download,
+                    label:
+                        isDownloaded
+                            ? AppLocalizations.of(context)!.downloaded
+                            : AppLocalizations.of(context)!.download,
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (isDownloaded) {
+                        showDialog<bool>(
+                          context: context,
+                          builder:
+                              (ctx) => AlertDialog(
+                                title: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.alreadyDownloaded,
+                                ),
+                                content: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.alreadyDownloadedConfirm,
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: Text(
+                                      AppLocalizations.of(context)!.cancel,
+                                    ),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.continueAction,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        ).then((proceed) {
+                          if (proceed == true) {
+                            ref
+                                .read(activeDownloadsProvider.notifier)
+                                .startDownload(
+                                  videoId: videoId,
+                                  title: title,
+                                  artist: artist,
+                                  thumbnailUrl: thumbnailUrl,
+                                );
+                          }
+                        });
+                      } else {
+                        ref
+                            .read(activeDownloadsProvider.notifier)
+                            .startDownload(
+                              videoId: videoId,
+                              title: title,
+                              artist: artist,
+                              thumbnailUrl: thumbnailUrl,
+                            );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(context)!.downloadStarted,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.plus,
+                    label: AppLocalizations.of(context)!.addToPlaylist,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showPlaylistPicker(
+                        context,
+                        ref,
+                        videoId,
+                        title: title,
+                        artist: artist,
+                        thumbnailUrl: thumbnailUrl,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _startSongRadio(
+    StartRadioUseCase useCase,
+    PlayerNotifier currentPlayer,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      final result = await useCase.execute(videoId);
+      await currentPlayer.playNow([result.firstItem]);
+      if (result.remaining.isNotEmpty) {
+        final pendingItems = useCase.toPendingItems(result.remaining);
+        currentPlayer.addAllToQueue(pendingItems);
+      }
+    } catch (e) {
+      feedback.report('Failed to start radio: $e');
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
