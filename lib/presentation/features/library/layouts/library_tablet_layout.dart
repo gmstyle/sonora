@@ -118,20 +118,6 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
           Expanded(
             child: Column(
               children: [
-                if (_tabController.index == 2)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => _createPlaylist(context),
-                        icon: const Icon(LucideIcons.plus),
-                        label: Text(
-                          AppLocalizations.of(context)!.createPlaylist,
-                        ),
-                      ),
-                    ),
-                  ),
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
@@ -341,7 +327,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                IconButton(
+                IconButton.filled(
                   icon: const Icon(LucideIcons.plus),
                   tooltip: AppLocalizations.of(context)!.createPlaylist,
                   onPressed: widget.onCreatePlaylist,

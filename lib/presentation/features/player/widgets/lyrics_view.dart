@@ -1,5 +1,6 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,7 +53,7 @@ class LyricsView extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.music_off_rounded, size: 48, color: pc.labelMuted),
+          Icon(LucideIcons.micOff, size: 48, color: pc.labelMuted),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.lyricsNotAvailable,

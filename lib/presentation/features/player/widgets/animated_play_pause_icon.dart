@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AnimatedPlayPauseIcon extends StatefulWidget {
   final bool isPlaying;
@@ -50,11 +51,14 @@ class _AnimatedPlayPauseIconState extends State<AnimatedPlayPauseIcon>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedIcon(
-      icon: AnimatedIcons.play_pause,
-      progress: _controller,
-      color: widget.color,
-      size: widget.size,
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: Icon(
+        widget.isPlaying ? LucideIcons.pause : LucideIcons.play,
+        key: ValueKey(widget.isPlaying),
+        color: widget.color,
+        size: widget.size,
+      ),
     );
   }
 }

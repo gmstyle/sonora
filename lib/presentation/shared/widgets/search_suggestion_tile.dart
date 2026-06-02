@@ -17,7 +17,7 @@ class SearchSuggestionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(
-        isHistory ? LucideIcons.history : Icons.search,
+        isHistory ? LucideIcons.history : LucideIcons.search,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       title: Text(query),

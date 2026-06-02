@@ -391,7 +391,7 @@ class MiniPlayerContent extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               _iconButton(
-                                icon: Icons.fullscreen_outlined,
+                                icon: LucideIcons.maximize2,
                                 color: cs.onSurfaceVariant,
                                 onPressed: isSwitching ? null : onTap,
                               ),

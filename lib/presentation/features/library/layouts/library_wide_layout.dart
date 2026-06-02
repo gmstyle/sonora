@@ -76,20 +76,6 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
             child: Column(
               children: [
                 const SizedBox(height: 8),
-                if (_selectedIndex == 2)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => _createPlaylist(context),
-                        icon: const Icon(LucideIcons.plus),
-                        label: Text(
-                          AppLocalizations.of(context)!.createPlaylist,
-                        ),
-                      ),
-                    ),
-                  ),
                 const SizedBox(height: 16),
                 ...List.generate(_getTabs(context).length, (i) {
                   final icons = [
@@ -319,7 +305,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                IconButton(
+                IconButton.filled(
                   icon: const Icon(LucideIcons.plus),
                   tooltip: AppLocalizations.of(context)!.createPlaylist,
                   onPressed: widget.onCreatePlaylist,

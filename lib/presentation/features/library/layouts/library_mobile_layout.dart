@@ -284,7 +284,7 @@ class _PlaylistsTabState extends ConsumerState<_PlaylistsTab> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
-                IconButton(
+                IconButton.filled(
                   icon: const Icon(LucideIcons.plus),
                   tooltip: AppLocalizations.of(context)!.createPlaylist,
                   onPressed: widget.onCreatePlaylist,
