@@ -310,7 +310,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: d475555b2ef914dfafb3377cf59f33bd0aee1e0a
+      resolved-ref: "2600698d9c7f41195c69e37e658bba6d7ce78c64"
       url: "https://github.com/gmstyle/dart_ytmusic_api.git"
     source: git
     version: "1.3.9"
