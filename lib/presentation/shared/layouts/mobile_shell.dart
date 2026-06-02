@@ -37,24 +37,23 @@ class MobileShell extends ConsumerWidget {
 
     // With extendBody:true Flutter does NOT automatically add the nav bar
     // height to MediaQuery.padding for children — we must do it manually.
-    // We inject the full bottom clearance (nav bar + optional mini player gap)
-    // so every child Scaffold/ListView/CustomScrollView respects it without
-    // per-screen changes.
-    final extraBottom = isPlayerActive ? miniBarHeight + miniBarGap : 0.0;
     final mq = MediaQuery.of(context);
     final childMq = mq.copyWith(
-      padding: mq.padding.copyWith(
-        bottom: mq.padding.bottom + navBarIntrinsic + extraBottom,
-      ),
+      padding: mq.padding.copyWith(bottom: mq.padding.bottom + navBarIntrinsic),
     );
 
     return Scaffold(
       extendBody: true,
       body: Stack(
         children: [
-          MediaQuery(
-            data: childMq,
-            child: BranchFadeTransition(navigationShell: navigationShell),
+          Padding(
+            padding: EdgeInsets.only(
+              bottom: isPlayerActive ? miniBarHeight + miniBarGap : 0.0,
+            ),
+            child: MediaQuery(
+              data: childMq,
+              child: BranchFadeTransition(navigationShell: navigationShell),
+            ),
           ),
           if (isPlayerActive)
             Positioned(
