@@ -37,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   static AppDatabase create() => AppDatabase._();
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -77,6 +77,10 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(playlistEntries, playlistEntries.title);
         await m.addColumn(playlistEntries, playlistEntries.artist);
         await m.addColumn(playlistEntries, playlistEntries.thumbnailUrl);
+      }
+      if (from < 10) {
+        await m.addColumn(queueItems, queueItems.artistId);
+        await m.addColumn(queueItems, queueItems.albumId);
       }
     },
   );

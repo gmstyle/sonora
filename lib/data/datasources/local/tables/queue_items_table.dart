@@ -10,6 +10,8 @@ class QueueItems extends Table {
   IntColumn get durationSec => integer().nullable()();
   BoolColumn get isVideo => boolean()();
   TextColumn get streamUrl => text().nullable()();
+  TextColumn get artistId => text().nullable()();
+  TextColumn get albumId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {position};

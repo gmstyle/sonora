@@ -430,6 +430,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final theme = Theme.of(context);
     final pc = PlayerColors.of(context);
     final videoId = currentSong.extras?['videoId'] as String? ?? currentSong.id;
+    final artistId = currentSong.extras?['artistId'] as String?;
+    final albumId = currentSong.extras?['albumId'] as String?;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -483,6 +485,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               thumbnailUrl: currentSong.artUri?.toString(),
               albumName: albumName,
               isVideo: isVideo,
+              artistId: artistId,
+              albumId: albumId,
               onGoToArtist: (artistId) {
                 Navigator.of(context).pop();
                 router.push('/artist/$artistId');

@@ -46,7 +46,12 @@ class PlayPlaylistUseCase {
       artist: v.artist.name,
       duration: Duration(seconds: v.duration ?? 0),
       artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
-      extras: {'url': url, 'videoId': v.videoId, 'isVideo': true},
+      extras: {
+        'url': url,
+        'videoId': v.videoId,
+        'isVideo': true,
+        'artistId': v.artist.artistId,
+      },
     );
   }
 
@@ -57,7 +62,12 @@ class PlayPlaylistUseCase {
       artist: v.artist.name,
       duration: Duration(seconds: v.duration ?? 0),
       artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
-      extras: {'needsUrl': true, 'videoId': v.videoId, 'isVideo': true},
+      extras: {
+        'needsUrl': true,
+        'videoId': v.videoId,
+        'isVideo': true,
+        'artistId': v.artist.artistId,
+      },
     );
   }
 }

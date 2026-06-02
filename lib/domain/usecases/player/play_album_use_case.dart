@@ -48,7 +48,13 @@ class PlayAlbumUseCase {
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
       artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
-      extras: {'url': url, 'videoId': s.videoId, 'isVideo': false},
+      extras: {
+        'url': url,
+        'videoId': s.videoId,
+        'isVideo': false,
+        'artistId': s.artist.artistId,
+        if (s.album?.albumId != null) 'albumId': s.album!.albumId,
+      },
     );
   }
 
@@ -60,7 +66,13 @@ class PlayAlbumUseCase {
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
       artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
-      extras: {'needsUrl': true, 'videoId': s.videoId, 'isVideo': false},
+      extras: {
+        'needsUrl': true,
+        'videoId': s.videoId,
+        'isVideo': false,
+        'artistId': s.artist.artistId,
+        if (s.album?.albumId != null) 'albumId': s.album!.albumId,
+      },
     );
   }
 }

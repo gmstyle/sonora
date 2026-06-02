@@ -357,10 +357,19 @@ class PlayerNotifier extends Notifier<PlayerState> {
     int? durationSec,
     bool isVideo = false,
     String? albumName,
+    String? artistId,
+    String? albumId,
   }) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
       final streamUrl = await useCase.resolveStreamUrl(videoId);
+      final extras = <String, dynamic>{
+        'url': streamUrl,
+        'videoId': videoId,
+        'isVideo': isVideo,
+      };
+      if (artistId != null) extras['artistId'] = artistId;
+      if (albumId != null) extras['albumId'] = albumId;
       final item = MediaItem(
         id: videoId,
         title: title,
@@ -368,7 +377,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
         album: albumName,
         duration: Duration(seconds: durationSec ?? 0),
         artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
-        extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
+        extras: extras,
       );
       await playNext(item);
     } catch (e) {
@@ -392,10 +401,19 @@ class PlayerNotifier extends Notifier<PlayerState> {
     int? durationSec,
     bool isVideo = false,
     String? albumName,
+    String? artistId,
+    String? albumId,
   }) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
       final streamUrl = await useCase.resolveStreamUrl(videoId);
+      final extras = <String, dynamic>{
+        'url': streamUrl,
+        'videoId': videoId,
+        'isVideo': isVideo,
+      };
+      if (artistId != null) extras['artistId'] = artistId;
+      if (albumId != null) extras['albumId'] = albumId;
       final item = MediaItem(
         id: videoId,
         title: title,
@@ -403,7 +421,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
         album: albumName,
         duration: Duration(seconds: durationSec ?? 0),
         artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
-        extras: {'url': streamUrl, 'videoId': videoId, 'isVideo': isVideo},
+        extras: extras,
       );
       await addToQueue(item);
     } catch (e) {

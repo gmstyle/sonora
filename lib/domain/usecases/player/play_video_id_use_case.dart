@@ -25,6 +25,8 @@ class PlayVideoIdUseCase {
     int? viewCount;
     String? publishDate;
     String? musicVideoType;
+    String? artistId;
+    String? albumId;
 
     try {
       final song = await _repo.getSong(videoId);
@@ -35,6 +37,8 @@ class PlayVideoIdUseCase {
       isVideo = false;
       viewCount = song.viewCount;
       publishDate = song.publishDate;
+      artistId = song.artist.artistId;
+      albumId = song.album?.albumId;
     } catch (_) {
       final video = await _repo.getVideo(videoId);
       title = video.name;
@@ -46,6 +50,7 @@ class PlayVideoIdUseCase {
       viewCount = video.viewCount;
       publishDate = video.publishDate;
       musicVideoType = video.musicVideoType;
+      artistId = video.artist.artistId;
     }
 
     final url = await urlFuture;
@@ -57,6 +62,8 @@ class PlayVideoIdUseCase {
     if (viewCount != null) extras['viewCount'] = viewCount;
     if (publishDate != null) extras['publishDate'] = publishDate;
     if (musicVideoType != null) extras['musicVideoType'] = musicVideoType;
+    if (artistId != null) extras['artistId'] = artistId;
+    if (albumId != null) extras['albumId'] = albumId;
 
     return MediaItem(
       id: videoId,

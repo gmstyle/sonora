@@ -47,6 +47,8 @@ class StartRadioUseCase {
         'needsUrl': true,
         'videoId': item.videoId,
         'isVideo': item.type == 'VIDEO',
+        'artistId': item.artists.artistId,
+        if (item.album?.albumId != null) 'albumId': item.album!.albumId,
       },
     );
   }
@@ -66,6 +68,8 @@ class StartRadioUseCase {
         'url': url,
         'videoId': item.videoId,
         'isVideo': item.type == 'VIDEO',
+        'artistId': item.artists.artistId,
+        if (item.album?.albumId != null) 'albumId': item.album!.albumId,
       },
     );
   }

@@ -25,6 +25,8 @@ import '../../providers/start_radio_use_case_provider.dart';
 import 'thumbnail_widget.dart';
 
 import '../../features/library/widgets/create_playlist_dialog.dart';
+import 'package:shimmer/shimmer.dart';
+
 import '../../../l10n/app_localizations.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -251,6 +253,8 @@ class ContextMenuSheet {
     String? thumbnailUrl,
     bool isVideo = false,
     String? albumName,
+    String? artistId,
+    String? albumId,
     required void Function(String artistId) onGoToArtist,
     required void Function(String albumId) onGoToAlbum,
   }) {
@@ -272,6 +276,8 @@ class ContextMenuSheet {
                     thumbnailUrl: thumbnailUrl,
                     isVideo: isVideo,
                     albumName: albumName,
+                    artistId: artistId,
+                    albumId: albumId,
                     onGoToArtist: onGoToArtist,
                     onGoToAlbum: onGoToAlbum,
                   ),
@@ -291,6 +297,8 @@ class ContextMenuSheet {
             thumbnailUrl: thumbnailUrl,
             isVideo: isVideo,
             albumName: albumName,
+            artistId: artistId,
+            albumId: albumId,
             onGoToArtist: onGoToArtist,
             onGoToAlbum: onGoToAlbum,
           ),
@@ -309,6 +317,8 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
   final String? thumbnailUrl;
   final bool isVideo;
   final String? albumName;
+  final String? artistId;
+  final String? albumId;
   final void Function(String artistId) onGoToArtist;
   final void Function(String albumId) onGoToAlbum;
 
@@ -319,6 +329,8 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     this.thumbnailUrl,
     this.isVideo = false,
     this.albumName,
+    this.artistId,
+    this.albumId,
     required this.onGoToArtist,
     required this.onGoToAlbum,
   });
@@ -329,9 +341,13 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
+    final hasExplicitIds = artistId != null || albumId != null;
     final songAsync = ref.watch(_songFullProvider(videoId));
-    final resolvedArtistId = songAsync.asData?.value.artist.artistId;
-    final String? albumId = songAsync.asData?.value.album?.albumId;
+    final resolvedArtistId =
+        artistId ?? songAsync.asData?.value.artist.artistId;
+    final resolvedAlbumId = albumId ?? songAsync.asData?.value.album?.albumId;
+    final isLoadingFallback = !hasExplicitIds && songAsync.isLoading;
+
     ref.listen(_songFullProvider(videoId), (_, next) {
       if (next is AsyncData) {
         final data = next.value;
@@ -397,6 +413,11 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (isLoadingFallback)
+                    _LoadingTile(
+                      icon: LucideIcons.user,
+                      label: AppLocalizations.of(context)!.goToArtist,
+                    ),
                   if (resolvedArtistId != null)
                     _ActionTile(
                       icon: LucideIcons.user,
@@ -406,15 +427,18 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                         onGoToArtist(resolvedArtistId);
                       },
                     ),
-                  // Go to Album — conditionally shown when SongFull carries
-                  // album info (albumId is resolved from songAsync above).
-                  if (albumId != null)
+                  if (isLoadingFallback)
+                    _LoadingTile(
+                      icon: LucideIcons.disc,
+                      label: AppLocalizations.of(context)!.goToAlbum,
+                    ),
+                  if (resolvedAlbumId != null)
                     _ActionTile(
                       icon: LucideIcons.disc,
                       label: AppLocalizations.of(context)!.goToAlbum,
                       onTap: () {
                         Navigator.pop(context);
-                        onGoToAlbum(albumId);
+                        onGoToAlbum(resolvedAlbumId);
                       },
                     ),
                   _ActionTile(
@@ -707,6 +731,8 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         durationSec: duration,
                         isVideo: isVideo,
                         albumName: albumName,
+                        artistId: resolvedArtistId,
+                        albumId: resolvedAlbumId,
                       );
                     },
                   ),
@@ -726,6 +752,8 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         durationSec: duration,
                         isVideo: isVideo,
                         albumName: albumName,
+                        artistId: resolvedArtistId,
+                        albumId: resolvedAlbumId,
                       );
                     },
                   ),
@@ -1594,6 +1622,37 @@ class _ActionTile extends StatelessWidget {
       title: Text(label),
       onTap: onTap,
       dense: true,
+    );
+  }
+}
+
+class _LoadingTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _LoadingTile({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final baseColor = cs.surfaceContainerHighest;
+    final highlightColor = cs.surfaceContainerLow;
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: ListTile(
+        leading: SizedBox(
+          width: 24,
+          height: 24,
+          child: ColoredBox(color: cs.onSurface.withAlpha(40)),
+        ),
+        title: SizedBox(
+          height: 14,
+          child: ColoredBox(color: cs.onSurface.withAlpha(30)),
+        ),
+        enabled: false,
+        dense: true,
+      ),
     );
   }
 }

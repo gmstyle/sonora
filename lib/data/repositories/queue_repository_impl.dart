@@ -32,6 +32,8 @@ class QueueRepositoryImpl implements QueueRepository {
             durationSec: Value(item.duration?.inSeconds),
             isVideo: item.extras?['isVideo'] == true,
             streamUrl: Value(item.extras?['url'] as String?),
+            artistId: Value(item.extras?['artistId'] as String?),
+            albumId: Value(item.extras?['albumId'] as String?),
           ),
         );
       }
@@ -56,6 +58,8 @@ class QueueRepositoryImpl implements QueueRepository {
             'url': row.streamUrl,
           'videoId': row.videoId,
           'isVideo': row.isVideo,
+          if (row.artistId != null) 'artistId': row.artistId,
+          if (row.albumId != null) 'albumId': row.albumId,
         },
       );
     }).toList();
