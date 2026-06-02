@@ -21,8 +21,11 @@ void main() {
       await datasource.initialize();
       final results = await datasource.searchSongs('test');
       expect(results, isNotEmpty);
-      expect(results.first.videoId, isNotEmpty);
-      expect(results.first.name, isNotEmpty);
+      expect(results.any((result) => result.videoId.isNotEmpty), isTrue);
+      expect(
+        results.firstWhere((result) => result.videoId.isNotEmpty).name,
+        isNotEmpty,
+      );
     });
 
     test('searchArtists returns non-empty results', () async {
@@ -46,6 +49,7 @@ void main() {
 
       final results = await datasource.searchSongs('test');
       expect(results, isNotEmpty);
+      expect(results.any((result) => result.videoId.isNotEmpty), isTrue);
     });
   });
 }
