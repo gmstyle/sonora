@@ -19,6 +19,7 @@ import '../../../shared/widgets/scale_button.dart';
 import '../../../providers/settings_provider.dart';
 import '../providers/library_provider.dart';
 import '../widgets/create_playlist_dialog.dart';
+import '../widgets/favorites_tab.dart';
 import '../widgets/playlist_detail_view.dart';
 
 class LibraryTabletLayout extends ConsumerStatefulWidget {
@@ -122,7 +123,7 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _FavoritesTab(),
+                      const FavoritesTab(),
                       _ArtistsTab(),
                       _PlaylistsTab(
                         onPlaylistTap: (playlist) {
@@ -169,50 +170,6 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
       await ref.read(libraryNotifierProvider.notifier).createPlaylist(result);
       ref.invalidate(playlistsProvider);
     }
-  }
-}
-
-// ── Favorites Tab ─────────────────────────────────────────────────
-
-class _FavoritesTab extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(likedSongsProvider);
-    return async.when(
-      loading: () => const _ShimmerSongList(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: AppLocalizations.of(context)!.failedToLoadFavorites,
-            onRetry: () => ref.invalidate(likedSongsProvider),
-          ),
-      data: (songs) {
-        if (songs.isEmpty) {
-          return EmptyStateWidget(
-            icon: LucideIcons.heart,
-            title: AppLocalizations.of(context)!.noFavoritesYet,
-            body: AppLocalizations.of(context)!.noFavoritesHint,
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () => ref.refresh(likedSongsProvider.future),
-          child: ListView.builder(
-            itemCount: songs.length,
-            itemBuilder: (_, i) {
-              final s = songs[i];
-              return SongTile(
-                videoId: s.videoId,
-                title: s.title,
-                artist: s.artist,
-                thumbnailUrl: s.thumbnailUrl,
-                artistId: s.artistId,
-                albumId: s.albumId,
-                isVideo: false,
-              );
-            },
-          ),
-        );
-      },
-    );
   }
 }
 
