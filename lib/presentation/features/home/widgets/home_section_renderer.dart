@@ -14,6 +14,7 @@ import '../../../shared/widgets/song_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/scale_button.dart';
+import '../../../shared/widgets/context_menu_sheet.dart';
 
 class HomeShimmer extends StatelessWidget {
   final int tileCount;
@@ -113,11 +114,19 @@ class _ContinueListeningItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
+    return ScaleButton(
       onTap:
           () =>
               ref.read(playerStateProvider.notifier).playVideoId(item.videoId),
-      borderRadius: BorderRadius.circular(8),
+      onLongPress:
+          () => ContextMenuSheet.showForSong(
+            context,
+            videoId: item.videoId,
+            title: item.title,
+            artist: item.artist,
+            thumbnailUrl: item.thumbnailUrl,
+            playCount: item.playCount.toString(),
+          ),
       child: SizedBox(
         width: 100,
         child: Column(
