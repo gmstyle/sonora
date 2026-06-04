@@ -12,6 +12,7 @@ import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/playlist_card.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../providers/library_provider.dart';
 import 'create_playlist_dialog.dart';
@@ -121,7 +122,6 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   playlistId: p.id,
                   name: p.name,
                   description: p.description,
-                  thumbnailUrl: null,
                   onTap: () => _showPlaylistDetail(context, p),
                   onLongPress:
                       () => ContextMenuSheet.showForCustomPlaylist(
@@ -137,74 +137,15 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
           SliverList(
             delegate: SliverChildBuilderDelegate((_, i) {
               final p = playlists[i];
-              return Dismissible(
-                key: ValueKey(p.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 16),
-                  color: Theme.of(context).colorScheme.error,
-                  child: Icon(
-                    LucideIcons.trash2,
-                    color: Theme.of(context).colorScheme.onError,
-                  ),
-                ),
-                confirmDismiss: (_) async {
-                  return showDialog<bool>(
-                    context: context,
-                    builder:
-                        (ctx) => AlertDialog(
-                          title: Text(
-                            AppLocalizations.of(context)!.deletePlaylist,
-                          ),
-                          content: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.deletePlaylistConfirm(p.name),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: Text(AppLocalizations.of(context)!.cancel),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: Text(AppLocalizations.of(context)!.delete),
-                            ),
-                          ],
-                        ),
-                  );
-                },
-                onDismissed: (_) async {
-                  await ref
-                      .read(libraryNotifierProvider.notifier)
-                      .deletePlaylist(p.id);
-                  ref.invalidate(playlistsProvider);
-                },
-                child: ListTile(
-                  leading: ThumbnailWidget(
-                    imageUrl: null,
-                    size: 48,
-                    shape: ThumbnailShape.rounded,
-                  ),
-                  title: Text(p.name),
-                  subtitle:
-                      p.description != null && p.description!.isNotEmpty
-                          ? Text(
-                            p.description!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          )
-                          : null,
-                  trailing: const Icon(LucideIcons.chevronRight),
-                  onTap: () => _showPlaylistDetail(context, p),
-                  onLongPress:
-                      () => ContextMenuSheet.showForCustomPlaylist(
-                        context,
-                        playlist: p,
-                        onUpdated: () => ref.invalidate(playlistsProvider),
-                      ),
-                ),
+              return _LocalPlaylistTile(
+                playlist: p,
+                onTap: () => _showPlaylistDetail(context, p),
+                onLongPress:
+                    () => ContextMenuSheet.showForCustomPlaylist(
+                      context,
+                      playlist: p,
+                      onUpdated: () => ref.invalidate(playlistsProvider),
+                    ),
               );
             }, childCount: playlists.length),
           ),
@@ -323,11 +264,46 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
   }
 }
 
+class _PlaylistCoverBuilder extends ConsumerWidget {
+  final int playlistId;
+  final double size;
+
+  const _PlaylistCoverBuilder({required this.playlistId, this.size = 48});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entriesAsync = ref.watch(playlistEntriesProvider(playlistId));
+    final likedSongs = ref.watch(likedSongsProvider).asData?.value ?? [];
+
+    final urls = switch (entriesAsync) {
+      AsyncData(:final value) =>
+        value
+            .map((e) {
+              final liked = likedSongs.cast<LikedSongModel?>().firstWhere(
+                (l) => l?.videoId == e.videoId,
+                orElse: () => null,
+              );
+              return liked?.thumbnailUrl ?? e.thumbnailUrl;
+            })
+            .where((u) => u != null && u.isNotEmpty)
+            .cast<String>()
+            .take(3)
+            .toList(),
+      _ => <String>[],
+    };
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: PlaylistCoverCollage(thumbnailUrls: urls),
+    );
+  }
+}
+
 class _LocalPlaylistCard extends StatelessWidget {
   final int playlistId;
   final String name;
   final String? description;
-  final String? thumbnailUrl;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -335,7 +311,6 @@ class _LocalPlaylistCard extends StatelessWidget {
     required this.playlistId,
     required this.name,
     this.description,
-    this.thumbnailUrl,
     required this.onTap,
     required this.onLongPress,
   });
@@ -352,11 +327,7 @@ class _LocalPlaylistCard extends StatelessWidget {
           children: [
             Hero(
               tag: 'local_playlist_art_$playlistId',
-              child: ThumbnailWidget(
-                imageUrl: thumbnailUrl,
-                size: 150,
-                shape: ThumbnailShape.rounded,
-              ),
+              child: _PlaylistCoverBuilder(playlistId: playlistId, size: 150),
             ),
             const SizedBox(height: 8),
             Text(
@@ -381,6 +352,37 @@ class _LocalPlaylistCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LocalPlaylistTile extends StatelessWidget {
+  final LocalPlaylistModel playlist;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _LocalPlaylistTile({
+    required this.playlist,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: _PlaylistCoverBuilder(playlistId: playlist.id, size: 48),
+      title: Text(playlist.name),
+      subtitle:
+          playlist.description != null && playlist.description!.isNotEmpty
+              ? Text(
+                playlist.description!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+              : null,
+      trailing: const Icon(LucideIcons.chevronRight),
+      onTap: onTap,
+      onLongPress: onLongPress,
     );
   }
 }
