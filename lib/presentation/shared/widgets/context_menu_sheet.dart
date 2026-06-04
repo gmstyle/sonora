@@ -13,6 +13,7 @@ import '../../../domain/usecases/player/play_playlist_use_case.dart';
 import '../../../domain/usecases/player/start_radio_use_case.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../features/artist/providers/artist_provider.dart';
+import '../../features/library/providers/library_provider.dart';
 import '../../features/playlist/providers/playlist_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/download_provider.dart';
@@ -25,6 +26,7 @@ import '../../providers/start_radio_use_case_provider.dart';
 import 'thumbnail_widget.dart';
 
 import '../../features/library/widgets/create_playlist_dialog.dart';
+import '../../features/library/widgets/playlist_detail_view.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -241,6 +243,42 @@ class ContextMenuSheet {
             name: name,
             artist: artist,
             thumbnailUrl: thumbnailUrl,
+          ),
+    );
+  }
+
+  static Future<void> showForCustomPlaylist(
+    BuildContext context, {
+    required LocalPlaylistModel playlist,
+    required VoidCallback onUpdated,
+  }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _CustomPlaylistContextMenuSheet(
+                    playlist: playlist,
+                    onUpdated: onUpdated,
+                  ),
+                ),
+              ),
+            ),
+      );
+    }
+    return showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder:
+          (_) => _CustomPlaylistContextMenuSheet(
+            playlist: playlist,
+            onUpdated: onUpdated,
           ),
     );
   }
@@ -1596,6 +1634,285 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       }
     } catch (e) {
       feedback.report('Failed to add to queue: $e');
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom playlist (local) context menu
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
+  final LocalPlaylistModel playlist;
+  final VoidCallback onUpdated;
+
+  const _CustomPlaylistContextMenuSheet({
+    required this.playlist,
+    required this.onUpdated,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                ThumbnailWidget(
+                  imageUrl: null,
+                  size: 48,
+                  shape: ThumbnailShape.rounded,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        playlist.name,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Playlist',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ActionTile(
+                    icon: LucideIcons.play,
+                    label: l10n.playAll,
+                    onTap: () {
+                      final player = ref.read(playerStateProvider.notifier);
+                      final notifier = ref.read(
+                        libraryNotifierProvider.notifier,
+                      );
+                      final feedback = ref.read(
+                        actionFeedbackProvider.notifier,
+                      );
+                      Navigator.pop(context);
+                      _playAll(
+                        ref,
+                        playlist.id,
+                        player,
+                        notifier,
+                        feedback,
+                        l10n,
+                      );
+                    },
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.shuffle,
+                    label: l10n.shufflePlay,
+                    onTap: () {
+                      final player = ref.read(playerStateProvider.notifier);
+                      final notifier = ref.read(
+                        libraryNotifierProvider.notifier,
+                      );
+                      final feedback = ref.read(
+                        actionFeedbackProvider.notifier,
+                      );
+                      Navigator.pop(context);
+                      _shufflePlay(
+                        ref,
+                        playlist.id,
+                        player,
+                        notifier,
+                        feedback,
+                        l10n,
+                      );
+                    },
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.listMusic,
+                    label: l10n.addToQueue,
+                    onTap: () {
+                      final player = ref.read(playerStateProvider.notifier);
+                      final notifier = ref.read(
+                        libraryNotifierProvider.notifier,
+                      );
+                      final feedback = ref.read(
+                        actionFeedbackProvider.notifier,
+                      );
+                      Navigator.pop(context);
+                      _addToQueue(
+                        ref,
+                        playlist.id,
+                        player,
+                        notifier,
+                        feedback,
+                        l10n,
+                      );
+                    },
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.pencil,
+                    label: l10n.renamePlaylist,
+                    onTap: () async {
+                      final result = await showDialog<String>(
+                        context: context,
+                        builder:
+                            (_) => CreatePlaylistDialog(
+                              initialName: playlist.name,
+                              title: l10n.renamePlaylist,
+                            ),
+                      );
+                      if (result != null &&
+                          result.isNotEmpty &&
+                          result != playlist.name) {
+                        if (!context.mounted) return;
+                        final notifier = ref.read(
+                          libraryNotifierProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        await notifier.updatePlaylist(
+                          playlist.id,
+                          name: result,
+                        );
+                        ref.invalidate(playlistsProvider);
+                        onUpdated();
+                      }
+                    },
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.trash2,
+                    label: l10n.deletePlaylist,
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder:
+                            (ctx) => AlertDialog(
+                              title: Text(l10n.deletePlaylist),
+                              content: Text(
+                                l10n.deletePlaylistConfirm(playlist.name),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: Text(l10n.cancel),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: Text(l10n.delete),
+                                ),
+                              ],
+                            ),
+                      );
+                      if (confirm == true) {
+                        if (!context.mounted) return;
+                        final notifier = ref.read(
+                          libraryNotifierProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        await notifier.deletePlaylist(playlist.id);
+                        ref.invalidate(playlistsProvider);
+                        onUpdated();
+                      }
+                    },
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.listVideo,
+                    label: l10n.goToPlaylist,
+                    onTap: () {
+                      final nav = Navigator.of(context, rootNavigator: true);
+                      Navigator.pop(context);
+                      nav.push(
+                        MaterialPageRoute(
+                          builder:
+                              (_) => PlaylistDetailView(
+                                playlist: playlist,
+                                onUpdated: onUpdated,
+                              ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _playAll(
+    WidgetRef ref,
+    int playlistId,
+    PlayerNotifier player,
+    LibraryNotifier notifier,
+    ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
+  ) async {
+    feedback.report(l10n.playingPlaylist(playlist.name));
+    try {
+      final entries = await ref.read(
+        playlistEntriesProvider(playlistId).future,
+      );
+      final items = await notifier.buildLocalPlaylistItems(entries);
+      if (items.isNotEmpty) await player.playNow(items);
+    } catch (_) {}
+  }
+
+  Future<void> _shufflePlay(
+    WidgetRef ref,
+    int playlistId,
+    PlayerNotifier player,
+    LibraryNotifier notifier,
+    ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
+  ) async {
+    feedback.report(l10n.shufflingPlaylist(playlist.name));
+    try {
+      final entries = await ref.read(
+        playlistEntriesProvider(playlistId).future,
+      );
+      final shuffled = List<PlaylistEntryModel>.from(entries)..shuffle();
+      final items = await notifier.buildLocalPlaylistItems(shuffled);
+      if (items.isNotEmpty) await player.playNow(items);
+    } catch (_) {}
+  }
+
+  Future<void> _addToQueue(
+    WidgetRef ref,
+    int playlistId,
+    PlayerNotifier player,
+    LibraryNotifier notifier,
+    ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
+  ) async {
+    try {
+      final entries = await ref.read(
+        playlistEntriesProvider(playlistId).future,
+      );
+      final items = await notifier.buildLocalPlaylistItems(entries);
+      if (items.isNotEmpty) await player.addAllToQueue(items);
+      feedback.report(l10n.addedToQueue(items.length));
+    } catch (e) {
+      feedback.report(l10n.failedToAddToQueue(e.toString()));
     }
   }
 }

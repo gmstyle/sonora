@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:sonora/l10n/app_localizations.dart';
+
 class CreatePlaylistDialog extends StatefulWidget {
   final String? initialName;
   final String title;
@@ -17,6 +19,7 @@ class CreatePlaylistDialog extends StatefulWidget {
 class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
+  String? _error;
 
   @override
   void initState() {
@@ -40,33 +43,47 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(widget.title),
       content: TextField(
         controller: _controller,
         focusNode: _focusNode,
         autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'Playlist name',
-          hintText: 'My playlist',
+        decoration: InputDecoration(
+          labelText: l10n?.playlistName ?? 'Playlist name',
+          hintText: l10n?.playlistName ?? 'My playlist',
+          errorText: _error,
         ),
         textCapitalization: TextCapitalization.sentences,
-        onSubmitted: (_) => _submit(),
+        onChanged: (_) {
+          if (_error != null) setState(() => _error = null);
+        },
+        onSubmitted: (_) => _submit(l10n),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n?.cancel ?? 'Cancel'),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Save')),
+        FilledButton(
+          onPressed: () => _submit(l10n),
+          child: Text(l10n?.save ?? 'Save'),
+        ),
       ],
     );
   }
 
-  void _submit() {
+  void _submit(AppLocalizations? l10n) {
     final name = _controller.text.trim();
-    if (name.isNotEmpty) {
-      Navigator.pop(context, name);
+    if (name.isEmpty) {
+      setState(
+        () =>
+            _error =
+                l10n?.playlistNameRequired ?? 'A playlist name is required',
+      );
+      return;
     }
+    Navigator.pop(context, name);
   }
 }

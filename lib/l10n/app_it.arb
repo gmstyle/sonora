@@ -119,6 +119,8 @@
   "failedToLoadPlaylistEntries": "Impossibile caricare gli elementi della playlist",
   "emptyPlaylist": "Playlist vuota",
   "emptyPlaylistHint": "Aggiungi brani dal menu contestuale per far crescere la tua playlist.",
+  "remove": "Rimuovi",
+  "playlistNameRequired": "Il nome della playlist è obbligatorio",
 
   "@@sectionMeta": {
     "downloads": "Schermata Download"

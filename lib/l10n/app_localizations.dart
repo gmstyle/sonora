@@ -668,6 +668,18 @@ abstract class AppLocalizations {
   /// **'Add songs from the context menu to grow your playlist.'**
   String get emptyPlaylistHint;
 
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// No description provided for @playlistNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A playlist name is required'**
+  String get playlistNameRequired;
+
   /// No description provided for @downloads.
   ///
   /// In en, this message translates to:

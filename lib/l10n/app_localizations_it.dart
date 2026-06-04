@@ -365,6 +365,12 @@ class AppLocalizationsIt extends AppLocalizations {
       'Aggiungi brani dal menu contestuale per far crescere la tua playlist.';
 
   @override
+  String get remove => 'Rimuovi';
+
+  @override
+  String get playlistNameRequired => 'Il nome della playlist è obbligatorio';
+
+  @override
   String get downloads => 'Download';
 
   @override

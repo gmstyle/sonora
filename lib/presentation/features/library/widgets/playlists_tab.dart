@@ -118,16 +118,16 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
               delegate: SliverChildBuilderDelegate((_, i) {
                 final p = playlists[i];
                 return _LocalPlaylistCard(
+                  playlistId: p.id,
                   name: p.name,
                   description: p.description,
                   thumbnailUrl: null,
                   onTap: () => _showPlaylistDetail(context, p),
                   onLongPress:
-                      () => ContextMenuSheet.showForPlaylist(
+                      () => ContextMenuSheet.showForCustomPlaylist(
                         context,
-                        playlistId: p.id.toString(),
-                        name: p.name,
-                        thumbnailUrl: null,
+                        playlist: p,
+                        onUpdated: () => ref.invalidate(playlistsProvider),
                       ),
                 );
               }, childCount: playlists.length),
@@ -182,7 +182,11 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   ref.invalidate(playlistsProvider);
                 },
                 child: ListTile(
-                  leading: const Icon(LucideIcons.listVideo),
+                  leading: ThumbnailWidget(
+                    imageUrl: null,
+                    size: 48,
+                    shape: ThumbnailShape.rounded,
+                  ),
                   title: Text(p.name),
                   subtitle:
                       p.description != null && p.description!.isNotEmpty
@@ -192,21 +196,14 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                             overflow: TextOverflow.ellipsis,
                           )
                           : null,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(LucideIcons.pencil),
-                        onPressed: () => _renamePlaylist(context, p),
-                      ),
-                      IconButton(
-                        icon: const Icon(LucideIcons.trash2),
-                        onPressed: () => _deletePlaylist(context, p),
-                      ),
-                      const Icon(LucideIcons.chevronRight),
-                    ],
-                  ),
+                  trailing: const Icon(LucideIcons.chevronRight),
                   onTap: () => _showPlaylistDetail(context, p),
+                  onLongPress:
+                      () => ContextMenuSheet.showForCustomPlaylist(
+                        context,
+                        playlist: p,
+                        onUpdated: () => ref.invalidate(playlistsProvider),
+                      ),
                 ),
               );
             }, childCount: playlists.length),
@@ -324,63 +321,10 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
       ref.invalidate(playlistsProvider);
     }
   }
-
-  Future<void> _deletePlaylist(
-    BuildContext context,
-    LocalPlaylistModel playlist,
-  ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.deletePlaylist),
-            content: Text(
-              AppLocalizations.of(
-                context,
-              )!.deletePlaylistConfirm(playlist.name),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(AppLocalizations.of(context)!.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(AppLocalizations.of(context)!.delete),
-              ),
-            ],
-          ),
-    );
-    if (confirm == true) {
-      await ref
-          .read(libraryNotifierProvider.notifier)
-          .deletePlaylist(playlist.id);
-      ref.invalidate(playlistsProvider);
-    }
-  }
-
-  Future<void> _renamePlaylist(
-    BuildContext context,
-    LocalPlaylistModel playlist,
-  ) async {
-    final result = await showDialog<String>(
-      context: context,
-      builder:
-          (_) => CreatePlaylistDialog(
-            initialName: playlist.name,
-            title: AppLocalizations.of(context)!.renamePlaylist,
-          ),
-    );
-    if (result != null && result.isNotEmpty && result != playlist.name) {
-      await ref
-          .read(libraryNotifierProvider.notifier)
-          .updatePlaylist(playlist.id, name: result);
-      ref.invalidate(playlistsProvider);
-    }
-  }
 }
 
 class _LocalPlaylistCard extends StatelessWidget {
+  final int playlistId;
   final String name;
   final String? description;
   final String? thumbnailUrl;
@@ -388,6 +332,7 @@ class _LocalPlaylistCard extends StatelessWidget {
   final VoidCallback onLongPress;
 
   const _LocalPlaylistCard({
+    required this.playlistId,
     required this.name,
     this.description,
     this.thumbnailUrl,
@@ -405,10 +350,13 @@ class _LocalPlaylistCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ThumbnailWidget(
-              imageUrl: thumbnailUrl,
-              size: 150,
-              shape: ThumbnailShape.rounded,
+            Hero(
+              tag: 'local_playlist_art_$playlistId',
+              child: ThumbnailWidget(
+                imageUrl: thumbnailUrl,
+                size: 150,
+                shape: ThumbnailShape.rounded,
+              ),
             ),
             const SizedBox(height: 8),
             Text(

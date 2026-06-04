@@ -362,6 +362,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add songs from the context menu to grow your playlist.';
 
   @override
+  String get remove => 'Remove';
+
+  @override
+  String get playlistNameRequired => 'A playlist name is required';
+
+  @override
   String get downloads => 'Downloads';
 
   @override

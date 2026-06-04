@@ -209,6 +209,8 @@
   "failedToLoadPlaylistEntries": "Failed to load playlist entries",
   "emptyPlaylist": "Empty playlist",
   "emptyPlaylistHint": "Add songs from the context menu to grow your playlist.",
+  "remove": "Remove",
+  "playlistNameRequired": "A playlist name is required",
 
   "@@sectionMeta": {
     "downloads": "Downloads Screen"
