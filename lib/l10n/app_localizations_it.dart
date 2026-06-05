@@ -795,6 +795,24 @@ class AppLocalizationsIt extends AppLocalizations {
   String get failedToLoadHomeFeed => 'Impossibile caricare la home';
 
   @override
+  String get yourPlaylists => 'Le tue playlist';
+
+  @override
+  String get yourArtists => 'I tuoi artisti';
+
+  @override
+  String get likedAlbumsHome => 'Album preferiti';
+
+  @override
+  String get newReleases => 'Nuove uscite';
+
+  @override
+  String get discover => 'Scopri';
+
+  @override
+  String get similarArtistsHome => 'Artisti simili';
+
+  @override
   String get retry => 'Riprova';
 
   @override

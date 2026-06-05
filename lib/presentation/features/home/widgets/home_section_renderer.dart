@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/constants/app_constants.dart';
 
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/album_card.dart';
+import '../../../shared/widgets/artist_card.dart';
 import '../../../shared/widgets/playlist_card.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_card.dart';
@@ -40,8 +42,13 @@ class HomeShimmer extends StatelessWidget {
 
 class HomeContinueListening extends StatefulWidget {
   final AsyncValue historyAsync;
+  final double cardWidth;
 
-  const HomeContinueListening(this.historyAsync, {super.key});
+  const HomeContinueListening(
+    this.historyAsync, {
+    super.key,
+    this.cardWidth = 140,
+  });
 
   @override
   State<HomeContinueListening> createState() => _HomeContinueListeningState();
@@ -82,10 +89,10 @@ class _HomeContinueListeningState extends State<HomeContinueListening> {
               ),
             ),
             SizedBox(
-              height: 120,
+              height: widget.cardWidth + 48,
               child: HoverCarouselArrows(
                 controller: _scrollController,
-                scrollAmount: 300.0,
+                scrollAmount: widget.cardWidth * 2,
                 child: ListView.separated(
                   controller: _scrollController,
                   scrollDirection: Axis.horizontal,
@@ -94,7 +101,10 @@ class _HomeContinueListeningState extends State<HomeContinueListening> {
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final item = history[index];
-                    return _ContinueListeningItem(item: item);
+                    return _ContinueListeningItem(
+                      item: item,
+                      cardWidth: widget.cardWidth,
+                    );
                   },
                 ),
               ),
@@ -109,8 +119,9 @@ class _HomeContinueListeningState extends State<HomeContinueListening> {
 
 class _ContinueListeningItem extends ConsumerWidget {
   final dynamic item;
+  final double cardWidth;
 
-  const _ContinueListeningItem({required this.item});
+  const _ContinueListeningItem({required this.item, this.cardWidth = 140});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -128,7 +139,7 @@ class _ContinueListeningItem extends ConsumerWidget {
             playCount: item.playCount.toString(),
           ),
       child: SizedBox(
-        width: 100,
+        width: cardWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -136,14 +147,14 @@ class _ContinueListeningItem extends ConsumerWidget {
               children: [
                 ThumbnailWidget(
                   imageUrl: item.thumbnailUrl,
-                  size: 100,
+                  size: cardWidth,
                   shape: ThumbnailShape.rounded,
                 ),
                 Positioned(
-                  bottom: 4,
-                  right: 4,
+                  bottom: 6,
+                  right: 6,
                   child: Container(
-                    padding: const EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       shape: BoxShape.circle,
@@ -157,12 +168,14 @@ class _ContinueListeningItem extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               item.title,
               overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: Theme.of(context).textTheme.bodySmall,
+              maxLines: 2,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -487,5 +500,427 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
       );
     }
     return const SizedBox.shrink();
+  }
+}
+
+class HomeYourPlaylists extends StatelessWidget {
+  final AsyncValue<List<dynamic>> playlistsAsync;
+  final double cardWidth;
+
+  const HomeYourPlaylists(
+    this.playlistsAsync, {
+    super.key,
+    this.cardWidth = 140,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return playlistsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (playlists) {
+        if (playlists.isEmpty) return const SizedBox.shrink();
+        final height = cardWidth + 60;
+        return _HomeCarouselSection(
+          title: AppLocalizations.of(context)!.yourPlaylists,
+          height: height,
+          itemCount: playlists.length,
+          itemBuilder: (context, index) {
+            final item = playlists[index];
+            return _HomePlaylistTile(item: item, cardWidth: cardWidth);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _HomePlaylistTile extends StatelessWidget {
+  final dynamic item;
+  final double cardWidth;
+
+  const _HomePlaylistTile({required this.item, this.cardWidth = 140});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    String name;
+    String? thumbnailUrl;
+    String route;
+
+    if (item is LocalPlaylistModel) {
+      name = item.name;
+      thumbnailUrl = null;
+      route = '/playlist/local/${item.id}';
+    } else if (item is LikedPlaylistModel) {
+      name = item.name;
+      thumbnailUrl = item.thumbnailUrl;
+      route = '/playlist/${item.playlistId}';
+    } else {
+      return const SizedBox.shrink();
+    }
+
+    return ScaleButton(
+      onTap: () => context.push(route),
+      child: SizedBox(
+        width: cardWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ThumbnailWidget(
+              imageUrl: thumbnailUrl,
+              size: cardWidth,
+              shape: ThumbnailShape.rounded,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HomeYourArtists extends StatelessWidget {
+  final AsyncValue<List<FollowedArtistModel>> artistsAsync;
+  final double cardWidth;
+
+  const HomeYourArtists(this.artistsAsync, {super.key, this.cardWidth = 120});
+
+  @override
+  Widget build(BuildContext context) {
+    return artistsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (artists) {
+        if (artists.isEmpty) return const SizedBox.shrink();
+        final height = cardWidth + 60;
+        return _HomeCarouselSection(
+          title: AppLocalizations.of(context)!.yourArtists,
+          height: height,
+          itemCount: artists.length,
+          itemBuilder: (context, index) {
+            final artist = artists[index];
+            return ArtistCard(
+              artistId: artist.artistId,
+              name: artist.name,
+              thumbnailUrl: artist.thumbnailUrl,
+              cardWidth: cardWidth,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class HomeLikedAlbums extends StatelessWidget {
+  final AsyncValue<List<LikedAlbumModel>> albumsAsync;
+  final double cardWidth;
+
+  const HomeLikedAlbums(this.albumsAsync, {super.key, this.cardWidth = 140});
+
+  @override
+  Widget build(BuildContext context) {
+    return albumsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (albums) {
+        if (albums.isEmpty) return const SizedBox.shrink();
+        final height = cardWidth + 80;
+        return _HomeCarouselSection(
+          title: AppLocalizations.of(context)!.likedAlbumsHome,
+          height: height,
+          itemCount: albums.length,
+          itemBuilder: (context, index) {
+            final album = albums[index];
+            return AlbumCard(
+              albumId: album.albumId,
+              name: album.name,
+              artist: album.artistName,
+              thumbnailUrl: album.thumbnailUrl,
+              year: album.year,
+              cardWidth: cardWidth,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class HomeNewReleases extends StatelessWidget {
+  final AsyncValue<List<AlbumDetailed>> albumsAsync;
+  final double cardWidth;
+
+  const HomeNewReleases(this.albumsAsync, {super.key, this.cardWidth = 140});
+
+  @override
+  Widget build(BuildContext context) {
+    return albumsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (albums) {
+        if (albums.isEmpty) return const SizedBox.shrink();
+        final height = cardWidth + 80;
+        return _HomeCarouselSection(
+          title: AppLocalizations.of(context)!.newReleases,
+          height: height,
+          itemCount: albums.length,
+          itemBuilder: (context, index) {
+            final album = albums[index];
+            return _NewReleaseTile(
+              albumId: album.albumId,
+              name: album.name,
+              artist: album.artist.name,
+              thumbnailUrl:
+                  album.thumbnails.isNotEmpty
+                      ? album.thumbnails.last.url
+                      : null,
+              year: album.year,
+              cardWidth: cardWidth,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _NewReleaseTile extends StatelessWidget {
+  final String albumId;
+  final String name;
+  final String artist;
+  final String? thumbnailUrl;
+  final int? year;
+  final double cardWidth;
+
+  const _NewReleaseTile({
+    required this.albumId,
+    required this.name,
+    required this.artist,
+    this.thumbnailUrl,
+    this.year,
+    required this.cardWidth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return ScaleButton(
+      onTap: () => context.push('/album/$albumId'),
+      child: SizedBox(
+        width: cardWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ThumbnailWidget(
+                  imageUrl: thumbnailUrl,
+                  size: cardWidth,
+                  shape: ThumbnailShape.rounded,
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'NEW',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              [artist, if (year != null) '$year'].join(' · '),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HomeDiscover extends StatelessWidget {
+  final AsyncValue<List<UpNextsDetails>> discoverAsync;
+  final double cardWidth;
+
+  const HomeDiscover(this.discoverAsync, {super.key, this.cardWidth = 140});
+
+  @override
+  Widget build(BuildContext context) {
+    return discoverAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (suggestions) {
+        if (suggestions.isEmpty) return const SizedBox.shrink();
+        final height = cardWidth + 80;
+        return _HomeCarouselSection(
+          title: AppLocalizations.of(context)!.discover,
+          height: height,
+          itemCount: suggestions.length,
+          itemBuilder: (context, index) {
+            final song = suggestions[index];
+            return SongCard(
+              videoId: song.videoId,
+              thumbnailUrl:
+                  song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+              title: song.title,
+              artist: song.artists.name,
+              duration: song.duration,
+              artistId: song.artists.artistId,
+              albumId: song.album?.albumId,
+              cardWidth: cardWidth,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class HomeSimilarArtists extends StatelessWidget {
+  final AsyncValue<List<ArtistDetailed>> artistsAsync;
+  final double cardWidth;
+
+  const HomeSimilarArtists(
+    this.artistsAsync, {
+    super.key,
+    this.cardWidth = 120,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return artistsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (artists) {
+        if (artists.isEmpty) return const SizedBox.shrink();
+        final height = cardWidth + 60;
+        return _HomeCarouselSection(
+          title: AppLocalizations.of(context)!.similarArtistsHome,
+          height: height,
+          itemCount: artists.length,
+          itemBuilder: (context, index) {
+            final artist = artists[index];
+            return ArtistCard(
+              artistId: artist.artistId,
+              name: artist.name,
+              thumbnailUrl:
+                  artist.thumbnails.isNotEmpty
+                      ? artist.thumbnails.last.url
+                      : null,
+              monthlyListeners: artist.monthlyListeners,
+              cardWidth: cardWidth,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _HomeCarouselSection extends StatefulWidget {
+  final String title;
+  final double height;
+  final int itemCount;
+  final Widget Function(BuildContext, int) itemBuilder;
+
+  const _HomeCarouselSection({
+    required this.title,
+    required this.height,
+    required this.itemCount,
+    required this.itemBuilder,
+  });
+
+  @override
+  State<_HomeCarouselSection> createState() => _HomeCarouselSectionState();
+}
+
+class _HomeCarouselSectionState extends State<_HomeCarouselSection> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            widget.title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        SizedBox(
+          height: widget.height,
+          child: HoverCarouselArrows(
+            controller: _scrollController,
+            scrollAmount: 300.0,
+            child: ListView.separated(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: widget.itemCount,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: widget.itemBuilder,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
   }
 }

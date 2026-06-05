@@ -16,6 +16,12 @@ class HomeTabletLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sectionsAsync = ref.watch(homeSectionsProvider);
     final historyAsync = ref.watch(recentHistoryProvider);
+    final playlistsAsync = ref.watch(homeRandomPlaylistsProvider);
+    final artistsAsync = ref.watch(homeRandomArtistsProvider);
+    final albumsAsync = ref.watch(homeRandomAlbumsProvider);
+    final newReleasesAsync = ref.watch(homeRandomNewReleasesProvider);
+    final discoverAsync = ref.watch(homeDiscoverProvider);
+    final similarArtistsAsync = ref.watch(homeSimilarArtistsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -40,6 +46,14 @@ class HomeTabletLayout extends ConsumerWidget {
               onPressed: () {
                 ref.invalidate(homeSectionsProvider);
                 ref.invalidate(recentHistoryProvider);
+                ref.invalidate(homeCombinedPlaylistsProvider);
+                ref.invalidate(homeRandomPlaylistsProvider);
+                ref.invalidate(homeRandomArtistsProvider);
+                ref.invalidate(homeRandomAlbumsProvider);
+                ref.invalidate(homeNewReleasesProvider);
+                ref.invalidate(homeRandomNewReleasesProvider);
+                ref.invalidate(homeDiscoverProvider);
+                ref.invalidate(homeSimilarArtistsProvider);
               },
             ),
         ],
@@ -57,15 +71,34 @@ class HomeTabletLayout extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 16),
                 children: [
-                  HomeContinueListening(historyAsync),
-                  for (var i = 0; i < sections.length; i++)
+                  if (sections.isNotEmpty)
                     HomeSectionRow(
-                      section: sections[i],
-                      isFirst: i == 0,
-                      cardWidth: 180,
+                      section: sections[0],
+                      isFirst: true,
+                      cardWidth: 160,
                       heroViewportFraction: 0.7,
                       sectionPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
                     ),
+                  HomeYourPlaylists(playlistsAsync, cardWidth: 160),
+                  HomeContinueListening(historyAsync, cardWidth: 160),
+                  HomeYourArtists(artistsAsync, cardWidth: 140),
+                  HomeLikedAlbums(albumsAsync, cardWidth: 160),
+                  HomeNewReleases(newReleasesAsync, cardWidth: 160),
+                  HomeDiscover(discoverAsync, cardWidth: 160),
+                  HomeSimilarArtists(similarArtistsAsync, cardWidth: 140),
+                  if (sections.length > 1)
+                    for (var i = 1; i < sections.length; i++)
+                      HomeSectionRow(
+                        section: sections[i],
+                        isFirst: false,
+                        cardWidth: 160,
+                        sectionPadding: const EdgeInsets.fromLTRB(
+                          24,
+                          20,
+                          24,
+                          12,
+                        ),
+                      ),
                 ],
               ),
             ),

@@ -16,6 +16,12 @@ class HomeMobileLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sectionsAsync = ref.watch(homeSectionsProvider);
     final historyAsync = ref.watch(recentHistoryProvider);
+    final playlistsAsync = ref.watch(homeRandomPlaylistsProvider);
+    final artistsAsync = ref.watch(homeRandomArtistsProvider);
+    final albumsAsync = ref.watch(homeRandomAlbumsProvider);
+    final newReleasesAsync = ref.watch(homeRandomNewReleasesProvider);
+    final discoverAsync = ref.watch(homeDiscoverProvider);
+    final similarArtistsAsync = ref.watch(homeSimilarArtistsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -40,6 +46,14 @@ class HomeMobileLayout extends ConsumerWidget {
               onPressed: () {
                 ref.invalidate(homeSectionsProvider);
                 ref.invalidate(recentHistoryProvider);
+                ref.invalidate(homeCombinedPlaylistsProvider);
+                ref.invalidate(homeRandomPlaylistsProvider);
+                ref.invalidate(homeRandomArtistsProvider);
+                ref.invalidate(homeRandomAlbumsProvider);
+                ref.invalidate(homeNewReleasesProvider);
+                ref.invalidate(homeRandomNewReleasesProvider);
+                ref.invalidate(homeDiscoverProvider);
+                ref.invalidate(homeSimilarArtistsProvider);
               },
             ),
         ],
@@ -59,9 +73,26 @@ class HomeMobileLayout extends ConsumerWidget {
                   bottom: MediaQuery.of(context).padding.bottom + 16,
                 ),
                 children: [
-                  HomeContinueListening(historyAsync),
-                  for (var i = 0; i < sections.length; i++)
-                    HomeSectionRow(section: sections[i], isFirst: i == 0),
+                  if (sections.isNotEmpty)
+                    HomeSectionRow(
+                      section: sections[0],
+                      isFirst: true,
+                      cardWidth: 140,
+                    ),
+                  HomeYourPlaylists(playlistsAsync, cardWidth: 140),
+                  HomeContinueListening(historyAsync, cardWidth: 140),
+                  HomeYourArtists(artistsAsync, cardWidth: 120),
+                  HomeLikedAlbums(albumsAsync, cardWidth: 140),
+                  HomeNewReleases(newReleasesAsync, cardWidth: 140),
+                  HomeDiscover(discoverAsync, cardWidth: 140),
+                  HomeSimilarArtists(similarArtistsAsync, cardWidth: 120),
+                  if (sections.length > 1)
+                    for (var i = 1; i < sections.length; i++)
+                      HomeSectionRow(
+                        section: sections[i],
+                        isFirst: false,
+                        cardWidth: 140,
+                      ),
                 ],
               ),
             ),

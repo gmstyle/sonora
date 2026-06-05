@@ -278,6 +278,12 @@
   "continueListening": "Continua ad ascoltare",
   "refresh": "Aggiorna",
   "failedToLoadHomeFeed": "Impossibile caricare la home",
+  "yourPlaylists": "Le tue playlist",
+  "yourArtists": "I tuoi artisti",
+  "likedAlbumsHome": "Album preferiti",
+  "newReleases": "Nuove uscite",
+  "discover": "Scopri",
+  "similarArtistsHome": "Artisti simili",
 
   "@@sectionMeta": {
     "common": "Comuni"

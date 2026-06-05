@@ -418,6 +418,12 @@
   "continueListening": "Continue Listening",
   "refresh": "Refresh",
   "failedToLoadHomeFeed": "Failed to load home feed",
+  "yourPlaylists": "Your playlists",
+  "yourArtists": "Your artists",
+  "likedAlbumsHome": "Liked albums",
+  "newReleases": "New releases",
+  "discover": "Discover",
+  "similarArtistsHome": "Similar artists",
 
   "@@sectionMeta": {
     "common": "Common"

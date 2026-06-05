@@ -790,6 +790,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadHomeFeed => 'Failed to load home feed';
 
   @override
+  String get yourPlaylists => 'Your playlists';
+
+  @override
+  String get yourArtists => 'Your artists';
+
+  @override
+  String get likedAlbumsHome => 'Liked albums';
+
+  @override
+  String get newReleases => 'New releases';
+
+  @override
+  String get discover => 'Discover';
+
+  @override
+  String get similarArtistsHome => 'Similar artists';
+
+  @override
   String get retry => 'Retry';
 
   @override

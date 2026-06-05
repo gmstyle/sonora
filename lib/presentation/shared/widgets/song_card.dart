@@ -18,6 +18,7 @@ class SongCard extends ConsumerWidget {
   final String? playCount;
   final String? artistId;
   final String? albumId;
+  final double cardWidth;
 
   const SongCard({
     super.key,
@@ -29,6 +30,7 @@ class SongCard extends ConsumerWidget {
     this.playCount,
     this.artistId,
     this.albumId,
+    this.cardWidth = 150,
   });
 
   @override
@@ -39,6 +41,10 @@ class SongCard extends ConsumerWidget {
             : null;
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
+
+    final thumbRatio = cardWidth / 150;
+    final thumbSize = cardWidth;
+    final height = (statLabel != null ? 236 : 220) * thumbRatio;
 
     return ScaleButton(
       onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
@@ -54,8 +60,8 @@ class SongCard extends ConsumerWidget {
             albumId: albumId,
           ),
       child: SizedBox(
-        width: 150,
-        height: statLabel != null ? 236 : 220,
+        width: cardWidth,
+        height: height,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -63,7 +69,7 @@ class SongCard extends ConsumerWidget {
               children: [
                 ThumbnailWidget(
                   imageUrl: thumbnailUrl,
-                  size: 150,
+                  size: thumbSize,
                   shape: ThumbnailShape.rounded,
                 ),
                 if (duration != null)

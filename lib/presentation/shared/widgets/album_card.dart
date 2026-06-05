@@ -12,6 +12,7 @@ class AlbumCard extends ConsumerWidget {
   final String? thumbnailUrl;
   final int? year;
   final String? artistId;
+  final double cardWidth;
 
   const AlbumCard({
     super.key,
@@ -21,6 +22,7 @@ class AlbumCard extends ConsumerWidget {
     this.thumbnailUrl,
     this.year,
     this.artistId,
+    this.cardWidth = 150,
   });
 
   @override
@@ -38,7 +40,7 @@ class AlbumCard extends ConsumerWidget {
             year: year,
           ),
       child: SizedBox(
-        width: 150,
+        width: cardWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -46,7 +48,7 @@ class AlbumCard extends ConsumerWidget {
               tag: 'album_art_$albumId',
               child: ThumbnailWidget(
                 imageUrl: thumbnailUrl,
-                size: 150,
+                size: cardWidth,
                 shape: ThumbnailShape.rounded,
               ),
             ),

@@ -12,6 +12,7 @@ class ArtistCard extends ConsumerWidget {
   final String name;
   final String? thumbnailUrl;
   final String? monthlyListeners;
+  final double cardWidth;
 
   const ArtistCard({
     super.key,
@@ -19,6 +20,7 @@ class ArtistCard extends ConsumerWidget {
     required this.name,
     this.thumbnailUrl,
     this.monthlyListeners,
+    this.cardWidth = 120,
   });
 
   @override
@@ -29,6 +31,8 @@ class ArtistCard extends ConsumerWidget {
             : AppLocalizations.of(
               context,
             )!.artists; // Fallback "Artisti" / "Artists"
+
+    final thumbSize = (cardWidth * 110 / 120).roundToDouble();
 
     return ScaleButton(
       onTap: () => context.push('/artist/$artistId'),
@@ -41,7 +45,7 @@ class ArtistCard extends ConsumerWidget {
             monthlyListeners: monthlyListeners,
           ),
       child: SizedBox(
-        width: 120,
+        width: cardWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -49,7 +53,7 @@ class ArtistCard extends ConsumerWidget {
               tag: 'artist_art_$artistId',
               child: ThumbnailWidget(
                 imageUrl: thumbnailUrl,
-                size: 110,
+                size: thumbSize,
                 shape: ThumbnailShape.circle,
               ),
             ),

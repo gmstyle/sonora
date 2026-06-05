@@ -1442,6 +1442,42 @@ abstract class AppLocalizations {
   /// **'Failed to load home feed'**
   String get failedToLoadHomeFeed;
 
+  /// No description provided for @yourPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Your playlists'**
+  String get yourPlaylists;
+
+  /// No description provided for @yourArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Your artists'**
+  String get yourArtists;
+
+  /// No description provided for @likedAlbumsHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked albums'**
+  String get likedAlbumsHome;
+
+  /// No description provided for @newReleases.
+  ///
+  /// In en, this message translates to:
+  /// **'New releases'**
+  String get newReleases;
+
+  /// No description provided for @discover.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover'**
+  String get discover;
+
+  /// No description provided for @similarArtistsHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar artists'**
+  String get similarArtistsHome;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
