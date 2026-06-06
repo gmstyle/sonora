@@ -1,16 +1,23 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../providers/home_provider.dart';
+import '../../library/providers/library_provider.dart';
+import '../../library/widgets/playlist_detail_view.dart';
 
 import '../../../providers/player_provider.dart';
+import '../../../providers/palette_provider.dart';
 import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/artist_card.dart';
 import '../../../shared/widgets/playlist_card.dart';
+import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
@@ -40,7 +47,7 @@ class HomeShimmer extends StatelessWidget {
   }
 }
 
-class HomeContinueListening extends StatefulWidget {
+class HomeContinueListening extends ConsumerStatefulWidget {
   final AsyncValue historyAsync;
   final double cardWidth;
 
@@ -51,10 +58,11 @@ class HomeContinueListening extends StatefulWidget {
   });
 
   @override
-  State<HomeContinueListening> createState() => _HomeContinueListeningState();
+  ConsumerState<HomeContinueListening> createState() =>
+      _HomeContinueListeningState();
 }
 
-class _HomeContinueListeningState extends State<HomeContinueListening> {
+class _HomeContinueListeningState extends ConsumerState<HomeContinueListening> {
   late final ScrollController _scrollController;
 
   @override
@@ -71,6 +79,9 @@ class _HomeContinueListeningState extends State<HomeContinueListening> {
 
   @override
   Widget build(BuildContext context) {
+    final isIt = Localizations.localeOf(context).languageCode == 'it';
+    final showAllLabel = isIt ? 'Vedi tutto' : 'Show all';
+
     return widget.historyAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
@@ -81,11 +92,51 @@ class _HomeContinueListeningState extends State<HomeContinueListening> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                AppLocalizations.of(context)!.continueListening,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(context)!.continueListening,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      ref
+                          .read(libraryActiveTabProvider.notifier)
+                          .update(4); // History is index 4
+                      context.go('/library');
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          showAllLabel,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          LucideIcons.chevronRight,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             SizedBox(
@@ -190,6 +241,7 @@ class HomeSectionRow extends ConsumerWidget {
   final double cardWidth;
   final double heroViewportFraction;
   final EdgeInsets sectionPadding;
+  final VoidCallback? onShowAll;
 
   const HomeSectionRow({
     super.key,
@@ -198,6 +250,7 @@ class HomeSectionRow extends ConsumerWidget {
     this.cardWidth = 150,
     this.heroViewportFraction = 0.85,
     this.sectionPadding = const EdgeInsets.fromLTRB(16, 16, 16, 8),
+    this.onShowAll,
   });
 
   @override
@@ -206,18 +259,56 @@ class HomeSectionRow extends ConsumerWidget {
 
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < kCompactBreakpoint;
-    final double carouselHeight = isFirst ? (isMobile ? 180.0 : 220.0) : 220.0;
+    final double carouselHeight =
+        isFirst ? (isMobile ? 180.0 : 220.0) : (cardWidth + 80.0);
+
+    final isIt = Localizations.localeOf(context).languageCode == 'it';
+    final showAllLabel = isIt ? 'Vedi tutto' : 'Show all';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: sectionPadding,
-          child: Text(
-            section.title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  section.title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (onShowAll != null)
+                TextButton(
+                  onPressed: onShowAll,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        showAllLabel,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        LucideIcons.chevronRight,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
         SizedBox(
@@ -231,6 +322,7 @@ class HomeSectionRow extends ConsumerWidget {
                   : _HorizontalCardRow(
                     items: section.contents,
                     cardWidth: cardWidth,
+                    shelfId: section.shelfId,
                   ),
         ),
       ],
@@ -424,8 +516,13 @@ class _HeroCard extends StatelessWidget {
 class _HorizontalCardRow extends StatefulWidget {
   final List<dynamic> items;
   final double cardWidth;
+  final String? shelfId;
 
-  const _HorizontalCardRow({required this.items, this.cardWidth = 150});
+  const _HorizontalCardRow({
+    required this.items,
+    this.cardWidth = 150,
+    this.shelfId,
+  });
 
   @override
   State<_HorizontalCardRow> createState() => _HorizontalCardRowState();
@@ -452,6 +549,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
       controller: _scrollController,
       scrollAmount: widget.cardWidth * 3, // Scroll by 3 cards at a time
       child: ListView.separated(
+        key: widget.shelfId != null ? PageStorageKey(widget.shelfId) : null,
         controller: _scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -503,7 +601,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
   }
 }
 
-class HomeYourPlaylists extends StatelessWidget {
+class HomeYourPlaylists extends ConsumerWidget {
   final AsyncValue<List<dynamic>> playlistsAsync;
   final double cardWidth;
 
@@ -514,7 +612,7 @@ class HomeYourPlaylists extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return playlistsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
@@ -529,50 +627,109 @@ class HomeYourPlaylists extends StatelessWidget {
             final item = playlists[index];
             return _HomePlaylistTile(item: item, cardWidth: cardWidth);
           },
+          onShowAll: () {
+            ref
+                .read(libraryActiveTabProvider.notifier)
+                .update(2); // Playlists is index 2
+            context.go('/library');
+          },
         );
       },
     );
   }
 }
 
-class _HomePlaylistTile extends StatelessWidget {
+class _LocalPlaylistCover extends ConsumerWidget {
+  final int playlistId;
+  final double size;
+
+  const _LocalPlaylistCover({required this.playlistId, required this.size});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entriesAsync = ref.watch(playlistEntriesProvider(playlistId));
+    final likedSongs = ref.watch(likedSongsProvider).asData?.value ?? [];
+
+    final urls = switch (entriesAsync) {
+      AsyncData(:final value) =>
+        value
+            .map((e) {
+              final liked = likedSongs.cast<LikedSongModel?>().firstWhere(
+                (l) => l?.videoId == e.videoId,
+                orElse: () => null,
+              );
+              return liked?.thumbnailUrl ?? e.thumbnailUrl;
+            })
+            .where((u) => u != null && u.isNotEmpty)
+            .cast<String>()
+            .take(3)
+            .toList(),
+      _ => <String>[],
+    };
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: PlaylistCoverCollage(thumbnailUrls: urls, borderRadius: 8),
+    );
+  }
+}
+
+class _HomePlaylistTile extends ConsumerWidget {
   final dynamic item;
   final double cardWidth;
 
   const _HomePlaylistTile({required this.item, this.cardWidth = 140});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
 
     String name;
     String? thumbnailUrl;
-    String route;
 
     if (item is LocalPlaylistModel) {
       name = item.name;
       thumbnailUrl = null;
-      route = '/playlist/local/${item.id}';
     } else if (item is LikedPlaylistModel) {
       name = item.name;
       thumbnailUrl = item.thumbnailUrl;
-      route = '/playlist/${item.playlistId}';
     } else {
       return const SizedBox.shrink();
     }
 
     return ScaleButton(
-      onTap: () => context.push(route),
+      onTap: () {
+        if (item is LocalPlaylistModel) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => PlaylistDetailView(
+                    playlist: item,
+                    onUpdated: () {
+                      ref.invalidate(playlistsProvider);
+                    },
+                  ),
+            ),
+          );
+        } else if (item is LikedPlaylistModel) {
+          context.push('/playlist/${item.playlistId}');
+        }
+      },
       child: SizedBox(
         width: cardWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ThumbnailWidget(
-              imageUrl: thumbnailUrl,
-              size: cardWidth,
-              shape: ThumbnailShape.rounded,
-            ),
+            if (item is LocalPlaylistModel)
+              _LocalPlaylistCover(playlistId: item.id, size: cardWidth)
+            else
+              ThumbnailWidget(
+                imageUrl: thumbnailUrl,
+                size: cardWidth,
+                shape: ThumbnailShape.rounded,
+              ),
             const SizedBox(height: 8),
             Text(
               name,
@@ -589,14 +746,14 @@ class _HomePlaylistTile extends StatelessWidget {
   }
 }
 
-class HomeYourArtists extends StatelessWidget {
+class HomeYourArtists extends ConsumerWidget {
   final AsyncValue<List<FollowedArtistModel>> artistsAsync;
   final double cardWidth;
 
   const HomeYourArtists(this.artistsAsync, {super.key, this.cardWidth = 120});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return artistsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
@@ -616,20 +773,26 @@ class HomeYourArtists extends StatelessWidget {
               cardWidth: cardWidth,
             );
           },
+          onShowAll: () {
+            ref
+                .read(libraryActiveTabProvider.notifier)
+                .update(1); // Artists is index 1
+            context.go('/library');
+          },
         );
       },
     );
   }
 }
 
-class HomeLikedAlbums extends StatelessWidget {
+class HomeLikedAlbums extends ConsumerWidget {
   final AsyncValue<List<LikedAlbumModel>> albumsAsync;
   final double cardWidth;
 
   const HomeLikedAlbums(this.albumsAsync, {super.key, this.cardWidth = 140});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return albumsAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
@@ -650,6 +813,12 @@ class HomeLikedAlbums extends StatelessWidget {
               year: album.year,
               cardWidth: cardWidth,
             );
+          },
+          onShowAll: () {
+            ref
+                .read(libraryActiveTabProvider.notifier)
+                .update(3); // Albums is index 3
+            context.go('/library');
           },
         );
       },
@@ -863,12 +1032,14 @@ class _HomeCarouselSection extends StatefulWidget {
   final double height;
   final int itemCount;
   final Widget Function(BuildContext, int) itemBuilder;
+  final VoidCallback? onShowAll;
 
   const _HomeCarouselSection({
     required this.title,
     required this.height,
     required this.itemCount,
     required this.itemBuilder,
+    this.onShowAll,
   });
 
   @override
@@ -892,16 +1063,53 @@ class _HomeCarouselSectionState extends State<_HomeCarouselSection> {
 
   @override
   Widget build(BuildContext context) {
+    final isIt = Localizations.localeOf(context).languageCode == 'it';
+    final showAllLabel = isIt ? 'Vedi tutto' : 'Show all';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            widget.title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (widget.onShowAll != null)
+                TextButton(
+                  onPressed: widget.onShowAll,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        showAllLabel,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        LucideIcons.chevronRight,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
         SizedBox(
@@ -920,6 +1128,181 @@ class _HomeCarouselSectionState extends State<_HomeCarouselSection> {
           ),
         ),
         const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class HomeChipsBar extends ConsumerWidget {
+  const HomeChipsBar({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resultAsync = ref.watch(homeResultProvider);
+
+    return resultAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (data) {
+        final filteredChips =
+            data.chips.where((chip) {
+              final titleLower = chip.title.toLowerCase();
+              return titleLower != 'podcasts' && titleLower != 'podcast';
+            }).toList();
+
+        if (filteredChips.isEmpty) return const SizedBox.shrink();
+
+        return SizedBox(
+          height: 52,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: filteredChips.length + 1,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                final isTuttoSelected =
+                    ref.watch(homeSelectedChipParamsProvider) == null;
+                return ChoiceChip(
+                  label: Text(AppLocalizations.of(context)!.all),
+                  selected: isTuttoSelected,
+                  onSelected: (selected) {
+                    if (selected) {
+                      ref
+                          .read(homeSelectedChipParamsProvider.notifier)
+                          .update(null);
+                    }
+                  },
+                );
+              }
+
+              final chip = filteredChips[index - 1];
+              final isSelected =
+                  ref.watch(homeSelectedChipParamsProvider) == chip.params;
+
+              return ChoiceChip(
+                label: Text(chip.title),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected) {
+                    ref
+                        .read(homeSelectedChipParamsProvider.notifier)
+                        .update(chip.params);
+                  } else {
+                    ref
+                        .read(homeSelectedChipParamsProvider.notifier)
+                        .update(null);
+                  }
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AmbientBackground extends ConsumerWidget {
+  final Widget child;
+
+  const AmbientBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playerState = ref.watch(playerStateProvider);
+    final currentSong = playerState.currentSong;
+    final paletteMap = ref.watch(paletteNotifierProvider);
+    final homeResultAsync = ref.watch(homeResultProvider);
+
+    final backgroundUrl = homeResultAsync.when(
+      data: (data) => data.backgroundUrl,
+      loading: () => null,
+      error: (_, _) => null,
+    );
+
+    Color dominantColor = Theme.of(context).colorScheme.surface;
+
+    if (currentSong != null) {
+      final videoId = currentSong.id;
+      final artUrl = currentSong.artUri?.toString();
+      if (artUrl != null && artUrl.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref
+              .read(paletteNotifierProvider.notifier)
+              .extractPalette(videoId, artUrl);
+        });
+
+        final paletteData = paletteMap[videoId];
+        if (paletteData != null) {
+          dominantColor = paletteData.dominantColor;
+        }
+      }
+    }
+
+    final isThemeDark = Theme.of(context).brightness == Brightness.dark;
+
+    Widget backgroundWidget;
+
+    if (currentSong != null) {
+      final ambientColor = dominantColor.withValues(
+        alpha: isThemeDark ? 0.15 : 0.08,
+      );
+      backgroundWidget = AnimatedContainer(
+        key: const ValueKey('gradient_bg'),
+        duration: const Duration(milliseconds: 600),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [ambientColor, Theme.of(context).colorScheme.surface],
+            stops: const [0.0, 0.45],
+          ),
+        ),
+      );
+    } else if (backgroundUrl != null && backgroundUrl.isNotEmpty) {
+      backgroundWidget = Container(
+        key: const ValueKey('image_bg'),
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height * 0.45,
+        foregroundDecoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: isThemeDark ? 0.5 : 0.3),
+              Theme.of(context).colorScheme.surface,
+            ],
+            stops: const [0.0, 1.0],
+          ),
+        ),
+        child: ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+          child: CachedNetworkImage(
+            imageUrl: backgroundUrl,
+            fit: BoxFit.cover,
+            errorWidget: (_, _, _) => const SizedBox.shrink(),
+          ),
+        ),
+      );
+    } else {
+      backgroundWidget = Container(
+        key: const ValueKey('empty_bg'),
+        color: Theme.of(context).colorScheme.surface,
+      );
+    }
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 600),
+            child: backgroundWidget,
+          ),
+        ),
+        Positioned.fill(child: child),
       ],
     );
   }

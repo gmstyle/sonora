@@ -27,9 +27,18 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+      initialIndex: ref.read(libraryActiveTabProvider),
+    );
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) setState(() {});
+      if (!_tabController.indexIsChanging) {
+        ref
+            .read(libraryActiveTabProvider.notifier)
+            .update(_tabController.index);
+        setState(() {});
+      }
     });
   }
 
@@ -41,6 +50,11 @@ class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(libraryActiveTabProvider, (prev, next) {
+      if (_tabController.index != next) {
+        _tabController.animateTo(next);
+      }
+    });
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
     final isAlbumsOrPlaylists =

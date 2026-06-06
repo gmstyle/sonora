@@ -1,7 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
 abstract class MusicRepository {
-  Future<List<HomeSection>> getHomeSections();
+  Future<BrowseHomeResult> getHome({String? params, String? browseId});
   Future<List<SongDetailed>> searchSongs(String query);
   Future<List<ArtistDetailed>> searchArtists(String query);
   Future<List<AlbumDetailed>> searchAlbums(String query);

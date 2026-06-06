@@ -11,7 +11,8 @@ class MusicRepositoryImpl implements MusicRepository {
   MusicRepositoryImpl(this._ytmusic, this._stream);
 
   @override
-  Future<List<HomeSection>> getHomeSections() => _ytmusic.getHomeSections();
+  Future<BrowseHomeResult> getHome({String? params, String? browseId}) =>
+      _ytmusic.getHome(params: params, browseId: browseId);
 
   @override
   Future<List<SongDetailed>> searchSongs(String query) =>

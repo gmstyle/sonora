@@ -20,7 +20,8 @@ class YtmusicDatasource {
     await client.initialize(gl: _gl, hl: _hl);
   }
 
-  Future<List<HomeSection>> getHomeSections() => client.getHomeSections();
+  Future<BrowseHomeResult> getHome({String? params, String? browseId}) =>
+      client.getHome(params: params, browseId: browseId);
 
   Future<List<SongDetailed>> searchSongs(String query) =>
       client.searchSongs(query);

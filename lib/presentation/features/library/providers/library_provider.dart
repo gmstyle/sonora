@@ -301,3 +301,14 @@ final sortedLikedPlaylistsProvider =
         return list;
       });
     });
+
+class LibraryActiveTabNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+  void update(int value) => state = value;
+}
+
+final libraryActiveTabProvider =
+    NotifierProvider<LibraryActiveTabNotifier, int>(
+      LibraryActiveTabNotifier.new,
+    );

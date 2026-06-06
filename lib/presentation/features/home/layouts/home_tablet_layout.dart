@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -22,6 +23,7 @@ class HomeTabletLayout extends ConsumerWidget {
     final newReleasesAsync = ref.watch(homeRandomNewReleasesProvider);
     final discoverAsync = ref.watch(homeDiscoverProvider);
     final similarArtistsAsync = ref.watch(homeSimilarArtistsProvider);
+    final activeChipParams = ref.watch(homeSelectedChipParamsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -44,7 +46,7 @@ class HomeTabletLayout extends ConsumerWidget {
               icon: const Icon(LucideIcons.refreshCw),
               tooltip: AppLocalizations.of(context)!.refresh,
               onPressed: () {
-                ref.invalidate(homeSectionsProvider);
+                ref.invalidate(homeResultProvider);
                 ref.invalidate(recentHistoryProvider);
                 ref.invalidate(homeCombinedPlaylistsProvider);
                 ref.invalidate(homeRandomPlaylistsProvider);
@@ -58,50 +60,147 @@ class HomeTabletLayout extends ConsumerWidget {
             ),
         ],
       ),
-      body: sectionsAsync.when(
-        loading: () => const HomeShimmer(tileCount: 4),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadHomeFeed,
-              onRetry: () => ref.invalidate(homeSectionsProvider),
-            ),
-        data:
-            (sections) => RefreshIndicator(
-              onRefresh: () => ref.refresh(homeSectionsProvider.future),
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 16),
-                children: [
-                  if (sections.isNotEmpty)
-                    HomeSectionRow(
-                      section: sections[0],
-                      isFirst: true,
-                      cardWidth: 160,
-                      heroViewportFraction: 0.7,
-                      sectionPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-                    ),
-                  HomeYourPlaylists(playlistsAsync, cardWidth: 160),
-                  HomeContinueListening(historyAsync, cardWidth: 160),
-                  HomeYourArtists(artistsAsync, cardWidth: 140),
-                  HomeLikedAlbums(albumsAsync, cardWidth: 160),
-                  HomeNewReleases(newReleasesAsync, cardWidth: 160),
-                  HomeDiscover(discoverAsync, cardWidth: 160),
-                  HomeSimilarArtists(similarArtistsAsync, cardWidth: 140),
-                  if (sections.length > 1)
-                    for (var i = 1; i < sections.length; i++)
-                      HomeSectionRow(
-                        section: sections[i],
-                        isFirst: false,
-                        cardWidth: 160,
-                        sectionPadding: const EdgeInsets.fromLTRB(
-                          24,
-                          20,
-                          24,
-                          12,
-                        ),
-                      ),
-                ],
+      body: AmbientBackground(
+        child: sectionsAsync.when(
+          loading: () => const HomeShimmer(tileCount: 4),
+          error:
+              (e, _) => ErrorRetryWidget(
+                message: AppLocalizations.of(context)!.failedToLoadHomeFeed,
+                onRetry: () => ref.invalidate(homeResultProvider),
               ),
-            ),
+          data:
+              (sections) => RefreshIndicator(
+                onRefresh: () => ref.refresh(homeResultProvider.future),
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  children: [
+                    const HomeChipsBar(),
+                    if (activeChipParams == null) ...[
+                      if (sections.isNotEmpty)
+                        HomeSectionRow(
+                          section: sections[0],
+                          isFirst: true,
+                          cardWidth: 160,
+                          heroViewportFraction: 0.7,
+                          sectionPadding: const EdgeInsets.fromLTRB(
+                            24,
+                            20,
+                            24,
+                            12,
+                          ),
+                          onShowAll:
+                              sections[0].browseId != null
+                                  ? () {
+                                    final titleEncoded = Uri.encodeComponent(
+                                      sections[0].title,
+                                    );
+                                    final paramsEncoded =
+                                        sections[0].browseParams != null
+                                            ? '&params=${sections[0].browseParams}'
+                                            : '';
+                                    context.push(
+                                      '/browse-section/${sections[0].browseId}?title=$titleEncoded$paramsEncoded',
+                                    );
+                                  }
+                                  : null,
+                        ),
+                      HomeYourPlaylists(playlistsAsync, cardWidth: 160),
+                      HomeContinueListening(historyAsync, cardWidth: 160),
+                      HomeYourArtists(artistsAsync, cardWidth: 140),
+                      HomeLikedAlbums(albumsAsync, cardWidth: 160),
+                      HomeNewReleases(newReleasesAsync, cardWidth: 160),
+                      HomeDiscover(discoverAsync, cardWidth: 160),
+                      HomeSimilarArtists(similarArtistsAsync, cardWidth: 140),
+                      if (sections.length > 1)
+                        for (var i = 1; i < sections.length; i++)
+                          HomeSectionRow(
+                            section: sections[i],
+                            isFirst: false,
+                            cardWidth: 160,
+                            sectionPadding: const EdgeInsets.fromLTRB(
+                              24,
+                              20,
+                              24,
+                              12,
+                            ),
+                            onShowAll:
+                                sections[i].browseId != null
+                                    ? () {
+                                      final titleEncoded = Uri.encodeComponent(
+                                        sections[i].title,
+                                      );
+                                      final paramsEncoded =
+                                          sections[i].browseParams != null
+                                              ? '&params=${sections[i].browseParams}'
+                                              : '';
+                                      context.push(
+                                        '/browse-section/${sections[i].browseId}?title=$titleEncoded$paramsEncoded',
+                                      );
+                                    }
+                                    : null,
+                          ),
+                    ] else ...[
+                      if (sections.isNotEmpty)
+                        HomeSectionRow(
+                          section: sections[0],
+                          isFirst: true,
+                          cardWidth: 160,
+                          heroViewportFraction: 0.7,
+                          sectionPadding: const EdgeInsets.fromLTRB(
+                            24,
+                            20,
+                            24,
+                            12,
+                          ),
+                          onShowAll:
+                              sections[0].browseId != null
+                                  ? () {
+                                    final titleEncoded = Uri.encodeComponent(
+                                      sections[0].title,
+                                    );
+                                    final paramsEncoded =
+                                        sections[0].browseParams != null
+                                            ? '&params=${sections[0].browseParams}'
+                                            : '';
+                                    context.push(
+                                      '/browse-section/${sections[0].browseId}?title=$titleEncoded$paramsEncoded',
+                                    );
+                                  }
+                                  : null,
+                        ),
+                      if (sections.length > 1)
+                        for (var i = 1; i < sections.length; i++)
+                          HomeSectionRow(
+                            section: sections[i],
+                            isFirst: false,
+                            cardWidth: 160,
+                            sectionPadding: const EdgeInsets.fromLTRB(
+                              24,
+                              20,
+                              24,
+                              12,
+                            ),
+                            onShowAll:
+                                sections[i].browseId != null
+                                    ? () {
+                                      final titleEncoded = Uri.encodeComponent(
+                                        sections[i].title,
+                                      );
+                                      final paramsEncoded =
+                                          sections[i].browseParams != null
+                                              ? '&params=${sections[i].browseParams}'
+                                              : '';
+                                      context.push(
+                                        '/browse-section/${sections[i].browseId}?title=$titleEncoded$paramsEncoded',
+                                      );
+                                    }
+                                    : null,
+                          ),
+                    ],
+                  ],
+                ),
+              ),
+        ),
       ),
     );
   }

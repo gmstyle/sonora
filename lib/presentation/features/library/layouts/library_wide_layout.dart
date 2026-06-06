@@ -20,8 +20,6 @@ class LibraryWideLayout extends ConsumerStatefulWidget {
 }
 
 class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
-  int _selectedIndex = 0;
-
   List<String> _getTabs(BuildContext context) => [
     AppLocalizations.of(context)!.favorites,
     AppLocalizations.of(context)!.artists,
@@ -32,9 +30,10 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = ref.watch(libraryActiveTabProvider);
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
-    final isAlbumsOrPlaylists = _selectedIndex == 2 || _selectedIndex == 3;
+    final isAlbumsOrPlaylists = selectedIndex == 2 || selectedIndex == 3;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,10 +61,13 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
                       LucideIcons.history,
                     ];
                     return ListTile(
-                      selected: i == _selectedIndex,
+                      selected: i == selectedIndex,
                       leading: Icon(icons[i]),
                       title: Text(_getTabs(context)[i]),
-                      onTap: () => setState(() => _selectedIndex = i),
+                      onTap:
+                          () => ref
+                              .read(libraryActiveTabProvider.notifier)
+                              .update(i),
                     );
                   }),
                 ],
@@ -87,7 +89,7 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
                         isSearchActive
                             ? const LibrarySearchResultsView()
                             : IndexedStack(
-                              index: _selectedIndex,
+                              index: selectedIndex,
                               children: const [
                                 FavoritesTab(),
                                 ArtistsTab(),

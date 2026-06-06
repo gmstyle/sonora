@@ -11,9 +11,26 @@ import 'package:sonora/presentation/providers/music_repository_provider.dart';
 
 const _kHomeSectionMaxItems = 12;
 
-final homeSectionsProvider = FutureProvider((ref) {
+class HomeSelectedChipParamsNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void update(String? value) => state = value;
+}
+
+final homeSelectedChipParamsProvider =
+    NotifierProvider<HomeSelectedChipParamsNotifier, String?>(
+      HomeSelectedChipParamsNotifier.new,
+    );
+
+final homeResultProvider = FutureProvider<BrowseHomeResult>((ref) async {
   final repo = ref.watch(musicRepositoryProvider);
-  return repo.getHomeSections();
+  final params = ref.watch(homeSelectedChipParamsProvider);
+  return repo.getHome(params: params);
+});
+
+final homeSectionsProvider = FutureProvider<List<HomeSection>>((ref) async {
+  final result = await ref.watch(homeResultProvider.future);
+  return result.sections;
 });
 
 final recentHistoryProvider = FutureProvider((ref) {

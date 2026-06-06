@@ -9,6 +9,7 @@ import '../features/settings/settings_screen.dart';
 import '../features/artist/artist_screen.dart';
 import '../features/album/album_screen.dart';
 import '../features/playlist/playlist_screen.dart';
+import '../features/browse_section/browse_section_screen.dart';
 import '../shared/layouts/app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -115,6 +116,43 @@ final routerProvider = Provider<GoRouter>((ref) {
                             milliseconds: 250,
                           ),
                         ),
+                  ),
+                  GoRoute(
+                    path: 'browse-section/:browseId',
+                    pageBuilder: (context, state) {
+                      final browseId = state.pathParameters['browseId']!;
+                      final params = state.uri.queryParameters['params'];
+                      final title =
+                          state.uri.queryParameters['title'] ?? 'Section';
+                      return CustomTransitionPage(
+                        key: state.pageKey,
+                        child: BrowseSectionScreen(
+                          browseId: browseId,
+                          params: params,
+                          title: title,
+                        ),
+                        transitionsBuilder: (
+                          context,
+                          animation,
+                          secondaryAnimation,
+                          child,
+                        ) {
+                          return SlideTransition(
+                            position: animation.drive(
+                              Tween(
+                                begin: const Offset(0.0, 1.0),
+                                end: Offset.zero,
+                              ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                            ),
+                            child: child,
+                          );
+                        },
+                        transitionDuration: const Duration(milliseconds: 300),
+                        reverseTransitionDuration: const Duration(
+                          milliseconds: 250,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

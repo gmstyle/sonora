@@ -759,8 +759,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<List<MediaItem>> _buildHomeChildren() async {
-    final sections = await _musicRepo.getHomeSections();
-    dev.log('[AA] getHomeSections returned ${sections.length} sections');
+    final result = await _musicRepo.getHome();
+    final sections = result.sections;
+    dev.log('[AA] getHome returned ${sections.length} sections');
     final items = <MediaItem>[];
     for (var i = 0; i < sections.length; i++) {
       final section = sections[i];
@@ -870,7 +871,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       parentMediaId.substring(_homeSectionPrefix.length),
     );
     if (index == null) return [];
-    final sections = await _musicRepo.getHomeSections();
+    final result = await _musicRepo.getHome();
+    final sections = result.sections;
     if (index >= sections.length) return [];
     final section = sections[index];
     return section.contents.expand(_contentToMediaItems).toList();
