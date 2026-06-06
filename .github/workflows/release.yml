@@ -139,7 +139,7 @@ jobs:
             convert "$OUTDIR/tray_icon.png" -resize 48x48 "$OUTDIR/tray_icon.png"
           fi
 
-          cat > "$OUTDIR/it.gmstyle.sonora.desktop" << 'DESKTOP'
+          cat > "$OUTDIR/com.gmstyle.sonora.desktop" << 'DESKTOP'
           [Desktop Entry]
           Name=Sonora
           Comment=A music streaming app powered by YouTube Music
@@ -148,7 +148,7 @@ jobs:
           Terminal=false
           Type=Application
           Categories=Audio;Music;Player;
-          StartupWMClass=it.gmstyle.sonora
+          StartupWMClass=com.gmstyle.sonora
           DESKTOP
 
           cat > "$OUTDIR/install.sh" << 'INSTALL'
@@ -162,7 +162,7 @@ jobs:
           sudo chmod +x "$INSTALL_DIR/sonora"
 
           mkdir -p "$HOME/.local/share/applications"
-          sed "s|Exec=sonora|Exec=$INSTALL_DIR/sonora|" "$INSTALL_DIR/it.gmstyle.sonora.desktop" > "$HOME/.local/share/applications/it.gmstyle.sonora.desktop"
+          sed "s|Exec=sonora|Exec=$INSTALL_DIR/sonora|" "$INSTALL_DIR/com.gmstyle.sonora.desktop" > "$HOME/.local/share/applications/com.gmstyle.sonora.desktop"
 
           # Install icon to standard XDG paths so it's found by launcher/taskbar
           for SIZE in 48 64 128 256; do
@@ -195,7 +195,7 @@ jobs:
           fi
 
           # Remove desktop entry
-          rm -f "$HOME/.local/share/applications/it.gmstyle.sonora.desktop"
+          rm -f "$HOME/.local/share/applications/com.gmstyle.sonora.desktop"
 
           # Remove icons
           for SIZE in 48 64 128 256; do

@@ -424,7 +424,7 @@ AudioServiceConfig(
 
 The CI produces `sonora-linux-x64.tar.gz` containing:
 - `sonora` binary
-- `it.gmstyle.sonora.desktop` (desktop entry)
+- `com.gmstyle.sonora.desktop` (desktop entry)
 - `sonora.png` (icons)
 - `tray_icon.png`
 - `install.sh` (copies to `/opt/sonora`, icon, desktop entry)
