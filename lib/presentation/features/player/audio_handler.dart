@@ -29,6 +29,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isCurrentSongLiked = false;
   String? _currentVideoId;
   String? _lastEmittedMediaItemId;
+  Duration? _lastEmittedDuration;
   AudioProcessingState? _lastEmittedProcessingState;
   bool? _lastEmittedPlaying;
   StreamSubscription<PlayerException>? _playerErrorSub;
@@ -310,11 +311,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final trackChanged = item.id != _lastEmittedMediaItemId;
       final durationResolved =
           !trackChanged &&
-          (mediaItem.value?.duration == null ||
-              mediaItem.value?.duration == Duration.zero) &&
+          (_lastEmittedDuration == null ||
+              _lastEmittedDuration == Duration.zero) &&
           (item.duration != null && item.duration != Duration.zero);
       if (trackChanged || durationResolved) {
         _lastEmittedMediaItemId = item.id;
+        _lastEmittedDuration = item.duration;
         mediaItem.add(item);
         if (trackChanged) _checkCurrentSongLiked(item.id);
       }
@@ -525,7 +527,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         currentIndex,
         AudioSource.uri(Uri.parse(freshUrl), tag: updatedItem),
       );
-      mediaItem.add(updatedItem);
       await _player.seek(Duration.zero, index: currentIndex);
       await _player.play();
       dev.log('[AudioHandler] Retry successful for "$videoId"');
