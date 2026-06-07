@@ -18,7 +18,7 @@ import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
 import 'core/utils/linux_tray_service.dart';
 
-import 'data/datasources/local/database.dart';
+import 'data/datasources/local/database_connection.dart';
 import 'data/datasources/local/daos/downloads_dao.dart';
 import 'data/datasources/local/daos/history_dao.dart';
 import 'data/datasources/local/daos/library_dao.dart';
@@ -69,7 +69,7 @@ Future<void> main() async {
   // Build shared instances early so SonoraAudioHandler (which runs inside the
   // background audio service) has access to them before the Flutter widget
   // tree is rendered.
-  final db = AppDatabase.create();
+  final db = createAppDatabase();
   final ytmusicDs = YtmusicDatasource();
   final streamDs = StreamDatasource();
   final libraryRepo = LibraryRepositoryImpl(

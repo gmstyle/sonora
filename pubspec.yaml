@@ -14,6 +14,7 @@ dependencies:
 
   # ── Core Utilities ────────────────────────────────────────────
   path: ^1.9.0
+  args: ^2.7.0
 
   # ── YTMusic Data Layer ────────────────────────────────────────
   # dart_ytmusic_api:

@@ -34,6 +34,7 @@ Sonora is a cross-platform music streaming app built with Flutter. It uses **You
 - **Sleep timer** — stop playback after a set time
 - **Linux desktop** — system tray, MPRIS global controls (D-Bus), resizable window
 - **Auto-update** — automatic update check via GitHub Releases
+- **Headless CLI** — control Sonora from the terminal: search, play, download, and manage library without the GUI
 - **Backup & restore** — export and import your local library
 - **Localization** — Italian and English
 
@@ -65,6 +66,7 @@ Sonora is a cross-platform music streaming app built with Flutter. It uses **You
 | **Stream URL** | youtube_explode_dart |
 | **Themes** | dynamic_color, palette_generator |
 | **Downloads** | Dio |
+| **CLI** | args 2.x |
 | **Notifications** | flutter_local_notifications |
 
 ### Architecture
@@ -125,6 +127,7 @@ Download the latest release from [GitHub Releases](https://github.com/gmstyle/so
 
 ## Development
 
+- [CLI documentation](docs/CLI.md) — headless terminal usage: search, play, download, library, history
 - [Developer documentation](docs/SONORA-DEV-DOCS.md) — detailed guide on architecture, database, audio engine, and conventions
 - Report bugs or request features via [GitHub Issues](https://github.com/gmstyle/sonora/issues)
 - Pull requests are welcome!
@@ -143,5 +146,3 @@ flutter gen-l10n                                         # Regenerate localizati
 ## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
-
-Copyright (c) 2026 Gabriele Martina
