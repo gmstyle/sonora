@@ -460,10 +460,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get content => 'Contenuto';
 
   @override
-  String get countryGl => 'Paese (gl)';
+  String get countryGl => 'Paese';
 
   @override
-  String get languageHl => 'Lingua (hl)';
+  String get languageHl => 'Lingua';
 
   @override
   String get playback => 'Riproduzione';
