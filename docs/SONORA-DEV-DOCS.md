@@ -293,8 +293,8 @@ The player is a `DraggableScrollableSheet` living **above** the shell — it is 
 | Version check | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists |
 | Android build | `flutter build apk --release` with signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`) |
 | Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
-| Linux packaging | `sonora-linux-x64.tar.gz` with `.desktop`, `install.sh`, `uninstall.sh`, icons, tray icon |
-| GitHub Release | Tag `v{version}+{build}`, auto-generated changelog, APK + tar.gz attached |
+| Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
+| GitHub Release | Tag `v{version}+{build}`, auto-generated changelog, APK + DEB + RPM attached |
 
 **Flutter version**: 3.44.1 (cached via `subosito/flutter-action`).
 
@@ -420,15 +420,37 @@ AudioServiceConfig(
 
 `audio_service_mpris` provides D-Bus MPRIS integration on Linux. Configured in `main.dart` alongside `audio_service`.
 
-### 10.3 Linux Bundle
+### 10.3 Linux Packaging
 
-The CI produces `sonora-linux-x64.tar.gz` containing:
-- `sonora` binary
-- `com.gmstyle.sonora.desktop` (desktop entry)
-- `sonora.png` (icons)
-- `tray_icon.png`
-- `install.sh` (copies to `/opt/sonora`, icon, desktop entry)
-- `uninstall.sh`
+Packages are built via `packaging/linux/build-packages.sh` using `fpm`:
+
+```bash
+flutter build linux --release
+bash packaging/linux/build-packages.sh --format all
+```
+
+Produces:
+| Format | File | Install command |
+|--------|------|----------------|
+| **DEB** | `build/packages/sonora_<version>-<build>_amd64.deb` | `sudo dpkg -i build/packages/sonora_*.deb` <br> `sudo apt install -f` (auto-resolve deps) |
+| **RPM** | `build/packages/sonora-<version>-<build>.x86_64.rpm` | `sudo dnf install build/packages/sonora-*.x86_64.rpm` |
+
+**Layout** (both formats):
+- Binary → `/opt/sonora/sonora`
+- Symlink → `/usr/bin/sonora` (PATH access)
+- Desktop entry → `/usr/share/applications/com.gmstyle.sonora.desktop`
+- Icons → `/usr/share/icons/hicolor/{48,64,128,256}/apps/sonora.png` + scalable SVG
+- Tray icon → `/opt/sonora/tray_icon.png`
+- Post-install → `gtk-update-icon-cache` + `update-desktop-database`
+
+**Dependencies** (auto-resolved by the package manager):
+- `libgtk-3-0` / `gtk3` — GTK3 runtime
+- `libayatana-appindicator3-1` / `libappindicator-gtk3` — System tray icon
+- `libmpv2` / `mpv-libs` — media_kit audio backend
+
+**Options:**
+- `--format deb|rpm|all` — select package format
+- `--skip-build` — skip `flutter build linux --release` if bundle already exists
 
 ---
 
@@ -575,8 +597,11 @@ Consumed by `action_feedback_listener.dart` and `feedback_toast.dart` widgets.
 # Android
 flutter build apk --release --build-name=1.2.2 --build-number=15
 
-# Linux
+# Linux — Flutter bundle
 flutter build linux --release
+
+# Linux — DEB/RPM packages
+bash packaging/linux/build-packages.sh --format all
 ```
 
 The CI/CD `release.yml` workflow handles everything automatically on push to `main`.
