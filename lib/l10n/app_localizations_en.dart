@@ -457,10 +457,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get content => 'Content';
 
   @override
-  String get countryGl => 'Country (gl)';
+  String get countryGl => 'Country';
 
   @override
-  String get languageHl => 'Language (hl)';
+  String get languageHl => 'Language';
 
   @override
   String get playback => 'Playback';
@@ -616,6 +616,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unknownError => 'Unknown error';
+
+  @override
+  String get support => 'Support';
+
+  @override
+  String get donate => 'Donate';
+
+  @override
+  String get donateHint => 'Support the development with a donation';
 
   @override
   String get about => 'About';

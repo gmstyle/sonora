@@ -857,13 +857,13 @@ abstract class AppLocalizations {
   /// No description provided for @countryGl.
   ///
   /// In en, this message translates to:
-  /// **'Country (gl)'**
+  /// **'Country'**
   String get countryGl;
 
   /// No description provided for @languageHl.
   ///
   /// In en, this message translates to:
-  /// **'Language (hl)'**
+  /// **'Language'**
   String get languageHl;
 
   /// No description provided for @playback.
@@ -1147,6 +1147,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unknown error'**
   String get unknownError;
+
+  /// No description provided for @support.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get support;
+
+  /// No description provided for @donate.
+  ///
+  /// In en, this message translates to:
+  /// **'Donate'**
+  String get donate;
+
+  /// No description provided for @donateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Support the development with a donation'**
+  String get donateHint;
 
   /// No description provided for @about.
   ///

@@ -6,3 +6,4 @@ const String kAppVersion = '1.0.0+1';
 const String kGitHubRepoOwner = 'gmstyle';
 const String kGitHubRepoName = 'sonora';
 const String kGitHubRepoUrl = 'https://github.com/gmstyle/sonora';
+const String kPaypalDonateUrl = 'https://paypal.me/gmstyle';

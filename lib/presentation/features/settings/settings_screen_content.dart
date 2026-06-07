@@ -39,6 +39,7 @@ class SettingsScreenContent extends ConsumerWidget {
         _PrivacySection(settings: settings, notifier: notifier, ref: ref),
         _BackupSection(ref: ref),
         _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
+        _SupportSection(),
         _AboutSection(),
         const SizedBox(height: 32),
       ],
@@ -851,6 +852,29 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
       case UpdateStatus.idle:
         return [];
     }
+  }
+}
+
+// ── Support ──────────────────────────────────────────────────────
+
+class _SupportSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SettingsSection(
+      title: AppLocalizations.of(context)!.support,
+      children: [
+        SettingsButtonTile(
+          title: AppLocalizations.of(context)!.donate,
+          subtitle: AppLocalizations.of(context)!.donateHint,
+          icon: LucideIcons.gift,
+          onPressed:
+              () => launchUrl(
+                Uri.parse(kPaypalDonateUrl),
+                mode: LaunchMode.externalApplication,
+              ),
+        ),
+      ],
+    );
   }
 }
 

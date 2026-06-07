@@ -623,6 +623,15 @@ class AppLocalizationsIt extends AppLocalizations {
   String get unknownError => 'Errore sconosciuto';
 
   @override
+  String get support => 'Supporto';
+
+  @override
+  String get donate => 'Dona';
+
+  @override
+  String get donateHint => 'Supporta lo sviluppo con una donazione';
+
+  @override
   String get about => 'Info';
 
   @override
