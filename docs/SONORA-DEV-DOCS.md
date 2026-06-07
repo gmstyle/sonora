@@ -298,7 +298,36 @@ The player is a `DraggableScrollableSheet` living **above** the shell — it is 
 
 **Flutter version**: 3.44.1 (cached via `subosito/flutter-action`).
 
-### 7.2 In-App Update
+### 7.2 Local Workflow Testing
+
+The release workflow can be simulated locally with [`act`](https://github.com/nektos/act) before pushing to `main`.
+
+**Prerequisites:**
+- `podman` (v5+), with socket enabled: `systemctl --user enable --now podman.socket`
+- `act` v0.2+ installed from [GitHub releases](https://github.com/nektos/act/releases)
+
+**Usage:**
+
+```bash
+# Export the podman socket for act
+export DOCKER_HOST=unix:///run/user/1000/podman/podman.sock
+
+# Run the validate job (flutter pub get → analyze → test, no secrets needed)
+act -j validate
+
+# Dry-run the release job to verify the full pipeline structure
+act -j release --dryrun
+```
+
+The `validate` job runs the full Flutter analysis + 124 tests inside a container mimicking the GitHub runner. The `release` job requires the `production` environment and GitHub secrets (`KEYSTORE_BASE64`, etc.), so it cannot run end-to-end locally — use `--dryrun` to verify step sequencing and conditional execution.
+
+**Packaging test (no container):**
+```bash
+flutter build linux --release
+bash packaging/linux/build-packages.sh --format all --skip-build
+```
+
+### 7.3 In-App Update
 
 `UpdateNotifier` + `CheckForUpdatesUseCase` check the GitHub Releases API. On Android, downloads the APK and installs it via `url_launcher`. On Linux, opens the release page in the browser. Throttle: max 1 check/24h via `SharedPreferences`.
 

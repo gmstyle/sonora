@@ -212,6 +212,17 @@ jobs:
           chmod +x "$OUTDIR/uninstall.sh"
           tar czf sonora-linux-x64.tar.gz "$OUTDIR"/
 
+      - name: Install Packaging Dependencies
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: |
+          sudo apt-get install -y ruby ruby-dev build-essential rpm
+          sudo gem install fpm
+          fpm --version
+
+      - name: Build Linux DEB + RPM Packages
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: bash packaging/linux/build-packages.sh --format all --skip-build
+
       - name: Create GitHub Release
         if: steps.version_check.outputs.SKIP_RELEASE == 'false'
         uses: softprops/action-gh-release@v2
@@ -227,9 +238,13 @@ jobs:
 
             ## Downloads
             - **Android APK**: attached below
-            - **Linux**: `sonora-linux-x64.tar.gz` attached below
+            - **Linux tar.gz** (portable): `sonora-linux-x64.tar.gz` attached below
+            - **Linux DEB** (Debian/Ubuntu): attached below
+            - **Linux RPM** (Fedora/RHEL): attached below
           files: |
             build/app/outputs/flutter-apk/*.apk
             sonora-linux-x64.tar.gz
+            build/packages/*.deb
+            build/packages/*.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
