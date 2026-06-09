@@ -26,22 +26,24 @@ import '../../../shared/widgets/scale_button.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 
 class HomeShimmer extends StatelessWidget {
-  final int tileCount;
-
-  const HomeShimmer({super.key, this.tileCount = 3});
+  const HomeShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const ShimmerLoading(variant: ShimmerVariant.carousel),
-        const SizedBox(height: 24),
-        for (var i = 0; i < tileCount; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: ShimmerLoading(variant: ShimmerVariant.tile),
-          ),
+      padding: const EdgeInsets.only(bottom: 16),
+      children: const [
+        ShimmerLoading(variant: ShimmerVariant.chipsBar),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
+        ShimmerLoading(variant: ShimmerVariant.section),
       ],
     );
   }

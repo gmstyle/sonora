@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-enum ShimmerVariant { card, tile, carousel, miniPlayer, artworkLarge }
+enum ShimmerVariant { card, tile, carousel, miniPlayer, artworkLarge, chipsBar, section }
 
 class ShimmerLoading extends StatelessWidget {
   final ShimmerVariant variant;
@@ -33,6 +33,8 @@ class ShimmerLoading extends StatelessWidget {
         ShimmerVariant.carousel => _ShimmerCarousel(),
         ShimmerVariant.miniPlayer => _ShimmerMiniPlayer(),
         ShimmerVariant.artworkLarge => _ShimmerArtworkLarge(),
+        ShimmerVariant.chipsBar => _ShimmerChipsBar(),
+        ShimmerVariant.section => const _ShimmerSection(),
       },
     );
   }
@@ -200,6 +202,83 @@ class _ShimmerArtworkLarge extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       child: ColoredBox(color: Colors.white),
+    );
+  }
+}
+
+class _ShimmerChipsBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: 6,
+        itemBuilder: (_, _) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Container(
+            width: 80,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShimmerSection extends StatelessWidget {
+  const _ShimmerSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: 150,
+                height: 16,
+                child: ColoredBox(color: Colors.white),
+              ),
+              SizedBox(
+                width: 60,
+                height: 12,
+                child: ColoredBox(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: _ShimmerCardRow(),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShimmerCardRow extends StatelessWidget {
+  const _ShimmerCardRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: 5,
+      itemBuilder: (_, _) => Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: _ShimmerCard(),
+      ),
     );
   }
 }

@@ -62,7 +62,7 @@ class HomeTabletLayout extends ConsumerWidget {
       ),
       body: AmbientBackground(
         child: sectionsAsync.when(
-          loading: () => const HomeShimmer(tileCount: 4),
+          loading: () => const HomeShimmer(),
           error:
               (e, _) => ErrorRetryWidget(
                 message: AppLocalizations.of(context)!.failedToLoadHomeFeed,
