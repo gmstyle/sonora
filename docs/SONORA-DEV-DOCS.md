@@ -167,13 +167,17 @@ Each command in `lib/cli/commands/` implements a single `execute(ArgResults)` me
 ### 3.6 CLI-specific running
 
 ```bash
+# One-liner install (recommended)
+curl -fsSL https://raw.githubusercontent.com/gmstyle/sonora/dev/install.sh | bash
+
 # Direct execution (requires project checkout)
 dart run bin/sonora.dart search "the beatles" --limit 5
 
-# Global activation
-dart pub global activate --source path .
-sonora play "mQER0A0ej0M" --player mpv
+# Wrapper (created by install.sh, or manually)
+~/.local/bin/sonora play "mQER0A0ej0M" --player mpv
 ```
+
+The install script (`install.sh` in the repo root) automates the full setup: clone, `flutter pub get`, `build_runner`, and wrapper creation.
 
 The CLI cannot run under `flutter pub run` because `sqlite3` native assets require the system Dart VM.
 

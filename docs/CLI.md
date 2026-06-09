@@ -24,13 +24,7 @@ Headless command-line interface for Sonora — search, play, download, and manag
 ## Prerequisites
 
 - **Flutter SDK 3.44+** (includes Dart SDK) — required to resolve dependencies and generate Drift files
-- System dependencies for Flutter Linux:
-
-```bash
-sudo dnf install ccache cmake ninja-build gtk3-devel pkg-config \
-  lz4-devel libX11-devel mesa-libGL-devel libxkbcommon-devel libatomic
-```
-
+- **git**
 - **Audio player** (optional, for `play`): `mpv`, `ffplay` (ffmpeg) or `vlc`
 
 ```bash
@@ -41,48 +35,50 @@ sudo dnf install mpv
 
 ## Installation
 
-### 1. Clone the repository
+### One-liner (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gmstyle/sonora/dev/install.sh | bash
+```
+
+This will:
+1. Clone the repository to `~/.sonora/cli/`
+2. Run `flutter pub get` and generate Drift code
+3. Create a wrapper script at `~/.local/bin/sonora`
+4. Add `~/.local/bin` to your `PATH` (in `.bashrc` / `.zshrc`)
+5. Verify the installation with `sonora --help`
+
+> **Update:** re-run the same command.
+> **Uninstall:** `rm -f ~/.local/bin/sonora && rm -rf ~/.sonora/cli`
+
+### Manual setup
+
+#### 1. Clone the repository
 
 ```bash
 git clone https://github.com/gmstyle/sonora.git
 cd sonora
 ```
 
-### 2. Install Dart/Flutter dependencies
+#### 2. Install Dart/Flutter dependencies
 
 ```bash
 flutter pub get
 ```
 
-### 3. Generate Drift files
+#### 3. Generate Drift files
 
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-### 4. Activate the `sonora` command globally (optional but recommended)
+#### 4. Use directly
 
 ```bash
-dart pub global activate --source path .
+dart run bin/sonora.dart search "the beatles" --limit 5
 ```
 
-Make sure `~/.pub-cache/bin` is in your `PATH`. Add to your `~/.bashrc` or `~/.zshrc`:
-
-```bash
-export PATH="$PATH:$HOME/.pub-cache/bin"
-```
-
-### 5. Verify
-
-```bash
-sonora --help
-```
-
-If you haven't activated the command globally, use:
-
-```bash
-dart run bin/sonora.dart --help
-```
+No global activation required — `dart run` works from any directory with the absolute path.
 
 ---
 

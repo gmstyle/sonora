@@ -114,6 +114,15 @@ flutter build apk --release
 flutter build linux --release
 ```
 
+### Headless CLI
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gmstyle/sonora/dev/install.sh | bash
+sonora search "the beatles" --limit 5
+```
+
+See [CLI documentation](docs/CLI.md) for all commands and options.
+
 ---
 
 ## Download
