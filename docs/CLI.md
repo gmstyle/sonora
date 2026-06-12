@@ -27,8 +27,16 @@ Headless command-line interface for Sonora — search, play, download, and manag
 - **git**
 - **Audio player** (optional, for `play`): `mpv`, `ffplay` (ffmpeg) or `vlc`
 
+On Linux, install dependencies with:
+
 ```bash
-sudo dnf install mpv
+sudo dnf install git mpv
+```
+
+or on Debian/Ubuntu:
+
+```bash
+sudo apt install git mpv
 ```
 
 ---
