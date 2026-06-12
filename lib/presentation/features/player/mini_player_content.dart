@@ -11,6 +11,7 @@ import '../../providers/player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import 'widgets/animated_play_pause_icon.dart';
+import '../../../core/extensions/duration_ext.dart';
 
 class MiniPlayerContent extends ConsumerWidget {
   final MediaItem currentSong;
@@ -633,8 +634,6 @@ class MiniPlayerContent extends ConsumerWidget {
   // ── Helpers ─────────────────────────────────────────────────────
 
   String _formatDuration(Duration d) {
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '${d.inHours > 0 ? '${d.inHours}:' : ''}$minutes:$seconds';
+    return d.format();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sonora/core/extensions/duration_ext.dart';
 
 class ProgressBarWidget extends StatelessWidget {
   final Duration position;
@@ -61,13 +62,13 @@ class ProgressBarWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _formatDuration(position),
+                position.format(),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
-                _formatDuration(duration),
+                duration.format(),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -77,11 +78,6 @@ class ProgressBarWidget extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final seconds = d.inSeconds.remainder(60);
-    return '${d.inMinutes}:${seconds.toString().padLeft(2, '0')}';
   }
 }
 
