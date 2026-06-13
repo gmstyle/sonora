@@ -281,37 +281,46 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(width: 48),
                   Expanded(
                     flex: 1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 24),
-                        _trackInfoAndLikeRow(currentSong, isVideo, albumName),
-                        const SizedBox(height: 16),
-                        if (activeView != PlayerSubView.none)
-                          Expanded(
-                            child:
-                                activeView == PlayerSubView.lyrics
-                                    ? LyricsView(
-                                      videoId: videoId,
-                                      position: playerState.position,
-                                    )
-                                    : const QueueSheet(),
-                          )
-                        else
-                          const Spacer(),
-                        const SizedBox(height: 16),
-                        _progressBar(playerState, videoId),
-                        const SizedBox(height: 16),
-                        const PlayerControls(),
-                        const SizedBox(height: 8),
-                        _bottomActionsRow(
-                          isVideo,
-                          hasSleepTimer,
-                          playerNotifier,
-                          activeView,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, rightConstraints) {
+                        final tight = rightConstraints.maxHeight < 360;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: tight ? 8 : 24),
+                            _trackInfoAndLikeRow(
+                              currentSong,
+                              isVideo,
+                              albumName,
+                            ),
+                            SizedBox(height: tight ? 4 : 16),
+                            if (activeView != PlayerSubView.none)
+                              Expanded(
+                                child:
+                                    activeView == PlayerSubView.lyrics
+                                        ? LyricsView(
+                                          videoId: videoId,
+                                          position: playerState.position,
+                                        )
+                                        : const QueueSheet(),
+                              )
+                            else
+                              const Spacer(),
+                            SizedBox(height: tight ? 4 : 16),
+                            _progressBar(playerState, videoId),
+                            SizedBox(height: tight ? 4 : 16),
+                            const PlayerControls(),
+                            SizedBox(height: tight ? 2 : 8),
+                            _bottomActionsRow(
+                              isVideo,
+                              hasSleepTimer,
+                              playerNotifier,
+                              activeView,
+                            ),
+                            SizedBox(height: tight ? 4 : 16),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -367,37 +376,46 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   const SizedBox(width: 80),
                   Expanded(
                     flex: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 32),
-                        _trackInfoAndLikeRow(currentSong, isVideo, albumName),
-                        const SizedBox(height: 16),
-                        if (activeView != PlayerSubView.none)
-                          Expanded(
-                            child:
-                                activeView == PlayerSubView.lyrics
-                                    ? LyricsView(
-                                      videoId: videoId,
-                                      position: playerState.position,
-                                    )
-                                    : const QueueSheet(),
-                          )
-                        else
-                          const Spacer(),
-                        const SizedBox(height: 16),
-                        _progressBar(playerState, videoId),
-                        const SizedBox(height: 24),
-                        const PlayerControls(),
-                        const SizedBox(height: 16),
-                        _bottomActionsRow(
-                          isVideo,
-                          hasSleepTimer,
-                          playerNotifier,
-                          activeView,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, rightConstraints) {
+                        final tight = rightConstraints.maxHeight < 400;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: tight ? 16 : 32),
+                            _trackInfoAndLikeRow(
+                              currentSong,
+                              isVideo,
+                              albumName,
+                            ),
+                            SizedBox(height: tight ? 8 : 16),
+                            if (activeView != PlayerSubView.none)
+                              Expanded(
+                                child:
+                                    activeView == PlayerSubView.lyrics
+                                        ? LyricsView(
+                                          videoId: videoId,
+                                          position: playerState.position,
+                                        )
+                                        : const QueueSheet(),
+                              )
+                            else
+                              const Spacer(),
+                            SizedBox(height: tight ? 8 : 16),
+                            _progressBar(playerState, videoId),
+                            SizedBox(height: tight ? 12 : 24),
+                            const PlayerControls(),
+                            SizedBox(height: tight ? 8 : 16),
+                            _bottomActionsRow(
+                              isVideo,
+                              hasSleepTimer,
+                              playerNotifier,
+                              activeView,
+                            ),
+                            SizedBox(height: tight ? 8 : 16),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],

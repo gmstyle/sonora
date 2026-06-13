@@ -19,25 +19,36 @@ class PlayerControls extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildShuffleButton(context, playerState, notifier),
-          _buildSkipButton(
-            context,
-            false,
-            notifier,
-            disabled: playerState.isSwitching,
-          ),
-          _buildPlayPauseButton(context, playerState, notifier),
-          _buildSkipButton(
-            context,
-            true,
-            notifier,
-            disabled: playerState.isSwitching,
-          ),
-          _buildRepeatButton(context, playerState, notifier),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: SizedBox(
+              width: constraints.maxWidth,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildShuffleButton(context, playerState, notifier),
+                  _buildSkipButton(
+                    context,
+                    false,
+                    notifier,
+                    disabled: playerState.isSwitching,
+                  ),
+                  _buildPlayPauseButton(context, playerState, notifier),
+                  _buildSkipButton(
+                    context,
+                    true,
+                    notifier,
+                    disabled: playerState.isSwitching,
+                  ),
+                  _buildRepeatButton(context, playerState, notifier),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

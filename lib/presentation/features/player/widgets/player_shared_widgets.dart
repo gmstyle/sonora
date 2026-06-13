@@ -59,7 +59,8 @@ Widget buildPlayerBackground(
         const ColoredBox(color: Colors.black87),
 
       // Layer 2 — dominant-colour gradient from top to bottom (palette-driven).
-      // Increased alpha values to ensure text readability on any palette.
+      // Alpha values tuned for readability: strong at top, progressively
+      // lighter toward the bottom where a separate scrim (Layer 4) takes over.
       AnimatedContainer(
         duration: const Duration(milliseconds: 700),
         curve: Curves.easeInOut,
@@ -69,15 +70,32 @@ Widget buildPlayerBackground(
             end: Alignment.bottomCenter,
             stops: const [0.0, 0.55, 1.0],
             colors: [
-              dominantColor.withValues(alpha: isDark ? 0.82 : 0.92),
-              dominantColor.withValues(alpha: isDark ? 0.55 : 0.72),
-              colorScheme.surface.withValues(alpha: 0.97),
+              dominantColor.withValues(alpha: isDark ? 0.85 : 0.94),
+              dominantColor.withValues(alpha: isDark ? 0.65 : 0.80),
+              colorScheme.surfaceContainerHighest.withValues(alpha: 0.97),
             ],
           ),
         ),
       ),
 
-      // Layer 3 — top scrim from PlayerColors: palette-independent dark band
+      // Layer 3 — bottom scrim: guarantees a dark base where queue, lyrics
+      // and controls sit, regardless of dominant colour or theme brightness.
+      DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const [0.0, 0.45, 1.0],
+            colors: [
+              Colors.transparent,
+              Colors.black.withValues(alpha: 0.25),
+              Colors.black.withValues(alpha: 0.55),
+            ],
+          ),
+        ),
+      ),
+
+      // Layer 4 — top scrim from PlayerColors: palette-independent dark band
       // that guarantees the chevron, drag handle and "Playing from" label are
       // always readable regardless of artwork colour.
       DecoratedBox(
