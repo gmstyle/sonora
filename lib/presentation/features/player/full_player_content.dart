@@ -535,7 +535,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
       return SonoraVideoPlayer(
         width: size,
-        height: size * 9 / 16,
+        height: size / videoState.aspectRatio,
         borderRadius: BorderRadius.circular(12),
         tag: 'full',
       );

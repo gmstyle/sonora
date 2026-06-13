@@ -4,7 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/library_notifier.dart';
@@ -13,6 +12,7 @@ import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import 'widgets/animated_play_pause_icon.dart';
+import 'widgets/video_player_widget.dart';
 import '../../../core/extensions/duration_ext.dart';
 
 class MiniPlayerContent extends ConsumerWidget {
@@ -478,18 +478,12 @@ class MiniPlayerContent extends ConsumerWidget {
   }) {
     final videoState = ref.watch(videoPlayerProvider);
     if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
-      return ClipRRect(
+      return SonoraVideoPlayer(
+        width: size,
+        height: size,
         borderRadius: BorderRadius.circular(radius),
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Video(
-            key: const ValueKey('video_mini_tablet'),
-            controller: videoState.controller,
-            fit: BoxFit.cover,
-            controls: NoVideoControls,
-          ),
-        ),
+        tag: 'video_mini_tablet',
+        fit: BoxFit.cover,
       );
     }
     return ClipRRect(

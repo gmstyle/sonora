@@ -400,25 +400,29 @@ Widget buildBottomActionsRow(
             tooltip: AppLocalizations.of(context)!.share,
             color: theme.colorScheme.onSurfaceVariant,
           ),
-          if (isVideo)
-            IconButton(
-              icon: Icon(
-                ref.watch(videoPlayerProvider).isVideoVisible
-                    ? LucideIcons.monitor
-                    : LucideIcons.monitorOff,
-                color:
-                    ref.watch(videoPlayerProvider).isVideoVisible
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-              ),
-              onPressed: () {
-                ref.read(videoPlayerProvider.notifier).toggleVisibility();
+          if (isVideo) ...[
+            Builder(
+              builder: (context) {
+                final videoState = ref.watch(videoPlayerProvider);
+                return IconButton(
+                  icon: Icon(
+                    videoState.isVideoVisible
+                        ? LucideIcons.monitor
+                        : LucideIcons.monitorOff,
+                    color:
+                        videoState.isVideoVisible
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  onPressed: () {
+                    ref.read(videoPlayerProvider.notifier).toggleVisibility();
+                  },
+                  tooltip:
+                      videoState.isVideoVisible ? 'Hide video' : 'Show video',
+                );
               },
-              tooltip:
-                  ref.watch(videoPlayerProvider).isVideoVisible
-                      ? 'Hide video'
-                      : 'Show video',
             ),
+          ],
           if (!isVideo)
             IconButton(
               icon: Icon(

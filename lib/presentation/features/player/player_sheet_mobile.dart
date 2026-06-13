@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../providers/player_provider.dart';
 import '../../providers/video_player_provider.dart';
@@ -13,6 +12,7 @@ import '../../shared/widgets/shimmer_loading.dart';
 import 'full_player_content.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/player_shared_widgets.dart';
+import 'widgets/video_player_widget.dart';
 
 /// Mobile-only 72 px mini player bar.
 ///
@@ -224,18 +224,12 @@ class _MiniArtwork extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final videoState = ref.watch(videoPlayerProvider);
     if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
-      return ClipRRect(
+      return SonoraVideoPlayer(
+        width: size,
+        height: size,
         borderRadius: BorderRadius.circular(radius),
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Video(
-            key: const ValueKey('video_mini_mobile'),
-            controller: videoState.controller,
-            fit: BoxFit.cover,
-            controls: NoVideoControls,
-          ),
-        ),
+        tag: 'video_mini_mobile',
+        fit: BoxFit.cover,
       );
     }
     return ClipRRect(
