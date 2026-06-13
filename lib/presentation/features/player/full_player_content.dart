@@ -8,7 +8,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/video_player_provider.dart';
 import 'widgets/player_controls.dart';
+import 'widgets/video_player_widget.dart';
 import 'widgets/queue_sheet.dart';
 import 'widgets/lyrics_view.dart';
 import 'widgets/player_shared_widgets.dart';
@@ -207,6 +209,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                             artUrl,
                             availWidth - 48,
                             isSwitching: playerState.isSwitching,
+                            isVideo: isVideo,
                           ),
                         )
                         : activeView == PlayerSubView.lyrics
@@ -274,6 +277,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                           artUrl,
                           min(availHeight - 100, availWidth / 2 - 48),
                           isSwitching: playerState.isSwitching,
+                          isVideo: isVideo,
                         ),
                       ],
                     ),
@@ -360,6 +364,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                           artUrl,
                           min(availHeight - 150, availWidth / 2 - 100),
                           isSwitching: playerState.isSwitching,
+                          isVideo: isVideo,
                         ),
                       ],
                     ),
@@ -502,7 +507,21 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     );
   }
 
-  Widget _artwork(String? artUrl, double size, {bool isSwitching = false}) {
+  Widget _artwork(
+    String? artUrl,
+    double size, {
+    bool isSwitching = false,
+    bool isVideo = false,
+  }) {
+    final videoState = ref.watch(videoPlayerProvider);
+    if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
+      return SonoraVideoPlayer(
+        width: size,
+        height: size * 9 / 16,
+        borderRadius: BorderRadius.circular(12),
+        tag: 'full',
+      );
+    }
     return buildArtwork(context, artUrl, isSwitching, size, _dominantColor);
   }
 

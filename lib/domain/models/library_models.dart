@@ -111,6 +111,7 @@ class DownloadModel {
   final int? fileSize;
   final DateTime? downloadedAt;
   final String status;
+  final bool isVideo;
 
   const DownloadModel({
     required this.videoId,
@@ -122,6 +123,7 @@ class DownloadModel {
     this.fileSize,
     this.downloadedAt,
     required this.status,
+    this.isVideo = false,
   });
 }
 
@@ -133,6 +135,7 @@ class HistoryModel {
   final String? thumbnailUrl;
   final DateTime playedAt;
   final int playCount;
+  final bool isVideo;
 
   const HistoryModel({
     required this.id,
@@ -142,6 +145,7 @@ class HistoryModel {
     this.thumbnailUrl,
     required this.playedAt,
     required this.playCount,
+    this.isVideo = false,
   });
 }
 

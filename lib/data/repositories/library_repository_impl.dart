@@ -320,6 +320,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       fileSize: row.fileSize,
       downloadedAt: row.downloadedAt,
       status: row.status,
+      isVideo: row.isVideo,
     );
   }
 
@@ -338,6 +339,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             fileSize: r.fileSize,
             downloadedAt: r.downloadedAt,
             status: r.status,
+            isVideo: r.isVideo,
           ),
         )
         .toList();
@@ -354,6 +356,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String? format,
     int? fileSize,
     DateTime? downloadedAt,
+    bool isVideo = false,
   }) => _downloadsDao.insertDownload(
     DownloadsCompanion.insert(
       videoId: videoId,
@@ -365,6 +368,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       format: Value(format),
       fileSize: Value(fileSize),
       downloadedAt: Value(downloadedAt),
+      isVideo: Value(isVideo),
     ),
   );
 
@@ -387,6 +391,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             thumbnailUrl: r.thumbnailUrl,
             playedAt: r.playedAt,
             playCount: r.playCount,
+            isVideo: r.isVideo,
           ),
         )
         .toList();
@@ -398,11 +403,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String title,
     String artist, {
     String? thumbnailUrl,
+    bool isVideo = false,
   }) => _historyDao.recordPlay(
     videoId,
     title,
     artist,
     thumbnailUrl: thumbnailUrl,
+    isVideo: isVideo,
   );
 
   @override
@@ -416,6 +423,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String? thumbnailUrl,
     required DateTime playedAt,
     int playCount = 1,
+    bool isVideo = false,
   }) => _historyDao.insertHistoryRaw(
     videoId,
     title,
@@ -423,6 +431,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     thumbnailUrl: thumbnailUrl,
     playedAt: playedAt,
     playCount: playCount,
+    isVideo: isVideo,
   );
 
   // ── Search History ────────────────────────────────────────────

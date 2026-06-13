@@ -557,8 +557,9 @@ class _NumberedSongTile extends ConsumerWidget {
               )
               : null,
       onTap:
-          () =>
-              ref.read(playerStateProvider.notifier).playVideoId(song.videoId),
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(song.videoId, isVideo: song.type == 'VIDEO'),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,

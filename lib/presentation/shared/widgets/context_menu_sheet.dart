@@ -750,7 +750,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                       ref
                           .read(actionFeedbackProvider.notifier)
                           .report(AppLocalizations.of(context)!.playNow);
-                      player.playVideoId(videoId);
+                      player.playVideoId(videoId, isVideo: isVideo);
                     },
                   ),
                   _ActionTile(

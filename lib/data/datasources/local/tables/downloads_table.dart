@@ -10,6 +10,7 @@ class Downloads extends Table {
   IntColumn get fileSize => integer().nullable()();
   DateTimeColumn get downloadedAt => dateTime().nullable()();
   TextColumn get status => text()();
+  BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {videoId};

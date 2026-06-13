@@ -226,8 +226,15 @@ class LibraryNotifier extends Notifier<void> {
     String title,
     String artist, {
     String? thumbnailUrl,
+    bool isVideo = false,
   }) async {
-    await _repo.recordPlay(videoId, title, artist, thumbnailUrl: thumbnailUrl);
+    await _repo.recordPlay(
+      videoId,
+      title,
+      artist,
+      thumbnailUrl: thumbnailUrl,
+      isVideo: isVideo,
+    );
   }
 
   Future<void> clearHistory() async {

@@ -29,7 +29,10 @@ class VideoCard extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return ScaleButton(
-      onTap: () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
+      onTap:
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(videoId, isVideo: true),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,

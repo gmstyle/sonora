@@ -15,6 +15,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
+import '../../../providers/video_player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import 'progress_bar_widget.dart';
 
@@ -380,6 +381,25 @@ Widget buildBottomActionsRow(
             tooltip: AppLocalizations.of(context)!.share,
             color: theme.colorScheme.onSurfaceVariant,
           ),
+          if (isVideo)
+            IconButton(
+              icon: Icon(
+                ref.watch(videoPlayerProvider).isVideoVisible
+                    ? LucideIcons.monitor
+                    : LucideIcons.monitorOff,
+                color:
+                    ref.watch(videoPlayerProvider).isVideoVisible
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+              ),
+              onPressed: () {
+                ref.read(videoPlayerProvider.notifier).toggleVisibility();
+              },
+              tooltip:
+                  ref.watch(videoPlayerProvider).isVideoVisible
+                      ? 'Hide video'
+                      : 'Show video',
+            ),
           if (!isVideo)
             IconButton(
               icon: Icon(

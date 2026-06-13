@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-enum ShimmerVariant { card, tile, carousel, miniPlayer, artworkLarge, chipsBar, section }
+enum ShimmerVariant {
+  card,
+  tile,
+  carousel,
+  miniPlayer,
+  artworkLarge,
+  chipsBar,
+  section,
+}
 
 class ShimmerLoading extends StatelessWidget {
   final ShimmerVariant variant;
@@ -215,17 +223,18 @@ class _ShimmerChipsBar extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: 6,
-        itemBuilder: (_, _) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: Container(
-            width: 80,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+        itemBuilder:
+            (_, _) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Container(
+                width: 80,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
             ),
-          ),
-        ),
       ),
     );
   }
@@ -257,10 +266,7 @@ class _ShimmerSection extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(
-          height: 220,
-          child: _ShimmerCardRow(),
-        ),
+        SizedBox(height: 220, child: _ShimmerCardRow()),
       ],
     );
   }
@@ -275,10 +281,11 @@ class _ShimmerCardRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: 5,
-      itemBuilder: (_, _) => Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: _ShimmerCard(),
-      ),
+      itemBuilder:
+          (_, _) => Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _ShimmerCard(),
+          ),
     );
   }
 }

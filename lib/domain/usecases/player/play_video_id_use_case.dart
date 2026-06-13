@@ -15,7 +15,7 @@ class PlayVideoIdUseCase {
 
   PlayVideoIdUseCase(this._repo, [this._libraryRepo]);
 
-  Future<MediaItem> execute(String videoId) async {
+  Future<MediaItem> execute(String videoId, {bool? isVideoHint}) async {
     // Pre-warm: start stream URL resolution in parallel with metadata fetch
     final urlFuture = resolveUrl(videoId);
 
@@ -34,7 +34,7 @@ class PlayVideoIdUseCase {
       artist = song.artist.name;
       durationSec = song.duration;
       thumbnailUrl = song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '';
-      isVideo = false;
+      isVideo = isVideoHint ?? false;
       viewCount = song.viewCount;
       publishDate = song.publishDate;
       artistId = song.artist.artistId;

@@ -132,6 +132,7 @@ class ImportBackupUseCase {
         thumbnailUrl: h['thumbnailUrl'] as String?,
         playedAt: DateTime.parse(h['playedAt'] as String),
         playCount: h['playCount'] as int? ?? 1,
+        isVideo: h['isVideo'] as bool? ?? false,
       );
     }
 

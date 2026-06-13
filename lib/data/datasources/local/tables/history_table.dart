@@ -8,4 +8,5 @@ class History extends Table {
   TextColumn get thumbnailUrl => text().nullable()();
   DateTimeColumn get playedAt => dateTime()();
   IntColumn get playCount => integer()();
+  BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
 }
