@@ -66,6 +66,7 @@ abstract class LibraryRepository {
     String? format,
     int? fileSize,
     DateTime? downloadedAt,
+    bool isVideo = false,
   });
   Future<void> deleteDownload(String videoId);
 
@@ -75,6 +76,7 @@ abstract class LibraryRepository {
     String title,
     String artist, {
     String? thumbnailUrl,
+    bool isVideo = false,
   });
   Future<void> insertHistoryEntry(
     String videoId,
@@ -83,6 +85,7 @@ abstract class LibraryRepository {
     String? thumbnailUrl,
     required DateTime playedAt,
     int playCount = 1,
+    bool isVideo = false,
   });
   Future<void> clearHistory();
 

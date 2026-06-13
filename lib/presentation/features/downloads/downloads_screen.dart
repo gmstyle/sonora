@@ -344,7 +344,10 @@ class _CompletedDownloadTile extends StatelessWidget {
           onTap: () {
             ref
                 .read(playerStateProvider.notifier)
-                .playVideoId(download.videoId as String);
+                .playVideoId(
+                  download.videoId as String,
+                  isVideo: download.isVideo ?? false,
+                );
           },
         ),
       ),

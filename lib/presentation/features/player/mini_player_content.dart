@@ -4,10 +4,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import 'widgets/animated_play_pause_icon.dart';
@@ -101,7 +103,7 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         const SizedBox(width: 12),
-                        _artwork(size: 56, radius: 8, cs: cs),
+                        _artwork(size: 56, radius: 8, cs: cs, ref: ref),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -190,7 +192,7 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         const SizedBox(width: 12),
-                        _artwork(size: 60, radius: 8, cs: cs),
+                        _artwork(size: 60, radius: 8, cs: cs, ref: ref),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -291,7 +293,7 @@ class MiniPlayerContent extends ConsumerWidget {
                             child: Row(
                               children: [
                                 const SizedBox(width: 12),
-                                _artwork(size: 56, radius: 8, cs: cs),
+                                _artwork(size: 56, radius: 8, cs: cs, ref: ref),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
@@ -472,7 +474,24 @@ class MiniPlayerContent extends ConsumerWidget {
     required double size,
     required double radius,
     required ColorScheme cs,
+    required WidgetRef ref,
   }) {
+    final videoState = ref.watch(videoPlayerProvider);
+    if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Video(
+            key: const ValueKey('video_mini_tablet'),
+            controller: videoState.controller,
+            fit: BoxFit.cover,
+            controls: NoVideoControls,
+          ),
+        ),
+      );
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: SizedBox(

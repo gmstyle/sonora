@@ -180,8 +180,9 @@ class _ContinueListeningItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ScaleButton(
       onTap:
-          () =>
-              ref.read(playerStateProvider.notifier).playVideoId(item.videoId),
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(item.videoId, isVideo: item.isVideo ?? false),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,

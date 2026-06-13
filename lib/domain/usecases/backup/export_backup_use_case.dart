@@ -111,6 +111,7 @@ class ExportBackupUseCase {
                   'thumbnailUrl': h.thumbnailUrl,
                   'playedAt': h.playedAt.toIso8601String(),
                   'playCount': h.playCount,
+                  'isVideo': h.isVideo,
                 },
               )
               .toList(),

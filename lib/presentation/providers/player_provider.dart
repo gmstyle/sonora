@@ -65,6 +65,8 @@ class PlayerState {
     this.sleepTimerRemaining,
   });
 
+  bool get isVideo => currentSong?.extras?['isVideo'] == true;
+
   PlayerState copyWith({
     bool? isPlaying,
     bool? isLoading,
@@ -193,6 +195,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
               item.title,
               item.artist ?? 'Unknown Artist',
               thumbnailUrl: item.artUri?.toString(),
+              isVideo: item.extras?['isVideo'] == true,
             );
       }
     });
@@ -496,12 +499,14 @@ class PlayerNotifier extends Notifier<PlayerState> {
     await _persistQueue();
   }
 
-  Future<void> playVideoId(String videoId) async {
+  Future<void> playVideoId(String videoId, {bool? isVideo}) async {
     final v = ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     try {
-      final item = await ref.read(playVideoIdUseCaseProvider).execute(videoId);
+      final item = await ref
+          .read(playVideoIdUseCaseProvider)
+          .execute(videoId, isVideoHint: isVideo);
       if (_operationVersion != v) return;
       await _handler.setQueue([item]);
       if (_operationVersion != v) return;

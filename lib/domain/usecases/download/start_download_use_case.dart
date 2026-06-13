@@ -27,6 +27,7 @@ class StartDownloadUseCase {
     bool downloadOnlyOnWifi = false,
     String? downloadPath,
     String? subdirectory,
+    bool isVideo = false,
     required void Function(double progress) onProgress,
   }) async {
     if (downloadOnlyOnWifi) {
@@ -45,6 +46,7 @@ class StartDownloadUseCase {
       artist: artist,
       thumbnailUrl: thumbnailUrl,
       status: 'downloading',
+      isVideo: isVideo,
     );
 
     final manifest = await _streamDatasource.getManifest(videoId);
@@ -79,6 +81,7 @@ class StartDownloadUseCase {
       format: ext,
       fileSize: await file.length(),
       downloadedAt: DateTime.now(),
+      isVideo: isVideo,
     );
 
     return filePath;

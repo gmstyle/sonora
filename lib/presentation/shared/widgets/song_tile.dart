@@ -111,7 +111,9 @@ class SongTile extends ConsumerWidget {
               : null,
       onTap:
           onTap ??
-          () => ref.read(playerStateProvider.notifier).playVideoId(videoId),
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(videoId, isVideo: isVideo),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
