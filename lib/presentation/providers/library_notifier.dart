@@ -183,6 +183,7 @@ class LibraryNotifier extends Notifier<void> {
     String? title,
     String? artist,
     String? thumbnailUrl,
+    bool isVideo = false,
   }) async {
     final entries = await _repo.getPlaylistEntries(playlistId);
     await _repo.addEntry(
@@ -192,6 +193,7 @@ class LibraryNotifier extends Notifier<void> {
       title: title,
       artist: artist,
       thumbnailUrl: thumbnailUrl,
+      isVideo: isVideo,
     );
     ref.invalidate(playlistEntriesProvider(playlistId));
   }
@@ -215,6 +217,7 @@ class LibraryNotifier extends Notifier<void> {
         title: e.title,
         artist: e.artist,
         thumbnailUrl: e.thumbnailUrl,
+        isVideo: e.isVideo,
       );
     }
   }
@@ -277,7 +280,10 @@ class LibraryNotifier extends Notifier<void> {
           title: title,
           artist: artist,
           artUri: thumbnailUrl != null ? Uri.tryParse(thumbnailUrl) : null,
-          extras: {'videoId': entry.videoId, 'isVideo': false},
+          extras: {
+            'videoId': entry.videoId,
+            'isVideo': liked?.isVideo ?? entry.isVideo,
+          },
         ),
       );
     }

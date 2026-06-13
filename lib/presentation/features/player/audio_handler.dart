@@ -804,7 +804,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           extras: {
             'needsUrl': true,
             'videoId': content.videoId,
-            'isVideo': false,
+            'isVideo': content.type == 'VIDEO',
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -892,7 +892,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             extras: {
               'needsUrl': true,
               'videoId': h.videoId,
-              'isVideo': false,
+              'isVideo': h.isVideo,
               _kContentStylePlayable: _kStyleList,
             },
           ),
@@ -913,7 +913,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             extras: {
               'needsUrl': true,
               'videoId': s.videoId,
-              'isVideo': false,
+              'isVideo': s.isVideo,
               _kContentStylePlayable: _kStyleList,
             },
           ),
@@ -978,7 +978,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           extras: {
             'needsUrl': true,
             'videoId': entry.videoId,
-            'isVideo': false,
+            'isVideo': liked?.isVideo ?? entry.isVideo,
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -1199,7 +1199,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               extras: {
                 'needsUrl': true,
                 'videoId': s.videoId,
-                'isVideo': false,
+                'isVideo': s.type == 'VIDEO',
                 _kContentStylePlayable: _kStyleList,
               },
             ),
@@ -1380,7 +1380,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
                 extras: {
                   'needsUrl': true,
                   'videoId': entry.videoId,
-                  'isVideo': false,
+                  'isVideo': liked?.isVideo ?? entry.isVideo,
                   _kContentStylePlayable: _kStyleList,
                 },
               ),
@@ -1424,7 +1424,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
                 extras: {
                   'needsUrl': true,
                   'videoId': entry.videoId,
-                  'isVideo': false,
+                  'isVideo': liked?.isVideo ?? entry.isVideo,
                   _kContentStylePlayable: _kStyleList,
                 },
               ),
@@ -1665,6 +1665,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artist: current?.artist ?? 'Unknown Artist',
           thumbnailUrl: current?.artUri?.toString(),
           addedAt: DateTime.now(),
+          isVideo: current?.extras?['isVideo'] == true,
         ),
       );
     } catch (_) {}
@@ -1711,6 +1712,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             artist: item.artist ?? 'Unknown Artist',
             thumbnailUrl: item.artUri?.toString(),
             addedAt: DateTime.now(),
+            isVideo: item.extras?['isVideo'] == true,
           ),
         );
 

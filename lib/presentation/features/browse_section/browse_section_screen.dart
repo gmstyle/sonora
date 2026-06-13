@@ -124,6 +124,7 @@ class BrowseSectionScreen extends ConsumerWidget {
         artistId: item.artist.artistId,
         albumId: item.album?.albumId,
         cardWidth: cardWidth,
+        isVideo: item.type == 'VIDEO',
       );
     }
     if (item is AlbumDetailed) {

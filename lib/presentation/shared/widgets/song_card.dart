@@ -19,6 +19,7 @@ class SongCard extends ConsumerStatefulWidget {
   final String? artistId;
   final String? albumId;
   final double cardWidth;
+  final bool isVideo;
 
   const SongCard({
     super.key,
@@ -31,6 +32,7 @@ class SongCard extends ConsumerStatefulWidget {
     this.artistId,
     this.albumId,
     this.cardWidth = 150,
+    this.isVideo = false,
   });
 
   @override
@@ -60,7 +62,7 @@ class _SongCardState extends ConsumerState<SongCard> {
         onTap:
             () => ref
                 .read(playerStateProvider.notifier)
-                .playVideoId(widget.videoId),
+                .playVideoId(widget.videoId, isVideo: widget.isVideo),
         onLongPress:
             () => ContextMenuSheet.showForSong(
               context,
@@ -136,7 +138,10 @@ class _SongCardState extends ConsumerState<SongCard> {
                         onTap:
                             () => ref
                                 .read(playerStateProvider.notifier)
-                                .playVideoId(widget.videoId),
+                                .playVideoId(
+                                  widget.videoId,
+                                  isVideo: widget.isVideo,
+                                ),
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(

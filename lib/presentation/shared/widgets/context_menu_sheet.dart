@@ -848,6 +848,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                     artistId: resolvedArtistId,
                     albumId: albumId,
+                    isVideo: isVideo,
                   ),
                   _ActionTile(
                     icon:
@@ -1981,6 +1982,7 @@ class _LikeActionTile extends ConsumerWidget {
   final String? thumbnailUrl;
   final String? artistId;
   final String? albumId;
+  final bool isVideo;
 
   const _LikeActionTile({
     required this.videoId,
@@ -1989,6 +1991,7 @@ class _LikeActionTile extends ConsumerWidget {
     this.thumbnailUrl,
     this.artistId,
     this.albumId,
+    this.isVideo = false,
   });
 
   @override
@@ -2027,6 +2030,7 @@ class _LikeActionTile extends ConsumerWidget {
                     artistId: artistId,
                     albumId: albumId,
                     addedAt: DateTime.now(),
+                    isVideo: isVideo,
                   ),
                 );
           },

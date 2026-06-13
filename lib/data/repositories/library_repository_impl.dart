@@ -50,6 +50,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
           artistId: Value(song.artistId),
           albumId: Value(song.albumId),
           addedAt: song.addedAt,
+          isVideo: Value(song.isVideo),
         ),
       );
     }
@@ -66,6 +67,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         artistId: Value(song.artistId),
         albumId: Value(song.albumId),
         addedAt: song.addedAt,
+        isVideo: Value(song.isVideo),
       ),
     );
   }
@@ -278,6 +280,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             title: r.title,
             artist: r.artist,
             thumbnailUrl: r.thumbnailUrl,
+            isVideo: r.isVideo,
           ),
         )
         .toList();
@@ -291,6 +294,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String? title,
     String? artist,
     String? thumbnailUrl,
+    bool isVideo = false,
   }) => _playlistsDao.addEntry(
     playlistId,
     videoId,
@@ -298,6 +302,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     title: title,
     artist: artist,
     thumbnailUrl: thumbnailUrl,
+    isVideo: isVideo,
   );
 
   @override
@@ -473,6 +478,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     artistId: r.artistId,
     albumId: r.albumId,
     addedAt: r.addedAt,
+    isVideo: r.isVideo,
   );
 
   FollowedArtistModel _mapFollowedArtist(FollowedArtist r) =>

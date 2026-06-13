@@ -11,6 +11,7 @@ class LikedSongModel {
   final String? artistId;
   final String? albumId;
   final DateTime addedAt;
+  final bool isVideo;
 
   const LikedSongModel({
     required this.videoId,
@@ -20,6 +21,7 @@ class LikedSongModel {
     this.artistId,
     this.albumId,
     required this.addedAt,
+    this.isVideo = false,
   });
 }
 
@@ -90,6 +92,7 @@ class PlaylistEntryModel {
   final String? title;
   final String? artist;
   final String? thumbnailUrl;
+  final bool isVideo;
 
   const PlaylistEntryModel({
     required this.playlistId,
@@ -98,6 +101,7 @@ class PlaylistEntryModel {
     this.title,
     this.artist,
     this.thumbnailUrl,
+    this.isVideo = false,
   });
 }
 

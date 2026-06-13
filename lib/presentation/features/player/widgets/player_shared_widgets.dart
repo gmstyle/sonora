@@ -223,6 +223,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                   artist: artist,
                   thumbnailUrl: thumbnailUrl,
                   addedAt: DateTime.now(),
+                  isVideo: song.extras?['isVideo'] == true,
                 ),
               );
         },

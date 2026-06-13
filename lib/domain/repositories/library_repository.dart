@@ -51,6 +51,7 @@ abstract class LibraryRepository {
     String? title,
     String? artist,
     String? thumbnailUrl,
+    bool isVideo = false,
   });
   Future<void> removeEntry(int playlistId, String videoId);
 

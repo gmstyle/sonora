@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -93,6 +93,25 @@ class AppDatabase extends _$AppDatabase {
         );
         if (!hasDownloadsIsVideo) {
           await m.addColumn(downloads, downloads.isVideo);
+        }
+      }
+      if (from < 12) {
+        final likedSongsInfo =
+            await customSelect('PRAGMA table_info(liked_songs)').get();
+        final hasLikedSongsIsVideo = likedSongsInfo.any(
+          (row) => row.read<String>('name') == 'is_video',
+        );
+        if (!hasLikedSongsIsVideo) {
+          await m.addColumn(likedSongs, likedSongs.isVideo);
+        }
+
+        final playlistEntriesInfo =
+            await customSelect('PRAGMA table_info(playlist_entries)').get();
+        final hasPlaylistEntriesIsVideo = playlistEntriesInfo.any(
+          (row) => row.read<String>('name') == 'is_video',
+        );
+        if (!hasPlaylistEntriesIsVideo) {
+          await m.addColumn(playlistEntries, playlistEntries.isVideo);
         }
       }
     },

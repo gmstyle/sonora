@@ -612,6 +612,7 @@ class MiniPlayerContent extends ConsumerWidget {
                     artist: artist,
                     thumbnailUrl: thumbnailUrl,
                     addedAt: DateTime.now(),
+                    isVideo: currentSong.extras?['isVideo'] == true,
                   ),
                 );
           },

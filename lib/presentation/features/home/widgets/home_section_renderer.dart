@@ -579,6 +579,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         playCount: item.playCount,
         artistId: item.artist.artistId,
         albumId: item.album?.albumId,
+        isVideo: item.type == 'VIDEO',
       );
     }
     if (item is AlbumDetailed) {
@@ -981,6 +982,7 @@ class HomeDiscover extends StatelessWidget {
               artistId: song.artists.artistId,
               albumId: song.album?.albumId,
               cardWidth: cardWidth,
+              isVideo: song.type == 'VIDEO',
             );
           },
         );
