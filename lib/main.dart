@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -7,7 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -47,9 +51,8 @@ LinuxTrayService? _trayService;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  MediaKit.ensureInitialized();
   if (isLinux) JustAudioMediaKit.ensureInitialized();
-
-  if (isAndroid) await Permission.notification.request();
 
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const linuxSettings = LinuxInitializationSettings(
@@ -163,6 +166,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
+      _requestNotificationPermission();
     });
   }
 
@@ -212,6 +216,15 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       barrierDismissible: false,
       builder: (_) => const _StartupUpdateDialog(),
     );
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    if (!isAndroid) return;
+    try {
+      await Permission.notification.request();
+    } catch (e) {
+      debugPrint('Notification permission request failed: $e');
+    }
   }
 
   @override
