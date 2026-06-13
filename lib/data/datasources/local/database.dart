@@ -77,8 +77,23 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(queueItems, queueItems.albumId);
       }
       if (from < 11) {
-        await m.addColumn(history, history.isVideo);
-        await m.addColumn(downloads, downloads.isVideo);
+        final historyInfo =
+            await customSelect('PRAGMA table_info(history)').get();
+        final hasHistoryIsVideo = historyInfo.any(
+          (row) => row.read<String>('name') == 'is_video',
+        );
+        if (!hasHistoryIsVideo) {
+          await m.addColumn(history, history.isVideo);
+        }
+
+        final downloadsInfo =
+            await customSelect('PRAGMA table_info(downloads)').get();
+        final hasDownloadsIsVideo = downloadsInfo.any(
+          (row) => row.read<String>('name') == 'is_video',
+        );
+        if (!hasDownloadsIsVideo) {
+          await m.addColumn(downloads, downloads.isVideo);
+        }
       }
     },
   );
