@@ -472,6 +472,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<void> clearSearchHistory() => _historyDao.clearSearchHistory();
 
+  @override
+  Future<void> deleteSearchEntry(String query) =>
+      _historyDao.deleteSearchEntry(query);
+
   // ── Mapping helpers ───────────────────────────────────────────
 
   LikedSongModel _mapLikedSong(LikedSong r) => LikedSongModel(

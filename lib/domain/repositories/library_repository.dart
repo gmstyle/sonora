@@ -98,4 +98,5 @@ abstract class LibraryRepository {
   });
   Future<List<SearchHistoryModel>> getRecentSearches({int limit = 10});
   Future<void> clearSearchHistory();
+  Future<void> deleteSearchEntry(String query);
 }

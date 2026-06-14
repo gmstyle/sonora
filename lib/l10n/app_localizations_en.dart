@@ -430,6 +430,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noResultsHint => 'Try a different search term';
 
   @override
+  String get topResult => 'Top Result';
+
+  @override
+  String get featuredTrack => 'Featured Track';
+
+  @override
+  String get featuredArtist => 'Featured Artist';
+
+  @override
   String get system => 'System';
 
   @override

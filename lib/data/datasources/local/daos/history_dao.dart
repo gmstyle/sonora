@@ -76,6 +76,9 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
 
   Future<void> clearSearchHistory() => delete(db.searchHistory).go();
 
+  Future<void> deleteSearchEntry(String query) =>
+      (delete(db.searchHistory)..where((t) => t.query.equals(query))).go();
+
   Future<void> insertHistoryRaw(
     String videoId,
     String title,

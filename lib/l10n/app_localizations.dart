@@ -800,6 +800,24 @@ abstract class AppLocalizations {
   /// **'Try a different search term'**
   String get noResultsHint;
 
+  /// No description provided for @topResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Result'**
+  String get topResult;
+
+  /// No description provided for @featuredTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured Track'**
+  String get featuredTrack;
+
+  /// No description provided for @featuredArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured Artist'**
+  String get featuredArtist;
+
   /// No description provided for @system.
   ///
   /// In en, this message translates to:

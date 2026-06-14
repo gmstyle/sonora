@@ -26,6 +26,9 @@ class MobileShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isPlayerActive = ref.watch(playerStateProvider).currentSong != null;
+    final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 100;
+    final showPlayer = isPlayerActive && !isKeyboardVisible;
+
     final bottomInset = MediaQuery.of(context).padding.bottom;
     // Reduced nav bar height: 60 px intrinsic + safe-area inset.
     const double navBarIntrinsic = 60.0;
@@ -39,7 +42,9 @@ class MobileShell extends ConsumerWidget {
     // height to MediaQuery.padding for children — we must do it manually.
     final mq = MediaQuery.of(context);
     final childMq = mq.copyWith(
-      padding: mq.padding.copyWith(bottom: mq.padding.bottom + navBarIntrinsic),
+      padding: mq.padding.copyWith(
+        bottom: mq.padding.bottom + (isKeyboardVisible ? 0.0 : navBarIntrinsic),
+      ),
     );
 
     return Scaffold(
@@ -48,14 +53,14 @@ class MobileShell extends ConsumerWidget {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              bottom: isPlayerActive ? miniBarHeight + miniBarGap : 0.0,
+              bottom: showPlayer ? miniBarHeight + miniBarGap : 0.0,
             ),
             child: MediaQuery(
               data: childMq,
               child: BranchFadeTransition(navigationShell: navigationShell),
             ),
           ),
-          if (isPlayerActive)
+          if (showPlayer)
             Positioned(
               left: 0,
               right: 0,
@@ -68,41 +73,45 @@ class MobileShell extends ConsumerWidget {
           const ActionFeedbackListener(),
         ],
       ),
-      bottomNavigationBar: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-          child: Builder(
-            builder: (context) {
-              final l10n = AppLocalizations.of(context)!;
-              final labels = [
-                l10n.home,
-                l10n.search,
-                l10n.library,
-                l10n.downloads,
-                l10n.settingsLabel,
-              ];
-              return NavigationBar(
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.surface.withValues(alpha: 0.65),
-                elevation: 0,
-                height: navBarIntrinsic,
-                selectedIndex: navigationShell.currentIndex,
-                labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
-                onDestinationSelected:
-                    (index) => navigationShell.goBranch(index),
-                destinations: [
-                  for (var i = 0; i < _icons.length; i++)
-                    NavigationDestination(
-                      icon: Icon(_icons[i]),
-                      label: labels[i],
-                    ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
+      bottomNavigationBar:
+          isKeyboardVisible
+              ? null
+              : ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                  child: Builder(
+                    builder: (context) {
+                      final l10n = AppLocalizations.of(context)!;
+                      final labels = [
+                        l10n.home,
+                        l10n.search,
+                        l10n.library,
+                        l10n.downloads,
+                        l10n.settingsLabel,
+                      ];
+                      return NavigationBar(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surface.withValues(alpha: 0.65),
+                        elevation: 0,
+                        height: navBarIntrinsic,
+                        selectedIndex: navigationShell.currentIndex,
+                        labelBehavior:
+                            NavigationDestinationLabelBehavior.alwaysHide,
+                        onDestinationSelected:
+                            (index) => navigationShell.goBranch(index),
+                        destinations: [
+                          for (var i = 0; i < _icons.length; i++)
+                            NavigationDestination(
+                              icon: Icon(_icons[i]),
+                              label: labels[i],
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
     );
   }
 }

@@ -239,6 +239,9 @@
   "searchFailed": "Search failed",
   "noResults": "No results",
   "noResultsHint": "Try a different search term",
+  "topResult": "Top Result",
+  "featuredTrack": "Featured Track",
+  "featuredArtist": "Featured Artist",
 
   "@@sectionMeta": {
     "settings": "Settings Screen"

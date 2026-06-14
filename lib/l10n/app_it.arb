@@ -149,6 +149,9 @@
   "searchFailed": "Ricerca fallita",
   "noResults": "Nessun risultato",
   "noResultsHint": "Prova un termine di ricerca diverso",
+  "topResult": "Miglior Risultato",
+  "featuredTrack": "Brano in evidenza",
+  "featuredArtist": "Artista in evidenza",
 
   "@@sectionMeta": {
     "settings": "Schermata Impostazioni"

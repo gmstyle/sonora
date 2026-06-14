@@ -1,18 +1,26 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/extensions/stat_format.dart';
 
+import '../../providers/library_notifier.dart';
+import '../../providers/player_provider.dart';
+import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/album_tile.dart';
+import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/artist_tile.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/filter_chip_bar.dart';
+import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/playlist_tile.dart';
 import '../../shared/widgets/search_suggestion_tile.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
+import '../../shared/widgets/thumbnail_widget.dart';
 import 'providers/search_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -60,6 +68,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final activeQuery = ref.watch(activeSearchQueryProvider);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: SizedBox(
           height: 40,
@@ -103,7 +112,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return _RecentSearches(onTapSearch: _submitSearch);
     }
     if (query.isNotEmpty && query != activeQuery) {
-      return _Suggestions(query: query, onTapSuggestion: _submitSearch);
+      return _Suggestions(
+        query: query,
+        onTapSuggestion: _submitSearch,
+        onInsertSuggestion: (val) {
+          _searchController.text = val;
+          _searchController.selection = TextSelection.fromPosition(
+            TextPosition(offset: val.length),
+          );
+          ref.read(searchQueryProvider.notifier).update(val);
+          _focusNode.requestFocus();
+        },
+      );
     }
     return _SearchResults(activeQuery: activeQuery);
   }
@@ -123,30 +143,38 @@ class _RecentSearches extends ConsumerWidget {
       data: (searches) {
         if (searches.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  LucideIcons.search,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      LucideIcons.search,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      AppLocalizations.of(context)!.searchForMusic,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      AppLocalizations.of(context)!.searchForMusicHint,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  AppLocalizations.of(context)!.searchForMusic,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  AppLocalizations.of(context)!.searchForMusicHint,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -168,6 +196,12 @@ class _RecentSearches extends ConsumerWidget {
                     query: s.query,
                     isHistory: true,
                     onTap: () => onTapSearch(s.query),
+                    onDelete: () async {
+                      await ref
+                          .read(libraryNotifierProvider.notifier)
+                          .deleteSearchEntry(s.query);
+                      ref.invalidate(recentSearchesProvider);
+                    },
                   );
                 },
               ),
@@ -182,8 +216,13 @@ class _RecentSearches extends ConsumerWidget {
 class _Suggestions extends ConsumerWidget {
   final String query;
   final ValueChanged<String> onTapSuggestion;
+  final ValueChanged<String> onInsertSuggestion;
 
-  const _Suggestions({required this.query, required this.onTapSuggestion});
+  const _Suggestions({
+    required this.query,
+    required this.onTapSuggestion,
+    required this.onInsertSuggestion,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -196,10 +235,12 @@ class _Suggestions extends ConsumerWidget {
         return ListView.builder(
           itemCount: suggestions.length,
           itemBuilder: (context, index) {
+            final suggestion = suggestions[index];
             return SearchSuggestionTile(
-              query: suggestions[index],
+              query: suggestion,
               isHistory: false,
-              onTap: () => onTapSuggestion(suggestions[index]),
+              onTap: () => onTapSuggestion(suggestion),
+              onInsert: () => onInsertSuggestion(suggestion),
             );
           },
         );
@@ -212,6 +253,185 @@ class _SearchResults extends ConsumerWidget {
   final String activeQuery;
 
   const _SearchResults({required this.activeQuery});
+
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    VoidCallback? onSeeAll,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          if (onSeeAll != null)
+            TextButton(
+              onPressed: onSeeAll,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                AppLocalizations.of(context)!.showMore,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopResultCard(
+    BuildContext context,
+    WidgetRef ref,
+    SearchResult result,
+  ) {
+    String title = '';
+    String subtitle = '';
+    String type = '';
+    String? imageUrl;
+    VoidCallback? onTap;
+
+    if (result is SongDetailed) {
+      title = result.name;
+      subtitle = result.artist.name;
+      type = AppLocalizations.of(context)!.songs;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap =
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(result.videoId, isVideo: false);
+    } else if (result is VideoDetailed) {
+      title = result.name;
+      subtitle = result.artist.name;
+      type = AppLocalizations.of(context)!.videos;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap =
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(result.videoId, isVideo: true);
+    } else if (result is ArtistDetailed) {
+      title = result.name;
+      subtitle =
+          result.monthlyListeners != null
+              ? (stripYtLabel(result.monthlyListeners) ?? '')
+              : '';
+      type = AppLocalizations.of(context)!.searchArtists;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap = () => context.push('/artist/${result.artistId}');
+    } else if (result is AlbumDetailed) {
+      title = result.name;
+      subtitle = result.artist.name;
+      type = AppLocalizations.of(context)!.searchAlbums;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap = () => context.push('/album/${result.albumId}');
+    } else if (result is PlaylistDetailed) {
+      title = result.name;
+      subtitle = result.artist.name;
+      type = AppLocalizations.of(context)!.searchPlaylists;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap = () => context.push('/playlist/${result.playlistId}');
+    }
+
+    final bool isCircle = result is ArtistDetailed;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              ThumbnailWidget(
+                imageUrl: imageUrl,
+                size: 72,
+                shape:
+                    isCircle ? ThumbnailShape.circle : ThumbnailShape.rounded,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        type,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color:
+                              Theme.of(
+                                context,
+                              ).colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Icon(
+                LucideIcons.playCircle,
+                size: 36,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -254,12 +474,170 @@ class _SearchResults extends ConsumerWidget {
                   body: AppLocalizations.of(context)!.noResultsHint,
                 );
               }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: results.length,
-                itemBuilder:
-                    (context, index) =>
-                        _buildResultItem(context, ref, results[index]),
+
+              if (filter > 0) {
+                // Return a flat list when a specific category is selected
+                return ListView.builder(
+                  padding: EdgeInsets.only(
+                    top: 4,
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                  ),
+                  itemCount: results.length,
+                  itemBuilder:
+                      (context, index) =>
+                          _buildResultItem(context, ref, results[index]),
+                );
+              }
+
+              // Categorized structure for the "All" (Tutto) tab:
+              final songs = results.whereType<SongDetailed>().toList();
+              final videos = results.whereType<VideoDetailed>().toList();
+              final artists = results.whereType<ArtistDetailed>().toList();
+              final albums = results.whereType<AlbumDetailed>().toList();
+              final playlists = results.whereType<PlaylistDetailed>().toList();
+
+              return ListView(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 24,
+                ),
+                children: [
+                  // 1. Top Result
+                  _buildSectionHeader(
+                    context,
+                    title: AppLocalizations.of(context)!.topResult,
+                  ),
+                  _buildTopResultCard(context, ref, results.first),
+
+                  // 2. Songs
+                  if (songs.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.songs,
+                      onSeeAll:
+                          () =>
+                              ref.read(searchFilterProvider.notifier).update(1),
+                    ),
+                    ...songs
+                        .take(4)
+                        .map((s) => _buildResultItem(context, ref, s)),
+                  ],
+
+                  // 3. Videos
+                  if (videos.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.videos,
+                    ),
+                    ...videos
+                        .take(3)
+                        .map((v) => _buildResultItem(context, ref, v)),
+                  ],
+
+                  // 4. Artists
+                  if (artists.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.searchArtists,
+                      onSeeAll:
+                          () =>
+                              ref.read(searchFilterProvider.notifier).update(2),
+                    ),
+                    SizedBox(
+                      height: 155,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: artists.length > 8 ? 8 : artists.length,
+                        itemBuilder: (context, idx) {
+                          final a = artists[idx];
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: ArtistCard(
+                              artistId: a.artistId,
+                              name: a.name,
+                              thumbnailUrl:
+                                  a.thumbnails.isNotEmpty
+                                      ? a.thumbnails.last.url
+                                      : null,
+                              monthlyListeners: a.monthlyListeners,
+                              cardWidth: 100,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  // 5. Albums
+                  if (albums.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.searchAlbums,
+                      onSeeAll:
+                          () =>
+                              ref.read(searchFilterProvider.notifier).update(3),
+                    ),
+                    SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: albums.length > 8 ? 8 : albums.length,
+                        itemBuilder: (context, idx) {
+                          final al = albums[idx];
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: AlbumCard(
+                              albumId: al.albumId,
+                              name: al.name,
+                              artist: al.artist.name,
+                              thumbnailUrl:
+                                  al.thumbnails.isNotEmpty
+                                      ? al.thumbnails.last.url
+                                      : null,
+                              year: al.year,
+                              cardWidth: 120,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  // 6. Playlists
+                  if (playlists.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.searchPlaylists,
+                      onSeeAll:
+                          () =>
+                              ref.read(searchFilterProvider.notifier).update(4),
+                    ),
+                    SizedBox(
+                      height: 230,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: playlists.length > 8 ? 8 : playlists.length,
+                        itemBuilder: (context, idx) {
+                          final pl = playlists[idx];
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 16),
+                            child: PlaylistCard(
+                              playlistId: pl.playlistId,
+                              name: pl.name,
+                              artist: pl.artist.name,
+                              thumbnailUrl:
+                                  pl.thumbnails.isNotEmpty
+                                      ? pl.thumbnails.last.url
+                                      : null,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
               );
             },
           ),
