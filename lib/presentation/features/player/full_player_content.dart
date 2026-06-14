@@ -8,6 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/video_player_provider.dart';
 import 'widgets/player_controls.dart';
 import 'widgets/video_player_widget.dart';
@@ -100,7 +101,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   constraints.maxHeight - padding.top - padding.bottom;
               final availableWidth = constraints.maxWidth;
 
-              if (constraints.maxWidth < kCompactBreakpoint) {
+              final isPortrait = constraints.maxHeight > constraints.maxWidth;
+
+              if (constraints.maxWidth < kCompactBreakpoint || isPortrait) {
                 return _mobileLayout(
                   theme,
                   currentSong,
@@ -207,7 +210,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                         ? Center(
                           child: _artwork(
                             artUrl,
-                            availWidth - 48,
+                            min(availWidth - 48, availHeight - 360),
                             isSwitching: playerState.isSwitching,
                             isVideo: isVideo,
                           ),
@@ -257,10 +260,14 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     double bottomInset,
     PlayerSubView activeView,
   ) {
+    final tight = availHeight < 600;
     // 2-column layout for tablet
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: 32.0,
+          vertical: tight ? 4.0 : 16.0,
+        ),
         child: Column(
           children: [
             _topBar(currentSong, isVideo, albumName),
@@ -275,7 +282,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                       children: [
                         _artwork(
                           artUrl,
-                          min(availHeight - 100, availWidth / 2 - 48),
+                          min(
+                            availHeight - (tight ? 70 : 100),
+                            availWidth / 2 - 48,
+                          ),
                           isSwitching: playerState.isSwitching,
                           isVideo: isVideo,
                         ),
@@ -287,18 +297,22 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                     flex: 1,
                     child: LayoutBuilder(
                       builder: (context, rightConstraints) {
-                        final tight = rightConstraints.maxHeight < 360;
+                        final isPanelOpen = activeView != PlayerSubView.none;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment:
+                              isPanelOpen
+                                  ? MainAxisAlignment.start
+                                  : MainAxisAlignment.center,
                           children: [
-                            SizedBox(height: tight ? 8 : 24),
-                            _trackInfoAndLikeRow(
-                              currentSong,
-                              isVideo,
-                              albumName,
-                            ),
-                            SizedBox(height: tight ? 4 : 16),
-                            if (activeView != PlayerSubView.none)
+                            if (isPanelOpen) ...[
+                              SizedBox(height: tight ? 2 : 24),
+                              _trackInfoAndLikeRow(
+                                currentSong,
+                                isVideo,
+                                albumName,
+                              ),
+                              SizedBox(height: tight ? 2 : 16),
                               Expanded(
                                 child:
                                     activeView == PlayerSubView.lyrics
@@ -307,21 +321,37 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                                           position: playerState.position,
                                         )
                                         : const QueueSheet(),
-                              )
-                            else
-                              const Spacer(),
-                            SizedBox(height: tight ? 4 : 16),
-                            _progressBar(playerState, videoId),
-                            SizedBox(height: tight ? 4 : 16),
-                            const PlayerControls(),
-                            SizedBox(height: tight ? 2 : 8),
-                            _bottomActionsRow(
-                              isVideo,
-                              hasSleepTimer,
-                              playerNotifier,
-                              activeView,
-                            ),
-                            SizedBox(height: tight ? 4 : 16),
+                              ),
+                              SizedBox(height: tight ? 2 : 16),
+                              _progressBar(playerState, videoId),
+                              SizedBox(height: tight ? 2 : 16),
+                              const PlayerControls(),
+                              SizedBox(height: tight ? 0 : 8),
+                              _bottomActionsRow(
+                                isVideo,
+                                hasSleepTimer,
+                                playerNotifier,
+                                activeView,
+                              ),
+                              SizedBox(height: tight ? 2 : 16),
+                            ] else ...[
+                              _trackInfoAndLikeRow(
+                                currentSong,
+                                isVideo,
+                                albumName,
+                              ),
+                              SizedBox(height: tight ? 8 : 28),
+                              _progressBar(playerState, videoId),
+                              SizedBox(height: tight ? 8 : 28),
+                              const PlayerControls(),
+                              SizedBox(height: tight ? 6 : 20),
+                              _bottomActionsRow(
+                                isVideo,
+                                hasSleepTimer,
+                                playerNotifier,
+                                activeView,
+                              ),
+                            ],
                           ],
                         );
                       },
@@ -353,10 +383,14 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     double bottomInset,
     PlayerSubView activeView,
   ) {
+    final tight = availHeight < 600;
     // More spacious 2-column layout for wide
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 64.0, vertical: 32.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: 64.0,
+          vertical: tight ? 8.0 : 32.0,
+        ),
         child: Column(
           children: [
             _topBar(currentSong, isVideo, albumName),
@@ -371,7 +405,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                       children: [
                         _artwork(
                           artUrl,
-                          min(availHeight - 150, availWidth / 2 - 100),
+                          min(
+                            availHeight - (tight ? 100 : 150),
+                            availWidth / 2 - 100,
+                          ),
                           isSwitching: playerState.isSwitching,
                           isVideo: isVideo,
                         ),
@@ -383,18 +420,22 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                     flex: 5,
                     child: LayoutBuilder(
                       builder: (context, rightConstraints) {
-                        final tight = rightConstraints.maxHeight < 400;
+                        final isPanelOpen = activeView != PlayerSubView.none;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment:
+                              isPanelOpen
+                                  ? MainAxisAlignment.start
+                                  : MainAxisAlignment.center,
                           children: [
-                            SizedBox(height: tight ? 16 : 32),
-                            _trackInfoAndLikeRow(
-                              currentSong,
-                              isVideo,
-                              albumName,
-                            ),
-                            SizedBox(height: tight ? 8 : 16),
-                            if (activeView != PlayerSubView.none)
+                            if (isPanelOpen) ...[
+                              SizedBox(height: tight ? 2 : 32),
+                              _trackInfoAndLikeRow(
+                                currentSong,
+                                isVideo,
+                                albumName,
+                              ),
+                              SizedBox(height: tight ? 2 : 16),
                               Expanded(
                                 child:
                                     activeView == PlayerSubView.lyrics
@@ -403,21 +444,37 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                                           position: playerState.position,
                                         )
                                         : const QueueSheet(),
-                              )
-                            else
-                              const Spacer(),
-                            SizedBox(height: tight ? 8 : 16),
-                            _progressBar(playerState, videoId),
-                            SizedBox(height: tight ? 12 : 24),
-                            const PlayerControls(),
-                            SizedBox(height: tight ? 8 : 16),
-                            _bottomActionsRow(
-                              isVideo,
-                              hasSleepTimer,
-                              playerNotifier,
-                              activeView,
-                            ),
-                            SizedBox(height: tight ? 8 : 16),
+                              ),
+                              SizedBox(height: tight ? 2 : 16),
+                              _progressBar(playerState, videoId),
+                              SizedBox(height: tight ? 2 : 24),
+                              const PlayerControls(),
+                              SizedBox(height: tight ? 2 : 16),
+                              _bottomActionsRow(
+                                isVideo,
+                                hasSleepTimer,
+                                playerNotifier,
+                                activeView,
+                              ),
+                              SizedBox(height: tight ? 2 : 16),
+                            ] else ...[
+                              _trackInfoAndLikeRow(
+                                currentSong,
+                                isVideo,
+                                albumName,
+                              ),
+                              SizedBox(height: tight ? 12 : 40),
+                              _progressBar(playerState, videoId),
+                              SizedBox(height: tight ? 12 : 40),
+                              const PlayerControls(),
+                              SizedBox(height: tight ? 8 : 32),
+                              _bottomActionsRow(
+                                isVideo,
+                                hasSleepTimer,
+                                playerNotifier,
+                                activeView,
+                              ),
+                            ],
                           ],
                         );
                       },
@@ -439,11 +496,16 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   /// The gradient fades from the dominant color (top) to the theme surface
   /// color (bottom) to keep text and controls always readable.
   Widget _buildPlayerBackground(String? artUrl, ThemeData theme) {
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
     return buildPlayerBackground(
       artUrl,
       _dominantColor,
       _isDark,
       theme.colorScheme,
+      context: context,
+      reduceEffects: reduceEffects,
     );
   }
 
@@ -540,7 +602,17 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         tag: 'full',
       );
     }
-    return buildArtwork(context, artUrl, isSwitching, size, _dominantColor);
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
+    return buildArtwork(
+      context,
+      artUrl,
+      isSwitching,
+      size,
+      _dominantColor,
+      reduceEffects: reduceEffects,
+    );
   }
 
   Widget _trackInfoAndLikeRow(MediaItem song, bool isVideo, String? albumName) {

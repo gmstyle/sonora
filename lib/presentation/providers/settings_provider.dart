@@ -26,6 +26,7 @@ class Settings {
   final bool trackHistory;
   final bool checkUpdatesOnStartup;
   final bool isLibraryGridView;
+  final bool reduceEffects;
 
   const Settings({
     this.themeMode = ThemeMode.system,
@@ -41,6 +42,7 @@ class Settings {
     this.trackHistory = true,
     this.checkUpdatesOnStartup = true,
     this.isLibraryGridView = false,
+    this.reduceEffects = false,
   });
 
   Settings copyWith({
@@ -57,6 +59,7 @@ class Settings {
     bool? trackHistory,
     bool? checkUpdatesOnStartup,
     bool? isLibraryGridView,
+    bool? reduceEffects,
     bool clearDownloadPath = false,
   }) {
     return Settings(
@@ -76,6 +79,7 @@ class Settings {
       checkUpdatesOnStartup:
           checkUpdatesOnStartup ?? this.checkUpdatesOnStartup,
       isLibraryGridView: isLibraryGridView ?? this.isLibraryGridView,
+      reduceEffects: reduceEffects ?? this.reduceEffects,
     );
   }
 
@@ -102,6 +106,7 @@ class SettingsNotifier extends Notifier<Settings> {
       trackHistory: _prefs.getBool(kTrackHistoryKey) ?? true,
       checkUpdatesOnStartup: _prefs.getBool(kCheckUpdatesKey) ?? true,
       isLibraryGridView: _prefs.getBool(kIsLibraryGridViewKey) ?? false,
+      reduceEffects: _prefs.getBool(kReduceEffectsKey) ?? false,
     );
   }
 
@@ -123,6 +128,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kTrackHistoryKey, state.trackHistory);
     await _prefs.setBool(kCheckUpdatesKey, state.checkUpdatesOnStartup);
     await _prefs.setBool(kIsLibraryGridViewKey, state.isLibraryGridView);
+    await _prefs.setBool(kReduceEffectsKey, state.reduceEffects);
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -199,6 +205,11 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(isLibraryGridView: value);
     await _save();
   }
+
+  Future<void> setReduceEffects(bool value) async {
+    state = state.copyWith(reduceEffects: value);
+    await _save();
+  }
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
@@ -220,6 +231,7 @@ const kDownloadWifiKey = 'downloadOnlyOnWifi';
 const kTrackHistoryKey = 'trackHistory';
 const kCheckUpdatesKey = 'checkUpdatesOnStartup';
 const kIsLibraryGridViewKey = 'isLibraryGridView';
+const kReduceEffectsKey = 'reduceEffects';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 
 // ── Battery Optimization (Android only) ───────────────────────────

@@ -1537,6 +1537,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Off'**
   String get offLabel;
+
+  /// No description provided for @reduceEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce visual effects'**
+  String get reduceEffects;
+
+  /// No description provided for @reduceEffectsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable background blurs and shadows to improve performance on older devices'**
+  String get reduceEffectsHint;
 }
 
 class _AppLocalizationsDelegate

@@ -11,6 +11,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
+import '../../providers/settings_provider.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/video_player_widget.dart';
 import '../../../core/extensions/duration_ext.dart';
@@ -97,6 +98,7 @@ class MiniPlayerContent extends ConsumerWidget {
             ),
           _glassBar(
             cs: cs,
+            ref: ref,
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
@@ -186,6 +188,7 @@ class MiniPlayerContent extends ConsumerWidget {
             ),
           _glassBar(
             cs: cs,
+            ref: ref,
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
@@ -280,6 +283,7 @@ class MiniPlayerContent extends ConsumerWidget {
         children: [
           _glassBar(
             cs: cs,
+            ref: ref,
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
@@ -454,11 +458,21 @@ class MiniPlayerContent extends ConsumerWidget {
   /// 72 px semi-transparent bar — the blur is applied by the parent wrapper
   /// ([PlayerSheet] on tablet/wide, [PlayerSheetMobile] on mobile) so it is
   /// not duplicated here.  This widget provides only the colour + border.
-  Widget _glassBar({required ColorScheme cs, required Widget child}) {
+  Widget _glassBar({
+    required ColorScheme cs,
+    required Widget child,
+    required WidgetRef ref,
+  }) {
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
     return Container(
       height: 72,
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh.withValues(alpha: 0.82),
+        color:
+            reduceEffects
+                ? cs.surfaceContainerHigh
+                : cs.surfaceContainerHigh.withValues(alpha: 0.82),
         border: Border(
           top: BorderSide(
             color: cs.outlineVariant.withValues(alpha: 0.35),

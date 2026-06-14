@@ -836,4 +836,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get offLabel => 'Off';
+
+  @override
+  String get reduceEffects => 'Reduce visual effects';
+
+  @override
+  String get reduceEffectsHint =>
+      'Disable background blurs and shadows to improve performance on older devices';
 }

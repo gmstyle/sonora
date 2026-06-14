@@ -29,6 +29,7 @@ Widget buildPlayerBackground(
   bool isDark,
   ColorScheme colorScheme, {
   BuildContext? context,
+  bool reduceEffects = false,
 }) {
   // Resolve PlayerColors if a context is available; fall back to standard
   // values so the function remains callable without a BuildContext (e.g. from
@@ -37,11 +38,25 @@ Widget buildPlayerBackground(
       context != null
           ? PlayerColors.maybeOf(context) ?? PlayerColors.standard()
           : PlayerColors.standard();
+
+  final gradientDecoration = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      stops: const [0.0, 0.55, 1.0],
+      colors: [
+        dominantColor.withValues(alpha: isDark ? 0.85 : 0.94),
+        dominantColor.withValues(alpha: isDark ? 0.65 : 0.80),
+        colorScheme.surfaceContainerHighest.withValues(alpha: 0.97),
+      ],
+    ),
+  );
+
   return Stack(
     fit: StackFit.expand,
     children: [
       // Layer 1 — heavily blurred artwork fills the entire background.
-      if (artUrl != null)
+      if (artUrl != null && !reduceEffects)
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
           child: ImageFiltered(
@@ -62,22 +77,14 @@ Widget buildPlayerBackground(
       // Layer 2 — dominant-colour gradient from top to bottom (palette-driven).
       // Alpha values tuned for readability: strong at top, progressively
       // lighter toward the bottom where a separate scrim (Layer 4) takes over.
-      AnimatedContainer(
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: const [0.0, 0.55, 1.0],
-            colors: [
-              dominantColor.withValues(alpha: isDark ? 0.85 : 0.94),
-              dominantColor.withValues(alpha: isDark ? 0.65 : 0.80),
-              colorScheme.surfaceContainerHighest.withValues(alpha: 0.97),
-            ],
-          ),
+      if (reduceEffects)
+        DecoratedBox(decoration: gradientDecoration)
+      else
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 700),
+          curve: Curves.easeInOut,
+          decoration: gradientDecoration,
         ),
-      ),
 
       // Layer 3 — bottom scrim: guarantees a dark base where queue, lyrics
       // and controls sit, regardless of dominant colour or theme brightness.
@@ -119,8 +126,9 @@ Widget buildArtwork(
   String? artUrl,
   bool isSwitching,
   double size,
-  Color dominantColor,
-) {
+  Color dominantColor, {
+  bool reduceEffects = false,
+}) {
   final clampedSize = size.clamp(150.0, 600.0);
   Widget content;
   if (isSwitching) {
@@ -169,12 +177,13 @@ Widget buildArtwork(
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       boxShadow: [
-        BoxShadow(
-          color: dominantColor.withValues(alpha: 0.55),
-          blurRadius: 32,
-          spreadRadius: 4,
-          offset: const Offset(0, 8),
-        ),
+        if (!reduceEffects)
+          BoxShadow(
+            color: dominantColor.withValues(alpha: 0.55),
+            blurRadius: 32,
+            spreadRadius: 4,
+            offset: const Offset(0, 8),
+          ),
       ],
     ),
     child: ClipRRect(

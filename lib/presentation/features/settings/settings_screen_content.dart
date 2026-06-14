@@ -98,6 +98,13 @@ class _AppearanceSection extends StatelessWidget {
           onChanged: notifier.setUseDynamicColor,
           icon: LucideIcons.palette,
         ),
+        SettingsSwitchTile(
+          title: AppLocalizations.of(context)!.reduceEffects,
+          subtitle: AppLocalizations.of(context)!.reduceEffectsHint,
+          value: settings.reduceEffects,
+          onChanged: notifier.setReduceEffects,
+          icon: LucideIcons.cpu,
+        ),
       ],
     );
   }

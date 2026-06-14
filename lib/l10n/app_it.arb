@@ -297,5 +297,7 @@
   "myPlaylist": "La mia playlist",
   "save": "Salva",
   "onLabel": "On",
-  "offLabel": "Off"
+  "offLabel": "Off",
+  "reduceEffects": "Riduci effetti visivi",
+  "reduceEffectsHint": "Disattiva sfocature e ombreggiature complesse per risparmiare batteria e migliorare le prestazioni su dispositivi datati"
 }

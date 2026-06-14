@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/settings_provider.dart';
 import 'mini_player_content.dart';
 import 'full_player_content.dart';
 
@@ -62,6 +63,31 @@ class PlayerSheet extends ConsumerWidget {
     final horizontalMargin = isMobile ? 12.0 : 24.0;
     final bottomMargin = isMobile ? bottom + 12.0 : 16.0;
 
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
+
+    final miniPlayerChild = MiniPlayerContent(
+      currentSong: currentSong,
+      playerState: playerState,
+      isVideo: isVideo,
+      onTap: () => _navigateToFullPlayer(context, ref),
+      onPlayPause:
+          () => ref.read(playerStateProvider.notifier).togglePlayPause(),
+      onSkipNext: () => ref.read(playerStateProvider.notifier).skipToNext(),
+      onSkipPrevious:
+          () => ref.read(playerStateProvider.notifier).skipToPrevious(),
+      onOpenLyrics:
+          () => _navigateToFullPlayer(
+            context,
+            ref,
+            subView: PlayerSubView.lyrics,
+          ),
+      onOpenQueue:
+          () =>
+              _navigateToFullPlayer(context, ref, subView: PlayerSubView.queue),
+    );
+
     return Positioned(
       bottom: bottomMargin,
       left: horizontalMargin,
@@ -86,34 +112,13 @@ class PlayerSheet extends ConsumerWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: MiniPlayerContent(
-              currentSong: currentSong,
-              playerState: playerState,
-              isVideo: isVideo,
-              onTap: () => _navigateToFullPlayer(context, ref),
-              onPlayPause:
-                  () =>
-                      ref.read(playerStateProvider.notifier).togglePlayPause(),
-              onSkipNext:
-                  () => ref.read(playerStateProvider.notifier).skipToNext(),
-              onSkipPrevious:
-                  () => ref.read(playerStateProvider.notifier).skipToPrevious(),
-              onOpenLyrics:
-                  () => _navigateToFullPlayer(
-                    context,
-                    ref,
-                    subView: PlayerSubView.lyrics,
+          child:
+              reduceEffects
+                  ? miniPlayerChild
+                  : BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: miniPlayerChild,
                   ),
-              onOpenQueue:
-                  () => _navigateToFullPlayer(
-                    context,
-                    ref,
-                    subView: PlayerSubView.queue,
-                  ),
-            ),
-          ),
         ),
       ),
     );

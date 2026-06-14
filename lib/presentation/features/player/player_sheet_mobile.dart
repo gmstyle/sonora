@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../providers/player_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import 'full_player_content.dart';
@@ -67,6 +68,101 @@ class PlayerSheetMobile extends ConsumerWidget {
     final isVideo = currentSong.extras?['isVideo'] == true;
     final artUrl = currentSong.artUri?.toString();
 
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
+
+    final innerContent = Container(
+      color:
+          reduceEffects
+              ? cs.surfaceContainerHigh
+              : cs.surfaceContainerHigh.withValues(alpha: 0.82),
+      child:
+          isSwitching
+              ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
+              : Row(
+                children: [
+                  const SizedBox(width: 12),
+                  _MiniArtwork(
+                    artUrl: artUrl,
+                    size: 44,
+                    radius: 8,
+                    cs: cs,
+                    isVideo: isVideo,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                currentSong.title,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (isVideo) ...[
+                              const SizedBox(width: 4),
+                              buildMvBadge(context),
+                            ],
+                          ],
+                        ),
+                        Text(
+                          currentSong.artist ?? '',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: AnimatedPlayPauseIcon(
+                      isPlaying: isPlaying,
+                      color: cs.onPrimary,
+                      size: 22,
+                    ),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      playerNotifier.togglePlayPause();
+                    },
+                    style: IconButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: cs.onPrimary,
+                      fixedSize: const Size(36, 36),
+                      shape: const CircleBorder(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      LucideIcons.skipForward,
+                      size: 18,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      playerNotifier.skipToNext();
+                    },
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+              ),
+    );
+
     // Floating island — same visual language as PlayerSheet on tablet/wide:
     // rounded corners, drop shadow, horizontal margin, BackdropFilter blur.
     return GestureDetector(
@@ -106,97 +202,13 @@ class PlayerSheetMobile extends ConsumerWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              color: cs.surfaceContainerHigh.withValues(alpha: 0.82),
-              child:
-                  isSwitching
-                      ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-                      : Row(
-                        children: [
-                          const SizedBox(width: 12),
-                          _MiniArtwork(
-                            artUrl: artUrl,
-                            size: 44,
-                            radius: 8,
-                            cs: cs,
-                            isVideo: isVideo,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        currentSong.title,
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 1,
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                    ),
-                                    if (isVideo) ...[
-                                      const SizedBox(width: 4),
-                                      buildMvBadge(context),
-                                    ],
-                                  ],
-                                ),
-                                Text(
-                                  currentSong.artist ?? '',
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: AnimatedPlayPauseIcon(
-                              isPlaying: isPlaying,
-                              color: cs.onPrimary,
-                              size: 22,
-                            ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              playerNotifier.togglePlayPause();
-                            },
-                            style: IconButton.styleFrom(
-                              backgroundColor: cs.primary,
-                              foregroundColor: cs.onPrimary,
-                              fixedSize: const Size(36, 36),
-                              shape: const CircleBorder(),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              LucideIcons.skipForward,
-                              size: 18,
-                              color: cs.onSurfaceVariant,
-                            ),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              playerNotifier.skipToNext();
-                            },
-                            constraints: const BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
-                            ),
-                            padding: EdgeInsets.zero,
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                      ),
-            ),
-          ),
+          child:
+              reduceEffects
+                  ? innerContent
+                  : BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: innerContent,
+                  ),
         ),
       ),
     );

@@ -437,5 +437,7 @@
   "myPlaylist": "My playlist",
   "save": "Save",
   "onLabel": "On",
-  "offLabel": "Off"
+  "offLabel": "Off",
+  "reduceEffects": "Reduce visual effects",
+  "reduceEffectsHint": "Disable background blurs and shadows to improve performance on older devices"
 }
