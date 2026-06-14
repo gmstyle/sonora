@@ -8,6 +8,7 @@ import '../../providers/download_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'thumbnail_widget.dart';
+import 'video_badge.dart';
 
 class SongCard extends ConsumerStatefulWidget {
   final String videoId;
@@ -127,6 +128,18 @@ class _SongCardState extends ConsumerState<SongCard> {
                           size: 12,
                           color: Theme.of(context).colorScheme.onPrimary,
                         ),
+                      ),
+                    ),
+                  if (widget.isVideo)
+                    Positioned(
+                      bottom: 6,
+                      left: isDownloaded ? 28 : 6,
+                      child: const VideoBadge(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        borderRadius: 4,
                       ),
                     ),
                   Positioned(

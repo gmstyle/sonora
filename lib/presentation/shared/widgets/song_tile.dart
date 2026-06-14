@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../../core/extensions/stat_format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
 import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
+import 'video_badge.dart';
 
 class SongTile extends ConsumerWidget {
   final String videoId;
@@ -57,20 +57,9 @@ class SongTile extends ConsumerWidget {
               bottom: 0,
               right: isDownloaded ? null : 0,
               left: isDownloaded ? 0 : null,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: Text(
-                  AppLocalizations.of(context)!.mv,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onTertiaryContainer,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 9,
-                  ),
-                ),
+              child: const VideoBadge(
+                padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                borderRadius: 3,
               ),
             ),
           if (isDownloaded)

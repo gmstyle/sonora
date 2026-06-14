@@ -2,10 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
+import 'video_badge.dart';
 
 class VideoCard extends ConsumerWidget {
   final String videoId;
@@ -76,26 +76,15 @@ class VideoCard extends ConsumerWidget {
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    Positioned(
+                    const Positioned(
                       bottom: 4,
                       left: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
+                      child: VideoBadge(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 4,
                           vertical: 2,
                         ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.tertiaryContainer,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          AppLocalizations.of(context)!.mv,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onTertiaryContainer,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 9,
-                          ),
-                        ),
+                        borderRadius: 3,
                       ),
                     ),
                   ],

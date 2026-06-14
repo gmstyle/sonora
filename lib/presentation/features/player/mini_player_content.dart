@@ -11,6 +11,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/video_badge.dart';
 import '../../providers/settings_provider.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/video_player_widget.dart';
@@ -122,7 +123,10 @@ class MiniPlayerContent extends ConsumerWidget {
                                       maxLines: 1,
                                     ),
                                   ),
-                                  if (isVideo) _mvBadge(context, cs, theme),
+                                  if (isVideo)
+                                    const VideoBadge(
+                                      leading: SizedBox(width: 6),
+                                    ),
                                 ],
                               ),
                               Text(
@@ -212,7 +216,10 @@ class MiniPlayerContent extends ConsumerWidget {
                                       maxLines: 1,
                                     ),
                                   ),
-                                  if (isVideo) _mvBadge(context, cs, theme),
+                                  if (isVideo)
+                                    const VideoBadge(
+                                      leading: SizedBox(width: 6),
+                                    ),
                                 ],
                               ),
                               Text(
@@ -629,33 +636,6 @@ class MiniPlayerContent extends ConsumerWidget {
           splashRadius: 18,
         );
       },
-    );
-  }
-
-  Widget _mvBadge(BuildContext context, ColorScheme cs, ThemeData theme) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const SizedBox(width: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(
-            color: cs.tertiary.withValues(alpha: 0.15),
-            border: Border.all(
-              color: cs.tertiary.withValues(alpha: 0.3),
-              width: 1,
-            ),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            AppLocalizations.of(context)!.mv,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: cs.tertiary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

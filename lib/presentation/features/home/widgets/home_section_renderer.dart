@@ -24,6 +24,7 @@ import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
+import '../../../shared/widgets/video_badge.dart';
 
 class HomeShimmer extends StatelessWidget {
   const HomeShimmer({super.key});
@@ -205,6 +206,15 @@ class _ContinueListeningItem extends ConsumerWidget {
                   size: cardWidth,
                   shape: ThumbnailShape.rounded,
                 ),
+                if (item.isVideo ?? false)
+                  const Positioned(
+                    bottom: 6,
+                    left: 6,
+                    child: VideoBadge(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      borderRadius: 4,
+                    ),
+                  ),
                 Positioned(
                   bottom: 6,
                   right: 6,
@@ -581,6 +591,18 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         artistId: item.artist.artistId,
         albumId: item.album?.albumId,
         isVideo: item.type == 'VIDEO',
+      );
+    }
+    if (item is VideoDetailed) {
+      return SongCard(
+        videoId: item.videoId,
+        thumbnailUrl:
+            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        title: item.name,
+        artist: item.artist.name,
+        duration: item.duration,
+        artistId: item.artist.artistId,
+        isVideo: true,
       );
     }
     if (item is AlbumDetailed) {

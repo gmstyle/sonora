@@ -34,7 +34,7 @@ class PlayVideoIdUseCase {
       artist = song.artist.name;
       durationSec = song.duration;
       thumbnailUrl = song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '';
-      isVideo = isVideoHint ?? false;
+      isVideo = isVideoHint ?? (song.type == 'VIDEO');
       viewCount = song.viewCount;
       publishDate = song.publishDate;
       artistId = song.artist.artistId;
