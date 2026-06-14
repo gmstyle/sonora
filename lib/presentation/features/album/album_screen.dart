@@ -175,6 +175,14 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
       (sum, song) => sum + Duration(seconds: song.duration ?? 0),
     );
 
+    // Filter out the current album and any duplicate album IDs to prevent Hero tag collisions
+    final uniqueRelatedReleases = () {
+      final seen = <String>{widget.album.albumId};
+      return widget.album.relatedReleases
+          .where((r) => seen.add(r.albumId))
+          .toList();
+    }();
+
     return Scaffold(
       body: CustomScrollView(
         controller: _scrollController,
@@ -292,7 +300,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                   _AlbumActions(album: widget.album),
                   const SizedBox(height: 16),
                   _buildTracklist(context, ref),
-                  if (widget.album.relatedReleases.isNotEmpty) ...[
+                  if (uniqueRelatedReleases.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     _SectionHeader(
                       title: AppLocalizations.of(context)!.relatedReleases,
@@ -307,10 +315,10 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                           controller: _relatedReleasesScrollController,
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.only(right: 16),
-                          itemCount: widget.album.relatedReleases.length,
+                          itemCount: uniqueRelatedReleases.length,
                           separatorBuilder: (_, _) => const SizedBox(width: 12),
                           itemBuilder: (context, index) {
-                            final release = widget.album.relatedReleases[index];
+                            final release = uniqueRelatedReleases[index];
                             return AlbumCard(
                               albumId: release.albumId,
                               name: release.name,

@@ -309,6 +309,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<void> removeEntry(int playlistId, String videoId) =>
       _playlistsDao.removeEntry(playlistId, videoId);
 
+  @override
+  Future<void> reorderEntries(int playlistId, List<String> videoIds) =>
+      _playlistsDao.reorderEntries(playlistId, videoIds);
+
   // ── Downloads ─────────────────────────────────────────────────
 
   @override

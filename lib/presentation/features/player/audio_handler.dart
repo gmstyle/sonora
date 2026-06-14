@@ -3,8 +3,10 @@ import 'dart:developer' as dev;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
+import 'package:audio_session/audio_session.dart';
+import 'package:collection/collection.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:media_kit/media_kit.dart';
 
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
@@ -14,12 +16,16 @@ import '../../../domain/usecases/player/play_playlist_use_case.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 
 class SonoraAudioHandler extends BaseAudioHandler {
-  final AudioPlayer _player = AudioPlayer();
+  final Player _player = Player(
+    configuration: const PlayerConfiguration(pitch: true),
+  );
   final MusicRepository _musicRepo;
   final LibraryRepository _libraryRepo;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   late final PlayAlbumUseCase _playAlbumUseCase;
   late final PlayPlaylistUseCase _playPlaylistUseCase;
+
+  Player get player => _player;
 
   Duration _crossfadeDuration = Duration.zero;
   bool _isFadingIn = false;
@@ -32,7 +38,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Duration? _lastEmittedDuration;
   AudioProcessingState? _lastEmittedProcessingState;
   bool? _lastEmittedPlaying;
-  StreamSubscription<PlayerException>? _playerErrorSub;
+  StreamSubscription<String>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
   final StreamController<(String videoId, String title)>
   _onPlayErrorController =
@@ -65,19 +71,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
   static const String _actionLikePlaylist = '__action__:like_playlist:';
 
   // ── AA content tree IDs ──────────────────────────────────────────────────────
-  // audio_service returns BrowserRoot("/") to AA, so the root parentMediaId is "/"
   static const String _rootId = '/';
-  // Top-level
   static const String _homeId = '__home__';
   static const String _libraryId = '__library__';
-  // Library sub-nodes
   static const String _recentId = '__recent__';
   static const String _likedId = '__liked__';
   static const String _playlistsId = '__playlists__';
   static const String _artistsId = '__artists__';
   static const String _albumsId = '__albums__';
   static const String _historyId = '__history__';
-  // Dynamic prefixes
   static const String _homeSectionPrefix = '__home_section__:';
   static const String _playlistPrefix = '__playlist__:';
   static const String _artistPrefix = '__artist__:';
@@ -93,75 +95,157 @@ class SonoraAudioHandler extends BaseAudioHandler {
        _playVideoIdUseCase = playVideoIdUseCase {
     _playAlbumUseCase = PlayAlbumUseCase(musicRepo);
     _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo);
+    _setupAudioSession();
     _setupListeners();
-    _playerErrorSub = _player.errorStream.listen(_onPlayerError);
+    _playerErrorSub = _player.stream.error.listen(_onPlayerError);
   }
 
-  Stream<Duration?> get durationStream => _player.durationStream;
+  Future<void> _setupAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+      session.interruptionEventStream.listen((event) {
+        if (event.begin) {
+          switch (event.type) {
+            case AudioInterruptionType.pause:
+            case AudioInterruptionType.unknown:
+              pause();
+              break;
+            case AudioInterruptionType.duck:
+              _player.setVolume(20.0);
+              break;
+          }
+        } else {
+          switch (event.type) {
+            case AudioInterruptionType.pause:
+              play();
+              break;
+            case AudioInterruptionType.duck:
+              _player.setVolume(100.0);
+              break;
+            case AudioInterruptionType.unknown:
+              break;
+          }
+        }
+      });
+      session.becomingNoisyEventStream.listen((_) {
+        pause();
+      });
+    } catch (e) {
+      dev.log('[AudioHandler] Failed to configure audio session: $e');
+    }
+  }
 
-  /// Exposes the raw position stream from just_audio so that UI layers can
+  Future<bool> _requestAudioFocus() async {
+    try {
+      final session = await AudioSession.instance;
+      return await session.setActive(true);
+    } catch (e) {
+      dev.log('[AudioHandler] Failed to request audio focus: $e');
+      return false;
+    }
+  }
+
+  Future<void> _releaseAudioFocus() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.setActive(false);
+    } catch (e) {
+      dev.log('[AudioHandler] Failed to release audio focus: $e');
+    }
+  }
+
+  Stream<Duration?> get durationStream =>
+      _player.stream.duration.map((d) => d == Duration.zero ? null : d);
+
+  /// Exposes the raw position stream from media_kit so that UI layers can
   /// subscribe to it directly without going through [playbackState], which
   /// would cause Android Auto to re-render the queue view on every tick.
-  Stream<Duration> get positionStream => _player.positionStream;
+  Stream<Duration> get positionStream => _player.stream.position;
 
   void _setupListeners() {
-    _player.playerStateStream.listen(_onPlayerStateChanged);
+    _player.stream.playing.listen((_) => _updatePlaybackState());
+    _player.stream.buffering.listen((_) => _updatePlaybackState());
+    _player.stream.completed.listen((_) => _updatePlaybackState());
+    _player.stream.playlist.listen((_) => _updatePlaybackState());
 
     // Crossfade only — do NOT emit playbackState here.
     // Android Auto interpolates position from the updatePosition+updateTime
-    // already set in _onPlayerStateChanged. Emitting playbackState on every
+    // already set in _updatePlaybackState. Emitting playbackState on every
     // position tick (~5 Hz) causes AA to continuously re-render the queue
     // view, producing visible flashes and preventing scrolling.
-    _player.positionStream.listen(_handleCrossfade);
+    _player.stream.position.listen(_handleCrossfade);
+    _player.stream.buffer.listen(_onBufferedPositionChanged);
+    _player.stream.playlist.listen(_onPlaylistChanged);
 
-    _player.bufferedPositionStream.listen(_onBufferedPositionChanged);
-    _player.currentIndexStream.listen(_onCurrentIndexChanged);
-    _player.sequenceStateStream.listen(_onSequenceStateChanged);
+    _player.stream.shuffle.listen((shuffled) {
+      final shuffleMode =
+          shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
+      playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+      _rebuildControls();
+    });
+
+    _player.stream.playlistMode.listen((mode) {
+      final repeatMode = switch (mode) {
+        PlaylistMode.none => AudioServiceRepeatMode.none,
+        PlaylistMode.single => AudioServiceRepeatMode.one,
+        PlaylistMode.loop => AudioServiceRepeatMode.all,
+      };
+      playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
+      _rebuildControls();
+    });
   }
 
-  void _onPlayerStateChanged(PlayerState state) {
-    final processing = switch (state.processingState) {
-      ProcessingState.idle => AudioProcessingState.idle,
-      ProcessingState.loading => AudioProcessingState.loading,
-      ProcessingState.buffering => AudioProcessingState.buffering,
-      ProcessingState.ready => AudioProcessingState.ready,
-      ProcessingState.completed => AudioProcessingState.completed,
-    };
+  AudioProcessingState _getProcessingState() {
+    if (_player.state.buffering) {
+      return AudioProcessingState.buffering;
+    }
+    if (_player.state.completed) {
+      return AudioProcessingState.completed;
+    }
+    if (_player.state.playlist.medias.isEmpty) {
+      return AudioProcessingState.idle;
+    }
+    return AudioProcessingState.ready;
+  }
 
-    if (state.processingState == ProcessingState.ready) {
+  void _updatePlaybackState() {
+    final processing = _getProcessingState();
+    final playing = _player.state.playing;
+
+    if (processing == AudioProcessingState.ready) {
       _retryCount = 0;
     }
 
     // Skip redundant playbackState emissions to avoid Android Auto
-    // continuously re-rendering the queue view. just_audio fires
-    // playerStateStream frequently (e.g. buffering ↔ ready transitions
-    // during network streaming). We only need to notify AA when the
+    // continuously re-rendering the queue view. media_kit fires
+    // player state streams frequently. We only need to notify AA when the
     // logical state visible to the user has actually changed.
     final stateUnchanged =
         processing == _lastEmittedProcessingState &&
-        state.playing == _lastEmittedPlaying;
+        playing == _lastEmittedPlaying;
     if (stateUnchanged) return;
 
     _lastEmittedProcessingState = processing;
-    _lastEmittedPlaying = state.playing;
+    _lastEmittedPlaying = playing;
 
     final current = playbackState.value;
+    final updatedState = current.copyWith(
+      processingState: processing,
+      playing: playing,
+      updatePosition: _player.state.position,
+      speed: _player.state.rate,
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+        MediaAction.setRating,
+      },
+      androidCompactActionIndices: const [0, 1, 2],
+    );
 
     playbackState.add(
-      current.copyWith(
-        processingState: processing,
-        playing: state.playing,
-        controls: _buildControls(current),
-        updatePosition: _player.position,
-        speed: _player.speed,
-        systemActions: const {
-          MediaAction.seek,
-          MediaAction.seekForward,
-          MediaAction.seekBackward,
-          MediaAction.setRating,
-        },
-        androidCompactActionIndices: const [0, 1, 2],
-      ),
+      updatedState.copyWith(controls: _buildControls(updatedState)),
     );
   }
 
@@ -216,9 +300,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _isCurrentSongLiked = liked != null;
         _rebuildControls();
       }
-    } catch (_) {
-      // Silently fall back to unliked state.
-    }
+    } catch (_) {}
   }
 
   void _onBufferedPositionChanged(Duration position) {
@@ -233,10 +315,67 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
-  void _onCurrentIndexChanged(int? index) {
-    if (index == null) return;
+  void _onPlaylistChanged(Playlist playlist) {
+    final index = playlist.index;
     playbackState.add(playbackState.value.copyWith(queueIndex: index));
     _resolvePendingItems(index);
+
+    if (index >= 0 && index < playlist.medias.length) {
+      final media = playlist.medias[index];
+      var item = media.extras?['mediaItem'] as MediaItem?;
+      if (item != null) {
+        final playerDuration = _player.state.duration;
+        // Se il MediaItem dinamico o late-binded non ha durata impostata,
+        // recuperiamo la durata effettiva dal player per non bloccare la progress bar.
+        if ((item.duration == null || item.duration == Duration.zero) &&
+            playerDuration != Duration.zero) {
+          item = item.copyWith(duration: playerDuration);
+        }
+
+        // Emit mediaItem only when something meaningful changes:
+        // - the track ID changed (new song), or
+        // - the duration was previously unknown and is now available.
+        // media_kit fires streams for many internal reasons (buffer updates,
+        // URL resolution, shuffle state) even when the current track hasn't changed.
+        // Every mediaItem.add triggers an Android Auto UI refresh that resets
+        // the queue scroll position.
+        final trackChanged = item.id != _lastEmittedMediaItemId;
+        final durationResolved =
+            !trackChanged &&
+            (_lastEmittedDuration == null ||
+                _lastEmittedDuration == Duration.zero) &&
+            (item.duration != null && item.duration != Duration.zero);
+        if (trackChanged || durationResolved) {
+          _lastEmittedMediaItemId = item.id;
+          _lastEmittedDuration = item.duration;
+          mediaItem.add(item);
+          if (trackChanged) _checkCurrentSongLiked(item.id);
+        }
+      }
+    }
+
+    final items =
+        playlist.medias
+            .map((e) => e.extras?['mediaItem'] as MediaItem?)
+            .nonNulls
+            .toList();
+
+    final newIds = items.map((e) => e.id).toList();
+    final currentIds = queue.value.map((e) => e.id).toList();
+    // Emit queue only when the list of IDs changes (i.e. songs are added/removed/reordered).
+    // Skipping re-emission when only internal metadata (e.g. resolved URL) changed prevents
+    // Android Auto from resetting the queue scroll position on every URL resolution.
+    final queueStructureChanged =
+        newIds.length != currentIds.length ||
+        !const ListEquality().equals(newIds, currentIds);
+    if (queueStructureChanged) {
+      queue.add(items);
+    }
+
+    if (_crossfadeDuration > Duration.zero && _player.state.playing) {
+      _isFadingIn = true;
+      _applyVolume(0.0);
+    }
   }
 
   /// Pre-resolves stream URLs for pending items ([needsUrl]) before they
@@ -251,10 +390,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> _resolveSinglePendingItem(int index) async {
     if (index < 0) return;
-    final seq = _player.sequenceState.effectiveSequence;
-    if (index >= seq.length) return;
-    final item = seq[index].tag as MediaItem;
-    if (item.extras?['needsUrl'] != true) return;
+    final playlist = _player.state.playlist;
+    if (index >= playlist.medias.length) return;
+    final media = playlist.medias[index];
+    final item = media.extras?['mediaItem'] as MediaItem?;
+    if (item == null || item.extras?['needsUrl'] != true) return;
 
     final videoId = item.extras?['videoId'] as String?;
     if (videoId == null || !_pendingResolutions.add(videoId)) return;
@@ -262,98 +402,63 @@ class SonoraAudioHandler extends BaseAudioHandler {
     try {
       final url = await _playVideoIdUseCase.resolveUrl(videoId);
 
-      final seq2 = _player.sequenceState.effectiveSequence;
-      if (index >= seq2.length) return;
-      final currentItem = seq2[index].tag as MediaItem;
-      if (currentItem.extras?['videoId'] != videoId) return;
-      if (currentItem.extras?['needsUrl'] != true) return;
+      final playlist2 = _player.state.playlist;
+      if (index >= playlist2.medias.length) return;
+      final currentMedia = playlist2.medias[index];
+      final currentItem = currentMedia.extras?['mediaItem'] as MediaItem?;
+      if (currentItem?.extras?['videoId'] != videoId) return;
+      if (currentItem?.extras?['needsUrl'] != true) return;
 
       final updatedItem = item.copyWith(
         extras: {...?item.extras, 'url': url, 'needsUrl': false},
       );
 
-      await _player.removeAudioSourceAt(index);
-      await _player.insertAudioSource(
-        index,
-        AudioSource.uri(Uri.parse(url), tag: updatedItem),
+      final updatedMedia = Media(
+        url,
+        extras: {...?currentMedia.extras, 'mediaItem': updatedItem},
       );
 
-      if (index == _player.currentIndex) {
-        await _player.seek(Duration.zero, index: index);
-        await _player.play();
+      if (index == _player.state.playlist.index) {
+        final wasPlaying = _player.state.playing;
+        final currentPos = _player.state.position;
+        if (wasPlaying) await _player.pause();
+        await _player.remove(index);
+        await _player.add(updatedMedia);
+        await _player.move(_player.state.playlist.medias.length - 1, index);
+        await _player.jump(index);
+        if (currentPos > Duration.zero) {
+          await _player.seek(currentPos);
+        }
+        if (wasPlaying) await _player.play();
+      } else {
+        await _player.remove(index);
+        await _player.add(updatedMedia);
+        await _player.move(_player.state.playlist.medias.length - 1, index);
       }
-    } catch (_) {
+    } catch (e) {
+      dev.log('[AudioHandler] Failed to resolve URL for lazy item: $e');
     } finally {
       _pendingResolutions.remove(videoId);
     }
   }
 
-  void _onSequenceStateChanged(SequenceState? sequenceState) {
-    if (sequenceState == null) return;
-    final source = sequenceState.currentSource;
-    if (source != null) {
-      var item = source.tag as MediaItem;
-
-      // Se il MediaItem dinamico o late-binded non ha durata impostata,
-      // recuperiamo la durata effettiva dal player per non bloccare la progress bar.
-      if ((item.duration == null || item.duration == Duration.zero) &&
-          _player.duration != null) {
-        item = item.copyWith(duration: _player.duration);
-      }
-
-      // Emit mediaItem only when something meaningful changes:
-      // - the track ID changed (new song), or
-      // - the duration was previously unknown and is now available.
-      // just_audio fires sequenceStateStream for many internal reasons
-      // (buffer updates, URL resolution, shuffle state) even when the
-      // current track hasn't changed. Every mediaItem.add triggers an
-      // Android Auto UI refresh that resets the queue scroll position.
-      final trackChanged = item.id != _lastEmittedMediaItemId;
-      final durationResolved =
-          !trackChanged &&
-          (_lastEmittedDuration == null ||
-              _lastEmittedDuration == Duration.zero) &&
-          (item.duration != null && item.duration != Duration.zero);
-      if (trackChanged || durationResolved) {
-        _lastEmittedMediaItemId = item.id;
-        _lastEmittedDuration = item.duration;
-        mediaItem.add(item);
-        if (trackChanged) _checkCurrentSongLiked(item.id);
-      }
-    }
-    final items =
-        sequenceState.effectiveSequence.map((e) => e.tag as MediaItem).toList();
-
-    // Emit queue only when the list of IDs changes (i.e. songs are added/removed/reordered).
-    // Skipping re-emission when only internal metadata (e.g. resolved URL) changed prevents
-    // Android Auto from resetting the queue scroll position on every URL resolution.
-    final newIds = items.map((e) => e.id).toList();
-    final currentIds = queue.value.map((e) => e.id).toList();
-    final queueStructureChanged =
-        newIds.length != currentIds.length ||
-        !List.generate(
-          newIds.length,
-          (i) => newIds[i] == currentIds[i],
-        ).every((match) => match);
-    if (queueStructureChanged) {
-      queue.add(items);
-    }
-
-    if (_crossfadeDuration > Duration.zero && _player.playing) {
-      _isFadingIn = true;
-      _applyVolume(0.0);
+  @override
+  Future<void> play() async {
+    if (await _requestAudioFocus()) {
+      await _player.play();
     }
   }
 
   @override
-  Future<void> play() => _player.play();
-
-  @override
-  Future<void> pause() => _player.pause();
+  Future<void> pause() async {
+    await _player.pause();
+    await _releaseAudioFocus();
+  }
 
   @override
   Future<void> stop() async {
     await _player.stop();
+    await _releaseAudioFocus();
     await super.stop();
   }
 
@@ -364,14 +469,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> skipToNext() => _player.seekToNext();
+  Future<void> skipToNext() => _player.next();
 
   @override
-  Future<void> skipToPrevious() => _player.seekToPrevious();
+  Future<void> skipToPrevious() => _player.previous();
 
   @override
-  Future<void> skipToQueueItem(int index) =>
-      _player.seek(Duration.zero, index: index);
+  Future<void> skipToQueueItem(int index) => _player.jump(index);
 
   void setCrossfadeDuration(Duration duration) {
     _crossfadeDuration = duration;
@@ -382,14 +486,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final v = volume.clamp(0.0, 1.0);
     if ((v - _lastSetVolume).abs() > 0.005) {
       _lastSetVolume = v;
-      _player.setVolume(v);
+      _player.setVolume(v * 100.0);
     }
   }
 
   void _handleCrossfade(Duration position) {
     if (_crossfadeDuration == Duration.zero) return;
-    final duration = _player.duration;
-    if (duration == null || !_player.playing) return;
+    final duration = _player.state.duration;
+    if (duration == Duration.zero || !_player.state.playing) return;
 
     if (_isFadingIn) {
       final fadeMs = _crossfadeDuration.inMilliseconds;
@@ -416,60 +520,70 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
-    await _player.setShuffleModeEnabled(enabled);
+    await _player.setShuffle(enabled);
     playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
   }
 
   @override
   Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {
-    final loopMode = switch (repeatMode) {
-      AudioServiceRepeatMode.none => LoopMode.off,
-      AudioServiceRepeatMode.one => LoopMode.one,
+    final playlistMode = switch (repeatMode) {
+      AudioServiceRepeatMode.none => PlaylistMode.none,
+      AudioServiceRepeatMode.one => PlaylistMode.single,
       AudioServiceRepeatMode.all ||
-      AudioServiceRepeatMode.group => LoopMode.all,
+      AudioServiceRepeatMode.group => PlaylistMode.loop,
     };
-    await _player.setLoopMode(loopMode);
+    await _player.setPlaylistMode(playlistMode);
     playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
   }
 
   List<MediaItem> get _currentQueue =>
-      _player.sequence.map((e) => e.tag as MediaItem).toList();
+      _player.state.playlist.medias
+          .map((e) => e.extras?['mediaItem'] as MediaItem?)
+          .nonNulls
+          .toList();
 
-  AudioSource _toAudioSource(MediaItem item) {
+  Media _toMedia(MediaItem item) {
     final url = item.extras?['url'] as String?;
+    final videoId = item.extras?['videoId'] as String? ?? item.id;
     if (url != null && url.isNotEmpty) {
-      return AudioSource.uri(Uri.parse(url), tag: item);
+      return Media(url, extras: {'mediaItem': item});
     }
-    return AudioSource.uri(
-      Uri.parse(
-        'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=',
-      ),
-      tag: item,
-    );
+    // Unique dummy URI to avoid cache collision
+    final dummy = 'http://localhost/dummy_$videoId.wav';
+    return Media(dummy, extras: {'mediaItem': item});
   }
 
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     queue.add(items);
-    await _player.setAudioSources(
-      items.map(_toAudioSource).toList(),
-      initialIndex: initialIndex,
+    final playlist = Playlist(
+      items.map(_toMedia).toList(),
+      index: initialIndex,
     );
+    await _player.open(playlist, play: false);
   }
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
-    await setQueue(items, initialIndex: initialIndex);
-    await _player.play();
+    queue.add(items);
+    final playlist = Playlist(
+      items.map(_toMedia).toList(),
+      index: initialIndex,
+    );
+    if (await _requestAudioFocus()) {
+      await _player.open(playlist, play: true);
+    }
   }
 
   Future<void> playNext(MediaItem item) async {
-    final ci = _player.currentIndex ?? 0;
-    final insertAt = (ci + 1).clamp(0, _player.sequence.length);
-    await _player.insertAudioSource(insertAt, _toAudioSource(item));
+    final ci = _player.state.playlist.index;
+    final insertAt = (ci + 1).clamp(0, _player.state.playlist.medias.length);
+    final media = _toMedia(item);
+    await _player.add(media);
+    await _player.move(_player.state.playlist.medias.length - 1, insertAt);
   }
 
   @override
   Future<void> addQueueItem(MediaItem mediaItem) async {
-    await _player.addAudioSource(_toAudioSource(mediaItem));
+    await _player.add(_toMedia(mediaItem));
   }
 
   Future<void> addToQueue(MediaItem item) async {
@@ -477,26 +591,36 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> addAllToQueue(List<MediaItem> items) async {
-    await _player.addAudioSources(items.map(_toAudioSource).toList());
+    for (final item in items) {
+      await _player.add(_toMedia(item));
+    }
   }
 
   @override
   Future<void> removeQueueItemAt(int index) async {
-    if (index < 0 || index >= _player.sequence.length) return;
-    await _player.removeAudioSourceAt(index);
+    if (index < 0 || index >= _player.state.playlist.medias.length) return;
+    await _player.remove(index);
   }
 
   Future<void> clearQueue() async {
     await _player.stop();
-    await _player.clearAudioSources();
+    await _player.open(const Playlist([]), play: false);
     queue.add([]);
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
-    final len = _player.sequence.length;
+    final len = _player.state.playlist.medias.length;
+    print(
+      '[AudioHandler] moveQueueItem oldIndex: $oldIndex, newIndex: $newIndex, playlistLen: $len',
+    );
     if (oldIndex < 0 || oldIndex >= len) return;
     if (newIndex < 0 || newIndex >= len) return;
-    await _player.moveAudioSource(oldIndex, newIndex);
+
+    // newIndex from onReorderItem is the final target index (already adjusted by Flutter).
+    // media_kit's _player.move(from, to) expects 'to' to be the unadjusted index.
+    final toIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
+
+    await _player.move(oldIndex, toIndex);
   }
 
   @override
@@ -505,7 +629,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await super.onTaskRemoved();
   }
 
-  void _onPlayerError(PlayerException error) async {
+  void _onPlayerError(String error) async {
     if (_isRetrying || _retryCount >= 1) return;
     final currentItem = mediaItem.value;
     final videoId = currentItem?.extras?['videoId'] as String?;
@@ -521,20 +645,34 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final updatedItem = currentItem!.copyWith(
         extras: {...?currentItem.extras, 'url': freshUrl},
       );
-      final currentIndex = _player.currentIndex ?? 0;
-      await _player.removeAudioSourceAt(currentIndex);
-      await _player.insertAudioSource(
+      final currentIndex = _player.state.playlist.index;
+
+      final updatedMedia = Media(freshUrl, extras: {'mediaItem': updatedItem});
+
+      final wasPlaying = _player.state.playing;
+      final currentPos = _player.state.position;
+
+      if (wasPlaying) await _player.pause();
+      await _player.remove(currentIndex);
+      await _player.add(updatedMedia);
+      await _player.move(
+        _player.state.playlist.medias.length - 1,
         currentIndex,
-        AudioSource.uri(Uri.parse(freshUrl), tag: updatedItem),
       );
-      await _player.seek(Duration.zero, index: currentIndex);
-      await _player.play();
+      await _player.jump(currentIndex);
+
+      if (currentPos > Duration.zero) {
+        await _player.seek(currentPos);
+      }
+      if (wasPlaying) await _player.play();
+
       dev.log('[AudioHandler] Retry successful for "$videoId"');
     } catch (e) {
       dev.log('[AudioHandler] Retry failed for "$videoId": $e');
       _onPlayErrorController.add((videoId, currentItem?.title ?? videoId));
-      if (_player.sequence.length > (_player.currentIndex ?? 0) + 1) {
-        await _player.seekToNext();
+      if (_player.state.playlist.medias.length >
+          _player.state.playlist.index + 1) {
+        await _player.next();
       } else {
         await _player.stop();
       }
@@ -558,7 +696,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     Map<String, dynamic>? options,
   ]) async {
     dev.log('[AA] getChildren: "$parentMediaId"');
-    // audio_service may send '/', 'root', '' or 'root_id' for the root
+    // audio_service returns BrowserRoot("/") to AA, so the root parentMediaId is "/"
     final isRoot =
         parentMediaId == _rootId ||
         parentMediaId == 'root' ||
@@ -568,10 +706,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (isRoot) return _buildRootChildren();
 
       switch (parentMediaId) {
+        // Top-level
         case _homeId:
           return _buildHomeChildren();
         case _libraryId:
           return _buildLibraryChildren();
+
+        // Library sub-nodes
         case _recentId:
           return _buildRecentChildren();
         case _likedId:
@@ -584,6 +725,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
           return _buildLikedAlbumFolders();
         case _historyId:
           return _buildRecentChildren();
+
+        // Dynamic prefixes
         default:
           if (parentMediaId.startsWith(_homeSectionPrefix)) {
             return _buildHomeSectionChildren(parentMediaId);

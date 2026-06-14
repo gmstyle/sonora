@@ -54,6 +54,7 @@ abstract class LibraryRepository {
     bool isVideo = false,
   });
   Future<void> removeEntry(int playlistId, String videoId);
+  Future<void> reorderEntries(int playlistId, List<String> videoIds);
 
   Future<List<DownloadModel>> getAllDownloads();
   Future<DownloadModel?> getDownload(String videoId);

@@ -76,10 +76,14 @@ class SonoraVideoPlayer extends ConsumerWidget {
     // Show video when initialized
     if (videoState.isInitialized && videoState.controller != null) {
       return Video(
-        key: ValueKey('video_${videoState.controller.hashCode}'),
+        key: ValueKey(
+          'video_${videoState.controller.hashCode}_${videoState.currentVideoUrl}',
+        ),
         controller: videoState.controller!,
         fit: fit,
         controls: NoVideoControls,
+        pauseUponEnteringBackgroundMode: false,
+        resumeUponEnteringForegroundMode: false,
       );
     }
 

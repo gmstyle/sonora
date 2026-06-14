@@ -71,6 +71,7 @@ class _SongCardState extends ConsumerState<SongCard> {
               artist: widget.artist,
               thumbnailUrl: widget.thumbnailUrl,
               duration: widget.duration,
+              isVideo: widget.isVideo,
               artistId: widget.artistId,
               albumId: widget.albumId,
             ),

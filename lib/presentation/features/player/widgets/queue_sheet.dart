@@ -62,7 +62,7 @@ class QueueSheet extends ConsumerWidget {
         }
 
         return Opacity(
-          key: ValueKey('${item.id}_$index'),
+          key: ValueKey(item.id),
           opacity: opacity,
           child: ListTile(
             leading: ClipRRect(

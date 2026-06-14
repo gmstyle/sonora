@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/player/audio_handler.dart';
@@ -122,6 +123,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   Timer? _sleepTimerTick;
   DateTime? _sleepTimerStart;
   Duration? _sleepTimerDuration;
+  bool _isReordering = false;
 
   @override
   PlayerState build() {
@@ -201,7 +203,17 @@ class PlayerNotifier extends Notifier<PlayerState> {
     });
 
     _queueSub = _handler.queue.listen((items) {
-      state = state.copyWith(queue: items);
+      if (_isReordering) return;
+      final currentQueue = state.queue;
+      final queueChanged =
+          currentQueue.length != items.length ||
+          !const ListEquality().equals(
+            currentQueue.map((e) => e.id).toList(),
+            items.map((e) => e.id).toList(),
+          );
+      if (queueChanged) {
+        state = state.copyWith(queue: items);
+      }
 
       // isSwitching is true during playSong/playVideoId/playQueue while the new
       // queue is being set up. Skipping here prevents a spurious prefetch when
@@ -446,8 +458,37 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
-    await _handler.moveQueueItem(oldIndex, newIndex);
-    await _persistQueue();
+    print(
+      '[QueueReorder] notifier.moveQueueItem oldIndex: $oldIndex, newIndex: $newIndex',
+    );
+
+    _isReordering = true;
+    // Optimistic UI update
+    final items = List<MediaItem>.from(state.queue);
+    if (newIndex >= 0 && newIndex < items.length) {
+      final moved = items.removeAt(oldIndex);
+      items.insert(newIndex, moved);
+      state = state.copyWith(queue: items);
+    }
+
+    try {
+      await _handler.moveQueueItem(oldIndex, newIndex);
+      await _persistQueue();
+    } finally {
+      _isReordering = false;
+      // Manually sync with the handler's final queue state to ensure correctness.
+      final actualQueue = _handler.queue.value;
+      final currentQueue = state.queue;
+      final queueChanged =
+          currentQueue.length != actualQueue.length ||
+          !const ListEquality().equals(
+            currentQueue.map((e) => e.id).toList(),
+            actualQueue.map((e) => e.id).toList(),
+          );
+      if (queueChanged) {
+        state = state.copyWith(queue: actualQueue);
+      }
+    }
   }
 
   Future<void> clearQueue() async {

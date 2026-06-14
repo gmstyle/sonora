@@ -190,6 +190,7 @@ class _ContinueListeningItem extends ConsumerWidget {
             title: item.title,
             artist: item.artist,
             thumbnailUrl: item.thumbnailUrl,
+            isVideo: item.isVideo ?? false,
             playCount: item.playCount.toString(),
           ),
       child: SizedBox(

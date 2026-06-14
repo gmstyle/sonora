@@ -184,6 +184,12 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
     final artist = widget.artist;
     final l10n = AppLocalizations.of(context)!;
 
+    // Filter out the current artist and any duplicate artist IDs to prevent Hero tag collisions
+    final uniqueSimilarArtists = () {
+      final seen = <String>{artist.artistId};
+      return artist.similarArtists.where((a) => seen.add(a.artistId)).toList();
+    }();
+
     return Scaffold(
       body: CustomScrollView(
         controller: _scrollController,
@@ -345,7 +351,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (artist.similarArtists.isNotEmpty) ...[
+                  if (uniqueSimilarArtists.isNotEmpty) ...[
                     _SectionHeader(
                       title: AppLocalizations.of(context)!.similarArtists,
                     ),
@@ -359,10 +365,10 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                           controller: _similarArtistsScrollController,
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.only(right: 16),
-                          itemCount: artist.similarArtists.length,
+                          itemCount: uniqueSimilarArtists.length,
                           separatorBuilder: (_, _) => const SizedBox(width: 12),
                           itemBuilder: (context, index) {
-                            final similar = artist.similarArtists[index];
+                            final similar = uniqueSimilarArtists[index];
                             return ArtistCard(
                               artistId: similar.artistId,
                               name: similar.name,
@@ -569,6 +575,7 @@ class _NumberedSongTile extends ConsumerWidget {
             thumbnailUrl:
                 song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
             duration: song.duration,
+            isVideo: song.type == 'VIDEO',
             albumName: song.album?.name,
             artistId: song.artist.artistId,
             albumId: song.album?.albumId,

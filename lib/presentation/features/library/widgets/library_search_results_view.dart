@@ -218,6 +218,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
                       title: h.title,
                       artist: h.artist,
                       thumbnailUrl: h.thumbnailUrl,
+                      isVideo: h.isVideo,
                     );
                   }, childCount: history.length),
                 ),

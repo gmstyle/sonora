@@ -142,6 +142,8 @@ class _PlaylistDetailContentState
     extends ConsumerState<_PlaylistDetailContent> {
   late final ScrollController _scrollController;
   double _scrollProgress = 0.0;
+  List<PlaylistEntryModel>? _localEntries;
+  bool _isReordering = false;
 
   @override
   void initState() {
@@ -178,7 +180,18 @@ class _PlaylistDetailContentState
     final likedAsync = ref.watch(likedSongsProvider);
     final allPlaylistsAsync = ref.watch(playlistsProvider);
 
-    final entries = entriesAsync.asData?.value ?? <PlaylistEntryModel>[];
+    // Sync local state with provider data when new data is loaded
+    if (entriesAsync.hasValue && !_isReordering) {
+      final dbEntries = entriesAsync.value!;
+      if (_localEntries == null ||
+          _localEntries!.length != dbEntries.length ||
+          !entriesAsync.isLoading) {
+        _localEntries = List<PlaylistEntryModel>.from(dbEntries);
+      }
+    }
+
+    final entries =
+        _localEntries ?? entriesAsync.asData?.value ?? <PlaylistEntryModel>[];
     final likedSongs = likedAsync.asData?.value ?? <LikedSongModel>[];
     final allPlaylists =
         allPlaylistsAsync.asData?.value ?? <LocalPlaylistModel>[];
@@ -258,7 +271,8 @@ class _PlaylistDetailContentState
                   ),
                 ],
             data: (loadedEntries) {
-              if (loadedEntries.isEmpty) {
+              final displayEntries = _localEntries ?? loadedEntries;
+              if (displayEntries.isEmpty) {
                 return [
                   SliverToBoxAdapter(
                     child: Padding(
@@ -277,25 +291,25 @@ class _PlaylistDetailContentState
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
                   sliver: SliverReorderableList(
-                    itemCount: loadedEntries.length,
+                    itemCount: displayEntries.length,
                     proxyDecorator:
                         (child, index, animation) =>
                             Material(color: Colors.transparent, child: child),
                     itemBuilder: (context, index) {
-                      final entry = loadedEntries[index];
+                      final entry = displayEntries[index];
                       final liked = _findLiked(likedSongs, entry.videoId);
                       return _PlaylistEntryTile(
                         key: ValueKey('${entry.playlistId}-${entry.videoId}'),
                         index: index,
                         entry: entry,
                         liked: liked,
-                        onTap: () => _playFrom(loadedEntries, index),
+                        onTap: () => _playFrom(displayEntries, index),
                         onRemove: () => _removeEntry(entry),
                       );
                     },
                     onReorderItem:
                         (oldIndex, newIndex) =>
-                            _reorder(loadedEntries, oldIndex, newIndex),
+                            _reorder(displayEntries, oldIndex, newIndex),
                   ),
                 ),
               ];
@@ -470,14 +484,28 @@ class _PlaylistDetailContentState
     int oldIndex,
     int newIndex,
   ) async {
-    final items = List<PlaylistEntryModel>.from(entries);
-    final moved = items.removeAt(oldIndex);
-    items.insert(newIndex, moved);
+    if (_localEntries == null) return;
 
-    await ref
-        .read(libraryNotifierProvider.notifier)
-        .reorderPlaylistEntries(widget.playlist.id, items);
-    ref.invalidate(playlistEntriesProvider(widget.playlist.id));
+    setState(() {
+      _isReordering = true;
+      final moved = _localEntries!.removeAt(oldIndex);
+      _localEntries!.insert(newIndex, moved);
+    });
+
+    try {
+      await ref
+          .read(libraryNotifierProvider.notifier)
+          .reorderPlaylistEntries(widget.playlist.id, _localEntries!);
+      ref.invalidate(playlistEntriesProvider(widget.playlist.id));
+      await ref.read(playlistEntriesProvider(widget.playlist.id).future);
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isReordering = false;
+        });
+      }
+    }
   }
 
   Future<void> _buildMediaItemsAndPlay(

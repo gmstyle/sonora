@@ -208,18 +208,8 @@ class LibraryNotifier extends Notifier<void> {
     int playlistId,
     List<PlaylistEntryModel> reordered,
   ) async {
-    for (var i = 0; i < reordered.length; i++) {
-      final e = reordered[i];
-      await _repo.addEntry(
-        playlistId,
-        e.videoId,
-        i,
-        title: e.title,
-        artist: e.artist,
-        thumbnailUrl: e.thumbnailUrl,
-        isVideo: e.isVideo,
-      );
-    }
+    final videoIds = reordered.map((e) => e.videoId).toList();
+    await _repo.reorderEntries(playlistId, videoIds);
   }
 
   // ── History ──────────────────────────────────────────────────────────────────
