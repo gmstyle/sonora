@@ -458,10 +458,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
-    print(
-      '[QueueReorder] notifier.moveQueueItem oldIndex: $oldIndex, newIndex: $newIndex',
-    );
-
     _isReordering = true;
     // Optimistic UI update
     final items = List<MediaItem>.from(state.queue);

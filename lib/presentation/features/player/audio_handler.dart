@@ -610,9 +610,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
     final len = _player.state.playlist.medias.length;
-    print(
-      '[AudioHandler] moveQueueItem oldIndex: $oldIndex, newIndex: $newIndex, playlistLen: $len',
-    );
+
     if (oldIndex < 0 || oldIndex >= len) return;
     if (newIndex < 0 || newIndex >= len) return;
 
