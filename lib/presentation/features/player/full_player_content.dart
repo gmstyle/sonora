@@ -89,22 +89,23 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     }
 
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Layer 1 — blurred artwork + animated gradient overlay.
-          Positioned.fill(child: _buildPlayerBackground(artUrl, theme)),
-          // Layer 2 — content (layouts are transparent over the background).
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final availableHeight =
-                  constraints.maxHeight - padding.top - padding.bottom;
-              final availableWidth = constraints.maxWidth;
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableHeight =
+              constraints.maxHeight - padding.top - padding.bottom;
+          final availableWidth = constraints.maxWidth;
+          final isPortrait = constraints.maxHeight > constraints.maxWidth;
+          final isLandscapeMobile =
+              !isPortrait && availableWidth < kExpandedBreakpoint;
+          final showFullscreenOverlay =
+              isLandscapeMobile && activeView != PlayerSubView.none;
 
-              final isPortrait = constraints.maxHeight > constraints.maxWidth;
-
-              if (constraints.maxWidth < kCompactBreakpoint || isPortrait) {
-                return _mobileLayout(
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned.fill(child: _buildPlayerBackground(artUrl, theme)),
+              if (showFullscreenOverlay)
+                _fullscreenOverlayLayout(
                   theme,
                   currentSong,
                   isVideo,
@@ -118,9 +119,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   availableWidth,
                   padding.bottom,
                   activeView,
-                );
-              } else if (constraints.maxWidth < kExpandedBreakpoint) {
-                return _tabletLayout(
+                )
+              else if (availableWidth < kCompactBreakpoint || isPortrait)
+                _mobileLayout(
                   theme,
                   currentSong,
                   isVideo,
@@ -134,9 +135,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   availableWidth,
                   padding.bottom,
                   activeView,
-                );
-              } else {
-                return _wideLayout(
+                )
+              else if (availableWidth < kExpandedBreakpoint)
+                _tabletLayout(
                   theme,
                   currentSong,
                   isVideo,
@@ -150,11 +151,26 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   availableWidth,
                   padding.bottom,
                   activeView,
-                );
-              }
-            },
-          ),
-        ],
+                )
+              else
+                _wideLayout(
+                  theme,
+                  currentSong,
+                  isVideo,
+                  videoId,
+                  artUrl,
+                  albumName,
+                  playerState,
+                  playerNotifier,
+                  hasSleepTimer,
+                  availableHeight,
+                  availableWidth,
+                  padding.bottom,
+                  activeView,
+                ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -238,6 +254,64 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               const SizedBox(height: 16),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Fullscreen Overlay (landscape mobile queue/lyrics) ─────
+
+  Widget _fullscreenOverlayLayout(
+    ThemeData theme,
+    MediaItem currentSong,
+    bool isVideo,
+    String videoId,
+    String? artUrl,
+    String? albumName,
+    PlayerState playerState,
+    PlayerNotifier playerNotifier,
+    bool hasSleepTimer,
+    double availHeight,
+    double availWidth,
+    double bottomInset,
+    PlayerSubView activeView,
+  ) {
+    final subViewNotifier = ref.read(playerSubViewProvider.notifier);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          children: [
+            _topBar(
+              currentSong,
+              isVideo,
+              albumName,
+              onClose: () => subViewNotifier.set(PlayerSubView.none),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child:
+                  activeView == PlayerSubView.lyrics
+                      ? LyricsView(
+                        videoId: videoId,
+                        position: playerState.position,
+                      )
+                      : const QueueSheet(),
+            ),
+            const SizedBox(height: 12),
+            _progressBar(playerState, videoId),
+            const SizedBox(height: 12),
+            const PlayerControls(),
+            const SizedBox(height: 4),
+            _bottomActionsRow(
+              isVideo,
+              hasSleepTimer,
+              playerNotifier,
+              activeView,
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
@@ -511,7 +585,12 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
 
   // ─── Shared Widgets ──────────────────────────────────────────
 
-  Widget _topBar(MediaItem currentSong, bool isVideo, String? albumName) {
+  Widget _topBar(
+    MediaItem currentSong,
+    bool isVideo,
+    String? albumName, {
+    VoidCallback? onClose,
+  }) {
     final theme = Theme.of(context);
     final pc = PlayerColors.of(context);
     final videoId = currentSong.extras?['videoId'] as String? ?? currentSong.id;
@@ -523,7 +602,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
       children: [
         IconButton(
           icon: Icon(LucideIcons.chevronDown, color: pc.iconPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: onClose ?? () => Navigator.of(context).pop(),
           tooltip: AppLocalizations.of(context)!.close,
         ),
         Expanded(
