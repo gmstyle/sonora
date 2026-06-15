@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/player_provider.dart';
@@ -78,23 +79,43 @@ class MobilePlayerLayout extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               Expanded(
-                child:
-                    activeView == PlayerSubView.none
-                        ? Center(
-                          child: Artwork(
-                            artUrl: artUrl,
-                            size: min(availWidth - 48, availHeight - 360),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child:
+                      activeView == PlayerSubView.none
+                          ? Center(
+                            key: const ValueKey('artwork'),
+                            child: GestureDetector(
+                              onHorizontalDragEnd: (details) {
+                                if (playerState.isSwitching ||
+                                    details.primaryVelocity == null) {
+                                  return;
+                                }
+                                if (details.primaryVelocity! < -250) {
+                                  HapticFeedback.lightImpact();
+                                  playerNotifier.skipToNext();
+                                } else if (details.primaryVelocity! > 250) {
+                                  HapticFeedback.lightImpact();
+                                  playerNotifier.skipToPrevious();
+                                }
+                              },
+                              child: Artwork(
+                                artUrl: artUrl,
+                                size: min(availWidth - 48, availHeight - 360),
+                                videoId: videoId,
+                                isSwitching: playerState.isSwitching,
+                                isVideo: isVideo,
+                              ),
+                            ),
+                          )
+                          : activeView == PlayerSubView.lyrics
+                          ? LyricsView(
+                            key: const ValueKey('lyrics'),
                             videoId: videoId,
-                            isSwitching: playerState.isSwitching,
-                            isVideo: isVideo,
-                          ),
-                        )
-                        : activeView == PlayerSubView.lyrics
-                        ? LyricsView(
-                          videoId: videoId,
-                          position: playerState.position,
-                        )
-                        : const QueueSheet(),
+                            position: playerState.position,
+                          )
+                          : const QueueSheet(key: ValueKey('queue')),
+                ),
               ),
               const SizedBox(height: 32),
               buildTrackInfoAndLikeRow(context, ref, currentSong, isVideo),

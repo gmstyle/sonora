@@ -45,6 +45,7 @@ class TabletPlayerLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tight = availHeight < 600;
+    final isPanelOpen = activeView != PlayerSubView.none;
 
     return SafeArea(
       child: Padding(
@@ -86,67 +87,50 @@ class TabletPlayerLayout extends ConsumerWidget {
                     flex: 1,
                     child: LayoutBuilder(
                       builder: (context, rightConstraints) {
-                        final isPanelOpen = activeView != PlayerSubView.none;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment:
-                              isPanelOpen
-                                  ? MainAxisAlignment.start
-                                  : MainAxisAlignment.center,
                           children: [
-                            if (isPanelOpen) ...[
-                              SizedBox(height: tight ? 2 : 24),
-                              buildTrackInfoAndLikeRow(
-                                context,
-                                ref,
-                                currentSong,
-                                isVideo,
-                              ),
-                              SizedBox(height: tight ? 2 : 16),
-                              Expanded(
+                            SizedBox(height: tight ? 2 : 24),
+                            buildTrackInfoAndLikeRow(
+                              context,
+                              ref,
+                              currentSong,
+                              isVideo,
+                            ),
+                            SizedBox(height: tight ? 2 : 16),
+                            Expanded(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
                                 child:
-                                    activeView == PlayerSubView.lyrics
-                                        ? LyricsView(
-                                          videoId: videoId,
-                                          position: playerState.position,
-                                        )
-                                        : const QueueSheet(),
+                                    isPanelOpen
+                                        ? (activeView == PlayerSubView.lyrics
+                                            ? LyricsView(
+                                              key: const ValueKey('lyrics'),
+                                              videoId: videoId,
+                                              position: playerState.position,
+                                            )
+                                            : const QueueSheet(
+                                              key: ValueKey('queue'),
+                                            ))
+                                        : const SizedBox.shrink(
+                                          key: ValueKey('empty'),
+                                        ),
                               ),
-                              SizedBox(height: tight ? 2 : 16),
-                              buildProgressBar(ref, playerState, videoId),
-                              SizedBox(height: tight ? 2 : 16),
-                              const PlayerControls(),
-                              SizedBox(height: tight ? 0 : 8),
-                              buildBottomActionsRow(
-                                context,
-                                ref,
-                                isVideo,
-                                hasSleepTimer,
-                                playerNotifier,
-                                activeView,
-                              ),
-                              SizedBox(height: tight ? 2 : 16),
-                            ] else ...[
-                              buildTrackInfoAndLikeRow(
-                                context,
-                                ref,
-                                currentSong,
-                                isVideo,
-                              ),
-                              SizedBox(height: tight ? 8 : 28),
-                              buildProgressBar(ref, playerState, videoId),
-                              SizedBox(height: tight ? 8 : 28),
-                              const PlayerControls(),
-                              SizedBox(height: tight ? 6 : 20),
-                              buildBottomActionsRow(
-                                context,
-                                ref,
-                                isVideo,
-                                hasSleepTimer,
-                                playerNotifier,
-                                activeView,
-                              ),
-                            ],
+                            ),
+                            SizedBox(height: tight ? 2 : 16),
+                            buildProgressBar(ref, playerState, videoId),
+                            SizedBox(height: tight ? 2 : 16),
+                            const PlayerControls(),
+                            SizedBox(height: tight ? 0 : 8),
+                            buildBottomActionsRow(
+                              context,
+                              ref,
+                              isVideo,
+                              hasSleepTimer,
+                              playerNotifier,
+                              activeView,
+                            ),
+                            SizedBox(height: tight ? 2 : 16),
                           ],
                         );
                       },

@@ -52,13 +52,17 @@ class FullscreenOverlayLayout extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child:
-                  activeView == PlayerSubView.lyrics
-                      ? LyricsView(
-                        videoId: videoId,
-                        position: playerState.position,
-                      )
-                      : const QueueSheet(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child:
+                    activeView == PlayerSubView.lyrics
+                        ? LyricsView(
+                          key: const ValueKey('lyrics'),
+                          videoId: videoId,
+                          position: playerState.position,
+                        )
+                        : const QueueSheet(key: ValueKey('queue')),
+              ),
             ),
             const SizedBox(height: 12),
             buildProgressBar(ref, playerState, videoId),

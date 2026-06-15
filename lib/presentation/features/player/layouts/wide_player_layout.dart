@@ -45,6 +45,7 @@ class WidePlayerLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tight = availHeight < 600;
+    final isPanelOpen = activeView != PlayerSubView.none;
 
     return SafeArea(
       child: Padding(
@@ -86,7 +87,6 @@ class WidePlayerLayout extends ConsumerWidget {
                     flex: 5,
                     child: LayoutBuilder(
                       builder: (context, rightConstraints) {
-                        final isPanelOpen = activeView != PlayerSubView.none;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -98,15 +98,23 @@ class WidePlayerLayout extends ConsumerWidget {
                               isVideo,
                             ),
                             Expanded(
-                              child:
-                                  isPanelOpen
-                                      ? (activeView == PlayerSubView.lyrics
-                                          ? LyricsView(
-                                            videoId: videoId,
-                                            position: playerState.position,
-                                          )
-                                          : const QueueSheet())
-                                      : const SizedBox.shrink(),
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child:
+                                    isPanelOpen
+                                        ? (activeView == PlayerSubView.lyrics
+                                            ? LyricsView(
+                                              key: const ValueKey('lyrics'),
+                                              videoId: videoId,
+                                              position: playerState.position,
+                                            )
+                                            : const QueueSheet(
+                                              key: ValueKey('queue'),
+                                            ))
+                                        : const SizedBox.shrink(
+                                          key: ValueKey('empty'),
+                                        ),
+                              ),
                             ),
                             SizedBox(height: tight ? 2 : 16),
                             buildProgressBar(ref, playerState, videoId),

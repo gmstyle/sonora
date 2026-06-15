@@ -84,7 +84,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           final availableWidth = constraints.maxWidth;
           final isPortrait = constraints.maxHeight > constraints.maxWidth;
           final isLandscapeMobile =
-              !isPortrait && availableWidth < kExpandedBreakpoint;
+              !isPortrait && availableWidth < kCompactBreakpoint;
           final showFullscreenOverlay =
               isLandscapeMobile && activeView != PlayerSubView.none;
 
