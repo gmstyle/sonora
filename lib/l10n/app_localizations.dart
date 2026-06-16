@@ -1358,6 +1358,18 @@ abstract class AppLocalizations {
   /// **'Lyrics not available'**
   String get lyricsNotAvailable;
 
+  /// No description provided for @upNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Up Next'**
+  String get upNext;
+
+  /// No description provided for @noUpcomingSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming songs'**
+  String get noUpcomingSongs;
+
   /// No description provided for @playNow.
   ///
   /// In en, this message translates to:

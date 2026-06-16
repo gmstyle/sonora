@@ -383,6 +383,8 @@
   "repeatOff": "Repeat off",
   "queueIsEmpty": "Queue is empty",
   "lyricsNotAvailable": "Lyrics not available",
+  "upNext": "Up Next",
+  "noUpcomingSongs": "No upcoming songs",
 
   "@@sectionMeta": {
     "contextMenu": "Context Menu"

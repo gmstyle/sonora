@@ -12,8 +12,10 @@ import '../widgets/queue_sheet.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
+import '../widgets/player_default_view.dart';
+import '../../../providers/video_player_provider.dart';
 
-class MobilePlayerLayout extends ConsumerWidget {
+class MobilePlayerLayout extends ConsumerStatefulWidget {
   const MobilePlayerLayout({
     super.key,
     required this.currentSong,
@@ -44,8 +46,18 @@ class MobilePlayerLayout extends ConsumerWidget {
   final PlayerSubView activeView;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MobilePlayerLayout> createState() => _MobilePlayerLayoutState();
+}
+
+class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
+  bool _showDashboard = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final videoState = ref.watch(videoPlayerProvider);
+    final isVideoActive =
+        widget.isVideo && videoState.isVideoVisible && videoState.isInitialized;
 
     return SafeArea(
       child: GestureDetector(
@@ -73,64 +85,129 @@ class MobilePlayerLayout extends ConsumerWidget {
                 ),
               ),
               TopBar(
-                currentSong: currentSong,
-                isVideo: isVideo,
-                albumName: albumName,
+                currentSong: widget.currentSong,
+                isVideo: widget.isVideo,
+                albumName: widget.albumName,
               ),
               const SizedBox(height: 24),
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child:
-                      activeView == PlayerSubView.none
+                      widget.activeView == PlayerSubView.none
                           ? Center(
-                            key: const ValueKey('artwork'),
+                            key: const ValueKey('none_view'),
                             child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap:
+                                  isVideoActive && !_showDashboard
+                                      ? null
+                                      : () {
+                                        HapticFeedback.selectionClick();
+                                        setState(() {
+                                          _showDashboard = !_showDashboard;
+                                        });
+                                      },
                               onHorizontalDragEnd: (details) {
-                                if (playerState.isSwitching ||
+                                if (widget.playerState.isSwitching ||
                                     details.primaryVelocity == null) {
                                   return;
                                 }
                                 if (details.primaryVelocity! < -250) {
                                   HapticFeedback.lightImpact();
-                                  playerNotifier.skipToNext();
+                                  widget.playerNotifier.skipToNext();
                                 } else if (details.primaryVelocity! > 250) {
                                   HapticFeedback.lightImpact();
-                                  playerNotifier.skipToPrevious();
+                                  widget.playerNotifier.skipToPrevious();
                                 }
                               },
-                              child: Artwork(
-                                artUrl: artUrl,
-                                size: min(availWidth - 48, availHeight - 360),
-                                videoId: videoId,
-                                isSwitching: playerState.isSwitching,
-                                isVideo: isVideo,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 500),
+                                transitionBuilder: (child, animation) {
+                                  return AnimatedBuilder(
+                                    animation: animation,
+                                    builder: (context, child) {
+                                      if (animation.value <= 0.5) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      final isDashboard =
+                                          child?.key ==
+                                          const ValueKey('dashboard');
+                                      final angle =
+                                          isDashboard
+                                              ? (animation.value - 1.0) * pi
+                                              : (1.0 - animation.value) * pi;
+
+                                      return Transform(
+                                        transform:
+                                            Matrix4.identity()
+                                              ..setEntry(3, 2, 0.0015)
+                                              ..rotateY(angle),
+                                        alignment: Alignment.center,
+                                        child: child,
+                                      );
+                                    },
+                                    child: child,
+                                  );
+                                },
+                                layoutBuilder:
+                                    (currentChild, previousChildren) => Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        ...previousChildren,
+                                        if (currentChild != null) currentChild,
+                                      ],
+                                    ),
+                                child:
+                                    _showDashboard
+                                        ? PlayerDefaultView(
+                                          key: const ValueKey('dashboard'),
+                                          tight: widget.availHeight < 600,
+                                        )
+                                        : Artwork(
+                                          key: const ValueKey('artwork'),
+                                          artUrl: widget.artUrl,
+                                          size: min(
+                                            widget.availWidth - 48,
+                                            widget.availHeight - 360,
+                                          ),
+                                          videoId: widget.videoId,
+                                          isSwitching:
+                                              widget.playerState.isSwitching,
+                                          isVideo: widget.isVideo,
+                                        ),
                               ),
                             ),
                           )
-                          : activeView == PlayerSubView.lyrics
+                          : widget.activeView == PlayerSubView.lyrics
                           ? LyricsView(
                             key: const ValueKey('lyrics'),
-                            videoId: videoId,
-                            position: playerState.position,
+                            videoId: widget.videoId,
+                            position: widget.playerState.position,
                           )
                           : const QueueSheet(key: ValueKey('queue')),
                 ),
               ),
               const SizedBox(height: 32),
-              buildTrackInfoAndLikeRow(context, ref, currentSong, isVideo),
+              buildTrackInfoAndLikeRow(
+                context,
+                ref,
+                widget.currentSong,
+                widget.isVideo,
+              ),
               const SizedBox(height: 16),
-              buildProgressBar(ref, playerState, videoId),
+              buildProgressBar(ref, widget.playerState, widget.videoId),
               const SizedBox(height: 16),
               const PlayerControls(),
               const SizedBox(height: 8),
               buildBottomActionsRow(
                 context,
                 ref,
-                isVideo,
-                playerState.sleepTimerRemaining != null,
-                playerNotifier,
-                activeView,
+                widget.isVideo,
+                widget.playerState.sleepTimerRemaining != null,
+                widget.playerNotifier,
+                widget.activeView,
               ),
               const SizedBox(height: 16),
             ],

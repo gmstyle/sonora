@@ -253,6 +253,8 @@
   "repeatOff": "Ripetizione disattivata",
   "queueIsEmpty": "La coda è vuota",
   "lyricsNotAvailable": "Testi non disponibili",
+  "upNext": "In arrivo",
+  "noUpcomingSongs": "Nessun brano in arrivo",
 
   "@@sectionMeta": {
     "contextMenu": "Menu Contestuale"

@@ -748,6 +748,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get lyricsNotAvailable => 'Testi non disponibili';
 
   @override
+  String get upNext => 'In arrivo';
+
+  @override
+  String get noUpcomingSongs => 'Nessun brano in arrivo';
+
+  @override
   String get playNow => 'Riproduci Ora';
 
   @override

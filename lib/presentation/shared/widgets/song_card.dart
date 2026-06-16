@@ -103,9 +103,7 @@ class _SongCardState extends ConsumerState<SongCard> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          Duration(
-                            seconds: widget.duration!,
-                          ).format(),
+                          Duration(seconds: widget.duration!).format(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,

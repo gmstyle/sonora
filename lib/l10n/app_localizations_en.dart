@@ -743,6 +743,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyricsNotAvailable => 'Lyrics not available';
 
   @override
+  String get upNext => 'Up Next';
+
+  @override
+  String get noUpcomingSongs => 'No upcoming songs';
+
+  @override
   String get playNow => 'Play Now';
 
   @override

@@ -11,6 +11,7 @@ import '../widgets/queue_sheet.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
+import '../widgets/player_default_view.dart';
 
 class TabletPlayerLayout extends ConsumerWidget {
   const TabletPlayerLayout({
@@ -112,8 +113,9 @@ class TabletPlayerLayout extends ConsumerWidget {
                                             : const QueueSheet(
                                               key: ValueKey('queue'),
                                             ))
-                                        : const SizedBox.shrink(
-                                          key: ValueKey('empty'),
+                                        : PlayerDefaultView(
+                                          key: const ValueKey('empty'),
+                                          tight: tight,
                                         ),
                               ),
                             ),
