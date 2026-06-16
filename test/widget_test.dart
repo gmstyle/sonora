@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sonora/data/datasources/local/database.dart';
 import 'package:sonora/data/datasources/local/daos/downloads_dao.dart';
@@ -20,6 +21,7 @@ import 'package:sonora/presentation/providers/settings_provider.dart';
 
 void main() {
   testWidgets('App builds and shows title', (WidgetTester tester) async {
+    MediaKit.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final db = AppDatabase(NativeDatabase.memory());
