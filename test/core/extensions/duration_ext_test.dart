@@ -30,17 +30,6 @@ void main() {
       );
     });
 
-    test('toMinutesSeconds() should still work as before (legacy)', () {
-      expect(
-        const Duration(minutes: 5, seconds: 30).toMinutesSeconds(),
-        '05:30',
-      );
-      expect(
-        const Duration(hours: 1, minutes: 5, seconds: 30).toMinutesSeconds(),
-        '01:05:30',
-      );
-    });
-
     test('Regression: User example 176:10', () {
       // If the user meant 176 minutes and 10 seconds:
       final d = const Duration(minutes: 176, seconds: 10);

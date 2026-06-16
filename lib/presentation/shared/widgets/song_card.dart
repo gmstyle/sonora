@@ -105,7 +105,7 @@ class _SongCardState extends ConsumerState<SongCard> {
                         child: Text(
                           Duration(
                             seconds: widget.duration!,
-                          ).toMinutesSeconds(),
+                          ).format(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,

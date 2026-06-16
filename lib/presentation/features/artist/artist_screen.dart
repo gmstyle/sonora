@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/extensions/duration_ext.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
@@ -558,7 +559,7 @@ class _NumberedSongTile extends ConsumerWidget {
       trailing:
           song.duration != null
               ? Text(
-                '${(song.duration! ~/ 60)}:${(song.duration! % 60).toString().padLeft(2, '0')}',
+                Duration(seconds: song.duration!).format(),
                 style: textTheme.bodySmall,
               )
               : null,

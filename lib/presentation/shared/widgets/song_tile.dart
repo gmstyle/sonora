@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../core/extensions/duration_ext.dart';
 import '../../../core/extensions/stat_format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
@@ -94,7 +95,7 @@ class SongTile extends ConsumerWidget {
       trailing:
           duration != null
               ? Text(
-                '${(duration! ~/ 60)}:${(duration! % 60).toString().padLeft(2, '0')}',
+                Duration(seconds: duration!).format(),
                 style: Theme.of(context).textTheme.bodySmall,
               )
               : null,
