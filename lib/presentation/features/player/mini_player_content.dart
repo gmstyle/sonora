@@ -505,6 +505,7 @@ class MiniPlayerContent extends ConsumerWidget {
         borderRadius: BorderRadius.circular(radius),
         tag: 'video_mini_tablet',
         fit: BoxFit.cover,
+        showControls: false,
       );
     }
     return ClipRRect(

@@ -67,100 +67,120 @@ class PlayerSheetMobile extends ConsumerWidget {
     final isSwitching = playerState.isSwitching;
     final isVideo = currentSong.extras?['isVideo'] == true;
     final artUrl = currentSong.artUri?.toString();
+    final progress =
+        playerState.duration.inMilliseconds > 0
+            ? playerState.position.inMilliseconds /
+                playerState.duration.inMilliseconds
+            : 0.0;
 
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
 
-    final innerContent = Container(
-      color:
-          reduceEffects
-              ? cs.surfaceContainerHigh
-              : cs.surfaceContainerHigh.withValues(alpha: 0.82),
-      child:
-          isSwitching
-              ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-              : Row(
-                children: [
-                  const SizedBox(width: 12),
-                  _MiniArtwork(
-                    artUrl: artUrl,
-                    size: 44,
-                    radius: 8,
-                    cs: cs,
-                    isVideo: isVideo,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+    final innerContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!isSwitching)
+          LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
+            minHeight: 2,
+            backgroundColor: Colors.transparent,
+            valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+          ),
+        Expanded(
+          child: Container(
+            color:
+                reduceEffects
+                    ? cs.surfaceContainerHigh
+                    : cs.surfaceContainerHigh.withValues(alpha: 0.82),
+            child:
+                isSwitching
+                    ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
+                    : Row(
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                currentSong.title,
+                        const SizedBox(width: 12),
+                        _MiniArtwork(
+                          artUrl: artUrl,
+                          size: 44,
+                          radius: 8,
+                          cs: cs,
+                          isVideo: isVideo,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      currentSong.title,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                  if (isVideo) ...[
+                                    const SizedBox(width: 4),
+                                    buildMvBadge(context),
+                                  ],
+                                ],
+                              ),
+                              Text(
+                                currentSong.artist ?? '',
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
                                 ),
                               ),
-                            ),
-                            if (isVideo) ...[
-                              const SizedBox(width: 4),
-                              buildMvBadge(context),
                             ],
-                          ],
-                        ),
-                        Text(
-                          currentSong.artist ?? '',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: cs.onSurfaceVariant,
                           ),
                         ),
+                        IconButton(
+                          icon: AnimatedPlayPauseIcon(
+                            isPlaying: isPlaying,
+                            color: cs.onPrimary,
+                            size: 22,
+                          ),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            playerNotifier.togglePlayPause();
+                          },
+                          style: IconButton.styleFrom(
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
+                            fixedSize: const Size(36, 36),
+                            shape: const CircleBorder(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            LucideIcons.skipForward,
+                            size: 18,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            playerNotifier.skipToNext();
+                          },
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        const SizedBox(width: 4),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    icon: AnimatedPlayPauseIcon(
-                      isPlaying: isPlaying,
-                      color: cs.onPrimary,
-                      size: 22,
-                    ),
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      playerNotifier.togglePlayPause();
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      foregroundColor: cs.onPrimary,
-                      fixedSize: const Size(36, 36),
-                      shape: const CircleBorder(),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      LucideIcons.skipForward,
-                      size: 18,
-                      color: cs.onSurfaceVariant,
-                    ),
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      playerNotifier.skipToNext();
-                    },
-                    constraints: const BoxConstraints(
-                      minWidth: 32,
-                      minHeight: 32,
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(width: 4),
-                ],
-              ),
+          ),
+        ),
+      ],
     );
 
     // Floating island — same visual language as PlayerSheet on tablet/wide:
@@ -242,6 +262,7 @@ class _MiniArtwork extends ConsumerWidget {
         borderRadius: BorderRadius.circular(radius),
         tag: 'video_mini_mobile',
         fit: BoxFit.cover,
+        showControls: false,
       );
     }
     return ClipRRect(
