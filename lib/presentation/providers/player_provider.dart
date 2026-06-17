@@ -313,7 +313,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
       final seedId = seedItem.id;
 
       final radioUseCase = ref.read(startRadioUseCaseProvider);
-      final result = await radioUseCase.execute(seedId);
+      final result = await radioUseCase.execute(seedId, resolveFirstUrl: false);
       if (state.currentSong?.id != seedId) return;
 
       await _handler.addToQueue(result.firstItem);

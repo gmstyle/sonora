@@ -14,13 +14,21 @@ class StartRadioUseCase {
 
   StartRadioUseCase(this._musicRepository);
 
-  Future<RadioResult> execute(String seedVideoId) async {
+  Future<RadioResult> execute(
+    String seedVideoId, {
+    bool resolveFirstUrl = true,
+  }) async {
     final upNexts = await _musicRepository.getUpNexts(seedVideoId);
     if (upNexts.isEmpty) throw StateError('No radio items available');
 
     final first = upNexts.first;
-    final firstUrl = await _musicRepository.getStreamUrl(first.videoId);
-    final firstItem = _mapToMediaItem(first, firstUrl);
+    final MediaItem firstItem;
+    if (resolveFirstUrl) {
+      final firstUrl = await _musicRepository.getStreamUrl(first.videoId);
+      firstItem = _mapToMediaItem(first, firstUrl);
+    } else {
+      firstItem = _toPendingMediaItem(first);
+    }
 
     return RadioResult(firstItem, upNexts.sublist(1));
   }
