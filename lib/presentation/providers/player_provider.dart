@@ -333,7 +333,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   // ── API mutazione coda ────────────────────────────────────────
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
-    final v = ++_operationVersion;
+    ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     await _handler.playNow(items, initialIndex: initialIndex);
@@ -503,7 +503,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
   }
 
   Future<void> playQueue(List<MediaItem> songs, {int initialIndex = 0}) async {
-    final v = ++_operationVersion;
+    ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     await _handler.playNow(songs);
