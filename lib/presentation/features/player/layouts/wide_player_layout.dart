@@ -11,7 +11,7 @@ import '../widgets/queue_sheet.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
-import '../widgets/player_default_view.dart';
+import '../widgets/player_bouncing_widget.dart';
 
 class WidePlayerLayout extends ConsumerWidget {
   const WidePlayerLayout({
