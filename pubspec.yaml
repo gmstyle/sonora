@@ -1,6 +1,6 @@
 name: sonora
 description: A music streaming app.
-version: 1.3.1+18
+version: 1.3.2+19
 publish_to: none
 
 environment:
@@ -26,7 +26,7 @@ dependencies:
   youtube_explode_dart: ^3.1.0
 
   # ── Audio Playback ────────────────────────────────────────────
-  audio_session: ^0.1.21
+  audio_session: ^0.2.3
   media_kit: ^1.2.6
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
@@ -50,7 +50,7 @@ dependencies:
   drift_flutter: ^0.3.0
 
   # ── File System & Permissions ─────────────────────────────────
-  path_provider: ^2.1.5
+  path_provider: ^2.1.6
   permission_handler: ^12.0.1
 
   # ── Download ─────────────────────────────────────────────────
@@ -91,8 +91,8 @@ dependencies:
   file_picker: ^11.0.2
 
   # ── Notifications ────────────────────────────────────────────────
-  flutter_local_notifications: ^21.0.0
-  flutter_local_notifications_linux: ^8.0.0
+  flutter_local_notifications: ^22.0.1
+  flutter_local_notifications_linux: ^8.0.1
   
 
 dev_dependencies:
@@ -118,7 +118,6 @@ flutter_launcher_icons:
   # Per Android moderni (Adaptive Icons)
   # Usiamo il colore scuro del tuo brand per lo sfondo
   adaptive_icon_background: "#131429" 
-  # Consiglio: usa qui la versione del logo rimpicciolita/senza sfondo per evitare ritagli
   adaptive_icon_foreground: "assets/logo_foreground.png" 
 
 flutter_native_splash:
