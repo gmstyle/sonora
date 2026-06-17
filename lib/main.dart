@@ -194,8 +194,6 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       final now = DateTime.now().millisecondsSinceEpoch;
       if (now - lastCheck < const Duration(hours: 24).inMilliseconds) return;
 
-      await prefs.setInt(kLastUpdateCheckTimeKey, now);
-
       final notifier = ref.read(updateProvider.notifier);
       await notifier.checkForUpdate();
 
@@ -205,14 +203,26 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       if (state.status == UpdateStatus.updateAvailable && mounted) {
         _showUpdateDialog();
       }
+
+      if (state.status == UpdateStatus.updateAvailable ||
+          state.status == UpdateStatus.noUpdateAvailable) {
+        await prefs.setInt(kLastUpdateCheckTimeKey, now);
+      }
     } catch (e) {
       debugPrint('Startup update check failed: $e');
     }
   }
 
   void _showUpdateDialog() {
+    final navContext = rootNavigatorKey.currentContext;
+    if (navContext == null) {
+      debugPrint(
+        'Could not show update dialog: rootNavigatorKey.currentContext is null',
+      );
+      return;
+    }
     showDialog(
-      context: context,
+      context: navContext,
       barrierDismissible: false,
       builder: (_) => const _StartupUpdateDialog(),
     );

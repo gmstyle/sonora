@@ -47,6 +47,17 @@ class CheckForUpdatesUseCase {
       );
       request.headers.set('Accept', 'application/json');
       final response = await request.close();
+
+      if (response.statusCode != HttpStatus.ok) {
+        client.close();
+        throw HttpException(
+          'Failed to check for updates: HTTP ${response.statusCode}',
+          uri: Uri.parse(
+            'https://api.github.com/repos/$repoOwner/$repoName/releases/latest',
+          ),
+        );
+      }
+
       final body = await response.transform(utf8.decoder).join();
       client.close();
 
@@ -76,8 +87,8 @@ class CheckForUpdatesUseCase {
         releaseAssetUrl: assetUrl,
         releaseAssetName: assetName,
       );
-    } catch (_) {
-      return const UpdateCheckResult();
+    } catch (e) {
+      rethrow;
     }
   }
 

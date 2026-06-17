@@ -12,8 +12,11 @@ import '../features/playlist/playlist_screen.dart';
 import '../features/browse_section/browse_section_screen.dart';
 import '../shared/layouts/app_shell.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     routes: [
       StatefulShellRoute.indexedStack(
