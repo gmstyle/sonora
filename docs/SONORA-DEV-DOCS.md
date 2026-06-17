@@ -6,7 +6,7 @@
 
 ## 1. Architectural Overview
 
-Sonora is a cross-platform Flutter audio streaming app that uses **YouTube Music** as its data source via `dart_ytmusic_api` and `youtube_explode_dart` for stream URL resolution.
+Sonora is a cross-platform Flutter music and video streaming app that uses **YouTube Music** as its data source via `dart_ytmusic_api` and `youtube_explode_dart` for stream URL resolution.
 
 **Main stack:**
 
@@ -16,8 +16,7 @@ Sonora is a cross-platform Flutter audio streaming app that uses **YouTube Music
 | State Management | `flutter_riverpod` | ^3.3.1 |
 | Navigation | `go_router` | ^17.2.3 |
 | Local Database | `drift` + `drift_flutter` | ^2.33.0 / ^0.3.0 |
-| Audio Playback | `just_audio` + `audio_service` | ^0.10.5 / ^0.18.18 |
-| Linux Audio | `just_audio_media_kit` + `media_kit` | ^2.1.0 / ^1.2.6 |
+| Media Playback | `media_kit` + `audio_service` | ^1.2.6 / ^0.18.18 |
 | YTM Data | `dart_ytmusic_api` | git (dev branch) |
 | Stream URL | `youtube_explode_dart` | ^3.1.0 |
 
@@ -258,7 +257,7 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 
 ---
 
-## 6. Audio Engine — Important Details
+## 6. Media Engine — Important Details
 
 ### 6.1 `SonoraAudioHandler` (audio_handler.dart)
 
@@ -268,6 +267,9 @@ Extends `BaseAudioHandler` from `audio_service`. Instantiated in `main.dart` and
 - `MusicRepository` — to resolve song metadata
 - `LibraryRepository` — to check local downloads and like status
 - `PlayVideoIdUseCase` — for URL resolution + getVideo fallback
+
+**Media Player:**
+Uses `media_kit` for cross-platform audio and video playback.
 
 **Lazy URL Resolution:**
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When `currentIndexStream` changes, `_resolvePendingItems` resolves the URL for the current item + pre-resolves the next 2. If the user skips, unneeded URLs are never resolved.
@@ -306,9 +308,9 @@ The `extras` field on `MediaItem` carries additional metadata:
 
 | Key | Type | Source | Usage |
 |---|---|---|---|
-| `url` | String | StreamDatasource / local download | Audio URL for just_audio |
+| `url` | String | StreamDatasource / local download | Media URL for media_kit |
 | `videoId` | String | Always present | Unique YT ID |
-| `isVideo` | String ("true"/"false") | getVideo fallback | Hides Lyrics tab, shows MV badge |
+| `isVideo` | String ("true"/"false") | getVideo fallback | Toggles between Audio and Video player |
 | `needsUrl` | String ("true") | Lazy resolution | Flag for deferred resolution |
 | `viewCount` | String? | SongFull.viewCount (int→String) | FullPlayerContent stats |
 | `publishDate` | String? | SongFull/VideoFull.publishDate | FullPlayerContent stats |

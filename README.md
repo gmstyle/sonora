@@ -3,7 +3,7 @@
   <img alt="Sonora" src="assets/logo_full.png" width="320">
 </picture>
 
-Sonora is a cross-platform music streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable listening experience on **Android** and **Linux desktop**.
+Sonora is a cross-platform music and video streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable experience on **Android** and **Linux desktop**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform: Android + Linux](https://img.shields.io/badge/Platform-Android%20%7C%20Linux-blue)
@@ -21,8 +21,9 @@ Sonora is a cross-platform music streaming app built with Flutter. It uses **You
 
 ## Features
 
-- **YouTube Music streaming** — search, browse, and play songs, albums, artists, and playlists directly from YouTube Music
-- **Background playback** — keep listening while using other apps, with a persistent notification on Android
+- **YouTube Music streaming** — search, browse, and play songs, albums, artists, playlists, and music videos directly from YouTube Music
+- **Background playback** — keep listening/watching while using other apps, with a persistent notification on Android
+- **Audio & Video support** — switch between audio-only and video playback seamlessly
 - **Android Auto** — full driving support with playback controls, browse, and sleep timer
 - **Offline downloads** — save songs locally for offline listening
 - **Local library** — save favorite songs, albums, artists, and playlists; create custom playlists
@@ -60,8 +61,7 @@ Sonora is a cross-platform music streaming app built with Flutter. It uses **You
 | **State Management** | Riverpod 3.x |
 | **Navigation** | go_router 17.x |
 | **Local Database** | Drift (ex Moor) |
-| **Audio Playback** | just_audio + audio_service |
-| **Linux Audio** | just_audio_media_kit + media_kit |
+| **Media Playback** | media_kit + audio_service |
 | **YouTube Music API** | [dart_ytmusic_api](https://github.com/gmstyle/dart_ytmusic_api) |
 | **Stream URL** | youtube_explode_dart |
 | **Themes** | dynamic_color, palette_generator |
