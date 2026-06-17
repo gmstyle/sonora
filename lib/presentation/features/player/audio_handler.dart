@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'dart:developer' as dev;
+import 'dart:io';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../domain/repositories/queue_repository.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
@@ -22,6 +26,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final MusicRepository _musicRepo;
   final LibraryRepository _libraryRepo;
   final PlayVideoIdUseCase _playVideoIdUseCase;
+  final SharedPreferences _prefs;
+  final QueueRepository _queueRepo;
   late final PlayAlbumUseCase _playAlbumUseCase;
   late final PlayPlaylistUseCase _playPlaylistUseCase;
 
@@ -90,14 +96,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required MusicRepository musicRepo,
     required LibraryRepository libraryRepo,
     required PlayVideoIdUseCase playVideoIdUseCase,
+    required SharedPreferences prefs,
+    required QueueRepository queueRepo,
   }) : _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
-       _playVideoIdUseCase = playVideoIdUseCase {
+       _playVideoIdUseCase = playVideoIdUseCase,
+       _prefs = prefs,
+       _queueRepo = queueRepo {
     _playAlbumUseCase = PlayAlbumUseCase(musicRepo);
     _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo);
     _setupAudioSession();
     _setupListeners();
     _playerErrorSub = _player.stream.error.listen(_onPlayerError);
+    _initRestore();
   }
 
   Future<void> _setupAudioSession() async {
@@ -320,6 +331,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     playbackState.add(playbackState.value.copyWith(queueIndex: index));
     _resolvePendingItems(index);
 
+    if (index >= 0) {
+      _prefs.setInt('last_playing_index', index);
+    }
+
     if (index >= 0 && index < playlist.medias.length) {
       final media = playlist.medias[index];
       var item = media.extras?['mediaItem'] as MediaItem?;
@@ -370,6 +385,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         !const ListEquality().equals(newIds, currentIds);
     if (queueStructureChanged) {
       queue.add(items);
+      _queueRepo.persistQueue(items);
     }
 
     if (_crossfadeDuration > Duration.zero && _player.state.playing) {
@@ -444,6 +460,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> play() async {
+    await _restoreCompleter.future.catchError((_) {});
     if (await _requestAudioFocus()) {
       await _player.play();
     }
@@ -453,10 +470,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> pause() async {
     await _player.pause();
     await _releaseAudioFocus();
+    await _prefs.setInt(
+      'last_playing_position_ms',
+      _player.state.position.inMilliseconds,
+    );
   }
 
   @override
   Future<void> stop() async {
+    await _prefs.setInt(
+      'last_playing_position_ms',
+      _player.state.position.inMilliseconds,
+    );
     await _player.stop();
     await _releaseAudioFocus();
     await super.stop();
@@ -676,6 +701,87 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
     }
     _isRetrying = false;
+  }
+
+  final Completer<void> _restoreCompleter = Completer<void>();
+
+  Future<void> _initRestore() async {
+    try {
+      final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
+      if (!restoreOnStartup) {
+        _restoreCompleter.complete();
+        return;
+      }
+
+      final items = await _queueRepo.restoreQueue();
+      if (items.isEmpty) {
+        _restoreCompleter.complete();
+        return;
+      }
+
+      int savedIndex = _prefs.getInt('last_playing_index') ?? 0;
+      if (savedIndex < 0 || savedIndex >= items.length) {
+        savedIndex = 0;
+      }
+
+      // Try to resolve URL for the restored item if it needs one or if it's stale
+      var currentItem = items[savedIndex];
+      final url = currentItem.extras?['url'] as String?;
+      if (url == null || url.isEmpty || _isUrlStale(url)) {
+        try {
+          final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
+          currentItem = currentItem.copyWith(
+            extras: {
+              ...?currentItem.extras,
+              'url': freshUrl,
+              'needsUrl': false,
+            },
+          );
+          items[savedIndex] = currentItem;
+        } catch (_) {}
+      }
+
+      final savedPosMs = _prefs.getInt('last_playing_position_ms') ?? 0;
+      final savedPos = Duration(milliseconds: savedPosMs);
+
+      queue.add(items);
+      final playlist = Playlist(
+        items.map(_toMedia).toList(),
+        index: savedIndex,
+      );
+      await _player.open(playlist, play: false);
+
+      if (savedPos > Duration.zero) {
+        // Wait for the media to load so seek is not ignored by the player
+        for (int i = 0; i < 30; i++) {
+          if (_player.state.duration > Duration.zero) break;
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+        await _player.seek(savedPos);
+      }
+    } catch (e) {
+      dev.log('[AudioHandler] Error restoring queue: $e');
+    } finally {
+      if (!_restoreCompleter.isCompleted) {
+        _restoreCompleter.complete();
+      }
+    }
+  }
+
+  bool _isUrlStale(String url) {
+    if (url.startsWith('file://')) {
+      final file = File.fromUri(Uri.parse(url));
+      return !file.existsSync();
+    }
+    final expireParam = Uri.tryParse(url)?.queryParameters['expire'];
+    if (expireParam == null) return true;
+    final expireTs = int.tryParse(expireParam);
+    if (expireTs == null) return true;
+    return DateTime.now().millisecondsSinceEpoch ~/ 1000 > expireTs;
+  }
+
+  Future<void> persistQueue(List<MediaItem> items) async {
+    await _queueRepo.persistQueue(items);
   }
 
   void dispose() {

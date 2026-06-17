@@ -259,23 +259,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
       }
     });
 
-    if (ref.read(settingsProvider).restoreQueueOnStartup) {
-      _restoreQueue();
-    }
-
     return const PlayerState();
-  }
-
-  Future<void> _persistQueue() async {
-    await ref.read(queueUseCaseProvider).persistQueue(state.queue);
-  }
-
-  Future<void> _restoreQueue() async {
-    try {
-      final items = await ref.read(queueUseCaseProvider).execute();
-      if (items.isEmpty) return;
-      await _handler.setQueue(items, initialIndex: 0);
-    } catch (_) {}
   }
 
   /// Fallback triggered when the current track has already finished
@@ -310,7 +294,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
       if (_operationVersion != v) return;
 
       await _handler.play();
-      await _persistQueue();
 
       if (result.remaining.isNotEmpty) {
         final pendingItems = radioUseCase.toPendingItems(result.remaining);
@@ -335,7 +318,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
       await _handler.addToQueue(result.firstItem);
       if (state.currentSong?.id != seedId) return;
-      await _persistQueue();
 
       if (result.remaining.isNotEmpty) {
         final pendingItems = radioUseCase.toPendingItems(result.remaining);
@@ -355,13 +337,10 @@ class PlayerNotifier extends Notifier<PlayerState> {
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     await _handler.playNow(items, initialIndex: initialIndex);
-    if (_operationVersion != v) return;
-    await _persistQueue();
   }
 
   Future<void> playNext(MediaItem item) async {
     await _handler.playNext(item);
-    await _persistQueue();
   }
 
   Future<void> playNextVideoId(
@@ -405,7 +384,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   Future<void> addToQueue(MediaItem item) async {
     await _handler.addToQueue(item);
-    await _persistQueue();
   }
 
   Future<void> addToQueueVideoId(
@@ -449,12 +427,10 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   Future<void> addAllToQueue(List<MediaItem> items) async {
     await _handler.addAllToQueue(items);
-    await _persistQueue();
   }
 
   Future<void> removeAt(int index) async {
     await _handler.removeQueueItemAt(index);
-    await _persistQueue();
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
@@ -469,7 +445,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
     try {
       await _handler.moveQueueItem(oldIndex, newIndex);
-      await _persistQueue();
+      await _handler.persistQueue(state.queue);
     } finally {
       _isReordering = false;
       // Manually sync with the handler's final queue state to ensure correctness.
@@ -524,7 +500,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
     await _handler.setQueue([song]);
     if (_operationVersion != v) return;
     await _handler.play();
-    await _persistQueue();
   }
 
   Future<void> playQueue(List<MediaItem> songs, {int initialIndex = 0}) async {
@@ -532,8 +507,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     await _handler.playNow(songs);
-    if (_operationVersion != v) return;
-    await _persistQueue();
   }
 
   Future<void> playVideoId(String videoId, {bool? isVideo}) async {
@@ -548,7 +521,6 @@ class PlayerNotifier extends Notifier<PlayerState> {
       await _handler.setQueue([item]);
       if (_operationVersion != v) return;
       await _handler.play();
-      await _persistQueue();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(

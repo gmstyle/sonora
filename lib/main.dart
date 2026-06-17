@@ -27,6 +27,7 @@ import 'data/datasources/remote/stream_datasource.dart';
 import 'data/datasources/remote/ytmusic_datasource.dart';
 import 'data/repositories/library_repository_impl.dart';
 import 'data/repositories/music_repository_impl.dart';
+import 'data/repositories/queue_repository_impl.dart';
 import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
@@ -79,10 +80,14 @@ Future<void> main() async {
   final musicRepo = MusicRepositoryImpl(ytmusicDs, streamDs);
   final playVideoIdUseCase = PlayVideoIdUseCase(musicRepo, libraryRepo);
 
+  final queueRepo = QueueRepositoryImpl(db);
+
   final handler = SonoraAudioHandler(
     musicRepo: musicRepo,
     libraryRepo: libraryRepo,
     playVideoIdUseCase: playVideoIdUseCase,
+    prefs: prefs,
+    queueRepo: queueRepo,
   );
 
   if (isAndroid || isLinux) {
