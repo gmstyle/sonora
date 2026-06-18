@@ -38,6 +38,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   double _lastSetVolume = 1.0;
   int _retryCount = 0;
   bool _isRetrying = false;
+  bool _isStopping = false;
   bool _isCurrentSongLiked = false;
   String? _currentVideoId;
   String? _lastEmittedMediaItemId;
@@ -327,6 +328,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _onPlaylistChanged(Playlist playlist) {
+    if (_isStopping) return;
     final index = playlist.index;
     playbackState.add(playbackState.value.copyWith(queueIndex: index));
     _resolvePendingItems(index);
@@ -460,6 +462,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> play() async {
+    _isStopping = false;
     await _restoreCompleter.future.catchError((_) {});
     if (await _requestAudioFocus()) {
       await _player.play();
@@ -482,6 +485,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       'last_playing_position_ms',
       _player.state.position.inMilliseconds,
     );
+    _isStopping = true;
     await _player.stop();
     await _releaseAudioFocus();
     await super.stop();
@@ -579,6 +583,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
+    _isStopping = false;
     queue.add(items);
     final playlist = Playlist(
       items.map(_toMedia).toList(),
@@ -588,6 +593,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
+    _isStopping = false;
     queue.add(items);
     final playlist = Playlist(
       items.map(_toMedia).toList(),
@@ -648,22 +654,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> onTaskRemoved() async {
+    await _prefs.setInt(
+      'last_playing_position_ms',
+      _player.state.position.inMilliseconds,
+    );
+    _isStopping = true;
     await _player.stop();
     await super.onTaskRemoved();
   }
 
   void _onPlayerError(String error) async {
-    if (_isRetrying || _retryCount >= 1) return;
+    if (_isRetrying || _retryCount >= 1) {
+      return;
+    }
     final currentItem = mediaItem.value;
     final videoId = currentItem?.extras?['videoId'] as String?;
-    if (videoId == null) return;
+    if (videoId == null) {
+      return;
+    }
 
     _isRetrying = true;
     _retryCount++;
     try {
-      dev.log(
-        '[AudioHandler] Stream URL expired for "$videoId", resolving fresh URL…',
-      );
       final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
       final updatedItem = currentItem!.copyWith(
         extras: {...?currentItem.extras, 'url': freshUrl},
@@ -688,10 +700,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await _player.seek(currentPos);
       }
       if (wasPlaying) await _player.play();
-
-      dev.log('[AudioHandler] Retry successful for "$videoId"');
     } catch (e) {
-      dev.log('[AudioHandler] Retry failed for "$videoId": $e');
       _onPlayErrorController.add((videoId, currentItem?.title ?? videoId));
       if (_player.state.playlist.medias.length >
           _player.state.playlist.index + 1) {
@@ -703,7 +712,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isRetrying = false;
   }
 
-  final Completer<void> _restoreCompleter = Completer<void>();
+  Completer<void> _restoreCompleter = Completer<void>();
 
   Future<void> _initRestore() async {
     try {
@@ -759,8 +768,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
         await _player.seek(savedPos);
       }
-    } catch (e) {
-      dev.log('[AudioHandler] Error restoring queue: $e');
+    } catch (e, stack) {
+      dev.log('[AudioHandler] Error in _initRestore: $e\n$stack');
     } finally {
       if (!_restoreCompleter.isCompleted) {
         _restoreCompleter.complete();
@@ -784,7 +793,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _queueRepo.persistQueue(items);
   }
 
+  Future<void> restoreIfNeeded() async {
+    if (_player.state.playlist.medias.isEmpty) {
+      if (_restoreCompleter.isCompleted) {
+        _restoreCompleter = Completer<void>();
+      }
+      await _initRestore();
+    }
+  }
+
   void dispose() {
+    _isStopping = true;
     _playerErrorSub?.cancel();
     _onPlayErrorController.close();
     _player.dispose();

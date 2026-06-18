@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/player/audio_handler.dart';
 import 'library_notifier.dart';
@@ -108,7 +109,7 @@ class PlayerState {
   }
 }
 
-class PlayerNotifier extends Notifier<PlayerState> {
+class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   SonoraAudioHandler get _handler => ref.read(audioHandlerProvider);
 
   StreamSubscription? _playbackSub;
@@ -127,6 +128,8 @@ class PlayerNotifier extends Notifier<PlayerState> {
 
   @override
   PlayerState build() {
+    WidgetsBinding.instance.addObserver(this);
+
     // Subscribe to position separately so that frequent position ticks
     // do not flow through playbackState (which would cause Android Auto
     // to re-render the queue view and reset scroll on every tick).
@@ -242,6 +245,7 @@ class PlayerNotifier extends Notifier<PlayerState> {
     });
 
     ref.onDispose(() {
+      WidgetsBinding.instance.removeObserver(this);
       _playbackSub?.cancel();
       _mediaItemSub?.cancel();
       _queueSub?.cancel();
@@ -260,6 +264,13 @@ class PlayerNotifier extends Notifier<PlayerState> {
     });
 
     return const PlayerState();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _handler.restoreIfNeeded();
+    }
   }
 
   /// Fallback triggered when the current track has already finished
