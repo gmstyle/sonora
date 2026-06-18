@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../widgets/favorites_tab.dart';
@@ -12,123 +11,79 @@ import '../widgets/library_header_controls.dart';
 import '../widgets/library_search_results_view.dart';
 import '../providers/library_provider.dart';
 
-class LibraryTabletLayout extends ConsumerStatefulWidget {
+class LibraryTabletLayout extends ConsumerWidget {
   const LibraryTabletLayout({super.key});
 
-  @override
-  ConsumerState<LibraryTabletLayout> createState() =>
-      _LibraryTabletLayoutState();
-}
-
-class _LibraryTabletLayoutState extends ConsumerState<LibraryTabletLayout>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(
-      length: 5,
-      vsync: this,
-      initialIndex: ref.read(libraryActiveTabProvider),
-    );
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        ref
-            .read(libraryActiveTabProvider.notifier)
-            .update(_tabController.index);
-        setState(() {});
-      }
-    });
-  }
+  List<String> _getTabs(BuildContext context) => [
+    AppLocalizations.of(context)!.favorites,
+    AppLocalizations.of(context)!.artists,
+    AppLocalizations.of(context)!.playlists,
+    AppLocalizations.of(context)!.albums,
+    AppLocalizations.of(context)!.history,
+  ];
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    ref.listen<int>(libraryActiveTabProvider, (prev, next) {
-      if (_tabController.index != next) {
-        _tabController.animateTo(next);
-      }
-    });
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedIndex = ref.watch(libraryActiveTabProvider);
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
-    final isAlbumsOrPlaylists =
-        _tabController.index == 2 || _tabController.index == 3;
+    final isAlbumsOrPlaylists = selectedIndex == 2 || selectedIndex == 3;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           AppLocalizations.of(context)!.library,
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
       ),
-      body: Row(
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isSearchActive) ...[
-            NavigationRail(
-              selectedIndex: _tabController.index,
-              onDestinationSelected: (i) => _tabController.animateTo(i),
-              labelType: NavigationRailLabelType.all,
-              destinations: [
-                NavigationRailDestination(
-                  icon: const Icon(LucideIcons.heart),
-                  selectedIcon: const Icon(LucideIcons.heart),
-                  label: Text(AppLocalizations.of(context)!.favorites),
+          if (!isSearchActive)
+            SizedBox(
+              height: 52,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                NavigationRailDestination(
-                  icon: const Icon(LucideIcons.user),
-                  selectedIcon: const Icon(LucideIcons.user),
-                  label: Text(AppLocalizations.of(context)!.artists),
-                ),
-                NavigationRailDestination(
-                  icon: const Icon(LucideIcons.listVideo),
-                  selectedIcon: const Icon(LucideIcons.listVideo),
-                  label: Text(AppLocalizations.of(context)!.playlists),
-                ),
-                NavigationRailDestination(
-                  icon: const Icon(LucideIcons.disc),
-                  selectedIcon: const Icon(LucideIcons.disc),
-                  label: Text(AppLocalizations.of(context)!.albums),
-                ),
-                NavigationRailDestination(
-                  icon: const Icon(LucideIcons.history),
-                  selectedIcon: const Icon(LucideIcons.history),
-                  label: Text(AppLocalizations.of(context)!.history),
-                ),
-              ],
+                itemCount: _getTabs(context).length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  return ChoiceChip(
+                    label: Text(_getTabs(context)[i]),
+                    selected: i == selectedIndex,
+                    onSelected: (selected) {
+                      if (selected) {
+                        ref.read(libraryActiveTabProvider.notifier).update(i);
+                      }
+                    },
+                  );
+                },
+              ),
             ),
-            const VerticalDivider(width: 1),
-          ],
+          LibraryHeaderControls(
+            showViewSwitcher: !isSearchActive && isAlbumsOrPlaylists,
+          ),
+          const SizedBox(height: 8),
           Expanded(
-            child: Column(
-              children: [
-                LibraryHeaderControls(
-                  showViewSwitcher: !isSearchActive && isAlbumsOrPlaylists,
-                ),
-                Expanded(
-                  child:
-                      isSearchActive
-                          ? const LibrarySearchResultsView()
-                          : TabBarView(
-                            controller: _tabController,
-                            children: const [
-                              FavoritesTab(),
-                              ArtistsTab(),
-                              PlaylistsTab(),
-                              AlbumsTab(),
-                              HistoryTab(),
-                            ],
-                          ),
-                ),
-              ],
-            ),
+            child:
+                isSearchActive
+                    ? const LibrarySearchResultsView()
+                    : IndexedStack(
+                      index: selectedIndex,
+                      children: const [
+                        FavoritesTab(),
+                        ArtistsTab(),
+                        PlaylistsTab(),
+                        AlbumsTab(),
+                        HistoryTab(),
+                      ],
+                    ),
           ),
         ],
       ),

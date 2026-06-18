@@ -13,6 +13,7 @@ import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/video_badge.dart';
 import '../../providers/settings_provider.dart';
+import '../../../core/constants/app_constants.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/video_player_widget.dart';
 import '../../../core/extensions/duration_ext.dart';
@@ -273,6 +274,11 @@ class MiniPlayerContent extends ConsumerWidget {
             ? '-${_formatDuration(playerState.duration - playerState.position)}'
             : '-0:00';
 
+    final width = MediaQuery.of(context).size.width;
+    final isWideScreen = width >= kExpandedBreakpoint;
+    final isSidebarExpanded =
+        isWideScreen && !ref.watch(sidebarCollapsedProvider);
+
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (isSwitching) return;
@@ -297,46 +303,55 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         // LEFT — artwork + title/artist (tap to open full player)
-                        Expanded(
-                          flex: 3,
-                          child: GestureDetector(
-                            onTap: isSwitching ? null : onTap,
-                            child: Row(
-                              children: [
-                                const SizedBox(width: 12),
-                                _artwork(size: 56, radius: 8, cs: cs, ref: ref),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        currentSong.title,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.titleSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                        maxLines: 1,
-                                      ),
-                                      Text(
-                                        currentSong.artist ?? '',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: cs.onSurfaceVariant,
-                                            ),
-                                        maxLines: 1,
-                                      ),
-                                    ],
+                        if (isSidebarExpanded)
+                          const Spacer(flex: 3)
+                        else
+                          Expanded(
+                            flex: 3,
+                            child: GestureDetector(
+                              onTap: isSwitching ? null : onTap,
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 12),
+                                  _artwork(
+                                    size: 56,
+                                    radius: 8,
+                                    cs: cs,
+                                    ref: ref,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          currentSong.title,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                          maxLines: 1,
+                                        ),
+                                        Text(
+                                          currentSong.artist ?? '',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: cs.onSurfaceVariant,
+                                              ),
+                                          maxLines: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
                         // CENTER — controls + progress + time
                         Expanded(
                           flex: 4,

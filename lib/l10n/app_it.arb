@@ -304,5 +304,8 @@
   "onLabel": "On",
   "offLabel": "Off",
   "reduceEffects": "Riduci effetti visivi",
-  "reduceEffectsHint": "Disattiva sfocature e ombreggiature complesse per risparmiare batteria e migliorare le prestazioni su dispositivi datati"
+  "reduceEffectsHint": "Disattiva sfocature e ombreggiature complesse per risparmiare batteria e migliorare le prestazioni su dispositivi datati",
+  "goodMorning": "Buongiorno",
+  "goodAfternoon": "Buon pomeriggio",
+  "goodEvening": "Buonasera"
 }

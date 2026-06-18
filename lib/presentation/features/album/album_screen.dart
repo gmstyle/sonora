@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
@@ -151,7 +152,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 300.0;
+        widget.isTablet || widget.isWide ? 360.0 : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -188,7 +189,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
         controller: _scrollController,
         slivers: [
           SliverAppBar(
-            expandedHeight: widget.isTablet || widget.isWide ? 360 : 300,
+            expandedHeight: widget.isTablet || widget.isWide ? 360 : 340,
             pinned: true,
             // Back button and actions always white — readable on any artwork.
             iconTheme: const IconThemeData(color: Colors.white),
@@ -206,89 +207,10 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (thumbnailUrl != null)
-                    Hero(
-                      tag: 'album_art_${widget.album.albumId}',
-                      child: CachedNetworkImage(
-                        imageUrl: thumbnailUrl,
-                        fit: BoxFit.cover,
-                        errorWidget:
-                            (_, _, _) => _placeholderThumbnail(context),
-                      ),
-                    )
-                  else
-                    _placeholderThumbnail(context),
-                  // Bottom gradient: artwork → surface (metadata readability).
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Theme.of(
-                            context,
-                          ).colorScheme.surface.withValues(alpha: 0.9),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Top scrim from PlayerColors — readable back button on any
-                  // artwork colour without hardcoded values here.
-                  _artworkTopScrim(context),
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    right: 16,
-                    child: Opacity(
-                      opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.album.name,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: PlayerColors.of(context).titlePrimary,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.album.artist.name,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
-                              color: PlayerColors.of(context).titleSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            [
-                              if (widget.album.year != null)
-                                '${widget.album.year}',
-                              '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
-                              _formatDuration(totalDuration),
-                            ].join(' · '),
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(
-                              color: PlayerColors.of(context).labelMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              background: _buildHeaderBackground(
+                context,
+                thumbnailUrl,
+                totalDuration,
               ),
             ),
           ),
@@ -420,6 +342,277 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
       return '${hours}h ${minutes}m';
     }
     return '${minutes}m';
+  }
+
+  Widget _buildHeaderBackground(
+    BuildContext context,
+    String? thumbnailUrl,
+    Duration totalDuration,
+  ) {
+    final isTabletOrWide = widget.isTablet || widget.isWide;
+    if (!isTabletOrWide) {
+      final theme = Theme.of(context);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumbnailUrl != null)
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                child: Opacity(
+                  opacity: 0.4,
+                  child: CachedNetworkImage(
+                    imageUrl: thumbnailUrl,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            )
+          else
+            Positioned.fill(
+              child: Container(
+                color: theme.colorScheme.surfaceContainerHighest,
+              ),
+            ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.45),
+                  theme.colorScheme.surface.withValues(alpha: 0.95),
+                ],
+              ),
+            ),
+          ),
+          _artworkTopScrim(context),
+          Positioned(
+            top: 56 + MediaQuery.of(context).padding.top,
+            bottom: 12,
+            left: 24,
+            right: 24,
+            child: Opacity(
+              opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (thumbnailUrl != null)
+                    Hero(
+                      tag: 'album_art_${widget.album.albumId}',
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                            imageUrl: thumbnailUrl,
+                            fit: BoxFit.cover,
+                            errorWidget:
+                                (_, _, _) => _placeholderThumbnail(context),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: theme.colorScheme.surfaceContainerHighest,
+                      ),
+                      child: Icon(
+                        LucideIcons.disc,
+                        size: 60,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  Text(
+                    widget.album.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: PlayerColors.of(context).titlePrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.album.artist.name,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: PlayerColors.of(context).titleSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      if (widget.album.year != null) '${widget.album.year}',
+                      '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
+                      _formatDuration(totalDuration),
+                    ].join(' · '),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: PlayerColors.of(context).labelMuted,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final theme = Theme.of(context);
+    final colors = PlayerColors.of(context);
+    final isWide = widget.isWide;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (thumbnailUrl != null)
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+              child: Opacity(
+                opacity: 0.35,
+                child: CachedNetworkImage(
+                  imageUrl: thumbnailUrl,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          )
+        else
+          Positioned.fill(
+            child: Container(color: theme.colorScheme.surfaceContainerHighest),
+          ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.45),
+                theme.colorScheme.surface.withValues(alpha: 0.95),
+              ],
+            ),
+          ),
+        ),
+        _artworkTopScrim(context),
+        Positioned(
+          top: 80 + MediaQuery.of(context).padding.top,
+          bottom: 24,
+          left: isWide ? 40 : 24,
+          right: isWide ? 40 : 24,
+          child: Opacity(
+            opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (thumbnailUrl != null)
+                  Hero(
+                    tag: 'album_art_${widget.album.albumId}',
+                    child: Container(
+                      width: isWide ? 190 : 150,
+                      height: isWide ? 190 : 150,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: CachedNetworkImage(
+                          imageUrl: thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorWidget:
+                              (_, _, _) => _placeholderThumbnail(context),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  _placeholderThumbnail(context),
+                const SizedBox(width: 28),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'ALBUM',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2.5,
+                          color: colors.labelMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        widget.album.name,
+                        style: (isWide
+                                ? theme.textTheme.headlineLarge
+                                : theme.textTheme.headlineMedium)
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colors.titlePrimary,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        widget.album.artist.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colors.titleSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        [
+                          if (widget.album.year != null) '${widget.album.year}',
+                          '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
+                          _formatDuration(totalDuration),
+                        ].join(' · '),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.subtitle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _placeholderThumbnail(BuildContext context) {

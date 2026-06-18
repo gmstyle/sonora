@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
@@ -172,7 +173,7 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 300.0;
+        widget.isTablet || widget.isWide ? 360.0 : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -251,7 +252,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
         playlist.thumbnails.isNotEmpty ? playlist.thumbnails.last.url : null;
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide ? 360 : 300,
+      expandedHeight: isTablet || isWide ? 360 : 340,
       pinned: true,
       // Back button and actions always white — readable on any artwork.
       iconTheme: const IconThemeData(color: Colors.white),
@@ -268,84 +269,268 @@ class _PlaylistSliverAppBar extends StatelessWidget {
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (thumbnailUrl != null)
-              Hero(
-                tag: 'playlist_art_${playlist.playlistId}',
+        background: _buildHeaderBackground(context, thumbnailUrl),
+      ),
+    );
+  }
+
+  Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
+    final isTabletOrWide = isTablet || isWide;
+    final theme = Theme.of(context);
+    final colors = PlayerColors.of(context);
+
+    if (!isTabletOrWide) {
+      final theme = Theme.of(context);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumbnailUrl != null)
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                child: Opacity(
+                  opacity: 0.4,
+                  child: CachedNetworkImage(
+                    imageUrl: thumbnailUrl,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            )
+          else
+            Positioned.fill(
+              child: Container(
+                color: theme.colorScheme.surfaceContainerHighest,
+              ),
+            ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.45),
+                  theme.colorScheme.surface.withValues(alpha: 0.95),
+                ],
+              ),
+            ),
+          ),
+          _artworkTopScrim(context),
+          Positioned(
+            top: 56 + MediaQuery.of(context).padding.top,
+            bottom: 12,
+            left: 24,
+            right: 24,
+            child: Opacity(
+              opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (thumbnailUrl != null)
+                    Hero(
+                      tag: 'playlist_art_${playlist.playlistId}',
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                            imageUrl: thumbnailUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => _placeholder(context),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: theme.colorScheme.surfaceContainerHighest,
+                      ),
+                      child: Icon(
+                        LucideIcons.listVideo,
+                        size: 60,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  Text(
+                    playlist.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colors.titlePrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    playlist.artist.name,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.titleSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.videoCount(playlist.videoCount),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.labelMuted,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (thumbnailUrl != null)
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+              child: Opacity(
+                opacity: 0.35,
                 child: CachedNetworkImage(
                   imageUrl: thumbnailUrl,
                   fit: BoxFit.cover,
-                  errorWidget: (_, _, _) => _placeholder(context),
-                ),
-              )
-            else
-              _placeholder(context),
-            // Bottom gradient: artwork → surface (metadata readability).
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.9),
-                  ],
                 ),
               ),
             ),
-            // Top scrim from PlayerColors.
-            _artworkTopScrim(context),
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
-              child: Opacity(
-                opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      playlist.name,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: PlayerColors.of(context).titlePrimary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      playlist.artist.name,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: PlayerColors.of(context).titleSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.videoCount(playlist.videoCount),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: PlayerColors.of(context).labelMuted,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
+          )
+        else
+          Positioned.fill(
+            child: Container(color: theme.colorScheme.surfaceContainerHighest),
+          ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.45),
+                theme.colorScheme.surface.withValues(alpha: 0.95),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        _artworkTopScrim(context),
+        Positioned(
+          top: 80 + MediaQuery.of(context).padding.top,
+          bottom: 24,
+          left: isWide ? 40 : 24,
+          right: isWide ? 40 : 24,
+          child: Opacity(
+            opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (thumbnailUrl != null)
+                  Hero(
+                    tag: 'playlist_art_${playlist.playlistId}',
+                    child: Container(
+                      width: isWide ? 190 : 150,
+                      height: isWide ? 190 : 150,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: CachedNetworkImage(
+                          imageUrl: thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => _placeholder(context),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  _placeholder(context),
+                const SizedBox(width: 28),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'PLAYLIST',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2.5,
+                          color: colors.labelMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        playlist.name,
+                        style: (isWide
+                                ? theme.textTheme.headlineLarge
+                                : theme.textTheme.headlineMedium)
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colors.titlePrimary,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        playlist.artist.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colors.titleSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.videoCount(playlist.videoCount),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.subtitle,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

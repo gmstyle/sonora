@@ -1579,6 +1579,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disable background blurs and shadows to improve performance on older devices'**
   String get reduceEffectsHint;
+
+  /// No description provided for @goodMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get goodMorning;
+
+  /// No description provided for @goodAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon'**
+  String get goodAfternoon;
+
+  /// No description provided for @goodEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening'**
+  String get goodEvening;
 }
 
 class _AppLocalizationsDelegate

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
@@ -168,7 +169,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 280.0;
+        widget.isTablet || widget.isWide ? 360.0 : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -605,7 +606,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
         artist.thumbnails.isNotEmpty ? artist.thumbnails.last.url : null;
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide ? 360 : 280,
+      expandedHeight: isTablet || isWide ? 360 : 340,
       pinned: true,
       // Back button and actions always white — readable on any artwork.
       iconTheme: const IconThemeData(color: Colors.white),
@@ -622,73 +623,286 @@ class _ArtistSliverAppBar extends StatelessWidget {
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (thumbnailUrl != null)
-              Hero(
-                tag: 'artist_art_${artist.artistId}',
+        background: _buildHeaderBackground(context, thumbnailUrl),
+      ),
+    );
+  }
+
+  Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
+    final isTabletOrWide = isTablet || isWide;
+    final theme = Theme.of(context);
+    final colors = PlayerColors.of(context);
+
+    if (!isTabletOrWide) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumbnailUrl != null)
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                child: Opacity(
+                  opacity: 0.4,
+                  child: CachedNetworkImage(
+                    imageUrl: thumbnailUrl,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            )
+          else
+            Positioned.fill(
+              child: Container(
+                color: theme.colorScheme.surfaceContainerHighest,
+              ),
+            ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.45),
+                  theme.colorScheme.surface.withValues(alpha: 0.95),
+                ],
+              ),
+            ),
+          ),
+          _artworkTopScrim(context),
+          Positioned(
+            top: 56 + MediaQuery.of(context).padding.top,
+            bottom: 12,
+            left: 24,
+            right: 24,
+            child: Opacity(
+              opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (thumbnailUrl != null)
+                    Hero(
+                      tag: 'artist_art_${artist.artistId}',
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: thumbnailUrl,
+                            fit: BoxFit.cover,
+                            errorWidget:
+                                (_, _, _) => Container(
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  child: Icon(
+                                    LucideIcons.user,
+                                    size: 60,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.colorScheme.surfaceContainerHighest,
+                      ),
+                      child: Icon(
+                        LucideIcons.user,
+                        size: 60,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  Text(
+                    artist.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colors.titlePrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if ([
+                    artist.subscriberCount,
+                    artist.monthlyListeners,
+                    artist.totalViews,
+                  ].any((e) => e != null && e.isNotEmpty)) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        if (artist.subscriberCount != null &&
+                            artist.subscriberCount!.isNotEmpty)
+                          '${artist.subscriberCount} ${AppLocalizations.of(context)!.subscribers}',
+                        if (artist.monthlyListeners != null &&
+                            artist.monthlyListeners!.isNotEmpty)
+                          artist.monthlyListeners,
+                        if (artist.totalViews != null &&
+                            artist.totalViews!.isNotEmpty)
+                          artist.totalViews,
+                      ].join(' · '),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.labelMuted,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (thumbnailUrl != null)
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+              child: Opacity(
+                opacity: 0.35,
                 child: CachedNetworkImage(
                   imageUrl: thumbnailUrl,
                   fit: BoxFit.cover,
-                  errorWidget:
-                      (_, _, _) => Container(
-                        color:
-                            Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                      ),
-                ),
-              )
-            else
-              Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-            // Bottom gradient: artwork → surface (metadata readability).
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.9),
-                  ],
                 ),
               ),
             ),
-            // Top scrim from PlayerColors.
-            _artworkTopScrim(context),
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
-              child: Opacity(
-                opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      artist.name,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: PlayerColors.of(context).titlePrimary,
+          )
+        else
+          Positioned.fill(
+            child: Container(color: theme.colorScheme.surfaceContainerHighest),
+          ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.45),
+                theme.colorScheme.surface.withValues(alpha: 0.95),
+              ],
+            ),
+          ),
+        ),
+        _artworkTopScrim(context),
+        Positioned(
+          top: 80 + MediaQuery.of(context).padding.top,
+          bottom: 24,
+          left: isWide ? 40 : 24,
+          right: isWide ? 40 : 24,
+          child: Opacity(
+            opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (thumbnailUrl != null)
+                  Hero(
+                    tag: 'artist_art_${artist.artistId}',
+                    child: Container(
+                      width: isWide ? 190 : 150,
+                      height: isWide ? 190 : 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      child: ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl: thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorWidget:
+                              (_, _, _) => Container(
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                              ),
+                        ),
+                      ),
                     ),
-                    if ([
-                      artist.subscriberCount,
-                      artist.monthlyListeners,
-                      artist.totalViews,
-                    ].any((e) => e != null && e.isNotEmpty))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
+                  )
+                else
+                  Container(
+                    width: isWide ? 190 : 150,
+                    height: isWide ? 190 : 150,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: theme.colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Icon(
+                      LucideIcons.user,
+                      size: 64,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                const SizedBox(width: 28),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            LucideIcons.badgeCheck,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'ARTIST',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2.5,
+                              color: colors.labelMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        artist.name,
+                        style: (isWide
+                                ? theme.textTheme.headlineLarge
+                                : theme.textTheme.headlineMedium)
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colors.titlePrimary,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      if ([
+                        artist.subscriberCount,
+                        artist.monthlyListeners,
+                        artist.totalViews,
+                      ].any((e) => e != null && e.isNotEmpty))
+                        Text(
                           [
                             if (artist.subscriberCount != null &&
                                 artist.subscriberCount!.isNotEmpty)
@@ -700,22 +914,21 @@ class _ArtistSliverAppBar extends StatelessWidget {
                                 artist.totalViews!.isNotEmpty)
                               artist.totalViews,
                           ].join(' · '),
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: PlayerColors.of(context).labelMuted,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: colors.titleSecondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

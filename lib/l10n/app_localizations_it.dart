@@ -863,4 +863,13 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get reduceEffectsHint =>
       'Disattiva sfocature e ombreggiature complesse per risparmiare batteria e migliorare le prestazioni su dispositivi datati';
+
+  @override
+  String get goodMorning => 'Buongiorno';
+
+  @override
+  String get goodAfternoon => 'Buon pomeriggio';
+
+  @override
+  String get goodEvening => 'Buonasera';
 }

@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/sonora_logo.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_section_renderer.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -27,17 +26,11 @@ class HomeTabletLayout extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const SonoraLogo.icon(28),
-            const SizedBox(width: 8),
-            Text(
-              AppLocalizations.of(context)!.appTitle,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
+        title: Text(
+          _getGreeting(context),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
         actions: [
@@ -203,5 +196,17 @@ class HomeTabletLayout extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _getGreeting(BuildContext context) {
+    final hour = DateTime.now().hour;
+    final l10n = AppLocalizations.of(context)!;
+    if (hour >= 5 && hour < 12) {
+      return l10n.goodMorning;
+    } else if (hour >= 12 && hour < 18) {
+      return l10n.goodAfternoon;
+    } else {
+      return l10n.goodEvening;
+    }
   }
 }

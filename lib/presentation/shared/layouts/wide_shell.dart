@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
 import '../widgets/player_error_listener.dart';
@@ -31,13 +32,12 @@ class WideShell extends ConsumerStatefulWidget {
 }
 
 class _WideShellState extends ConsumerState<WideShell> {
-  bool _isCollapsed = true;
-
   @override
   Widget build(BuildContext context) {
+    final isCollapsed = ref.watch(sidebarCollapsedProvider);
     final isPlayerActive = ref.watch(playerStateProvider).currentSong != null;
     final colorScheme = Theme.of(context).colorScheme;
-    final targetWidth = _isCollapsed ? 72.0 : 240.0;
+    final targetWidth = isCollapsed ? 72.0 : 240.0;
 
     return Scaffold(
       body: Row(
@@ -60,16 +60,16 @@ class _WideShellState extends ConsumerState<WideShell> {
                         Container(
                           height: 80,
                           padding: EdgeInsets.symmetric(
-                            horizontal: _isCollapsed ? 12 : 24,
+                            horizontal: isCollapsed ? 12 : 24,
                           ),
                           alignment: Alignment.centerLeft,
                           child: Row(
                             mainAxisAlignment:
-                                _isCollapsed
+                                isCollapsed
                                     ? MainAxisAlignment.center
                                     : MainAxisAlignment.spaceBetween,
                             children: [
-                              if (!_isCollapsed) ...[
+                              if (!isCollapsed) ...[
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -90,14 +90,15 @@ class _WideShellState extends ConsumerState<WideShell> {
                               ],
                               IconButton(
                                 icon: Icon(
-                                  _isCollapsed
+                                  isCollapsed
                                       ? LucideIcons.menu
                                       : LucideIcons.chevronLeft,
                                 ),
-                                onPressed:
-                                    () => setState(
-                                      () => _isCollapsed = !_isCollapsed,
-                                    ),
+                                onPressed: () {
+                                  ref
+                                      .read(sidebarCollapsedProvider.notifier)
+                                      .toggle();
+                                },
                               ),
                             ],
                           ),
@@ -111,7 +112,7 @@ class _WideShellState extends ConsumerState<WideShell> {
                             ],
                           ),
                         ),
-                        _NowPlayingPanel(isCollapsed: _isCollapsed),
+                        _NowPlayingPanel(isCollapsed: isCollapsed),
                       ],
                     ),
                   ),
@@ -146,11 +147,12 @@ class _WideShellState extends ConsumerState<WideShell> {
   }
 
   Widget _buildNavItem(int i, BuildContext context) {
+    final isCollapsed = ref.watch(sidebarCollapsedProvider);
     final isSelected = widget.navigationShell.currentIndex == i;
     final colorScheme = Theme.of(context).colorScheme;
     final label = _getLabel(AppLocalizations.of(context)!, i);
 
-    if (_isCollapsed) {
+    if (isCollapsed) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         child: Tooltip(

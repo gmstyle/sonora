@@ -858,4 +858,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reduceEffectsHint =>
       'Disable background blurs and shadows to improve performance on older devices';
+
+  @override
+  String get goodMorning => 'Good morning';
+
+  @override
+  String get goodAfternoon => 'Good afternoon';
+
+  @override
+  String get goodEvening => 'Good evening';
 }

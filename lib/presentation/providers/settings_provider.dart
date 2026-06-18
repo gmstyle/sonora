@@ -265,3 +265,15 @@ extension BatteryOptimizationNotifier on SettingsNotifier {
     );
   }
 }
+
+class SidebarCollapsedNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+
+  void toggle() => state = !state;
+}
+
+final sidebarCollapsedProvider =
+    NotifierProvider<SidebarCollapsedNotifier, bool>(
+      SidebarCollapsedNotifier.new,
+    );

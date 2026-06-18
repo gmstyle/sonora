@@ -444,5 +444,8 @@
   "onLabel": "On",
   "offLabel": "Off",
   "reduceEffects": "Reduce visual effects",
-  "reduceEffectsHint": "Disable background blurs and shadows to improve performance on older devices"
+  "reduceEffectsHint": "Disable background blurs and shadows to improve performance on older devices",
+  "goodMorning": "Good morning",
+  "goodAfternoon": "Good afternoon",
+  "goodEvening": "Good evening"
 }

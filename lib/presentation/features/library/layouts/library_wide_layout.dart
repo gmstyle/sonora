@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../widgets/favorites_tab.dart';
@@ -12,14 +11,9 @@ import '../widgets/library_header_controls.dart';
 import '../widgets/library_search_results_view.dart';
 import '../providers/library_provider.dart';
 
-class LibraryWideLayout extends ConsumerStatefulWidget {
+class LibraryWideLayout extends ConsumerWidget {
   const LibraryWideLayout({super.key});
 
-  @override
-  ConsumerState<LibraryWideLayout> createState() => _LibraryWideLayoutState();
-}
-
-class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
   List<String> _getTabs(BuildContext context) => [
     AppLocalizations.of(context)!.favorites,
     AppLocalizations.of(context)!.artists,
@@ -29,7 +23,7 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(libraryActiveTabProvider);
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
@@ -39,69 +33,57 @@ class _LibraryWideLayoutState extends ConsumerState<LibraryWideLayout> {
       appBar: AppBar(
         title: Text(
           AppLocalizations.of(context)!.library,
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
       ),
-      body: Row(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isSearchActive) ...[
+          if (!isSearchActive)
             SizedBox(
-              width: 240,
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  const SizedBox(height: 16),
-                  ...List.generate(_getTabs(context).length, (i) {
-                    final icons = [
-                      LucideIcons.heart,
-                      LucideIcons.user,
-                      LucideIcons.listVideo,
-                      LucideIcons.disc,
-                      LucideIcons.history,
-                    ];
-                    return ListTile(
-                      selected: i == selectedIndex,
-                      leading: Icon(icons[i]),
-                      title: Text(_getTabs(context)[i]),
-                      onTap:
-                          () => ref
-                              .read(libraryActiveTabProvider.notifier)
-                              .update(i),
-                    );
-                  }),
-                ],
+              height: 52,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                itemCount: _getTabs(context).length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  return ChoiceChip(
+                    label: Text(_getTabs(context)[i]),
+                    selected: i == selectedIndex,
+                    onSelected: (selected) {
+                      if (selected) {
+                        ref.read(libraryActiveTabProvider.notifier).update(i);
+                      }
+                    },
+                  );
+                },
               ),
             ),
-            const VerticalDivider(width: 1),
-          ],
+          LibraryHeaderControls(
+            showViewSwitcher: !isSearchActive && isAlbumsOrPlaylists,
+          ),
+          const SizedBox(height: 8),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  LibraryHeaderControls(
-                    showViewSwitcher: !isSearchActive && isAlbumsOrPlaylists,
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child:
-                        isSearchActive
-                            ? const LibrarySearchResultsView()
-                            : IndexedStack(
-                              index: selectedIndex,
-                              children: const [
-                                FavoritesTab(),
-                                ArtistsTab(),
-                                PlaylistsTab(),
-                                AlbumsTab(),
-                                HistoryTab(),
-                              ],
-                            ),
-                  ),
-                ],
-              ),
-            ),
+            child:
+                isSearchActive
+                    ? const LibrarySearchResultsView()
+                    : IndexedStack(
+                      index: selectedIndex,
+                      children: const [
+                        FavoritesTab(),
+                        ArtistsTab(),
+                        PlaylistsTab(),
+                        AlbumsTab(),
+                        HistoryTab(),
+                      ],
+                    ),
           ),
         ],
       ),
