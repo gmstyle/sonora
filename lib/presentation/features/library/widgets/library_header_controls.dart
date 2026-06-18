@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/library_notifier.dart';
 import '../../../providers/settings_provider.dart';
 import '../providers/library_provider.dart';
 
@@ -39,6 +40,7 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
   Widget build(BuildContext context) {
     final query = ref.watch(librarySearchQueryProvider);
     final isGridView = ref.watch(settingsProvider).isLibraryGridView;
+    final activeTab = ref.watch(libraryActiveTabProvider);
 
     ref.listen<String>(librarySearchQueryProvider, (prev, next) {
       if (next != _searchController.text) {
@@ -111,12 +113,43 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
                           .setLibraryGridView(!isGridView);
                     },
                   ),
+                if (activeTab == 4)
+                  IconButton(
+                    onPressed: () => _clearHistory(context),
+                    icon: const Icon(LucideIcons.trash),
+                    tooltip: AppLocalizations.of(context)!.clear,
+                  ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _clearHistory(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(AppLocalizations.of(context)!.clearHistory),
+            content: Text(AppLocalizations.of(context)!.clearHistoryConfirm),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(AppLocalizations.of(context)!.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(AppLocalizations.of(context)!.clear),
+              ),
+            ],
+          ),
+    );
+    if (confirm == true) {
+      await ref.read(libraryNotifierProvider.notifier).clearHistory();
+      ref.invalidate(libraryHistoryProvider);
+    }
   }
 
   Widget _buildSortButton(BuildContext context) {

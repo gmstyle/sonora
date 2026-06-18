@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 
-class ProgressBarWidget extends StatelessWidget {
+class ProgressBarWidget extends StatefulWidget {
   final Duration position;
   final Duration duration;
   final int seed;
@@ -16,10 +16,17 @@ class ProgressBarWidget extends StatelessWidget {
   });
 
   @override
+  State<ProgressBarWidget> createState() => _ProgressBarWidgetState();
+}
+
+class _ProgressBarWidgetState extends State<ProgressBarWidget> {
+  double? _dragProgress;
+
+  @override
   Widget build(BuildContext context) {
-    final totalMs = duration.inMilliseconds;
-    final posMs = position.inMilliseconds;
-    final progress = totalMs > 0 ? posMs / totalMs : 0.0;
+    final totalMs = widget.duration.inMilliseconds;
+    final posMs = widget.position.inMilliseconds;
+    final progress = _dragProgress ?? (totalMs > 0 ? posMs / totalMs : 0.0);
 
     final theme = Theme.of(context);
     final color = theme.colorScheme.primary;
@@ -28,47 +35,59 @@ class ProgressBarWidget extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: CustomPaint(
-              size: Size.fromHeight(40),
-              painter: _WaveformPainter(
-                progress: progress,
-                color: color,
-                seed: seed,
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (details) {
+                  _updateDrag(details.localPosition.dx, width, totalMs);
+                },
+                onHorizontalDragUpdate: (details) {
+                  _updateDrag(details.localPosition.dx, width, totalMs);
+                },
+                onHorizontalDragEnd: (details) {
+                  _finalizeDrag(totalMs);
+                },
+                onTapDown: (details) {
+                  _updateDrag(details.localPosition.dx, width, totalMs);
+                },
+                onTapUp: (details) {
+                  _finalizeDrag(totalMs);
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: CustomPaint(
+                    size: const Size.fromHeight(50),
+                    painter: _WaveformPainter(
+                      progress: progress,
+                      color: color,
+                      seed: widget.seed,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 2,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-            activeTrackColor: color,
-            inactiveTrackColor: color.withValues(alpha: 0.24),
-            thumbColor: color,
-            overlayColor: color.withValues(alpha: 0.12),
-          ),
-          child: Slider(
-            value: posMs.toDouble().clamp(0, totalMs.toDouble()),
-            max: totalMs > 0 ? totalMs.toDouble() : 1.0,
-            onChanged: (v) => onSeek?.call(Duration(milliseconds: v.toInt())),
-          ),
-        ),
+        const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                position.format(),
+                _dragProgress != null
+                    ? Duration(
+                      milliseconds: (_dragProgress! * totalMs).toInt(),
+                    ).format()
+                    : widget.position.format(),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
               Text(
-                duration.format(),
+                widget.duration.format(),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -78,6 +97,28 @@ class ProgressBarWidget extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _updateDrag(double dx, double width, int totalMs) {
+    if (totalMs <= 0 || width <= 0) return;
+    final newProgress = (dx / width).clamp(0.0, 1.0);
+    setState(() {
+      _dragProgress = newProgress;
+    });
+    widget.onSeek?.call(
+      Duration(milliseconds: (newProgress * totalMs).toInt()),
+    );
+  }
+
+  void _finalizeDrag(int totalMs) {
+    if (_dragProgress == null) return;
+    final finalDuration = Duration(
+      milliseconds: (_dragProgress! * totalMs).toInt(),
+    );
+    widget.onSeek?.call(finalDuration);
+    setState(() {
+      _dragProgress = null;
+    });
   }
 }
 
@@ -115,6 +156,18 @@ class _WaveformPainter extends CustomPainter {
         canvas.drawRRect(rect, Paint()..color = color.withValues(alpha: 0.24));
       }
     }
+
+    // Draw vertical playhead line
+    final playheadX = progress * size.width;
+    final playheadPaint =
+        Paint()
+          ..color = color
+          ..strokeWidth = 2.0;
+    canvas.drawLine(
+      Offset(playheadX, 0),
+      Offset(playheadX, size.height),
+      playheadPaint,
+    );
   }
 
   @override
