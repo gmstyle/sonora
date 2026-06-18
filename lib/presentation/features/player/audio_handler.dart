@@ -713,8 +713,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Completer<void> _restoreCompleter = Completer<void>();
+  bool _isRestoring = false;
 
   Future<void> _initRestore() async {
+    if (_isRestoring) return;
+    _isRestoring = true;
     try {
       final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
       if (!restoreOnStartup) {
@@ -771,6 +774,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } catch (e, stack) {
       dev.log('[AudioHandler] Error in _initRestore: $e\n$stack');
     } finally {
+      _isRestoring = false;
       if (!_restoreCompleter.isCompleted) {
         _restoreCompleter.complete();
       }
@@ -794,6 +798,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> restoreIfNeeded() async {
+    if (_isRestoring) return;
     if (_player.state.playlist.medias.isEmpty) {
       if (_restoreCompleter.isCompleted) {
         _restoreCompleter = Completer<void>();
