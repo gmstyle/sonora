@@ -19,6 +19,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/update_notifier.dart';
 import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
+import '../../shared/widgets/sonora_logo.dart';
 import 'settings_shared.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
@@ -899,7 +900,7 @@ class _AboutSection extends StatelessWidget {
             final version = snapshot.data?.version ?? '...';
             final buildNumber = snapshot.data?.buildNumber ?? '...';
             return ListTile(
-              leading: const Icon(LucideIcons.info),
+              leading: const SonoraLogo.icon(24),
               title: Text(AppLocalizations.of(context)!.appVersion),
               subtitle: Text('$version+$buildNumber'),
             );

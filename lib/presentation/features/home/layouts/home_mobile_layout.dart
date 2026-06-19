@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../shared/widgets/error_retry_widget.dart';
+import '../../../shared/widgets/sonora_logo.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_section_renderer.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -26,11 +27,17 @@ class HomeMobileLayout extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _getGreeting(context),
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        title: Row(
+          spacing: 8,
+          children: [
+            const SonoraLogo.icon(22),
+            Text(
+              _getGreeting(context),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         centerTitle: false,
         actions: [
