@@ -300,7 +300,7 @@ class _PlaylistDetailContentState
                       final entry = displayEntries[index];
                       final liked = _findLiked(likedSongs, entry.videoId);
                       return _PlaylistEntryTile(
-                        key: ValueKey('${entry.playlistId}-${entry.videoId}'),
+                        key: ValueKey('${entry.playlistId}-${entry.videoId}-${entry.position}'),
                         index: index,
                         entry: entry,
                         liked: liked,

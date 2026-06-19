@@ -40,6 +40,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isRetrying = false;
   bool _isStopping = false;
   bool _isCurrentSongLiked = false;
+  int _queueIdCounter = 0;
   String? _currentVideoId;
   String? _lastEmittedMediaItemId;
   Duration? _lastEmittedDuration;
@@ -580,14 +581,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
           .toList();
 
   Media _toMedia(MediaItem item) {
-    final url = item.extras?['url'] as String?;
-    final videoId = item.extras?['videoId'] as String? ?? item.id;
+    var updatedItem = item;
+    if (item.extras == null || item.extras!['queueId'] == null) {
+      final extras = Map<String, dynamic>.from(item.extras ?? {});
+      extras['queueId'] = '${item.id}_${DateTime.now().microsecondsSinceEpoch}_${_queueIdCounter++}';
+      updatedItem = item.copyWith(extras: extras);
+    }
+
+    final url = updatedItem.extras?['url'] as String?;
+    final videoId = updatedItem.extras?['videoId'] as String? ?? updatedItem.id;
     if (url != null && url.isNotEmpty) {
-      return Media(url, extras: {'mediaItem': item});
+      return Media(url, extras: {'mediaItem': updatedItem});
     }
     // Unique dummy URI to avoid cache collision
     final dummy = 'http://localhost/dummy_$videoId.wav';
-    return Media(dummy, extras: {'mediaItem': item});
+    return Media(dummy, extras: {'mediaItem': updatedItem});
   }
 
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
