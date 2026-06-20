@@ -379,8 +379,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
               .nonNulls
               .toList();
 
-      final newIds = items.map((e) => e.id).toList();
-      final currentIds = queue.value.map((e) => e.id).toList();
+      final newIds = items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
+      final currentIds = queue.value.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
       // Emit queue only when the list of IDs changes (i.e. songs are added/removed/reordered).
       // Skipping re-emission when only internal metadata (e.g. resolved URL) changed prevents
       // Android Auto from resetting the queue scroll position on every URL resolution.
@@ -580,13 +580,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
           .nonNulls
           .toList();
 
-  Media _toMedia(MediaItem item) {
-    var updatedItem = item;
-    if (item.extras == null || item.extras!['queueId'] == null) {
-      final extras = Map<String, dynamic>.from(item.extras ?? {});
-      extras['queueId'] = '${item.id}_${DateTime.now().microsecondsSinceEpoch}_${_queueIdCounter++}';
-      updatedItem = item.copyWith(extras: extras);
+  MediaItem _ensureQueueId(MediaItem item) {
+    if (item.extras?['queueId'] != null) {
+      return item;
     }
+    final extras = Map<String, dynamic>.from(item.extras ?? {});
+    extras['queueId'] = '${item.id}_${DateTime.now().microsecondsSinceEpoch}_${_queueIdCounter++}';
+    return item.copyWith(extras: extras);
+  }
+
+  Media _toMedia(MediaItem item) {
+    final updatedItem = _ensureQueueId(item);
 
     final url = updatedItem.extras?['url'] as String?;
     final videoId = updatedItem.extras?['videoId'] as String? ?? updatedItem.id;
@@ -600,9 +604,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
-    queue.add(items);
+    final itemsWithKeys = items.map(_ensureQueueId).toList();
+    queue.add(itemsWithKeys);
     final playlist = Playlist(
-      items.map(_toMedia).toList(),
+      itemsWithKeys.map(_toMedia).toList(),
       index: initialIndex,
     );
     await _player.open(playlist, play: false);
@@ -610,9 +615,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
-    queue.add(items);
+    final itemsWithKeys = items.map(_ensureQueueId).toList();
+    queue.add(itemsWithKeys);
     final playlist = Playlist(
-      items.map(_toMedia).toList(),
+      itemsWithKeys.map(_toMedia).toList(),
       index: initialIndex,
     );
     if (await _requestAudioFocus()) {
@@ -760,16 +766,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
         return;
       }
 
+      final itemsWithKeys = items.map(_ensureQueueId).toList();
+
       // Emit queue immediately so UI is populated during URL resolution
-      queue.add(List<MediaItem>.from(items));
+      queue.add(itemsWithKeys);
 
       int savedIndex = _prefs.getInt('last_playing_index') ?? 0;
-      if (savedIndex < 0 || savedIndex >= items.length) {
+      if (savedIndex < 0 || savedIndex >= itemsWithKeys.length) {
         savedIndex = 0;
       }
 
       // Try to resolve URL for the restored item if it needs one or if it's stale
-      var currentItem = items[savedIndex];
+      var currentItem = itemsWithKeys[savedIndex];
       final url = currentItem.extras?['url'] as String?;
       if (url == null || url.isEmpty || _isUrlStale(url)) {
         try {
@@ -781,7 +789,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               'needsUrl': false,
             },
           );
-          items[savedIndex] = currentItem;
+          itemsWithKeys[savedIndex] = currentItem;
         } catch (_) {}
       }
 
@@ -789,7 +797,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final savedPos = Duration(milliseconds: savedPosMs);
 
       final playlist = Playlist(
-        items.map(_toMedia).toList(),
+        itemsWithKeys.map(_toMedia).toList(),
         index: savedIndex,
       );
       await _player.open(playlist, play: false);
@@ -846,8 +854,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
             .nonNulls
             .toList();
 
-    final newIds = items.map((e) => e.id).toList();
-    final currentIds = queue.value.map((e) => e.id).toList();
+    final newIds = items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
+    final currentIds = queue.value.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
     final queueStructureChanged =
         newIds.length != currentIds.length ||
         !const ListEquality().equals(newIds, currentIds);

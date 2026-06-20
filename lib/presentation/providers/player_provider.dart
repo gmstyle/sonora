@@ -211,8 +211,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final queueChanged =
           currentQueue.length != items.length ||
           !const ListEquality().equals(
-            currentQueue.map((e) => e.id).toList(),
-            items.map((e) => e.id).toList(),
+            currentQueue.map((e) => e.extras?['queueId'] as String? ?? e.id).toList(),
+            items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList(),
           );
       if (queueChanged) {
         state = state.copyWith(queue: items);
@@ -465,8 +465,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final queueChanged =
           currentQueue.length != actualQueue.length ||
           !const ListEquality().equals(
-            currentQueue.map((e) => e.id).toList(),
-            actualQueue.map((e) => e.id).toList(),
+            currentQueue.map((e) => e.extras?['queueId'] as String? ?? e.id).toList(),
+            actualQueue.map((e) => e.extras?['queueId'] as String? ?? e.id).toList(),
           );
       if (queueChanged) {
         state = state.copyWith(queue: actualQueue);
