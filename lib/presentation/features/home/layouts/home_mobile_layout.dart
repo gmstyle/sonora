@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../providers/app_lifecycle_provider.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/sonora_logo.dart';
 import '../providers/home_provider.dart';
@@ -15,6 +16,7 @@ class HomeMobileLayout extends ConsumerWidget {
   const HomeMobileLayout({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appLifecycleProvider);
     final sectionsAsync = ref.watch(homeSectionsProvider);
     final historyAsync = ref.watch(recentHistoryProvider);
     final playlistsAsync = ref.watch(homeRandomPlaylistsProvider);
