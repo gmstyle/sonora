@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/utils/url_staleness.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 import 'package:audio_service/audio_service.dart';
@@ -32,6 +32,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlayPlaylistUseCase _playPlaylistUseCase;
 
   Player get player => _player;
+
+  /// Minimum elapsed time since the last pause/stop before a resume is
+  /// treated as a "cold restore" (player rebuilt from DB snapshot).
+  static const int _kColdResumeThresholdMs = 5 * 60 * 1000; // 5 minutes
 
   Duration _crossfadeDuration = Duration.zero;
   bool _isFadingIn = false;
@@ -334,13 +338,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void _onPlaylistChanged(Playlist playlist) {
     if (_isStopping) return;
-    final index = playlist.index;
-    playbackState.add(playbackState.value.copyWith(queueIndex: index));
-    _resolvePendingItems(index);
 
-    if (index >= 0) {
-      _prefs.setInt('last_playing_index', index);
+    final index = playlist.index;
+
+    // Do NOT emit queueIndex or persist index during internal atomic operations
+    // (remove/add/move sequences in _resolveSinglePendingItem). Those operations
+    // cause playlist events with transient intermediate indices that would
+    // corrupt state.currentIndex in PlayerNotifier, causing skip to go to the
+    // wrong item. The correct queueIndex is emitted explicitly after the
+    // sequence completes.
+    if (!_isResolvingItem) {
+      playbackState.add(playbackState.value.copyWith(queueIndex: index));
+      if (index >= 0) _prefs.setInt('last_playing_index', index);
     }
+
+    _resolvePendingItems(index);
 
     if (index >= 0 && index < playlist.medias.length) {
       final media = playlist.medias[index];
@@ -383,8 +395,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
               .nonNulls
               .toList();
 
-      final newIds = items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
-      final currentIds = queue.value.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
+      final newIds =
+          items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
+      final currentIds =
+          queue.value
+              .map((e) => e.extras?['queueId'] as String? ?? e.id)
+              .toList();
       // Emit queue only when the list of IDs changes (i.e. songs are added/removed/reordered).
       // Skipping re-emission when only internal metadata (e.g. resolved URL) changed prevents
       // Android Auto from resetting the queue scroll position on every URL resolution.
@@ -397,7 +413,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
     }
 
-    if (_crossfadeDuration > Duration.zero && _player.state.playing) {
+    // Crossfade fade-in is only triggered on actual track transitions,
+    // not during internal URL resolve operations (which suppress _isResolvingItem).
+    if (!_isResolvingItem &&
+        _crossfadeDuration > Duration.zero &&
+        _player.state.playing) {
       _isFadingIn = true;
       _applyVolume(0.0);
     }
@@ -413,63 +433,85 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _resolveSinglePendingItem(currentIndex + 2);
   }
 
-  Future<void> _resolveSinglePendingItem(int index) async {
+  /// Resolves the stream URL for a single item in the playlist.
+  ///
+  /// [forceResolve] bypasses the `needsUrl` guard, allowing re-resolution of
+  /// items whose URL was previously set but has since expired (warm resume).
+  Future<void> _resolveSinglePendingItem(
+    int index, {
+    bool forceResolve = false,
+  }) async {
     if (index < 0) return;
     final playlist = _player.state.playlist;
     if (index >= playlist.medias.length) return;
     final media = playlist.medias[index];
     final item = media.extras?['mediaItem'] as MediaItem?;
-    if (item == null || item.extras?['needsUrl'] != true) return;
+    // Skip if not pending — unless forceResolve (warm resume with stale URL).
+    if (item == null) return;
+    if (!forceResolve && item.extras?['needsUrl'] != true) return;
 
     final videoId = item.extras?['videoId'] as String?;
-    if (videoId == null || !_pendingResolutions.add(videoId)) return;
+    if (videoId == null) return;
 
+    // Guard against concurrent resolution of the same videoId.
+    // _isResolvingItem is set HERE — before the network await — so that
+    // _onPlaylistChanged suppresses intermediate queueIndex emissions for
+    // the entire duration of the atomic remove/add/move/jump sequence.
+    // Previously this flag was set inside the inner try, after remove() had
+    // already fired _onPlaylistChanged with a transient wrong index.
+    if (!_pendingResolutions.add(videoId)) return;
+    _isResolvingItem = true;
     try {
       final url = await _playVideoIdUseCase.resolveUrl(videoId);
 
+      // Re-validate: index may have shifted or the queue may have changed
+      // entirely (e.g. user started a new song while we were awaiting).
       final playlist2 = _player.state.playlist;
       if (index >= playlist2.medias.length) return;
       final currentMedia = playlist2.medias[index];
       final currentItem = currentMedia.extras?['mediaItem'] as MediaItem?;
       if (currentItem?.extras?['videoId'] != videoId) return;
-      if (currentItem?.extras?['needsUrl'] != true) return;
+      // Only skip the pending check when forceResolve was requested.
+      if (!forceResolve && currentItem?.extras?['needsUrl'] != true) return;
 
-      final updatedItem = item.copyWith(
+      final updatedItem = (currentItem ?? item).copyWith(
         extras: {...?item.extras, 'url': url, 'needsUrl': false},
       );
-
       final updatedMedia = Media(
         url,
         extras: {...?currentMedia.extras, 'mediaItem': updatedItem},
       );
 
-      _isResolvingItem = true;
-      try {
-        if (index == _player.state.playlist.index) {
-          final wasPlaying = _player.state.playing;
-          final currentPos = _player.state.position;
-          if (wasPlaying) await _player.pause();
-          await _player.remove(index);
-          await _player.add(updatedMedia);
-          await _player.move(_player.state.playlist.medias.length - 1, index);
-          await _player.jump(index);
-          if (currentPos > Duration.zero) {
-            await _player.seek(currentPos);
-          }
-          if (wasPlaying) await _player.play();
-        } else {
-          await _player.remove(index);
-          await _player.add(updatedMedia);
-          await _player.move(_player.state.playlist.medias.length - 1, index);
-        }
-      } finally {
-        _isResolvingItem = false;
-        _syncQueue();
+      if (index == _player.state.playlist.index) {
+        // Current item: pause → replace → restore position → resume.
+        final wasPlaying = _player.state.playing;
+        final currentPos = _player.state.position;
+        if (wasPlaying) await _player.pause();
+        await _player.remove(index);
+        await _player.add(updatedMedia);
+        await _player.move(_player.state.playlist.medias.length - 1, index);
+        await _player.jump(index);
+        if (currentPos > Duration.zero) await _player.seek(currentPos);
+        if (wasPlaying) await _player.play();
+      } else {
+        // Non-current item: simple in-place replacement, no jump needed.
+        await _player.remove(index);
+        await _player.add(updatedMedia);
+        await _player.move(_player.state.playlist.medias.length - 1, index);
       }
     } catch (e) {
-      dev.log('[AudioHandler] Failed to resolve URL for lazy item: $e');
+      dev.log('[AudioHandler] Failed to resolve URL for item at $index: $e');
     } finally {
+      _isResolvingItem = false;
       _pendingResolutions.remove(videoId);
+      _syncQueue();
+      // Always re-emit the actual current queueIndex after releasing the lock.
+      // If the user skipped during resolution, _onPlaylistChanged was suppressed
+      // and the new index was never propagated to PlayerNotifier.
+      final actualIndex = _player.state.playlist.index;
+      if (actualIndex >= 0) {
+        playbackState.add(playbackState.value.copyWith(queueIndex: actualIndex));
+      }
     }
   }
 
@@ -494,19 +536,23 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (releaseFocus) {
       await _releaseAudioFocus();
     }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
       'last_playing_position_ms',
       _player.state.position.inMilliseconds,
     );
+    await _prefs.setInt('last_pause_timestamp', nowMs);
   }
 
   @override
   Future<void> stop() async {
     _playOnInterruptionEnd = false;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
       'last_playing_position_ms',
       _player.state.position.inMilliseconds,
     );
+    await _prefs.setInt('last_pause_timestamp', nowMs);
     _isStopping = true;
     await _player.stop();
     await _releaseAudioFocus();
@@ -598,7 +644,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       return item;
     }
     final extras = Map<String, dynamic>.from(item.extras ?? {});
-    extras['queueId'] = '${item.id}_${DateTime.now().microsecondsSinceEpoch}_${_queueIdCounter++}';
+    extras['queueId'] =
+        '${item.id}_${DateTime.now().microsecondsSinceEpoch}_${_queueIdCounter++}';
     return item.copyWith(extras: extras);
   }
 
@@ -695,10 +742,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> onTaskRemoved() async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
       'last_playing_position_ms',
       _player.state.position.inMilliseconds,
     );
+    await _prefs.setInt('last_pause_timestamp', nowMs);
     _isStopping = true;
     await _player.stop();
     await super.onTaskRemoved();
@@ -746,6 +795,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
       } finally {
         _isResolvingItem = false;
         _syncQueue();
+        // Re-emit actual queueIndex in case a skip occurred during retry.
+        final actualIndex = _player.state.playlist.index;
+        if (actualIndex >= 0) {
+          playbackState.add(playbackState.value.copyWith(queueIndex: actualIndex));
+        }
       }
     } catch (e) {
       _onPlayErrorController.add((videoId, currentItem?.title ?? videoId));
@@ -773,56 +827,80 @@ class SonoraAudioHandler extends BaseAudioHandler {
         return;
       }
 
-      final items = await _queueRepo.restoreQueue();
-      if (items.isEmpty) {
+      final rawItems = await _queueRepo.restoreQueue();
+      if (rawItems.isEmpty) {
         _restoreCompleter.complete();
         return;
       }
 
-      final itemsWithKeys = items.map(_ensureQueueId).toList();
+      // ── Cold restore: discard all stale HTTP URLs ────────────────────
+      // On a cold resume (kill or long background), YouTube stream URLs are
+      // almost certainly expired. Rather than checking each one individually,
+      // we mark every HTTP URL as needsUrl so _resolvePendingItems resolves
+      // them lazily at play/skip time. Local file:// URLs are kept only if
+      // the file still exists on disk.
+      final items =
+          rawItems.map((item) {
+            final url = item.extras?['url'] as String?;
+            final isLocalAndValid =
+                url != null &&
+                url.startsWith('file://') &&
+                !UrlStaleness.isStale(url);
+            if (isLocalAndValid) return _ensureQueueId(item);
+            // Strip the stale URL so _toMedia uses the dummy placeholder and
+            // _resolveSinglePendingItem will treat this item as pending.
+            return _ensureQueueId(
+              item.copyWith(
+                extras: {...?item.extras, 'needsUrl': true, 'url': null},
+              ),
+            );
+          }).toList();
 
-      // Emit queue immediately so UI is populated during URL resolution
-      queue.add(itemsWithKeys);
+      // Emit the queue to the UI immediately — metadata is already available.
+      queue.add(items);
 
       int savedIndex = _prefs.getInt('last_playing_index') ?? 0;
-      if (savedIndex < 0 || savedIndex >= itemsWithKeys.length) {
-        savedIndex = 0;
-      }
+      if (savedIndex < 0 || savedIndex >= items.length) savedIndex = 0;
 
-      // Try to resolve URL for the restored item if it needs one or if it's stale
-      var currentItem = itemsWithKeys[savedIndex];
-      final url = currentItem.extras?['url'] as String?;
-      if (url == null || url.isEmpty || _isUrlStale(url)) {
-        try {
-          final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
-          currentItem = currentItem.copyWith(
-            extras: {
-              ...?currentItem.extras,
-              'url': freshUrl,
-              'needsUrl': false,
-            },
-          );
-          itemsWithKeys[savedIndex] = currentItem;
-        } catch (_) {}
+      // ── Resolve the current item's URL up-front (blocking) ───────────
+      // Only this one item needs a fresh URL before the player opens;
+      // all others will be resolved lazily by _resolvePendingItems as
+      // the user plays/skips through the queue.
+      var currentItem = items[savedIndex];
+      try {
+        final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
+        currentItem = currentItem.copyWith(
+          extras: {...?currentItem.extras, 'url': freshUrl, 'needsUrl': false},
+        );
+        items[savedIndex] = currentItem;
+      } catch (e) {
+        // URL resolution failed; the item remains needsUrl: true.
+        // _onPlayerError will handle the retry when the user presses play.
+        dev.log(
+          '[AudioHandler] Cold restore: failed to resolve URL for index $savedIndex: $e',
+        );
       }
 
       final savedPosMs = _prefs.getInt('last_playing_position_ms') ?? 0;
-      final savedPos = Duration(milliseconds: savedPosMs);
 
+      // ── Open the player with the clean, rebuilt playlist ─────────────
+      _isStopping = false;
       final playlist = Playlist(
-        itemsWithKeys.map(_toMedia).toList(),
+        items.map(_toMedia).toList(),
         index: savedIndex,
       );
       await _player.open(playlist, play: false);
 
-      if (savedPos > Duration.zero) {
-        // Wait for the media to load so seek is not ignored by the player
+      if (savedPosMs > 0) {
+        // Wait for the media to load so the seek is not silently ignored.
         for (int i = 0; i < 30; i++) {
           if (_player.state.duration > Duration.zero) break;
           await Future.delayed(const Duration(milliseconds: 100));
         }
-        await _player.seek(savedPos);
+        await _player.seek(Duration(milliseconds: savedPosMs));
       }
+      // _onPlaylistChanged will fire after _player.open and call
+      // _resolvePendingItems to eagerly resolve indices +1 and +2.
     } catch (e, stack) {
       dev.log('[AudioHandler] Error in _initRestore: $e\n$stack');
     } finally {
@@ -833,30 +911,54 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
-  bool _isUrlStale(String url) {
-    if (url.startsWith('file://')) {
-      final file = File.fromUri(Uri.parse(url));
-      return !file.existsSync();
-    }
-    final expireParam = Uri.tryParse(url)?.queryParameters['expire'];
-    if (expireParam == null) return true;
-    final expireTs = int.tryParse(expireParam);
-    if (expireTs == null) return true;
-    return DateTime.now().millisecondsSinceEpoch ~/ 1000 > expireTs;
-  }
-
   Future<void> persistQueue(List<MediaItem> items) async {
     await _queueRepo.persistQueue(items);
   }
 
+  /// Resumes playback state after the app returns to the foreground.
+  ///
+  /// Two modes:
+  /// - **Warm resume** (elapsed < [_kColdResumeThresholdMs]): the OS kept the
+  ///   process alive and the player playlist is intact. Only the current item's
+  ///   URL is re-checked; if stale it is silently re-resolved.
+  /// - **Cold resume** (process was killed OR elapsed ≥ threshold): the player
+  ///   is rebuilt from the DB snapshot. All HTTP stream URLs are discarded and
+  ///   resolved lazily — only the current item's URL is resolved up-front so
+  ///   playback can resume immediately.
   Future<void> restoreIfNeeded() async {
     if (_isRestoring) return;
-    if (_player.state.playlist.medias.isEmpty) {
-      if (_restoreCompleter.isCompleted) {
-        _restoreCompleter = Completer<void>();
+
+    final playlistEmpty = _player.state.playlist.medias.isEmpty;
+    final lastPauseMs = _prefs.getInt('last_pause_timestamp') ?? 0;
+    final elapsed = DateTime.now().millisecondsSinceEpoch - lastPauseMs;
+    final isCold = playlistEmpty || elapsed > _kColdResumeThresholdMs;
+
+    if (!isCold) {
+      // ── Warm resume: only re-check the current item's URL ──────────
+      // With battery optimization disabled the process stays alive, so
+      // playlistEmpty is almost always false. The elapsed-time check is
+      // the primary trigger for cold restores; for shorter absences we
+      // only re-resolve the current item if its URL has expired.
+      final currentIndex = _player.state.playlist.index;
+      final medias = _player.state.playlist.medias;
+      if (currentIndex >= 0 && currentIndex < medias.length) {
+        final item = medias[currentIndex].extras?['mediaItem'] as MediaItem?;
+        final url = item?.extras?['url'] as String?;
+        if (UrlStaleness.isStale(url)) {
+          // forceResolve: true bypasses the needsUrl guard because this item
+          // was previously resolved (no needsUrl flag) but its URL has expired.
+          unawaited(_resolveSinglePendingItem(currentIndex, forceResolve: true));
+        }
       }
-      await _initRestore();
+      return;
     }
+
+    // ── Cold resume: full rebuild from DB ────────────────────────────
+    _pendingResolutions.clear();
+    if (_restoreCompleter.isCompleted) {
+      _restoreCompleter = Completer<void>();
+    }
+    await _initRestore();
   }
 
   void _syncQueue() {
@@ -867,8 +969,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
             .nonNulls
             .toList();
 
-    final newIds = items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
-    final currentIds = queue.value.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
+    final newIds =
+        items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
+    final currentIds =
+        queue.value
+            .map((e) => e.extras?['queueId'] as String? ?? e.id)
+            .toList();
     final queueStructureChanged =
         newIds.length != currentIds.length ||
         !const ListEquality().equals(newIds, currentIds);
