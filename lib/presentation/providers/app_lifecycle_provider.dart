@@ -1,7 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AppLifecycleNotifier extends Notifier<AppLifecycleState> with WidgetsBindingObserver {
+class AppLifecycleNotifier extends Notifier<AppLifecycleState>
+    with WidgetsBindingObserver {
   @override
   AppLifecycleState build() {
     WidgetsBinding.instance.addObserver(this);
@@ -15,6 +16,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleState> with WidgetsBindi
   }
 }
 
-final appLifecycleProvider = NotifierProvider<AppLifecycleNotifier, AppLifecycleState>(
-  AppLifecycleNotifier.new,
-);
+final appLifecycleProvider =
+    NotifierProvider<AppLifecycleNotifier, AppLifecycleState>(
+      AppLifecycleNotifier.new,
+    );

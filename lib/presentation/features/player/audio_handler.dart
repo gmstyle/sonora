@@ -510,7 +510,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       // and the new index was never propagated to PlayerNotifier.
       final actualIndex = _player.state.playlist.index;
       if (actualIndex >= 0) {
-        playbackState.add(playbackState.value.copyWith(queueIndex: actualIndex));
+        playbackState.add(
+          playbackState.value.copyWith(queueIndex: actualIndex),
+        );
       }
     }
   }
@@ -798,7 +800,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
         // Re-emit actual queueIndex in case a skip occurred during retry.
         final actualIndex = _player.state.playlist.index;
         if (actualIndex >= 0) {
-          playbackState.add(playbackState.value.copyWith(queueIndex: actualIndex));
+          playbackState.add(
+            playbackState.value.copyWith(queueIndex: actualIndex),
+          );
         }
       }
     } catch (e) {
@@ -947,7 +951,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
         if (UrlStaleness.isStale(url)) {
           // forceResolve: true bypasses the needsUrl guard because this item
           // was previously resolved (no needsUrl flag) but its URL has expired.
-          unawaited(_resolveSinglePendingItem(currentIndex, forceResolve: true));
+          unawaited(
+            _resolveSinglePendingItem(currentIndex, forceResolve: true),
+          );
         }
       }
       return;
