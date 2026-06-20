@@ -40,6 +40,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isRetrying = false;
   bool _isStopping = false;
   bool _isCurrentSongLiked = false;
+  bool _playOnInterruptionEnd = false;
   int _queueIdCounter = 0;
   String? _currentVideoId;
   String? _lastEmittedMediaItemId;
@@ -122,7 +123,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
           switch (event.type) {
             case AudioInterruptionType.pause:
             case AudioInterruptionType.unknown:
-              pause();
+              _playOnInterruptionEnd = _player.state.playing;
+              _pause(releaseFocus: false);
               break;
             case AudioInterruptionType.duck:
               _player.setVolume(20.0);
@@ -131,12 +133,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
         } else {
           switch (event.type) {
             case AudioInterruptionType.pause:
-              play();
+            case AudioInterruptionType.unknown:
+              if (_playOnInterruptionEnd) {
+                play();
+              }
+              _playOnInterruptionEnd = false;
               break;
             case AudioInterruptionType.duck:
               _player.setVolume(100.0);
-              break;
-            case AudioInterruptionType.unknown:
               break;
           }
         }
@@ -472,6 +476,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> play() async {
     _isStopping = false;
+    _playOnInterruptionEnd = false;
     await _restoreCompleter.future.catchError((_) {});
     if (await _requestAudioFocus()) {
       await _player.play();
@@ -479,9 +484,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> pause() async {
+  Future<void> pause() => _pause(releaseFocus: true);
+
+  Future<void> _pause({required bool releaseFocus}) async {
+    if (releaseFocus) {
+      _playOnInterruptionEnd = false;
+    }
     await _player.pause();
-    await _releaseAudioFocus();
+    if (releaseFocus) {
+      await _releaseAudioFocus();
+    }
     await _prefs.setInt(
       'last_playing_position_ms',
       _player.state.position.inMilliseconds,
@@ -490,6 +502,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
+    _playOnInterruptionEnd = false;
     await _prefs.setInt(
       'last_playing_position_ms',
       _player.state.position.inMilliseconds,
