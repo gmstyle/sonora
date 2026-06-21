@@ -122,7 +122,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _initRestore();
   }
 
-  Future<void> updateCastState(CastState state, SonoraCastService service) async {
+  Future<void> updateCastState(
+    CastState state,
+    SonoraCastService service,
+  ) async {
     _castService = service;
 
     if (state.connectionState == CastConnectionState.connecting) {
@@ -150,7 +153,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _castState = state;
   }
 
-  Future<void> _castCurrentSong(CastState state, SonoraCastService service) async {
+  Future<void> _castCurrentSong(
+    CastState state,
+    SonoraCastService service,
+  ) async {
     final item = mediaItem.value;
     if (item == null) return;
     final currentPos = _player.state.position;
@@ -720,7 +726,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _setLocalVolume(double volume, {bool force = false}) {
-    if (!force && _castState?.connectionState == CastConnectionState.connected) {
+    if (!force &&
+        _castState?.connectionState == CastConnectionState.connected) {
       _player.setVolume(0.0);
     } else {
       _player.setVolume(volume);
