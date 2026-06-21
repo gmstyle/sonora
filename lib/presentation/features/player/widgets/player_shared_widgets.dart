@@ -18,6 +18,7 @@ import '../../../providers/player_provider.dart';
 import '../../../providers/video_player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import 'progress_bar_widget.dart';
+import 'cast_button.dart';
 
 /// Blurred artwork + animated gradient overlay.
 ///
@@ -409,6 +410,7 @@ Widget buildBottomActionsRow(
             tooltip: AppLocalizations.of(context)!.share,
             color: theme.colorScheme.onSurfaceVariant,
           ),
+          CastButton(size: 22, color: theme.colorScheme.onSurfaceVariant),
           if (isVideo) ...[
             Builder(
               builder: (context) {

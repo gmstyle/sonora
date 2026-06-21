@@ -307,5 +307,15 @@
   "reduceEffectsHint": "Disattiva sfocature e ombreggiature complesse per risparmiare batteria e migliorare le prestazioni su dispositivi datati",
   "goodMorning": "Buongiorno",
   "goodAfternoon": "Buon pomeriggio",
-  "goodEvening": "Buonasera"
+  "goodEvening": "Buonasera",
+
+  "@@sectionMeta": {
+    "cast": "Casting"
+  },
+  "castToDevice": "Invia a un dispositivo",
+  "searchingDevices": "Ricerca dispositivi…",
+  "disconnect": "Disconnetti",
+  "alexaBluetooth": "Amazon Alexa (Bluetooth)",
+  "alexaBluetoothInstructions": "Dì \"Alexa, connetti Bluetooth\" ed esegui l'accoppiamento dal pannello del tuo dispositivo.",
+  "openBluetoothSettings": "Apri impostazioni Bluetooth"
 }

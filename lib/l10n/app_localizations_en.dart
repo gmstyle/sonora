@@ -867,4 +867,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goodEvening => 'Good evening';
+
+  @override
+  String get castToDevice => 'Cast to a device';
+
+  @override
+  String get searchingDevices => 'Searching for devices…';
+
+  @override
+  String get disconnect => 'Disconnect';
+
+  @override
+  String get alexaBluetooth => 'Amazon Alexa (Bluetooth)';
+
+  @override
+  String get alexaBluetoothInstructions =>
+      'Say \"Alexa, connect Bluetooth\" and pair from your device\'s panel.';
+
+  @override
+  String get openBluetoothSettings => 'Open Bluetooth Settings';
 }

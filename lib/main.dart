@@ -38,6 +38,7 @@ import 'presentation/providers/music_repository_provider.dart';
 import 'presentation/providers/play_video_id_use_case_provider.dart';
 import 'presentation/providers/player_provider.dart';
 import 'presentation/providers/settings_provider.dart';
+import 'presentation/providers/cast_provider.dart';
 import 'presentation/providers/stream_datasource_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
@@ -254,6 +255,14 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
 
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+
+    // Link AudioHandler with Casting
+    final audioHandler = ref.watch(audioHandlerProvider);
+    ref.listen(castStateProvider, (previous, next) {
+      next.whenData((state) {
+        audioHandler.updateCastState(state, ref.read(castServiceProvider));
+      });
+    });
 
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {

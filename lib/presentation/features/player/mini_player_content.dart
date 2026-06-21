@@ -16,6 +16,7 @@ import '../../providers/settings_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/video_player_widget.dart';
+import 'widgets/cast_button.dart';
 import '../../../core/extensions/duration_ext.dart';
 
 class MiniPlayerContent extends ConsumerWidget {
@@ -248,6 +249,7 @@ class MiniPlayerContent extends ConsumerWidget {
                           size: 20,
                         ),
                         _likeButton(context, ref, cs),
+                        CastButton(size: 20, color: cs.onSurfaceVariant),
                         const SizedBox(width: 4),
                       ],
                     ),
@@ -443,6 +445,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                 onPressed: onOpenQueue,
                                 size: 20,
                               ),
+                              CastButton(size: 20, color: cs.onSurfaceVariant),
                               _iconButton(
                                 icon: LucideIcons.moreVertical,
                                 color: cs.onSurfaceVariant,

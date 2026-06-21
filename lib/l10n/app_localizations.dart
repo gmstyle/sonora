@@ -1597,6 +1597,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Good evening'**
   String get goodEvening;
+
+  /// No description provided for @castToDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast to a device'**
+  String get castToDevice;
+
+  /// No description provided for @searchingDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for devices…'**
+  String get searchingDevices;
+
+  /// No description provided for @disconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnect;
+
+  /// No description provided for @alexaBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Amazon Alexa (Bluetooth)'**
+  String get alexaBluetooth;
+
+  /// No description provided for @alexaBluetoothInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Say \"Alexa, connect Bluetooth\" and pair from your device\'s panel.'**
+  String get alexaBluetoothInstructions;
+
+  /// No description provided for @openBluetoothSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Bluetooth Settings'**
+  String get openBluetoothSettings;
 }
 
 class _AppLocalizationsDelegate

@@ -19,6 +19,10 @@ import '../../../domain/usecases/player/play_album_use_case.dart';
 import '../../../domain/usecases/player/play_playlist_use_case.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 
+import 'package:dart_cast/dart_cast.dart';
+import '../../providers/cast_provider.dart';
+import '../../../data/services/cast_service.dart';
+
 class SonoraAudioHandler extends BaseAudioHandler {
   final Player _player = Player(
     configuration: const PlayerConfiguration(pitch: true),
@@ -30,6 +34,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final QueueRepository _queueRepo;
   late final PlayAlbumUseCase _playAlbumUseCase;
   late final PlayPlaylistUseCase _playPlaylistUseCase;
+
+  CastState? _castState;
+  SonoraCastService? _castService;
+  bool _pausedForConnection = false;
 
   Player get player => _player;
 
@@ -114,6 +122,77 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _initRestore();
   }
 
+  Future<void> updateCastState(CastState state, SonoraCastService service) async {
+    _castService = service;
+
+    if (state.connectionState == CastConnectionState.connecting) {
+      if (_player.state.playing) {
+        _pausedForConnection = true;
+        await _player.pause();
+      }
+    } else if (state.connectionState == CastConnectionState.connected) {
+      if (_castState?.connectionState != CastConnectionState.connected) {
+        _setLocalVolume(0.0);
+        await _castCurrentSong(state, service);
+        _pausedForConnection = false;
+      }
+    } else if (state.connectionState == CastConnectionState.disconnected ||
+        state.connectionState == CastConnectionState.error) {
+      if (_castState?.connectionState == CastConnectionState.connected) {
+        _setLocalVolume(_lastSetVolume * 100.0, force: true);
+      }
+      if (_pausedForConnection) {
+        await _player.play();
+        _pausedForConnection = false;
+      }
+    }
+
+    _castState = state;
+  }
+
+  Future<void> _castCurrentSong(CastState state, SonoraCastService service) async {
+    final item = mediaItem.value;
+    if (item == null) return;
+    final currentPos = _player.state.position;
+    await _castSong(item, state, service, startPosition: currentPos);
+  }
+
+  Future<void> _castSong(
+    MediaItem item,
+    CastState state,
+    SonoraCastService service, {
+    Duration? startPosition,
+  }) async {
+    final wasPlaying = _player.state.playing || _pausedForConnection;
+    if (wasPlaying) await _player.pause();
+    _setLocalVolume(0.0);
+
+    String? url = item.extras?['url'] as String?;
+    if (url == null || url.isEmpty || item.extras?['needsUrl'] == true) {
+      try {
+        url = await _playVideoIdUseCase.resolveUrl(item.id);
+      } catch (_) {
+        return;
+      }
+    }
+
+    await service.castMedia(
+      url: url,
+      title: item.title,
+      artist: item.artist,
+      album: item.album,
+      artworkUrl: item.artUri?.toString(),
+      startPosition: startPosition,
+    );
+
+    if (wasPlaying) {
+      await _waitForCastSessionState(service, SessionState.playing);
+      await _player.play();
+    } else {
+      await service.pause();
+    }
+  }
+
   Future<void> _setupAudioSession() async {
     try {
       final session = await AudioSession.instance;
@@ -127,7 +206,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               _pause(releaseFocus: false);
               break;
             case AudioInterruptionType.duck:
-              _player.setVolume(20.0);
+              _setLocalVolume(20.0);
               break;
           }
         } else {
@@ -140,7 +219,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               _playOnInterruptionEnd = false;
               break;
             case AudioInterruptionType.duck:
-              _player.setVolume(100.0);
+              _setLocalVolume(100.0);
               break;
           }
         }
@@ -350,7 +429,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     _resolvePendingItems(index);
 
-    if (index >= 0 && index < playlist.medias.length) {
+    if (!_isResolvingItem && index >= 0 && index < playlist.medias.length) {
       final media = playlist.medias[index];
       var item = media.extras?['mediaItem'] as MediaItem?;
       if (item != null) {
@@ -379,7 +458,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
           _lastEmittedMediaItemId = item.id;
           _lastEmittedDuration = item.duration;
           mediaItem.add(item);
-          if (trackChanged) _checkCurrentSongLiked(item.id);
+          if (trackChanged) {
+            _checkCurrentSongLiked(item.id);
+            if (_castState?.connectionState == CastConnectionState.connected) {
+              if (item.extras?['needsUrl'] != true) {
+                _castSong(item, _castState!, _castService!);
+              }
+            }
+          }
         }
       }
     }
@@ -478,22 +564,54 @@ class SonoraAudioHandler extends BaseAudioHandler {
         extras: {...?currentMedia.extras, 'mediaItem': updatedItem},
       );
 
-      if (index == _player.state.playlist.index) {
-        // Current item: pause → replace → restore position → resume.
-        final wasPlaying = _player.state.playing;
-        final currentPos = _player.state.position;
-        if (wasPlaying) await _player.pause();
-        await _player.remove(index);
-        await _player.add(updatedMedia);
-        await _player.move(_player.state.playlist.medias.length - 1, index);
-        await _player.jump(index);
-        if (currentPos > Duration.zero) await _player.seek(currentPos);
-        if (wasPlaying) await _player.play();
+      if (_castState?.connectionState == CastConnectionState.connected) {
+        if (index == _player.state.playlist.index) {
+          final wasPlaying = _player.state.playing;
+          if (wasPlaying) await _player.pause();
+          _setLocalVolume(0.0);
+
+          await _player.remove(index);
+          await _player.add(updatedMedia);
+          await _player.move(_player.state.playlist.medias.length - 1, index);
+          await _player.jump(index);
+
+          await _castService?.castMedia(
+            url: url,
+            title: updatedItem.title,
+            artist: updatedItem.artist,
+            album: updatedItem.album,
+            artworkUrl: updatedItem.artUri?.toString(),
+          );
+
+          if (wasPlaying) {
+            await _waitForCastSessionState(_castService!, SessionState.playing);
+            await _player.play();
+          } else {
+            await _castService?.pause();
+          }
+        } else {
+          await _player.remove(index);
+          await _player.add(updatedMedia);
+          await _player.move(_player.state.playlist.medias.length - 1, index);
+        }
       } else {
-        // Non-current item: simple in-place replacement, no jump needed.
-        await _player.remove(index);
-        await _player.add(updatedMedia);
-        await _player.move(_player.state.playlist.medias.length - 1, index);
+        if (index == _player.state.playlist.index) {
+          // Current item: pause → replace → restore position → resume.
+          final wasPlaying = _player.state.playing;
+          final currentPos = _player.state.position;
+          if (wasPlaying) await _player.pause();
+          await _player.remove(index);
+          await _player.add(updatedMedia);
+          await _player.move(_player.state.playlist.medias.length - 1, index);
+          await _player.jump(index);
+          if (currentPos > Duration.zero) await _player.seek(currentPos);
+          if (wasPlaying) await _player.play();
+        } else {
+          // Non-current item: simple in-place replacement, no jump needed.
+          await _player.remove(index);
+          await _player.add(updatedMedia);
+          await _player.move(_player.state.playlist.medias.length - 1, index);
+        }
       }
     } catch (e) {
       dev.log('[AudioHandler] Failed to resolve URL for item at $index: $e');
@@ -501,7 +619,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _isResolvingItem = false;
       _pendingResolutions.remove(videoId);
       _syncQueue();
-      // Always re-emit the actual current queueIndex after releasing the lock.
+      // Always re-emit the actual current queueIndex and mediaItem after releasing the lock.
       // If the user skipped during resolution, _onPlaylistChanged was suppressed
       // and the new index was never propagated to PlayerNotifier.
       final actualIndex = _player.state.playlist.index;
@@ -509,6 +627,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
         playbackState.add(
           playbackState.value.copyWith(queueIndex: actualIndex),
         );
+        final playlist = _player.state.playlist;
+        if (actualIndex < playlist.medias.length) {
+          final media = playlist.medias[actualIndex];
+          final item = media.extras?['mediaItem'] as MediaItem?;
+          if (item != null) {
+            _lastEmittedMediaItemId = item.id;
+            _lastEmittedDuration = item.duration;
+            mediaItem.add(item);
+          }
+        }
       }
     }
   }
@@ -520,6 +648,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _restoreCompleter.future.catchError((_) {});
     if (await _requestAudioFocus()) {
       await _player.play();
+      if (_castState?.connectionState == CastConnectionState.connected) {
+        await _castService?.play();
+      }
     }
   }
 
@@ -531,6 +662,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _playOnInterruptionEnd = false;
     }
     await _player.pause();
+    if (_castState?.connectionState == CastConnectionState.connected) {
+      await _castService?.pause();
+    }
     if (releaseFocus) {
       await _releaseAudioFocus();
     }
@@ -544,6 +678,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
+    if (_castState?.connectionState == CastConnectionState.connected) {
+      try {
+        await _castService?.disconnect();
+      } catch (_) {}
+    }
     _playOnInterruptionEnd = false;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
@@ -561,6 +700,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> seek(Duration position) async {
     await _player.seek(position);
     playbackState.add(playbackState.value.copyWith(updatePosition: position));
+    if (_castState?.connectionState == CastConnectionState.connected) {
+      await _castService?.seek(position);
+    }
   }
 
   @override
@@ -577,11 +719,42 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (duration == Duration.zero) _applyVolume(1.0);
   }
 
+  void _setLocalVolume(double volume, {bool force = false}) {
+    if (!force && _castState?.connectionState == CastConnectionState.connected) {
+      _player.setVolume(0.0);
+    } else {
+      _player.setVolume(volume);
+    }
+  }
+
   void _applyVolume(double volume) {
     final v = volume.clamp(0.0, 1.0);
     if ((v - _lastSetVolume).abs() > 0.005) {
       _lastSetVolume = v;
-      _player.setVolume(v * 100.0);
+      _setLocalVolume(v * 100.0);
+    }
+  }
+
+  Future<void> _waitForCastSessionState(
+    SonoraCastService service,
+    SessionState targetState, {
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    if (service.activeSession?.state == targetState) return;
+    final completer = Completer<void>();
+    StreamSubscription? sub;
+    sub = service.stateStream.listen((state) {
+      if (state == targetState) {
+        if (!completer.isCompleted) completer.complete();
+        sub?.cancel();
+      }
+    });
+    try {
+      await completer.future.timeout(timeout);
+    } catch (_) {
+      // Timeout fallback
+    } finally {
+      await sub.cancel();
     }
   }
 
@@ -638,7 +811,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           .toList();
 
   MediaItem _ensureQueueId(MediaItem item) {
-    if (item.extras?['queueId'] != null) {
+    final existingId = item.extras?['queueId'] as String?;
+    final isAlreadyInQueue =
+        existingId != null &&
+        _currentQueue.any((e) => e.extras?['queueId'] == existingId);
+
+    if (existingId != null && !isAlreadyInQueue) {
       return item;
     }
     final extras = Map<String, dynamic>.from(item.extras ?? {});

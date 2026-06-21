@@ -447,5 +447,15 @@
   "reduceEffectsHint": "Disable background blurs and shadows to improve performance on older devices",
   "goodMorning": "Good morning",
   "goodAfternoon": "Good afternoon",
-  "goodEvening": "Good evening"
+  "goodEvening": "Good evening",
+
+  "@@sectionMeta": {
+    "cast": "Casting"
+  },
+  "castToDevice": "Cast to a device",
+  "searchingDevices": "Searching for devices…",
+  "disconnect": "Disconnect",
+  "alexaBluetooth": "Amazon Alexa (Bluetooth)",
+  "alexaBluetoothInstructions": "Say \"Alexa, connect Bluetooth\" and pair from your device's panel.",
+  "openBluetoothSettings": "Open Bluetooth Settings"
 }

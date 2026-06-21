@@ -96,6 +96,9 @@ class LinuxTrayService {
         await windowManager.focus();
         break;
       case 'quit':
+        if (_audioHandler != null) {
+          await _audioHandler!.stop();
+        }
         await windowManager.setPreventClose(false);
         await windowManager.close();
         break;
