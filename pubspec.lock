@@ -289,6 +289,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+  cryptography:
+    dependency: transitive
+    description:
+      name: cryptography
+      sha256: "3eda3029d34ec9095a27a198ac9785630fe525c0eb6a49f3d575272f8e792ef0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.9.0"
   csslib:
     dependency: transitive
     description:
@@ -297,6 +305,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.2"
+  dart_cast:
+    dependency: "direct main"
+    description:
+      name: dart_cast
+      sha256: "57bd2baae125ae2874712d89985fc9f3af5976bc98914f6f1c0954d3cdee4021"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
   dart_style:
     dependency: transitive
     description:
@@ -310,10 +326,10 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "2464219a02bf78189a46d14d02a2fe42f52914d9"
+      resolved-ref: fef804dde813bbfc6fc1e864987e2585552bc5a3
       url: "https://github.com/gmstyle/dart_ytmusic_api.git"
     source: git
-    version: "1.4.0"
+    version: "1.4.1"
   dbus:
     dependency: transitive
     description:
@@ -500,6 +516,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_multicast_lock:
+    dependency: "direct main"
+    description:
+      name: flutter_multicast_lock
+      sha256: "148ff4a5e3f3231fc0fdb049fa2c4769e9222d4774c1404633907803375a59b3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.1"
   flutter_native_splash:
     dependency: "direct dev"
     description:
@@ -846,6 +870,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  multicast_dns:
+    dependency: transitive
+    description:
+      name: multicast_dns
+      sha256: "134668a9605c747322d8c3eb0e89a4c0cbdedb29f8d2d5ae29d14daef724987b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.3+1"
   native_toolchain_c:
     dependency: transitive
     description:
@@ -886,6 +918,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  open_settings_plus:
+    dependency: "direct main"
+    description:
+      name: open_settings_plus
+      sha256: "941c12d3c34f8eea29f86d5a6c867b14fc99740fd5521951c043e7f44fc120b0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0"
   package_config:
     dependency: transitive
     description:
@@ -1070,6 +1110,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.5.0"
+  protobuf:
+    dependency: transitive
+    description:
+      name: protobuf
+      sha256: "75ec242d22e950bdcc79ee38dd520ce4ee0bc491d7fadc4ea47694604d22bf06"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.0"
   pub_semver:
     dependency: transitive
     description:
