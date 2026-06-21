@@ -1,6 +1,6 @@
 # SONORA — Developer Documentation
 
-> **Version**: 1.2.2+15 | **Status**: Release-ready | **Platforms**: Android + Linux
+> **Version**: 1.3.4+24 | **Status**: Release-ready | **Platforms**: Android + Linux
 
 ---
 
@@ -19,6 +19,7 @@ Sonora is a cross-platform Flutter music and video streaming app that uses **You
 | Media Playback | `media_kit` + `audio_service` | ^1.2.6 / ^0.18.18 |
 | YTM Data | `dart_ytmusic_api` | git (dev branch) |
 | Stream URL | `youtube_explode_dart` | ^3.1.0 |
+| Casting | `dart_cast` | ^0.6.0 |
 
 **Architecture**: Clean Architecture with 3 layers — `data/`, `domain/`, `presentation/`. Types from `dart_ytmusic_api` (`SongDetailed`, `ArtistFull`, etc.) are used directly without mapping. Local entities (liked songs, playlists, etc.) are PODO in `domain/models/library_models.dart`.
 
@@ -50,6 +51,8 @@ lib/
 │   │   └── string_ext.dart             # String extensions
 │   ├── theme/
 │   │   └── app_theme.dart              # ThemeData light/dark/amoled + dynamic color
+│   └── services/
+│       └── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
 │   └── utils/
 │       ├── backup_utils.dart           # JSON serialize/deserialize (no I/O)
 │       ├── linux_tray_service.dart     # System tray for Linux
@@ -98,8 +101,9 @@ lib/
 └── presentation/
     ├── app/
     │   └── router.dart                  # go_router StatefulShellRoute
-    ├── providers/                       # 23 provider files
+    ├── providers/                       # 24 provider files
     │   ├── player_provider.dart          # PlayerNotifier + PlayerState + PlayerSubView
+    │   ├── cast_provider.dart            # CastNotifier + CastState (discovery/session)
     │   ├── settings_provider.dart        # SettingsNotifier (SharedPreferences)
     │   ├── theme_provider.dart           # themeModeProvider, lightThemeProvider, darkThemeProvider
     │   ├── library_notifier.dart         # CRUD library
@@ -118,7 +122,7 @@ lib/
         ├── artist/                       # ArtistScreen + stats row + description
         ├── album/                        # AlbumScreen + AlbumProvider
         ├── playlist/                     # PlaylistScreen + PlaylistProvider
-        ├── player/                       # audio_handler, player_sheet, player_sheet_mobile, mini_player, full_player
+        ├── player/                       # audio_handler, player_sheet, ..., cast_button, cast_dialog
         ├── library/                      # LibraryScreen + 3 layouts + PlaylistDetailView
         ├── downloads/                    # DownloadsScreen (adaptive layout)
         └── settings/                     # SettingsScreen + 3 layouts
@@ -223,7 +227,7 @@ ARB files in `lib/l10n/`: `app_en.arb` (primary) + `app_it.arb`. After modificat
 flutter gen-l10n
 ```
 
-Keys cover: navigation, artist, album, playlist, library, downloads, search, settings (appearance, playback, downloads, privacy, backup, updates, battery), player (lyrics, queue, sleep timer), context menu, home screen, and common actions.
+Keys cover: navigation, artist, album, playlist, library, downloads, search, settings, player, cast, context menu, home screen, and common actions.
 
 ---
 
@@ -317,6 +321,22 @@ The `extras` field on `MediaItem` carries additional metadata:
 | `musicVideoType` | String? | SongFull/VideoFull.musicVideoType | MV badge |
 | `artistId` | String? | Song resolution | Navigation to artist page |
 | `albumId` | String? | Song resolution | Navigation to album page |
+
+### 6.4 Casting
+
+Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, Smart TVs) using `dart_cast`.
+
+**Discovery:**
+`CastNotifier` manages the discovery lifecycle. When `startDiscovery()` is called (typically when opening the `CastDialog`), `SonoraCastService` starts scanning via mDNS (Chromecast) and SSDP (DLNA).
+
+**Session Redirection:**
+When a device is connected:
+1. Local playback in `SonoraAudioHandler` is paused.
+2. `SonoraAudioHandler` listens to `castStateProvider`. If connected, it redirects playback commands (`play`, `pause`, `seek`) to `SonoraCastService`.
+3. The current media URL (resolved via `PlayVideoIdUseCase`) is sent to the remote device via `loadMedia`.
+
+**Alexa Support:**
+Since Echo devices often don't support open casting protocols reliably, Sonora provides a shortcut to **Bluetooth Settings** within the Cast Dialog to facilitate manual pairing for Alexa speakers.
 
 ---
 
