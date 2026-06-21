@@ -33,10 +33,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Player get player => _player;
 
-  /// Minimum elapsed time since the last pause/stop before a resume is
-  /// treated as a "cold restore" (player rebuilt from DB snapshot).
-  static const int _kColdResumeThresholdMs = 5 * 60 * 1000; // 5 minutes
-
   Duration _crossfadeDuration = Duration.zero;
   bool _isFadingIn = false;
   double _lastSetVolume = 1.0;
@@ -922,26 +918,27 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// Resumes playback state after the app returns to the foreground.
   ///
   /// Two modes:
-  /// - **Warm resume** (elapsed < [_kColdResumeThresholdMs]): the OS kept the
-  ///   process alive and the player playlist is intact. Only the current item's
-  ///   URL is re-checked; if stale it is silently re-resolved.
-  /// - **Cold resume** (process was killed OR elapsed ≥ threshold): the player
-  ///   is rebuilt from the DB snapshot. All HTTP stream URLs are discarded and
-  ///   resolved lazily — only the current item's URL is resolved up-front so
-  ///   playback can resume immediately.
+  /// - **Warm resume**: the OS kept the process alive and the player playlist
+  ///   is intact. Only the current item's URL is re-checked; if stale it is
+  ///   silently re-resolved.
+  /// - **Cold resume**: the process was killed and the player is rebuilt from
+  ///   the DB snapshot. All HTTP stream URLs are discarded and resolved lazily —
+  ///   only the current item's URL is resolved up-front so playback can resume
+  ///   immediately.
   Future<void> restoreIfNeeded() async {
-    if (_isRestoring) return;
+    if (_isRestoring || _player.state.playing) return;
 
     final playlistEmpty = _player.state.playlist.medias.isEmpty;
-    final lastPauseMs = _prefs.getInt('last_pause_timestamp') ?? 0;
-    final elapsed = DateTime.now().millisecondsSinceEpoch - lastPauseMs;
-    final isCold = playlistEmpty || elapsed > _kColdResumeThresholdMs;
+    // We only treat it as a cold restore if the player has been cleared
+    // (e.g. process killed and restarted). If the playlist is still there,
+    // we perform a warm resume regardless of how much time has passed,
+    // as it is much faster and less disruptive.
+    final isCold = playlistEmpty;
 
     if (!isCold) {
       // ── Warm resume: only re-check the current item's URL ──────────
       // With battery optimization disabled the process stays alive, so
-      // playlistEmpty is almost always false. The elapsed-time check is
-      // the primary trigger for cold restores; for shorter absences we
+      // playlistEmpty is almost always false. For in-memory playlists, we
       // only re-resolve the current item if its URL has expired.
       final currentIndex = _player.state.playlist.index;
       final medias = _player.state.playlist.medias;
