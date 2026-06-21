@@ -1,6 +1,6 @@
 # SONORA — Developer Documentation
 
-> **Version**: 1.3.4+24 | **Status**: Release-ready | **Platforms**: Android + Linux
+> **Ultima aggiornamento**: 2026-06-21 19:13 | **Version**: 1.3.4+24 | **Status**: Release-ready | **Platforms**: Android + Linux
 
 ---
 
@@ -51,8 +51,6 @@ lib/
 │   │   └── string_ext.dart             # String extensions
 │   ├── theme/
 │   │   └── app_theme.dart              # ThemeData light/dark/amoled + dynamic color
-│   └── services/
-│       └── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
 │   └── utils/
 │       ├── backup_utils.dart           # JSON serialize/deserialize (no I/O)
 │       ├── linux_tray_service.dart     # System tray for Linux
@@ -69,10 +67,12 @@ lib/
 │   │   └── remote/
 │   │       ├── ytmusic_datasource.dart # Wrapper for dart_ytmusic_api
 │   │       └── stream_datasource.dart  # youtube_explode_dart → stream URL
-│   └── repositories/
-│       ├── music_repository_impl.dart
-│       ├── library_repository_impl.dart
-│       └── queue_repository_impl.dart
+│   ├── repositories/
+│   │   ├── music_repository_impl.dart
+│   │   ├── library_repository_impl.dart
+│   │   └── queue_repository_impl.dart
+│   └── services/
+│       └── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
 ├── domain/
 │   ├── models/
 │   │   └── library_models.dart         # 10 PODO (LikedSong, FollowedArtist, ...History, SearchHistory)
@@ -81,17 +81,21 @@ lib/
 │   │   ├── library_repository.dart
 │   │   └── queue_repository.dart
 │   └── usecases/
+│       ├── backup/
+│       │   ├── export_backup_use_case.dart
+│       │   └── import_backup_use_case.dart
+│       ├── download/
+│       │   └── start_download_use_case.dart
+│       ├── home/
+│       │   ├── get_discover_suggestions_use_case.dart
+│       │   ├── get_new_releases_use_case.dart
+│       │   └── get_similar_artists_suggestions_use_case.dart
 │       ├── player/
 │       │   ├── play_video_id_use_case.dart
 │       │   ├── play_album_use_case.dart
 │       │   ├── play_playlist_use_case.dart
 │       │   ├── queue_use_case.dart
 │       │   └── start_radio_use_case.dart
-│       ├── backup/
-│       │   ├── export_backup_use_case.dart
-│       │   └── import_backup_use_case.dart
-│       ├── download/
-│       │   └── start_download_use_case.dart
 │       └── update/
 │           └── check_for_updates_use_case.dart
 ├── l10n/
@@ -101,7 +105,7 @@ lib/
 └── presentation/
     ├── app/
     │   └── router.dart                  # go_router StatefulShellRoute
-    ├── providers/                       # 24 provider files
+    ├── providers/                       # 26 provider files
     │   ├── player_provider.dart          # PlayerNotifier + PlayerState + PlayerSubView
     │   ├── cast_provider.dart            # CastNotifier + CastState (discovery/session)
     │   ├── settings_provider.dart        # SettingsNotifier (SharedPreferences)
@@ -111,7 +115,7 @@ lib/
     │   ├── update_notifier.dart          # GitHub release check
     │   ├── palette_provider.dart         # Dominant color extraction per image
     │   ├── action_feedback_provider.dart  # Toast feedback messages
-    │   └── ... (15 DI wiring providers)
+    │   └── ... (17 DI wiring providers)
     ├── shared/
     │   ├── layouts/                      # app_shell, mobile_shell, tablet_shell, wide_shell
     │   └── widgets/                      # 26 shared widgets
