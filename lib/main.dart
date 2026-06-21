@@ -243,11 +243,15 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     if (isLinux) {
       ref.listen(playerStateProvider, (prev, next) {
         if (prev?.isPlaying != next.isPlaying ||
-            prev?.currentSong?.id != next.currentSong?.id) {
+            prev?.currentSong?.id != next.currentSong?.id ||
+            prev?.shuffleMode != next.shuffleMode ||
+            prev?.repeatMode != next.repeatMode) {
           LinuxTrayService.instance?.updatePlaybackState(
             next.isPlaying,
             title: next.currentSong?.title,
             artist: next.currentSong?.artist,
+            shuffleMode: next.shuffleMode,
+            repeatMode: next.repeatMode,
           );
         }
       });

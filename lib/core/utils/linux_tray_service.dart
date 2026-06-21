@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:audio_service/audio_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -20,6 +21,10 @@ class LinuxTrayService {
   static LinuxTrayService? get instance => _instance;
 
   bool _isPlaying = false;
+  String? _currentTitle;
+  String? _currentArtist;
+  AudioServiceShuffleMode _shuffleMode = AudioServiceShuffleMode.none;
+  AudioServiceRepeatMode _repeatMode = AudioServiceRepeatMode.none;
 
   Future<void> init() async {
     _instance = this;
@@ -53,8 +58,14 @@ class LinuxTrayService {
     bool isPlaying, {
     String? title,
     String? artist,
+    AudioServiceShuffleMode? shuffleMode,
+    AudioServiceRepeatMode? repeatMode,
   }) async {
     _isPlaying = isPlaying;
+    _currentTitle = title;
+    _currentArtist = artist;
+    if (shuffleMode != null) _shuffleMode = shuffleMode;
+    if (repeatMode != null) _repeatMode = repeatMode;
 
     await _updateMenu();
 
@@ -67,16 +78,66 @@ class LinuxTrayService {
   }
 
   Future<void> _updateMenu() async {
-    final menu = Menu(
-      items: [
-        MenuItem(key: 'play_pause', label: _isPlaying ? '⏸ Pause' : '▶ Play'),
-        MenuItem(key: 'prev', label: '⏮ Previous'),
-        MenuItem(key: 'next', label: '⏭ Next'),
-        MenuItem.separator(),
-        MenuItem(key: 'show', label: '📥 Show Sonora'),
-        MenuItem(key: 'quit', label: '🚪 Quit'),
-      ],
+    final List<MenuItem> items = [];
+
+    if (_currentTitle != null) {
+      items.add(
+        MenuItem(
+          key: 'now_playing_header',
+          label: 'Now Playing:',
+          disabled: true,
+        ),
+      );
+      items.add(
+        MenuItem(
+          key: 'current_track',
+          label: '  $_currentTitle',
+          disabled: true,
+        ),
+      );
+      if (_currentArtist != null) {
+        items.add(
+          MenuItem(
+            key: 'current_artist',
+            label: '  by $_currentArtist',
+            disabled: true,
+          ),
+        );
+      }
+      items.add(MenuItem.separator());
+    }
+
+    items.addAll([
+      MenuItem(key: 'play_pause', label: _isPlaying ? '⏸  Pause' : '▶  Play'),
+      MenuItem(key: 'prev', label: '⏮  Previous'),
+      MenuItem(key: 'next', label: '⏭  Next'),
+    ]);
+
+    items.add(MenuItem.separator());
+
+    final isShuffle = _shuffleMode == AudioServiceShuffleMode.all;
+    items.add(
+      MenuItem(
+        key: 'shuffle',
+        label: isShuffle ? '🔀  Shuffle: On' : '🔀  Shuffle: Off',
+      ),
     );
+
+    final repeatLabel = switch (_repeatMode) {
+      AudioServiceRepeatMode.one => '🔂  Repeat: One',
+      AudioServiceRepeatMode.all => '🔁  Repeat: All',
+      _ => '🔁  Repeat: Off',
+    };
+    items.add(MenuItem(key: 'repeat', label: repeatLabel));
+
+    items.add(MenuItem.separator());
+
+    items.addAll([
+      MenuItem(key: 'show', label: 'Restore Sonora'),
+      MenuItem(key: 'quit', label: 'Quit'),
+    ]);
+
+    final menu = Menu(items: items);
     await trayManager.setContextMenu(menu);
   }
 
@@ -91,6 +152,12 @@ class LinuxTrayService {
       case 'next':
         await _sendNextAction();
         break;
+      case 'shuffle':
+        await _toggleShuffle();
+        break;
+      case 'repeat':
+        await _cycleRepeatMode();
+        break;
       case 'show':
         await windowManager.show();
         await windowManager.focus();
@@ -103,6 +170,25 @@ class LinuxTrayService {
         await windowManager.close();
         break;
     }
+  }
+
+  Future<void> _toggleShuffle() async {
+    final newMode =
+        _shuffleMode == AudioServiceShuffleMode.none
+            ? AudioServiceShuffleMode.all
+            : AudioServiceShuffleMode.none;
+    await _audioHandler?.setShuffleMode(newMode);
+  }
+
+  Future<void> _cycleRepeatMode() async {
+    const modes = [
+      AudioServiceRepeatMode.none,
+      AudioServiceRepeatMode.all,
+      AudioServiceRepeatMode.one,
+    ];
+    final idx = modes.indexOf(_repeatMode);
+    final next = modes[(idx + 1) % modes.length];
+    await _audioHandler?.setRepeatMode(next);
   }
 
   Future<void> _sendPlayPauseAction() async {
