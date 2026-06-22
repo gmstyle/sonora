@@ -25,9 +25,9 @@ import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import 'thumbnail_widget.dart';
 
+import 'package:shimmer/shimmer.dart';
 import '../../features/library/widgets/create_playlist_dialog.dart';
 import '../../features/library/widgets/playlist_detail_view.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../l10n/app_localizations.dart';
 
@@ -654,6 +654,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
+    final hasExplicitIds = artistId != null || albumId != null;
     // Lazy enrichment: if artistId/albumId weren't saved (e.g. old liked songs),
     // fetch the full song data to recover them and persist back to DB.
     // TODO: remove once enrichment backfill is complete — resolvedArtistId
@@ -662,6 +663,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
     final resolvedArtistId =
         artistId ?? songAsync.asData?.value.artist.artistId;
     final resolvedAlbumId = albumId ?? songAsync.asData?.value.album?.albumId;
+    final isLoadingFallback = !hasExplicitIds && songAsync.isLoading;
     // TODO: remove ref.listen block once enrichment backfill is complete.
     ref.listen(_songFullProvider(videoId), (_, next) {
       if (next is AsyncData && (artistId == null || albumId == null)) {
@@ -795,6 +797,11 @@ class _SongContextMenuSheet extends ConsumerWidget {
                       );
                     },
                   ),
+                  if (isLoadingFallback)
+                    _LoadingTile(
+                      icon: LucideIcons.user,
+                      label: AppLocalizations.of(context)!.goToArtist,
+                    ),
                   if (resolvedArtistId != null)
                     _ActionTile(
                       icon: LucideIcons.user,
@@ -803,6 +810,11 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         context.push('/artist/$resolvedArtistId');
                         Navigator.pop(context);
                       },
+                    ),
+                  if (isLoadingFallback)
+                    _LoadingTile(
+                      icon: LucideIcons.disc,
+                      label: AppLocalizations.of(context)!.goToAlbum,
                     ),
                   if (resolvedAlbumId != null)
                     _ActionTile(
