@@ -395,7 +395,15 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
-    await _handler.playNow(items, initialIndex: initialIndex);
+    try {
+      await _handler.playNow(items, initialIndex: initialIndex);
+    } catch (e) {
+      state = state.copyWith(
+        isSwitching: false,
+        hasError: true,
+        errorMessage: 'Failed to start playback: $e',
+      );
+    }
   }
 
   Future<void> playNext(MediaItem item) async {
@@ -570,16 +578,34 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     final v = ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
-    await _handler.setQueue([song]);
-    if (_operationVersion != v) return;
-    await _handler.play();
+    try {
+      await _handler.setQueue([song]);
+      if (_operationVersion != v) return;
+      await _handler.play();
+    } catch (e) {
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to play song: $e',
+        );
+      }
+    }
   }
 
   Future<void> playQueue(List<MediaItem> songs, {int initialIndex = 0}) async {
     ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
-    await _handler.playNow(songs);
+    try {
+      await _handler.playNow(songs, initialIndex: initialIndex);
+    } catch (e) {
+      state = state.copyWith(
+        isSwitching: false,
+        hasError: true,
+        errorMessage: 'Failed to start playback: $e',
+      );
+    }
   }
 
   Future<void> playVideoId(String videoId, {bool? isVideo}) async {

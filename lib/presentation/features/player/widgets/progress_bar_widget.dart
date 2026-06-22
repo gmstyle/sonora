@@ -45,36 +45,41 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget> {
               final width = constraints.maxWidth;
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
+                // ── Drag: show preview position while dragging, seek only on release.
+                // Committing a seek on every drag update causes the player to
+                // re-buffer from the new position on each pixel, producing
+                // continuous buffering during scrubbing.  All major players
+                // (Spotify, YouTube Music) update the indicator in real time but
+                // send a single seek when the finger lifts.
                 onHorizontalDragStart:
                     widget.disabled
                         ? null
                         : (details) {
-                          _updateDrag(details.localPosition.dx, width, totalMs);
+                          _previewDrag(details.localPosition.dx, width, totalMs);
                         },
                 onHorizontalDragUpdate:
                     widget.disabled
                         ? null
                         : (details) {
-                          _updateDrag(details.localPosition.dx, width, totalMs);
+                          _previewDrag(details.localPosition.dx, width, totalMs);
                         },
                 onHorizontalDragEnd:
                     widget.disabled
                         ? null
-                        : (details) {
-                          _finalizeDrag(totalMs);
-                        },
+                        : (_) => _commitSeek(totalMs),
+                // ── Tap: preview on down for instant visual feedback,
+                //    commit the seek once on up.  Previously both events called
+                //    onSeek, resulting in two redundant seeks per tap.
                 onTapDown:
                     widget.disabled
                         ? null
                         : (details) {
-                          _updateDrag(details.localPosition.dx, width, totalMs);
+                          _previewDrag(details.localPosition.dx, width, totalMs);
                         },
                 onTapUp:
                     widget.disabled
                         ? null
-                        : (details) {
-                          _finalizeDrag(totalMs);
-                        },
+                        : (_) => _commitSeek(totalMs),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: CustomPaint(
@@ -119,26 +124,22 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget> {
     );
   }
 
-  void _updateDrag(double dx, double width, int totalMs) {
+  /// Updates the visual preview position without sending a seek command.
+  void _previewDrag(double dx, double width, int totalMs) {
     if (totalMs <= 0 || width <= 0) return;
-    final newProgress = (dx / width).clamp(0.0, 1.0);
     setState(() {
-      _dragProgress = newProgress;
+      _dragProgress = (dx / width).clamp(0.0, 1.0);
     });
-    widget.onSeek?.call(
-      Duration(milliseconds: (newProgress * totalMs).toInt()),
-    );
   }
 
-  void _finalizeDrag(int totalMs) {
+  /// Commits the seek command at the current preview position, then clears it.
+  void _commitSeek(int totalMs) {
     if (_dragProgress == null) return;
-    final finalDuration = Duration(
-      milliseconds: (_dragProgress! * totalMs).toInt(),
-    );
-    widget.onSeek?.call(finalDuration);
+    final seekTo = Duration(milliseconds: (_dragProgress! * totalMs).toInt());
     setState(() {
       _dragProgress = null;
     });
+    widget.onSeek?.call(seekTo);
   }
 }
 
@@ -192,7 +193,11 @@ class _WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WaveformPainter oldDelegate) {
-    return progress != oldDelegate.progress || color != oldDelegate.color;
+    // seed must be included: skipping to a new track can leave progress == 0.0
+    // and color unchanged, but the waveform shape is determined by seed alone.
+    return progress != oldDelegate.progress ||
+        color != oldDelegate.color ||
+        seed != oldDelegate.seed;
   }
 }
 

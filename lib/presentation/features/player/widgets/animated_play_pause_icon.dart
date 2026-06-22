@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-class AnimatedPlayPauseIcon extends StatefulWidget {
+/// Animated play/pause icon that cross-fades between states.
+///
+/// When [isLoading] is true a [CircularProgressIndicator] is shown instead,
+/// used while the player is restoring state from disk.
+///
+/// Previously a `StatefulWidget` with a `SingleTickerProviderStateMixin` and
+/// an `AnimationController`.  The controller was created and animated in
+/// `didUpdateWidget` but never referenced in `build`, which used
+/// `AnimatedSwitcher` exclusively.  Simplified to `StatelessWidget`.
+class AnimatedPlayPauseIcon extends StatelessWidget {
   final bool isPlaying;
 
-  /// When true a [CircularProgressIndicator] is shown instead of the play/pause
-  /// icon.  Used while the player is restoring state from disk.
+  /// When true shows a [CircularProgressIndicator] instead of the icon.
   final bool isLoading;
 
   final Color color;
@@ -20,57 +28,21 @@ class AnimatedPlayPauseIcon extends StatefulWidget {
   });
 
   @override
-  State<AnimatedPlayPauseIcon> createState() => _AnimatedPlayPauseIconState();
-}
-
-class _AnimatedPlayPauseIconState extends State<AnimatedPlayPauseIcon>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-      value: widget.isPlaying ? 1.0 : 0.0,
-    );
-  }
-
-  @override
-  void didUpdateWidget(AnimatedPlayPauseIcon oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isPlaying != oldWidget.isPlaying) {
-      if (widget.isPlaying) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.isLoading) {
+    if (isLoading) {
       return SizedBox(
-        width: widget.size,
-        height: widget.size,
-        child: CircularProgressIndicator(strokeWidth: 2.5, color: widget.color),
+        width: size,
+        height: size,
+        child: CircularProgressIndicator(strokeWidth: 2.5, color: color),
       );
     }
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
       child: Icon(
-        widget.isPlaying ? LucideIcons.pause : LucideIcons.play,
-        key: ValueKey(widget.isPlaying),
-        color: widget.color,
-        size: widget.size,
+        isPlaying ? LucideIcons.pause : LucideIcons.play,
+        key: ValueKey(isPlaying),
+        color: color,
+        size: size,
       ),
     );
   }

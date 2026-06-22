@@ -547,6 +547,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
           _lastEmittedDuration = item.duration;
           mediaItem.add(item);
           if (trackChanged) {
+            // Reset retry counter on every track change so the new track gets
+            // its own retry budget. Without this, a failed retry on track N
+            // leaves _retryCount at 1, silently disabling retries for track N+1.
+            _retryCount = 0;
             _checkCurrentSongLiked(item.id);
             if (_castState?.connectionState == CastConnectionState.connected) {
               if (item.extras?['needsUrl'] != true) {
@@ -969,9 +973,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       itemsWithKeys.map(_toMedia).toList(),
       index: initialIndex,
     );
-    if (await _requestAudioFocus()) {
-      await _player.open(playlist, play: true);
-    }
+    // Always open the player regardless of focus result: this guarantees the
+    // player transitions through idle → buffering → ready, which resets
+    // isSwitching in PlayerNotifier via the playbackState stream.
+    // If focus is denied we open without auto-play; the user can retry manually.
+    final hasFocus = await _requestAudioFocus();
+    await _player.open(playlist, play: hasFocus);
   }
 
   Future<void> playNext(MediaItem item) async {
@@ -1107,8 +1114,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       } else {
         await _player.stop();
       }
+    } finally {
+      // Always reset _isRetrying so future errors on any track are retried.
+      // Previously this was after the try/catch, meaning a throw inside the
+      // catch block (e.g. _player.next() failing) would leave it stuck at true.
+      _isRetrying = false;
     }
-    _isRetrying = false;
   }
 
   // ── Single restore path ────────────────────────────────────────────────────

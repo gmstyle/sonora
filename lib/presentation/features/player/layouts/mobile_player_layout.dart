@@ -109,7 +109,7 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                                         });
                                       },
                               onHorizontalDragEnd: (details) {
-                                if (widget.playerState.isSwitching ||
+                                if (widget.playerState.isBlocked ||
                                     details.primaryVelocity == null) {
                                   return;
                                 }
