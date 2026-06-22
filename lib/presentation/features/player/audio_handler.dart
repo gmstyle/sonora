@@ -59,6 +59,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Player get player => _player;
 
   Duration _crossfadeDuration = Duration.zero;
+  Duration _lastPosition = Duration.zero;
   bool _isFadingIn = false;
   double _lastSetVolume = 1.0;
   int _retryCount = 0;
@@ -354,7 +355,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // already set in _updatePlaybackState. Emitting playbackState on every
     // position tick (~5 Hz) causes AA to continuously re-render the queue
     // view, producing visible flashes and preventing scrolling.
-    _player.stream.position.listen(_handleCrossfade);
+    _player.stream.position.listen((pos) {
+      _handleCrossfade(pos);
+      _handlePositionTick(pos);
+    });
     _player.stream.buffer.listen(_onBufferedPositionChanged);
 
     _player.stream.shuffle.listen((shuffled) {
@@ -448,12 +452,23 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   List<MediaControl> _buildControls(PlaybackState current) {
+    final shuffleIcon = current.shuffleMode == AudioServiceShuffleMode.all
+        ? 'drawable/ic_shuffle'
+        : 'drawable/ic_shuffle_off';
+
+    final repeatIcon = switch (current.repeatMode) {
+      AudioServiceRepeatMode.one => 'drawable/ic_repeat_one',
+      AudioServiceRepeatMode.all ||
+      AudioServiceRepeatMode.group => 'drawable/ic_repeat',
+      _ => 'drawable/ic_repeat_off',
+    };
+
     return [
       MediaControl.skipToPrevious,
       if (current.playing) MediaControl.pause else MediaControl.play,
       MediaControl.skipToNext,
       MediaControl.custom(
-        androidIcon: 'drawable/ic_shuffle',
+        androidIcon: shuffleIcon,
         label:
             current.shuffleMode == AudioServiceShuffleMode.all
                 ? 'Shuffle On'
@@ -461,7 +476,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         name: _actionShuffle,
       ),
       MediaControl.custom(
-        androidIcon: 'drawable/ic_repeat',
+        androidIcon: repeatIcon,
         label: switch (current.repeatMode) {
           AudioServiceRepeatMode.one => 'Repeat One',
           AudioServiceRepeatMode.all => 'Repeat All',
@@ -906,6 +921,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } else if (remaining > _crossfadeDuration) {
       _applyVolume(1.0);
     }
+  }
+
+  void _handlePositionTick(Duration pos) {
+    if (pos < _lastPosition - const Duration(milliseconds: 500)) {
+      _updateState((s) => s);
+    }
+    _lastPosition = pos;
   }
 
   @override
