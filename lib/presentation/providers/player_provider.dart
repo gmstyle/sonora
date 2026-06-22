@@ -151,147 +151,44 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   PlayerState build() {
     WidgetsBinding.instance.addObserver(this);
 
-    // ── Restore status ────────────────────────────────────────────────────────
-    // Subscribe first so isRestoring is set before any playbackState event.
-    // Seed from the synchronous getter so the initial state is correct even if
-    // the handler was constructed before this notifier.
-    if (_handler.currentRestoreStatus == RestoreStatus.restoring) {
-      state = state.copyWith(
-        isRestoring: true,
-        position: _handler.savedPosition,
-      );
-    }
-    _restoreStatusSub = _handler.restoreStatusStream.listen((status) {
-      if (status == RestoreStatus.restoring) {
-        state = state.copyWith(
-          isRestoring: true,
-          // Pre-populate seek bar with the saved position immediately so the
-          // UI never shows 0:00 while the player is seeking in the background.
-          position: _handler.savedPosition,
-        );
-      } else {
-        state = state.copyWith(isRestoring: false);
-      }
-    });
+    var initialState = const PlayerState();
 
-    // Subscribe to position separately so that frequent position ticks
-    // do not flow through playbackState (which would cause Android Auto
-    // to re-render the queue view and reset scroll on every tick).
-    _positionSub = _handler.positionStream.listen((pos) {
-      // Don't overwrite the static saved position while restoring.
-      if (!state.isRestoring) state = state.copyWith(position: pos);
-    });
+    // Seed initial state from handler synchronously to ensure it is fully
+    // populated before any widgets or listeners read it.
+    final s = _handler.playbackState.valueOrNull;
+    final item = _handler.mediaItem.valueOrNull;
+    final items = _handler.queue.valueOrNull;
 
-    _playbackSub = _handler.playbackState.listen((s) {
-      final wasSwitching = state.isSwitching;
-      state = state.copyWith(
+    if (s != null) {
+      initialState = initialState.copyWith(
         isPlaying: s.playing,
         isPaused: !s.playing && s.processingState == AudioProcessingState.ready,
         isLoading:
             s.processingState == AudioProcessingState.loading ||
             s.processingState == AudioProcessingState.buffering,
         hasError: s.processingState == AudioProcessingState.error,
-        // position is now tracked via positionStream — skip here to avoid
-        // overwriting the more frequent update with a stale value from
-        // playbackState (which is no longer updated on every tick).
         currentIndex: s.queueIndex ?? 0,
         shuffleMode: s.shuffleMode,
         repeatMode: s.repeatMode,
-        isSwitching:
-            wasSwitching && s.processingState != AudioProcessingState.ready
-                ? true
-                : false,
       );
+    }
+    if (item != null) {
+      initialState = initialState.copyWith(currentSong: item);
+    }
+    if (items != null) {
+      initialState = initialState.copyWith(queue: items);
+    }
 
-      if (s.processingState == AudioProcessingState.ready) {
-        state = state.copyWith(isSwitching: false);
-        // Clear transient error message from failed retry
-        if (state.errorMessage != null) {
-          state = state.copyWith(clearError: true);
-        }
-      }
-
-      if (s.processingState == AudioProcessingState.ready && s.playing) {
-        // Use wasSwitching (captured before state update) so this block never
-        // fires on the very first ready event of a user-initiated song change.
-        // On the next event (e.g. position tick) wasSwitching is already false
-        // and the prefetch is allowed to run.
-        if (state.currentIndex >= state.queue.length - 1 &&
-            !wasSwitching &&
-            !_isFetchingUpNext &&
-            ref.read(settingsProvider).autoPlayUpNext) {
-          _isFetchingUpNext = true;
-          _prefetchAutoPlayUpNext();
-        }
-      }
-
-      if (s.processingState == AudioProcessingState.completed &&
-          !_isFetchingUpNext &&
-          state.queue.isNotEmpty &&
-          state.currentIndex >= state.queue.length - 1 &&
-          ref.read(settingsProvider).autoPlayUpNext) {
-        _isFetchingUpNext = true;
-        _fetchAutoPlayUpNext();
-      }
-    });
-
-    _mediaItemSub = _handler.mediaItem.listen((item) {
-      state = state.copyWith(currentSong: item);
-      if (item != null && ref.read(settingsProvider).trackHistory) {
-        ref
-            .read(libraryNotifierProvider.notifier)
-            .recordPlay(
-              item.id,
-              item.title,
-              item.artist ?? 'Unknown Artist',
-              thumbnailUrl: item.artUri?.toString(),
-              isVideo: item.extras?['isVideo'] == true,
-            );
-      }
-    });
-
-    _queueSub = _handler.queue.listen((items) {
-      if (_isReordering) return;
-      final currentQueue = state.queue;
-      final queueChanged =
-          currentQueue.length != items.length ||
-          !const ListEquality().equals(
-            currentQueue
-                .map((e) => e.extras?['queueId'] as String? ?? e.id)
-                .toList(),
-            items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList(),
-          );
-      if (queueChanged) {
-        state = state.copyWith(queue: items);
-      }
-
-      // isSwitching is true during playSong/playVideoId/playQueue while the new
-      // queue is being set up. Skipping here prevents a spurious prefetch when
-      // state.currentIndex still holds the old (larger) index from the previous
-      // queue and state.isPlaying hasn't been updated yet from the pending
-      // pause() stream event.
-      if (state.currentIndex >= items.length - 1 &&
-          state.isPlaying &&
-          !state.isSwitching &&
-          !_isFetchingUpNext &&
-          ref.read(settingsProvider).autoPlayUpNext) {
-        _isFetchingUpNext = true;
-        _prefetchAutoPlayUpNext();
-      }
-    });
-
-    _durationSub = _handler.durationStream.listen((d) {
-      state = state.copyWith(duration: d);
-    });
-
-    _playErrorSub = _handler.onPlayError.listen((error) {
-      state = state.copyWith(
-        hasError: true,
-        errorMessage: 'Failed to play ${error.$2}',
+    if (_handler.currentRestoreStatus == RestoreStatus.restoring) {
+      initialState = initialState.copyWith(
+        isRestoring: true,
+        position: _handler.savedPosition,
       );
-    });
+    }
 
+    var isDisposed = false;
     ref.onDispose(() {
+      isDisposed = true;
       WidgetsBinding.instance.removeObserver(this);
       _playbackSub?.cancel();
       _mediaItemSub?.cancel();
@@ -304,6 +201,140 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _sleepTimerTick?.cancel();
     });
 
+    // Defer stream subscriptions to a microtask so that any synchronous initial
+    // emissions do not trigger state modifications during the provider's build phase.
+    Future.microtask(() {
+      if (isDisposed) return;
+
+      _restoreStatusSub = _handler.restoreStatusStream.listen((status) {
+        if (status == RestoreStatus.restoring) {
+          state = state.copyWith(
+            isRestoring: true,
+            position: _handler.savedPosition,
+          );
+        } else {
+          state = state.copyWith(isRestoring: false);
+        }
+      });
+
+      _positionSub = _handler.positionStream.listen((pos) {
+        // Don't overwrite the static saved position while restoring.
+        if (!state.isRestoring) state = state.copyWith(position: pos);
+      });
+
+      _playbackSub = _handler.playbackState.listen((s) {
+        final wasSwitching = state.isSwitching;
+        state = state.copyWith(
+          isPlaying: s.playing,
+          isPaused:
+              !s.playing && s.processingState == AudioProcessingState.ready,
+          isLoading:
+              s.processingState == AudioProcessingState.loading ||
+              s.processingState == AudioProcessingState.buffering,
+          hasError: s.processingState == AudioProcessingState.error,
+          // position is now tracked via positionStream — skip here to avoid
+          // overwriting the more frequent update with a stale value from
+          // playbackState (which is no longer updated on every tick).
+          currentIndex: s.queueIndex ?? 0,
+          shuffleMode: s.shuffleMode,
+          repeatMode: s.repeatMode,
+          isSwitching:
+              wasSwitching && s.processingState != AudioProcessingState.ready
+                  ? true
+                  : false,
+        );
+
+        if (s.processingState == AudioProcessingState.ready) {
+          state = state.copyWith(isSwitching: false);
+          // Clear transient error message from failed retry
+          if (state.errorMessage != null) {
+            state = state.copyWith(clearError: true);
+          }
+        }
+
+        if (s.processingState == AudioProcessingState.ready && s.playing) {
+          // Use wasSwitching (captured before state update) so this block never
+          // fires on the very first ready event of a user-initiated song change.
+          // On the next event (e.g. position tick) wasSwitching is already false
+          // and the prefetch is allowed to run.
+          if (state.currentIndex >= state.queue.length - 1 &&
+              !wasSwitching &&
+              !_isFetchingUpNext &&
+              ref.read(settingsProvider).autoPlayUpNext) {
+            _isFetchingUpNext = true;
+            _prefetchAutoPlayUpNext();
+          }
+        }
+
+        if (s.processingState == AudioProcessingState.completed &&
+            !_isFetchingUpNext &&
+            state.queue.isNotEmpty &&
+            state.currentIndex >= state.queue.length - 1 &&
+            ref.read(settingsProvider).autoPlayUpNext) {
+          _isFetchingUpNext = true;
+          _fetchAutoPlayUpNext();
+        }
+      });
+
+      _mediaItemSub = _handler.mediaItem.listen((item) {
+        state = state.copyWith(currentSong: item);
+        if (item != null && ref.read(settingsProvider).trackHistory) {
+          ref
+              .read(libraryNotifierProvider.notifier)
+              .recordPlay(
+                item.id,
+                item.title,
+                item.artist ?? 'Unknown Artist',
+                thumbnailUrl: item.artUri?.toString(),
+                isVideo: item.extras?['isVideo'] == true,
+              );
+        }
+      });
+
+      _queueSub = _handler.queue.listen((items) {
+        if (_isReordering) return;
+        final currentQueue = state.queue;
+        final queueChanged =
+            currentQueue.length != items.length ||
+            !const ListEquality().equals(
+              currentQueue
+                  .map((e) => e.extras?['queueId'] as String? ?? e.id)
+                  .toList(),
+              items
+                  .map((e) => e.extras?['queueId'] as String? ?? e.id)
+                  .toList(),
+            );
+        if (queueChanged) {
+          state = state.copyWith(queue: items);
+        }
+
+        // isSwitching is true during playSong/playVideoId/playQueue while the new
+        // queue is being set up. Skipping here prevents a spurious prefetch when
+        // state.currentIndex still holds the old (larger) index from the previous
+        // queue and state.isPlaying hasn't been updated yet from the pending
+        // pause() stream event.
+        if (state.currentIndex >= items.length - 1 &&
+            state.isPlaying &&
+            !state.isSwitching &&
+            !_isFetchingUpNext &&
+            ref.read(settingsProvider).autoPlayUpNext) {
+          _isFetchingUpNext = true;
+          _prefetchAutoPlayUpNext();
+        }
+      });
+
+      _durationSub = _handler.durationStream.listen((d) {
+        state = state.copyWith(duration: d);
+      });
+
+      _playErrorSub = _handler.onPlayError.listen((error) {
+        state = state.copyWith(
+          hasError: true,
+          errorMessage: 'Failed to play ${error.$2}',
+        );
+      });
+    });
+
     _handler.setCrossfadeDuration(ref.read(settingsProvider).crossfadeDuration);
     ref.listen(settingsProvider, (prev, next) {
       if (prev?.crossfadeDuration != next.crossfadeDuration) {
@@ -311,7 +342,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       }
     });
 
-    return const PlayerState();
+    return initialState;
   }
 
   @override

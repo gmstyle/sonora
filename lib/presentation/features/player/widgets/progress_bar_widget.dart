@@ -55,18 +55,24 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget> {
                     widget.disabled
                         ? null
                         : (details) {
-                          _previewDrag(details.localPosition.dx, width, totalMs);
+                          _previewDrag(
+                            details.localPosition.dx,
+                            width,
+                            totalMs,
+                          );
                         },
                 onHorizontalDragUpdate:
                     widget.disabled
                         ? null
                         : (details) {
-                          _previewDrag(details.localPosition.dx, width, totalMs);
+                          _previewDrag(
+                            details.localPosition.dx,
+                            width,
+                            totalMs,
+                          );
                         },
                 onHorizontalDragEnd:
-                    widget.disabled
-                        ? null
-                        : (_) => _commitSeek(totalMs),
+                    widget.disabled ? null : (_) => _commitSeek(totalMs),
                 // ── Tap: preview on down for instant visual feedback,
                 //    commit the seek once on up.  Previously both events called
                 //    onSeek, resulting in two redundant seeks per tap.
@@ -74,12 +80,13 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget> {
                     widget.disabled
                         ? null
                         : (details) {
-                          _previewDrag(details.localPosition.dx, width, totalMs);
+                          _previewDrag(
+                            details.localPosition.dx,
+                            width,
+                            totalMs,
+                          );
                         },
-                onTapUp:
-                    widget.disabled
-                        ? null
-                        : (_) => _commitSeek(totalMs),
+                onTapUp: widget.disabled ? null : (_) => _commitSeek(totalMs),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: CustomPaint(

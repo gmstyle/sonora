@@ -240,8 +240,8 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    if (isLinux) {
-      ref.listen(playerStateProvider, (prev, next) {
+    ref.listen(playerStateProvider, (prev, next) {
+      if (isLinux) {
         if (prev?.isPlaying != next.isPlaying ||
             prev?.currentSong?.id != next.currentSong?.id ||
             prev?.shuffleMode != next.shuffleMode ||
@@ -254,8 +254,8 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
             repeatMode: next.repeatMode,
           );
         }
-      });
-    }
+      }
+    });
 
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
