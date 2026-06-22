@@ -45,7 +45,7 @@ class MiniPlayerContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isSwitching = playerState.isSwitching;
+    final isSwitching = playerState.isBlocked;
     final progress =
         playerState.duration.inMilliseconds > 0
             ? playerState.position.inMilliseconds /
@@ -552,18 +552,23 @@ class MiniPlayerContent extends ConsumerWidget {
   }
 
   Widget _playPauseButton(ColorScheme cs) {
+    final blocked = playerState.isBlocked;
     return IconButton(
       icon: AnimatedPlayPauseIcon(
         isPlaying: playerState.isPlaying,
+        isLoading: playerState.isRestoring,
         color: cs.onPrimary,
         size: 24,
       ),
-      onPressed: () {
-        HapticFeedback.lightImpact();
-        onPlayPause?.call();
-      },
+      onPressed:
+          blocked
+              ? null
+              : () {
+                HapticFeedback.lightImpact();
+                onPlayPause?.call();
+              },
       style: IconButton.styleFrom(
-        backgroundColor: cs.primary,
+        backgroundColor: blocked ? cs.primary.withAlpha(128) : cs.primary,
         foregroundColor: cs.onPrimary,
         fixedSize: const Size(40, 40),
         shape: const CircleBorder(),

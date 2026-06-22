@@ -7,12 +7,17 @@ class ProgressBarWidget extends StatefulWidget {
   final int seed;
   final ValueChanged<Duration>? onSeek;
 
+  /// When true all drag/tap gestures are ignored and the bar renders the
+  /// [position] as a static indicator.  Used while the player is restoring.
+  final bool disabled;
+
   const ProgressBarWidget({
     super.key,
     required this.position,
     required this.duration,
     this.seed = 0,
     this.onSeek,
+    this.disabled = false,
   });
 
   @override
@@ -40,21 +45,36 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget> {
               final width = constraints.maxWidth;
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onHorizontalDragStart: (details) {
-                  _updateDrag(details.localPosition.dx, width, totalMs);
-                },
-                onHorizontalDragUpdate: (details) {
-                  _updateDrag(details.localPosition.dx, width, totalMs);
-                },
-                onHorizontalDragEnd: (details) {
-                  _finalizeDrag(totalMs);
-                },
-                onTapDown: (details) {
-                  _updateDrag(details.localPosition.dx, width, totalMs);
-                },
-                onTapUp: (details) {
-                  _finalizeDrag(totalMs);
-                },
+                onHorizontalDragStart:
+                    widget.disabled
+                        ? null
+                        : (details) {
+                          _updateDrag(details.localPosition.dx, width, totalMs);
+                        },
+                onHorizontalDragUpdate:
+                    widget.disabled
+                        ? null
+                        : (details) {
+                          _updateDrag(details.localPosition.dx, width, totalMs);
+                        },
+                onHorizontalDragEnd:
+                    widget.disabled
+                        ? null
+                        : (details) {
+                          _finalizeDrag(totalMs);
+                        },
+                onTapDown:
+                    widget.disabled
+                        ? null
+                        : (details) {
+                          _updateDrag(details.localPosition.dx, width, totalMs);
+                        },
+                onTapUp:
+                    widget.disabled
+                        ? null
+                        : (details) {
+                          _finalizeDrag(totalMs);
+                        },
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: CustomPaint(

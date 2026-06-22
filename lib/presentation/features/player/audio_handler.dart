@@ -23,6 +23,23 @@ import 'package:dart_cast/dart_cast.dart';
 import '../../providers/cast_provider.dart';
 import '../../../data/services/cast_service.dart';
 
+/// Represents the lifecycle of the player restore operation.
+///
+/// The UI observes this via [SonoraAudioHandler.restoreStatusStream] to decide
+/// whether to show a loading indicator and block interactive controls.
+enum RestoreStatus {
+  /// No restore has been performed yet (initial state at startup).
+  idle,
+
+  /// A restore is in progress. The player is being rebuilt from the persisted
+  /// queue. All interactive controls (play, pause, seek, skip) must be blocked.
+  restoring,
+
+  /// The player is ready. The current item has a valid URL, the seek position
+  /// has been applied, and the user can interact normally.
+  ready,
+}
+
 class SonoraAudioHandler extends BaseAudioHandler {
   final Player _player = Player(
     configuration: const PlayerConfiguration(pitch: true),
@@ -57,6 +74,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool? _lastEmittedPlaying;
   StreamSubscription<String>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
+
+  // ── Restore state ──────────────────────────────────────────────────────────
+  RestoreStatus _restoreStatus = RestoreStatus.idle;
+  final StreamController<RestoreStatus> _restoreStatusController =
+      StreamController<RestoreStatus>.broadcast();
+
+  /// Completer that is uncompleted while [_restoreStatus] is [RestoreStatus.restoring].
+  /// [play()] awaits this so that a notification/MPRIS play command issued
+  /// during a restore does not race with the playlist rebuild.
+  Completer<void> _readyCompleter = Completer<void>()..complete();
+
+  /// The playback position read from SharedPreferences at restore time.
+  /// Exposed so [PlayerNotifier] can pre-populate the seek bar immediately,
+  /// before the player has actually seeked.
+  Duration _savedPosition = Duration.zero;
+
+  // ── Resolving-item counter (replaces the old bool flag) ───────────────────
+  // Using a counter instead of a boolean prevents premature flag clearing when
+  // multiple _resolveSinglePendingItem calls run concurrently (e.g. resolving
+  // items at indices 1 and 2 while index 0 is already playing).
+  int _resolvingItemCount = 0;
+  bool get _isResolvingItem => _resolvingItemCount > 0;
   final StreamController<(String videoId, String title)>
   _onPlayErrorController =
       StreamController<(String videoId, String title)>.broadcast();
@@ -119,7 +158,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _setupAudioSession();
     _setupListeners();
     _playerErrorSub = _player.stream.error.listen(_onPlayerError);
-    _initRestore();
+    unawaited(_ensureReady());
   }
 
   Future<void> updateCastState(
@@ -257,6 +296,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// Stream of [RestoreStatus] changes. [PlayerNotifier] subscribes here to
+  /// drive the shimmer / loading UI and block interactive controls.
+  Stream<RestoreStatus> get restoreStatusStream =>
+      _restoreStatusController.stream;
+
+  /// The current restore status (synchronous read for initial state).
+  RestoreStatus get currentRestoreStatus => _restoreStatus;
+
+  /// The playback position restored from disk.  Available as soon as
+  /// [RestoreStatus.restoring] is emitted; used by [PlayerNotifier] to
+  /// pre-populate the seek bar before the player has actually seeked.
+  Duration get savedPosition => _savedPosition;
+
   Stream<Duration?> get durationStream =>
       _player.stream.duration.map((d) => d == Duration.zero ? null : d);
 
@@ -265,11 +317,37 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// would cause Android Auto to re-render the queue view on every tick.
   Stream<Duration> get positionStream => _player.stream.position;
 
+  void _setRestoreStatus(RestoreStatus status) {
+    _restoreStatus = status;
+    if (!_restoreStatusController.isClosed) {
+      _restoreStatusController.add(status);
+    }
+    if (status == RestoreStatus.restoring) {
+      // Create a fresh completer so play() blocks until restore completes.
+      if (_readyCompleter.isCompleted) {
+        _readyCompleter = Completer<void>();
+      }
+    } else {
+      // ready or idle — unblock any awaiting play() call.
+      if (!_readyCompleter.isCompleted) {
+        _readyCompleter.complete();
+      }
+    }
+  }
+
   void _setupListeners() {
     _player.stream.playing.listen((_) => _updatePlaybackState());
     _player.stream.buffering.listen((_) => _updatePlaybackState());
     _player.stream.completed.listen((_) => _updatePlaybackState());
-    _player.stream.playlist.listen((_) => _updatePlaybackState());
+
+    // Single playlist listener: guards _updatePlaybackState with _isResolvingItem
+    // to prevent the notification/MPRIS from seeing intermediate idle→buffering→ready
+    // states during the atomic remove/add/move/jump sequence used by URL resolution.
+    // Previously two separate listeners existed; merging them guarantees ordering.
+    _player.stream.playlist.listen((playlist) {
+      if (!_isResolvingItem) _updatePlaybackState();
+      _onPlaylistChanged(playlist);
+    });
 
     // Crossfade only — do NOT emit playbackState here.
     // Android Auto interpolates position from the updatePosition+updateTime
@@ -278,7 +356,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // view, producing visible flashes and preventing scrolling.
     _player.stream.position.listen(_handleCrossfade);
     _player.stream.buffer.listen(_onBufferedPositionChanged);
-    _player.stream.playlist.listen(_onPlaylistChanged);
 
     _player.stream.shuffle.listen((shuffled) {
       final shuffleMode =
@@ -312,6 +389,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _updatePlaybackState() {
+    // Suppress ALL intermediate state emissions during restore.
+    // The notification and MPRIS stay on the last stable state until restore
+    // completes, at which point a single clean emission is sent.
+    if (_restoreStatus == RestoreStatus.restoring) return;
+
     final processing = _getProcessingState();
     final playing = _player.state.playing;
 
@@ -548,7 +630,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // Previously this flag was set inside the inner try, after remove() had
     // already fired _onPlaylistChanged with a transient wrong index.
     if (!_pendingResolutions.add(videoId)) return;
-    _isResolvingItem = true;
+    _resolvingItemCount++;
     try {
       final url = await _playVideoIdUseCase.resolveUrl(videoId);
 
@@ -622,9 +704,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } catch (e) {
       dev.log('[AudioHandler] Failed to resolve URL for item at $index: $e');
     } finally {
-      _isResolvingItem = false;
+      _resolvingItemCount--;
       _pendingResolutions.remove(videoId);
       _syncQueue();
+      if (!_isResolvingItem) {
+        // All concurrent resolutions are done: re-emit the correct processing
+        // state so the notification and MPRIS are not left in a stale idle/
+        // buffering state from intermediate playlist mutations.
+        _lastEmittedProcessingState = null;
+        _lastEmittedPlaying = null;
+        _updatePlaybackState();
+      }
       // Always re-emit the actual current queueIndex and mediaItem after releasing the lock.
       // If the user skipped during resolution, _onPlaylistChanged was suppressed
       // and the new index was never propagated to PlayerNotifier.
@@ -651,7 +741,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> play() async {
     _isStopping = false;
     _playOnInterruptionEnd = false;
-    await _restoreCompleter.future.catchError((_) {});
+    // Block until any in-progress restore completes.  This prevents a
+    // notification/MPRIS play command from racing with the playlist rebuild.
+    await _readyCompleter.future.catchError((_) {});
     if (await _requestAudioFocus()) {
       await _player.play();
       if (_castState?.connectionState == CastConnectionState.connected) {
@@ -797,6 +889,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffle(enabled);
     playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+    unawaited(_prefs.setString('last_shuffle_mode', shuffleMode.name));
   }
 
   @override
@@ -809,6 +902,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     };
     await _player.setPlaylistMode(playlistMode);
     playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
+    unawaited(_prefs.setString('last_repeat_mode', repeatMode.name));
   }
 
   List<MediaItem> get _currentQueue =>
@@ -873,13 +967,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final ci = _player.state.playlist.index;
     final insertAt = (ci + 1).clamp(0, _player.state.playlist.medias.length);
     final media = _toMedia(item);
-    _isResolvingItem = true;
+    _resolvingItemCount++;
     try {
       await _player.add(media);
       await _player.move(_player.state.playlist.medias.length - 1, insertAt);
     } finally {
-      _isResolvingItem = false;
+      _resolvingItemCount--;
       _syncQueue();
+      if (!_isResolvingItem) _updatePlaybackState();
     }
   }
 
@@ -933,6 +1028,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _prefs.setInt('last_pause_timestamp', nowMs);
     _isStopping = true;
     await _player.stop();
+    await _releaseAudioFocus();
     await super.onTaskRemoved();
   }
 
@@ -960,7 +1056,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final wasPlaying = _player.state.playing;
       final currentPos = _player.state.position;
 
-      _isResolvingItem = true;
+      _resolvingItemCount++;
       try {
         if (wasPlaying) await _player.pause();
         await _player.remove(currentIndex);
@@ -976,8 +1072,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
         if (wasPlaying) await _player.play();
       } finally {
-        _isResolvingItem = false;
+        _resolvingItemCount--;
         _syncQueue();
+        if (!_isResolvingItem) {
+          // Re-emit correct processing state now that the atomic sequence is done.
+          _lastEmittedProcessingState = null;
+          _lastEmittedPlaying = null;
+          _updatePlaybackState();
+        }
         // Re-emit actual queueIndex in case a skip occurred during retry.
         final actualIndex = _player.state.playlist.index;
         if (actualIndex >= 0) {
@@ -998,156 +1100,176 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isRetrying = false;
   }
 
-  Completer<void> _restoreCompleter = Completer<void>();
-  bool _isRestoring = false;
-  bool _isResolvingItem = false;
+  // ── Single restore path ────────────────────────────────────────────────────
+  //
+  // Replaces the old warm/cold split.  The only criterion is:
+  //   "Does the player already have a valid, playable current item?"
+  //
+  //   YES → nothing to do, mark ready immediately.
+  //   NO  → full restore from DB with RestoreStatus.restoring for its entire
+  //          duration, so the UI can show a loading indicator and block controls.
+  //
+  // Called:
+  //   • once from the constructor (startup)
+  //   • from restoreIfNeeded() on AppLifecycleState.resumed
+  //
+  // If a restore is already running, the second call returns immediately and
+  // play() blocks on _readyCompleter until the first restore finishes.
 
-  Future<void> _initRestore() async {
-    if (_isRestoring) return;
-    _isRestoring = true;
-    try {
-      final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
-      if (!restoreOnStartup) {
-        _restoreCompleter.complete();
-        return;
-      }
+  Future<void> _ensureReady() async {
+    // Already restoring — don't start a second parallel restore.
+    if (_restoreStatus == RestoreStatus.restoring) return;
 
-      final rawItems = await _queueRepo.restoreQueue();
-      if (rawItems.isEmpty) {
-        _restoreCompleter.complete();
-        return;
-      }
+    // ── Fast path: player is alive and playing ────────────────────────────────
+    // Never interrupt a live player.  The URL might be logically "stale" (the
+    // expire timestamp has passed) but it is clearly working, so leave it alone.
+    // URL refresh on error is handled reactively by _onPlayerError.
+    if (_player.state.playing) {
+      _setRestoreStatus(RestoreStatus.ready);
+      return;
+    }
 
-      // ── Cold restore: discard all stale HTTP URLs ────────────────────
-      // On a cold resume (kill or long background), YouTube stream URLs are
-      // almost certainly expired. Rather than checking each one individually,
-      // we mark every HTTP URL as needsUrl so _resolvePendingItems resolves
-      // them lazily at play/skip time. Local file:// URLs are kept only if
-      // the file still exists on disk.
-      final items =
-          rawItems.map((item) {
-            final url = item.extras?['url'] as String?;
-            final isLocalAndValid =
-                url != null &&
-                url.startsWith('file://') &&
-                !UrlStaleness.isStale(url);
-            if (isLocalAndValid) return _ensureQueueId(item);
-            // Strip the stale URL so _toMedia uses the dummy placeholder and
-            // _resolveSinglePendingItem will treat this item as pending.
-            return _ensureQueueId(
-              item.copyWith(
-                extras: {...?item.extras, 'needsUrl': true, 'url': null},
-              ),
-            );
-          }).toList();
-
-      // Emit the queue to the UI immediately — metadata is already available.
-      queue.add(items);
-
-      int savedIndex = _prefs.getInt('last_playing_index') ?? 0;
-      if (savedIndex < 0 || savedIndex >= items.length) savedIndex = 0;
-
-      // ── Resolve the current item's URL up-front (blocking) ───────────
-      // Only this one item needs a fresh URL before the player opens;
-      // all others will be resolved lazily by _resolvePendingItems as
-      // the user plays/skips through the queue.
-      var currentItem = items[savedIndex];
-      try {
-        final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
-        currentItem = currentItem.copyWith(
-          extras: {...?currentItem.extras, 'url': freshUrl, 'needsUrl': false},
-        );
-        items[savedIndex] = currentItem;
-      } catch (e) {
-        // URL resolution failed; the item remains needsUrl: true.
-        // _onPlayerError will handle the retry when the user presses play.
-        dev.log(
-          '[AudioHandler] Cold restore: failed to resolve URL for index $savedIndex: $e',
-        );
-      }
-
-      final savedPosMs = _prefs.getInt('last_playing_position_ms') ?? 0;
-
-      // ── Open the player with the clean, rebuilt playlist ─────────────
-      _isStopping = false;
-      final playlist = Playlist(
-        items.map(_toMedia).toList(),
-        index: savedIndex,
-      );
-      await _player.open(playlist, play: false);
-
-      if (savedPosMs > 0) {
-        // Wait for the media to load so the seek is not silently ignored.
-        for (int i = 0; i < 30; i++) {
-          if (_player.state.duration > Duration.zero) break;
-          await Future.delayed(const Duration(milliseconds: 100));
+    // ── Fast path: playlist intact with a usable current URL ─────────────────
+    final playlist = _player.state.playlist;
+    if (playlist.medias.isNotEmpty) {
+      final idx = playlist.index;
+      if (idx >= 0 && idx < playlist.medias.length) {
+        final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
+        final url = item?.extras?['url'] as String?;
+        final isDummy = url?.contains('localhost/dummy') == true;
+        if (!isDummy && !UrlStaleness.isStale(url)) {
+          _setRestoreStatus(RestoreStatus.ready);
+          return;
         }
-        await _player.seek(Duration(milliseconds: savedPosMs));
-      }
-      // _onPlaylistChanged will fire after _player.open and call
-      // _resolvePendingItems to eagerly resolve indices +1 and +2.
-    } catch (e, stack) {
-      dev.log('[AudioHandler] Error in _initRestore: $e\n$stack');
-    } finally {
-      _isRestoring = false;
-      if (!_restoreCompleter.isCompleted) {
-        _restoreCompleter.complete();
       }
     }
+
+    // ── Full restore from DB ──────────────────────────────────────────────────
+    _setRestoreStatus(RestoreStatus.restoring);
+    try {
+      await _doRestore();
+    } catch (e, stack) {
+      dev.log('[AudioHandler] Error in _ensureReady/_doRestore: $e\n$stack');
+    } finally {
+      _setRestoreStatus(RestoreStatus.ready);
+    }
+  }
+
+  Future<void> _doRestore() async {
+    final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
+    if (!restoreOnStartup) return;
+
+    final rawItems = await _queueRepo.restoreQueue();
+    if (rawItems.isEmpty) return;
+
+    // Discard all stale HTTP stream URLs.  YouTube URLs expire in ~6 hours.
+    // Mark them needsUrl so _resolvePendingItems resolves them lazily when
+    // the user plays/skips.  Local file:// URIs are kept only if still on disk.
+    final items =
+        rawItems.map((item) {
+          final url = item.extras?['url'] as String?;
+          final isLocalAndValid =
+              url != null &&
+              url.startsWith('file://') &&
+              !UrlStaleness.isStale(url);
+          if (isLocalAndValid) return _ensureQueueId(item);
+          return _ensureQueueId(
+            item.copyWith(
+              extras: {...?item.extras, 'needsUrl': true, 'url': null},
+            ),
+          );
+        }).toList();
+
+    // Emit queue metadata immediately — artwork and title are already available.
+    queue.add(items);
+
+    int savedIndex = _prefs.getInt('last_playing_index') ?? 0;
+    if (savedIndex < 0 || savedIndex >= items.length) savedIndex = 0;
+
+    // Resolve only the current item's URL up-front.  Everything else is lazy.
+    var currentItem = items[savedIndex];
+    try {
+      final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
+      currentItem = currentItem.copyWith(
+        extras: {...?currentItem.extras, 'url': freshUrl, 'needsUrl': false},
+      );
+      items[savedIndex] = currentItem;
+    } catch (e) {
+      // Resolution failed.  The item keeps needsUrl:true.
+      // _onPlayerError will retry when the user presses play.
+      dev.log(
+        '[AudioHandler] _doRestore: failed URL resolve for index $savedIndex: $e',
+      );
+    }
+
+    final savedPosMs = _prefs.getInt('last_playing_position_ms') ?? 0;
+    _savedPosition = Duration(milliseconds: savedPosMs);
+
+    // Restore shuffle / repeat mode persisted from the last session.
+    final savedShuffleName = _prefs.getString('last_shuffle_mode');
+    if (savedShuffleName != null) {
+      final shuffleMode = AudioServiceShuffleMode.values.firstWhere(
+        (m) => m.name == savedShuffleName,
+        orElse: () => AudioServiceShuffleMode.none,
+      );
+      await _player.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
+      playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+    }
+
+    final savedRepeatName = _prefs.getString('last_repeat_mode');
+    if (savedRepeatName != null) {
+      final repeatMode = AudioServiceRepeatMode.values.firstWhere(
+        (m) => m.name == savedRepeatName,
+        orElse: () => AudioServiceRepeatMode.none,
+      );
+      final playlistMode = switch (repeatMode) {
+        AudioServiceRepeatMode.none => PlaylistMode.none,
+        AudioServiceRepeatMode.one => PlaylistMode.single,
+        AudioServiceRepeatMode.all ||
+        AudioServiceRepeatMode.group => PlaylistMode.loop,
+      };
+      await _player.setPlaylistMode(playlistMode);
+      playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
+    }
+
+    // Open the rebuilt playlist in the player, paused.
+    _isStopping = false;
+    final restoredPlaylist = Playlist(
+      items.map(_toMedia).toList(),
+      index: savedIndex,
+    );
+    await _player.open(restoredPlaylist, play: false);
+
+    // Seek to the saved position.
+    // Use the first duration event as the trigger instead of a fixed poll loop:
+    // the seek is applied as soon as the media is loaded, deterministically.
+    // RestoreStatus stays restoring throughout so the UI shows the saved
+    // position (from _savedPosition) rather than the live player position (0).
+    if (savedPosMs > 0) {
+      try {
+        await _player.stream.duration
+            .where((d) => d > Duration.zero)
+            .first
+            .timeout(const Duration(seconds: 8));
+      } catch (_) {
+        // Timeout: seek anyway; it may be silently ignored if media isn't ready,
+        // but _onPlayerError will recover when the user presses play.
+      }
+      await _player.seek(_savedPosition);
+    }
+    // _onPlaylistChanged fires after _player.open and calls _resolvePendingItems
+    // to eagerly resolve indices +1 and +2 in the background.
   }
 
   Future<void> persistQueue(List<MediaItem> items) async {
     await _queueRepo.persistQueue(items);
   }
 
-  /// Resumes playback state after the app returns to the foreground.
+  /// Called by [PlayerNotifier] on [AppLifecycleState.resumed].
   ///
-  /// Two modes:
-  /// - **Warm resume**: the OS kept the process alive and the player playlist
-  ///   is intact. Only the current item's URL is re-checked; if stale it is
-  ///   silently re-resolved.
-  /// - **Cold resume**: the process was killed and the player is rebuilt from
-  ///   the DB snapshot. All HTTP stream URLs are discarded and resolved lazily —
-  ///   only the current item's URL is resolved up-front so playback can resume
-  ///   immediately.
-  Future<void> restoreIfNeeded() async {
-    if (_isRestoring || _player.state.playing) return;
-
-    final playlistEmpty = _player.state.playlist.medias.isEmpty;
-    // We only treat it as a cold restore if the player has been cleared
-    // (e.g. process killed and restarted). If the playlist is still there,
-    // we perform a warm resume regardless of how much time has passed,
-    // as it is much faster and less disruptive.
-    final isCold = playlistEmpty;
-
-    if (!isCold) {
-      // ── Warm resume: only re-check the current item's URL ──────────
-      // With battery optimization disabled the process stays alive, so
-      // playlistEmpty is almost always false. For in-memory playlists, we
-      // only re-resolve the current item if its URL has expired.
-      final currentIndex = _player.state.playlist.index;
-      final medias = _player.state.playlist.medias;
-      if (currentIndex >= 0 && currentIndex < medias.length) {
-        final item = medias[currentIndex].extras?['mediaItem'] as MediaItem?;
-        final url = item?.extras?['url'] as String?;
-        if (UrlStaleness.isStale(url)) {
-          // forceResolve: true bypasses the needsUrl guard because this item
-          // was previously resolved (no needsUrl flag) but its URL has expired.
-          unawaited(
-            _resolveSinglePendingItem(currentIndex, forceResolve: true),
-          );
-        }
-      }
-      return;
-    }
-
-    // ── Cold resume: full rebuild from DB ────────────────────────────
-    _pendingResolutions.clear();
-    if (_restoreCompleter.isCompleted) {
-      _restoreCompleter = Completer<void>();
-    }
-    await _initRestore();
-  }
+  /// Delegates entirely to [_ensureReady]: if the player is already in a sane
+  /// state nothing happens; otherwise a full restore is performed.
+  Future<void> restoreIfNeeded() => _ensureReady();
 
   void _syncQueue() {
     final playlist = _player.state.playlist;
@@ -1179,6 +1301,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = true;
     _playerErrorSub?.cancel();
     _onPlayErrorController.close();
+    _restoreStatusController.close();
     _player.dispose();
   }
 

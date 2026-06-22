@@ -10,6 +10,9 @@ import 'queue_use_case_provider.dart';
 import 'settings_provider.dart';
 import 'start_radio_use_case_provider.dart';
 
+// Re-export for convenience so UI layers don't need to import audio_handler.
+export '../features/player/audio_handler.dart' show RestoreStatus;
+
 final audioHandlerProvider = Provider<SonoraAudioHandler>((ref) {
   throw UnimplementedError('Must be overridden in main()');
 });
@@ -38,6 +41,15 @@ class PlayerState {
   final bool isPlaying;
   final bool isLoading;
   final bool isSwitching;
+
+  /// True while the audio handler is rebuilding the player from the persisted
+  /// queue (i.e. [RestoreStatus.restoring]).  When true the UI must:
+  ///   • show a loading spinner on the play/pause button
+  ///   • disable seek, skip, and play/pause interactions
+  ///   • show [position] as a static value (the saved position from disk)
+  ///   • show the shimmer on the mini-player bar
+  final bool isRestoring;
+
   final bool isPaused;
   final bool hasError;
   final String? errorMessage;
@@ -54,6 +66,7 @@ class PlayerState {
     this.isPlaying = false,
     this.isLoading = false,
     this.isSwitching = false,
+    this.isRestoring = false,
     this.isPaused = false,
     this.hasError = false,
     this.errorMessage,
@@ -69,10 +82,16 @@ class PlayerState {
 
   bool get isVideo => currentSong?.extras?['isVideo'] == true;
 
+  /// True when the player is blocked for any reason: active restore, or a
+  /// user-initiated song switch in progress.  Use this in the UI to gate all
+  /// interactive controls at once.
+  bool get isBlocked => isRestoring || isSwitching;
+
   PlayerState copyWith({
     bool? isPlaying,
     bool? isLoading,
     bool? isSwitching,
+    bool? isRestoring,
     bool? isPaused,
     bool? hasError,
     String? errorMessage,
@@ -91,6 +110,7 @@ class PlayerState {
       isPlaying: isPlaying ?? this.isPlaying,
       isLoading: isLoading ?? this.isLoading,
       isSwitching: isSwitching ?? this.isSwitching,
+      isRestoring: isRestoring ?? this.isRestoring,
       isPaused: isPaused ?? this.isPaused,
       hasError: hasError ?? this.hasError,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -118,6 +138,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   StreamSubscription? _durationSub;
   StreamSubscription? _positionSub;
   StreamSubscription? _playErrorSub;
+  StreamSubscription? _restoreStatusSub;
   bool _isFetchingUpNext = false;
   int _operationVersion = 0;
   Timer? _sleepTimer;
@@ -130,11 +151,35 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   PlayerState build() {
     WidgetsBinding.instance.addObserver(this);
 
+    // ── Restore status ────────────────────────────────────────────────────────
+    // Subscribe first so isRestoring is set before any playbackState event.
+    // Seed from the synchronous getter so the initial state is correct even if
+    // the handler was constructed before this notifier.
+    if (_handler.currentRestoreStatus == RestoreStatus.restoring) {
+      state = state.copyWith(
+        isRestoring: true,
+        position: _handler.savedPosition,
+      );
+    }
+    _restoreStatusSub = _handler.restoreStatusStream.listen((status) {
+      if (status == RestoreStatus.restoring) {
+        state = state.copyWith(
+          isRestoring: true,
+          // Pre-populate seek bar with the saved position immediately so the
+          // UI never shows 0:00 while the player is seeking in the background.
+          position: _handler.savedPosition,
+        );
+      } else {
+        state = state.copyWith(isRestoring: false);
+      }
+    });
+
     // Subscribe to position separately so that frequent position ticks
     // do not flow through playbackState (which would cause Android Auto
     // to re-render the queue view and reset scroll on every tick).
     _positionSub = _handler.positionStream.listen((pos) {
-      state = state.copyWith(position: pos);
+      // Don't overwrite the static saved position while restoring.
+      if (!state.isRestoring) state = state.copyWith(position: pos);
     });
 
     _playbackSub = _handler.playbackState.listen((s) {
@@ -254,6 +299,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _durationSub?.cancel();
       _positionSub?.cancel();
       _playErrorSub?.cancel();
+      _restoreStatusSub?.cancel();
       _sleepTimer?.cancel();
       _sleepTimerTick?.cancel();
     });
@@ -492,6 +538,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Future<void> pause() => _handler.pause();
 
   Future<void> togglePlayPause() async {
+    if (state.isBlocked) return;
     if (state.isPlaying) {
       await _handler.pause();
     } else {
@@ -499,11 +546,20 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> seek(Duration position) => _handler.seek(position);
+  Future<void> seek(Duration position) {
+    if (state.isBlocked) return Future.value();
+    return _handler.seek(position);
+  }
 
-  Future<void> skipToNext() => _handler.skipToNext();
+  Future<void> skipToNext() {
+    if (state.isBlocked) return Future.value();
+    return _handler.skipToNext();
+  }
 
-  Future<void> skipToPrevious() => _handler.skipToPrevious();
+  Future<void> skipToPrevious() {
+    if (state.isBlocked) return Future.value();
+    return _handler.skipToPrevious();
+  }
 
   Future<void> skipToIndex(int index) async {
     await _handler.skipToQueueItem(index);

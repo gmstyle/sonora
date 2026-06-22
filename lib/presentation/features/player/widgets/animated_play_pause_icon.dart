@@ -3,12 +3,18 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AnimatedPlayPauseIcon extends StatefulWidget {
   final bool isPlaying;
+
+  /// When true a [CircularProgressIndicator] is shown instead of the play/pause
+  /// icon.  Used while the player is restoring state from disk.
+  final bool isLoading;
+
   final Color color;
   final double size;
 
   const AnimatedPlayPauseIcon({
     super.key,
     required this.isPlaying,
+    this.isLoading = false,
     required this.color,
     this.size = 32,
   });
@@ -51,6 +57,13 @@ class _AnimatedPlayPauseIconState extends State<AnimatedPlayPauseIcon>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isLoading) {
+      return SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: CircularProgressIndicator(strokeWidth: 2.5, color: widget.color),
+      );
+    }
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
       child: Icon(

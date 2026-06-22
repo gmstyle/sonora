@@ -64,7 +64,7 @@ class PlayerSheetMobile extends ConsumerWidget {
     final theme = Theme.of(context);
     final playerNotifier = ref.read(playerStateProvider.notifier);
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
-    final isSwitching = playerState.isSwitching;
+    final isSwitching = playerState.isBlocked;
     final isVideo = currentSong.extras?['isVideo'] == true;
     final artUrl = currentSong.artUri?.toString();
     final progress =
@@ -145,15 +145,22 @@ class PlayerSheetMobile extends ConsumerWidget {
                         IconButton(
                           icon: AnimatedPlayPauseIcon(
                             isPlaying: isPlaying,
+                            isLoading: playerState.isRestoring,
                             color: cs.onPrimary,
                             size: 22,
                           ),
-                          onPressed: () {
-                            HapticFeedback.lightImpact();
-                            playerNotifier.togglePlayPause();
-                          },
+                          onPressed:
+                              isSwitching
+                                  ? null
+                                  : () {
+                                    HapticFeedback.lightImpact();
+                                    playerNotifier.togglePlayPause();
+                                  },
                           style: IconButton.styleFrom(
-                            backgroundColor: cs.primary,
+                            backgroundColor:
+                                isSwitching
+                                    ? cs.primary.withAlpha(128)
+                                    : cs.primary,
                             foregroundColor: cs.onPrimary,
                             fixedSize: const Size(36, 36),
                             shape: const CircleBorder(),
@@ -163,12 +170,18 @@ class PlayerSheetMobile extends ConsumerWidget {
                           icon: Icon(
                             LucideIcons.skipForward,
                             size: 18,
-                            color: cs.onSurfaceVariant,
+                            color:
+                                isSwitching
+                                    ? cs.onSurfaceVariant.withAlpha(96)
+                                    : cs.onSurfaceVariant,
                           ),
-                          onPressed: () {
-                            HapticFeedback.lightImpact();
-                            playerNotifier.skipToNext();
-                          },
+                          onPressed:
+                              isSwitching
+                                  ? null
+                                  : () {
+                                    HapticFeedback.lightImpact();
+                                    playerNotifier.skipToNext();
+                                  },
                           constraints: const BoxConstraints(
                             minWidth: 32,
                             minHeight: 32,

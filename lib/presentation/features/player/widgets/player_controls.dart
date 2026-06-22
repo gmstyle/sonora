@@ -34,14 +34,14 @@ class PlayerControls extends ConsumerWidget {
                     context,
                     false,
                     notifier,
-                    disabled: playerState.isSwitching,
+                    disabled: playerState.isBlocked,
                   ),
                   _buildPlayPauseButton(context, playerState, notifier),
                   _buildSkipButton(
                     context,
                     true,
                     notifier,
-                    disabled: playerState.isSwitching,
+                    disabled: playerState.isBlocked,
                   ),
                   _buildRepeatButton(context, playerState, notifier),
                 ],
@@ -114,7 +114,7 @@ class PlayerControls extends ConsumerWidget {
     PlayerState state,
     PlayerNotifier notifier,
   ) {
-    final isSwitching = state.isSwitching;
+    final isBlocked = state.isBlocked;
     final primaryColor = iconColor ?? Theme.of(context).colorScheme.primary;
     final onPrimaryColor =
         iconColor != null
@@ -127,16 +127,19 @@ class PlayerControls extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isSwitching ? primaryColor.withAlpha(128) : primaryColor,
+        color: isBlocked ? primaryColor.withAlpha(128) : primaryColor,
       ),
       child: IconButton(
         icon: AnimatedPlayPauseIcon(
           isPlaying: state.isPlaying,
+          // Show a spinner during restore so the user understands something is
+          // happening, rather than seeing a greyed-out play icon with no feedback.
+          isLoading: state.isRestoring,
           color: onPrimaryColor,
           size: 32,
         ),
         onPressed:
-            isSwitching
+            isBlocked
                 ? null
                 : () {
                   HapticFeedback.lightImpact();
