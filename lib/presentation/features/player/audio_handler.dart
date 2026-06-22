@@ -248,7 +248,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             case AudioInterruptionType.pause:
             case AudioInterruptionType.unknown:
               _playOnInterruptionEnd = _player.state.playing;
-              _pause(releaseFocus: false);
+              _pause();
               break;
             case AudioInterruptionType.duck:
               _setLocalVolume(20.0);
@@ -753,18 +753,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> pause() => _pause(releaseFocus: true);
+  Future<void> pause() => _pause();
 
-  Future<void> _pause({required bool releaseFocus}) async {
-    if (releaseFocus) {
-      _playOnInterruptionEnd = false;
-    }
+  Future<void> _pause() async {
+    // NOTE: do NOT release audio focus on pause.
+    // Calling session.setActive(false) abandons the Android AudioFocus and on
+    // some devices/OEMs causes subsequent AudioFocus requests (from play()) to
+    // be denied, which makes notification/MPRIS controls silently do nothing.
+    // Audio focus is released only on explicit stop() / onTaskRemoved().
+    // This matches the behaviour of every major music player (Spotify, YouTube
+    // Music, Musily, etc.) which never release focus on pause.
+    _playOnInterruptionEnd = false;
     await _player.pause();
     if (_castState?.connectionState == CastConnectionState.connected) {
       await _castService?.pause();
-    }
-    if (releaseFocus) {
-      await _releaseAudioFocus();
     }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
@@ -804,13 +806,22 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> skipToNext() => _player.next();
+  Future<void> skipToNext() async {
+    await _readyCompleter.future.catchError((_) {});
+    await _player.next();
+  }
 
   @override
-  Future<void> skipToPrevious() => _player.previous();
+  Future<void> skipToPrevious() async {
+    await _readyCompleter.future.catchError((_) {});
+    await _player.previous();
+  }
 
   @override
-  Future<void> skipToQueueItem(int index) => _player.jump(index);
+  Future<void> skipToQueueItem(int index) async {
+    await _readyCompleter.future.catchError((_) {});
+    await _player.jump(index);
+  }
 
   void setCrossfadeDuration(Duration duration) {
     _crossfadeDuration = duration;
@@ -1152,6 +1163,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
       dev.log('[AudioHandler] Error in _ensureReady/_doRestore: $e\n$stack');
     } finally {
       _setRestoreStatus(RestoreStatus.ready);
+      // Force-emit a clean playbackState now that the suppress is lifted.
+      // All player events that fired during _doRestore were suppressed; without
+      // this explicit call the notification would keep stale/empty controls
+      // until the next organic player event (e.g. user taps play).
+      _lastEmittedProcessingState = null;
+      _lastEmittedPlaying = null;
+      _updatePlaybackState();
     }
   }
 
