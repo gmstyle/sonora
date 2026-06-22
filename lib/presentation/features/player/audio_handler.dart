@@ -437,24 +437,27 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
   }
 
-  void _updateState(PlaybackState Function(PlaybackState) update, {Duration? forcePosition}) {
+  void _updateState(
+    PlaybackState Function(PlaybackState) update, {
+    Duration? forcePosition,
+  }) {
     final current = playbackState.value;
     final updated = update(current);
-    final position = forcePosition ?? (_restoreStatus == RestoreStatus.restoring
-        ? _savedPosition
-        : _player.state.position);
+    final position =
+        forcePosition ??
+        (_restoreStatus == RestoreStatus.restoring
+            ? _savedPosition
+            : _player.state.position);
     playbackState.add(
-      updated.copyWith(
-        updatePosition: position,
-        speed: _player.state.rate,
-      ),
+      updated.copyWith(updatePosition: position, speed: _player.state.rate),
     );
   }
 
   List<MediaControl> _buildControls(PlaybackState current) {
-    final shuffleIcon = current.shuffleMode == AudioServiceShuffleMode.all
-        ? 'drawable/ic_shuffle'
-        : 'drawable/ic_shuffle_off';
+    final shuffleIcon =
+        current.shuffleMode == AudioServiceShuffleMode.all
+            ? 'drawable/ic_shuffle'
+            : 'drawable/ic_shuffle_off';
 
     final repeatIcon = switch (current.repeatMode) {
       AudioServiceRepeatMode.one => 'drawable/ic_repeat_one',
