@@ -958,6 +958,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = false;
     final itemsWithKeys = items.map(_ensureQueueId).toList();
     queue.add(itemsWithKeys);
+    await _queueRepo.persistQueue(itemsWithKeys);
     final playlist = Playlist(
       itemsWithKeys.map(_toMedia).toList(),
       index: initialIndex,
@@ -969,6 +970,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = false;
     final itemsWithKeys = items.map(_ensureQueueId).toList();
     queue.add(itemsWithKeys);
+    await _queueRepo.persistQueue(itemsWithKeys);
     final playlist = Playlist(
       itemsWithKeys.map(_toMedia).toList(),
       index: initialIndex,
