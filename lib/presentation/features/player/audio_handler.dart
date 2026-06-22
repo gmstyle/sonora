@@ -360,7 +360,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _player.stream.shuffle.listen((shuffled) {
       final shuffleMode =
           shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
-      playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+      _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
       _rebuildControls();
     });
 
@@ -370,7 +370,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         PlaylistMode.single => AudioServiceRepeatMode.one,
         PlaylistMode.loop => AudioServiceRepeatMode.all,
       };
-      playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
+      _updateState((s) => s.copyWith(repeatMode: repeatMode));
       _rebuildControls();
     });
   }
@@ -433,6 +433,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
   }
 
+  void _updateState(PlaybackState Function(PlaybackState) update, {Duration? forcePosition}) {
+    final current = playbackState.value;
+    final updated = update(current);
+    final position = forcePosition ?? (_restoreStatus == RestoreStatus.restoring
+        ? _savedPosition
+        : _player.state.position);
+    playbackState.add(
+      updated.copyWith(
+        updatePosition: position,
+        speed: _player.state.rate,
+      ),
+    );
+  }
+
   List<MediaControl> _buildControls(PlaybackState current) {
     return [
       MediaControl.skipToPrevious,
@@ -472,8 +486,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _rebuildControls() {
-    final current = playbackState.value;
-    playbackState.add(current.copyWith(controls: _buildControls(current)));
+    _updateState((s) => s.copyWith(controls: _buildControls(s)));
   }
 
   Future<void> _checkCurrentSongLiked(String videoId) async {
@@ -493,9 +506,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // the Android Auto queue view to flash and reset its scroll position.
     final prev = playbackState.value.bufferedPosition;
     if ((position - prev).abs() >= const Duration(seconds: 2)) {
-      playbackState.add(
-        playbackState.value.copyWith(bufferedPosition: position),
-      );
+      _updateState((s) => s.copyWith(bufferedPosition: position));
     }
   }
 
@@ -511,7 +522,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // wrong item. The correct queueIndex is emitted explicitly after the
     // sequence completes.
     if (!_isResolvingItem) {
-      playbackState.add(playbackState.value.copyWith(queueIndex: index));
+      _updateState((s) => s.copyWith(queueIndex: index));
       if (index >= 0) _prefs.setInt('last_playing_index', index);
     }
 
@@ -724,9 +735,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       // and the new index was never propagated to PlayerNotifier.
       final actualIndex = _player.state.playlist.index;
       if (actualIndex >= 0) {
-        playbackState.add(
-          playbackState.value.copyWith(queueIndex: actualIndex),
-        );
+        _updateState((s) => s.copyWith(queueIndex: actualIndex));
         final playlist = _player.state.playlist;
         if (actualIndex < playlist.medias.length) {
           final media = playlist.medias[actualIndex];
@@ -803,7 +812,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> seek(Duration position) async {
     await _player.seek(position);
-    playbackState.add(playbackState.value.copyWith(updatePosition: position));
+    _updateState((s) => s, forcePosition: position);
     if (_castState?.connectionState == CastConnectionState.connected) {
       await _castService?.seek(position);
     }
@@ -903,7 +912,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffle(enabled);
-    playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+    _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
     unawaited(_prefs.setString('last_shuffle_mode', shuffleMode.name));
   }
 
@@ -916,7 +925,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       AudioServiceRepeatMode.group => PlaylistMode.loop,
     };
     await _player.setPlaylistMode(playlistMode);
-    playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
+    _updateState((s) => s.copyWith(repeatMode: repeatMode));
     unawaited(_prefs.setString('last_repeat_mode', repeatMode.name));
   }
 
@@ -1103,9 +1112,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         // Re-emit actual queueIndex in case a skip occurred during retry.
         final actualIndex = _player.state.playlist.index;
         if (actualIndex >= 0) {
-          playbackState.add(
-            playbackState.value.copyWith(queueIndex: actualIndex),
-          );
+          _updateState((s) => s.copyWith(queueIndex: actualIndex));
         }
       }
     } catch (e) {
@@ -1244,7 +1251,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         orElse: () => AudioServiceShuffleMode.none,
       );
       await _player.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
-      playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
+      _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
     }
 
     final savedRepeatName = _prefs.getString('last_repeat_mode');
@@ -1260,7 +1267,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         AudioServiceRepeatMode.group => PlaylistMode.loop,
       };
       await _player.setPlaylistMode(playlistMode);
-      playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
+      _updateState((s) => s.copyWith(repeatMode: repeatMode));
     }
 
     // Open the rebuilt playlist in the player, paused.
