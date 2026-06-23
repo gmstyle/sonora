@@ -1764,16 +1764,67 @@ class SonoraAudioHandler extends BaseAudioHandler {
         .toList();
   }
 
+  /// Converts a local playlist to a list of [MediaItem]s using exactly 2
+  /// database queries (entries + all liked songs), regardless of playlist size.
+  ///
+  /// Previously the code called [getLikedSong] once per entry (N+1 sequential
+  /// queries).  With playlists of 50+ tracks Android Auto's getChildren()
+  /// timeout (~2 s) could be exceeded on slow devices, causing the folder to
+  /// appear empty.  Fetching all liked songs once and doing an O(1) in-memory
+  /// lookup per entry is both faster and deterministic.
+  Future<List<MediaItem>> _localPlaylistToMediaItems(int playlistId) async {
+    // Run both queries in parallel — no data dependency between them.
+    final (entries, allLiked) =
+        await (
+          _libraryRepo.getPlaylistEntries(playlistId),
+          _libraryRepo.getAllLikedSongs(),
+        ).wait;
+
+    // Build a lookup map: videoId → LikedSongModel.
+    final likedByVideoId = <String, LikedSongModel>{
+      for (final s in allLiked) s.videoId: s,
+    };
+
+    return [
+      for (final entry in entries)
+        MediaItem(
+          id: entry.videoId,
+          title:
+              likedByVideoId[entry.videoId]?.title ??
+              entry.title ??
+              entry.videoId,
+          artist: likedByVideoId[entry.videoId]?.artist ?? entry.artist ?? '',
+          artUri:
+              (likedByVideoId[entry.videoId]?.thumbnailUrl ??
+                          entry.thumbnailUrl) !=
+                      null
+                  ? Uri.tryParse(
+                    likedByVideoId[entry.videoId]?.thumbnailUrl ??
+                        entry.thumbnailUrl!,
+                  )
+                  : null,
+          duration: Duration.zero,
+          extras: {
+            'needsUrl': true,
+            'videoId': entry.videoId,
+            'isVideo': likedByVideoId[entry.videoId]?.isVideo ?? entry.isVideo,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+    ];
+  }
+
   Future<List<MediaItem>> _buildPlaylistEntryChildren(
     String parentMediaId,
   ) async {
     final playlistId = int.parse(
       parentMediaId.substring(_playlistPrefix.length),
     );
-    final entries = await _libraryRepo.getPlaylistEntries(playlistId);
     final playlistIdStr = playlistId.toString();
 
-    final items = <MediaItem>[
+    final songItems = await _localPlaylistToMediaItems(playlistId);
+
+    return [
       MediaItem(
         id: '$_actionPlayPlaylist$playlistIdStr',
         title: 'Play All',
@@ -1786,30 +1837,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
         playable: true,
         extras: {_kContentStylePlayable: _kStyleList},
       ),
+      ...songItems,
     ];
-
-    for (final entry in entries) {
-      final liked = await _libraryRepo.getLikedSong(entry.videoId);
-      final title = liked?.title ?? entry.title ?? entry.videoId;
-      final artist = liked?.artist ?? entry.artist ?? '';
-      final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
-      items.add(
-        MediaItem(
-          id: entry.videoId,
-          title: title,
-          artist: artist,
-          artUri: thumbnailUrl != null ? Uri.tryParse(thumbnailUrl) : null,
-          duration: const Duration(seconds: 0),
-          extras: {
-            'needsUrl': true,
-            'videoId': entry.videoId,
-            'isVideo': liked?.isVideo ?? entry.isVideo,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-    }
-    return items;
   }
 
   Future<List<MediaItem>> _buildArtistFolders() async {
@@ -2188,35 +2217,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
         final playlistId = mediaId.substring(_actionPlayPlaylist.length);
         final localId = int.tryParse(playlistId);
         if (localId != null) {
-          // Local playlist — read entries from DB
-          final entries = await _libraryRepo.getPlaylistEntries(localId);
-          final items = <MediaItem>[];
-          for (final entry in entries) {
-            final liked = await _libraryRepo.getLikedSong(entry.videoId);
-            final title = liked?.title ?? entry.title ?? entry.videoId;
-            final artist = liked?.artist ?? entry.artist ?? '';
-            final thumbUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
-            items.add(
-              MediaItem(
-                id: entry.videoId,
-                title: title,
-                artist: artist,
-                artUri: thumbUrl != null ? Uri.tryParse(thumbUrl) : null,
-                extras: {
-                  'needsUrl': true,
-                  'videoId': entry.videoId,
-                  'isVideo': liked?.isVideo ?? entry.isVideo,
-                  _kContentStylePlayable: _kStyleList,
-                },
-              ),
-            );
-          }
+          // Local playlist — 2 queries via _localPlaylistToMediaItems
+          var items = await _localPlaylistToMediaItems(localId);
           if (items.isNotEmpty) {
             try {
               final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-              items[0] = items.first.copyWith(
-                extras: {...items.first.extras!, 'url': url, 'needsUrl': false},
-              );
+              items = [
+                items.first.copyWith(
+                  extras: {
+                    ...items.first.extras!,
+                    'url': url,
+                    'needsUrl': false,
+                  },
+                ),
+                ...items.skip(1),
+              ];
             } catch (_) {}
           }
           await playNow(items);
@@ -2232,29 +2247,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
         final playlistId = mediaId.substring(_actionShufflePlaylist.length);
         final localId = int.tryParse(playlistId);
         if (localId != null) {
-          // Local playlist — read entries from DB
-          final entries = await _libraryRepo.getPlaylistEntries(localId);
-          var items = <MediaItem>[];
-          for (final entry in entries) {
-            final liked = await _libraryRepo.getLikedSong(entry.videoId);
-            final title = liked?.title ?? entry.title ?? entry.videoId;
-            final artist = liked?.artist ?? entry.artist ?? '';
-            final thumbUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
-            items.add(
-              MediaItem(
-                id: entry.videoId,
-                title: title,
-                artist: artist,
-                artUri: thumbUrl != null ? Uri.tryParse(thumbUrl) : null,
-                extras: {
-                  'needsUrl': true,
-                  'videoId': entry.videoId,
-                  'isVideo': liked?.isVideo ?? entry.isVideo,
-                  _kContentStylePlayable: _kStyleList,
-                },
-              ),
-            );
-          }
+          // Local playlist — 2 queries via _localPlaylistToMediaItems
+          var items = await _localPlaylistToMediaItems(localId);
           if (items.isNotEmpty) {
             items = List<MediaItem>.from(items)..shuffle();
             try {
