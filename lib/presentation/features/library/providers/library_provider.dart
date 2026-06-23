@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/library_repository_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../../domain/models/library_models.dart';
 
 enum LibrarySortType {
@@ -27,10 +28,24 @@ final librarySearchQueryProvider =
       LibrarySearchQueryNotifier.new,
     );
 
+const _kSortTypeKey = 'librarySortType';
+
 class LibrarySortTypeNotifier extends Notifier<LibrarySortType> {
   @override
-  LibrarySortType build() => LibrarySortType.recentlyAdded;
-  void update(LibrarySortType value) => state = value;
+  LibrarySortType build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final index =
+        prefs.getInt(_kSortTypeKey) ?? LibrarySortType.recentlyAdded.index;
+    if (index >= 0 && index < LibrarySortType.values.length) {
+      return LibrarySortType.values[index];
+    }
+    return LibrarySortType.recentlyAdded;
+  }
+
+  void update(LibrarySortType value) {
+    state = value;
+    ref.read(sharedPreferencesProvider).setInt(_kSortTypeKey, value.index);
+  }
 }
 
 final librarySortTypeProvider =
