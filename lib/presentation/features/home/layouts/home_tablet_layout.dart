@@ -69,7 +69,8 @@ class HomeTabletLayout extends ConsumerWidget {
                 onRefresh: () => ref.refresh(homeResultProvider.future),
                 child: ListView(
                   padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+                    top:
+                        MediaQuery.of(context).padding.top + kToolbarHeight + 8,
                     bottom: 16,
                   ),
                   children: [

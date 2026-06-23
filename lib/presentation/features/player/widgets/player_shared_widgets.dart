@@ -391,12 +391,14 @@ Widget buildBottomActionsRow(
   bool isMobile = false,
 }) {
   final theme = Theme.of(context);
+  final double iconSize = isMobile ? 18.0 : 22.0;
+
   return Row(
     mainAxisAlignment:
         isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
     children: [
       IconButton(
-        icon: const Icon(LucideIcons.share2),
+        icon: Icon(LucideIcons.share2, size: iconSize),
         onPressed: () {
           final currentSong = ref.read(playerStateProvider).currentSong;
           final vId =
@@ -410,7 +412,7 @@ Widget buildBottomActionsRow(
         tooltip: AppLocalizations.of(context)!.share,
         color: theme.colorScheme.onSurfaceVariant,
       ),
-      CastButton(size: 22, color: theme.colorScheme.onSurfaceVariant),
+      CastButton(size: iconSize, color: theme.colorScheme.onSurfaceVariant),
       if (isVideo) ...[
         Builder(
           builder: (context) {
@@ -420,6 +422,7 @@ Widget buildBottomActionsRow(
                 videoState.isVideoVisible
                     ? LucideIcons.monitor
                     : LucideIcons.monitorOff,
+                size: iconSize,
                 color:
                     videoState.isVideoVisible
                         ? theme.colorScheme.primary
@@ -437,6 +440,7 @@ Widget buildBottomActionsRow(
         IconButton(
           icon: Icon(
             LucideIcons.micVocal,
+            size: iconSize,
             color:
                 activeView == PlayerSubView.lyrics
                     ? theme.colorScheme.primary
@@ -456,6 +460,7 @@ Widget buildBottomActionsRow(
       IconButton(
         icon: Icon(
           LucideIcons.listMusic,
+          size: iconSize,
           color:
               activeView == PlayerSubView.queue
                   ? theme.colorScheme.primary
@@ -475,7 +480,7 @@ Widget buildBottomActionsRow(
       IconButton(
         icon: Icon(
           LucideIcons.timer,
-          size: 22,
+          size: iconSize,
           color:
               hasTimer
                   ? Theme.of(context).colorScheme.primary
