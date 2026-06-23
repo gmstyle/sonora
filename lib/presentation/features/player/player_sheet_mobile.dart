@@ -273,7 +273,6 @@ class _MiniArtwork extends ConsumerWidget {
         width: size,
         height: size,
         borderRadius: BorderRadius.circular(radius),
-        tag: 'video_mini_mobile',
         fit: BoxFit.cover,
         showControls: false,
       );

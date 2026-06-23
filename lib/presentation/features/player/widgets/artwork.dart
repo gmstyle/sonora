@@ -31,7 +31,6 @@ class Artwork extends ConsumerWidget {
         width: size,
         height: size / videoState.aspectRatio,
         borderRadius: BorderRadius.circular(12),
-        tag: 'full',
       );
     }
     final paletteMap = ref.watch(paletteNotifierProvider);

@@ -12,7 +12,6 @@ class SonoraVideoPlayer extends ConsumerStatefulWidget {
   final double? height;
   final BoxFit fit;
   final BorderRadius borderRadius;
-  final String tag;
   final Widget? placeholder;
   final bool showControls;
 
@@ -22,7 +21,6 @@ class SonoraVideoPlayer extends ConsumerStatefulWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
-    this.tag = 'default',
     this.placeholder,
     this.showControls = true,
   });
