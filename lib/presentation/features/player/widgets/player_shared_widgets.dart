@@ -380,7 +380,7 @@ Widget buildProgressBar(
   );
 }
 
-/// Row of actions: share, lyrics toggle, queue toggle, sleep timer.
+/// Row of actions: share, cast, lyrics toggle, queue toggle, sleep timer.
 Widget buildBottomActionsRow(
   BuildContext context,
   WidgetRef ref,
