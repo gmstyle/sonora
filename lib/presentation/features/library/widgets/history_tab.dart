@@ -33,6 +33,9 @@ class HistoryTab extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.refresh(libraryHistoryProvider.future),
           child: ListView.builder(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).padding.bottom + 16,
+            ),
             itemCount: history.length,
             itemBuilder: (_, i) {
               final h = history[i];
@@ -58,7 +61,10 @@ class _ShimmerSongList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: 8,
-      padding: const EdgeInsets.only(top: 8),
+      padding: EdgeInsets.only(
+        top: 8,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
       itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );
   }

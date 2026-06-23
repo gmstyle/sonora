@@ -2096,6 +2096,7 @@ class _FollowArtistActionTile extends ConsumerWidget {
                     artistId: artistId,
                     name: name,
                     thumbnailUrl: thumbnailUrl,
+                    addedAt: DateTime.now(),
                   ),
                 );
           },

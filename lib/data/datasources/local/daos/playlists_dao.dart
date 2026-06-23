@@ -7,6 +7,9 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
   Future<List<LocalPlaylist>> getAllPlaylists() =>
       select(db.localPlaylists).get();
 
+  Stream<List<LocalPlaylist>> watchAllPlaylists() =>
+      select(db.localPlaylists).watch();
+
   Future<LocalPlaylist?> getPlaylist(int id) =>
       (select(db.localPlaylists)
         ..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -52,6 +55,12 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
             ..where((t) => t.playlistId.equals(playlistId))
             ..orderBy([(t) => OrderingTerm.asc(t.position)]))
           .get();
+
+  Stream<List<PlaylistEntry>> watchPlaylistEntries(int playlistId) =>
+      (select(db.playlistEntries)
+            ..where((t) => t.playlistId.equals(playlistId))
+            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+          .watch();
 
   Future<void> addEntry(
     int playlistId,

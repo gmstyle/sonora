@@ -232,7 +232,9 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
               );
             }, childCount: liked.length),
           ),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        SliverToBoxAdapter(
+          child: SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+        ),
       ],
     );
   }
@@ -394,7 +396,10 @@ class _ShimmerPlaylistList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: 6,
-      padding: const EdgeInsets.only(top: 8),
+      padding: EdgeInsets.only(
+        top: 8,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
       itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );
   }

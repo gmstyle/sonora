@@ -135,7 +135,11 @@ void main() {
   group('Followed artists', () {
     test('toggleFollowedArtist inserts when not followed', () async {
       await repo.toggleFollowedArtist(
-        const FollowedArtistModel(artistId: 'artist_1', name: 'Artist 1'),
+        FollowedArtistModel(
+          artistId: 'artist_1',
+          name: 'Artist 1',
+          addedAt: DateTime.now(),
+        ),
       );
 
       final artists = await repo.getAllFollowedArtists();
@@ -145,10 +149,18 @@ void main() {
 
     test('toggleFollowedArtist deletes when already followed', () async {
       await repo.toggleFollowedArtist(
-        const FollowedArtistModel(artistId: 'artist_1', name: 'Artist 1'),
+        FollowedArtistModel(
+          artistId: 'artist_1',
+          name: 'Artist 1',
+          addedAt: DateTime.now(),
+        ),
       );
       await repo.toggleFollowedArtist(
-        const FollowedArtistModel(artistId: 'artist_1', name: 'Artist 1'),
+        FollowedArtistModel(
+          artistId: 'artist_1',
+          name: 'Artist 1',
+          addedAt: DateTime.now(),
+        ),
       );
 
       final artists = await repo.getAllFollowedArtists();
@@ -162,10 +174,11 @@ void main() {
 
     test('getFollowedArtist returns mapped model', () async {
       await repo.toggleFollowedArtist(
-        const FollowedArtistModel(
+        FollowedArtistModel(
           artistId: 'artist_1',
           name: 'Artist 1',
           thumbnailUrl: 'https://example.com/artist.jpg',
+          addedAt: DateTime.now(),
         ),
       );
 

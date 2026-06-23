@@ -4,6 +4,7 @@ class FollowedArtists extends Table {
   TextColumn get artistId => text()();
   TextColumn get name => text()();
   TextColumn get thumbnailUrl => text().nullable()();
+  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {artistId};

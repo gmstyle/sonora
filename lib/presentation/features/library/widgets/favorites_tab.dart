@@ -40,6 +40,9 @@ class FavoritesTab extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.refresh(likedSongsProvider.future),
           child: ListView.builder(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).padding.bottom + 16,
+            ),
             itemCount: songs.length + 1,
             itemBuilder: (_, i) {
               if (i == 0) {
@@ -256,6 +259,9 @@ class _ShimmerSongList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
       itemCount: 8,
       itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );

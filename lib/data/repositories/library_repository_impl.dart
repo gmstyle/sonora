@@ -30,9 +30,23 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Stream<List<LikedSongModel>> watchAllLikedSongs() {
+    return _libraryDao.watchAllLikedSongs().map(
+      (rows) => rows.map(_mapLikedSong).toList(),
+    );
+  }
+
+  @override
   Future<LikedSongModel?> getLikedSong(String videoId) async {
     final row = await _libraryDao.getLikedSong(videoId);
     return row != null ? _mapLikedSong(row) : null;
+  }
+
+  @override
+  Stream<LikedSongModel?> watchLikedSong(String videoId) {
+    return _libraryDao
+        .watchLikedSong(videoId)
+        .map((row) => row != null ? _mapLikedSong(row) : null);
   }
 
   @override
@@ -96,9 +110,23 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Stream<List<FollowedArtistModel>> watchAllFollowedArtists() {
+    return _libraryDao.watchAllFollowedArtists().map(
+      (rows) => rows.map(_mapFollowedArtist).toList(),
+    );
+  }
+
+  @override
   Future<FollowedArtistModel?> getFollowedArtist(String artistId) async {
     final row = await _libraryDao.getFollowedArtist(artistId);
     return row != null ? _mapFollowedArtist(row) : null;
+  }
+
+  @override
+  Stream<FollowedArtistModel?> watchFollowedArtist(String artistId) {
+    return _libraryDao
+        .watchFollowedArtist(artistId)
+        .map((row) => row != null ? _mapFollowedArtist(row) : null);
   }
 
   @override
@@ -112,6 +140,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
           artistId: artist.artistId,
           name: artist.name,
           thumbnailUrl: Value(artist.thumbnailUrl),
+          addedAt: Value(artist.addedAt),
         ),
       );
     }
@@ -124,6 +153,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         artistId: artist.artistId,
         name: artist.name,
         thumbnailUrl: Value(artist.thumbnailUrl),
+        addedAt: Value(artist.addedAt),
       ),
     );
   }
@@ -141,9 +171,23 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Stream<List<LikedAlbumModel>> watchAllLikedAlbums() {
+    return _libraryDao.watchAllLikedAlbums().map(
+      (rows) => rows.map(_mapLikedAlbum).toList(),
+    );
+  }
+
+  @override
   Future<LikedAlbumModel?> getLikedAlbum(String albumId) async {
     final row = await _libraryDao.getLikedAlbum(albumId);
     return row != null ? _mapLikedAlbum(row) : null;
+  }
+
+  @override
+  Stream<LikedAlbumModel?> watchLikedAlbum(String albumId) {
+    return _libraryDao
+        .watchLikedAlbum(albumId)
+        .map((row) => row != null ? _mapLikedAlbum(row) : null);
   }
 
   @override
@@ -192,9 +236,23 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Stream<List<LikedPlaylistModel>> watchAllLikedPlaylists() {
+    return _libraryDao.watchAllLikedPlaylists().map(
+      (rows) => rows.map(_mapLikedPlaylist).toList(),
+    );
+  }
+
+  @override
   Future<LikedPlaylistModel?> getLikedPlaylist(String playlistId) async {
     final row = await _libraryDao.getLikedPlaylist(playlistId);
     return row != null ? _mapLikedPlaylist(row) : null;
+  }
+
+  @override
+  Stream<LikedPlaylistModel?> watchLikedPlaylist(String playlistId) {
+    return _libraryDao
+        .watchLikedPlaylist(playlistId)
+        .map((row) => row != null ? _mapLikedPlaylist(row) : null);
   }
 
   @override
@@ -247,6 +305,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Stream<List<LocalPlaylistModel>> watchAllPlaylists() {
+    return _playlistsDao.watchAllPlaylists().map(
+      (rows) => rows.map(_mapPlaylist).toList(),
+    );
+  }
+
+  @override
   Future<int> createPlaylist(String name, {String? description}) =>
       _playlistsDao.createPlaylist(name, description: description);
 
@@ -284,6 +349,28 @@ class LibraryRepositoryImpl implements LibraryRepository {
           ),
         )
         .toList();
+  }
+
+  @override
+  Stream<List<PlaylistEntryModel>> watchPlaylistEntries(int playlistId) {
+    return _playlistsDao
+        .watchPlaylistEntries(playlistId)
+        .map(
+          (rows) =>
+              rows
+                  .map(
+                    (r) => PlaylistEntryModel(
+                      playlistId: r.playlistId,
+                      videoId: r.videoId,
+                      position: r.position,
+                      title: r.title,
+                      artist: r.artist,
+                      thumbnailUrl: r.thumbnailUrl,
+                      isVideo: r.isVideo,
+                    ),
+                  )
+                  .toList(),
+        );
   }
 
   @override
@@ -407,6 +494,29 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Stream<List<HistoryModel>> watchRecentHistory({int limit = 50}) {
+    return _historyDao
+        .watchRecentHistory(limit: limit)
+        .map(
+          (rows) =>
+              rows
+                  .map(
+                    (r) => HistoryModel(
+                      id: r.id,
+                      videoId: r.videoId,
+                      title: r.title,
+                      artist: r.artist,
+                      thumbnailUrl: r.thumbnailUrl,
+                      playedAt: r.playedAt,
+                      playCount: r.playCount,
+                      isVideo: r.isVideo,
+                    ),
+                  )
+                  .toList(),
+        );
+  }
+
+  @override
   Future<void> recordPlay(
     String videoId,
     String title,
@@ -494,6 +604,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         artistId: r.artistId,
         name: r.name,
         thumbnailUrl: r.thumbnailUrl,
+        addedAt: r.addedAt,
       );
 
   LocalPlaylistModel _mapPlaylist(LocalPlaylist r) => LocalPlaylistModel(

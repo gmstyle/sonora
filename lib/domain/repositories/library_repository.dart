@@ -2,7 +2,9 @@ import '../models/library_models.dart';
 
 abstract class LibraryRepository {
   Future<List<LikedSongModel>> getAllLikedSongs();
+  Stream<List<LikedSongModel>> watchAllLikedSongs();
   Future<LikedSongModel?> getLikedSong(String videoId);
+  Stream<LikedSongModel?> watchLikedSong(String videoId);
   Future<void> toggleLikedSong(LikedSongModel song);
   Future<void> ensureLikedSong(LikedSongModel song);
   Future<void> deleteLikedSong(String videoId);
@@ -13,19 +15,25 @@ abstract class LibraryRepository {
   });
 
   Future<List<FollowedArtistModel>> getAllFollowedArtists();
+  Stream<List<FollowedArtistModel>> watchAllFollowedArtists();
   Future<FollowedArtistModel?> getFollowedArtist(String artistId);
+  Stream<FollowedArtistModel?> watchFollowedArtist(String artistId);
   Future<void> toggleFollowedArtist(FollowedArtistModel artist);
   Future<void> ensureFollowedArtist(FollowedArtistModel artist);
   Future<void> deleteFollowedArtist(String artistId);
 
   Future<List<LikedAlbumModel>> getAllLikedAlbums();
+  Stream<List<LikedAlbumModel>> watchAllLikedAlbums();
   Future<LikedAlbumModel?> getLikedAlbum(String albumId);
+  Stream<LikedAlbumModel?> watchLikedAlbum(String albumId);
   Future<void> toggleLikedAlbum(LikedAlbumModel album);
   Future<void> ensureLikedAlbum(LikedAlbumModel album);
   Future<void> deleteLikedAlbum(String albumId);
 
   Future<List<LikedPlaylistModel>> getAllLikedPlaylists();
+  Stream<List<LikedPlaylistModel>> watchAllLikedPlaylists();
   Future<LikedPlaylistModel?> getLikedPlaylist(String playlistId);
+  Stream<LikedPlaylistModel?> watchLikedPlaylist(String playlistId);
   Future<void> toggleLikedPlaylist(LikedPlaylistModel playlist);
   Future<void> ensureLikedPlaylist(LikedPlaylistModel playlist);
   Future<void> deleteLikedPlaylist(String playlistId);
@@ -35,6 +43,7 @@ abstract class LibraryRepository {
   );
 
   Future<List<LocalPlaylistModel>> getAllPlaylists();
+  Stream<List<LocalPlaylistModel>> watchAllPlaylists();
   Future<int> createPlaylist(String name, {String? description});
   Future<int> createPlaylistWithDate(
     String name, {
@@ -44,6 +53,7 @@ abstract class LibraryRepository {
   Future<void> updatePlaylist(int id, {String? name, String? description});
   Future<void> deletePlaylist(int id);
   Future<List<PlaylistEntryModel>> getPlaylistEntries(int playlistId);
+  Stream<List<PlaylistEntryModel>> watchPlaylistEntries(int playlistId);
   Future<void> addEntry(
     int playlistId,
     String videoId,
@@ -73,6 +83,7 @@ abstract class LibraryRepository {
   Future<void> deleteDownload(String videoId);
 
   Future<List<HistoryModel>> getRecentHistory({int limit = 50});
+  Stream<List<HistoryModel>> watchRecentHistory({int limit = 50});
   Future<void> recordPlay(
     String videoId,
     String title,

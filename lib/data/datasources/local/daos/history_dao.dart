@@ -16,6 +16,17 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     return rows.where((r) => seen.add(r.videoId)).take(limit).toList();
   }
 
+  Stream<List<HistoryData>> watchRecentHistory({int limit = 50}) {
+    return (select(db.history)
+          ..orderBy([(t) => OrderingTerm.desc(t.playedAt)])
+          ..limit(limit * 3))
+        .watch()
+        .map((rows) {
+          final seen = <String>{};
+          return rows.where((r) => seen.add(r.videoId)).take(limit).toList();
+        });
+  }
+
   Future<void> recordPlay(
     String videoId,
     String title,

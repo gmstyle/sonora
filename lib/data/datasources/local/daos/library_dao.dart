@@ -6,9 +6,15 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
 
   Future<List<LikedSong>> getAllLikedSongs() => select(db.likedSongs).get();
 
+  Stream<List<LikedSong>> watchAllLikedSongs() => select(db.likedSongs).watch();
+
   Future<LikedSong?> getLikedSong(String videoId) =>
       (select(db.likedSongs)
         ..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
+
+  Stream<LikedSong?> watchLikedSong(String videoId) =>
+      (select(db.likedSongs)
+        ..where((t) => t.videoId.equals(videoId))).watchSingleOrNull();
 
   Future<void> insertLikedSong(LikedSongsCompanion entry) =>
       into(db.likedSongs).insertOnConflictUpdate(entry);
@@ -27,9 +33,16 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Future<List<FollowedArtist>> getAllFollowedArtists() =>
       select(db.followedArtists).get();
 
+  Stream<List<FollowedArtist>> watchAllFollowedArtists() =>
+      select(db.followedArtists).watch();
+
   Future<FollowedArtist?> getFollowedArtist(String artistId) =>
       (select(db.followedArtists)
         ..where((t) => t.artistId.equals(artistId))).getSingleOrNull();
+
+  Stream<FollowedArtist?> watchFollowedArtist(String artistId) =>
+      (select(db.followedArtists)
+        ..where((t) => t.artistId.equals(artistId))).watchSingleOrNull();
 
   Future<void> insertFollowedArtist(FollowedArtistsCompanion entry) =>
       into(db.followedArtists).insertOnConflictUpdate(entry);
@@ -42,9 +55,16 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
 
   Future<List<LikedAlbum>> getAllLikedAlbums() => select(db.likedAlbums).get();
 
+  Stream<List<LikedAlbum>> watchAllLikedAlbums() =>
+      select(db.likedAlbums).watch();
+
   Future<LikedAlbum?> getLikedAlbum(String albumId) =>
       (select(db.likedAlbums)
         ..where((t) => t.albumId.equals(albumId))).getSingleOrNull();
+
+  Stream<LikedAlbum?> watchLikedAlbum(String albumId) =>
+      (select(db.likedAlbums)
+        ..where((t) => t.albumId.equals(albumId))).watchSingleOrNull();
 
   Future<void> insertLikedAlbum(LikedAlbumsCompanion entry) =>
       into(db.likedAlbums).insertOnConflictUpdate(entry);
@@ -57,9 +77,16 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Future<List<LikedPlaylist>> getAllLikedPlaylists() =>
       select(db.likedPlaylists).get();
 
+  Stream<List<LikedPlaylist>> watchAllLikedPlaylists() =>
+      select(db.likedPlaylists).watch();
+
   Future<LikedPlaylist?> getLikedPlaylist(String playlistId) =>
       (select(db.likedPlaylists)
         ..where((t) => t.playlistId.equals(playlistId))).getSingleOrNull();
+
+  Stream<LikedPlaylist?> watchLikedPlaylist(String playlistId) =>
+      (select(db.likedPlaylists)
+        ..where((t) => t.playlistId.equals(playlistId))).watchSingleOrNull();
 
   Future<void> insertLikedPlaylist(LikedPlaylistsCompanion entry) =>
       into(db.likedPlaylists).insertOnConflictUpdate(entry);

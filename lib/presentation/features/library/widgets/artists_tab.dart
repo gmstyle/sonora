@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
@@ -16,7 +16,8 @@ class ArtistsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(sortedFollowedArtistsProvider);
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final isGridView = ref.watch(settingsProvider).isLibraryGridView;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return async.when(
       loading: () => const _ShimmerArtistList(),
@@ -36,24 +37,14 @@ class ArtistsTab extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.refresh(followedArtistsProvider.future),
           child:
-              isMobile
-                  ? ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+              isGridView
+                  ? GridView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      bottomPadding + 16,
                     ),
-                    itemCount: artists.length,
-                    itemBuilder: (_, i) {
-                      final a = artists[i];
-                      return ArtistTile(
-                        artistId: a.artistId,
-                        name: a.name,
-                        thumbnailUrl: a.thumbnailUrl,
-                      );
-                    },
-                  )
-                  : GridView.builder(
-                    padding: const EdgeInsets.all(16),
                     gridDelegate:
                         const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 140.0,
@@ -65,6 +56,18 @@ class ArtistsTab extends ConsumerWidget {
                     itemBuilder: (_, i) {
                       final a = artists[i];
                       return ArtistCard(
+                        artistId: a.artistId,
+                        name: a.name,
+                        thumbnailUrl: a.thumbnailUrl,
+                      );
+                    },
+                  )
+                  : ListView.builder(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPadding + 8),
+                    itemCount: artists.length,
+                    itemBuilder: (_, i) {
+                      final a = artists[i];
+                      return ArtistTile(
                         artistId: a.artistId,
                         name: a.name,
                         thumbnailUrl: a.thumbnailUrl,

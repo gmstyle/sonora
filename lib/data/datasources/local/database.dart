@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -112,6 +112,16 @@ class AppDatabase extends _$AppDatabase {
         );
         if (!hasPlaylistEntriesIsVideo) {
           await m.addColumn(playlistEntries, playlistEntries.isVideo);
+        }
+      }
+      if (from < 13) {
+        final followedArtistsInfo =
+            await customSelect('PRAGMA table_info(followed_artists)').get();
+        final hasFollowedArtistsAddedAt = followedArtistsInfo.any(
+          (row) => row.read<String>('name') == 'added_at',
+        );
+        if (!hasFollowedArtistsAddedAt) {
+          await m.addColumn(followedArtists, followedArtists.addedAt);
         }
       }
     },

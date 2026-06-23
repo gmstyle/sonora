@@ -43,7 +43,12 @@ class AlbumsTab extends ConsumerWidget {
           child:
               isGridView
                   ? GridView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      top: 16,
+                      bottom: MediaQuery.of(context).padding.bottom + 16,
+                    ),
                     gridDelegate:
                         isMobile
                             ? const SliverGridDelegateWithFixedCrossAxisCount(
@@ -71,6 +76,9 @@ class AlbumsTab extends ConsumerWidget {
                     },
                   )
                   : ListView.builder(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).padding.bottom + 16,
+                    ),
                     itemCount: albums.length,
                     itemBuilder: (_, i) {
                       final a = albums[i];
@@ -131,7 +139,10 @@ class _ShimmerSongList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: 8,
-      padding: const EdgeInsets.only(top: 8),
+      padding: EdgeInsets.only(
+        top: 8,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
       itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );
   }

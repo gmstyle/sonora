@@ -2201,6 +2201,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
                   artist.thumbnails.isNotEmpty
                       ? artist.thumbnails.last.url
                       : null,
+              addedAt: DateTime.now(),
             ),
           );
         }

@@ -1134,6 +1134,7 @@ class _FollowButton extends ConsumerWidget {
                           artist.thumbnails.isNotEmpty
                               ? artist.thumbnails.last.url
                               : null,
+                      addedAt: DateTime.now(),
                     ),
                   );
             },
@@ -1159,6 +1160,7 @@ class _FollowButton extends ConsumerWidget {
                         artist.thumbnails.isNotEmpty
                             ? artist.thumbnails.last.url
                             : null,
+                    addedAt: DateTime.now(),
                   ),
                 );
           },

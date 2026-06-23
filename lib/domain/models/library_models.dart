@@ -29,11 +29,13 @@ class FollowedArtistModel {
   final String artistId;
   final String name;
   final String? thumbnailUrl;
+  final DateTime addedAt;
 
   const FollowedArtistModel({
     required this.artistId,
     required this.name,
     this.thumbnailUrl,
+    required this.addedAt,
   });
 }
 

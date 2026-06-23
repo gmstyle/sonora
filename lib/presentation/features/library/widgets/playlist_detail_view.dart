@@ -211,7 +211,8 @@ class _PlaylistDetailContentState
             .take(3)
             .toList();
 
-    final bottomPad = widget.isWide ? 48.0 : 16.0;
+    final bottomPad =
+        (widget.isWide ? 48.0 : 16.0) + MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       body: CustomScrollView(

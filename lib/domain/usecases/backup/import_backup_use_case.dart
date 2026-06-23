@@ -61,6 +61,10 @@ class ImportBackupUseCase {
           artistId: a['artistId'] as String,
           name: a['name'] as String,
           thumbnailUrl: a['thumbnailUrl'] as String?,
+          addedAt:
+              a['addedAt'] != null
+                  ? DateTime.parse(a['addedAt'] as String)
+                  : DateTime.now(),
         ),
       );
     }

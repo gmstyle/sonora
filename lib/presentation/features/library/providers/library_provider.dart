@@ -51,9 +51,9 @@ final librarySearchFilterProvider =
       LibrarySearchFilterNotifier.new,
     );
 
-final likedSongsProvider = FutureProvider<List<LikedSongModel>>((ref) {
+final likedSongsProvider = StreamProvider<List<LikedSongModel>>((ref) {
   final repo = ref.watch(libraryRepositoryProvider);
-  return repo.getAllLikedSongs();
+  return repo.watchAllLikedSongs();
 });
 
 final sortedLikedSongsProvider = Provider<AsyncValue<List<LikedSongModel>>>((
@@ -94,47 +94,47 @@ final sortedLikedSongsProvider = Provider<AsyncValue<List<LikedSongModel>>>((
   });
 });
 
-final followedArtistsProvider = FutureProvider<List<FollowedArtistModel>>((
+final followedArtistsProvider = StreamProvider<List<FollowedArtistModel>>((
   ref,
 ) {
   final repo = ref.watch(libraryRepositoryProvider);
-  return repo.getAllFollowedArtists();
+  return repo.watchAllFollowedArtists();
 });
 
-final sortedFollowedArtistsProvider = Provider<
-  AsyncValue<List<FollowedArtistModel>>
->((ref) {
-  final artistsAsync = ref.watch(followedArtistsProvider);
-  final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
-  final sortType = ref.watch(librarySortTypeProvider);
+final sortedFollowedArtistsProvider =
+    Provider<AsyncValue<List<FollowedArtistModel>>>((ref) {
+      final artistsAsync = ref.watch(followedArtistsProvider);
+      final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
+      final sortType = ref.watch(librarySortTypeProvider);
 
-  return artistsAsync.whenData((artists) {
-    var list = List<FollowedArtistModel>.from(artists);
-    if (query.isNotEmpty) {
-      list = list.where((a) => a.name.toLowerCase().contains(query)).toList();
-    }
+      return artistsAsync.whenData((artists) {
+        var list = List<FollowedArtistModel>.from(artists);
+        if (query.isNotEmpty) {
+          list =
+              list.where((a) => a.name.toLowerCase().contains(query)).toList();
+        }
 
-    switch (sortType) {
-      case LibrarySortType.alphabetical:
-        list.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
-      case LibrarySortType.alphabeticalReverse:
-        list.sort(
-          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
-        );
-      case LibrarySortType.recentlyAdded:
-      case LibrarySortType.leastRecentlyAdded:
-        // FollowedArtistModel doesn't have an addedAt field, so we keep the default
-        break;
-    }
-    return list;
-  });
-});
+        switch (sortType) {
+          case LibrarySortType.alphabetical:
+            list.sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            );
+          case LibrarySortType.alphabeticalReverse:
+            list.sort(
+              (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+            );
+          case LibrarySortType.recentlyAdded:
+            list.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+          case LibrarySortType.leastRecentlyAdded:
+            list.sort((a, b) => a.addedAt.compareTo(b.addedAt));
+        }
+        return list;
+      });
+    });
 
-final playlistsProvider = FutureProvider<List<LocalPlaylistModel>>((ref) {
+final playlistsProvider = StreamProvider<List<LocalPlaylistModel>>((ref) {
   final repo = ref.watch(libraryRepositoryProvider);
-  return repo.getAllPlaylists();
+  return repo.watchAllPlaylists();
 });
 
 final sortedPlaylistsProvider = Provider<AsyncValue<List<LocalPlaylistModel>>>((
@@ -177,14 +177,14 @@ final sortedPlaylistsProvider = Provider<AsyncValue<List<LocalPlaylistModel>>>((
 });
 
 final playlistEntriesProvider =
-    FutureProvider.family<List<PlaylistEntryModel>, int>((ref, playlistId) {
+    StreamProvider.family<List<PlaylistEntryModel>, int>((ref, playlistId) {
       final repo = ref.watch(libraryRepositoryProvider);
-      return repo.getPlaylistEntries(playlistId);
+      return repo.watchPlaylistEntries(playlistId);
     });
 
-final libraryHistoryProvider = FutureProvider<List<HistoryModel>>((ref) {
+final libraryHistoryProvider = StreamProvider<List<HistoryModel>>((ref) {
   final repo = ref.watch(libraryRepositoryProvider);
-  return repo.getRecentHistory(limit: 50);
+  return repo.watchRecentHistory(limit: 50);
 });
 
 final sortedHistoryProvider = Provider<AsyncValue<List<HistoryModel>>>((ref) {
@@ -223,9 +223,9 @@ final sortedHistoryProvider = Provider<AsyncValue<List<HistoryModel>>>((ref) {
   });
 });
 
-final likedAlbumsProvider = FutureProvider<List<LikedAlbumModel>>((ref) {
+final likedAlbumsProvider = StreamProvider<List<LikedAlbumModel>>((ref) {
   final repo = ref.watch(libraryRepositoryProvider);
-  return repo.getAllLikedAlbums();
+  return repo.watchAllLikedAlbums();
 });
 
 final sortedLikedAlbumsProvider = Provider<AsyncValue<List<LikedAlbumModel>>>((
@@ -266,9 +266,9 @@ final sortedLikedAlbumsProvider = Provider<AsyncValue<List<LikedAlbumModel>>>((
   });
 });
 
-final likedPlaylistsProvider = FutureProvider<List<LikedPlaylistModel>>((ref) {
+final likedPlaylistsProvider = StreamProvider<List<LikedPlaylistModel>>((ref) {
   final repo = ref.watch(libraryRepositoryProvider);
-  return repo.getAllLikedPlaylists();
+  return repo.watchAllLikedPlaylists();
 });
 
 final sortedLikedPlaylistsProvider =

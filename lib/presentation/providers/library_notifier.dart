@@ -4,38 +4,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/library_models.dart';
 import '../../domain/repositories/library_repository.dart';
 import '../../domain/repositories/music_repository.dart';
-import '../features/library/providers/library_provider.dart';
 import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
 
 // ── Single-item query providers ───────────────────────────────────────────────
 
 /// Watches whether a specific song is liked. Invalided by [LibraryNotifier].
-final likedSongProvider = FutureProvider.family<LikedSongModel?, String>((
+final likedSongProvider = StreamProvider.family<LikedSongModel?, String>((
   ref,
   videoId,
 ) {
-  return ref.watch(libraryRepositoryProvider).getLikedSong(videoId);
+  return ref.watch(libraryRepositoryProvider).watchLikedSong(videoId);
 });
 
-/// Watches whether a specific artist is followed. Invalided by [LibraryNotifier].
+/// Watches whether a specific artist is followed. Reacts to database streams.
 final followedArtistProvider =
-    FutureProvider.family<FollowedArtistModel?, String>((ref, artistId) {
-      return ref.watch(libraryRepositoryProvider).getFollowedArtist(artistId);
+    StreamProvider.family<FollowedArtistModel?, String>((ref, artistId) {
+      return ref.watch(libraryRepositoryProvider).watchFollowedArtist(artistId);
     });
 
-/// Watches whether a specific album is liked. Invalidated by [LibraryNotifier].
-final likedAlbumProvider = FutureProvider.family<LikedAlbumModel?, String>((
+/// Watches whether a specific album is liked. Reacts to database streams.
+final likedAlbumProvider = StreamProvider.family<LikedAlbumModel?, String>((
   ref,
   albumId,
 ) {
-  return ref.watch(libraryRepositoryProvider).getLikedAlbum(albumId);
+  return ref.watch(libraryRepositoryProvider).watchLikedAlbum(albumId);
 });
 
-/// Watches whether a specific playlist is liked. Invalidated by [LibraryNotifier].
+/// Watches whether a specific playlist is liked. Reacts to database streams.
 final likedPlaylistProvider =
-    FutureProvider.family<LikedPlaylistModel?, String>((ref, playlistId) {
-      return ref.watch(libraryRepositoryProvider).getLikedPlaylist(playlistId);
+    StreamProvider.family<LikedPlaylistModel?, String>((ref, playlistId) {
+      return ref
+          .watch(libraryRepositoryProvider)
+          .watchLikedPlaylist(playlistId);
     });
 
 // ── LibraryNotifier ───────────────────────────────────────────────────────────
@@ -58,14 +59,10 @@ class LibraryNotifier extends Notifier<void> {
 
   Future<void> toggleLikedSong(LikedSongModel song) async {
     await _repo.toggleLikedSong(song);
-    ref.invalidate(likedSongProvider(song.videoId));
-    ref.invalidate(likedSongsProvider);
   }
 
   Future<void> deleteLikedSong(String videoId) async {
     await _repo.deleteLikedSong(videoId);
-    ref.invalidate(likedSongProvider(videoId));
-    ref.invalidate(likedSongsProvider);
   }
 
   Future<void> updateLikedSongMetadata(
@@ -78,38 +75,28 @@ class LibraryNotifier extends Notifier<void> {
       artistId: artistId,
       albumId: albumId,
     );
-    ref.invalidate(likedSongProvider(videoId));
-    ref.invalidate(likedSongsProvider);
   }
 
   // ── Followed artists ─────────────────────────────────────────────────────────
 
   Future<void> toggleFollowedArtist(FollowedArtistModel artist) async {
     await _repo.toggleFollowedArtist(artist);
-    ref.invalidate(followedArtistProvider(artist.artistId));
-    ref.invalidate(followedArtistsProvider);
   }
 
   // ── Liked Albums ─────────────────────────────────────────────────────────────
 
   Future<void> toggleLikedAlbum(LikedAlbumModel album) async {
     await _repo.toggleLikedAlbum(album);
-    ref.invalidate(likedAlbumProvider(album.albumId));
-    ref.invalidate(likedAlbumsProvider);
   }
 
   Future<void> deleteLikedAlbum(String albumId) async {
     await _repo.deleteLikedAlbum(albumId);
-    ref.invalidate(likedAlbumProvider(albumId));
-    ref.invalidate(likedAlbumsProvider);
   }
 
   // ── Liked Playlists ──────────────────────────────────────────────────────────
 
   Future<void> toggleLikedPlaylist(LikedPlaylistModel playlist) async {
     await _repo.toggleLikedPlaylist(playlist);
-    ref.invalidate(likedPlaylistProvider(playlist.playlistId));
-    ref.invalidate(likedPlaylistsProvider);
   }
 
   bool _thumbnailRefreshRunning = false;
@@ -132,7 +119,6 @@ class LibraryNotifier extends Notifier<void> {
               )
               .toList();
       if (stale.isEmpty) return;
-      var changed = false;
       for (final playlist in stale) {
         try {
           final fresh = await _musicRepo.getPlaylist(playlist.playlistId);
@@ -143,7 +129,6 @@ class LibraryNotifier extends Notifier<void> {
               playlist.playlistId,
               freshUrl,
             );
-            changed = true;
           }
           _recentlyRefreshedPlaylists.add(playlist.playlistId);
           if (_recentlyRefreshedPlaylists.length > 100) {
@@ -151,7 +136,6 @@ class LibraryNotifier extends Notifier<void> {
           }
         } catch (_) {}
       }
-      if (changed) ref.invalidate(likedPlaylistsProvider);
     } finally {
       _thumbnailRefreshRunning = false;
     }
@@ -161,17 +145,14 @@ class LibraryNotifier extends Notifier<void> {
 
   Future<void> createPlaylist(String name) async {
     await _repo.createPlaylist(name);
-    ref.invalidate(playlistsProvider);
   }
 
   Future<void> deletePlaylist(int id) async {
     await _repo.deletePlaylist(id);
-    ref.invalidate(playlistsProvider);
   }
 
   Future<void> updatePlaylist(int id, {String? name}) async {
     await _repo.updatePlaylist(id, name: name);
-    ref.invalidate(playlistsProvider);
   }
 
   // ── Playlist entries ─────────────────────────────────────────────────────────
@@ -195,12 +176,10 @@ class LibraryNotifier extends Notifier<void> {
       thumbnailUrl: thumbnailUrl,
       isVideo: isVideo,
     );
-    ref.invalidate(playlistEntriesProvider(playlistId));
   }
 
   Future<void> removeEntry(int playlistId, String videoId) async {
     await _repo.removeEntry(playlistId, videoId);
-    ref.invalidate(playlistEntriesProvider(playlistId));
   }
 
   /// Persists a new position order for all entries in [playlistId].

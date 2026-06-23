@@ -27,7 +27,8 @@ class LibraryTabletLayout extends ConsumerWidget {
     final selectedIndex = ref.watch(libraryActiveTabProvider);
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
-    final isAlbumsOrPlaylists = selectedIndex == 2 || selectedIndex == 3;
+    final isListOrGridTab =
+        selectedIndex == 1 || selectedIndex == 2 || selectedIndex == 3;
 
     return Scaffold(
       appBar: AppBar(
@@ -67,7 +68,7 @@ class LibraryTabletLayout extends ConsumerWidget {
               ),
             ),
           LibraryHeaderControls(
-            showViewSwitcher: !isSearchActive && isAlbumsOrPlaylists,
+            showViewSwitcher: !isSearchActive && isListOrGridTab,
           ),
           const SizedBox(height: 8),
           Expanded(

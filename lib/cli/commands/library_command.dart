@@ -89,7 +89,11 @@ class LibraryCommand {
           return CliOutput.success('Added album "$title" to library.');
         case 'artist':
           await _provider.libraryRepo.ensureFollowedArtist(
-            FollowedArtistModel(artistId: id, name: title),
+            FollowedArtistModel(
+              artistId: id,
+              name: title,
+              addedAt: DateTime.now(),
+            ),
           );
           return CliOutput.success('Followed artist "$title".');
         case 'playlist':
@@ -199,7 +203,15 @@ class LibraryCommand {
       'command': 'library',
       'type': 'artists',
       'results':
-          items.map((a) => {'artistId': a.artistId, 'name': a.name}).toList(),
+          items
+              .map(
+                (a) => {
+                  'artistId': a.artistId,
+                  'name': a.name,
+                  'addedAt': a.addedAt.toIso8601String(),
+                },
+              )
+              .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Followed Artists:');
