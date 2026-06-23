@@ -121,7 +121,12 @@ class AppDatabase extends _$AppDatabase {
           (row) => row.read<String>('name') == 'added_at',
         );
         if (!hasFollowedArtistsAddedAt) {
-          await m.addColumn(followedArtists, followedArtists.addedAt);
+          await m.alterTable(
+            TableMigration(
+              followedArtists,
+              columnTransformer: {followedArtists.addedAt: currentDateAndTime},
+            ),
+          );
         }
       }
     },
