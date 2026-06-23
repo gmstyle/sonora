@@ -27,6 +27,7 @@ class HomeWideLayout extends ConsumerWidget {
     final activeChipParams = ref.watch(homeSelectedChipParamsProvider);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           _getGreeting(context),
@@ -67,7 +68,10 @@ class HomeWideLayout extends ConsumerWidget {
               (sections) => RefreshIndicator(
                 onRefresh: () => ref.refresh(homeResultProvider.future),
                 child: ListView(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+                    bottom: 16,
+                  ),
                   children: [
                     const HomeChipsBar(),
                     if (activeChipParams == null) ...[

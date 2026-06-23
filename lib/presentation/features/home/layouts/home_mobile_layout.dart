@@ -28,6 +28,7 @@ class HomeMobileLayout extends ConsumerWidget {
     final activeChipParams = ref.watch(homeSelectedChipParamsProvider);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Row(
           spacing: 8,
@@ -75,6 +76,7 @@ class HomeMobileLayout extends ConsumerWidget {
                 onRefresh: () => ref.refresh(homeResultProvider.future),
                 child: ListView(
                   padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
                     bottom: MediaQuery.of(context).padding.bottom + 16,
                   ),
                   children: [

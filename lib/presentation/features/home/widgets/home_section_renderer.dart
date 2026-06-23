@@ -31,8 +31,9 @@ class HomeShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight;
     return ListView(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(top: topPadding + 8, bottom: 16),
       children: const [
         ShimmerLoading(variant: ShimmerVariant.chipsBar),
         ShimmerLoading(variant: ShimmerVariant.section),
@@ -1272,7 +1273,38 @@ class AmbientBackground extends ConsumerWidget {
 
     Widget backgroundWidget;
 
-    if (currentSong != null) {
+    if (backgroundUrl != null && backgroundUrl.isNotEmpty) {
+      backgroundWidget = Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          key: const ValueKey('image_bg'),
+          width: double.infinity,
+          height: MediaQuery.of(context).size.height * 0.45,
+          foregroundDecoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Theme.of(context).colorScheme.surface.withValues(
+                  alpha: isThemeDark ? 0.15 : 0.08,
+                ),
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+                Theme.of(context).colorScheme.surface,
+              ],
+              stops: const [0.0, 0.6, 1.0],
+            ),
+          ),
+          child: ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: CachedNetworkImage(
+              imageUrl: backgroundUrl,
+              fit: BoxFit.cover,
+              errorWidget: (_, _, _) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      );
+    } else if (currentSong != null) {
       final ambientColor = dominantColor.withValues(
         alpha: isThemeDark ? 0.15 : 0.08,
       );
@@ -1285,33 +1317,6 @@ class AmbientBackground extends ConsumerWidget {
             end: Alignment.bottomCenter,
             colors: [ambientColor, Theme.of(context).colorScheme.surface],
             stops: const [0.0, 0.45],
-          ),
-        ),
-      );
-    } else if (backgroundUrl != null && backgroundUrl.isNotEmpty) {
-      backgroundWidget = Container(
-        key: const ValueKey('image_bg'),
-        width: double.infinity,
-        height: MediaQuery.of(context).size.height * 0.45,
-        foregroundDecoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(
-                context,
-              ).colorScheme.surface.withValues(alpha: isThemeDark ? 0.5 : 0.3),
-              Theme.of(context).colorScheme.surface,
-            ],
-            stops: const [0.0, 1.0],
-          ),
-        ),
-        child: ImageFiltered(
-          imageFilter: ui.ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-          child: CachedNetworkImage(
-            imageUrl: backgroundUrl,
-            fit: BoxFit.cover,
-            errorWidget: (_, _, _) => const SizedBox.shrink(),
           ),
         ),
       );
