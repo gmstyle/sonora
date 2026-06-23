@@ -208,6 +208,7 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                 widget.playerState.sleepTimerRemaining != null,
                 widget.playerNotifier,
                 widget.activeView,
+                isMobile: true,
               ),
               const SizedBox(height: 16),
             ],

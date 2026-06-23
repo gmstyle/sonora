@@ -387,109 +387,105 @@ Widget buildBottomActionsRow(
   bool isVideo,
   bool hasTimer,
   PlayerNotifier playerNotifier,
-  PlayerSubView activeView,
-) {
+  PlayerSubView activeView, {
+  bool isMobile = false,
+}) {
   final theme = Theme.of(context);
   return Row(
-    mainAxisAlignment: MainAxisAlignment.end,
+    mainAxisAlignment:
+        isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
     children: [
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(LucideIcons.share2),
-            onPressed: () {
-              final currentSong = ref.read(playerStateProvider).currentSong;
-              final vId =
-                  currentSong?.extras?['videoId'] as String? ?? currentSong?.id;
-              if (vId != null) {
-                SharePlus.instance.share(
-                  ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),
-                );
-              }
-            },
-            tooltip: AppLocalizations.of(context)!.share,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          CastButton(size: 22, color: theme.colorScheme.onSurfaceVariant),
-          if (isVideo) ...[
-            Builder(
-              builder: (context) {
-                final videoState = ref.watch(videoPlayerProvider);
-                return IconButton(
-                  icon: Icon(
-                    videoState.isVideoVisible
-                        ? LucideIcons.monitor
-                        : LucideIcons.monitorOff,
-                    color:
-                        videoState.isVideoVisible
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                  ),
-                  onPressed: () {
-                    ref.read(videoPlayerProvider.notifier).toggleVisibility();
-                  },
-                  tooltip:
-                      videoState.isVideoVisible ? 'Hide video' : 'Show video',
-                );
-              },
-            ),
-          ],
-          if (!isVideo)
-            IconButton(
+      IconButton(
+        icon: const Icon(LucideIcons.share2),
+        onPressed: () {
+          final currentSong = ref.read(playerStateProvider).currentSong;
+          final vId =
+              currentSong?.extras?['videoId'] as String? ?? currentSong?.id;
+          if (vId != null) {
+            SharePlus.instance.share(
+              ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),
+            );
+          }
+        },
+        tooltip: AppLocalizations.of(context)!.share,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+      CastButton(size: 22, color: theme.colorScheme.onSurfaceVariant),
+      if (isVideo) ...[
+        Builder(
+          builder: (context) {
+            final videoState = ref.watch(videoPlayerProvider);
+            return IconButton(
               icon: Icon(
-                LucideIcons.micVocal,
+                videoState.isVideoVisible
+                    ? LucideIcons.monitor
+                    : LucideIcons.monitorOff,
                 color:
-                    activeView == PlayerSubView.lyrics
+                    videoState.isVideoVisible
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
-                ref
-                    .read(playerSubViewProvider.notifier)
-                    .set(
-                      activeView == PlayerSubView.lyrics
-                          ? PlayerSubView.none
-                          : PlayerSubView.lyrics,
-                    );
+                ref.read(videoPlayerProvider.notifier).toggleVisibility();
               },
-              tooltip: AppLocalizations.of(context)!.lyrics,
-            ),
-          IconButton(
-            icon: Icon(
-              LucideIcons.listMusic,
-              color:
-                  activeView == PlayerSubView.queue
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-            ),
-            onPressed: () {
-              ref
-                  .read(playerSubViewProvider.notifier)
-                  .set(
-                    activeView == PlayerSubView.queue
-                        ? PlayerSubView.none
-                        : PlayerSubView.queue,
-                  );
-            },
-            tooltip: AppLocalizations.of(context)!.queue,
+              tooltip: videoState.isVideoVisible ? 'Hide video' : 'Show video',
+            );
+          },
+        ),
+      ],
+      if (!isVideo)
+        IconButton(
+          icon: Icon(
+            LucideIcons.micVocal,
+            color:
+                activeView == PlayerSubView.lyrics
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
           ),
-          IconButton(
-            icon: Icon(
-              LucideIcons.timer,
-              size: 22,
-              color:
-                  hasTimer
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            onPressed: () => showPlayerTimerDialog(context, playerNotifier),
-            tooltip:
-                hasTimer
-                    ? AppLocalizations.of(context)!.sleepTimerActive
-                    : AppLocalizations.of(context)!.sleepTimer,
-          ),
-        ],
+          onPressed: () {
+            ref
+                .read(playerSubViewProvider.notifier)
+                .set(
+                  activeView == PlayerSubView.lyrics
+                      ? PlayerSubView.none
+                      : PlayerSubView.lyrics,
+                );
+          },
+          tooltip: AppLocalizations.of(context)!.lyrics,
+        ),
+      IconButton(
+        icon: Icon(
+          LucideIcons.listMusic,
+          color:
+              activeView == PlayerSubView.queue
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+        ),
+        onPressed: () {
+          ref
+              .read(playerSubViewProvider.notifier)
+              .set(
+                activeView == PlayerSubView.queue
+                    ? PlayerSubView.none
+                    : PlayerSubView.queue,
+              );
+        },
+        tooltip: AppLocalizations.of(context)!.queue,
+      ),
+      IconButton(
+        icon: Icon(
+          LucideIcons.timer,
+          size: 22,
+          color:
+              hasTimer
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        onPressed: () => showPlayerTimerDialog(context, playerNotifier),
+        tooltip:
+            hasTimer
+                ? AppLocalizations.of(context)!.sleepTimerActive
+                : AppLocalizations.of(context)!.sleepTimer,
       ),
     ],
   );
