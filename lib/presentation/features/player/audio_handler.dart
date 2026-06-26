@@ -628,12 +628,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   /// Pre-resolves stream URLs for pending items ([needsUrl]) before they
   /// become current: resolves the item at [currentIndex] if needed (user
-  /// skipped to a pending track), and proactively resolves the next 2 items
+  /// skipped to a pending track), and proactively resolves the next item
   /// so playback can transition seamlessly.
+  ///
+  /// Look-ahead is intentionally limited to 1 item (instead of 2) to reduce
+  /// the number of concurrent YouTube requests and avoid rate limiting.
   Future<void> _resolvePendingItems(int currentIndex) async {
     await _resolveSinglePendingItem(currentIndex);
     await _resolveSinglePendingItem(currentIndex + 1);
-    await _resolveSinglePendingItem(currentIndex + 2);
   }
 
   /// Resolves the stream URL for a single item in the playlist.
