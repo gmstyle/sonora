@@ -342,6 +342,23 @@ When a device is connected:
 **Alexa Support:**
 Since Echo devices often don't support open casting protocols reliably, Sonora provides a shortcut to **Bluetooth Settings** within the Cast Dialog to facilitate manual pairing for Alexa speakers.
 
+### 6.5 Internet Connectivity & Offline Playback
+
+Sonora monitors network state globally using `connectivity_plus` to handle offline scenarios gracefully.
+
+- **Connectivity Providers** (`lib/presentation/providers/connectivity_provider.dart`):
+  - `connectivityStatusProvider`: Streams connectivity status (`isConnected` / `isDisconnected`) by listening to `Connectivity().onConnectivityChanged`.
+  - `isOfflineProvider`: Renders a simple boolean (`isOffline`) check.
+- **Offline Playback Guard in `PlayVideoIdUseCase`**:
+  - Checks if the requested track is downloaded local-first. If yes, builds `MediaItem` directly from `DownloadModel` metadata, bypassing all network metadata calls.
+  - If a download doesn't exist and the device is offline, it throws a fast `SocketException` immediately to prevent pending network queries.
+  - All remote metadata and streaming URL requests are bounded by a `10-second` timeout threshold to recover gracefully from weak/slow connections.
+- **Offline Banner**:
+  - `OfflineBanner` is a global glassmorphic pill located in `AppShell`. It slides in from the top of the viewport when offline, displaying a warning message.
+  - When connection is restored, it transitions to a green success state for 2 seconds and slides out.
+- **Error Interception**:
+  - `PlayerErrorListener` and `ErrorRetryWidget` intercept raw socket/timeout exceptions and format them into localized user-friendly messages (`weakConnectionError`).
+
 ---
 
 ## 7. Adaptive UI
