@@ -317,5 +317,8 @@
   "disconnect": "Disconnetti",
   "alexaBluetooth": "Amazon Alexa (Bluetooth)",
   "alexaBluetoothInstructions": "Dì \"Alexa, connetti Bluetooth\" ed esegui l'accoppiamento dal pannello del tuo dispositivo.",
-  "openBluetoothSettings": "Apri impostazioni Bluetooth"
+  "openBluetoothSettings": "Apri impostazioni Bluetooth",
+  "offlineNotification": "Sei offline. Puoi riprodurre solo i brani scaricati",
+  "connectionRestored": "Connessione ripristinata",
+  "weakConnectionError": "La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati."
 }

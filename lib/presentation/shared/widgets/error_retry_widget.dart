@@ -14,6 +14,23 @@ class ErrorRetryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String displayMessage = message;
+    final lower = message.toLowerCase();
+
+    if (lower.contains('offline') ||
+        lower.contains('socketexception') ||
+        lower.contains('timeout') ||
+        lower.contains('network') ||
+        lower.contains('connection failed') ||
+        lower.contains('handshakeexception') ||
+        lower.contains('failed to host') ||
+        lower.contains('connection timed out')) {
+      final l10n = AppLocalizations.of(context);
+      if (l10n != null) {
+        displayMessage = l10n.weakConnectionError;
+      }
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -27,7 +44,7 @@ class ErrorRetryWidget extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              message,
+              displayMessage,
               style: Theme.of(context).textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),

@@ -886,4 +886,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openBluetoothSettings => 'Open Bluetooth Settings';
+
+  @override
+  String get offlineNotification => 'You are offline. Downloaded tracks only';
+
+  @override
+  String get connectionRestored => 'Connection restored';
+
+  @override
+  String get weakConnectionError =>
+      'Internet connection is weak or absent. Please check your network or play downloaded tracks.';
 }

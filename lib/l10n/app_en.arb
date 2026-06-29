@@ -457,5 +457,8 @@
   "disconnect": "Disconnect",
   "alexaBluetooth": "Amazon Alexa (Bluetooth)",
   "alexaBluetoothInstructions": "Say \"Alexa, connect Bluetooth\" and pair from your device's panel.",
-  "openBluetoothSettings": "Open Bluetooth Settings"
+  "openBluetoothSettings": "Open Bluetooth Settings",
+  "offlineNotification": "You are offline. Downloaded tracks only",
+  "connectionRestored": "Connection restored",
+  "weakConnectionError": "Internet connection is weak or absent. Please check your network or play downloaded tracks."
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
 
@@ -16,8 +17,48 @@ class PlayVideoIdUseCase {
   PlayVideoIdUseCase(this._repo, [this._libraryRepo]);
 
   Future<MediaItem> execute(String videoId, {bool? isVideoHint}) async {
+    // 1. Check if we have a local download first
+    if (_libraryRepo != null) {
+      try {
+        final download = await _libraryRepo.getDownload(videoId);
+        if (download != null &&
+            download.status == 'completed' &&
+            download.localPath != null) {
+          final file = File(download.localPath!);
+          if (await file.exists()) {
+            final url = file.uri.toString();
+            final extras = <String, dynamic>{
+              'url': url,
+              'videoId': videoId,
+              'isVideo': download.isVideo,
+            };
+            return MediaItem(
+              id: videoId,
+              title: download.title,
+              artist: download.artist,
+              duration: Duration.zero, // Resolved dynamically during playback
+              artUri:
+                  download.thumbnailUrl != null &&
+                          download.thumbnailUrl!.isNotEmpty
+                      ? Uri.parse(download.thumbnailUrl!)
+                      : null,
+              extras: extras,
+            );
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. If not downloaded, fail fast if offline
+    final offline = await _isOffline();
+    if (offline) {
+      throw const SocketException(
+        'Offline: internet connection is required to stream music.',
+      );
+    }
+
     // Pre-warm: start stream URL resolution in parallel with metadata fetch
-    final urlFuture = resolveUrl(videoId);
+    final urlFuture = resolveUrl(videoId).timeout(const Duration(seconds: 10));
 
     String title, artist, thumbnailUrl;
     int durationSec;
@@ -29,7 +70,9 @@ class PlayVideoIdUseCase {
     String? albumId;
 
     try {
-      final song = await _repo.getSong(videoId);
+      final song = await _repo
+          .getSong(videoId)
+          .timeout(const Duration(seconds: 10));
       title = song.name;
       artist = song.artist.name;
       durationSec = song.duration;
@@ -40,7 +83,9 @@ class PlayVideoIdUseCase {
       artistId = song.artist.artistId;
       albumId = song.album?.albumId;
     } catch (_) {
-      final video = await _repo.getVideo(videoId);
+      final video = await _repo
+          .getVideo(videoId)
+          .timeout(const Duration(seconds: 10));
       title = video.name;
       artist = video.artist.name;
       durationSec = video.duration;
@@ -93,12 +138,29 @@ class PlayVideoIdUseCase {
         }
       } catch (_) {}
     }
+
+    // Fail fast if offline
+    final offline = await _isOffline();
+    if (offline) {
+      throw const SocketException('Offline: cannot resolve stream URL.');
+    }
+
     return await resolveStreamUrl(videoId);
   }
 
   /// Resolves only the audio stream URL for [videoId].
   /// Used when metadata (title, artist, etc.) is already available from the UI.
   Future<String> resolveStreamUrl(String videoId) async {
-    return _repo.getStreamUrl(videoId);
+    return _repo.getStreamUrl(videoId).timeout(const Duration(seconds: 10));
+  }
+
+  Future<bool> _isOffline() async {
+    try {
+      final results = await Connectivity().checkConnectivity();
+      return results.isEmpty ||
+          (results.length == 1 && results.contains(ConnectivityResult.none));
+    } catch (_) {
+      return true; // Safe fallback: assume offline
+    }
   }
 }

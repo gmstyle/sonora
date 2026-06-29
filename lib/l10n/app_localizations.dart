@@ -1633,6 +1633,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open Bluetooth Settings'**
   String get openBluetoothSettings;
+
+  /// No description provided for @offlineNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline. Downloaded tracks only'**
+  String get offlineNotification;
+
+  /// No description provided for @connectionRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection restored'**
+  String get connectionRestored;
+
+  /// No description provided for @weakConnectionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Internet connection is weak or absent. Please check your network or play downloaded tracks.'**
+  String get weakConnectionError;
 }
 
 class _AppLocalizationsDelegate
