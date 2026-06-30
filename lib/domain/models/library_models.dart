@@ -12,6 +12,7 @@ class LikedSongModel {
   final String? albumId;
   final DateTime addedAt;
   final bool isVideo;
+  final int? duration;
 
   const LikedSongModel({
     required this.videoId,
@@ -22,6 +23,7 @@ class LikedSongModel {
     this.albumId,
     required this.addedAt,
     this.isVideo = false,
+    this.duration,
   });
 }
 
@@ -142,6 +144,7 @@ class HistoryModel {
   final DateTime playedAt;
   final int playCount;
   final bool isVideo;
+  final int? duration;
 
   const HistoryModel({
     required this.id,
@@ -152,6 +155,7 @@ class HistoryModel {
     required this.playedAt,
     required this.playCount,
     this.isVideo = false,
+    this.duration,
   });
 }
 

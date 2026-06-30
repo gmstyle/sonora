@@ -49,6 +49,7 @@ class PlaySmartMixUseCase {
       id: s.videoId,
       title: s.title,
       artist: s.artist,
+      duration: s.duration != null ? Duration(seconds: s.duration!) : null,
       artUri: s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
       extras: extras,
     );

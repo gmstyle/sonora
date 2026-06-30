@@ -32,6 +32,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     String title,
     String artist, {
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
   }) async {
     // Fetch ALL rows for this videoId (oldest bug may have produced duplicates).
@@ -52,6 +53,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
           playedAt: Value(DateTime.now()),
           playCount: Value(latest.playCount + 1),
           thumbnailUrl: Value(thumbnailUrl ?? latest.thumbnailUrl),
+          duration: duration != null ? Value(duration) : Value(latest.duration),
           isVideo: Value(isVideo),
         ),
       );
@@ -64,6 +66,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
           thumbnailUrl: Value(thumbnailUrl),
           playedAt: Value(DateTime.now()),
           playCount: const Value(1),
+          duration: Value(duration),
           isVideo: Value(isVideo),
         ),
       );
@@ -95,6 +98,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     String title,
     String artist, {
     String? thumbnailUrl,
+    int? duration,
     required DateTime playedAt,
     int playCount = 1,
     bool isVideo = false,
@@ -106,6 +110,7 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
       thumbnailUrl: Value(thumbnailUrl),
       playedAt: Value(playedAt),
       playCount: Value(playCount),
+      duration: Value(duration),
       isVideo: Value(isVideo),
     ),
   );

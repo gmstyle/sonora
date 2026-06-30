@@ -65,6 +65,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
           albumId: Value(song.albumId),
           addedAt: song.addedAt,
           isVideo: Value(song.isVideo),
+          duration: Value(song.duration),
         ),
       );
     }
@@ -82,6 +83,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         albumId: Value(song.albumId),
         addedAt: song.addedAt,
         isVideo: Value(song.isVideo),
+        duration: Value(song.duration),
       ),
     );
   }
@@ -503,6 +505,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             playedAt: r.playedAt,
             playCount: r.playCount,
             isVideo: r.isVideo,
+            duration: r.duration,
           ),
         )
         .toList();
@@ -525,6 +528,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
                       playedAt: r.playedAt,
                       playCount: r.playCount,
                       isVideo: r.isVideo,
+                      duration: r.duration,
                     ),
                   )
                   .toList(),
@@ -545,6 +549,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             playedAt: r.playedAt,
             playCount: r.playCount,
             isVideo: r.isVideo,
+            duration: r.duration,
           ),
         )
         .toList();
@@ -567,6 +572,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
                       playedAt: r.playedAt,
                       playCount: r.playCount,
                       isVideo: r.isVideo,
+                      duration: r.duration,
                     ),
                   )
                   .toList(),
@@ -579,12 +585,14 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String title,
     String artist, {
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
   }) => _historyDao.recordPlay(
     videoId,
     title,
     artist,
     thumbnailUrl: thumbnailUrl,
+    duration: duration,
     isVideo: isVideo,
   );
 
@@ -597,6 +605,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String title,
     String artist, {
     String? thumbnailUrl,
+    int? duration,
     required DateTime playedAt,
     int playCount = 1,
     bool isVideo = false,
@@ -605,6 +614,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     title,
     artist,
     thumbnailUrl: thumbnailUrl,
+    duration: duration,
     playedAt: playedAt,
     playCount: playCount,
     isVideo: isVideo,
@@ -654,6 +664,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     albumId: r.albumId,
     addedAt: r.addedAt,
     isVideo: r.isVideo,
+    duration: r.duration,
   );
 
   FollowedArtistModel _mapFollowedArtist(FollowedArtist r) =>

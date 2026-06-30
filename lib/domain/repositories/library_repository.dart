@@ -93,6 +93,7 @@ abstract class LibraryRepository {
     String title,
     String artist, {
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
   });
   Future<void> insertHistoryEntry(
@@ -100,6 +101,7 @@ abstract class LibraryRepository {
     String title,
     String artist, {
     String? thumbnailUrl,
+    int? duration,
     required DateTime playedAt,
     int playCount = 1,
     bool isVideo = false,

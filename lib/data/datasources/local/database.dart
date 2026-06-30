@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -127,6 +127,25 @@ class AppDatabase extends _$AppDatabase {
               columnTransformer: {followedArtists.addedAt: currentDateAndTime},
             ),
           );
+        }
+      }
+      if (from < 14) {
+        final likedSongsInfo =
+            await customSelect('PRAGMA table_info(liked_songs)').get();
+        final hasLikedSongsDuration = likedSongsInfo.any(
+          (row) => row.read<String>('name') == 'duration',
+        );
+        if (!hasLikedSongsDuration) {
+          await m.addColumn(likedSongs, likedSongs.duration);
+        }
+
+        final historyInfo =
+            await customSelect('PRAGMA table_info(history)').get();
+        final hasHistoryDuration = historyInfo.any(
+          (row) => row.read<String>('name') == 'duration',
+        );
+        if (!hasHistoryDuration) {
+          await m.addColumn(history, history.duration);
         }
       }
     },

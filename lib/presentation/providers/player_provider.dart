@@ -286,6 +286,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
                 item.title,
                 item.artist ?? 'Unknown Artist',
                 thumbnailUrl: item.artUri?.toString(),
+                duration: item.duration?.inSeconds,
                 isVideo: item.extras?['isVideo'] == true,
               );
         }

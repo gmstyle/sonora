@@ -421,7 +421,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                       final title = song.title;
                       final artist = song.artist;
                       final thumbnailUrl = song.thumbnailUrl;
-                      const int? duration = null;
+                      final duration = song.duration;
                       final isVideo = song.isVideo;
 
                       String? playCountStr;

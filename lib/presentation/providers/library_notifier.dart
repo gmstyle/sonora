@@ -198,6 +198,7 @@ class LibraryNotifier extends Notifier<void> {
     String title,
     String artist, {
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
   }) async {
     await _repo.recordPlay(
@@ -205,6 +206,7 @@ class LibraryNotifier extends Notifier<void> {
       title,
       artist,
       thumbnailUrl: thumbnailUrl,
+      duration: duration,
       isVideo: isVideo,
     );
   }
