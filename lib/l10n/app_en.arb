@@ -466,5 +466,14 @@
   "offlineModeHint": "Only show downloaded content and local playlists",
   "offlineModeActiveMessage": "You are in offline mode. Displaying local content.",
   "offlineModeDisabled": "Offline mode disabled",
-  "noConnectionMessage": "No internet connection. Check your network."
+  "noConnectionMessage": "No internet connection. Check your network.",
+  "importPlaylist": "Import Playlist",
+  "youtubePlaylistUrl": "YouTube Playlist URL or ID",
+  "playlistUrlRequired": "A playlist URL or ID is required",
+  "playlistImported": "Playlist imported successfully",
+  "importing": "Importing...",
+  "import": "Import",
+  "invalidPlaylistUrlOrId": "Invalid YouTube playlist URL or ID",
+  "playlistEmptyError": "The playlist is empty or could not be retrieved",
+  "playlistSyncError": "An error occurred while syncing. Please check your internet connection."
 }

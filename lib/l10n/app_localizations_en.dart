@@ -917,4 +917,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noConnectionMessage =>
       'No internet connection. Check your network.';
+
+  @override
+  String get importPlaylist => 'Import Playlist';
+
+  @override
+  String get youtubePlaylistUrl => 'YouTube Playlist URL or ID';
+
+  @override
+  String get playlistUrlRequired => 'A playlist URL or ID is required';
+
+  @override
+  String get playlistImported => 'Playlist imported successfully';
+
+  @override
+  String get importing => 'Importing...';
+
+  @override
+  String get invalidPlaylistUrlOrId => 'Invalid YouTube playlist URL or ID';
+
+  @override
+  String get playlistEmptyError =>
+      'The playlist is empty or could not be retrieved';
+
+  @override
+  String get playlistSyncError =>
+      'An error occurred while syncing. Please check your internet connection.';
 }

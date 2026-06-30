@@ -31,6 +31,7 @@ class LibraryMobileLayout extends ConsumerWidget {
         selectedIndex == 1 || selectedIndex == 2 || selectedIndex == 3;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
           AppLocalizations.of(context)!.library,

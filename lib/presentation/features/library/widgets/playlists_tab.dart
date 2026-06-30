@@ -16,6 +16,7 @@ import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../providers/library_provider.dart';
 import 'create_playlist_dialog.dart';
+import 'import_playlist_dialog.dart';
 import 'playlist_detail_view.dart';
 
 class PlaylistsTab extends ConsumerStatefulWidget {
@@ -90,6 +91,12 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
+                IconButton.filled(
+                  icon: const Icon(LucideIcons.import),
+                  tooltip: AppLocalizations.of(context)!.importPlaylist,
+                  onPressed: _importPlaylist,
+                ),
+                const SizedBox(width: 8),
                 IconButton.filled(
                   icon: const Icon(LucideIcons.plus),
                   tooltip: AppLocalizations.of(context)!.createPlaylist,
@@ -262,6 +269,24 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
     if (result != null && result.isNotEmpty) {
       await ref.read(libraryNotifierProvider.notifier).createPlaylist(result);
       ref.invalidate(playlistsProvider);
+    }
+  }
+
+  Future<void> _importPlaylist() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => const ImportPlaylistDialog(),
+    );
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.playlistImported ??
+                "Playlist imported successfully",
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 }

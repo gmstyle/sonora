@@ -922,4 +922,30 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get noConnectionMessage => 'Connessione assente. Controlla la rete.';
+
+  @override
+  String get importPlaylist => 'Importa Playlist';
+
+  @override
+  String get youtubePlaylistUrl => 'URL o ID playlist YouTube';
+
+  @override
+  String get playlistUrlRequired => 'Un URL o ID playlist è richiesto';
+
+  @override
+  String get playlistImported => 'Playlist importata con successo';
+
+  @override
+  String get importing => 'Importazione in corso...';
+
+  @override
+  String get invalidPlaylistUrlOrId => 'URL o ID playlist YouTube non valido';
+
+  @override
+  String get playlistEmptyError =>
+      'La playlist è vuota o non è stato possibile recuperarla';
+
+  @override
+  String get playlistSyncError =>
+      'Errore durante la sincronizzazione. Controlla la connessione internet.';
 }

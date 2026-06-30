@@ -326,5 +326,14 @@
   "offlineModeHint": "Mostra solo i contenuti scaricati e le playlist locali",
   "offlineModeActiveMessage": "Sei in modalità offline. Visualizzazione dei contenuti locali.",
   "offlineModeDisabled": "Modalità offline disattivata",
-  "noConnectionMessage": "Connessione assente. Controlla la rete."
+  "noConnectionMessage": "Connessione assente. Controlla la rete.",
+  "importPlaylist": "Importa Playlist",
+  "youtubePlaylistUrl": "URL o ID playlist YouTube",
+  "playlistUrlRequired": "Un URL o ID playlist è richiesto",
+  "playlistImported": "Playlist importata con successo",
+  "importing": "Importazione in corso...",
+  "import": "Importa",
+  "invalidPlaylistUrlOrId": "URL o ID playlist YouTube non valido",
+  "playlistEmptyError": "La playlist è vuota o non è stato possibile recuperarla",
+  "playlistSyncError": "Errore durante la sincronizzazione. Controlla la connessione internet."
 }

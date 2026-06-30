@@ -1687,6 +1687,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No internet connection. Check your network.'**
   String get noConnectionMessage;
+
+  /// No description provided for @importPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Playlist'**
+  String get importPlaylist;
+
+  /// No description provided for @youtubePlaylistUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube Playlist URL or ID'**
+  String get youtubePlaylistUrl;
+
+  /// No description provided for @playlistUrlRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A playlist URL or ID is required'**
+  String get playlistUrlRequired;
+
+  /// No description provided for @playlistImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist imported successfully'**
+  String get playlistImported;
+
+  /// No description provided for @importing.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing...'**
+  String get importing;
+
+  /// No description provided for @invalidPlaylistUrlOrId.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid YouTube playlist URL or ID'**
+  String get invalidPlaylistUrlOrId;
+
+  /// No description provided for @playlistEmptyError.
+  ///
+  /// In en, this message translates to:
+  /// **'The playlist is empty or could not be retrieved'**
+  String get playlistEmptyError;
+
+  /// No description provided for @playlistSyncError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred while syncing. Please check your internet connection.'**
+  String get playlistSyncError;
 }
 
 class _AppLocalizationsDelegate
