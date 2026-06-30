@@ -30,7 +30,10 @@ class LibraryMobileLayout extends ConsumerWidget {
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
     final isListOrGridTab =
-        selectedIndex == 1 || selectedIndex == 2 || selectedIndex == 3;
+        selectedIndex == 1 ||
+        selectedIndex == 2 ||
+        selectedIndex == 3 ||
+        selectedIndex == 5;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,

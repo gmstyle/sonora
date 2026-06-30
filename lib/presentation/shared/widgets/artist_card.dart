@@ -13,6 +13,7 @@ class ArtistCard extends ConsumerWidget {
   final String? thumbnailUrl;
   final String? monthlyListeners;
   final double cardWidth;
+  final String? heroTag;
 
   const ArtistCard({
     super.key,
@@ -21,6 +22,7 @@ class ArtistCard extends ConsumerWidget {
     this.thumbnailUrl,
     this.monthlyListeners,
     this.cardWidth = 120,
+    this.heroTag,
   });
 
   @override
@@ -33,9 +35,13 @@ class ArtistCard extends ConsumerWidget {
             )!.artists; // Fallback "Artisti" / "Artists"
 
     final thumbSize = (cardWidth * 110 / 120).roundToDouble();
+    final tag = heroTag ?? 'artist_art_$artistId';
 
     return ScaleButton(
-      onTap: () => context.push('/artist/$artistId'),
+      onTap:
+          () => context.push(
+            '/artist/$artistId?heroTag=${Uri.encodeComponent(tag)}',
+          ),
       onLongPress:
           () => ContextMenuSheet.showForArtist(
             context,
@@ -50,7 +56,7 @@ class ArtistCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Hero(
-              tag: 'artist_art_$artistId',
+              tag: tag,
               child: ThumbnailWidget(
                 imageUrl: thumbnailUrl,
                 size: thumbSize,

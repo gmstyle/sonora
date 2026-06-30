@@ -59,6 +59,7 @@ class ArtistsTab extends ConsumerWidget {
                         artistId: a.artistId,
                         name: a.name,
                         thumbnailUrl: a.thumbnailUrl,
+                        heroTag: 'library_artists_${a.artistId}',
                       );
                     },
                   )

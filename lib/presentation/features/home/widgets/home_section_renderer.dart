@@ -826,6 +826,7 @@ class HomeYourArtists extends ConsumerWidget {
               name: artist.name,
               thumbnailUrl: artist.thumbnailUrl,
               cardWidth: cardWidth,
+              heroTag: 'home_your_artists_${artist.artistId}',
             );
           },
           onShowAll: () {
@@ -1075,6 +1076,7 @@ class HomeSimilarArtists extends StatelessWidget {
                       : null,
               monthlyListeners: artist.monthlyListeners,
               cardWidth: cardWidth,
+              heroTag: 'home_similar_artists_${artist.artistId}',
             );
           },
         );

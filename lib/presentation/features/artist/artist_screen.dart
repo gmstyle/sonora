@@ -30,19 +30,20 @@ import 'providers/artist_provider.dart';
 
 class ArtistScreen extends ConsumerWidget {
   final String artistId;
+  final String? heroTag;
 
-  const ArtistScreen({super.key, required this.artistId});
+  const ArtistScreen({super.key, required this.artistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _ArtistMobileLayout(artistId: artistId);
+          return _ArtistMobileLayout(artistId: artistId, heroTag: heroTag);
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _ArtistTabletLayout(artistId: artistId);
+          return _ArtistTabletLayout(artistId: artistId, heroTag: heroTag);
         } else {
-          return _ArtistWideLayout(artistId: artistId);
+          return _ArtistWideLayout(artistId: artistId, heroTag: heroTag);
         }
       },
     );
@@ -51,8 +52,9 @@ class ArtistScreen extends ConsumerWidget {
 
 class _ArtistMobileLayout extends ConsumerWidget {
   final String artistId;
+  final String? heroTag;
 
-  const _ArtistMobileLayout({required this.artistId});
+  const _ArtistMobileLayout({required this.artistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,15 +69,16 @@ class _ArtistMobileLayout extends ConsumerWidget {
               onRetry: () => ref.invalidate(artistProvider(artistId)),
             ),
           ),
-      data: (artist) => _ArtistContent(artist: artist),
+      data: (artist) => _ArtistContent(artist: artist, heroTag: heroTag),
     );
   }
 }
 
 class _ArtistTabletLayout extends ConsumerWidget {
   final String artistId;
+  final String? heroTag;
 
-  const _ArtistTabletLayout({required this.artistId});
+  const _ArtistTabletLayout({required this.artistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -90,15 +93,18 @@ class _ArtistTabletLayout extends ConsumerWidget {
               onRetry: () => ref.invalidate(artistProvider(artistId)),
             ),
           ),
-      data: (artist) => _ArtistContent(artist: artist, isTablet: true),
+      data:
+          (artist) =>
+              _ArtistContent(artist: artist, isTablet: true, heroTag: heroTag),
     );
   }
 }
 
 class _ArtistWideLayout extends ConsumerWidget {
   final String artistId;
+  final String? heroTag;
 
-  const _ArtistWideLayout({required this.artistId});
+  const _ArtistWideLayout({required this.artistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,7 +119,9 @@ class _ArtistWideLayout extends ConsumerWidget {
               onRetry: () => ref.invalidate(artistProvider(artistId)),
             ),
           ),
-      data: (artist) => _ArtistContent(artist: artist, isWide: true),
+      data:
+          (artist) =>
+              _ArtistContent(artist: artist, isWide: true, heroTag: heroTag),
     );
   }
 }
@@ -122,11 +130,13 @@ class _ArtistContent extends ConsumerStatefulWidget {
   final ArtistFull artist;
   final bool isTablet;
   final bool isWide;
+  final String? heroTag;
 
   const _ArtistContent({
     required this.artist,
     this.isTablet = false,
     this.isWide = false,
+    this.heroTag,
   });
 
   @override
@@ -201,6 +211,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
             isTablet: widget.isTablet,
             isWide: widget.isWide,
             scrollProgress: _scrollProgress,
+            heroTag: widget.heroTag,
           ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
@@ -379,6 +390,8 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                                       ? similar.thumbnails.last.url
                                       : null,
                               monthlyListeners: similar.monthlyListeners,
+                              heroTag:
+                                  'similar_artists_${similar.artistId}_on_${artist.artistId}',
                             );
                           },
                         ),
@@ -592,12 +605,14 @@ class _ArtistSliverAppBar extends StatelessWidget {
   final bool isTablet;
   final bool isWide;
   final double scrollProgress;
+  final String? heroTag;
 
   const _ArtistSliverAppBar({
     required this.artist,
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
+    this.heroTag,
   });
 
   @override
@@ -682,7 +697,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
                 children: [
                   if (thumbnailUrl != null)
                     Hero(
-                      tag: 'artist_art_${artist.artistId}',
+                      tag: heroTag ?? 'artist_art_${artist.artistId}',
                       child: Container(
                         width: 140,
                         height: 140,
@@ -818,7 +833,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
               children: [
                 if (thumbnailUrl != null)
                   Hero(
-                    tag: 'artist_art_${artist.artistId}',
+                    tag: heroTag ?? 'artist_art_${artist.artistId}',
                     child: Container(
                       width: isWide ? 190 : 150,
                       height: isWide ? 190 : 150,
