@@ -34,6 +34,7 @@ class SettingsScreenContent extends ConsumerWidget {
       children: [
         _AppearanceSection(settings: settings, notifier: notifier),
         _ContentSection(settings: settings, notifier: notifier),
+        _ConnectionSection(settings: settings, notifier: notifier),
         _PlaybackSection(settings: settings, notifier: notifier),
         _DownloadSection(settings: settings, notifier: notifier),
         if (isAndroid) const _BatterySection(),
@@ -218,6 +219,34 @@ class _DownloadSection extends StatelessWidget {
           value: settings.downloadOnlyOnWifi,
           onChanged: notifier.setDownloadOnlyOnWifi,
           icon: LucideIcons.wifi,
+        ),
+      ],
+    );
+  }
+}
+
+// ── Connection ───────────────────────────────────────────────────
+
+class _ConnectionSection extends StatelessWidget {
+  final Settings settings;
+  final SettingsNotifier notifier;
+
+  const _ConnectionSection({required this.settings, required this.notifier});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SettingsSection(
+      title: l10n?.connection ?? "Connection",
+      children: [
+        SettingsSwitchTile(
+          title: l10n?.offlineMode ?? "Offline Mode",
+          subtitle:
+              l10n?.offlineModeHint ??
+              "Only show downloaded content and local playlists",
+          value: settings.offlineMode,
+          onChanged: notifier.setOfflineMode,
+          icon: LucideIcons.wifiOff,
         ),
       ],
     );

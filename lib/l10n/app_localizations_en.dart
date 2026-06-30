@@ -896,4 +896,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get weakConnectionError =>
       'Internet connection is weak or absent. Please check your network or play downloaded tracks.';
+
+  @override
+  String get connection => 'Connection';
+
+  @override
+  String get offlineMode => 'Offline Mode';
+
+  @override
+  String get offlineModeHint =>
+      'Only show downloaded content and local playlists';
+
+  @override
+  String get offlineModeActiveMessage =>
+      'You are in offline mode. Displaying local content.';
+
+  @override
+  String get offlineModeDisabled => 'Offline mode disabled';
+
+  @override
+  String get noConnectionMessage =>
+      'No internet connection. Check your network.';
 }

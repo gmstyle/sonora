@@ -460,5 +460,11 @@
   "openBluetoothSettings": "Open Bluetooth Settings",
   "offlineNotification": "You are offline. Downloaded tracks only",
   "connectionRestored": "Connection restored",
-  "weakConnectionError": "Internet connection is weak or absent. Please check your network or play downloaded tracks."
+  "weakConnectionError": "Internet connection is weak or absent. Please check your network or play downloaded tracks.",
+  "connection": "Connection",
+  "offlineMode": "Offline Mode",
+  "offlineModeHint": "Only show downloaded content and local playlists",
+  "offlineModeActiveMessage": "You are in offline mode. Displaying local content.",
+  "offlineModeDisabled": "Offline mode disabled",
+  "noConnectionMessage": "No internet connection. Check your network."
 }

@@ -1651,6 +1651,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Internet connection is weak or absent. Please check your network or play downloaded tracks.'**
   String get weakConnectionError;
+
+  /// No description provided for @connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get connection;
+
+  /// No description provided for @offlineMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline Mode'**
+  String get offlineMode;
+
+  /// No description provided for @offlineModeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only show downloaded content and local playlists'**
+  String get offlineModeHint;
+
+  /// No description provided for @offlineModeActiveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You are in offline mode. Displaying local content.'**
+  String get offlineModeActiveMessage;
+
+  /// No description provided for @offlineModeDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode disabled'**
+  String get offlineModeDisabled;
+
+  /// No description provided for @noConnectionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Check your network.'**
+  String get noConnectionMessage;
 }
 
 class _AppLocalizationsDelegate

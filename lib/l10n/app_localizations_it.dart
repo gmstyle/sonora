@@ -902,4 +902,24 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get weakConnectionError =>
       'La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati.';
+
+  @override
+  String get connection => 'Connessione';
+
+  @override
+  String get offlineMode => 'Modalità offline';
+
+  @override
+  String get offlineModeHint =>
+      'Mostra solo i contenuti scaricati e le playlist locali';
+
+  @override
+  String get offlineModeActiveMessage =>
+      'Sei in modalità offline. Visualizzazione dei contenuti locali.';
+
+  @override
+  String get offlineModeDisabled => 'Modalità offline disattivata';
+
+  @override
+  String get noConnectionMessage => 'Connessione assente. Controlla la rete.';
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'settings_provider.dart';
 
 enum ConnectivityStatus { isConnected, isDisconnected }
 
@@ -43,6 +44,8 @@ final connectivityStatusProvider =
     );
 
 final isOfflineProvider = Provider<bool>((ref) {
+  final manualOffline = ref.watch(settingsProvider).offlineMode;
+  if (manualOffline) return true;
   final status = ref.watch(connectivityStatusProvider);
   return status == ConnectivityStatus.isDisconnected;
 });

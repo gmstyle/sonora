@@ -320,5 +320,11 @@
   "openBluetoothSettings": "Apri impostazioni Bluetooth",
   "offlineNotification": "Sei offline. Puoi riprodurre solo i brani scaricati",
   "connectionRestored": "Connessione ripristinata",
-  "weakConnectionError": "La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati."
+  "weakConnectionError": "La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati.",
+  "connection": "Connessione",
+  "offlineMode": "Modalità offline",
+  "offlineModeHint": "Mostra solo i contenuti scaricati e le playlist locali",
+  "offlineModeActiveMessage": "Sei in modalità offline. Visualizzazione dei contenuti locali.",
+  "offlineModeDisabled": "Modalità offline disattivata",
+  "noConnectionMessage": "Connessione assente. Controlla la rete."
 }
