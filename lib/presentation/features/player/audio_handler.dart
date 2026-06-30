@@ -10,7 +10,9 @@ import 'package:audio_service_platform_interface/audio_service_platform_interfac
 import 'package:audio_session/audio_session.dart';
 import 'package:collection/collection.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import 'dart:io';
 import 'package:media_kit/media_kit.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
@@ -159,6 +161,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _setupAudioSession();
     _setupListeners();
     _playerErrorSub = _player.stream.error.listen(_onPlayerError);
+    unawaited(_initPlayerCache());
     unawaited(_ensureReady());
   }
 
@@ -275,6 +278,30 @@ class SonoraAudioHandler extends BaseAudioHandler {
       });
     } catch (e) {
       dev.log('[AudioHandler] Failed to configure audio session: $e');
+    }
+  }
+
+  Future<void> _initPlayerCache() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final cacheDir = Directory('${tempDir.path}/sonora_stream_cache');
+      if (!await cacheDir.exists()) {
+        await cacheDir.create(recursive: true);
+      }
+
+      final playerPlatform = _player.platform;
+      if (playerPlatform is NativePlayer) {
+        await playerPlatform.setProperty('cache', 'yes');
+        await playerPlatform.setProperty('cache-on-disk', 'yes');
+        await playerPlatform.setProperty('cache-dir', cacheDir.path);
+        await playerPlatform.setProperty('demuxer-max-bytes', '104857600');
+        await playerPlatform.setProperty('demuxer-max-back-bytes', '52428800');
+        dev.log(
+          '[AudioHandler] Stream caching configured at: ${cacheDir.path}',
+        );
+      }
+    } catch (e) {
+      dev.log('[AudioHandler] Failed to configure player caching: $e');
     }
   }
 
