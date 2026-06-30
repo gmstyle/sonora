@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:audio_service/audio_service.dart';
 import '../../providers/smart_playlists_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../providers/play_smart_mix_use_case_provider.dart';
 import 'scale_button.dart';
 
 enum SmartMixType { mostPlayed, recentlyPlayed, forgottenFavorites }
@@ -87,25 +86,26 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
     ref.read(actionFeedbackProvider.notifier).report('Playing $title…');
 
     try {
-      List<MediaItem> items = [];
+      List<dynamic> songs = [];
       switch (widget.type) {
         case SmartMixType.mostPlayed:
-          final songs = ref.read(mostPlayedSongsProvider).value ?? [];
-          items = songs.map((s) => _historyToMediaItem(s)).toList();
+          songs = ref.read(mostPlayedSongsProvider).value ?? [];
           break;
         case SmartMixType.recentlyPlayed:
-          final songs = ref.read(recentlyPlayedSongsProvider).value ?? [];
-          items = songs.map((s) => _historyToMediaItem(s)).toList();
+          songs = ref.read(recentlyPlayedSongsProvider).value ?? [];
           break;
         case SmartMixType.forgottenFavorites:
-          final songs = ref.read(forgottenFavoritesProvider).value ?? [];
-          items = songs.map((s) => _likedToMediaItem(s)).toList();
+          songs = ref.read(forgottenFavoritesProvider).value ?? [];
           break;
       }
 
-      if (items.isNotEmpty) {
+      if (songs.isNotEmpty) {
+        final useCase = ref.read(playSmartMixUseCaseProvider);
         final player = ref.read(playerStateProvider.notifier);
-        await player.playNow(items, initialIndex: 0);
+        final items = await useCase.execute(songs: songs, playIndex: 0);
+        if (items.isNotEmpty) {
+          await player.playNow(items, initialIndex: 0);
+        }
       } else {
         ref
             .read(actionFeedbackProvider.notifier)
@@ -116,32 +116,6 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
           .read(actionFeedbackProvider.notifier)
           .report('Failed to play mix: $e');
     }
-  }
-
-  MediaItem _historyToMediaItem(HistoryModel r) {
-    return MediaItem(
-      id: r.videoId,
-      title: r.title,
-      artist: r.artist,
-      artUri: r.thumbnailUrl != null ? Uri.tryParse(r.thumbnailUrl!) : null,
-      extras: {'videoId': r.videoId, 'isVideo': r.isVideo, 'needsUrl': true},
-    );
-  }
-
-  MediaItem _likedToMediaItem(LikedSongModel r) {
-    return MediaItem(
-      id: r.videoId,
-      title: r.title,
-      artist: r.artist,
-      artUri: r.thumbnailUrl != null ? Uri.tryParse(r.thumbnailUrl!) : null,
-      extras: {
-        'videoId': r.videoId,
-        'isVideo': r.isVideo,
-        'needsUrl': true,
-        'artistId': r.artistId,
-        'albumId': r.albumId,
-      },
-    );
   }
 
   @override

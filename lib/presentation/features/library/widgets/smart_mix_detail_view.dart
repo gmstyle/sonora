@@ -6,13 +6,13 @@ import 'package:shimmer/shimmer.dart';
 import 'package:sonora/core/constants/app_constants.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../providers/download_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
+import '../../../shared/widgets/song_tile.dart';
 import '../../../providers/smart_playlists_provider.dart';
+import '../../../providers/play_smart_mix_use_case_provider.dart';
 
 class SmartMixDetailView extends ConsumerStatefulWidget {
   final String type;
@@ -158,14 +158,20 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     return [];
   }
 
-  Future<void> _playFrom(List<MediaItem> items, int index) async {
-    if (items.isEmpty) return;
+  Future<void> _playFrom(List<dynamic> songs, int index) async {
+    if (songs.isEmpty) return;
+    final useCase = ref.read(playSmartMixUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
-    await player.playNow(items, initialIndex: index);
+    final items = await useCase.execute(songs: songs, playIndex: index);
+    if (items.isNotEmpty) {
+      await player.playNow(items, initialIndex: index);
+    }
   }
 
-  Future<void> _addToQueue(List<MediaItem> items, AppLocalizations l10n) async {
+  Future<void> _addToQueue(List<dynamic> songs, AppLocalizations l10n) async {
+    final useCase = ref.read(playSmartMixUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
+    final items = await useCase.execute(songs: songs, playIndex: -1);
     try {
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (!mounted) return;
@@ -332,14 +338,14 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                                   children: [
                                     IconButton(
                                       icon: const Icon(LucideIcons.listMusic),
-                                      onPressed: () => _addToQueue(items, l10n),
+                                      onPressed: () => _addToQueue(songs, l10n),
                                       tooltip: l10n.addToQueue,
                                     ),
                                     IconButton(
                                       icon: const Icon(LucideIcons.shuffle),
                                       onPressed: () {
-                                        final shuffled = List<MediaItem>.from(
-                                          items,
+                                        final shuffled = List<dynamic>.from(
+                                          songs,
                                         )..shuffle();
                                         _playFrom(shuffled, 0);
                                       },
@@ -351,7 +357,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                                   width: 56,
                                   height: 56,
                                   child: FilledButton(
-                                    onPressed: () => _playFrom(items, 0),
+                                    onPressed: () => _playFrom(songs, 0),
                                     style: FilledButton.styleFrom(
                                       shape: const CircleBorder(),
                                       padding: EdgeInsets.zero,
@@ -369,13 +375,13 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                               runSpacing: 8,
                               children: [
                                 FilledButton.icon(
-                                  onPressed: () => _playFrom(items, 0),
+                                  onPressed: () => _playFrom(songs, 0),
                                   icon: const Icon(LucideIcons.play),
                                   label: Text(l10n.playAll),
                                 ),
                                 FilledButton.icon(
                                   onPressed: () {
-                                    final shuffled = List<MediaItem>.from(items)
+                                    final shuffled = List<dynamic>.from(songs)
                                       ..shuffle();
                                     _playFrom(shuffled, 0);
                                   },
@@ -383,7 +389,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                                   label: Text(l10n.shufflePlay),
                                 ),
                                 FilledButton.tonalIcon(
-                                  onPressed: () => _addToQueue(items, l10n),
+                                  onPressed: () => _addToQueue(songs, l10n),
                                   icon: const Icon(LucideIcons.listMusic),
                                   label: Text(l10n.addToQueue),
                                 ),
@@ -410,87 +416,40 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                   ),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final item = items[index];
-                      final cs = theme.colorScheme;
-                      final tt = theme.textTheme;
-                      final isDownloaded = ref
-                          .watch(downloadedIdsProvider)
-                          .contains(item.id);
+                      final song = songs[index];
+                      final videoId = song.videoId;
+                      final title = song.title;
+                      final artist = song.artist;
+                      final thumbnailUrl = song.thumbnailUrl;
+                      const int? duration = null;
+                      final isVideo = song.isVideo;
+
+                      String? playCountStr;
+                      if (mixType == SmartMixType.mostPlayed &&
+                          song is HistoryModel) {
+                        playCountStr = '${song.playCount}x';
+                      }
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          onTap: () => _playFrom(items, index),
-                          leading: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 24,
-                                child: Center(
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: tt.bodyMedium?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              ThumbnailWidget(
-                                imageUrl: item.artUri?.toString(),
-                                size: 48,
-                                shape: ThumbnailShape.rounded,
-                              ),
-                            ],
-                          ),
-                          title: Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: tt.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          subtitle: Text(
-                            item.artist ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: tt.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (isDownloaded)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: Icon(
-                                    LucideIcons.checkCircle2,
-                                    size: 16,
-                                    color: cs.primary,
-                                  ),
-                                ),
-                              // Display play count for most played mix
-                              if (mixType == SmartMixType.mostPlayed &&
-                                  songs[index] is HistoryModel)
-                                Text(
-                                  '${(songs[index] as HistoryModel).playCount}x',
-                                  style: tt.bodySmall?.copyWith(
-                                    color: cs.onSurfaceVariant,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                            ],
-                          ),
+                        child: SongTile(
+                          videoId: videoId,
+                          title: title,
+                          artist: artist,
+                          thumbnailUrl: thumbnailUrl,
+                          duration: duration,
+                          isVideo: isVideo,
+                          playCount: playCountStr,
+                          artistId:
+                              song is LikedSongModel ? song.artistId : null,
+                          albumId: song is LikedSongModel ? song.albumId : null,
+                          onTap: () => _playFrom(songs, index),
                         ),
                       );
-                    }, childCount: items.length),
+                    }, childCount: songs.length),
                   ),
                 ),
             ],
