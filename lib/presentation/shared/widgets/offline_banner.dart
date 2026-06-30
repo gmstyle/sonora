@@ -110,27 +110,29 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner>
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < kCompactBreakpoint;
-    final isTablet = screenWidth >= kCompactBreakpoint && screenWidth < kExpandedBreakpoint;
+    final isTablet =
+        screenWidth >= kCompactBreakpoint && screenWidth < kExpandedBreakpoint;
     final isWide = screenWidth >= kExpandedBreakpoint;
 
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    final bgColor = _connectionRestored
-        ? colorScheme.primary.withValues(alpha: 0.9)
-        : (isManualOffline
-            ? colorScheme.tertiary.withValues(alpha: 0.9)
-            : colorScheme.error.withValues(alpha: 0.9));
+    final bgColor =
+        _connectionRestored
+            ? colorScheme.primary.withValues(alpha: 0.9)
+            : (isManualOffline
+                ? colorScheme.tertiary.withValues(alpha: 0.9)
+                : colorScheme.error.withValues(alpha: 0.9));
 
-    final textColor = _connectionRestored
-        ? colorScheme.onPrimary
-        : (isManualOffline
-            ? colorScheme.onTertiary
-            : colorScheme.onError);
+    final textColor =
+        _connectionRestored
+            ? colorScheme.onPrimary
+            : (isManualOffline ? colorScheme.onTertiary : colorScheme.onError);
 
-    final icon = _connectionRestored
-        ? LucideIcons.wifi
-        : (isManualOffline ? LucideIcons.wifiOff : LucideIcons.wifiOff);
+    final icon =
+        _connectionRestored
+            ? LucideIcons.wifi
+            : (isManualOffline ? LucideIcons.wifiOff : LucideIcons.wifiOff);
 
     // Placement configurations
     double? top;
@@ -170,25 +172,27 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner>
           Text(
             l10n?.connectionRestored ?? "Connessione ripristinata",
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: textColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       );
     } else if (isMobile || (isWide && isCollapsedSidebar)) {
       // Circle badge for mobile or collapsed wide sidebar
       content = Tooltip(
-        message: isManualOffline
-            ? (l10n?.offlineMode ?? "Offline Mode")
-            : (l10n?.offlineNotification ?? "Offline"),
+        message:
+            isManualOffline
+                ? (l10n?.offlineMode ?? "Offline Mode")
+                : (l10n?.offlineNotification ?? "Offline"),
         child: Icon(icon, size: 16, color: textColor),
       );
     } else {
       // Capsule with text for tablet or expanded wide sidebar
-      final text = isManualOffline
-          ? (l10n?.offlineMode ?? "Offline Mode")
-          : (l10n?.offlineNotification ?? "Offline");
+      final text =
+          isManualOffline
+              ? (l10n?.offlineMode ?? "Offline Mode")
+              : (l10n?.offlineNotification ?? "Offline");
       content = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -198,16 +202,17 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner>
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: textColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
       );
     }
 
-    final isRound = (isMobile || (isWide && isCollapsedSidebar)) && !_connectionRestored;
+    final isRound =
+        (isMobile || (isWide && isCollapsedSidebar)) && !_connectionRestored;
 
     return Positioned(
       top: top,
@@ -217,7 +222,8 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner>
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          final slideOffset = isWide ? -_slideAnimation.value : _slideAnimation.value;
+          final slideOffset =
+              isWide ? -_slideAnimation.value : _slideAnimation.value;
           return Transform.translate(
             offset: Offset(0, slideOffset),
             child: Opacity(opacity: _opacityAnimation.value, child: child),
