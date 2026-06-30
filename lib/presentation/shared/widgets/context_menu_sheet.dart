@@ -1885,7 +1885,10 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
       final entries = await ref.read(
         playlistEntriesProvider(playlistId).future,
       );
-      final items = await notifier.buildLocalPlaylistItems(entries);
+      final items = await notifier.buildLocalPlaylistItems(
+        entries,
+        playIndex: 0,
+      );
       if (items.isNotEmpty) await player.playNow(items);
     } catch (_) {}
   }
@@ -1904,7 +1907,10 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
         playlistEntriesProvider(playlistId).future,
       );
       final shuffled = List<PlaylistEntryModel>.from(entries)..shuffle();
-      final items = await notifier.buildLocalPlaylistItems(shuffled);
+      final items = await notifier.buildLocalPlaylistItems(
+        shuffled,
+        playIndex: 0,
+      );
       if (items.isNotEmpty) await player.playNow(items);
     } catch (_) {}
   }
@@ -1921,7 +1927,10 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
       final entries = await ref.read(
         playlistEntriesProvider(playlistId).future,
       );
-      final items = await notifier.buildLocalPlaylistItems(entries);
+      final items = await notifier.buildLocalPlaylistItems(
+        entries,
+        playIndex: -1,
+      );
       if (items.isNotEmpty) await player.addAllToQueue(items);
       feedback.report(l10n.addedToQueue(items.length));
     } catch (e) {

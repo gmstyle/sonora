@@ -6,6 +6,7 @@ import '../../domain/repositories/library_repository.dart';
 import '../../domain/repositories/music_repository.dart';
 import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
+import 'play_video_id_use_case_provider.dart';
 
 // ── Single-item query providers ───────────────────────────────────────────────
 
@@ -241,14 +242,25 @@ class LibraryNotifier extends Notifier<void> {
   /// returns a list of [MediaItem]s ready for [PlayerNotifier.playNow].
   /// Falls back to stored entry metadata when unavailable in liked_songs.
   Future<List<MediaItem>> buildLocalPlaylistItems(
-    List<PlaylistEntryModel> entries,
-  ) async {
+    List<PlaylistEntryModel> entries, {
+    int playIndex = 0,
+  }) async {
     final items = <MediaItem>[];
-    for (final entry in entries) {
+    String? firstUrl;
+    if (playIndex >= 0 && playIndex < entries.length) {
+      try {
+        final useCase = ref.read(playVideoIdUseCaseProvider);
+        firstUrl = await useCase.resolveUrl(entries[playIndex].videoId);
+      } catch (_) {}
+    }
+
+    for (int i = 0; i < entries.length; i++) {
+      final entry = entries[i];
       final liked = await _repo.getLikedSong(entry.videoId);
       final title = liked?.title ?? entry.title ?? entry.videoId;
       final artist = liked?.artist ?? entry.artist ?? '';
       final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
+      final isFirst = i == playIndex;
       items.add(
         MediaItem(
           id: entry.videoId,
@@ -258,6 +270,8 @@ class LibraryNotifier extends Notifier<void> {
           extras: {
             'videoId': entry.videoId,
             'isVideo': liked?.isVideo ?? entry.isVideo,
+            if (isFirst && firstUrl != null) 'url': firstUrl,
+            if (!isFirst || firstUrl == null) 'needsUrl': true,
           },
         ),
       );

@@ -391,7 +391,7 @@ class _PlaylistDetailContentState
       );
       final items = await ref
           .read(libraryNotifierProvider.notifier)
-          .buildLocalPlaylistItems(entries);
+          .buildLocalPlaylistItems(entries, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -519,7 +519,7 @@ class _PlaylistDetailContentState
     final player = ref.read(playerStateProvider.notifier);
     final items = await ref
         .read(libraryNotifierProvider.notifier)
-        .buildLocalPlaylistItems(entries);
+        .buildLocalPlaylistItems(entries, playIndex: startIndex);
     await player.playNow(items, initialIndex: startIndex);
   }
 }
