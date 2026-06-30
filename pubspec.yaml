@@ -116,17 +116,16 @@ flutter:
 
 flutter_launcher_icons:
   android: "ic_launcher"
-  # Questa immagine viene usata per i vecchi Android (< 8.0). Usa l'SVG completo.
+  # Android (< 8.0)
   image_path_android: "assets/logo_full.png" 
   
-  # Per Android moderni (Adaptive Icons)
-  # Usiamo il colore scuro del tuo brand per lo sfondo
+  # For Android > 8.0 (Adaptive Icons)
   adaptive_icon_background: "#131429" 
   adaptive_icon_foreground: "assets/logo_foreground.png" 
 
 flutter_native_splash:
-  color: "#131429" # Allineato al colore del brand
-  image: assets/logo_full.png # Qui l'SVG completo va benissimo perché è centrato con gravity
+  color: "#131429"
+  image: assets/logo_full.png
   android: true
   android_gravity: center
   fullscreen: true
