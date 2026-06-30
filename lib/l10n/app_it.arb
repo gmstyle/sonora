@@ -335,5 +335,13 @@
   "import": "Importa",
   "invalidPlaylistUrlOrId": "URL o ID playlist YouTube non valido",
   "playlistEmptyError": "La playlist è vuota o non è stato possibile recuperarla",
-  "playlistSyncError": "Errore durante la sincronizzazione. Controlla la connessione internet."
+  "playlistSyncError": "Errore durante la sincronizzazione. Controlla la connessione internet.",
+  "mixes": "Mix",
+  "mostPlayed": "I più ascoltati",
+  "mostPlayedDesc": "I brani che hai ascoltato più spesso",
+  "recentlyPlayed": "Ascoltati di recente",
+  "recentlyPlayedDesc": "I brani che hai ascoltato di recente",
+  "forgottenFavorites": "Preferiti dimenticati",
+  "forgottenFavoritesDesc": "I brani preferiti che non ascolti da un po'",
+  "yourMixes": "I tuoi Mix"
 }

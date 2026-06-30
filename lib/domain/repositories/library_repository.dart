@@ -13,6 +13,8 @@ abstract class LibraryRepository {
     String? artistId,
     String? albumId,
   });
+  Future<List<LikedSongModel>> getForgottenFavorites({int daysLimit = 30});
+  Stream<List<LikedSongModel>> watchForgottenFavorites({int daysLimit = 30});
 
   Future<List<FollowedArtistModel>> getAllFollowedArtists();
   Stream<List<FollowedArtistModel>> watchAllFollowedArtists();
@@ -84,6 +86,8 @@ abstract class LibraryRepository {
 
   Future<List<HistoryModel>> getRecentHistory({int limit = 50});
   Stream<List<HistoryModel>> watchRecentHistory({int limit = 50});
+  Future<List<HistoryModel>> getMostPlayedSongs({int limit = 50});
+  Stream<List<HistoryModel>> watchMostPlayedSongs({int limit = 50});
   Future<void> recordPlay(
     String videoId,
     String title,

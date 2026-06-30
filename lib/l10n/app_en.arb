@@ -475,5 +475,13 @@
   "import": "Import",
   "invalidPlaylistUrlOrId": "Invalid YouTube playlist URL or ID",
   "playlistEmptyError": "The playlist is empty or could not be retrieved",
-  "playlistSyncError": "An error occurred while syncing. Please check your internet connection."
+  "playlistSyncError": "An error occurred while syncing. Please check your internet connection.",
+  "mixes": "Mixes",
+  "mostPlayed": "Most Played",
+  "mostPlayedDesc": "Your most played tracks",
+  "recentlyPlayed": "Recently Played",
+  "recentlyPlayedDesc": "Tracks you listened to recently",
+  "forgottenFavorites": "Forgotten Favorites",
+  "forgottenFavoritesDesc": "Liked tracks you haven't heard in a while",
+  "yourMixes": "Your Mixes"
 }

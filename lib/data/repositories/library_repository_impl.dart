@@ -101,6 +101,21 @@ class LibraryRepositoryImpl implements LibraryRepository {
     albumId: albumId,
   );
 
+  @override
+  Future<List<LikedSongModel>> getForgottenFavorites({
+    int daysLimit = 30,
+  }) async {
+    final rows = await _libraryDao.getForgottenFavorites(daysLimit: daysLimit);
+    return rows.map(_mapLikedSong).toList();
+  }
+
+  @override
+  Stream<List<LikedSongModel>> watchForgottenFavorites({int daysLimit = 30}) {
+    return _libraryDao
+        .watchForgottenFavorites(daysLimit: daysLimit)
+        .map((rows) => rows.map(_mapLikedSong).toList());
+  }
+
   // ── Followed Artists ─────────────────────────────────────────
 
   @override
@@ -497,6 +512,48 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Stream<List<HistoryModel>> watchRecentHistory({int limit = 50}) {
     return _historyDao
         .watchRecentHistory(limit: limit)
+        .map(
+          (rows) =>
+              rows
+                  .map(
+                    (r) => HistoryModel(
+                      id: r.id,
+                      videoId: r.videoId,
+                      title: r.title,
+                      artist: r.artist,
+                      thumbnailUrl: r.thumbnailUrl,
+                      playedAt: r.playedAt,
+                      playCount: r.playCount,
+                      isVideo: r.isVideo,
+                    ),
+                  )
+                  .toList(),
+        );
+  }
+
+  @override
+  Future<List<HistoryModel>> getMostPlayedSongs({int limit = 50}) async {
+    final rows = await _historyDao.getMostPlayedSongs(limit: limit);
+    return rows
+        .map(
+          (r) => HistoryModel(
+            id: r.id,
+            videoId: r.videoId,
+            title: r.title,
+            artist: r.artist,
+            thumbnailUrl: r.thumbnailUrl,
+            playedAt: r.playedAt,
+            playCount: r.playCount,
+            isVideo: r.isVideo,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Stream<List<HistoryModel>> watchMostPlayedSongs({int limit = 50}) {
+    return _historyDao
+        .watchMostPlayedSongs(limit: limit)
         .map(
           (rows) =>
               rows

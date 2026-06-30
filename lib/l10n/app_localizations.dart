@@ -1735,6 +1735,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An error occurred while syncing. Please check your internet connection.'**
   String get playlistSyncError;
+
+  /// No description provided for @mixes.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixes'**
+  String get mixes;
+
+  /// No description provided for @mostPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Most Played'**
+  String get mostPlayed;
+
+  /// No description provided for @mostPlayedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your most played tracks'**
+  String get mostPlayedDesc;
+
+  /// No description provided for @recentlyPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Played'**
+  String get recentlyPlayed;
+
+  /// No description provided for @recentlyPlayedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks you listened to recently'**
+  String get recentlyPlayedDesc;
+
+  /// No description provided for @forgottenFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgotten Favorites'**
+  String get forgottenFavorites;
+
+  /// No description provided for @forgottenFavoritesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked tracks you haven\'t heard in a while'**
+  String get forgottenFavoritesDesc;
+
+  /// No description provided for @yourMixes.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Mixes'**
+  String get yourMixes;
 }
 
 class _AppLocalizationsDelegate

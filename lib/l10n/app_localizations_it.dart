@@ -948,4 +948,29 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get playlistSyncError =>
       'Errore durante la sincronizzazione. Controlla la connessione internet.';
+
+  @override
+  String get mixes => 'Mix';
+
+  @override
+  String get mostPlayed => 'I più ascoltati';
+
+  @override
+  String get mostPlayedDesc => 'I brani che hai ascoltato più spesso';
+
+  @override
+  String get recentlyPlayed => 'Ascoltati di recente';
+
+  @override
+  String get recentlyPlayedDesc => 'I brani che hai ascoltato di recente';
+
+  @override
+  String get forgottenFavorites => 'Preferiti dimenticati';
+
+  @override
+  String get forgottenFavoritesDesc =>
+      'I brani preferiti che non ascolti da un po\'';
+
+  @override
+  String get yourMixes => 'I tuoi Mix';
 }

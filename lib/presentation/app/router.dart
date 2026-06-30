@@ -10,6 +10,7 @@ import '../features/artist/artist_screen.dart';
 import '../features/album/album_screen.dart';
 import '../features/playlist/playlist_screen.dart';
 import '../features/browse_section/browse_section_screen.dart';
+import '../features/library/widgets/smart_mix_detail_view.dart';
 import '../shared/layouts/app_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -97,6 +98,36 @@ final routerProvider = Provider<GoRouter>((ref) {
                           key: state.pageKey,
                           child: PlaylistScreen(
                             playlistId: state.pathParameters['playlistId']!,
+                          ),
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) {
+                            return SlideTransition(
+                              position: animation.drive(
+                                Tween(
+                                  begin: const Offset(0.0, 1.0),
+                                  end: Offset.zero,
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
+                              ),
+                              child: child,
+                            );
+                          },
+                          transitionDuration: const Duration(milliseconds: 300),
+                          reverseTransitionDuration: const Duration(
+                            milliseconds: 250,
+                          ),
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'smart-mix/:type',
+                    pageBuilder:
+                        (context, state) => CustomTransitionPage(
+                          key: state.pageKey,
+                          child: SmartMixDetailView(
+                            type: state.pathParameters['type']!,
                           ),
                           transitionsBuilder: (
                             context,

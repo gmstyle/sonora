@@ -101,4 +101,37 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   ) => (update(db.likedPlaylists)..where(
     (t) => t.playlistId.equals(playlistId),
   )).write(LikedPlaylistsCompanion(thumbnailUrl: Value(thumbnailUrl)));
+
+  Future<List<LikedSong>> getForgottenFavorites({int daysLimit = 30}) async {
+    final cutoff = DateTime.now().subtract(Duration(days: daysLimit));
+    final query = select(db.likedSongs).join([
+      leftOuterJoin(
+        db.history,
+        db.history.videoId.equalsExp(db.likedSongs.videoId),
+      ),
+    ]);
+    query.where(
+      db.history.playedAt.isNull() |
+          db.history.playedAt.isSmallerThanValue(cutoff),
+    );
+    final rows = await query.get();
+    return rows.map((row) => row.readTable(db.likedSongs)).toList();
+  }
+
+  Stream<List<LikedSong>> watchForgottenFavorites({int daysLimit = 30}) {
+    final cutoff = DateTime.now().subtract(Duration(days: daysLimit));
+    final query = select(db.likedSongs).join([
+      leftOuterJoin(
+        db.history,
+        db.history.videoId.equalsExp(db.likedSongs.videoId),
+      ),
+    ]);
+    query.where(
+      db.history.playedAt.isNull() |
+          db.history.playedAt.isSmallerThanValue(cutoff),
+    );
+    return query.watch().map((rows) {
+      return rows.map((row) => row.readTable(db.likedSongs)).toList();
+    });
+  }
 }

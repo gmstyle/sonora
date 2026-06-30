@@ -7,6 +7,7 @@ import '../widgets/artists_tab.dart';
 import '../widgets/playlists_tab.dart';
 import '../widgets/albums_tab.dart';
 import '../widgets/history_tab.dart';
+import '../widgets/smart_mixes_tab.dart';
 import '../widgets/library_header_controls.dart';
 import '../widgets/library_search_results_view.dart';
 import '../providers/library_provider.dart';
@@ -20,6 +21,7 @@ class LibraryTabletLayout extends ConsumerWidget {
     AppLocalizations.of(context)!.playlists,
     AppLocalizations.of(context)!.albums,
     AppLocalizations.of(context)!.history,
+    AppLocalizations.of(context)!.mixes,
   ];
 
   @override
@@ -84,6 +86,7 @@ class LibraryTabletLayout extends ConsumerWidget {
                         PlaylistsTab(),
                         AlbumsTab(),
                         HistoryTab(),
+                        SmartMixesTab(),
                       ],
                     ),
           ),

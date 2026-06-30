@@ -943,4 +943,29 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get playlistSyncError =>
       'An error occurred while syncing. Please check your internet connection.';
+
+  @override
+  String get mixes => 'Mixes';
+
+  @override
+  String get mostPlayed => 'Most Played';
+
+  @override
+  String get mostPlayedDesc => 'Your most played tracks';
+
+  @override
+  String get recentlyPlayed => 'Recently Played';
+
+  @override
+  String get recentlyPlayedDesc => 'Tracks you listened to recently';
+
+  @override
+  String get forgottenFavorites => 'Forgotten Favorites';
+
+  @override
+  String get forgottenFavoritesDesc =>
+      'Liked tracks you haven\'t heard in a while';
+
+  @override
+  String get yourMixes => 'Your Mixes';
 }

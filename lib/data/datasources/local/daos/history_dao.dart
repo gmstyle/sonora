@@ -116,4 +116,16 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
   }) => into(db.searchHistory).insert(
     SearchHistoryCompanion(query: Value(query), searchedAt: Value(searchedAt)),
   );
+
+  Future<List<HistoryData>> getMostPlayedSongs({int limit = 50}) =>
+      (select(db.history)
+            ..orderBy([(t) => OrderingTerm.desc(t.playCount)])
+            ..limit(limit))
+          .get();
+
+  Stream<List<HistoryData>> watchMostPlayedSongs({int limit = 50}) =>
+      (select(db.history)
+            ..orderBy([(t) => OrderingTerm.desc(t.playCount)])
+            ..limit(limit))
+          .watch();
 }

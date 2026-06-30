@@ -23,6 +23,7 @@ import '../../../shared/widgets/song_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/scale_button.dart';
+import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/video_badge.dart';
 
@@ -662,6 +663,32 @@ class HomeYourPlaylists extends ConsumerWidget {
             context.go('/library');
           },
         );
+      },
+    );
+  }
+}
+
+class HomeYourMixes extends ConsumerWidget {
+  final double cardWidth;
+
+  const HomeYourMixes({super.key, this.cardWidth = 140});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final height = cardWidth + 70;
+    return _HomeCarouselSection(
+      title: AppLocalizations.of(context)!.yourMixes,
+      height: height,
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        final type = SmartMixType.values[index];
+        return SmartMixCard(type: type, cardWidth: cardWidth);
+      },
+      onShowAll: () {
+        ref
+            .read(libraryActiveTabProvider.notifier)
+            .update(5); // Mixes tab is index 5
+        context.go('/library');
       },
     );
   }

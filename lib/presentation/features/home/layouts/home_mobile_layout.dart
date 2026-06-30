@@ -126,6 +126,7 @@ class HomeMobileLayout extends ConsumerWidget {
                         ),
                       ),
                       HomeYourPlaylists(playlistsAsync, cardWidth: 140),
+                      const HomeYourMixes(cardWidth: 140),
                       HomeContinueListening(historyAsync, cardWidth: 140),
                       HomeYourArtists(artistsAsync, cardWidth: 120),
                       HomeLikedAlbums(albumsAsync, cardWidth: 140),
@@ -177,6 +178,7 @@ class HomeMobileLayout extends ConsumerWidget {
                                           : null,
                                 ),
                               HomeYourPlaylists(playlistsAsync, cardWidth: 140),
+                              const HomeYourMixes(cardWidth: 140),
                               HomeContinueListening(
                                 historyAsync,
                                 cardWidth: 140,
