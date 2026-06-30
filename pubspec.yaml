@@ -19,7 +19,6 @@ dependencies:
   # ── YTMusic Data Layer ────────────────────────────────────────
   # dart_ytmusic_api:
   #  path: ../dart_ytmusic_api
-  # dovrà usare il git mio di dart_ytmusic_api, ma per ora uso questo per lo sviluppo
   dart_ytmusic_api:
     git:
       url: https://github.com/gmstyle/dart_ytmusic_api.git
