@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:sonora/core/constants/app_constants.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/download_provider.dart';
@@ -163,6 +164,22 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     await player.playNow(items, initialIndex: index);
   }
 
+  Future<void> _addToQueue(List<MediaItem> items, AppLocalizations l10n) async {
+    final player = ref.read(playerStateProvider.notifier);
+    try {
+      if (items.isNotEmpty) await player.addAllToQueue(items);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.addedToQueue(items.length))));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.failedToAddToQueue(e.toString()))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -185,6 +202,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
         })();
 
     final theme = Theme.of(context);
+    final isTablet = MediaQuery.of(context).size.width >= kCompactBreakpoint;
 
     return Scaffold(
       body: songsAsync.when(
@@ -304,41 +322,73 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => _playFrom(items, 0),
-                            icon: const Icon(LucideIcons.play, size: 20),
-                            label: Text(l10n.playAll),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                    child:
+                        !isTablet
+                            ? Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(LucideIcons.listMusic),
+                                      onPressed: () => _addToQueue(items, l10n),
+                                      tooltip: l10n.addToQueue,
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(LucideIcons.shuffle),
+                                      onPressed: () {
+                                        final shuffled = List<MediaItem>.from(
+                                          items,
+                                        )..shuffle();
+                                        _playFrom(shuffled, 0);
+                                      },
+                                      tooltip: l10n.shufflePlay,
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(
+                                  width: 56,
+                                  height: 56,
+                                  child: FilledButton(
+                                    onPressed: () => _playFrom(items, 0),
+                                    style: FilledButton.styleFrom(
+                                      shape: const CircleBorder(),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    child: const Icon(
+                                      LucideIcons.play,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                            : Wrap(
+                              spacing: 12,
+                              runSpacing: 8,
+                              children: [
+                                FilledButton.icon(
+                                  onPressed: () => _playFrom(items, 0),
+                                  icon: const Icon(LucideIcons.play),
+                                  label: Text(l10n.playAll),
+                                ),
+                                FilledButton.icon(
+                                  onPressed: () {
+                                    final shuffled = List<MediaItem>.from(items)
+                                      ..shuffle();
+                                    _playFrom(shuffled, 0);
+                                  },
+                                  icon: const Icon(LucideIcons.shuffle),
+                                  label: Text(l10n.shufflePlay),
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: () => _addToQueue(items, l10n),
+                                  icon: const Icon(LucideIcons.listMusic),
+                                  label: Text(l10n.addToQueue),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              final shuffled = List<MediaItem>.from(items)
-                                ..shuffle();
-                              _playFrom(shuffled, 0);
-                            },
-                            icon: const Icon(LucideIcons.shuffle, size: 20),
-                            label: Text(l10n.shufflePlay),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
 
