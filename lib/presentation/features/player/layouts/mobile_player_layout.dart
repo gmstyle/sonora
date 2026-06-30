@@ -164,6 +164,11 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                                         ? PlayerDefaultView(
                                           key: const ValueKey('dashboard'),
                                           tight: widget.availHeight < 600,
+                                          size: min(
+                                            widget.availWidth - 48,
+                                            widget.availHeight - 360,
+                                          ),
+                                          showFlipIndicator: true,
                                         )
                                         : Artwork(
                                           key: const ValueKey('artwork'),
@@ -176,6 +181,7 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                                           isSwitching:
                                               widget.playerState.isSwitching,
                                           isVideo: widget.isVideo,
+                                          showFlipIndicator: true,
                                         ),
                               ),
                             ),

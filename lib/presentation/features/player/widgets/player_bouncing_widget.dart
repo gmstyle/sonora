@@ -120,8 +120,15 @@ class _PulsingDotState extends State<PulsingDot>
 
 class PlayerDefaultView extends ConsumerStatefulWidget {
   final bool tight;
+  final double? size;
+  final bool showFlipIndicator;
 
-  const PlayerDefaultView({super.key, this.tight = false});
+  const PlayerDefaultView({
+    super.key,
+    this.tight = false,
+    this.size,
+    this.showFlipIndicator = false,
+  });
 
   @override
   ConsumerState<PlayerDefaultView> createState() => _PlayerDefaultViewState();
@@ -219,7 +226,9 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     final hasNext = currentIndex + 1 < queue.length;
     final nextSong = hasNext ? queue[currentIndex + 1] : null;
 
-    return Center(
+    final clampedSize = widget.size?.clamp(150.0, 600.0);
+
+    final viewContent = Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
@@ -271,6 +280,41 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
             },
             child: _buildUpNextCard(context, ref, nextSong, pc, hasNext),
           ),
+        ],
+      ),
+    );
+
+    if (clampedSize == null) {
+      return viewContent;
+    }
+
+    return SizedBox(
+      width: clampedSize,
+      height: clampedSize,
+      child: Stack(
+        children: [
+          Positioned.fill(child: viewContent),
+          if (widget.showFlipIndicator)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(
+                  LucideIcons.image,
+                  size: 16,
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+            ),
         ],
       ),
     );

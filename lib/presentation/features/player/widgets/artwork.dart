@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../providers/palette_provider.dart';
 import '../../../providers/settings_provider.dart';
@@ -15,6 +16,7 @@ class Artwork extends ConsumerWidget {
     required this.videoId,
     this.isSwitching = false,
     this.isVideo = false,
+    this.showFlipIndicator = false,
   });
 
   final String? artUrl;
@@ -22,6 +24,7 @@ class Artwork extends ConsumerWidget {
   final String videoId;
   final bool isSwitching;
   final bool isVideo;
+  final bool showFlipIndicator;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,13 +44,45 @@ class Artwork extends ConsumerWidget {
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
-    return buildArtwork(
+    final clampedSize = size.clamp(150.0, 600.0);
+    final artworkWidget = buildArtwork(
       context,
       artUrl,
       isSwitching,
       size,
       dominantColor,
       reduceEffects: reduceEffects,
+    );
+
+    return SizedBox(
+      width: clampedSize,
+      height: clampedSize,
+      child: Stack(
+        children: [
+          Positioned.fill(child: artworkWidget),
+          if (showFlipIndicator)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(
+                  LucideIcons.barChart2,
+                  size: 16,
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
