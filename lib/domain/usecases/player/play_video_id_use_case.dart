@@ -119,6 +119,12 @@ class PlayVideoIdUseCase {
     if (artistId != null) extras['artistId'] = artistId;
     if (albumId != null) extras['albumId'] = albumId;
 
+    if (_libraryRepo != null && durationSec > 0) {
+      _libraryRepo
+          .updateSongMetadata(videoId, durationSec, isExplicit)
+          .catchError((_) => null);
+    }
+
     return MediaItem(
       id: videoId,
       title: title,

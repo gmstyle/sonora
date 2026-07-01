@@ -721,4 +721,19 @@ class LibraryRepositoryImpl implements LibraryRepository {
     videoCount: r.videoCount,
     addedAt: r.addedAt,
   );
+
+  @override
+  Future<void> updateSongMetadata(
+    String videoId,
+    int duration,
+    bool isExplicit,
+  ) => _libraryDao.db.updateSongMetadata(videoId, duration, isExplicit);
+
+  @override
+  Future<List<String>> getTrackIdsMissingMetadata({int limit = 15}) =>
+      _libraryDao.db.getTrackIdsMissingMetadata(limit: limit);
+
+  @override
+  Future<int> getTrackCountMissingMetadata() =>
+      _libraryDao.db.getTrackCountMissingMetadata();
 }

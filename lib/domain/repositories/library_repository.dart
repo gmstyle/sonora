@@ -121,4 +121,12 @@ abstract class LibraryRepository {
   Future<List<SearchHistoryModel>> getRecentSearches({int limit = 10});
   Future<void> clearSearchHistory();
   Future<void> deleteSearchEntry(String query);
+
+  Future<void> updateSongMetadata(
+    String videoId,
+    int duration,
+    bool isExplicit,
+  );
+  Future<List<String>> getTrackIdsMissingMetadata({int limit = 15});
+  Future<int> getTrackCountMissingMetadata();
 }

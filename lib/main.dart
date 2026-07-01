@@ -35,6 +35,7 @@ import 'presentation/features/player/audio_handler.dart';
 import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/library_repository_provider.dart';
 import 'presentation/providers/music_repository_provider.dart';
+import 'presentation/providers/metadata_sync_service.dart';
 import 'presentation/providers/play_video_id_use_case_provider.dart';
 import 'presentation/providers/player_provider.dart';
 import 'presentation/providers/settings_provider.dart';
@@ -240,6 +241,8 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(metadataSyncServiceProvider);
+
     ref.listen(playerStateProvider, (prev, next) {
       if (isLinux) {
         if (prev?.isPlaying != next.isPlaying ||

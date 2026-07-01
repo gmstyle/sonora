@@ -167,4 +167,78 @@ class AppDatabase extends _$AppDatabase {
       }
     },
   );
+
+  Future<void> updateSongMetadata(
+    String videoId,
+    int duration,
+    bool isExplicit,
+  ) async {
+    await transaction(() async {
+      await (update(likedSongs)..where((t) => t.videoId.equals(videoId))).write(
+        LikedSongsCompanion(
+          duration: Value(duration),
+          isExplicit: Value(isExplicit),
+        ),
+      );
+      await (update(history)..where((t) => t.videoId.equals(videoId))).write(
+        HistoryCompanion(
+          duration: Value(duration),
+          isExplicit: Value(isExplicit),
+        ),
+      );
+      await (update(playlistEntries)
+        ..where((t) => t.videoId.equals(videoId))).write(
+        PlaylistEntriesCompanion(
+          duration: Value(duration),
+          isExplicit: Value(isExplicit),
+        ),
+      );
+    });
+  }
+
+  Future<List<String>> getTrackIdsMissingMetadata({int limit = 15}) async {
+    final liked =
+        await (select(likedSongs)
+              ..where((t) => t.duration.isNull())
+              ..limit(limit))
+            .get();
+    final likedIds = liked.map((e) => e.videoId).toList();
+    if (likedIds.length >= limit) return likedIds;
+
+    final hist =
+        await (select(history)
+              ..where((t) => t.duration.isNull())
+              ..limit(limit - likedIds.length))
+            .get();
+    final histIds = hist.map((e) => e.videoId).toList();
+    final combined = {...likedIds, ...histIds};
+    if (combined.length >= limit) return combined.toList();
+
+    final pl =
+        await (select(playlistEntries)
+              ..where((t) => t.duration.isNull())
+              ..limit(limit - combined.length))
+            .get();
+    final plIds = pl.map((e) => e.videoId).toList();
+    combined.addAll(plIds);
+    return combined.toList();
+  }
+
+  Future<int> getTrackCountMissingMetadata() async {
+    final liked =
+        await customSelect(
+          'SELECT COUNT(*) as c FROM liked_songs WHERE duration IS NULL',
+        ).getSingle();
+    final history =
+        await customSelect(
+          'SELECT COUNT(*) as c FROM history WHERE duration IS NULL',
+        ).getSingle();
+    final playlist =
+        await customSelect(
+          'SELECT COUNT(*) as c FROM playlist_entries WHERE duration IS NULL',
+        ).getSingle();
+    return liked.read<int>('c') +
+        history.read<int>('c') +
+        playlist.read<int>('c');
+  }
 }
