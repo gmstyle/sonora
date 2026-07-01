@@ -32,6 +32,8 @@ class ExportBackupUseCase {
                   'title': e.title,
                   'artist': e.artist,
                   'thumbnailUrl': e.thumbnailUrl,
+                  'isVideo': e.isVideo,
+                  'isExplicit': e.isExplicit,
                 },
               )
               .toList();
@@ -51,6 +53,9 @@ class ExportBackupUseCase {
                   'artistId': s.artistId,
                   'albumId': s.albumId,
                   'addedAt': s.addedAt.toIso8601String(),
+                  'duration': s.duration,
+                  'isVideo': s.isVideo,
+                  'isExplicit': s.isExplicit,
                 },
               )
               .toList(),
@@ -112,7 +117,9 @@ class ExportBackupUseCase {
                   'thumbnailUrl': h.thumbnailUrl,
                   'playedAt': h.playedAt.toIso8601String(),
                   'playCount': h.playCount,
+                  'duration': h.duration,
                   'isVideo': h.isVideo,
+                  'isExplicit': h.isExplicit,
                 },
               )
               .toList(),

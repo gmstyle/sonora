@@ -234,6 +234,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                   artist: artist,
                   thumbnailUrl: thumbnailUrl,
                   addedAt: DateTime.now(),
+                  duration: song.duration?.inSeconds,
                   isVideo: song.extras?['isVideo'] == true,
                   isExplicit: song.extras?['isExplicit'] == true,
                 ),

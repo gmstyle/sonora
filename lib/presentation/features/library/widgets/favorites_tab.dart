@@ -58,6 +58,7 @@ class FavoritesTab extends ConsumerWidget {
                 title: s.title,
                 artist: s.artist,
                 thumbnailUrl: s.thumbnailUrl,
+                duration: s.duration,
                 artistId: s.artistId,
                 albumId: s.albumId,
                 isVideo: s.isVideo,

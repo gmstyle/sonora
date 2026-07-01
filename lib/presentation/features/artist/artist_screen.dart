@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../core/extensions/duration_ext.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
@@ -22,12 +21,10 @@ import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/release_card.dart';
 import '../../shared/widgets/video_card.dart';
-import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/expandable_text.dart';
-import '../../shared/widgets/explicit_badge.dart';
+import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
-import '../../providers/download_provider.dart';
 import 'providers/artist_provider.dart';
 
 class ArtistScreen extends ConsumerWidget {
@@ -442,7 +439,22 @@ class _ArtistTopSongsSectionState
         _SectionHeader(title: AppLocalizations.of(context)!.popular),
         const SizedBox(height: 8),
         ...displaySongs.asMap().entries.map(
-          (entry) => _NumberedSongTile(index: entry.key + 1, song: entry.value),
+          (entry) => SongTile(
+            index: entry.key + 1,
+            videoId: entry.value.videoId,
+            title: entry.value.name,
+            artist: entry.value.artist.name,
+            thumbnailUrl: entry.value.thumbnails.isNotEmpty
+                ? entry.value.thumbnails.last.url
+                : null,
+            duration: entry.value.duration,
+            isVideo: entry.value.type == 'VIDEO',
+            albumName: entry.value.album?.name,
+            artistId: entry.value.artist.artistId,
+            albumId: entry.value.album?.albumId,
+            playCount: entry.value.playCount,
+            isExplicit: entry.value.isExplicit,
+          ),
         ),
         if (_loading)
           const Padding(
@@ -499,123 +511,6 @@ class _ArtistTopSongsSectionState
         ),
       );
     }
-  }
-}
-
-class _NumberedSongTile extends ConsumerWidget {
-  final int index;
-  final SongDetailed song;
-
-  const _NumberedSongTile({required this.index, required this.song});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final downloadedIds = ref.watch(downloadedIdsProvider);
-    final isDownloaded = downloadedIds.contains(song.videoId);
-
-    return ListTile(
-      leading: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 28,
-            child: Text(
-              '$index',
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Stack(
-            children: [
-              ThumbnailWidget(
-                imageUrl:
-                    song.thumbnails.isNotEmpty
-                        ? song.thumbnails.last.url
-                        : null,
-                size: 48,
-                shape: ThumbnailShape.rounded,
-              ),
-              if (isDownloaded)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      LucideIcons.checkCircle,
-                      size: 10,
-                      color: colorScheme.onPrimary,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-      title: Text(song.name, overflow: TextOverflow.ellipsis, maxLines: 1),
-      subtitle: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (song.isExplicit) ...[
-            const ExplicitBadge(),
-            const SizedBox(width: 6),
-          ],
-          Expanded(
-            child: Text(
-              [
-                song.artist.name,
-                if (song.album?.name != null) song.album!.name,
-                if (song.playCount != null && song.playCount!.isNotEmpty)
-                  song.playCount,
-              ].join(' · '),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ),
-        ],
-      ),
-      trailing:
-          song.duration != null
-              ? Text(
-                Duration(seconds: song.duration!).format(),
-                style: textTheme.bodySmall,
-              )
-              : null,
-      onTap:
-          () => ref
-              .read(playerStateProvider.notifier)
-              .playVideoId(
-                song.videoId,
-                isVideo: song.type == 'VIDEO',
-                isExplicit: song.isExplicit,
-              ),
-      onLongPress:
-          () => ContextMenuSheet.showForSong(
-            context,
-            videoId: song.videoId,
-            title: song.name,
-            artist: song.artist.name,
-            thumbnailUrl:
-                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
-            duration: song.duration,
-            isVideo: song.type == 'VIDEO',
-            albumName: song.album?.name,
-            artistId: song.artist.artistId,
-            albumId: song.album?.albumId,
-            playCount: song.playCount,
-            isExplicit: song.isExplicit,
-          ),
-    );
   }
 }
 

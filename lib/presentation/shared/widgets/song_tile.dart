@@ -23,6 +23,7 @@ class SongTile extends ConsumerWidget {
   final String? playCount;
   final int? viewCount;
   final bool isExplicit;
+  final int? index;
   final VoidCallback? onTap;
 
   const SongTile({
@@ -39,6 +40,7 @@ class SongTile extends ConsumerWidget {
     this.playCount,
     this.viewCount,
     this.isExplicit = false,
+    this.index,
     this.onTap,
   });
 
@@ -49,42 +51,7 @@ class SongTile extends ConsumerWidget {
     final isDownloaded = downloadedIds.contains(videoId);
 
     return ListTile(
-      leading: Stack(
-        children: [
-          ThumbnailWidget(
-            imageUrl: thumbnailUrl,
-            size: 48,
-            shape: ThumbnailShape.rounded,
-          ),
-          if (isVideo)
-            Positioned(
-              bottom: 0,
-              right: isDownloaded ? null : 0,
-              left: isDownloaded ? 0 : null,
-              child: const VideoBadge(
-                padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                borderRadius: 3,
-              ),
-            ),
-          if (isDownloaded)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  LucideIcons.checkCircle,
-                  size: 10,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                ),
-              ),
-            ),
-        ],
-      ),
+      leading: _buildLeading(context, isDownloaded),
       title: Text.rich(
         TextSpan(
           children: [
@@ -143,6 +110,68 @@ class SongTile extends ConsumerWidget {
             isExplicit: isExplicit,
           ),
     );
+  }
+
+  Widget _buildLeading(BuildContext context, bool isDownloaded) {
+    final thumbnail = Stack(
+      children: [
+        ThumbnailWidget(
+          imageUrl: thumbnailUrl,
+          size: 48,
+          shape: ThumbnailShape.rounded,
+        ),
+        if (isVideo)
+          Positioned(
+            bottom: 0,
+            right: isDownloaded ? null : 0,
+            left: isDownloaded ? 0 : null,
+            child: const VideoBadge(
+              padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+              borderRadius: 3,
+            ),
+          ),
+        if (isDownloaded)
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                LucideIcons.checkCircle,
+                size: 10,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
+            ),
+          ),
+      ],
+    );
+
+    if (index != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text(
+              '$index',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          thumbnail,
+        ],
+      );
+    }
+
+    return thumbnail;
   }
 
   String? _formatStat() {

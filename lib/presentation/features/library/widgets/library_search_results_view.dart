@@ -111,6 +111,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
                       title: s.title,
                       artist: s.artist,
                       thumbnailUrl: s.thumbnailUrl,
+                      duration: s.duration,
                       artistId: s.artistId,
                       albumId: s.albumId,
                       isExplicit: s.isExplicit,
@@ -219,6 +220,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
                       title: h.title,
                       artist: h.artist,
                       thumbnailUrl: h.thumbnailUrl,
+                      duration: h.duration,
                       isVideo: h.isVideo,
                       isExplicit: h.isExplicit,
                     );

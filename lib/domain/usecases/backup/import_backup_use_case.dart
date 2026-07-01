@@ -51,6 +51,9 @@ class ImportBackupUseCase {
           artistId: s['artistId'] as String?,
           albumId: s['albumId'] as String?,
           addedAt: DateTime.parse(s['addedAt'] as String),
+          duration: s['duration'] as int?,
+          isVideo: s['isVideo'] as bool? ?? false,
+          isExplicit: s['isExplicit'] as bool? ?? false,
         ),
       );
     }
@@ -124,6 +127,8 @@ class ImportBackupUseCase {
           title: e['title'] as String?,
           artist: e['artist'] as String?,
           thumbnailUrl: e['thumbnailUrl'] as String?,
+          isVideo: e['isVideo'] as bool? ?? false,
+          isExplicit: e['isExplicit'] as bool? ?? false,
         );
       }
     }
@@ -134,9 +139,11 @@ class ImportBackupUseCase {
         h['title'] as String,
         h['artist'] as String,
         thumbnailUrl: h['thumbnailUrl'] as String?,
+        duration: h['duration'] as int?,
         playedAt: DateTime.parse(h['playedAt'] as String),
         playCount: h['playCount'] as int? ?? 1,
         isVideo: h['isVideo'] as bool? ?? false,
+        isExplicit: h['isExplicit'] as bool? ?? false,
       );
     }
 
