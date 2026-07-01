@@ -1,6 +1,6 @@
 # SONORA — Developer Documentation
 
-> **Ultima aggiornamento**: 2026-06-21 19:13 | **Version**: 1.3.4+24 | **Status**: Release-ready | **Platforms**: Android + Linux
+> **Ultima aggiornamento**: 2026-07-01 10:57 | **Version**: 1.3.4+24 | **Status**: Release-ready | **Platforms**: Android + Linux
 
 ---
 
@@ -235,22 +235,22 @@ Keys cover: navigation, artist, album, playlist, library, downloads, search, set
 
 ---
 
-## 5. Drift Database — Schema v10
+## 5. Drift Database — Schema v14
 
 ### 5.1 Tables
 
 | Table | PK | Key Fields | Notes |
 |---|---|---|---|
-| `liked_songs` | videoId | title, artist, thumbnailUrl, artistId, albumId, addedAt | v8: +artistId, albumId |
-| `followed_artists` | artistId | name, thumbnailUrl | |
+| `liked_songs` | videoId | title, artist, thumbnailUrl, artistId, albumId, addedAt, isVideo, duration | v8: +artistId/albumId, v12: +isVideo, v14: +duration |
+| `followed_artists` | artistId | name, thumbnailUrl, addedAt | v13: +addedAt |
 | `liked_albums` | albumId | name, artistName, thumbnailUrl, year, addedAt | v7: new |
 | `liked_playlists` | playlistId | name, thumbnailUrl, videoCount, addedAt | v7: new |
 | `local_playlists` | id (auto) | name, description, createdAt | |
-| `playlist_entries` | (playlistId, videoId) | position, title, artist, thumbnailUrl | v9: +title, artist, thumbnailUrl |
-| `downloads` | videoId | title, artist, thumbnailUrl, localPath, format, fileSize, downloadedAt, status | v5/v6: +title, artist, thumbnailUrl |
-| `history` | id (auto) | videoId, title, artist, thumbnailUrl, playedAt, playCount | v4: +thumbnailUrl |
+| `playlist_entries` | (playlistId, videoId) | position, title, artist, thumbnailUrl, isVideo | v9: +title/artist/thumbnailUrl, v12: +isVideo |
+| `downloads` | videoId | title, artist, thumbnailUrl, localPath, format, fileSize, downloadedAt, status, isVideo | v5/v6: +title/artist/thumbnailUrl, v11: +isVideo |
+| `history` | id (auto) | videoId, title, artist, thumbnailUrl, playedAt, playCount, isVideo, duration | v4: +thumbnailUrl, v11: +isVideo, v14: +duration |
 | `search_history` | id (auto) | query, searchedAt | |
-| `queue_items` | position (auto) | videoId, title, artist, albumTitle, thumbnailUrl, durationSec, isVideo, streamUrl, artistId, albumId | v3: +streamUrl, v10: +artistId, albumId |
+| `queue_items` | position (auto) | videoId, title, artist, albumTitle, thumbnailUrl, durationSec, isVideo, streamUrl, artistId, albumId | v3: +streamUrl, v10: +artistId/albumId |
 
 ### 5.2 Code Generation
 
@@ -277,7 +277,7 @@ Extends `BaseAudioHandler` from `audio_service`. Instantiated in `main.dart` and
 - `PlayVideoIdUseCase` — for URL resolution + getVideo fallback
 
 **Media Player:**
-Uses `media_kit` for cross-platform audio and video playback.
+Uses `media_kit` for cross-platform audio and video playback. Includes disk caching for network streams configured natively on `NativePlayer` platform backends, writing cache chunks to the temporary directory `sonora_stream_cache` with a maximum limit of `100MB` for buffer and `50MB` for back-buffer.
 
 **Lazy URL Resolution:**
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When `currentIndexStream` changes, `_resolvePendingItems` resolves the URL for the current item + pre-resolves the next 2. If the user skips, unneeded URLs are never resolved.
@@ -344,18 +344,18 @@ Since Echo devices often don't support open casting protocols reliably, Sonora p
 
 ### 6.5 Internet Connectivity & Offline Playback
 
-Sonora monitors network state globally using `connectivity_plus` to handle offline scenarios gracefully.
+Sonora monitors network state globally using `connectivity_plus` and local user settings override to handle offline scenarios gracefully.
 
 - **Connectivity Providers** (`lib/presentation/providers/connectivity_provider.dart`):
   - `connectivityStatusProvider`: Streams connectivity status (`isConnected` / `isDisconnected`) by listening to `Connectivity().onConnectivityChanged`.
-  - `isOfflineProvider`: Renders a simple boolean (`isOffline`) check.
+  - `isOfflineProvider`: Checks if `offlineMode` setting is active (explicit offline mode) or if there is no physical network connectivity.
 - **Offline Playback Guard in `PlayVideoIdUseCase`**:
   - Checks if the requested track is downloaded local-first. If yes, builds `MediaItem` directly from `DownloadModel` metadata, bypassing all network metadata calls.
   - If a download doesn't exist and the device is offline, it throws a fast `SocketException` immediately to prevent pending network queries.
   - All remote metadata and streaming URL requests are bounded by a `10-second` timeout threshold to recover gracefully from weak/slow connections.
-- **Offline Banner**:
+- **Offline Banner & Cards**:
   - `OfflineBanner` is a global glassmorphic pill located in `AppShell`. It slides in from the top of the viewport when offline, displaying a warning message.
-  - When connection is restored, it transitions to a green success state for 2 seconds and slides out.
+  - Home layouts show a friendly descriptive notice informing the user that local cached database sections are displayed while connection is overridden.
 - **Error Interception**:
   - `PlayerErrorListener` and `ErrorRetryWidget` intercept raw socket/timeout exceptions and format them into localized user-friendly messages (`weakConnectionError`).
 
@@ -609,6 +609,7 @@ Produces:
 | `downloadPath` | String? | null | StartDownloadUseCase |
 | `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
 | `trackHistory` | bool | true | AudioHandler history insert |
+| `offlineMode` | bool | false | Overrides network state to restrict online calls |
 | `checkUpdatesOnStartup` | bool | true | UpdateNotifier at boot |
 
 ---

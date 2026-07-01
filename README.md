@@ -27,8 +27,11 @@ Sonora is a cross-platform music and video streaming app built with Flutter. It 
 - **Android Auto** — full driving support with playback controls, browse, and sleep timer
 - **Casting** — stream audio to Chromecast and DLNA devices (WiFi speakers, Smart TVs)
 - **Offline downloads & playback** — save songs locally for offline listening with zero-network local playback support
+- **Explicit Offline Mode** — manual switch to override device network status and browse/play locally cached tracks only
 - **Connectivity awareness** — global warning banner when offline, automatic connection restoration cues, and friendly network error handling
 - **Local library** — save favorite songs, albums, artists, and playlists; create custom playlists
+- **YouTube Playlist Syncing** — import and synchronize remote YouTube Music playlists into local database
+- **Smart Playlists (Auto-mixes)** — dynamic automatically generated playlists based on listening history (Most Played, Recently Played, Forgotten Favorites)
 - **Listening history** — track your listened songs
 - **Search** — search songs, albums, artists, playlists, and music videos
 - **Adaptive UI** — optimized layouts for mobile, tablet, and wide screens (NavigationBar / NavigationRail / NavigationDrawer)
