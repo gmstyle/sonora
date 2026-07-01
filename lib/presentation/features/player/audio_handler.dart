@@ -255,7 +255,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               _pause();
               break;
             case AudioInterruptionType.duck:
-              _setLocalVolume(20.0);
+              _setLocalVolume(_lastSetVolume * 20.0);
               break;
           }
         } else {
@@ -268,7 +268,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               _playOnInterruptionEnd = false;
               break;
             case AudioInterruptionType.duck:
-              _setLocalVolume(100.0);
+              _setLocalVolume(_lastSetVolume * 100.0);
               break;
           }
         }
@@ -813,7 +813,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   @override
-  Future<void> pause() => _pause();
+  Future<void> pause() async {
+    _playOnInterruptionEnd = false;
+    await _pause();
+  }
 
   Future<void> _pause() async {
     // NOTE: do NOT release audio focus on pause.
@@ -823,7 +826,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // Audio focus is released only on explicit stop() / onTaskRemoved().
     // This matches the behaviour of every major music player (Spotify, YouTube
     // Music, Musily, etc.) which never release focus on pause.
-    _playOnInterruptionEnd = false;
     await _player.pause();
     if (_castState?.connectionState == CastConnectionState.connected) {
       await _castService?.pause();
