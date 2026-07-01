@@ -45,6 +45,7 @@ class HistoryTab extends ConsumerWidget {
                 artist: h.artist,
                 thumbnailUrl: h.thumbnailUrl,
                 isVideo: h.isVideo,
+                isExplicit: h.isExplicit,
               );
             },
           ),

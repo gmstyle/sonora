@@ -2517,6 +2517,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           thumbnailUrl: current?.artUri?.toString(),
           addedAt: DateTime.now(),
           isVideo: current?.extras?['isVideo'] == true,
+          isExplicit: current?.extras?['isExplicit'] == true,
         ),
       );
     } catch (_) {}
@@ -2564,6 +2565,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             thumbnailUrl: item.artUri?.toString(),
             addedAt: DateTime.now(),
             isVideo: item.extras?['isVideo'] == true,
+            isExplicit: item.extras?['isExplicit'] == true,
           ),
         );
 

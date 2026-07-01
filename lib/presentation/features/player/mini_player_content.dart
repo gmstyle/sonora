@@ -12,6 +12,7 @@ import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/video_badge.dart';
+import '../../shared/widgets/explicit_badge.dart';
 import '../../providers/settings_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import 'widgets/animated_play_pause_icon.dart';
@@ -125,6 +126,10 @@ class MiniPlayerContent extends ConsumerWidget {
                                       maxLines: 1,
                                     ),
                                   ),
+                                  if (currentSong.extras?['isExplicit'] == true)
+                                    const ExplicitBadge(
+                                      leading: SizedBox(width: 6),
+                                    ),
                                   if (isVideo)
                                     const VideoBadge(
                                       leading: SizedBox(width: 6),
@@ -218,6 +223,10 @@ class MiniPlayerContent extends ConsumerWidget {
                                       maxLines: 1,
                                     ),
                                   ),
+                                  if (currentSong.extras?['isExplicit'] == true)
+                                    const ExplicitBadge(
+                                      leading: SizedBox(width: 6),
+                                    ),
                                   if (isVideo)
                                     const VideoBadge(
                                       leading: SizedBox(width: 6),
@@ -329,14 +338,29 @@ class MiniPlayerContent extends ConsumerWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          currentSong.title,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                currentSong.title,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: theme
+                                                    .textTheme
+                                                    .titleSmall
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                maxLines: 1,
                                               ),
-                                          maxLines: 1,
+                                            ),
+                                            if (currentSong
+                                                    .extras?['isExplicit'] ==
+                                                true)
+                                              const ExplicitBadge(
+                                                leading: SizedBox(width: 6),
+                                              ),
+                                          ],
                                         ),
                                         Text(
                                           currentSong.artist ?? '',
@@ -651,6 +675,7 @@ class MiniPlayerContent extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                     addedAt: DateTime.now(),
                     isVideo: currentSong.extras?['isVideo'] == true,
+                    isExplicit: currentSong.extras?['isExplicit'] == true,
                   ),
                 );
           },

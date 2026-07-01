@@ -29,6 +29,7 @@ class QueueRepositoryImpl implements QueueRepository {
             streamUrl: Value(item.extras?['url'] as String?),
             artistId: Value(item.extras?['artistId'] as String?),
             albumId: Value(item.extras?['albumId'] as String?),
+            isExplicit: Value(item.extras?['isExplicit'] == true),
           ),
         );
       }
@@ -53,6 +54,7 @@ class QueueRepositoryImpl implements QueueRepository {
           if (hasUrl) 'url': row.streamUrl else 'needsUrl': true,
           'videoId': row.videoId,
           'isVideo': row.isVideo,
+          'isExplicit': row.isExplicit,
           if (row.artistId != null) 'artistId': row.artistId,
           if (row.albumId != null) 'albumId': row.albumId,
         },

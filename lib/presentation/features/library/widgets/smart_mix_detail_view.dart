@@ -131,6 +131,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                 'videoId': r.videoId,
                 'isVideo': r.isVideo,
                 'needsUrl': true,
+                'isExplicit': r.isExplicit,
               },
             ),
           )
@@ -150,6 +151,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                 'needsUrl': true,
                 'artistId': r.artistId,
                 'albumId': r.albumId,
+                'isExplicit': r.isExplicit,
               },
             ),
           )
@@ -424,6 +426,8 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                       final duration = song.duration;
                       final isVideo = song.isVideo;
 
+                      final isExplicit = song.isExplicit == true;
+
                       String? playCountStr;
                       if (mixType == SmartMixType.mostPlayed &&
                           song is HistoryModel) {
@@ -443,6 +447,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                           duration: duration,
                           isVideo: isVideo,
                           playCount: playCountStr,
+                          isExplicit: isExplicit,
                           artistId:
                               song is LikedSongModel ? song.artistId : null,
                           albumId: song is LikedSongModel ? song.albumId : null,

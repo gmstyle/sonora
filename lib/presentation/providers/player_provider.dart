@@ -288,6 +288,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
                 thumbnailUrl: item.artUri?.toString(),
                 duration: item.duration?.inSeconds,
                 isVideo: item.extras?['isVideo'] == true,
+                isExplicit: item.extras?['isExplicit'] == true,
               );
         }
       });
@@ -452,6 +453,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     String? albumName,
     String? artistId,
     String? albumId,
+    bool isExplicit = false,
   }) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
@@ -460,6 +462,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         'url': streamUrl,
         'videoId': videoId,
         'isVideo': isVideo,
+        'isExplicit': isExplicit,
       };
       if (artistId != null) extras['artistId'] = artistId;
       if (albumId != null) extras['albumId'] = albumId;
@@ -495,6 +498,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     String? albumName,
     String? artistId,
     String? albumId,
+    bool isExplicit = false,
   }) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
@@ -503,6 +507,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         'url': streamUrl,
         'videoId': videoId,
         'isVideo': isVideo,
+        'isExplicit': isExplicit,
       };
       if (artistId != null) extras['artistId'] = artistId;
       if (albumId != null) extras['albumId'] = albumId;
@@ -640,14 +645,18 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> playVideoId(String videoId, {bool? isVideo}) async {
+  Future<void> playVideoId(
+    String videoId, {
+    bool? isVideo,
+    bool? isExplicit,
+  }) async {
     final v = ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     try {
       final item = await ref
           .read(playVideoIdUseCaseProvider)
-          .execute(videoId, isVideoHint: isVideo);
+          .execute(videoId, isVideoHint: isVideo, isExplicitHint: isExplicit);
       if (_operationVersion != v) return;
       await _handler.setQueue([item]);
       if (_operationVersion != v) return;

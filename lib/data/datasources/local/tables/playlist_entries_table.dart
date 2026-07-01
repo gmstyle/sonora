@@ -9,6 +9,7 @@ class PlaylistEntries extends Table {
   TextColumn? get artist => text().nullable()();
   TextColumn? get thumbnailUrl => text().nullable()();
   BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
+  BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {playlistId, videoId};

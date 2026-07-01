@@ -17,6 +17,7 @@ import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/video_player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/explicit_badge.dart';
 import 'progress_bar_widget.dart';
 import 'cast_button.dart';
 
@@ -234,6 +235,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                   thumbnailUrl: thumbnailUrl,
                   addedAt: DateTime.now(),
                   isVideo: song.extras?['isVideo'] == true,
+                  isExplicit: song.extras?['isExplicit'] == true,
                 ),
               );
         },
@@ -311,6 +313,10 @@ Widget buildTrackInfoAndLikeRow(
                     },
                   ),
                 ),
+                if (song.extras?['isExplicit'] == true) ...[
+                  const SizedBox(width: 8),
+                  const ExplicitBadge(),
+                ],
                 if (isVideo) ...[
                   const SizedBox(width: 8),
                   buildMvBadge(context),

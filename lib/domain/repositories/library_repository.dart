@@ -64,6 +64,7 @@ abstract class LibraryRepository {
     String? artist,
     String? thumbnailUrl,
     bool isVideo = false,
+    bool isExplicit = false,
   });
   Future<void> removeEntry(int playlistId, String videoId);
   Future<void> reorderEntries(int playlistId, List<String> videoIds);
@@ -81,6 +82,7 @@ abstract class LibraryRepository {
     int? fileSize,
     DateTime? downloadedAt,
     bool isVideo = false,
+    bool isExplicit = false,
   });
   Future<void> deleteDownload(String videoId);
 
@@ -95,6 +97,7 @@ abstract class LibraryRepository {
     String? thumbnailUrl,
     int? duration,
     bool isVideo = false,
+    bool isExplicit = false,
   });
   Future<void> insertHistoryEntry(
     String videoId,
@@ -105,6 +108,7 @@ abstract class LibraryRepository {
     required DateTime playedAt,
     int playCount = 1,
     bool isVideo = false,
+    bool isExplicit = false,
   });
   Future<void> clearHistory();
 

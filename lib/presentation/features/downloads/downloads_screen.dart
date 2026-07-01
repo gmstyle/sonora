@@ -9,6 +9,7 @@ import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
+import '../../shared/widgets/explicit_badge.dart';
 
 class DownloadsScreen extends ConsumerWidget {
   const DownloadsScreen({super.key});
@@ -317,13 +318,26 @@ class _CompletedDownloadTile extends StatelessWidget {
             size: 48,
             shape: ThumbnailShape.rounded,
           ),
-          title: Text(
-            download.title,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+          title: RichText(
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+              children: [
+                if (download.isExplicit)
+                  const WidgetSpan(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 6.0),
+                      child: ExplicitBadge(),
+                    ),
+                    alignment: PlaceholderAlignment.middle,
+                  ),
+                TextSpan(text: download.title),
+              ],
+            ),
           ),
           subtitle: Text(
             '${download.artist} · ${_formatSize(download.fileSize)}',
@@ -347,6 +361,7 @@ class _CompletedDownloadTile extends StatelessWidget {
                 .playVideoId(
                   download.videoId as String,
                   isVideo: download.isVideo ?? false,
+                  isExplicit: download.isExplicit,
                 );
           },
         ),

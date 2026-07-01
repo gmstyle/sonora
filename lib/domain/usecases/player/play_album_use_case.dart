@@ -54,6 +54,7 @@ class PlayAlbumUseCase {
         'isVideo': false,
         'artistId': s.artist.artistId,
         if (s.album?.albumId != null) 'albumId': s.album!.albumId,
+        'isExplicit': s.isExplicit,
       },
     );
   }
@@ -72,6 +73,7 @@ class PlayAlbumUseCase {
         'isVideo': false,
         'artistId': s.artist.artistId,
         if (s.album?.albumId != null) 'albumId': s.album!.albumId,
+        'isExplicit': s.isExplicit,
       },
     );
   }

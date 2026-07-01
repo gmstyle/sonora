@@ -12,6 +12,7 @@ class QueueItems extends Table {
   TextColumn get streamUrl => text().nullable()();
   TextColumn get artistId => text().nullable()();
   TextColumn get albumId => text().nullable()();
+  BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {position};

@@ -23,6 +23,8 @@ import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/release_card.dart';
 import '../../shared/widgets/video_card.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
+import '../../shared/widgets/expandable_text.dart';
+import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../providers/download_provider.dart';
@@ -223,7 +225,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                   if (artist.description != null &&
                       artist.description!.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    _ExpandableText(text: artist.description!),
+                    ExpandableText(text: artist.description!),
                   ],
                   const SizedBox(height: 24),
                   if (artist.topSongs.isNotEmpty)
@@ -324,6 +326,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                                       ? video.thumbnails.last.url
                                       : null,
                               artistId: video.artist.artistId,
+                              isExplicit: video.isExplicit,
                             );
                           },
                         ),
@@ -560,15 +563,26 @@ class _NumberedSongTile extends ConsumerWidget {
         ],
       ),
       title: Text(song.name, overflow: TextOverflow.ellipsis, maxLines: 1),
-      subtitle: Text(
-        [
-          song.artist.name,
-          if (song.album?.name != null) song.album!.name,
-          if (song.playCount != null && song.playCount!.isNotEmpty)
-            song.playCount,
-        ].join(' · '),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
+      subtitle: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (song.isExplicit) ...[
+            const ExplicitBadge(),
+            const SizedBox(width: 6),
+          ],
+          Expanded(
+            child: Text(
+              [
+                song.artist.name,
+                if (song.album?.name != null) song.album!.name,
+                if (song.playCount != null && song.playCount!.isNotEmpty)
+                  song.playCount,
+              ].join(' · '),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
       ),
       trailing:
           song.duration != null
@@ -580,7 +594,11 @@ class _NumberedSongTile extends ConsumerWidget {
       onTap:
           () => ref
               .read(playerStateProvider.notifier)
-              .playVideoId(song.videoId, isVideo: song.type == 'VIDEO'),
+              .playVideoId(
+                song.videoId,
+                isVideo: song.type == 'VIDEO',
+                isExplicit: song.isExplicit,
+              ),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
@@ -595,6 +613,7 @@ class _NumberedSongTile extends ConsumerWidget {
             artistId: song.artist.artistId,
             albumId: song.album?.albumId,
             playCount: song.playCount,
+            isExplicit: song.isExplicit,
           ),
     );
   }
@@ -1257,63 +1276,6 @@ class _SectionHeader extends StatelessWidget {
           context,
         ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
-    );
-  }
-}
-
-class _ExpandableText extends StatefulWidget {
-  final String text;
-
-  const _ExpandableText({required this.text});
-
-  @override
-  State<_ExpandableText> createState() => _ExpandableTextState();
-}
-
-class _ExpandableTextState extends State<_ExpandableText> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AnimatedCrossFade(
-          firstChild: Text(
-            widget.text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          secondChild: Text(
-            widget.text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          crossFadeState:
-              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 200),
-        ),
-        TextButton.icon(
-          onPressed: () => setState(() => _expanded = !_expanded),
-          icon: Icon(
-            _expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-          ),
-          label: Text(
-            _expanded
-                ? AppLocalizations.of(context)!.showLess
-                : AppLocalizations.of(context)!.showMore,
-          ),
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-      ],
     );
   }
 }

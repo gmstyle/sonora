@@ -16,7 +16,11 @@ class PlayVideoIdUseCase {
 
   PlayVideoIdUseCase(this._repo, [this._libraryRepo]);
 
-  Future<MediaItem> execute(String videoId, {bool? isVideoHint}) async {
+  Future<MediaItem> execute(
+    String videoId, {
+    bool? isVideoHint,
+    bool? isExplicitHint,
+  }) async {
     // 1. Check if we have a local download first
     if (_libraryRepo != null) {
       try {
@@ -31,6 +35,7 @@ class PlayVideoIdUseCase {
               'url': url,
               'videoId': videoId,
               'isVideo': download.isVideo,
+              'isExplicit': download.isExplicit,
             };
             return MediaItem(
               id: videoId,
@@ -68,6 +73,7 @@ class PlayVideoIdUseCase {
     String? musicVideoType;
     String? artistId;
     String? albumId;
+    bool isExplicit = false;
 
     try {
       final song = await _repo
@@ -82,6 +88,7 @@ class PlayVideoIdUseCase {
       publishDate = song.publishDate;
       artistId = song.artist.artistId;
       albumId = song.album?.albumId;
+      isExplicit = isExplicitHint ?? song.isExplicit;
     } catch (_) {
       final video = await _repo
           .getVideo(videoId)
@@ -96,6 +103,7 @@ class PlayVideoIdUseCase {
       publishDate = video.publishDate;
       musicVideoType = video.musicVideoType;
       artistId = video.artist.artistId;
+      isExplicit = isExplicitHint ?? video.isExplicit;
     }
 
     final url = await urlFuture;
@@ -103,6 +111,7 @@ class PlayVideoIdUseCase {
       'url': url,
       'videoId': videoId,
       'isVideo': isVideo,
+      'isExplicit': isExplicit,
     };
     if (viewCount != null) extras['viewCount'] = viewCount;
     if (publishDate != null) extras['publishDate'] = publishDate;

@@ -17,6 +17,7 @@ import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
+import '../../../shared/widgets/explicit_badge.dart';
 import 'create_playlist_dialog.dart';
 import '../providers/library_provider.dart';
 
@@ -441,12 +442,14 @@ class _PlaylistDetailContentState
       final title = liked?.title ?? entry.title ?? entry.videoId;
       final artist = liked?.artist ?? entry.artist ?? '';
       final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
+      final isExplicit = liked?.isExplicit ?? entry.isExplicit;
       await notifier.startDownload(
         videoId: entry.videoId,
         title: title,
         artist: artist,
         thumbnailUrl: thumbnailUrl,
         subdirectory: widget.playlist.name,
+        isExplicit: isExplicit,
       );
     }
   }
@@ -984,6 +987,7 @@ class _PlaylistEntryTile extends ConsumerWidget {
     final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(entry.videoId);
+    final isExplicit = liked?.isExplicit ?? entry.isExplicit;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -1012,8 +1016,20 @@ class _PlaylistEntryTile extends ConsumerWidget {
             ),
           ],
         ),
-        title: Text(
-          title,
+        title: Text.rich(
+          TextSpan(
+            children: [
+              if (isExplicit)
+                const WidgetSpan(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 6.0),
+                    child: ExplicitBadge(),
+                  ),
+                  alignment: PlaceholderAlignment.middle,
+                ),
+              TextSpan(text: title),
+            ],
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w500),
@@ -1057,6 +1073,7 @@ class _PlaylistEntryTile extends ConsumerWidget {
               artist: artist,
               thumbnailUrl: thumbnailUrl,
               isVideo: true,
+              isExplicit: entry.isExplicit,
             ),
       ),
     );

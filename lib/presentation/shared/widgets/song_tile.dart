@@ -8,6 +8,7 @@ import '../../providers/download_provider.dart';
 import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 import 'video_badge.dart';
+import 'explicit_badge.dart';
 
 class SongTile extends ConsumerWidget {
   final String videoId;
@@ -21,6 +22,7 @@ class SongTile extends ConsumerWidget {
   final String? albumId;
   final String? playCount;
   final int? viewCount;
+  final bool isExplicit;
   final VoidCallback? onTap;
 
   const SongTile({
@@ -36,6 +38,7 @@ class SongTile extends ConsumerWidget {
     this.albumId,
     this.playCount,
     this.viewCount,
+    this.isExplicit = false,
     this.onTap,
   });
 
@@ -82,7 +85,23 @@ class SongTile extends ConsumerWidget {
             ),
         ],
       ),
-      title: Text(title, overflow: TextOverflow.ellipsis, maxLines: 1),
+      title: Text.rich(
+        TextSpan(
+          children: [
+            if (isExplicit)
+              const WidgetSpan(
+                child: Padding(
+                  padding: EdgeInsets.only(right: 6.0),
+                  child: ExplicitBadge(),
+                ),
+                alignment: PlaceholderAlignment.middle,
+              ),
+            TextSpan(text: title),
+          ],
+        ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
       subtitle: Text(
         [
           artist,
@@ -91,6 +110,9 @@ class SongTile extends ConsumerWidget {
         ].join(' · '),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
       trailing:
           duration != null
@@ -103,7 +125,7 @@ class SongTile extends ConsumerWidget {
           onTap ??
           () => ref
               .read(playerStateProvider.notifier)
-              .playVideoId(videoId, isVideo: isVideo),
+              .playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
@@ -118,6 +140,7 @@ class SongTile extends ConsumerWidget {
             albumId: albumId,
             playCount: playCount,
             viewCount: viewCount,
+            isExplicit: isExplicit,
           ),
     );
   }

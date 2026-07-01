@@ -10,4 +10,5 @@ class History extends Table {
   IntColumn get playCount => integer()();
   BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
   IntColumn get duration => integer().nullable()();
+  BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
 }

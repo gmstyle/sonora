@@ -39,6 +39,14 @@ class PlaySmartMixUseCase {
       if (url == null) 'needsUrl': true,
       'videoId': s.videoId,
       'isVideo': s.isVideo,
+      'isExplicit':
+          s is HistoryModel
+              ? s.isExplicit
+              : s is LikedSongModel
+              ? s.isExplicit
+              : s is DownloadModel
+              ? s.isExplicit
+              : false,
     };
     if (s is LikedSongModel) {
       if (s.artistId != null) extras['artistId'] = s.artistId;

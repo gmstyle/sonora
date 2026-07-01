@@ -5,6 +5,7 @@ import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/player_provider.dart';
+import '../../../shared/widgets/explicit_badge.dart';
 
 class QueueSheet extends ConsumerWidget {
   const QueueSheet({super.key});
@@ -84,13 +85,27 @@ class QueueSheet extends ConsumerWidget {
                         : Icon(LucideIcons.music, color: pc.iconSecondary),
               ),
             ),
-            title: Text(
-              item.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            title: DefaultTextStyle(
               style: TextStyle(
                 fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
                 color: isCurrent ? pc.titlePrimary : pc.titleSecondary,
+              ),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (item.extras?['isExplicit'] == true)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: ExplicitBadge(),
+                        ),
+                      ),
+                    TextSpan(text: item.title),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             subtitle: Text(

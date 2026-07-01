@@ -113,6 +113,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
                       thumbnailUrl: s.thumbnailUrl,
                       artistId: s.artistId,
                       albumId: s.albumId,
+                      isExplicit: s.isExplicit,
                       isVideo: s.isVideo,
                     );
                   }, childCount: songs.length),
@@ -219,6 +220,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
                       artist: h.artist,
                       thumbnailUrl: h.thumbnailUrl,
                       isVideo: h.isVideo,
+                      isExplicit: h.isExplicit,
                     );
                   }, childCount: history.length),
                 ),

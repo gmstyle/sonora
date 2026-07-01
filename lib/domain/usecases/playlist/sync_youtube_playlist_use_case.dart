@@ -44,6 +44,7 @@ class SyncYoutubePlaylistUseCase {
         artist: artistName,
         thumbnailUrl: thumbUrl,
         isVideo: false,
+        isExplicit: video.isExplicit,
       );
     }
 

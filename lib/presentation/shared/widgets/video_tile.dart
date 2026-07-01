@@ -9,6 +9,7 @@ class VideoTile extends ConsumerWidget {
   final String? thumbnailUrl;
   final int? duration;
   final String? albumName;
+  final bool isExplicit;
 
   const VideoTile({
     super.key,
@@ -18,6 +19,7 @@ class VideoTile extends ConsumerWidget {
     this.thumbnailUrl,
     this.duration,
     this.albumName,
+    this.isExplicit = false,
   });
 
   @override
@@ -30,6 +32,7 @@ class VideoTile extends ConsumerWidget {
       duration: duration,
       isVideo: true,
       albumName: albumName,
+      isExplicit: isExplicit,
     );
   }
 }

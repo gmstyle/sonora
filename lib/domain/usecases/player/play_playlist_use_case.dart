@@ -51,6 +51,7 @@ class PlayPlaylistUseCase {
         'videoId': v.videoId,
         'isVideo': true,
         'artistId': v.artist.artistId,
+        'isExplicit': v.isExplicit,
       },
     );
   }
@@ -67,6 +68,7 @@ class PlayPlaylistUseCase {
         'videoId': v.videoId,
         'isVideo': true,
         'artistId': v.artist.artistId,
+        'isExplicit': v.isExplicit,
       },
     );
   }

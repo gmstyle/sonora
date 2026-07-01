@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -147,6 +147,13 @@ class AppDatabase extends _$AppDatabase {
         if (!hasHistoryDuration) {
           await m.addColumn(history, history.duration);
         }
+      }
+      if (from < 15) {
+        await m.addColumn(likedSongs, likedSongs.isExplicit);
+        await m.addColumn(history, history.isExplicit);
+        await m.addColumn(downloads, downloads.isExplicit);
+        await m.addColumn(playlistEntries, playlistEntries.isExplicit);
+        await m.addColumn(queueItems, queueItems.isExplicit);
       }
     },
   );

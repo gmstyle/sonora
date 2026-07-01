@@ -61,6 +61,7 @@ class FavoritesTab extends ConsumerWidget {
                 artistId: s.artistId,
                 albumId: s.albumId,
                 isVideo: s.isVideo,
+                isExplicit: s.isExplicit,
               );
             },
           ),
@@ -153,6 +154,7 @@ class FavoritesTab extends ConsumerWidget {
       if (url == null) 'needsUrl': true,
       'videoId': s.videoId,
       'isVideo': s.isVideo,
+      'isExplicit': s.isExplicit,
     };
     if (s.artistId != null) extras['artistId'] = s.artistId;
     if (s.albumId != null) extras['albumId'] = s.albumId;

@@ -10,6 +10,7 @@ class LikedSongs extends Table {
   DateTimeColumn get addedAt => dateTime()();
   BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
   IntColumn get duration => integer().nullable()();
+  BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {videoId};

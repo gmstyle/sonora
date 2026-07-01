@@ -9,6 +9,7 @@ import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'thumbnail_widget.dart';
 import 'video_badge.dart';
+import 'explicit_badge.dart';
 
 class SongCard extends ConsumerStatefulWidget {
   final String videoId;
@@ -21,6 +22,7 @@ class SongCard extends ConsumerStatefulWidget {
   final String? albumId;
   final double cardWidth;
   final bool isVideo;
+  final bool isExplicit;
 
   const SongCard({
     super.key,
@@ -34,6 +36,7 @@ class SongCard extends ConsumerStatefulWidget {
     this.albumId,
     this.cardWidth = 150,
     this.isVideo = false,
+    this.isExplicit = false,
   });
 
   @override
@@ -63,7 +66,11 @@ class _SongCardState extends ConsumerState<SongCard> {
         onTap:
             () => ref
                 .read(playerStateProvider.notifier)
-                .playVideoId(widget.videoId, isVideo: widget.isVideo),
+                .playVideoId(
+                  widget.videoId,
+                  isVideo: widget.isVideo,
+                  isExplicit: widget.isExplicit,
+                ),
         onLongPress:
             () => ContextMenuSheet.showForSong(
               context,
@@ -75,6 +82,7 @@ class _SongCardState extends ConsumerState<SongCard> {
               isVideo: widget.isVideo,
               artistId: widget.artistId,
               albumId: widget.albumId,
+              isExplicit: widget.isExplicit,
             ),
         child: SizedBox(
           width: widget.cardWidth,
@@ -179,8 +187,20 @@ class _SongCardState extends ConsumerState<SongCard> {
                 ],
               ),
               const SizedBox(height: 6),
-              Text(
-                widget.title,
+              Text.rich(
+                TextSpan(
+                  children: [
+                    if (widget.isExplicit)
+                      const WidgetSpan(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: 6.0),
+                          child: ExplicitBadge(),
+                        ),
+                        alignment: PlaceholderAlignment.middle,
+                      ),
+                    TextSpan(text: widget.title),
+                  ],
+                ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
                 style: Theme.of(

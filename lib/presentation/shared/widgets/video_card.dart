@@ -6,6 +6,7 @@ import '../../providers/player_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'video_badge.dart';
+import 'explicit_badge.dart';
 
 class VideoCard extends ConsumerWidget {
   final String videoId;
@@ -13,6 +14,7 @@ class VideoCard extends ConsumerWidget {
   final String artist;
   final String? thumbnailUrl;
   final String? artistId;
+  final bool isExplicit;
 
   const VideoCard({
     super.key,
@@ -21,6 +23,7 @@ class VideoCard extends ConsumerWidget {
     required this.artist,
     this.thumbnailUrl,
     this.artistId,
+    this.isExplicit = false,
   });
 
   @override
@@ -32,7 +35,7 @@ class VideoCard extends ConsumerWidget {
       onTap:
           () => ref
               .read(playerStateProvider.notifier)
-              .playVideoId(videoId, isVideo: true),
+              .playVideoId(videoId, isVideo: true, isExplicit: isExplicit),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
@@ -42,6 +45,7 @@ class VideoCard extends ConsumerWidget {
             thumbnailUrl: thumbnailUrl,
             isVideo: true,
             artistId: artistId,
+            isExplicit: isExplicit,
           ),
       child: SizedBox(
         width: 200,
@@ -92,8 +96,20 @@ class VideoCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              title,
+            Text.rich(
+              TextSpan(
+                children: [
+                  if (isExplicit)
+                    const WidgetSpan(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 6.0),
+                        child: ExplicitBadge(),
+                      ),
+                      alignment: PlaceholderAlignment.middle,
+                    ),
+                  TextSpan(text: title),
+                ],
+              ),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
               style: textTheme.bodyMedium?.copyWith(

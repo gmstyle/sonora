@@ -21,6 +21,7 @@ import '../../shared/widgets/search_suggestion_tile.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
+import '../../shared/widgets/explicit_badge.dart';
 import 'providers/search_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -311,7 +312,11 @@ class _SearchResults extends ConsumerWidget {
       onTap =
           () => ref
               .read(playerStateProvider.notifier)
-              .playVideoId(result.videoId, isVideo: false);
+              .playVideoId(
+                result.videoId,
+                isVideo: false,
+                isExplicit: result.isExplicit,
+              );
     } else if (result is VideoDetailed) {
       title = result.name;
       subtitle = result.artist.name;
@@ -321,7 +326,11 @@ class _SearchResults extends ConsumerWidget {
       onTap =
           () => ref
               .read(playerStateProvider.notifier)
-              .playVideoId(result.videoId, isVideo: true);
+              .playVideoId(
+                result.videoId,
+                isVideo: true,
+                isExplicit: result.isExplicit,
+              );
     } else if (result is ArtistDetailed) {
       title = result.name;
       subtitle =
@@ -400,13 +409,24 @@ class _SearchResults extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if ((result is SongDetailed && result.isExplicit) ||
+                            (result is VideoDetailed && result.isExplicit)) ...[
+                          const SizedBox(width: 6),
+                          const ExplicitBadge(),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -663,6 +683,7 @@ class _SearchResults extends ConsumerWidget {
         albumId: result.album?.albumId,
         artistId: result.artist.artistId,
         playCount: result.playCount,
+        isExplicit: result.isExplicit,
       );
     }
     if (result is VideoDetailed) {
@@ -676,6 +697,7 @@ class _SearchResults extends ConsumerWidget {
         isVideo: true,
         playCount: result.viewCount,
         artistId: result.artist.artistId,
+        isExplicit: result.isExplicit,
       );
     }
     if (result is ArtistDetailed) {

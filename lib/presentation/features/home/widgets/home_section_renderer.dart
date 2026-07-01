@@ -26,6 +26,7 @@ import '../../../shared/widgets/scale_button.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/video_badge.dart';
+import '../../../shared/widgets/explicit_badge.dart';
 
 class HomeShimmer extends StatelessWidget {
   const HomeShimmer({super.key});
@@ -185,7 +186,11 @@ class _ContinueListeningItem extends ConsumerWidget {
       onTap:
           () => ref
               .read(playerStateProvider.notifier)
-              .playVideoId(item.videoId, isVideo: item.isVideo ?? false),
+              .playVideoId(
+                item.videoId,
+                isVideo: item.isVideo ?? false,
+                isExplicit: item.isExplicit ?? false,
+              ),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
@@ -195,6 +200,7 @@ class _ContinueListeningItem extends ConsumerWidget {
             thumbnailUrl: item.thumbnailUrl,
             isVideo: item.isVideo ?? false,
             playCount: item.playCount.toString(),
+            isExplicit: item.isExplicit ?? false,
           ),
       child: SizedBox(
         width: cardWidth,
@@ -236,13 +242,27 @@ class _ContinueListeningItem extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              item.title,
+            Text.rich(
+              TextSpan(
+                children: [
+                  if (item.isExplicit == true)
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: ExplicitBadge(),
+                      ),
+                    ),
+                  TextSpan(
+                    text: item.title,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -593,6 +613,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         artistId: item.artist.artistId,
         albumId: item.album?.albumId,
         isVideo: item.type == 'VIDEO',
+        isExplicit: item.isExplicit,
       );
     }
     if (item is VideoDetailed) {
@@ -603,8 +624,9 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         title: item.name,
         artist: item.artist.name,
         duration: item.duration,
-        artistId: item.artist.artistId,
         isVideo: true,
+        artistId: item.artist.artistId,
+        isExplicit: item.isExplicit,
       );
     }
     if (item is AlbumDetailed) {
@@ -1035,6 +1057,7 @@ class HomeDiscover extends StatelessWidget {
               albumId: song.album?.albumId,
               cardWidth: cardWidth,
               isVideo: song.type == 'VIDEO',
+              isExplicit: song.isExplicit,
             );
           },
         );

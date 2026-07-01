@@ -77,6 +77,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     required String artist,
     String? thumbnailUrl,
     String? subdirectory,
+    bool isExplicit = false,
   }) async {
     if (state.containsKey(videoId)) return;
 
@@ -102,6 +103,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         downloadOnlyOnWifi: settings.downloadOnlyOnWifi,
         downloadPath: settings.downloadPath,
         subdirectory: subdirectory,
+        isExplicit: isExplicit,
         onProgress: (progress) {
           state = {
             ...state,
@@ -174,6 +176,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     required String title,
     required String artist,
     String? thumbnailUrl,
+    bool isExplicit = false,
   }) async {
     state = Map.fromEntries(state.entries.where((e) => e.key != videoId));
     await startDownload(
@@ -181,6 +184,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       title: title,
       artist: artist,
       thumbnailUrl: thumbnailUrl,
+      isExplicit: isExplicit,
     );
   }
 }

@@ -19,6 +19,8 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
+import '../../shared/widgets/expandable_text.dart';
+import '../../shared/widgets/explicit_badge.dart';
 import 'providers/playlist_provider.dart';
 
 class PlaylistScreen extends ConsumerWidget {
@@ -207,6 +209,11 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
                     playlist: widget.playlist,
                     videosAsync: widget.videosAsync,
                   ),
+                  if (widget.playlist.description != null &&
+                      widget.playlist.description!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ExpandableText(text: widget.playlist.description!),
+                  ],
                   const SizedBox(height: 16),
                   widget.videosAsync.when(
                     loading: () => _videoShimmerList(),
@@ -260,8 +267,20 @@ class _PlaylistSliverAppBar extends StatelessWidget {
       title: AnimatedOpacity(
         opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
         duration: const Duration(milliseconds: 150),
-        child: Text(
-          playlist.name,
+        child: Text.rich(
+          TextSpan(
+            children: [
+              if (playlist.isExplicit)
+                const WidgetSpan(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 6.0),
+                    child: ExplicitBadge(),
+                  ),
+                  alignment: PlaceholderAlignment.middle,
+                ),
+              TextSpan(text: playlist.name),
+            ],
+          ),
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -368,8 +387,20 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(height: 14),
-                  Text(
-                    playlist.name,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (playlist.isExplicit)
+                          const WidgetSpan(
+                            child: Padding(
+                              padding: EdgeInsets.only(right: 6.0),
+                              child: ExplicitBadge(),
+                            ),
+                            alignment: PlaceholderAlignment.middle,
+                          ),
+                        TextSpan(text: playlist.name),
+                      ],
+                    ),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colors.titlePrimary,
@@ -492,8 +523,20 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        playlist.name,
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            if (playlist.isExplicit)
+                              const WidgetSpan(
+                                child: Padding(
+                                  padding: EdgeInsets.only(right: 6.0),
+                                  child: ExplicitBadge(),
+                                ),
+                                alignment: PlaceholderAlignment.middle,
+                              ),
+                            TextSpan(text: playlist.name),
+                          ],
+                        ),
                         style: (isWide
                                 ? theme.textTheme.headlineLarge
                                 : theme.textTheme.headlineMedium)
@@ -855,6 +898,7 @@ class _PlaylistActions extends ConsumerWidget {
             thumbnailUrl:
                 video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
             subdirectory: playlist.name,
+            isExplicit: video.isExplicit,
           );
         }),
       );
@@ -1033,6 +1077,7 @@ class _VideoTracklist extends ConsumerWidget {
                     : null,
             duration: videos[i].duration,
             isVideo: true,
+            isExplicit: videos[i].isExplicit,
             onTap: () => _playFromIndex(context, ref, i),
           ),
       ],

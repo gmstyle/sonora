@@ -66,6 +66,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
           addedAt: song.addedAt,
           isVideo: Value(song.isVideo),
           duration: Value(song.duration),
+          isExplicit: Value(song.isExplicit),
         ),
       );
     }
@@ -84,6 +85,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         addedAt: song.addedAt,
         isVideo: Value(song.isVideo),
         duration: Value(song.duration),
+        isExplicit: Value(song.isExplicit),
       ),
     );
   }
@@ -363,6 +365,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             artist: r.artist,
             thumbnailUrl: r.thumbnailUrl,
             isVideo: r.isVideo,
+            isExplicit: r.isExplicit,
           ),
         )
         .toList();
@@ -384,6 +387,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
                       artist: r.artist,
                       thumbnailUrl: r.thumbnailUrl,
                       isVideo: r.isVideo,
+                      isExplicit: r.isExplicit,
                     ),
                   )
                   .toList(),
@@ -399,6 +403,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String? artist,
     String? thumbnailUrl,
     bool isVideo = false,
+    bool isExplicit = false,
   }) => _playlistsDao.addEntry(
     playlistId,
     videoId,
@@ -407,6 +412,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     artist: artist,
     thumbnailUrl: thumbnailUrl,
     isVideo: isVideo,
+    isExplicit: isExplicit,
   );
 
   @override
@@ -434,6 +440,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       downloadedAt: row.downloadedAt,
       status: row.status,
       isVideo: row.isVideo,
+      isExplicit: row.isExplicit,
     );
   }
 
@@ -453,6 +460,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             downloadedAt: r.downloadedAt,
             status: r.status,
             isVideo: r.isVideo,
+            isExplicit: r.isExplicit,
           ),
         )
         .toList();
@@ -470,6 +478,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     int? fileSize,
     DateTime? downloadedAt,
     bool isVideo = false,
+    bool isExplicit = false,
   }) => _downloadsDao.insertDownload(
     DownloadsCompanion.insert(
       videoId: videoId,
@@ -482,6 +491,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       fileSize: Value(fileSize),
       downloadedAt: Value(downloadedAt),
       isVideo: Value(isVideo),
+      isExplicit: Value(isExplicit),
     ),
   );
 
@@ -506,6 +516,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             playCount: r.playCount,
             isVideo: r.isVideo,
             duration: r.duration,
+            isExplicit: r.isExplicit,
           ),
         )
         .toList();
@@ -529,6 +540,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
                       playCount: r.playCount,
                       isVideo: r.isVideo,
                       duration: r.duration,
+                      isExplicit: r.isExplicit,
                     ),
                   )
                   .toList(),
@@ -550,6 +562,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             playCount: r.playCount,
             isVideo: r.isVideo,
             duration: r.duration,
+            isExplicit: r.isExplicit,
           ),
         )
         .toList();
@@ -573,6 +586,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
                       playCount: r.playCount,
                       isVideo: r.isVideo,
                       duration: r.duration,
+                      isExplicit: r.isExplicit,
                     ),
                   )
                   .toList(),
@@ -587,6 +601,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String? thumbnailUrl,
     int? duration,
     bool isVideo = false,
+    bool isExplicit = false,
   }) => _historyDao.recordPlay(
     videoId,
     title,
@@ -594,6 +609,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     thumbnailUrl: thumbnailUrl,
     duration: duration,
     isVideo: isVideo,
+    isExplicit: isExplicit,
   );
 
   @override
@@ -609,6 +625,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     required DateTime playedAt,
     int playCount = 1,
     bool isVideo = false,
+    bool isExplicit = false,
   }) => _historyDao.insertHistoryRaw(
     videoId,
     title,
@@ -618,6 +635,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     playedAt: playedAt,
     playCount: playCount,
     isVideo: isVideo,
+    isExplicit: isExplicit,
   );
 
   // ── Search History ────────────────────────────────────────────
@@ -665,6 +683,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     addedAt: r.addedAt,
     isVideo: r.isVideo,
     duration: r.duration,
+    isExplicit: r.isExplicit,
   );
 
   FollowedArtistModel _mapFollowedArtist(FollowedArtist r) =>

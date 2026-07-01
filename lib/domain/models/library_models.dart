@@ -13,6 +13,7 @@ class LikedSongModel {
   final DateTime addedAt;
   final bool isVideo;
   final int? duration;
+  final bool isExplicit;
 
   const LikedSongModel({
     required this.videoId,
@@ -24,6 +25,7 @@ class LikedSongModel {
     required this.addedAt,
     this.isVideo = false,
     this.duration,
+    this.isExplicit = false,
   });
 }
 
@@ -97,6 +99,7 @@ class PlaylistEntryModel {
   final String? artist;
   final String? thumbnailUrl;
   final bool isVideo;
+  final bool isExplicit;
 
   const PlaylistEntryModel({
     required this.playlistId,
@@ -106,6 +109,7 @@ class PlaylistEntryModel {
     this.artist,
     this.thumbnailUrl,
     this.isVideo = false,
+    this.isExplicit = false,
   });
 }
 
@@ -120,6 +124,7 @@ class DownloadModel {
   final DateTime? downloadedAt;
   final String status;
   final bool isVideo;
+  final bool isExplicit;
 
   const DownloadModel({
     required this.videoId,
@@ -132,6 +137,7 @@ class DownloadModel {
     this.downloadedAt,
     required this.status,
     this.isVideo = false,
+    this.isExplicit = false,
   });
 }
 
@@ -145,6 +151,7 @@ class HistoryModel {
   final int playCount;
   final bool isVideo;
   final int? duration;
+  final bool isExplicit;
 
   const HistoryModel({
     required this.id,
@@ -156,6 +163,7 @@ class HistoryModel {
     required this.playCount,
     this.isVideo = false,
     this.duration,
+    this.isExplicit = false,
   });
 }
 

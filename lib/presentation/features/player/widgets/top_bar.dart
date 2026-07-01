@@ -85,6 +85,7 @@ class TopBar extends ConsumerWidget {
               isVideo: isVideo,
               artistId: artistId,
               albumId: albumId,
+              isExplicit: currentSong.extras?['isExplicit'] == true,
               onGoToArtist: (artistId) {
                 Navigator.of(context).pop();
                 router.push('/artist/$artistId');

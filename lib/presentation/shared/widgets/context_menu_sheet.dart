@@ -30,6 +30,7 @@ import '../../features/library/widgets/create_playlist_dialog.dart';
 import '../../features/library/widgets/playlist_detail_view.dart';
 
 import '../../../l10n/app_localizations.dart';
+import 'explicit_badge.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Song data provider (lazy enrichment for context menu)
@@ -65,6 +66,7 @@ class ContextMenuSheet {
     String? albumId,
     String? playCount,
     int? viewCount,
+    bool isExplicit = false,
   }) {
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
@@ -89,6 +91,7 @@ class ContextMenuSheet {
                     albumId: albumId,
                     playCount: playCount,
                     viewCount: viewCount,
+                    isExplicit: isExplicit,
                   ),
                 ),
               ),
@@ -111,6 +114,7 @@ class ContextMenuSheet {
             albumId: albumId,
             playCount: playCount,
             viewCount: viewCount,
+            isExplicit: isExplicit,
           ),
     );
   }
@@ -295,6 +299,7 @@ class ContextMenuSheet {
     String? albumId,
     required void Function(String artistId) onGoToArtist,
     required void Function(String albumId) onGoToAlbum,
+    bool isExplicit = false,
   }) {
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
@@ -318,6 +323,7 @@ class ContextMenuSheet {
                     albumId: albumId,
                     onGoToArtist: onGoToArtist,
                     onGoToAlbum: onGoToAlbum,
+                    isExplicit: isExplicit,
                   ),
                 ),
               ),
@@ -339,6 +345,7 @@ class ContextMenuSheet {
             albumId: albumId,
             onGoToArtist: onGoToArtist,
             onGoToAlbum: onGoToAlbum,
+            isExplicit: isExplicit,
           ),
     );
   }
@@ -359,6 +366,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
   final String? albumId;
   final void Function(String artistId) onGoToArtist;
   final void Function(String albumId) onGoToAlbum;
+  final bool isExplicit;
 
   const _NowPlayingContextMenuSheet({
     required this.videoId,
@@ -371,6 +379,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     this.albumId,
     required this.onGoToArtist,
     required this.onGoToAlbum,
+    this.isExplicit = false,
   });
 
   @override
@@ -393,13 +402,15 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
         final fullId = data.artist.artistId;
         final fullAlbumId = data.album?.albumId;
         if (fullId != null || fullAlbumId != null) {
-          ref
-              .read(libraryNotifierProvider.notifier)
-              .updateLikedSongMetadata(
-                videoId,
-                artistId: fullId,
-                albumId: fullAlbumId,
-              );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .updateLikedSongMetadata(
+                  videoId,
+                  artistId: fullId,
+                  albumId: fullAlbumId,
+                );
+          });
         }
       }
     });
@@ -422,10 +433,23 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            if (isExplicit)
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 4),
+                                  child: ExplicitBadge(),
+                                ),
+                              ),
+                            TextSpan(
+                              text: title,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -544,6 +568,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                                   title: title,
                                   artist: artist,
                                   thumbnailUrl: thumbnailUrl,
+                                  isExplicit: isExplicit,
                                 );
                           }
                         });
@@ -555,6 +580,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                               title: title,
                               artist: artist,
                               thumbnailUrl: thumbnailUrl,
+                              isExplicit: isExplicit,
                             );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -578,6 +604,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                         title: title,
                         artist: artist,
                         thumbnailUrl: thumbnailUrl,
+                        isExplicit: isExplicit,
                       );
                     },
                   ),
@@ -625,6 +652,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
   final String? albumId;
   final String? playCount;
   final int? viewCount;
+  final bool isExplicit;
 
   const _SongContextMenuSheet({
     required this.videoId,
@@ -638,6 +666,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
     this.albumId,
     this.playCount,
     this.viewCount,
+    this.isExplicit = false,
   });
 
   String? _formatStat() {
@@ -672,13 +701,15 @@ class _SongContextMenuSheet extends ConsumerWidget {
         final fullId = data.artist.artistId;
         final fullAlbumId = data.album?.albumId;
         if (fullId != null || fullAlbumId != null) {
-          ref
-              .read(libraryNotifierProvider.notifier)
-              .updateLikedSongMetadata(
-                videoId,
-                artistId: artistId ?? fullId,
-                albumId: albumId ?? fullAlbumId,
-              );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .updateLikedSongMetadata(
+                  videoId,
+                  artistId: artistId ?? fullId,
+                  albumId: albumId ?? fullAlbumId,
+                );
+          });
         }
       }
     });
@@ -701,10 +732,23 @@ class _SongContextMenuSheet extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            if (isExplicit)
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 4),
+                                  child: ExplicitBadge(),
+                                ),
+                              ),
+                            TextSpan(
+                              text: title,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -752,7 +796,11 @@ class _SongContextMenuSheet extends ConsumerWidget {
                       ref
                           .read(actionFeedbackProvider.notifier)
                           .report(AppLocalizations.of(context)!.playNow);
-                      player.playVideoId(videoId, isVideo: isVideo);
+                      player.playVideoId(
+                        videoId,
+                        isVideo: isVideo,
+                        isExplicit: isExplicit,
+                      );
                     },
                   ),
                   _ActionTile(
@@ -770,6 +818,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         thumbnailUrl: thumbnailUrl,
                         durationSec: duration,
                         isVideo: isVideo,
+                        isExplicit: isExplicit,
                         albumName: albumName,
                         artistId: resolvedArtistId,
                         albumId: resolvedAlbumId,
@@ -791,6 +840,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         thumbnailUrl: thumbnailUrl,
                         durationSec: duration,
                         isVideo: isVideo,
+                        isExplicit: isExplicit,
                         albumName: albumName,
                         artistId: resolvedArtistId,
                         albumId: resolvedAlbumId,
@@ -850,6 +900,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         title: title,
                         artist: artist,
                         thumbnailUrl: thumbnailUrl,
+                        isExplicit: isExplicit,
                       );
                     },
                   ),
@@ -861,6 +912,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     artistId: resolvedArtistId,
                     albumId: albumId,
                     isVideo: isVideo,
+                    isExplicit: isExplicit,
                   ),
                   _ActionTile(
                     icon:
@@ -914,6 +966,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                                   title: title,
                                   artist: artist,
                                   thumbnailUrl: thumbnailUrl,
+                                  isExplicit: isExplicit,
                                 );
                           }
                         });
@@ -925,6 +978,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                               title: title,
                               artist: artist,
                               thumbnailUrl: thumbnailUrl,
+                              isExplicit: isExplicit,
                             );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -2004,6 +2058,7 @@ class _LikeActionTile extends ConsumerWidget {
   final String? artistId;
   final String? albumId;
   final bool isVideo;
+  final bool isExplicit;
 
   const _LikeActionTile({
     required this.videoId,
@@ -2013,6 +2068,7 @@ class _LikeActionTile extends ConsumerWidget {
     this.artistId,
     this.albumId,
     this.isVideo = false,
+    this.isExplicit = false,
   });
 
   @override
@@ -2052,6 +2108,7 @@ class _LikeActionTile extends ConsumerWidget {
                     albumId: albumId,
                     addedAt: DateTime.now(),
                     isVideo: isVideo,
+                    isExplicit: isExplicit,
                   ),
                 );
           },
@@ -2241,6 +2298,7 @@ Future<void> _showPlaylistPicker(
   String? title,
   String? artist,
   String? thumbnailUrl,
+  bool isExplicit = false,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -2251,6 +2309,7 @@ Future<void> _showPlaylistPicker(
           title: title,
           artist: artist,
           thumbnailUrl: thumbnailUrl,
+          isExplicit: isExplicit,
         ),
   );
 }
@@ -2260,12 +2319,14 @@ class _PlaylistPickerSheet extends ConsumerStatefulWidget {
   final String? title;
   final String? artist;
   final String? thumbnailUrl;
+  final bool isExplicit;
 
   const _PlaylistPickerSheet({
     required this.videoId,
     this.title,
     this.artist,
     this.thumbnailUrl,
+    this.isExplicit = false,
   });
 
   @override
@@ -2294,6 +2355,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
       title: widget.title,
       artist: widget.artist,
       thumbnailUrl: widget.thumbnailUrl,
+      isExplicit: widget.isExplicit,
     );
   }
 
@@ -2377,6 +2439,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                                 title: widget.title,
                                 artist: widget.artist,
                                 thumbnailUrl: widget.thumbnailUrl,
+                                isExplicit: widget.isExplicit,
                               );
                           if (context.mounted) {
                             Navigator.pop(context);

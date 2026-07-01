@@ -20,7 +20,9 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
+import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
+import '../../shared/widgets/explicit_badge.dart';
 import 'providers/album_provider.dart';
 
 class AlbumScreen extends ConsumerWidget {
@@ -198,8 +200,20 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
               opacity:
                   _scrollProgress > 0.8 ? (_scrollProgress - 0.8) / 0.2 : 0.0,
               duration: const Duration(milliseconds: 150),
-              child: Text(
-                widget.album.name,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    if (widget.album.isExplicit)
+                      const WidgetSpan(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: 6.0),
+                          child: ExplicitBadge(),
+                        ),
+                        alignment: PlaceholderAlignment.middle,
+                      ),
+                    TextSpan(text: widget.album.name),
+                  ],
+                ),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -220,6 +234,11 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
               child: Column(
                 children: [
                   _AlbumActions(album: widget.album),
+                  if (widget.album.description != null &&
+                      widget.album.description!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ExpandableText(text: widget.album.description!),
+                  ],
                   const SizedBox(height: 16),
                   _buildTracklist(context, ref),
                   if (uniqueRelatedReleases.isNotEmpty) ...[
@@ -304,6 +323,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         widget.album.songs[i].artist.artistId ??
                         widget.album.artist.artistId,
                     playCount: widget.album.songs[i].playCount,
+                    isExplicit: widget.album.songs[i].isExplicit,
                     onTap: () => _playAlbumFromIndex(context, ref, i),
                   ),
                 ),
@@ -440,8 +460,20 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       ),
                     ),
                   const SizedBox(height: 14),
-                  Text(
-                    widget.album.name,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (widget.album.isExplicit)
+                          const WidgetSpan(
+                            child: Padding(
+                              padding: EdgeInsets.only(right: 6.0),
+                              child: ExplicitBadge(),
+                            ),
+                            alignment: PlaceholderAlignment.middle,
+                          ),
+                        TextSpan(text: widget.album.name),
+                      ],
+                    ),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: PlayerColors.of(context).titlePrimary,
@@ -571,8 +603,20 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        widget.album.name,
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            if (widget.album.isExplicit)
+                              const WidgetSpan(
+                                child: Padding(
+                                  padding: EdgeInsets.only(right: 6.0),
+                                  child: ExplicitBadge(),
+                                ),
+                                alignment: PlaceholderAlignment.middle,
+                              ),
+                            TextSpan(text: widget.album.name),
+                          ],
+                        ),
                         style: (isWide
                                 ? theme.textTheme.headlineLarge
                                 : theme.textTheme.headlineMedium)
@@ -894,6 +938,7 @@ class _AlbumActions extends ConsumerWidget {
             thumbnailUrl:
                 song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
             subdirectory: album.name,
+            isExplicit: song.isExplicit,
           );
         }),
       );
