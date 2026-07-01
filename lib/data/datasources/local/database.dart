@@ -149,11 +149,45 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 15) {
-        await m.addColumn(likedSongs, likedSongs.isExplicit);
-        await m.addColumn(history, history.isExplicit);
-        await m.addColumn(downloads, downloads.isExplicit);
-        await m.addColumn(playlistEntries, playlistEntries.isExplicit);
-        await m.addColumn(queueItems, queueItems.isExplicit);
+        final likedSongsInfo =
+            await customSelect('PRAGMA table_info(liked_songs)').get();
+        if (!likedSongsInfo.any(
+          (row) => row.read<String>('name') == 'is_explicit',
+        )) {
+          await m.addColumn(likedSongs, likedSongs.isExplicit);
+        }
+
+        final historyInfo =
+            await customSelect('PRAGMA table_info(history)').get();
+        if (!historyInfo.any(
+          (row) => row.read<String>('name') == 'is_explicit',
+        )) {
+          await m.addColumn(history, history.isExplicit);
+        }
+
+        final downloadsInfo =
+            await customSelect('PRAGMA table_info(downloads)').get();
+        if (!downloadsInfo.any(
+          (row) => row.read<String>('name') == 'is_explicit',
+        )) {
+          await m.addColumn(downloads, downloads.isExplicit);
+        }
+
+        final playlistEntriesInfo =
+            await customSelect('PRAGMA table_info(playlist_entries)').get();
+        if (!playlistEntriesInfo.any(
+          (row) => row.read<String>('name') == 'is_explicit',
+        )) {
+          await m.addColumn(playlistEntries, playlistEntries.isExplicit);
+        }
+
+        final queueItemsInfo =
+            await customSelect('PRAGMA table_info(queue_items)').get();
+        if (!queueItemsInfo.any(
+          (row) => row.read<String>('name') == 'is_explicit',
+        )) {
+          await m.addColumn(queueItems, queueItems.isExplicit);
+        }
       }
       if (from < 16) {
         final playlistEntriesInfo =
