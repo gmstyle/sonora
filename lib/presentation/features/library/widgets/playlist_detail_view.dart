@@ -11,13 +11,13 @@ import '../../../providers/download_provider.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
-import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
-import '../../../shared/widgets/explicit_badge.dart';
+import '../../../shared/widgets/song_tile.dart';
+import '../../../shared/widgets/video_badge.dart';
 import 'create_playlist_dialog.dart';
 import '../providers/library_provider.dart';
 
@@ -181,6 +181,7 @@ class _PlaylistDetailContentState
     final entriesAsync = ref.watch(playlistEntriesProvider(widget.playlist.id));
     final likedAsync = ref.watch(likedSongsProvider);
     final allPlaylistsAsync = ref.watch(playlistsProvider);
+    final downloadedIds = ref.watch(downloadedIdsProvider);
 
     // Sync local state with provider data when new data is loaded
     if (entriesAsync.hasValue && !_isReordering) {
@@ -301,15 +302,110 @@ class _PlaylistDetailContentState
                     itemBuilder: (context, index) {
                       final entry = displayEntries[index];
                       final liked = _findLiked(likedSongs, entry.videoId);
-                      return _PlaylistEntryTile(
+                      final title =
+                          liked?.title ??
+                          entry.title ??
+                          'Video #${entry.videoId}';
+                      final artist = liked?.artist ?? entry.artist ?? '';
+                      final thumbnailUrl =
+                          liked?.thumbnailUrl ?? entry.thumbnailUrl;
+                      final isExplicit = liked?.isExplicit ?? entry.isExplicit;
+                      final duration = liked?.duration ?? entry.duration;
+
+                      return SongTile(
                         key: ValueKey(
                           '${entry.playlistId}-${entry.videoId}-${entry.position}',
                         ),
-                        index: index,
-                        entry: entry,
-                        liked: liked,
+                        videoId: entry.videoId,
+                        title: title,
+                        artist: artist,
+                        thumbnailUrl: thumbnailUrl,
+                        duration: duration,
+                        isExplicit: isExplicit,
+                        isVideo: entry.isVideo,
+                        artistId: liked?.artistId,
+                        albumId: liked?.albumId,
                         onTap: () => _playFrom(displayEntries, index),
-                        onRemove: () => _removeEntry(entry),
+                        leadingOverride: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Icon(
+                                  LucideIcons.gripVertical,
+                                  size: 20,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            Stack(
+                              children: [
+                                ThumbnailWidget(
+                                  imageUrl: thumbnailUrl,
+                                  size: 48,
+                                  shape: ThumbnailShape.rounded,
+                                ),
+                                if (entry.isVideo)
+                                  Positioned(
+                                    bottom: 0,
+                                    right:
+                                        downloadedIds.contains(entry.videoId)
+                                            ? null
+                                            : 0,
+                                    left:
+                                        downloadedIds.contains(entry.videoId)
+                                            ? 0
+                                            : null,
+                                    child: const VideoBadge(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 3,
+                                        vertical: 1,
+                                      ),
+                                      borderRadius: 3,
+                                    ),
+                                  ),
+                                if (downloadedIds.contains(entry.videoId))
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        LucideIcons.checkCircle,
+                                        size: 10,
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        trailingActions: [
+                          IconButton(
+                            icon: const Icon(LucideIcons.x, size: 18),
+                            onPressed: () => _removeEntry(entry),
+                            visualDensity: VisualDensity.compact,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            tooltip: AppLocalizations.of(context)!.remove,
+                          ),
+                        ],
                       );
                     },
                     onReorderItem:
@@ -958,124 +1054,6 @@ class _LocalPlaylistActions extends ConsumerWidget {
           label: Text(AppLocalizations.of(context)!.renamePlaylist),
         ),
       ],
-    );
-  }
-}
-
-// ── Entry tile ────────────────────────────────────────────────────────────────
-
-class _PlaylistEntryTile extends ConsumerWidget {
-  final int index;
-  final PlaylistEntryModel entry;
-  final LikedSongModel? liked;
-  final VoidCallback onTap;
-  final VoidCallback onRemove;
-
-  const _PlaylistEntryTile({
-    super.key,
-    required this.index,
-    required this.entry,
-    this.liked,
-    required this.onTap,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final title = liked?.title ?? entry.title ?? 'Video #${entry.videoId}';
-    final artist = liked?.artist ?? entry.artist ?? '';
-    final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
-    final downloadedIds = ref.watch(downloadedIdsProvider);
-    final isDownloaded = downloadedIds.contains(entry.videoId);
-    final isExplicit = liked?.isExplicit ?? entry.isExplicit;
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ReorderableDragStartListener(
-              index: index,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Icon(
-                  LucideIcons.gripVertical,
-                  size: 20,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ),
-            ThumbnailWidget(
-              imageUrl: thumbnailUrl,
-              size: 48,
-              shape: ThumbnailShape.rounded,
-            ),
-          ],
-        ),
-        title: Text.rich(
-          TextSpan(
-            children: [
-              if (isExplicit)
-                const WidgetSpan(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: 6.0),
-                    child: ExplicitBadge(),
-                  ),
-                  alignment: PlaceholderAlignment.middle,
-                ),
-              TextSpan(text: title),
-            ],
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w500),
-        ),
-        subtitle:
-            artist.isNotEmpty
-                ? Text(
-                  artist,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-                )
-                : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isDownloaded)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: Icon(
-                  LucideIcons.checkCircle,
-                  size: 16,
-                  color: cs.primary,
-                ),
-              ),
-            IconButton(
-              icon: const Icon(LucideIcons.x, size: 18),
-              onPressed: onRemove,
-              visualDensity: VisualDensity.compact,
-              color: cs.onSurfaceVariant,
-              tooltip: AppLocalizations.of(context)!.remove,
-            ),
-          ],
-        ),
-        onTap: onTap,
-        onLongPress:
-            () => ContextMenuSheet.showForSong(
-              context,
-              videoId: entry.videoId,
-              title: title,
-              artist: artist,
-              thumbnailUrl: thumbnailUrl,
-              isVideo: true,
-              isExplicit: entry.isExplicit,
-            ),
-      ),
     );
   }
 }

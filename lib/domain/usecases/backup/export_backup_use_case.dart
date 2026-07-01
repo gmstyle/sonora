@@ -32,6 +32,7 @@ class ExportBackupUseCase {
                   'title': e.title,
                   'artist': e.artist,
                   'thumbnailUrl': e.thumbnailUrl,
+                  'duration': e.duration,
                   'isVideo': e.isVideo,
                   'isExplicit': e.isExplicit,
                 },

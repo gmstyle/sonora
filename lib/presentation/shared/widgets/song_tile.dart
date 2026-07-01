@@ -24,6 +24,8 @@ class SongTile extends ConsumerWidget {
   final int? viewCount;
   final bool isExplicit;
   final int? index;
+  final Widget? leadingOverride;
+  final List<Widget>? trailingActions;
   final VoidCallback? onTap;
 
   const SongTile({
@@ -41,6 +43,8 @@ class SongTile extends ConsumerWidget {
     this.viewCount,
     this.isExplicit = false,
     this.index,
+    this.leadingOverride,
+    this.trailingActions,
     this.onTap,
   });
 
@@ -51,7 +55,7 @@ class SongTile extends ConsumerWidget {
     final isDownloaded = downloadedIds.contains(videoId);
 
     return ListTile(
-      leading: _buildLeading(context, isDownloaded),
+      leading: leadingOverride ?? _buildLeading(context, isDownloaded),
       title: Text.rich(
         TextSpan(
           children: [
@@ -81,13 +85,7 @@ class SongTile extends ConsumerWidget {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
-      trailing:
-          duration != null
-              ? Text(
-                Duration(seconds: duration!).format(),
-                style: Theme.of(context).textTheme.bodySmall,
-              )
-              : null,
+      trailing: _buildTrailing(context),
       onTap:
           onTap ??
           () => ref
@@ -180,5 +178,37 @@ class SongTile extends ConsumerWidget {
     }
     if (viewCount != null) return viewCount!.toCompact();
     return null;
+  }
+
+  Widget? _buildTrailing(BuildContext context) {
+    final hasDuration = duration != null;
+    final hasActions = trailingActions != null && trailingActions!.isNotEmpty;
+
+    if (!hasDuration && !hasActions) return null;
+
+    final durationWidget =
+        hasDuration
+            ? Text(
+              Duration(seconds: duration!).format(),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            )
+            : null;
+
+    if (hasActions) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (durationWidget != null) ...[
+            durationWidget,
+            const SizedBox(width: 8),
+          ],
+          ...trailingActions!,
+        ],
+      );
+    }
+
+    return durationWidget;
   }
 }

@@ -293,6 +293,7 @@ class ContextMenuSheet {
     required String title,
     required String artist,
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
     String? albumName,
     String? artistId,
@@ -317,6 +318,7 @@ class ContextMenuSheet {
                     title: title,
                     artist: artist,
                     thumbnailUrl: thumbnailUrl,
+                    duration: duration,
                     isVideo: isVideo,
                     albumName: albumName,
                     artistId: artistId,
@@ -339,6 +341,7 @@ class ContextMenuSheet {
             title: title,
             artist: artist,
             thumbnailUrl: thumbnailUrl,
+            duration: duration,
             isVideo: isVideo,
             albumName: albumName,
             artistId: artistId,
@@ -360,6 +363,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
   final String title;
   final String artist;
   final String? thumbnailUrl;
+  final int? duration;
   final bool isVideo;
   final String? albumName;
   final String? artistId;
@@ -373,6 +377,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     required this.title,
     required this.artist,
     this.thumbnailUrl,
+    this.duration,
     this.isVideo = false,
     this.albumName,
     this.artistId,
@@ -605,6 +610,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                         artist: artist,
                         thumbnailUrl: thumbnailUrl,
                         isExplicit: isExplicit,
+                        duration: duration,
                       );
                     },
                   ),
@@ -901,6 +907,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         artist: artist,
                         thumbnailUrl: thumbnailUrl,
                         isExplicit: isExplicit,
+                        duration: duration,
                       );
                     },
                   ),
@@ -2303,6 +2310,7 @@ Future<void> _showPlaylistPicker(
   String? artist,
   String? thumbnailUrl,
   bool isExplicit = false,
+  int? duration,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -2314,6 +2322,7 @@ Future<void> _showPlaylistPicker(
           artist: artist,
           thumbnailUrl: thumbnailUrl,
           isExplicit: isExplicit,
+          duration: duration,
         ),
   );
 }
@@ -2324,6 +2333,7 @@ class _PlaylistPickerSheet extends ConsumerStatefulWidget {
   final String? artist;
   final String? thumbnailUrl;
   final bool isExplicit;
+  final int? duration;
 
   const _PlaylistPickerSheet({
     required this.videoId,
@@ -2331,6 +2341,7 @@ class _PlaylistPickerSheet extends ConsumerStatefulWidget {
     this.artist,
     this.thumbnailUrl,
     this.isExplicit = false,
+    this.duration,
   });
 
   @override
@@ -2359,6 +2370,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
       title: widget.title,
       artist: widget.artist,
       thumbnailUrl: widget.thumbnailUrl,
+      duration: widget.duration,
       isExplicit: widget.isExplicit,
     );
   }
@@ -2443,6 +2455,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                                 title: widget.title,
                                 artist: widget.artist,
                                 thumbnailUrl: widget.thumbnailUrl,
+                                duration: widget.duration,
                                 isExplicit: widget.isExplicit,
                               );
                           if (context.mounted) {

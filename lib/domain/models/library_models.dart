@@ -99,6 +99,7 @@ class PlaylistEntryModel {
   final String? artist;
   final String? thumbnailUrl;
   final bool isVideo;
+  final int? duration;
   final bool isExplicit;
 
   const PlaylistEntryModel({
@@ -109,6 +110,7 @@ class PlaylistEntryModel {
     this.artist,
     this.thumbnailUrl,
     this.isVideo = false,
+    this.duration,
     this.isExplicit = false,
   });
 }

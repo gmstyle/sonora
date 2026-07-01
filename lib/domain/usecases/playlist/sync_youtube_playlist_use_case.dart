@@ -43,6 +43,7 @@ class SyncYoutubePlaylistUseCase {
         title: video.name,
         artist: artistName,
         thumbnailUrl: thumbUrl,
+        duration: video.duration,
         isVideo: false,
         isExplicit: video.isExplicit,
       );

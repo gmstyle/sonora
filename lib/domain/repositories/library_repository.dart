@@ -63,6 +63,7 @@ abstract class LibraryRepository {
     String? title,
     String? artist,
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
     bool isExplicit = false,
   });

@@ -69,6 +69,7 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
     String? title,
     String? artist,
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
     bool isExplicit = false,
   }) => into(db.playlistEntries).insert(
@@ -80,6 +81,7 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
       artist: Value(artist),
       thumbnailUrl: Value(thumbnailUrl),
       isVideo: Value(isVideo),
+      duration: Value(duration),
       isExplicit: Value(isExplicit),
     ),
   );

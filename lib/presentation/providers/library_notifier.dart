@@ -165,6 +165,7 @@ class LibraryNotifier extends Notifier<void> {
     String? title,
     String? artist,
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
     bool isExplicit = false,
   }) async {
@@ -176,6 +177,7 @@ class LibraryNotifier extends Notifier<void> {
       title: title,
       artist: artist,
       thumbnailUrl: thumbnailUrl,
+      duration: duration,
       isVideo: isVideo,
       isExplicit: isExplicit,
     );

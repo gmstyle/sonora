@@ -444,9 +444,10 @@ class _ArtistTopSongsSectionState
             videoId: entry.value.videoId,
             title: entry.value.name,
             artist: entry.value.artist.name,
-            thumbnailUrl: entry.value.thumbnails.isNotEmpty
-                ? entry.value.thumbnails.last.url
-                : null,
+            thumbnailUrl:
+                entry.value.thumbnails.isNotEmpty
+                    ? entry.value.thumbnails.last.url
+                    : null,
             duration: entry.value.duration,
             isVideo: entry.value.type == 'VIDEO',
             albumName: entry.value.album?.name,

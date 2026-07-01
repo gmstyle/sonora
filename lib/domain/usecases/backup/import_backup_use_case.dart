@@ -127,6 +127,7 @@ class ImportBackupUseCase {
           title: e['title'] as String?,
           artist: e['artist'] as String?,
           thumbnailUrl: e['thumbnailUrl'] as String?,
+          duration: e['duration'] as int?,
           isVideo: e['isVideo'] as bool? ?? false,
           isExplicit: e['isExplicit'] as bool? ?? false,
         );

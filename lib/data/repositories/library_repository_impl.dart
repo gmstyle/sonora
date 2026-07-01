@@ -365,6 +365,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             artist: r.artist,
             thumbnailUrl: r.thumbnailUrl,
             isVideo: r.isVideo,
+            duration: r.duration,
             isExplicit: r.isExplicit,
           ),
         )
@@ -387,6 +388,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
                       artist: r.artist,
                       thumbnailUrl: r.thumbnailUrl,
                       isVideo: r.isVideo,
+                      duration: r.duration,
                       isExplicit: r.isExplicit,
                     ),
                   )
@@ -402,6 +404,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String? title,
     String? artist,
     String? thumbnailUrl,
+    int? duration,
     bool isVideo = false,
     bool isExplicit = false,
   }) => _playlistsDao.addEntry(
@@ -411,6 +414,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     title: title,
     artist: artist,
     thumbnailUrl: thumbnailUrl,
+    duration: duration,
     isVideo: isVideo,
     isExplicit: isExplicit,
   );
