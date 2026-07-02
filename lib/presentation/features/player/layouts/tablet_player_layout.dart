@@ -16,6 +16,7 @@ import '../widgets/player_bouncing_widget.dart';
 class TabletPlayerLayout extends ConsumerWidget {
   const TabletPlayerLayout({
     super.key,
+    required this.artworkKey,
     required this.currentSong,
     required this.isVideo,
     required this.videoId,
@@ -30,6 +31,7 @@ class TabletPlayerLayout extends ConsumerWidget {
     required this.activeView,
   });
 
+  final GlobalKey artworkKey;
   final MediaItem currentSong;
   final bool isVideo;
   final String videoId;
@@ -71,6 +73,7 @@ class TabletPlayerLayout extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Artwork(
+                          key: artworkKey,
                           artUrl: artUrl,
                           size: min(
                             availHeight - (tight ? 70 : 100),

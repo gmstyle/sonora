@@ -18,6 +18,7 @@ import '../../../providers/video_player_provider.dart';
 class MobilePlayerLayout extends ConsumerStatefulWidget {
   const MobilePlayerLayout({
     super.key,
+    required this.artworkKey,
     required this.currentSong,
     required this.isVideo,
     required this.videoId,
@@ -32,6 +33,7 @@ class MobilePlayerLayout extends ConsumerStatefulWidget {
     required this.activeView,
   });
 
+  final GlobalKey artworkKey;
   final MediaItem currentSong;
   final bool isVideo;
   final String videoId;
@@ -171,7 +173,7 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                                           showFlipIndicator: true,
                                         )
                                         : Artwork(
-                                          key: const ValueKey('artwork'),
+                                          key: widget.artworkKey,
                                           artUrl: widget.artUrl,
                                           size: min(
                                             widget.availWidth - 48,

@@ -26,6 +26,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   Color _dominantColor = Colors.black87;
   bool _isDark = true;
   late final PlayerSubViewNotifier _subViewNotifier;
+  final GlobalKey _artworkKey = GlobalKey(debugLabel: 'player_artwork');
 
   @override
   void initState() {
@@ -84,7 +85,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           final availableWidth = constraints.maxWidth;
           final isPortrait = constraints.maxHeight > constraints.maxWidth;
           final isLandscapeMobile =
-              !isPortrait && availableWidth < kCompactBreakpoint;
+              !isPortrait &&
+              (availableWidth < kCompactBreakpoint ||
+                  availableHeight < kCompactBreakpoint);
           final showFullscreenOverlay =
               isLandscapeMobile && activeView != PlayerSubView.none;
 
@@ -108,6 +111,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 )
               else if (availableWidth < kCompactBreakpoint || isPortrait)
                 MobilePlayerLayout(
+                  artworkKey: _artworkKey,
                   currentSong: currentSong,
                   isVideo: isVideo,
                   videoId: videoId,
@@ -123,6 +127,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 )
               else if (availableWidth < kExpandedBreakpoint)
                 TabletPlayerLayout(
+                  artworkKey: _artworkKey,
                   currentSong: currentSong,
                   isVideo: isVideo,
                   videoId: videoId,
@@ -138,6 +143,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 )
               else
                 WidePlayerLayout(
+                  artworkKey: _artworkKey,
                   currentSong: currentSong,
                   isVideo: isVideo,
                   videoId: videoId,

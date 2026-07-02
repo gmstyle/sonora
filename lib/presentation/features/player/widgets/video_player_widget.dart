@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shimmer/shimmer.dart';
@@ -14,6 +17,7 @@ class SonoraVideoPlayer extends ConsumerStatefulWidget {
   final BorderRadius borderRadius;
   final Widget? placeholder;
   final bool showControls;
+  final bool autoFullscreenOnLandscape;
 
   const SonoraVideoPlayer({
     super.key,
@@ -23,18 +27,66 @@ class SonoraVideoPlayer extends ConsumerStatefulWidget {
     this.borderRadius = const BorderRadius.all(Radius.circular(12)),
     this.placeholder,
     this.showControls = true,
+    this.autoFullscreenOnLandscape = false,
   });
 
   @override
   ConsumerState<SonoraVideoPlayer> createState() => _SonoraVideoPlayerState();
 }
 
-class _SonoraVideoPlayerState extends ConsumerState<SonoraVideoPlayer> {
+class _SonoraVideoPlayerState extends ConsumerState<SonoraVideoPlayer>
+    with WidgetsBindingObserver {
   final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
+  Orientation? _lastOrientation;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _lastOrientation ??= MediaQuery.of(context).orientation;
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!widget.autoFullscreenOnLandscape ||
+        !(Platform.isAndroid || Platform.isIOS)) {
+      return;
+    }
+
+    final size = View.of(context).physicalSize;
+    if (size.width == 0 || size.height == 0) return;
+
+    final orientation =
+        size.width > size.height ? Orientation.landscape : Orientation.portrait;
+
+    if (_lastOrientation != null && _lastOrientation != orientation) {
+      _lastOrientation = orientation;
+      if (orientation == Orientation.landscape) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _videoKey.currentState?.enterFullscreen();
+          }
+        });
+      } else if (orientation == Orientation.portrait) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && (_videoKey.currentState?.isFullscreen() ?? false)) {
+            _videoKey.currentState?.exitFullscreen();
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -105,6 +157,25 @@ class _SonoraVideoPlayerState extends ConsumerState<SonoraVideoPlayer> {
         controls: widget.showControls ? MaterialVideoControls : NoVideoControls,
         pauseUponEnteringBackgroundMode: false,
         resumeUponEnteringForegroundMode: false,
+        onEnterFullscreen: () async {
+          await SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.immersiveSticky,
+            overlays: [],
+          );
+          await SystemChrome.setPreferredOrientations([
+            DeviceOrientation.portraitUp,
+            DeviceOrientation.portraitDown,
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ]);
+        },
+        onExitFullscreen: () async {
+          await SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.manual,
+            overlays: SystemUiOverlay.values,
+          );
+          await SystemChrome.setPreferredOrientations([]);
+        },
       );
 
       if (!widget.showControls) {

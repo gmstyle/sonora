@@ -229,58 +229,63 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     final clampedSize = widget.size?.clamp(150.0, 600.0);
 
     final viewContent = Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (remaining != null) ...[
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (remaining != null) ...[
+              AnimatedBuilder(
+                animation: _entranceController,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _timerFade.value,
+                    child: Transform.translate(
+                      offset: Offset(0, _timerSlide.value),
+                      child: child,
+                    ),
+                  );
+                },
+                child: _buildTimerBadge(context, ref, remaining),
+              ),
+              SizedBox(height: widget.tight ? 8 : 32),
+            ],
             AnimatedBuilder(
               animation: _entranceController,
               builder: (context, child) {
                 return Opacity(
-                  opacity: _timerFade.value,
-                  child: Transform.translate(
-                    offset: Offset(0, _timerSlide.value),
+                  opacity: _visualizerFade.value,
+                  child: Transform.scale(
+                    scale: _visualizerScale.value,
                     child: child,
                   ),
                 );
               },
-              child: _buildTimerBadge(context, ref, remaining),
+              child: AudioVisualizer(
+                isPlaying: isPlaying,
+                color: dominantColor,
+                height: widget.tight ? 40 : 70,
+              ),
             ),
-            SizedBox(height: widget.tight ? 16 : 32),
+            if (!widget.tight) ...[
+              const SizedBox(height: 48),
+              AnimatedBuilder(
+                animation: _entranceController,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _upNextFade.value,
+                    child: Transform.translate(
+                      offset: Offset(0, _upNextSlide.value),
+                      child: child,
+                    ),
+                  );
+                },
+                child: _buildUpNextCard(context, ref, nextSong, pc, hasNext),
+              ),
+            ],
           ],
-          AnimatedBuilder(
-            animation: _entranceController,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _visualizerFade.value,
-                child: Transform.scale(
-                  scale: _visualizerScale.value,
-                  child: child,
-                ),
-              );
-            },
-            child: AudioVisualizer(
-              isPlaying: isPlaying,
-              color: dominantColor,
-              height: widget.tight ? 50 : 70,
-            ),
-          ),
-          SizedBox(height: widget.tight ? 24 : 48),
-          AnimatedBuilder(
-            animation: _entranceController,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _upNextFade.value,
-                child: Transform.translate(
-                  offset: Offset(0, _upNextSlide.value),
-                  child: child,
-                ),
-              );
-            },
-            child: _buildUpNextCard(context, ref, nextSong, pc, hasNext),
-          ),
-        ],
+        ),
       ),
     );
 
