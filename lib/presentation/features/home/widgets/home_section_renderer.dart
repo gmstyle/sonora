@@ -1331,7 +1331,7 @@ class AmbientBackground extends ConsumerWidget {
         child: Container(
           key: const ValueKey('image_bg'),
           width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.45,
+          height: MediaQuery.of(context).size.height,
           foregroundDecoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
