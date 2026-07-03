@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/player/audio_handler.dart';
 import 'library_notifier.dart';
 import 'play_video_id_use_case_provider.dart';
+import 'play_album_use_case_provider.dart';
+import 'play_playlist_use_case_provider.dart';
+import 'play_smart_mix_use_case_provider.dart';
 import 'queue_use_case_provider.dart';
 import 'settings_provider.dart';
 import 'start_radio_use_case_provider.dart';
@@ -238,13 +243,19 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           currentIndex: s.queueIndex ?? 0,
           shuffleMode: s.shuffleMode,
           repeatMode: s.repeatMode,
+          // Keep isSwitching true while the player is paused during a user-
+          // initiated song change (e.g. after pause() in playNow/skipToIndex),
+          // so the mini-player keeps showing the loading shimmer until the new
+          // track is actually playing.
           isSwitching:
-              wasSwitching && s.processingState != AudioProcessingState.ready
+              wasSwitching &&
+                      !(s.processingState == AudioProcessingState.ready &&
+                          s.playing)
                   ? true
                   : false,
         );
 
-        if (s.processingState == AudioProcessingState.ready) {
+        if (s.processingState == AudioProcessingState.ready && s.playing) {
           state = state.copyWith(isSwitching: false);
           // Clear transient error message from failed retry
           if (state.errorMessage != null) {
@@ -257,7 +268,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           // fires on the very first ready event of a user-initiated song change.
           // On the next event (e.g. position tick) wasSwitching is already false
           // and the prefetch is allowed to run.
-          if (state.currentIndex >= state.queue.length - 1 &&
+          // Up-next is only meaningful when the queue is not set to repeat.
+          if (state.repeatMode == AudioServiceRepeatMode.none &&
+              state.currentIndex >= state.queue.length - 1 &&
               !wasSwitching &&
               !_isFetchingUpNext &&
               ref.read(settingsProvider).autoPlayUpNext) {
@@ -268,11 +281,31 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
         if (s.processingState == AudioProcessingState.completed &&
             !_isFetchingUpNext &&
-            state.queue.isNotEmpty &&
-            state.currentIndex >= state.queue.length - 1 &&
-            ref.read(settingsProvider).autoPlayUpNext) {
-          _isFetchingUpNext = true;
-          _fetchAutoPlayUpNext();
+            state.queue.isNotEmpty) {
+          final v = _operationVersion;
+          if (state.shuffleMode == AudioServiceShuffleMode.all) {
+            final len = state.queue.length;
+            if (len > 1) {
+              final random = Random();
+              var nextIndex = state.currentIndex;
+              while (nextIndex == state.currentIndex) {
+                nextIndex = random.nextInt(len);
+              }
+              _handler.skipToQueueItem(nextIndex).then((_) async {
+                if (_operationVersion == v) await _handler.play();
+              });
+            }
+          } else if (state.currentIndex < state.queue.length - 1) {
+            // Already have upcoming items (e.g. prefetched up-next). Skip to
+            // the next one instead of fetching again, which prevents duplicates.
+            _handler.skipToQueueItem(state.currentIndex + 1).then((_) async {
+              if (_operationVersion == v) await _handler.play();
+            });
+          } else if (state.repeatMode == AudioServiceRepeatMode.none &&
+              ref.read(settingsProvider).autoPlayUpNext) {
+            _isFetchingUpNext = true;
+            _fetchAutoPlayUpNext();
+          }
         }
       });
 
@@ -315,7 +348,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         // state.currentIndex still holds the old (larger) index from the previous
         // queue and state.isPlaying hasn't been updated yet from the pending
         // pause() stream event.
-        if (state.currentIndex >= items.length - 1 &&
+        // Up-next is only meaningful when the queue is not set to repeat.
+        if (state.repeatMode == AudioServiceRepeatMode.none &&
+            state.currentIndex >= items.length - 1 &&
             state.isPlaying &&
             !state.isSwitching &&
             !_isFetchingUpNext &&
@@ -436,6 +471,69 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         hasError: true,
         errorMessage: 'Failed to start playback: $e',
       );
+    }
+  }
+
+  Future<void> playAlbum(List<SongDetailed> songs, {int startIndex = 0}) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
+    try {
+      final useCase = ref.read(playAlbumUseCaseProvider);
+      final items = await useCase.execute(songs, playIndex: startIndex);
+      if (_operationVersion != v) return;
+      await _handler.playNow(items, initialIndex: startIndex);
+    } catch (e) {
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to play album: $e',
+        );
+      }
+    }
+  }
+
+  Future<void> playPlaylist(
+    List<VideoDetailed> videos, {
+    int startIndex = 0,
+  }) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
+    try {
+      final useCase = ref.read(playPlaylistUseCaseProvider);
+      final items = await useCase.execute(videos, playIndex: startIndex);
+      if (_operationVersion != v) return;
+      await _handler.playNow(items, initialIndex: startIndex);
+    } catch (e) {
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to play playlist: $e',
+        );
+      }
+    }
+  }
+
+  Future<void> playSmartMix(List<dynamic> songs, {int startIndex = 0}) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
+    try {
+      final useCase = ref.read(playSmartMixUseCaseProvider);
+      final items = await useCase.execute(songs: songs, playIndex: startIndex);
+      if (_operationVersion != v) return;
+      await _handler.playNow(items, initialIndex: startIndex);
+    } catch (e) {
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to play smart mix: $e',
+        );
+      }
     }
   }
 
@@ -607,8 +705,25 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }
 
   Future<void> skipToIndex(int index) async {
-    await _handler.skipToQueueItem(index);
-    if (!state.isPlaying) await _handler.play();
+    if (state.isBlocked) return;
+    final v = ++_operationVersion;
+    // Pause immediately so the user hears a clean cut instead of the current
+    // song continuing while the target URL is resolved.
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true);
+    try {
+      await _handler.skipToQueueItem(index);
+      if (_operationVersion != v) return;
+      await _handler.play();
+    } catch (e) {
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to skip to song: $e',
+        );
+      }
+    }
   }
 
   Future<void> playSong(MediaItem song) async {

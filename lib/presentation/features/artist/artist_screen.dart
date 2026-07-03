@@ -12,7 +12,6 @@ import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/music_repository_provider.dart';
-import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -981,10 +980,8 @@ class _ArtistActions extends ConsumerWidget {
     if (artist.topSongs.isEmpty) return;
     ref.read(actionFeedbackProvider.notifier).report('Playing ${artist.name}…');
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playAlbumUseCaseProvider);
     try {
-      final items = await useCase.execute(artist.topSongs);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playAlbum(artist.topSongs, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1008,11 +1005,9 @@ class _ArtistActions extends ConsumerWidget {
         .read(actionFeedbackProvider.notifier)
         .report('Shuffling ${artist.name}…');
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playAlbumUseCaseProvider);
     final shuffled = List<SongDetailed>.from(artist.topSongs)..shuffle();
     try {
-      final items = await useCase.execute(shuffled);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playAlbum(shuffled, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

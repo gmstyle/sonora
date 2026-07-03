@@ -1210,8 +1210,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
       final songs = await _fetchSongs(artistFuture);
       if (songs.isEmpty) return;
       feedback.report('Playing $name…');
-      final items = await useCase.execute(songs);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playAlbum(songs, startIndex: 0);
     } catch (e) {
       feedback.report('Failed to play: $e');
     }
@@ -1228,8 +1227,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
       if (songs.isEmpty) return;
       feedback.report('Shuffling $name…');
       final shuffled = List<SongDetailed>.from(songs)..shuffle();
-      final items = await useCase.execute(shuffled);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playAlbum(shuffled, startIndex: 0);
     } catch (e) {
       feedback.report('Failed to play: $e');
     }
@@ -1668,8 +1666,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       final videos = await videosFuture;
       if (videos.isEmpty) return;
       feedback.report('Playing $name…');
-      final items = await useCase.execute(videos);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playPlaylist(videos, startIndex: 0);
     } catch (e) {
       feedback.report('Failed to play: $e');
     }
@@ -1686,8 +1683,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       if (videos.isEmpty) return;
       feedback.report('Shuffling $name…');
       final shuffled = List<VideoDetailed>.from(videos)..shuffle();
-      final items = await useCase.execute(shuffled);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playPlaylist(shuffled, startIndex: 0);
     } catch (e) {
       feedback.report('Failed to play: $e');
     }

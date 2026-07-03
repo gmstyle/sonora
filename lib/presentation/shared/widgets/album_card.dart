@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../features/album/providers/album_provider.dart';
-import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
@@ -41,12 +40,8 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
     ref.read(actionFeedbackProvider.notifier).report('Playing ${widget.name}…');
     try {
       final album = await ref.read(albumProvider(widget.albumId).future);
-      final useCase = ref.read(playAlbumUseCaseProvider);
       final player = ref.read(playerStateProvider.notifier);
-      final items = await useCase.execute(album.songs);
-      if (items.isNotEmpty) {
-        await player.playNow(items, initialIndex: 0);
-      }
+      await player.playAlbum(album.songs, startIndex: 0);
     } catch (e) {
       ref
           .read(actionFeedbackProvider.notifier)

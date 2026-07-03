@@ -6,7 +6,6 @@ import '../../providers/smart_playlists_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../providers/play_smart_mix_use_case_provider.dart';
 import 'scale_button.dart';
 
 enum SmartMixType { mostPlayed, recentlyPlayed, forgottenFavorites }
@@ -100,12 +99,8 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
       }
 
       if (songs.isNotEmpty) {
-        final useCase = ref.read(playSmartMixUseCaseProvider);
         final player = ref.read(playerStateProvider.notifier);
-        final items = await useCase.execute(songs: songs, playIndex: 0);
-        if (items.isNotEmpty) {
-          await player.playNow(items, initialIndex: 0);
-        }
+        await player.playSmartMix(songs, startIndex: 0);
       } else {
         ref
             .read(actionFeedbackProvider.notifier)

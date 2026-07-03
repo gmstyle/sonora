@@ -340,12 +340,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playAlbumUseCaseProvider);
     try {
-      final items = await useCase.execute(widget.album.songs);
-      if (items.isNotEmpty) {
-        await player.playNow(items, initialIndex: startIndex);
-      }
+      await player.playAlbum(widget.album.songs, startIndex: startIndex);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -825,10 +821,8 @@ class _AlbumActions extends ConsumerWidget {
   ) async {
     ref.read(actionFeedbackProvider.notifier).report('Playing ${album.name}…');
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playAlbumUseCaseProvider);
     try {
-      final items = await useCase.execute(album.songs);
-      if (items.isNotEmpty) await player.playNow(items, initialIndex: 0);
+      await player.playAlbum(album.songs, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
@@ -847,11 +841,9 @@ class _AlbumActions extends ConsumerWidget {
         .read(actionFeedbackProvider.notifier)
         .report('Shuffling ${album.name}…');
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playAlbumUseCaseProvider);
     final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
     try {
-      final items = await useCase.execute(shuffled);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playAlbum(shuffled, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(

@@ -162,12 +162,8 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
 
   Future<void> _playFrom(List<dynamic> songs, int index) async {
     if (songs.isEmpty) return;
-    final useCase = ref.read(playSmartMixUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
-    final items = await useCase.execute(songs: songs, playIndex: index);
-    if (items.isNotEmpty) {
-      await player.playNow(items, initialIndex: index);
-    }
+    await player.playSmartMix(songs, startIndex: index);
   }
 
   Future<void> _addToQueue(List<dynamic> songs, AppLocalizations l10n) async {

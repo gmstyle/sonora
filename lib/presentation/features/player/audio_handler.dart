@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as dev;
+import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/utils/url_staleness.dart';
@@ -89,6 +90,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool? _lastEmittedPlaying;
   StreamSubscription<String>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
+  final List<int> _shuffledHistory = [];
+  bool _isGoingBackward = false;
+  Timer? _lookaheadTimer;
+  int? _targetSkipIndex;
 
   // ── Restore state ──────────────────────────────────────────────────────────
   RestoreStatus _restoreStatus = RestoreStatus.idle;
@@ -601,6 +606,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // wrong item. The correct queueIndex is emitted explicitly after the
     // sequence completes.
     if (!_isResolvingItem) {
+      _targetSkipIndex = null;
       _updateState((s) => s.copyWith(queueIndex: index));
       if (index >= 0) _prefs.setInt('last_playing_index', index);
     }
@@ -697,6 +703,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> _resolvePendingItems(int currentIndex) async {
     await _resolveSinglePendingItem(currentIndex);
     await _resolveSinglePendingItem(currentIndex + 1);
+
+    _lookaheadTimer?.cancel();
+    _lookaheadTimer = Timer(const Duration(seconds: 20), () async {
+      final actualIndex = _player.state.playlist.index;
+      if (actualIndex == currentIndex && _player.state.playing) {
+        await _resolveSinglePendingItem(currentIndex + 2);
+        await Future.delayed(const Duration(seconds: 3));
+        final finalIndex = _player.state.playlist.index;
+        if (finalIndex == currentIndex && _player.state.playing) {
+          await _resolveSinglePendingItem(currentIndex + 3);
+        }
+      }
+    });
   }
 
   /// Resolves the stream URL for a single item in the playlist.
@@ -887,6 +906,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
     await _prefs.setInt('last_pause_timestamp', nowMs);
     _isStopping = true;
+    _lookaheadTimer?.cancel();
     await _player.stop();
     await _releaseAudioFocus();
     await super.stop();
@@ -904,18 +924,109 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> skipToNext() async {
     await _readyCompleter.future.catchError((_) {});
-    await _player.next();
+
+    final len = _player.state.playlist.medias.length;
+    if (len == 0) return;
+
+    final currentIndex = _player.state.playlist.index;
+    int currentTarget = _targetSkipIndex ?? currentIndex;
+    if (currentTarget < 0 || currentTarget >= len) {
+      currentTarget = currentIndex >= 0 ? currentIndex : 0;
+    }
+
+    int nextIndex;
+    if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all) {
+      if (len > 1) {
+        final random = Random();
+        nextIndex = currentTarget;
+        while (nextIndex == currentTarget) {
+          nextIndex = random.nextInt(len);
+        }
+      } else {
+        nextIndex = 0;
+      }
+    } else {
+      nextIndex = currentTarget + 1;
+      final repeatAll =
+          playbackState.value.repeatMode == AudioServiceRepeatMode.all ||
+          playbackState.value.repeatMode == AudioServiceRepeatMode.group;
+      if (nextIndex >= len) {
+        nextIndex = repeatAll ? 0 : len - 1;
+      }
+    }
+
+    _targetSkipIndex = nextIndex;
+    await skipToQueueItem(nextIndex);
   }
 
   @override
   Future<void> skipToPrevious() async {
     await _readyCompleter.future.catchError((_) {});
-    await _player.previous();
+
+    final len = _player.state.playlist.medias.length;
+    if (len == 0) return;
+
+    final currentIndex = _player.state.playlist.index;
+    int currentTarget = _targetSkipIndex ?? currentIndex;
+    if (currentTarget < 0 || currentTarget >= len) {
+      currentTarget = currentIndex >= 0 ? currentIndex : 0;
+    }
+
+    int prevIndex;
+    if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all) {
+      if (_shuffledHistory.isNotEmpty) {
+        prevIndex = _shuffledHistory.removeLast();
+      } else {
+        prevIndex = currentTarget;
+      }
+    } else {
+      prevIndex = currentTarget - 1;
+      final repeatAll =
+          playbackState.value.repeatMode == AudioServiceRepeatMode.all ||
+          playbackState.value.repeatMode == AudioServiceRepeatMode.group;
+      if (prevIndex < 0) {
+        prevIndex = repeatAll ? len - 1 : 0;
+      }
+    }
+
+    _targetSkipIndex = prevIndex;
+    _isGoingBackward = true;
+    try {
+      await skipToQueueItem(prevIndex);
+    } finally {
+      _isGoingBackward = false;
+    }
   }
 
   @override
   Future<void> skipToQueueItem(int index) async {
     await _readyCompleter.future.catchError((_) {});
+
+    final playlist = _player.state.playlist;
+    if (index < 0 || index >= playlist.medias.length) return;
+
+    final currentIndex = playlist.index;
+    if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all &&
+        currentIndex >= 0 &&
+        currentIndex != index &&
+        !_isGoingBackward) {
+      _shuffledHistory.add(currentIndex);
+      if (_shuffledHistory.length > 50) {
+        _shuffledHistory.removeAt(0);
+      }
+    }
+
+    final media = playlist.medias[index];
+    final item = media.extras?['mediaItem'] as MediaItem?;
+    final needsUrl = item?.extras?['needsUrl'] == true;
+
+    if (needsUrl) {
+      // Resolve the pending item in-place before jumping. Jumping directly to
+      // a dummy placeholder URL can make media_kit fall back to the previous
+      // track, which matches the reported "tapped X but played X-1" symptom.
+      await _resolveSinglePendingItem(index);
+    }
+
     await _player.jump(index);
   }
 
@@ -994,8 +1105,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   void _handlePositionTick(Duration pos) {
     final jumpedBackward =
         pos < _lastPosition - const Duration(milliseconds: 500);
-    final advancedEnough =
-        pos >= _lastPosition + const Duration(seconds: 1);
+    final advancedEnough = pos >= _lastPosition + const Duration(seconds: 1);
     if (jumpedBackward || advancedEnough) {
       _updateState((s) => s);
     }
@@ -1006,6 +1116,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffle(enabled);
+    if (shuffleMode == AudioServiceShuffleMode.none) {
+      _shuffledHistory.clear();
+    }
     _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
     unawaited(_prefs.setString('last_shuffle_mode', shuffleMode.name));
   }
@@ -1029,18 +1142,23 @@ class SonoraAudioHandler extends BaseAudioHandler {
           .nonNulls
           .toList();
 
-  MediaItem _ensureQueueId(MediaItem item) {
+  MediaItem _ensureQueueId(MediaItem item, [Set<String>? seenIds]) {
     final existingId = item.extras?['queueId'] as String?;
     final isAlreadyInQueue =
         existingId != null &&
         _currentQueue.any((e) => e.extras?['queueId'] == existingId);
+    final isDuplicateInBatch =
+        existingId != null && seenIds != null && seenIds.contains(existingId);
 
-    if (existingId != null && !isAlreadyInQueue) {
+    if (existingId != null && !isAlreadyInQueue && !isDuplicateInBatch) {
+      seenIds?.add(existingId);
       return item;
     }
     final extras = Map<String, dynamic>.from(item.extras ?? {});
-    extras['queueId'] =
+    final newId =
         '${item.id}_${DateTime.now().microsecondsSinceEpoch}_${_queueIdCounter++}';
+    extras['queueId'] = newId;
+    seenIds?.add(newId);
     return item.copyWith(extras: extras);
   }
 
@@ -1059,7 +1177,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
-    final itemsWithKeys = items.map(_ensureQueueId).toList();
+    final seenIds = <String>{};
+    final itemsWithKeys =
+        items.map((item) => _ensureQueueId(item, seenIds)).toList();
     queue.add(itemsWithKeys);
     await _queueRepo.persistQueue(itemsWithKeys);
     final playlist = Playlist(
@@ -1071,9 +1191,37 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
-    final itemsWithKeys = items.map(_ensureQueueId).toList();
+    final seenIds = <String>{};
+    var itemsWithKeys =
+        items.map((item) => _ensureQueueId(item, seenIds)).toList();
     queue.add(itemsWithKeys);
     await _queueRepo.persistQueue(itemsWithKeys);
+
+    // Resolve the initial item up-front so that the previous song stops
+    // immediately and the user sees a loading state while the target URL is
+    // fetched, instead of hearing the old track until the new one is ready.
+    if (initialIndex >= 0 && initialIndex < itemsWithKeys.length) {
+      final initialItem = itemsWithKeys[initialIndex];
+      if (initialItem.extras?['needsUrl'] == true) {
+        final videoId =
+            initialItem.extras?['videoId'] as String? ?? initialItem.id;
+        try {
+          final url = await _playVideoIdUseCase.resolveUrl(videoId);
+          final resolved = initialItem.copyWith(
+            extras: {...?initialItem.extras, 'url': url, 'needsUrl': false},
+          );
+          itemsWithKeys[initialIndex] = resolved;
+          queue.add(itemsWithKeys);
+          await _queueRepo.persistQueue(itemsWithKeys);
+        } catch (e) {
+          dev.log(
+            '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
+          );
+          // Leave as pending; _onPlayerError will recover on playback failure.
+        }
+      }
+    }
+
     final playlist = Playlist(
       itemsWithKeys.map(_toMedia).toList(),
       index: initialIndex,
@@ -1123,6 +1271,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> clearQueue() async {
+    _lookaheadTimer?.cancel();
     await _player.stop();
     await _player.open(const Playlist([]), play: false);
     queue.add([]);
@@ -1297,6 +1446,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // Discard all stale HTTP stream URLs.  YouTube URLs expire in ~6 hours.
     // Mark them needsUrl so _resolvePendingItems resolves them lazily when
     // the user plays/skips.  Local file:// URIs are kept only if still on disk.
+    final seenIds = <String>{};
     final items =
         rawItems.map((item) {
           final url = item.extras?['url'] as String?;
@@ -1304,11 +1454,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
               url != null &&
               url.startsWith('file://') &&
               !UrlStaleness.isStale(url);
-          if (isLocalAndValid) return _ensureQueueId(item);
+          if (isLocalAndValid) return _ensureQueueId(item, seenIds);
           return _ensureQueueId(
             item.copyWith(
               extras: {...?item.extras, 'needsUrl': true, 'url': null},
             ),
+            seenIds,
           );
         }).toList();
 
@@ -1431,6 +1582,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void dispose() {
     _isStopping = true;
+    _lookaheadTimer?.cancel();
     _playerErrorSub?.cancel();
     _onPlayErrorController.close();
     _restoreStatusController.close();
@@ -3095,6 +3247,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
                 ? AudioServiceShuffleMode.all
                 : AudioServiceShuffleMode.none;
         await setShuffleMode(next);
+        break;
 
       case _actionRepeat:
         const modes = [
@@ -3106,6 +3259,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         final idx = modes.indexOf(current);
         final next = modes[(idx + 1) % modes.length];
         await setRepeatMode(next);
+        break;
 
       case _actionLike:
         final item = mediaItem.value;
@@ -3124,12 +3278,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
             isExplicit: item.extras?['isExplicit'] == true,
           ),
         );
+        break;
 
       case _actionStartRadio:
         final item = mediaItem.value;
         if (item != null) {
           await _startRadio(item.id);
         }
+        break;
     }
     return null;
   }

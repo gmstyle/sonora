@@ -769,10 +769,8 @@ class _PlaylistActions extends ConsumerWidget {
         .read(actionFeedbackProvider.notifier)
         .report(AppLocalizations.of(context)!.playingPlaylist(playlist.name));
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
-      final items = await useCase.execute(videos);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playPlaylist(videos, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -795,11 +793,9 @@ class _PlaylistActions extends ConsumerWidget {
         .read(actionFeedbackProvider.notifier)
         .report(AppLocalizations.of(context)!.shufflingPlaylist(playlist.name));
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playPlaylistUseCaseProvider);
     final shuffled = List<VideoDetailed>.from(videos)..shuffle();
     try {
-      final items = await useCase.execute(shuffled);
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playPlaylist(shuffled, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1090,12 +1086,8 @@ class _VideoTracklist extends ConsumerWidget {
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(playPlaylistUseCaseProvider);
     try {
-      final items = await useCase.execute(videos, playIndex: startIndex);
-      if (items.isNotEmpty) {
-        await player.playNow(items, initialIndex: startIndex);
-      }
+      await player.playPlaylist(videos, startIndex: startIndex);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
