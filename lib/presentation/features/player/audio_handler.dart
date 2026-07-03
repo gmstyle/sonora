@@ -146,6 +146,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   static const String _rootId = '/';
   static const String _homeId = '__home__';
   static const String _libraryId = '__library__';
+  static const String _exploreId = '__explore__';
   static const String _recentId = '__recent__';
   static const String _likedId = '__liked__';
   static const String _playlistsId = '__playlists__';
@@ -161,9 +162,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
   static const String _newReleasesId = '__new_releases__';
   static const String _discoverId = '__discover__';
   static const String _similarArtistsId = '__similar_artists__';
+  static const String _downloadsId = '__downloads__';
   static const String _mixPrefix = '__mix__:';
   static const String _actionPlayMix = '__action__:play_mix:';
   static const String _actionShuffleMix = '__action__:shuffle_mix:';
+  static const String _actionPlayDownloads = '__action__:play_downloads:';
+  static const String _actionShuffleDownloads = '__action__:shuffle_downloads:';
 
   SonoraAudioHandler({
     required MusicRepository musicRepo,
@@ -408,11 +412,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _onPlaylistChanged(playlist);
     });
 
-    // Crossfade only — do NOT emit playbackState here.
-    // Android Auto interpolates position from the updatePosition+updateTime
-    // already set in _updatePlaybackState. Emitting playbackState on every
-    // position tick (~5 Hz) causes AA to continuously re-render the queue
-    // view, producing visible flashes and preventing scrolling.
+    // Update position ~1 Hz for Android Auto seek bar while avoiding
+    // excessive queue view re-renders caused by 5 Hz emissions.
+    // Android Auto interpolates position from updatePosition+updateTime,
+    // but it needs a fresh updateTime periodically to stay in sync.
     _player.stream.position.listen((pos) {
       _handleCrossfade(pos);
       _handlePositionTick(pos);
@@ -989,7 +992,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _handlePositionTick(Duration pos) {
-    if (pos < _lastPosition - const Duration(milliseconds: 500)) {
+    final jumpedBackward =
+        pos < _lastPosition - const Duration(milliseconds: 500);
+    final advancedEnough =
+        pos >= _lastPosition + const Duration(seconds: 1);
+    if (jumpedBackward || advancedEnough) {
       _updateState((s) => s);
     }
     _lastPosition = pos;
@@ -1450,11 +1457,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (isRoot) return _buildRootChildren();
 
       switch (parentMediaId) {
-        // Top-level
+        // Top-level tabs
         case _homeId:
           return _buildHomeChildren();
+        case _mixesId:
+          return _buildMixesChildren();
         case _libraryId:
           return _buildLibraryChildren();
+        case _exploreId:
+          return _buildExploreChildren();
 
         // Library sub-nodes
         case _recentId:
@@ -1469,8 +1480,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
           return _buildLikedAlbumFolders();
         case _historyId:
           return _buildRecentChildren();
-        case _mixesId:
-          return _buildMixesFolder();
+        case _downloadsId:
+          return _buildDownloadChildren();
         case _newReleasesId:
           return _buildNewReleasesChildren();
         case _discoverId:
@@ -1516,7 +1527,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       MediaItem(
         id: _homeId,
         title: 'Home',
-        displaySubtitle: 'Homepage',
+        displaySubtitle: 'For you',
         playable: false,
         extras: {
           _kContentStyleBrowsable: _kStyleList,
@@ -1524,9 +1535,29 @@ class SonoraAudioHandler extends BaseAudioHandler {
         },
       ),
       MediaItem(
+        id: _mixesId,
+        title: 'Mixes',
+        displaySubtitle: 'Smart mixes',
+        playable: false,
+        extras: {
+          _kContentStyleBrowsable: _kStyleGrid,
+          _kContentStylePlayable: _kStyleList,
+        },
+      ),
+      MediaItem(
         id: _libraryId,
         title: 'Library',
         displaySubtitle: 'Your music',
+        playable: false,
+        extras: {
+          _kContentStyleBrowsable: _kStyleList,
+          _kContentStylePlayable: _kStyleList,
+        },
+      ),
+      MediaItem(
+        id: _exploreId,
+        title: 'Explore',
+        displaySubtitle: 'Discover new music',
         playable: false,
         extras: {
           _kContentStyleBrowsable: _kStyleList,
@@ -1589,12 +1620,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         },
       ),
       MediaItem(
-        id: _mixesId,
-        title: 'Mixes',
-        displaySubtitle: 'Smart mixes',
+        id: _downloadsId,
+        title: 'Downloads',
+        displaySubtitle: 'Offline music',
         playable: false,
         extras: {
-          _kContentStyleBrowsable: _kStyleGrid,
+          _kContentStyleBrowsable: _kStyleList,
           _kContentStylePlayable: _kStyleList,
         },
       ),
@@ -1611,7 +1642,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       return items;
     }
 
-    // Online mode: combine online & local
+    // Online mode: first YTM section + local sections
     try {
       final result = await _musicRepo.getHome();
       final sections = result.sections;
@@ -1640,11 +1671,228 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
       }
 
-      // 2. Add local & personalized sections
+      // 2. Add local sections
       await _addLocalHomeSections(items);
-      await _addOnlinePersonalizedHomeSections(items);
+    } catch (e, st) {
+      dev.log(
+        '[AA] Error building online home, falling back to offline: $e\n$st',
+      );
+      items.clear();
+      await _addLocalHomeSections(items);
+    }
 
-      // 3. Add YTM Feed Sections 1..N
+    return items;
+  }
+
+  Future<void> _addLocalHomeSections(List<MediaItem> items) async {
+    // 1. Continue Listening (recent history) — most useful while driving
+    final recent = await _buildRecentChildren();
+    if (recent.isNotEmpty) {
+      items.add(
+        MediaItem(
+          id: _historyId,
+          title: 'Continue Listening',
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+      items.addAll(recent.take(3));
+    }
+
+    // 2. Playlists (local + liked)
+    final playlists = await _buildPlaylistFolders();
+    if (playlists.isNotEmpty) {
+      items.add(
+        MediaItem(
+          id: _playlistsId,
+          title: 'Your Playlists',
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleGrid,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+      items.addAll(playlists.take(3));
+    }
+
+    // 3. Your Artists (followed artists)
+    final artists = await _buildArtistFolders();
+    if (artists.isNotEmpty) {
+      items.add(
+        MediaItem(
+          id: _artistsId,
+          title: 'Your Artists',
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleGrid,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+      items.addAll(artists.take(3));
+    }
+
+    // 4. Liked Albums
+    final albums = await _buildLikedAlbumFolders();
+    if (albums.isNotEmpty) {
+      items.add(
+        MediaItem(
+          id: _albumsId,
+          title: 'Liked Albums',
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleGrid,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+      items.addAll(albums.take(3));
+    }
+  }
+
+  Future<List<MediaItem>> _buildExploreChildren() async {
+    final isOff = await _isOffline();
+    if (isOff) {
+      // Explore is mostly online content.
+      return [];
+    }
+
+    final items = <MediaItem>[];
+    try {
+      final result = await _musicRepo.getHome();
+      final sections = result.sections;
+      dev.log('[AA] getHome returned ${sections.length} sections for explore');
+
+      // 1. New Releases (from followed artists)
+      try {
+        final releases = await _getNewReleasesUseCase.execute();
+        if (releases.isNotEmpty) {
+          final releaseItems =
+              releases
+                  .map(
+                    (a) => MediaItem(
+                      id: '$_homeAlbumPrefix${a.albumId}',
+                      title: a.name,
+                      artist: a.artist.name,
+                      artUri:
+                          a.thumbnails.isNotEmpty
+                              ? Uri.tryParse(a.thumbnails.last.url)
+                              : null,
+                      playable: false,
+                      extras: {
+                        _kContentStyleBrowsable: _kStyleGrid,
+                        _kContentStylePlayable: _kStyleList,
+                      },
+                    ),
+                  )
+                  .toList();
+
+          items.add(
+            MediaItem(
+              id: _newReleasesId,
+              title: 'New Releases',
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleGrid,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+          items.addAll(releaseItems.take(3));
+        }
+      } catch (e) {
+        dev.log('[AA] Failed to load new releases for explore: $e');
+      }
+
+      // 2. Discover (recommendations)
+      try {
+        final suggestions = await _getDiscoverSuggestionsUseCase.execute();
+        if (suggestions.isNotEmpty) {
+          final discoverItems =
+              suggestions
+                  .map(
+                    (song) => MediaItem(
+                      id: song.videoId,
+                      title: song.title,
+                      artist: song.artists.name,
+                      artUri:
+                          song.thumbnails.isNotEmpty
+                              ? Uri.tryParse(song.thumbnails.last.url)
+                              : null,
+                      duration: Duration(seconds: song.duration),
+                      extras: {
+                        'needsUrl': true,
+                        'videoId': song.videoId,
+                        'isVideo': song.type == 'VIDEO',
+                        'isExplicit': song.isExplicit,
+                        _kContentStylePlayable: _kStyleList,
+                      },
+                    ),
+                  )
+                  .toList();
+
+          items.add(
+            MediaItem(
+              id: _discoverId,
+              title: 'Discover',
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+          items.addAll(discoverItems.take(3));
+        }
+      } catch (e) {
+        dev.log('[AA] Failed to load discover suggestions for explore: $e');
+      }
+
+      // 3. Similar Artists
+      try {
+        final similar = await _getSimilarArtistsSuggestionsUseCase.execute();
+        if (similar.isNotEmpty) {
+          final similarItems =
+              similar
+                  .map(
+                    (a) => MediaItem(
+                      id: '$_artistPrefix${a.artistId}',
+                      title: a.name,
+                      artUri:
+                          a.thumbnails.isNotEmpty
+                              ? Uri.tryParse(a.thumbnails.last.url)
+                              : null,
+                      playable: false,
+                      extras: {
+                        _kContentStyleBrowsable: _kStyleGrid,
+                        _kContentStylePlayable: _kStyleList,
+                      },
+                    ),
+                  )
+                  .toList();
+
+          items.add(
+            MediaItem(
+              id: _similarArtistsId,
+              title: 'Similar Artists',
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleGrid,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+          items.addAll(similarItems.take(3));
+        }
+      } catch (e) {
+        dev.log('[AA] Failed to load similar artists for explore: $e');
+      }
+
+      // 4. YTM Feed Sections 1..N
       if (sections.length > 1) {
         for (var i = 1; i < sections.length; i++) {
           final section = sections[i];
@@ -1667,228 +1915,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
       }
     } catch (e, st) {
-      dev.log(
-        '[AA] Error building online home, falling back to offline: $e\n$st',
-      );
-      items.clear();
-      await _addLocalHomeSections(items);
+      dev.log('[AA] Error building explore: $e\n$st');
     }
 
     return items;
-  }
-
-  Future<void> _addLocalHomeSections(List<MediaItem> items) async {
-    // 1. Playlists (local + liked)
-    final playlists = await _buildPlaylistFolders();
-    if (playlists.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _playlistsId,
-          title: 'Your Playlists',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleGrid,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(playlists.take(3));
-    }
-
-    // 2. Mixes (smart mixes)
-    final mixes = _buildMixesFolder();
-    if (mixes.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _mixesId,
-          title: 'Your Mixes',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleGrid,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(mixes.take(3));
-    }
-
-    // 3. Continue Listening (recent history)
-    final recent = await _buildRecentChildren();
-    if (recent.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _historyId,
-          title: 'Continue Listening',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(recent.take(3));
-    }
-
-    // 4. Your Artists (followed artists)
-    final artists = await _buildArtistFolders();
-    if (artists.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _artistsId,
-          title: 'Your Artists',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleGrid,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(artists.take(3));
-    }
-
-    // 5. Liked Albums
-    final albums = await _buildLikedAlbumFolders();
-    if (albums.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _albumsId,
-          title: 'Liked Albums',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleGrid,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(albums.take(3));
-    }
-  }
-
-  Future<void> _addOnlinePersonalizedHomeSections(List<MediaItem> items) async {
-    // 1. New Releases (from followed artists)
-    try {
-      final releases = await _getNewReleasesUseCase.execute();
-      if (releases.isNotEmpty) {
-        final releaseItems =
-            releases
-                .map(
-                  (a) => MediaItem(
-                    id: '$_homeAlbumPrefix${a.albumId}',
-                    title: a.name,
-                    artist: a.artist.name,
-                    artUri:
-                        a.thumbnails.isNotEmpty
-                            ? Uri.tryParse(a.thumbnails.last.url)
-                            : null,
-                    playable: false,
-                    extras: {
-                      _kContentStyleBrowsable: _kStyleGrid,
-                      _kContentStylePlayable: _kStyleList,
-                    },
-                  ),
-                )
-                .toList();
-
-        items.add(
-          MediaItem(
-            id: _newReleasesId,
-            title: 'New Releases',
-            playable: false,
-            extras: {
-              _kContentStyleBrowsable: _kStyleGrid,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        );
-        items.addAll(releaseItems.take(3));
-      }
-    } catch (e) {
-      dev.log('[AA] Failed to load new releases for home: $e');
-    }
-
-    // 2. Discover (recommendations)
-    try {
-      final suggestions = await _getDiscoverSuggestionsUseCase.execute();
-      if (suggestions.isNotEmpty) {
-        final discoverItems =
-            suggestions
-                .map(
-                  (song) => MediaItem(
-                    id: song.videoId,
-                    title: song.title,
-                    artist: song.artists.name,
-                    artUri:
-                        song.thumbnails.isNotEmpty
-                            ? Uri.tryParse(song.thumbnails.last.url)
-                            : null,
-                    duration: Duration(seconds: song.duration),
-                    extras: {
-                      'needsUrl': true,
-                      'videoId': song.videoId,
-                      'isVideo': song.type == 'VIDEO',
-                      'isExplicit': song.isExplicit,
-                      _kContentStylePlayable: _kStyleList,
-                    },
-                  ),
-                )
-                .toList();
-
-        items.add(
-          MediaItem(
-            id: _discoverId,
-            title: 'Discover',
-            playable: false,
-            extras: {
-              _kContentStyleBrowsable: _kStyleList,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        );
-        items.addAll(discoverItems.take(3));
-      }
-    } catch (e) {
-      dev.log('[AA] Failed to load discover suggestions for home: $e');
-    }
-
-    // 3. Similar Artists
-    try {
-      final similar = await _getSimilarArtistsSuggestionsUseCase.execute();
-      if (similar.isNotEmpty) {
-        final similarItems =
-            similar
-                .map(
-                  (a) => MediaItem(
-                    id: '$_artistPrefix${a.artistId}',
-                    title: a.name,
-                    artUri:
-                        a.thumbnails.isNotEmpty
-                            ? Uri.tryParse(a.thumbnails.last.url)
-                            : null,
-                    playable: false,
-                    extras: {
-                      _kContentStyleBrowsable: _kStyleGrid,
-                      _kContentStylePlayable: _kStyleList,
-                    },
-                  ),
-                )
-                .toList();
-
-        items.add(
-          MediaItem(
-            id: _similarArtistsId,
-            title: 'Similar Artists',
-            playable: false,
-            extras: {
-              _kContentStyleBrowsable: _kStyleGrid,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        );
-        items.addAll(similarItems.take(3));
-      }
-    } catch (e) {
-      dev.log('[AA] Failed to load similar artists for home: $e');
-    }
   }
 
   List<MediaItem> _contentToMediaItems(dynamic content) {
@@ -2003,6 +2033,51 @@ class SonoraAudioHandler extends BaseAudioHandler {
         .toList();
   }
 
+  Future<List<MediaItem>> _buildDownloadMediaItems() async {
+    final downloads = await _libraryRepo.getAllDownloads();
+    return downloads
+        .where((d) => d.status == 'completed' && d.localPath != null)
+        .map(
+          (d) => MediaItem(
+            id: d.videoId,
+            title: d.title,
+            artist: d.artist,
+            artUri:
+                d.thumbnailUrl != null ? Uri.tryParse(d.thumbnailUrl!) : null,
+            duration: Duration.zero,
+            extras: {
+              'url': Uri.file(d.localPath!).toString(),
+              'videoId': d.videoId,
+              'isVideo': d.isVideo,
+              'isExplicit': d.isExplicit,
+              _kContentStylePlayable: _kStyleList,
+            },
+          ),
+        )
+        .toList();
+  }
+
+  Future<List<MediaItem>> _buildDownloadChildren() async {
+    final items = await _buildDownloadMediaItems();
+    if (items.isEmpty) return [];
+
+    return [
+      MediaItem(
+        id: _actionPlayDownloads,
+        title: 'Play All',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: _actionShuffleDownloads,
+        title: 'Shuffle',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      ...items,
+    ];
+  }
+
   Future<List<MediaItem>> _buildLikedChildren() async {
     final songs = await _libraryRepo.getAllLikedSongs();
     return songs
@@ -2108,6 +2183,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
           },
         ),
     ];
+  }
+
+  Future<List<MediaItem>> _buildMixesChildren() async {
+    return _buildMixesFolder();
   }
 
   List<MediaItem> _buildMixesFolder() {
@@ -2285,8 +2364,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         )
         .toList();
   }
-
-
 
   Future<List<MediaItem>> _buildPlaylistEntryChildren(
     String parentMediaId,
@@ -2789,7 +2866,22 @@ class SonoraAudioHandler extends BaseAudioHandler {
         return;
       }
 
-
+      // ── Downloads actions ────────────────────────────────────────
+      if (mediaId.startsWith(_actionPlayDownloads)) {
+        final items = await _buildDownloadMediaItems();
+        if (items.isNotEmpty) {
+          await playNow(items);
+        }
+        return;
+      }
+      if (mediaId.startsWith(_actionShuffleDownloads)) {
+        final items = await _buildDownloadMediaItems();
+        if (items.isNotEmpty) {
+          final shuffled = List<MediaItem>.from(items)..shuffle();
+          await playNow(shuffled);
+        }
+        return;
+      }
 
       // ── Default: single song play ───────────────────────────
       final item = await _playVideoIdUseCase.execute(mediaId);
