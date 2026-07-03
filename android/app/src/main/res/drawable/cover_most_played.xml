@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Gradient background -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#E53935"
+                android:endColor="#FFB300"
+                android:angle="315" />
+        </shape>
+    </item>
+    <!-- Centered icon -->
+    <item
+        android:drawable="@drawable/ic_play_arrow"
+        android:width="48dp"
+        android:height="48dp"
+        android:gravity="center" />
+</layer-list>

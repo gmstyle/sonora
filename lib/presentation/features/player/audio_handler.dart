@@ -124,6 +124,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   static const String _kContentStylePlayable =
       'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT';
   static const int _kStyleList = 1;
+  static const int _kStyleGrid = 2;
 
   static const String _actionShuffle = 'shuffle';
   static const String _actionRepeat = 'repeat';
@@ -1553,7 +1554,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         displaySubtitle: 'Followed artists',
         playable: false,
         extras: {
-          _kContentStyleBrowsable: _kStyleList,
+          _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
         },
       ),
@@ -1563,7 +1564,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         displaySubtitle: 'Your playlists',
         playable: false,
         extras: {
-          _kContentStyleBrowsable: _kStyleList,
+          _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
         },
       ),
@@ -1573,7 +1574,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         displaySubtitle: 'Liked albums',
         playable: false,
         extras: {
-          _kContentStyleBrowsable: _kStyleList,
+          _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
         },
       ),
@@ -1593,7 +1594,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         displaySubtitle: 'Smart mixes',
         playable: false,
         extras: {
-          _kContentStyleBrowsable: _kStyleList,
+          _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
         },
       ),
@@ -1686,7 +1687,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           title: 'Your Playlists',
           playable: false,
           extras: {
-            _kContentStyleBrowsable: _kStyleList,
+            _kContentStyleBrowsable: _kStyleGrid,
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -1703,7 +1704,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           title: 'Your Mixes',
           playable: false,
           extras: {
-            _kContentStyleBrowsable: _kStyleList,
+            _kContentStyleBrowsable: _kStyleGrid,
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -1737,7 +1738,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           title: 'Your Artists',
           playable: false,
           extras: {
-            _kContentStyleBrowsable: _kStyleList,
+            _kContentStyleBrowsable: _kStyleGrid,
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -1754,7 +1755,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           title: 'Liked Albums',
           playable: false,
           extras: {
-            _kContentStyleBrowsable: _kStyleList,
+            _kContentStyleBrowsable: _kStyleGrid,
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -1781,7 +1782,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
                             : null,
                     playable: false,
                     extras: {
-                      _kContentStyleBrowsable: _kStyleList,
+                      _kContentStyleBrowsable: _kStyleGrid,
                       _kContentStylePlayable: _kStyleList,
                     },
                   ),
@@ -1794,7 +1795,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             title: 'New Releases',
             playable: false,
             extras: {
-              _kContentStyleBrowsable: _kStyleList,
+              _kContentStyleBrowsable: _kStyleGrid,
               _kContentStylePlayable: _kStyleList,
             },
           ),
@@ -1865,7 +1866,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
                             : null,
                     playable: false,
                     extras: {
-                      _kContentStyleBrowsable: _kStyleList,
+                      _kContentStyleBrowsable: _kStyleGrid,
                       _kContentStylePlayable: _kStyleList,
                     },
                   ),
@@ -1878,7 +1879,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             title: 'Similar Artists',
             playable: false,
             extras: {
-              _kContentStyleBrowsable: _kStyleList,
+              _kContentStyleBrowsable: _kStyleGrid,
               _kContentStylePlayable: _kStyleList,
             },
           ),
@@ -2116,6 +2117,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
         title: 'Most Played',
         displaySubtitle: 'Your most played tracks',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_most_played',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleList,
           _kContentStylePlayable: _kStyleList,
@@ -2126,6 +2130,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
         title: 'Recently Played',
         displaySubtitle: 'Your recently played tracks',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_recently_played',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleList,
           _kContentStylePlayable: _kStyleList,
@@ -2136,6 +2143,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
         title: 'Forgotten Favorites',
         displaySubtitle: 'Tracks you used to love',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_forgotten_favorites',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleList,
           _kContentStylePlayable: _kStyleList,
@@ -2275,6 +2285,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
         )
         .toList();
   }
+
+
 
   Future<List<MediaItem>> _buildPlaylistEntryChildren(
     String parentMediaId,
@@ -2776,6 +2788,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await playNow(items);
         return;
       }
+
+
 
       // ── Default: single song play ───────────────────────────
       final item = await _playVideoIdUseCase.execute(mediaId);
