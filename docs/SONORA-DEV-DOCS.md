@@ -279,8 +279,13 @@ Extends `BaseAudioHandler` from `audio_service`. Instantiated in `main.dart` and
 **Media Player:**
 Uses `media_kit` for cross-platform audio and video playback. Includes disk caching for network streams configured natively on `NativePlayer` platform backends, writing cache chunks to the temporary directory `sonora_stream_cache` with a maximum limit of `100MB` for buffer and `50MB` for back-buffer.
 
-**Lazy URL Resolution:**
-Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When `currentIndexStream` changes, `_resolvePendingItems` resolves the URL for the current item + pre-resolves the next 2. If the user skips, unneeded URLs are never resolved.
+**Lazy URL Resolution (Adaptive Lookahead):**
+Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When `currentIndexStream` changes, `_resolvePendingItems` resolves the URL for the current item (`currentIndex`) and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background `_lookaheadTimer` triggers to pre-resolve `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
+
+**Dart-Side Shuffle & Race Condition Protection:**
+*   **Custom Shuffle**: Because `media_kit`'s native `next()` method jumps to `currentIndex + 1` sequentially (ignoring mpv's internal shuffle state), custom shuffle is implemented on the Dart side. When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` and `PlayerNotifier`'s completed listener select a random index. A `_shuffledHistory` list tracks previously played indices so that `skipToPrevious()` can step backward along the exact shuffled path.
+*   **Rapid Skip Protection**: During rapid manual skips, the asynchronous `_player.state.playlist.index` does not update fast enough, causing subsequent taps to calculate target indices using stale player state. We use a synchronous `_targetSkipIndex` to keep track of the target index during transitions, ensuring each rapid tap resolves and jumps to the correct item.
+*   **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
 
 **Auto-skip on error:**
 If the stream URL expires or fails, the handler retries with a fresh URL. If the retry also fails, it auto-skips to the next song and notifies via `_onPlayErrorController`.

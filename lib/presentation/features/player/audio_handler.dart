@@ -95,7 +95,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Timer? _lookaheadTimer;
   int? _targetSkipIndex;
   bool _isTransitionMuted = false;
-  Timer? _fadeInTimer;
 
   // ── Restore state ──────────────────────────────────────────────────────────
   RestoreStatus _restoreStatus = RestoreStatus.idle;
@@ -429,7 +428,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (_isTransitionMuted &&
           _player.state.playing &&
           pos.inMilliseconds > 150) {
-        _startFadeIn();
+        _endTransitionMute();
       }
     });
     _player.stream.buffer.listen(_onBufferedPositionChanged);
@@ -914,6 +913,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _prefs.setInt('last_pause_timestamp', nowMs);
     _isStopping = true;
     _lookaheadTimer?.cancel();
+    _endTransitionMute();
     await _player.stop();
     await _releaseAudioFocus();
     await super.stop();
@@ -1014,29 +1014,34 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     _prepareTransitionMute();
 
-    final currentIndex = playlist.index;
-    if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all &&
-        currentIndex >= 0 &&
-        currentIndex != index &&
-        !_isGoingBackward) {
-      _shuffledHistory.add(currentIndex);
-      if (_shuffledHistory.length > 50) {
-        _shuffledHistory.removeAt(0);
+    try {
+      final currentIndex = playlist.index;
+      if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all &&
+          currentIndex >= 0 &&
+          currentIndex != index &&
+          !_isGoingBackward) {
+        _shuffledHistory.add(currentIndex);
+        if (_shuffledHistory.length > 50) {
+          _shuffledHistory.removeAt(0);
+        }
       }
+
+      final media = playlist.medias[index];
+      final item = media.extras?['mediaItem'] as MediaItem?;
+      final needsUrl = item?.extras?['needsUrl'] == true;
+
+      if (needsUrl) {
+        // Resolve the pending item in-place before jumping. Jumping directly to
+        // a dummy placeholder URL can make media_kit fall back to the previous
+        // track, which matches the reported "tapped X but played X-1" symptom.
+        await _resolveSinglePendingItem(index);
+      }
+
+      await _player.jump(index);
+    } catch (e) {
+      _endTransitionMute();
+      rethrow;
     }
-
-    final media = playlist.medias[index];
-    final item = media.extras?['mediaItem'] as MediaItem?;
-    final needsUrl = item?.extras?['needsUrl'] == true;
-
-    if (needsUrl) {
-      // Resolve the pending item in-place before jumping. Jumping directly to
-      // a dummy placeholder URL can make media_kit fall back to the previous
-      // track, which matches the reported "tapped X but played X-1" symptom.
-      await _resolveSinglePendingItem(index);
-    }
-
-    await _player.jump(index);
   }
 
   void setCrossfadeDuration(Duration duration) {
@@ -1045,15 +1050,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _prepareTransitionMute() {
-    _fadeInTimer?.cancel();
     if (_player.state.playlist.medias.isNotEmpty) {
       _isTransitionMuted = true;
       _setLocalVolume(0.0, force: true);
     }
   }
 
-  void _startFadeIn() {
-    _fadeInTimer?.cancel();
+  void _endTransitionMute() {
     if (!_isTransitionMuted) return;
 
     _setLocalVolume(_lastSetVolume * 100.0, force: true);
@@ -1204,62 +1207,73 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
-    final seenIds = <String>{};
-    final itemsWithKeys =
-        items.map((item) => _ensureQueueId(item, seenIds)).toList();
-    queue.add(itemsWithKeys);
-    await _queueRepo.persistQueue(itemsWithKeys);
-    final playlist = Playlist(
-      itemsWithKeys.map(_toMedia).toList(),
-      index: initialIndex,
-    );
-    await _player.open(playlist, play: false);
+    _prepareTransitionMute();
+    try {
+      final seenIds = <String>{};
+      final itemsWithKeys =
+          items.map((item) => _ensureQueueId(item, seenIds)).toList();
+      queue.add(itemsWithKeys);
+      await _queueRepo.persistQueue(itemsWithKeys);
+      final playlist = Playlist(
+        itemsWithKeys.map(_toMedia).toList(),
+        index: initialIndex,
+      );
+      await _player.open(playlist, play: false);
+    } catch (e) {
+      _endTransitionMute();
+      rethrow;
+    }
   }
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
     _prepareTransitionMute();
-    final seenIds = <String>{};
-    var itemsWithKeys =
-        items.map((item) => _ensureQueueId(item, seenIds)).toList();
-    queue.add(itemsWithKeys);
-    await _queueRepo.persistQueue(itemsWithKeys);
+    try {
+      final seenIds = <String>{};
+      var itemsWithKeys =
+          items.map((item) => _ensureQueueId(item, seenIds)).toList();
+      queue.add(itemsWithKeys);
+      await _queueRepo.persistQueue(itemsWithKeys);
 
-    // Resolve the initial item up-front so that the previous song stops
-    // immediately and the user sees a loading state while the target URL is
-    // fetched, instead of hearing the old track until the new one is ready.
-    if (initialIndex >= 0 && initialIndex < itemsWithKeys.length) {
-      final initialItem = itemsWithKeys[initialIndex];
-      if (initialItem.extras?['needsUrl'] == true) {
-        final videoId =
-            initialItem.extras?['videoId'] as String? ?? initialItem.id;
-        try {
-          final url = await _playVideoIdUseCase.resolveUrl(videoId);
-          final resolved = initialItem.copyWith(
-            extras: {...?initialItem.extras, 'url': url, 'needsUrl': false},
-          );
-          itemsWithKeys[initialIndex] = resolved;
-          queue.add(itemsWithKeys);
-          await _queueRepo.persistQueue(itemsWithKeys);
-        } catch (e) {
-          dev.log(
-            '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
-          );
-          // Leave as pending; _onPlayerError will recover on playback failure.
+      // Resolve the initial item up-front so that the previous song stops
+      // immediately and the user sees a loading state while the target URL is
+      // fetched, instead of hearing the old track until the new one is ready.
+      if (initialIndex >= 0 && initialIndex < itemsWithKeys.length) {
+        final initialItem = itemsWithKeys[initialIndex];
+        if (initialItem.extras?['needsUrl'] == true) {
+          final videoId =
+              initialItem.extras?['videoId'] as String? ?? initialItem.id;
+          try {
+            final url = await _playVideoIdUseCase.resolveUrl(videoId);
+            final resolved = initialItem.copyWith(
+              extras: {...?initialItem.extras, 'url': url, 'needsUrl': false},
+            );
+            itemsWithKeys[initialIndex] = resolved;
+            queue.add(itemsWithKeys);
+            await _queueRepo.persistQueue(itemsWithKeys);
+          } catch (e) {
+            dev.log(
+              '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
+            );
+            // Leave as pending; _onPlayerError will recover on playback failure.
+          }
         }
       }
-    }
 
-    final playlist = Playlist(
-      itemsWithKeys.map(_toMedia).toList(),
-      index: initialIndex,
-    );
-    // Always open the player regardless of focus result: this guarantees the
-    // player transitions through idle → buffering → ready, which resets
-    // isSwitching in PlayerNotifier via the playbackState stream.
-    // If focus is denied we open without auto-play; the user can retry manually.
-    final hasFocus = await _requestAudioFocus();
-    await _player.open(playlist, play: hasFocus);
+      final playlist = Playlist(
+        itemsWithKeys.map(_toMedia).toList(),
+        index: initialIndex,
+      );
+      // Always open the player regardless of focus result: this guarantees the
+      // player transitions through idle → buffering → ready, which resets
+      // isSwitching in PlayerNotifier via the playbackState stream.
+      // If focus is denied we open without auto-play; the user can retry manually.
+      final hasFocus = await _requestAudioFocus();
+      await _player.open(playlist, play: hasFocus);
+    } catch (e) {
+      _endTransitionMute();
+      rethrow;
+    }
   }
 
   Future<void> playNext(MediaItem item) async {
@@ -1611,7 +1625,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   void dispose() {
     _isStopping = true;
     _lookaheadTimer?.cancel();
-    _fadeInTimer?.cancel();
     _playerErrorSub?.cancel();
     _onPlayErrorController.close();
     _restoreStatusController.close();
