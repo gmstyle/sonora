@@ -17,6 +17,7 @@ class AlbumCard extends ConsumerStatefulWidget {
   final int? year;
   final String? artistId;
   final double cardWidth;
+  final String? heroTag;
 
   const AlbumCard({
     super.key,
@@ -27,6 +28,7 @@ class AlbumCard extends ConsumerStatefulWidget {
     this.year,
     this.artistId,
     this.cardWidth = 150,
+    this.heroTag,
   });
 
   @override
@@ -51,11 +53,16 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
 
   @override
   Widget build(BuildContext context) {
+    final tag = widget.heroTag ?? 'album_art_${widget.albumId}';
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: ScaleButton(
-        onTap: () => context.push('/album/${widget.albumId}'),
+        onTap:
+            () => context.push(
+              '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
+            ),
         onLongPress:
             () => ContextMenuSheet.showForAlbum(
               context,
@@ -74,7 +81,7 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
               Stack(
                 children: [
                   Hero(
-                    tag: 'album_art_${widget.albumId}',
+                    tag: tag,
                     child: ThumbnailWidget(
                       imageUrl: widget.thumbnailUrl,
                       size: widget.cardWidth,

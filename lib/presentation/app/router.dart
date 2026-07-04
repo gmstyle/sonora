@@ -69,6 +69,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                           key: state.pageKey,
                           child: AlbumScreen(
                             albumId: state.pathParameters['albumId']!,
+                            heroTag: state.uri.queryParameters['heroTag'],
                           ),
                           transitionsBuilder: (
                             context,

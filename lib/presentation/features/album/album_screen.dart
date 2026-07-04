@@ -28,19 +28,20 @@ import 'providers/album_provider.dart';
 
 class AlbumScreen extends ConsumerWidget {
   final String albumId;
+  final String? heroTag;
 
-  const AlbumScreen({super.key, required this.albumId});
+  const AlbumScreen({super.key, required this.albumId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _AlbumMobileLayout(albumId: albumId);
+          return _AlbumMobileLayout(albumId: albumId, heroTag: heroTag);
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _AlbumTabletLayout(albumId: albumId);
+          return _AlbumTabletLayout(albumId: albumId, heroTag: heroTag);
         } else {
-          return _AlbumWideLayout(albumId: albumId);
+          return _AlbumWideLayout(albumId: albumId, heroTag: heroTag);
         }
       },
     );
@@ -49,8 +50,9 @@ class AlbumScreen extends ConsumerWidget {
 
 class _AlbumMobileLayout extends ConsumerWidget {
   final String albumId;
+  final String? heroTag;
 
-  const _AlbumMobileLayout({required this.albumId});
+  const _AlbumMobileLayout({required this.albumId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -65,15 +67,16 @@ class _AlbumMobileLayout extends ConsumerWidget {
               onRetry: () => ref.invalidate(albumProvider(albumId)),
             ),
           ),
-      data: (album) => _AlbumContent(album: album),
+      data: (album) => _AlbumContent(album: album, heroTag: heroTag),
     );
   }
 }
 
 class _AlbumTabletLayout extends ConsumerWidget {
   final String albumId;
+  final String? heroTag;
 
-  const _AlbumTabletLayout({required this.albumId});
+  const _AlbumTabletLayout({required this.albumId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,15 +91,18 @@ class _AlbumTabletLayout extends ConsumerWidget {
               onRetry: () => ref.invalidate(albumProvider(albumId)),
             ),
           ),
-      data: (album) => _AlbumContent(album: album, isTablet: true),
+      data:
+          (album) =>
+              _AlbumContent(album: album, isTablet: true, heroTag: heroTag),
     );
   }
 }
 
 class _AlbumWideLayout extends ConsumerWidget {
   final String albumId;
+  final String? heroTag;
 
-  const _AlbumWideLayout({required this.albumId});
+  const _AlbumWideLayout({required this.albumId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -111,7 +117,9 @@ class _AlbumWideLayout extends ConsumerWidget {
               onRetry: () => ref.invalidate(albumProvider(albumId)),
             ),
           ),
-      data: (album) => _AlbumContent(album: album, isWide: true),
+      data:
+          (album) =>
+              _AlbumContent(album: album, isWide: true, heroTag: heroTag),
     );
   }
 }
@@ -120,11 +128,13 @@ class _AlbumContent extends ConsumerStatefulWidget {
   final AlbumFull album;
   final bool isTablet;
   final bool isWide;
+  final String? heroTag;
 
   const _AlbumContent({
     required this.album,
     this.isTablet = false,
     this.isWide = false,
+    this.heroTag,
   });
 
   @override
@@ -283,6 +293,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                                       ? release.thumbnails.last.url
                                       : null,
                               year: release.year,
+                              heroTag: 'related_release_${release.albumId}',
                             );
                           },
                         ),
@@ -430,7 +441,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                 children: [
                   if (thumbnailUrl != null)
                     Hero(
-                      tag: 'album_art_${widget.album.albumId}',
+                      tag:
+                          widget.heroTag ?? 'album_art_${widget.album.albumId}',
                       child: Container(
                         width: 140,
                         height: 140,
@@ -571,7 +583,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
               children: [
                 if (thumbnailUrl != null)
                   Hero(
-                    tag: 'album_art_${widget.album.albumId}',
+                    tag: widget.heroTag ?? 'album_art_${widget.album.albumId}',
                     child: Container(
                       width: isWide ? 190 : 150,
                       height: isWide ? 190 : 150,

@@ -138,6 +138,7 @@ class BrowseSectionScreen extends ConsumerWidget {
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,
         cardWidth: cardWidth,
+        heroTag: 'browse_section_album_${item.albumId}',
       );
     }
     if (item is PlaylistDetailed) {

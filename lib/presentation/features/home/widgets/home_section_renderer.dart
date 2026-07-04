@@ -638,6 +638,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,
+        heroTag: 'home_section_album_${item.albumId}',
       );
     }
     if (item is PlaylistDetailed) {
@@ -892,6 +893,7 @@ class HomeLikedAlbums extends ConsumerWidget {
               thumbnailUrl: album.thumbnailUrl,
               year: album.year,
               cardWidth: cardWidth,
+              heroTag: 'home_liked_album_${album.albumId}',
             );
           },
           onShowAll: () {

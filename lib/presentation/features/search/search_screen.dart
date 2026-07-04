@@ -618,6 +618,7 @@ class _SearchResults extends ConsumerWidget {
                                       : null,
                               year: al.year,
                               cardWidth: 120,
+                              heroTag: 'search_album_${al.albumId}',
                             ),
                           );
                         },

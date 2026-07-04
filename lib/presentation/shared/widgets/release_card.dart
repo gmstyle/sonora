@@ -16,6 +16,7 @@ class ReleaseCard extends ConsumerWidget {
   final int? year;
   final String? artistId;
   final ReleaseType type;
+  final String? heroTag;
 
   const ReleaseCard({
     super.key,
@@ -26,6 +27,7 @@ class ReleaseCard extends ConsumerWidget {
     this.year,
     this.artistId,
     this.type = ReleaseType.album,
+    this.heroTag,
   });
 
   String _typeLabel(BuildContext context) {
@@ -43,9 +45,13 @@ class ReleaseCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final tag = heroTag ?? 'album_art_$albumId';
 
     return ScaleButton(
-      onTap: () => context.push('/album/$albumId'),
+      onTap:
+          () => context.push(
+            '/album/$albumId?heroTag=${Uri.encodeComponent(tag)}',
+          ),
       onLongPress:
           () => ContextMenuSheet.showForAlbum(
             context,
@@ -62,7 +68,7 @@ class ReleaseCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Hero(
-              tag: 'album_art_$albumId',
+              tag: tag,
               child: ThumbnailWidget(
                 imageUrl: thumbnailUrl,
                 size: 150,

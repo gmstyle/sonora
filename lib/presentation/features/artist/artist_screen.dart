@@ -257,6 +257,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               year: album.year,
                               artistId: album.artist.artistId,
                               type: ReleaseType.album,
+                              heroTag: 'artist_album_${album.albumId}',
                             );
                           },
                         ),
@@ -291,6 +292,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               year: single.year,
                               artistId: single.artist.artistId,
                               type: ReleaseType.single,
+                              heroTag: 'artist_single_${single.albumId}',
                             );
                           },
                         ),

@@ -73,6 +73,7 @@ class AlbumsTab extends ConsumerWidget {
                         artistId: a.artistId,
                         thumbnailUrl: a.thumbnailUrl,
                         year: a.year,
+                        heroTag: 'library_album_${a.albumId}',
                       );
                     },
                   )
