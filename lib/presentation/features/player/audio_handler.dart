@@ -95,6 +95,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Timer? _lookaheadTimer;
   int? _targetSkipIndex;
   bool _isTransitionMuted = false;
+  bool _userWantsPlaying = false;
 
   // ── Restore state ──────────────────────────────────────────────────────────
   RestoreStatus _restoreStatus = RestoreStatus.idle;
@@ -253,8 +254,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     SonoraCastService service, {
     Duration? startPosition,
   }) async {
-    final wasPlaying = _player.state.playing || _pausedForConnection;
-    if (wasPlaying) await _player.pause();
+    final wasPlaying =
+        _player.state.playing || _pausedForConnection || _userWantsPlaying;
+    if (wasPlaying) {
+      _pausedForConnection = true;
+      await _player.pause();
+    }
     _setLocalVolume(0.0);
 
     String? url = item.extras?['url'] as String?;
@@ -262,6 +267,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       try {
         url = await _playVideoIdUseCase.resolveUrl(item.id);
       } catch (_) {
+        _pausedForConnection = false;
         return;
       }
     }
@@ -277,6 +283,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     if (wasPlaying) {
       await _waitForCastSessionState(service, SessionState.playing);
+      _pausedForConnection = false;
       await _player.play();
     } else {
       await service.pause();
@@ -405,7 +412,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _setupListeners() {
-    _player.stream.playing.listen((_) => _updatePlaybackState());
+    _player.stream.playing.listen((playing) {
+      if (playing) {
+        _userWantsPlaying = true;
+      } else if (_restoreStatus != RestoreStatus.restoring &&
+          !_isTransitionMuted &&
+          !_pausedForConnection) {
+        _userWantsPlaying = false;
+      }
+      _updatePlaybackState();
+    });
     _player.stream.buffering.listen((_) => _updatePlaybackState());
     _player.stream.completed.listen((_) => _updatePlaybackState());
 
@@ -775,8 +791,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
       if (_castState?.connectionState == CastConnectionState.connected) {
         if (index == _player.state.playlist.index) {
-          final wasPlaying = _player.state.playing;
-          if (wasPlaying) await _player.pause();
+          final wasPlaying = _player.state.playing || _userWantsPlaying;
+          if (wasPlaying) {
+            _pausedForConnection = true;
+            await _player.pause();
+          }
           _setLocalVolume(0.0);
 
           await _player.remove(index);
@@ -794,6 +813,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
           if (wasPlaying) {
             await _waitForCastSessionState(_castService!, SessionState.playing);
+            _pausedForConnection = false;
             await _player.play();
           } else {
             await _castService?.pause();
@@ -858,6 +878,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> play() async {
+    _userWantsPlaying = true;
     _isStopping = false;
     _playOnInterruptionEnd = false;
     // Block until any in-progress restore completes.  This prevents a
@@ -878,6 +899,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _pause() async {
+    _userWantsPlaying = false;
     // NOTE: do NOT release audio focus on pause.
     // Calling session.setActive(false) abandons the Android AudioFocus and on
     // some devices/OEMs causes subsequent AudioFocus requests (from play()) to
@@ -899,6 +921,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
+    _userWantsPlaying = false;
     if (_castState?.connectionState == CastConnectionState.connected) {
       try {
         await _castService?.disconnect();
@@ -1059,7 +1082,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   void _endTransitionMute() {
     if (!_isTransitionMuted) return;
 
-    _setLocalVolume(_lastSetVolume * 100.0, force: true);
+    _setLocalVolume(_lastSetVolume * 100.0);
     _isTransitionMuted = false;
   }
 
@@ -1218,6 +1241,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         itemsWithKeys.map(_toMedia).toList(),
         index: initialIndex,
       );
+      _userWantsPlaying = false;
       await _player.open(playlist, play: false);
     } catch (e) {
       _endTransitionMute();
@@ -1269,6 +1293,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       // isSwitching in PlayerNotifier via the playbackState stream.
       // If focus is denied we open without auto-play; the user can retry manually.
       final hasFocus = await _requestAudioFocus();
+      _userWantsPlaying = hasFocus;
       await _player.open(playlist, play: hasFocus);
     } catch (e) {
       _endTransitionMute();
@@ -1313,6 +1338,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> clearQueue() async {
+    _userWantsPlaying = false;
     _lookaheadTimer?.cancel();
     await _player.stop();
     await _player.open(const Playlist([]), play: false);
@@ -1563,6 +1589,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       items.map(_toMedia).toList(),
       index: savedIndex,
     );
+    _userWantsPlaying = false;
     await _player.open(restoredPlaylist, play: false);
 
     // Seek to the saved position.
