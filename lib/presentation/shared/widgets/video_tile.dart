@@ -6,6 +6,7 @@ class VideoTile extends ConsumerWidget {
   final String videoId;
   final String title;
   final String artist;
+  final String? artistId;
   final String? thumbnailUrl;
   final int? duration;
   final String? albumName;
@@ -16,6 +17,7 @@ class VideoTile extends ConsumerWidget {
     required this.videoId,
     required this.title,
     required this.artist,
+    this.artistId,
     this.thumbnailUrl,
     this.duration,
     this.albumName,
@@ -28,6 +30,7 @@ class VideoTile extends ConsumerWidget {
       videoId: videoId,
       title: title,
       artist: artist,
+      artistId: artistId,
       thumbnailUrl: thumbnailUrl,
       duration: duration,
       isVideo: true,

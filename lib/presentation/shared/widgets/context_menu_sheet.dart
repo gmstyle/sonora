@@ -917,7 +917,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     artist: artist,
                     thumbnailUrl: thumbnailUrl,
                     artistId: resolvedArtistId,
-                    albumId: albumId,
+                    albumId: resolvedAlbumId,
                     isVideo: isVideo,
                     isExplicit: isExplicit,
                     duration: duration,

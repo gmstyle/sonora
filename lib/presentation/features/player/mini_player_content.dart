@@ -483,9 +483,20 @@ class MiniPlayerContent extends ConsumerWidget {
                                     videoId: videoId,
                                     title: currentSong.title,
                                     artist: currentSong.artist ?? '',
+                                    artistId:
+                                        currentSong.extras?['artistId']
+                                            as String?,
+                                    albumId:
+                                        currentSong.extras?['albumId']
+                                            as String?,
                                     thumbnailUrl:
                                         currentSong.artUri?.toString(),
+                                    duration: currentSong.duration?.inSeconds,
+                                    albumName: currentSong.album,
                                     isVideo: isVideo,
+                                    isExplicit:
+                                        currentSong.extras?['isExplicit'] ==
+                                        true,
                                   );
                                 },
                                 size: 20,

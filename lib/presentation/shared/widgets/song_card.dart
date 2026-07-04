@@ -69,6 +69,7 @@ class SongCard extends ConsumerWidget {
             isVideo: isVideo,
             artistId: artistId,
             albumId: albumId,
+            playCount: playCount,
             isExplicit: isExplicit,
           ),
       child: SizedBox(
