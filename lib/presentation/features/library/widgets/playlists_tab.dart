@@ -322,8 +322,6 @@ class _PlaylistCoverBuilder extends ConsumerWidget {
   }
 }
 
-
-
 class _LocalPlaylistTile extends StatelessWidget {
   final LocalPlaylistModel playlist;
   final VoidCallback onTap;

@@ -13,7 +13,7 @@ class SettingsMobileLayout extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          AppLocalizations.of(context)!.appearance,
+          AppLocalizations.of(context)!.settingsLabel,
           style: theme.textTheme.titleLarge,
         ),
         centerTitle: false,

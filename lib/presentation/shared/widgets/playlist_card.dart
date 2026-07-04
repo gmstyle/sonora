@@ -35,7 +35,10 @@ class PlaylistCard extends ConsumerStatefulWidget {
     this.cardWidth = 150,
     this.heroTag,
     this.localPlaylist,
-  }) : assert(playlistId != null || localPlaylistId != null, 'Must provide either playlistId or localPlaylistId');
+  }) : assert(
+         playlistId != null || localPlaylistId != null,
+         'Must provide either playlistId or localPlaylistId',
+       );
 
   @override
   ConsumerState<PlaylistCard> createState() => _PlaylistCardState();
@@ -46,7 +49,9 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
 
   Future<void> _play() async {
     final l10n = AppLocalizations.of(context)!;
-    ref.read(actionFeedbackProvider.notifier).report(l10n.playingPlaylist(widget.name));
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(l10n.playingPlaylist(widget.name));
     try {
       final player = ref.read(playerStateProvider.notifier);
       if (widget.localPlaylistId != null) {
@@ -74,7 +79,11 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
   @override
   Widget build(BuildContext context) {
     final isLocal = widget.localPlaylistId != null;
-    final tag = widget.heroTag ?? (isLocal ? 'local_playlist_art_${widget.localPlaylistId}' : 'playlist_art_${widget.playlistId}');
+    final tag =
+        widget.heroTag ??
+        (isLocal
+            ? 'local_playlist_art_${widget.localPlaylistId}'
+            : 'playlist_art_${widget.playlistId}');
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -82,12 +91,14 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
       child: ScaleButton(
         onTap: () {
           if (isLocal) {
-            final playlistModel = widget.localPlaylist ?? LocalPlaylistModel(
-              id: widget.localPlaylistId!,
-              name: widget.name,
-              description: widget.artist,
-              createdAt: DateTime.now(),
-            );
+            final playlistModel =
+                widget.localPlaylist ??
+                LocalPlaylistModel(
+                  id: widget.localPlaylistId!,
+                  name: widget.name,
+                  description: widget.artist,
+                  createdAt: DateTime.now(),
+                );
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -108,12 +119,14 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
         },
         onLongPress: () {
           if (isLocal) {
-            final playlistModel = widget.localPlaylist ?? LocalPlaylistModel(
-              id: widget.localPlaylistId!,
-              name: widget.name,
-              description: widget.artist,
-              createdAt: DateTime.now(),
-            );
+            final playlistModel =
+                widget.localPlaylist ??
+                LocalPlaylistModel(
+                  id: widget.localPlaylistId!,
+                  name: widget.name,
+                  description: widget.artist,
+                  createdAt: DateTime.now(),
+                );
             ContextMenuSheet.showForCustomPlaylist(
               context,
               playlist: playlistModel,
@@ -138,24 +151,22 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
                 children: [
                   Hero(
                     tag: tag,
-                    child: isLocal
-                        ? _LocalPlaylistCoverBuilder(
-                            playlistId: widget.localPlaylistId!,
-                            size: widget.cardWidth,
-                          )
-                        : ThumbnailWidget(
-                            imageUrl: widget.thumbnailUrl,
-                            size: widget.cardWidth,
-                            shape: ThumbnailShape.rounded,
-                          ),
+                    child:
+                        isLocal
+                            ? _LocalPlaylistCoverBuilder(
+                              playlistId: widget.localPlaylistId!,
+                              size: widget.cardWidth,
+                            )
+                            : ThumbnailWidget(
+                              imageUrl: widget.thumbnailUrl,
+                              size: widget.cardWidth,
+                              shape: ThumbnailShape.rounded,
+                            ),
                   ),
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: HoverPlayButton(
-                      isVisible: _isHovered,
-                      onTap: _play,
-                    ),
+                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
                   ),
                 ],
               ),
@@ -191,23 +202,28 @@ class _LocalPlaylistCoverBuilder extends ConsumerWidget {
   final int playlistId;
   final double size;
 
-  const _LocalPlaylistCoverBuilder({required this.playlistId, required this.size});
+  const _LocalPlaylistCoverBuilder({
+    required this.playlistId,
+    required this.size,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entriesAsync = ref.watch(playlistEntriesProvider(playlistId));
 
     return entriesAsync.when(
-      loading: () => Container(
-        width: size,
-        height: size,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-      error: (_, _) => Container(
-        width: size,
-        height: size,
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
+      loading:
+          () => Container(
+            width: size,
+            height: size,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
+      error:
+          (_, _) => Container(
+            width: size,
+            height: size,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
       data: (entries) {
         final urls =
             entries

@@ -235,15 +235,13 @@ class _ConnectionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return SettingsSection(
-      title: l10n?.connection ?? "Connection",
+      title: l10n.connection,
       children: [
         SettingsSwitchTile(
-          title: l10n?.offlineMode ?? "Offline Mode",
-          subtitle:
-              l10n?.offlineModeHint ??
-              "Only show downloaded content and local playlists",
+          title: l10n.offlineMode,
+          subtitle: l10n.offlineModeHint,
           value: settings.offlineMode,
           onChanged: notifier.setOfflineMode,
           icon: LucideIcons.wifiOff,
