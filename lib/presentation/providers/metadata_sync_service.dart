@@ -44,75 +44,120 @@ class MetadataSyncService {
 
       // 2. Fetch batch of missing metadata track IDs
       final videoIds = await libraryRepo.getTrackIdsMissingMetadata(limit: 15);
-      if (videoIds.isEmpty) {
+      if (videoIds.isNotEmpty) {
         debugPrint(
-          '[MetadataSyncService] All tracks have metadata. No backfill needed.',
+          '[MetadataSyncService] Found ${videoIds.length} tracks missing metadata. Backfilling...',
         );
-        _isSyncing = false;
-        return;
-      }
 
-      debugPrint(
-        '[MetadataSyncService] Found ${videoIds.length} tracks missing metadata. Backfilling...',
-      );
+        // Process each track sequentially with a delay to avoid rate-limiting (429)
+        for (final videoId in videoIds) {
+          final stillOnline = await _checkOnlineStatus();
+          if (!stillOnline) {
+            debugPrint(
+              '[MetadataSyncService] Device went offline. Stopping track sync.',
+            );
+            break;
+          }
 
-      // 3. Process each track sequentially with a delay to avoid rate-limiting (429)
-      for (final videoId in videoIds) {
-        // Double check connectivity before each request
-        final stillOnline = await _checkOnlineStatus();
-        if (!stillOnline) {
-          debugPrint(
-            '[MetadataSyncService] Device went offline. Stopping sync.',
-          );
-          break;
-        }
-
-        try {
-          debugPrint(
-            '[MetadataSyncService] Fetching metadata for videoId: $videoId',
-          );
-
-          // Try to fetch song info
-          final song = await musicRepo
-              .getSong(videoId)
-              .timeout(const Duration(seconds: 10));
-          await libraryRepo.updateSongMetadata(
-            videoId,
-            song.duration,
-            song.isExplicit,
-          );
-
-          debugPrint(
-            '[MetadataSyncService] Updated metadata for $videoId (duration: ${song.duration}, explicit: ${song.isExplicit})',
-          );
-        } catch (e) {
-          // If getSong fails, maybe it is a video (non-song), try getVideo
           try {
-            final video = await musicRepo
-                .getVideo(videoId)
+            debugPrint(
+              '[MetadataSyncService] Fetching metadata for videoId: $videoId',
+            );
+
+            // Try to fetch song info
+            final song = await musicRepo
+                .getSong(videoId)
                 .timeout(const Duration(seconds: 10));
             await libraryRepo.updateSongMetadata(
               videoId,
-              video.duration,
-              video.isExplicit,
+              song.duration,
+              song.isExplicit,
             );
-            debugPrint(
-              '[MetadataSyncService] Updated video metadata for $videoId (duration: ${video.duration}, explicit: ${video.isExplicit})',
-            );
-          } catch (innerErr) {
-            debugPrint(
-              '[MetadataSyncService] Failed to resolve metadata for $videoId: $innerErr',
-            );
-          }
-        }
 
-        // Wait 4 seconds before next request to be gentle on network / API rate limit
-        await Future.delayed(const Duration(seconds: 4));
+            debugPrint(
+              '[MetadataSyncService] Updated metadata for $videoId (duration: ${song.duration}, explicit: ${song.isExplicit})',
+            );
+          } catch (e) {
+            // If getSong fails, maybe it is a video (non-song), try getVideo
+            try {
+              final video = await musicRepo
+                  .getVideo(videoId)
+                  .timeout(const Duration(seconds: 10));
+              await libraryRepo.updateSongMetadata(
+                videoId,
+                video.duration,
+                video.isExplicit,
+              );
+              debugPrint(
+                '[MetadataSyncService] Updated video metadata for $videoId (duration: ${video.duration}, explicit: ${video.isExplicit})',
+              );
+            } catch (innerErr) {
+              debugPrint(
+                '[MetadataSyncService] Failed to resolve metadata for $videoId: $innerErr',
+              );
+            }
+          }
+
+          // Wait 4 seconds before next request to be gentle on network / API rate limit
+          await Future.delayed(const Duration(seconds: 4));
+        }
+      } else {
+        debugPrint('[MetadataSyncService] All tracks have metadata.');
       }
 
-      final remaining = await libraryRepo.getTrackCountMissingMetadata();
+      // 3. Fetch batch of liked albums missing artistId
+      final albumIds = await libraryRepo.getAlbumIdsMissingArtistId(limit: 10);
+      if (albumIds.isNotEmpty) {
+        debugPrint(
+          '[MetadataSyncService] Found ${albumIds.length} albums missing artistId. Backfilling...',
+        );
+
+        for (final albumId in albumIds) {
+          final stillOnline = await _checkOnlineStatus();
+          if (!stillOnline) {
+            debugPrint(
+              '[MetadataSyncService] Device went offline. Stopping album sync.',
+            );
+            break;
+          }
+
+          try {
+            debugPrint(
+              '[MetadataSyncService] Fetching album info for albumId: $albumId',
+            );
+
+            final album = await musicRepo
+                .getAlbum(albumId)
+                .timeout(const Duration(seconds: 10));
+
+            final artistId = album.artist.artistId;
+            if (artistId != null) {
+              await libraryRepo.updateAlbumArtistId(albumId, artistId);
+              debugPrint(
+                '[MetadataSyncService] Updated artistId for album $albumId ($artistId)',
+              );
+            } else {
+              debugPrint(
+                '[MetadataSyncService] Album $albumId does not have a valid artistId in API response.',
+              );
+            }
+          } catch (e) {
+            debugPrint(
+              '[MetadataSyncService] Failed to resolve artistId for album $albumId: $e',
+            );
+          }
+
+          // Wait 4 seconds before next request
+          await Future.delayed(const Duration(seconds: 4));
+        }
+      } else {
+        debugPrint('[MetadataSyncService] All albums have artistId.');
+      }
+
+      final remainingTracks = await libraryRepo.getTrackCountMissingMetadata();
+      final remainingAlbums = await libraryRepo.getAlbumCountMissingArtistId();
       debugPrint(
-        '[MetadataSyncService] Metadata backfill batch completed. Remaining tracks to sync: $remaining',
+        '[MetadataSyncService] Metadata backfill batch completed. Remaining tracks to sync: $remainingTracks, remaining albums: $remainingAlbums',
       );
     } catch (e) {
       debugPrint('[MetadataSyncService] Error during metadata sync: $e');

@@ -70,6 +70,7 @@ class AlbumsTab extends ConsumerWidget {
                         albumId: a.albumId,
                         name: a.name,
                         artist: a.artistName,
+                        artistId: a.artistId,
                         thumbnailUrl: a.thumbnailUrl,
                         year: a.year,
                       );
@@ -119,6 +120,7 @@ class AlbumsTab extends ConsumerWidget {
                                 albumId: a.albumId,
                                 name: a.name,
                                 artist: a.artistName,
+                                artistId: a.artistId,
                                 thumbnailUrl: a.thumbnailUrl,
                                 year: a.year,
                               ),

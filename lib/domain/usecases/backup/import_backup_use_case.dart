@@ -78,6 +78,7 @@ class ImportBackupUseCase {
           albumId: a['albumId'] as String,
           name: a['name'] as String,
           artistName: a['artistName'] as String,
+          artistId: a['artistId'] as String?,
           thumbnailUrl: a['thumbnailUrl'] as String?,
           year: a['year'] as int?,
           addedAt: DateTime.parse(a['addedAt'] as String),

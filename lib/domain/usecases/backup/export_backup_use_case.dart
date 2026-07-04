@@ -78,6 +78,7 @@ class ExportBackupUseCase {
                   'albumId': a.albumId,
                   'name': a.name,
                   'artistName': a.artistName,
+                  'artistId': a.artistId,
                   'thumbnailUrl': a.thumbnailUrl,
                   'year': a.year,
                   'addedAt': a.addedAt.toIso8601String(),

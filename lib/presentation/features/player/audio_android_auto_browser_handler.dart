@@ -1357,6 +1357,7 @@ class AudioAndroidAutoBrowserHandler {
               albumId: albumId,
               name: album.name,
               artistName: album.artist.name,
+              artistId: album.artist.artistId,
               thumbnailUrl:
                   album.thumbnails.isNotEmpty
                       ? album.thumbnails.last.url

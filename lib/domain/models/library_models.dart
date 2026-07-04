@@ -47,6 +47,7 @@ class LikedAlbumModel {
   final String albumId;
   final String name;
   final String artistName;
+  final String? artistId;
   final String? thumbnailUrl;
   final int? year;
   final DateTime addedAt;
@@ -55,6 +56,7 @@ class LikedAlbumModel {
     required this.albumId,
     required this.name,
     required this.artistName,
+    this.artistId,
     this.thumbnailUrl,
     this.year,
     required this.addedAt,

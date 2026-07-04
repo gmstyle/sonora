@@ -611,6 +611,7 @@ class _SearchResults extends ConsumerWidget {
                               albumId: al.albumId,
                               name: al.name,
                               artist: al.artist.name,
+                              artistId: al.artist.artistId,
                               thumbnailUrl:
                                   al.thumbnails.isNotEmpty
                                       ? al.thumbnails.last.url
@@ -714,6 +715,7 @@ class _SearchResults extends ConsumerWidget {
         albumId: result.albumId,
         name: result.name,
         artist: result.artist.name,
+        artistId: result.artist.artistId,
         thumbnailUrl:
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
         year: result.year,

@@ -238,6 +238,7 @@ void main() {
           albumId: 'album_1',
           name: 'Album 1',
           artistName: 'Artist 1',
+          artistId: 'artist_1',
           year: 2024,
           thumbnailUrl: 'https://example.com/album.jpg',
           addedAt: DateTime.now(),
@@ -247,6 +248,7 @@ void main() {
       final album = await repo.getLikedAlbum('album_1');
       expect(album, isNotNull);
       expect(album!.name, 'Album 1');
+      expect(album.artistId, 'artist_1');
       expect(album.year, 2024);
     });
 

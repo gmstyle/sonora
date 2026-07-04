@@ -634,6 +634,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         albumId: item.albumId,
         name: item.name,
         artist: item.artist.name,
+        artistId: item.artist.artistId,
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,
@@ -887,6 +888,7 @@ class HomeLikedAlbums extends ConsumerWidget {
               albumId: album.albumId,
               name: album.name,
               artist: album.artistName,
+              artistId: album.artistId,
               thumbnailUrl: album.thumbnailUrl,
               year: album.year,
               cardWidth: cardWidth,

@@ -277,6 +277,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                               albumId: release.albumId,
                               name: release.name,
                               artist: release.artist.name,
+                              artistId: release.artist.artistId,
                               thumbnailUrl:
                                   release.thumbnails.isNotEmpty
                                       ? release.thumbnails.last.url
@@ -985,6 +986,7 @@ class _LikeAlbumButton extends ConsumerWidget {
                   albumId: album.albumId,
                   name: album.name,
                   artistName: album.artist.name,
+                  artistId: album.artist.artistId,
                   thumbnailUrl:
                       album.thumbnails.isNotEmpty
                           ? album.thumbnails.last.url
@@ -1007,6 +1009,7 @@ class _LikeAlbumButton extends ConsumerWidget {
                 albumId: album.albumId,
                 name: album.name,
                 artistName: album.artist.name,
+                artistId: album.artist.artistId,
                 thumbnailUrl:
                     album.thumbnails.isNotEmpty
                         ? album.thumbnails.last.url

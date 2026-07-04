@@ -1398,6 +1398,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     albumId: albumId,
                     name: name,
                     artistName: artist,
+                    artistId: artistId,
                     thumbnailUrl: thumbnailUrl,
                     year: year,
                   ),
@@ -2184,6 +2185,7 @@ class _LikeAlbumActionTile extends ConsumerWidget {
   final String albumId;
   final String name;
   final String artistName;
+  final String? artistId;
   final String? thumbnailUrl;
   final int? year;
 
@@ -2191,6 +2193,7 @@ class _LikeAlbumActionTile extends ConsumerWidget {
     required this.albumId,
     required this.name,
     required this.artistName,
+    this.artistId,
     this.thumbnailUrl,
     this.year,
   });
@@ -2227,6 +2230,7 @@ class _LikeAlbumActionTile extends ConsumerWidget {
                     albumId: albumId,
                     name: name,
                     artistName: artistName,
+                    artistId: artistId,
                     thumbnailUrl: thumbnailUrl,
                     year: year,
                     addedAt: DateTime.now(),

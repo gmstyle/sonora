@@ -129,4 +129,8 @@ abstract class LibraryRepository {
   );
   Future<List<String>> getTrackIdsMissingMetadata({int limit = 15});
   Future<int> getTrackCountMissingMetadata();
+
+  Future<List<String>> getAlbumIdsMissingArtistId({int limit = 10});
+  Future<void> updateAlbumArtistId(String albumId, String artistId);
+  Future<int> getAlbumCountMissingArtistId();
 }

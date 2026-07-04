@@ -133,6 +133,7 @@ class BrowseSectionScreen extends ConsumerWidget {
         albumId: item.albumId,
         name: item.name,
         artist: item.artist.name,
+        artistId: item.artist.artistId,
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,

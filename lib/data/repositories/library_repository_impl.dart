@@ -220,6 +220,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
           albumId: album.albumId,
           name: album.name,
           artistName: album.artistName,
+          artistId: Value(album.artistId),
           thumbnailUrl: Value(album.thumbnailUrl),
           year: Value(album.year),
           addedAt: album.addedAt,
@@ -235,6 +236,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         albumId: album.albumId,
         name: album.name,
         artistName: album.artistName,
+        artistId: Value(album.artistId),
         thumbnailUrl: Value(album.thumbnailUrl),
         year: Value(album.year),
         addedAt: album.addedAt,
@@ -709,6 +711,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     albumId: r.albumId,
     name: r.name,
     artistName: r.artistName,
+    artistId: r.artistId,
     thumbnailUrl: r.thumbnailUrl,
     year: r.year,
     addedAt: r.addedAt,
@@ -736,4 +739,16 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<int> getTrackCountMissingMetadata() =>
       _libraryDao.db.getTrackCountMissingMetadata();
+
+  @override
+  Future<List<String>> getAlbumIdsMissingArtistId({int limit = 10}) =>
+      _libraryDao.db.getAlbumIdsMissingArtistId(limit: limit);
+
+  @override
+  Future<void> updateAlbumArtistId(String albumId, String artistId) =>
+      _libraryDao.db.updateAlbumArtistId(albumId, artistId);
+
+  @override
+  Future<int> getAlbumCountMissingArtistId() =>
+      _libraryDao.db.getAlbumCountMissingArtistId();
 }

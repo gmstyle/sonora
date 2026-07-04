@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -199,6 +199,16 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(playlistEntries, playlistEntries.duration);
         }
       }
+      if (from < 17) {
+        final likedAlbumsInfo =
+            await customSelect('PRAGMA table_info(liked_albums)').get();
+        final hasLikedAlbumsArtistId = likedAlbumsInfo.any(
+          (row) => row.read<String>('name') == 'artist_id',
+        );
+        if (!hasLikedAlbumsArtistId) {
+          await m.addColumn(likedAlbums, likedAlbums.artistId);
+        }
+      }
     },
   );
 
@@ -274,5 +284,28 @@ class AppDatabase extends _$AppDatabase {
     return liked.read<int>('c') +
         history.read<int>('c') +
         playlist.read<int>('c');
+  }
+
+  Future<List<String>> getAlbumIdsMissingArtistId({int limit = 10}) async {
+    final albums =
+        await (select(likedAlbums)
+              ..where((t) => t.artistId.isNull())
+              ..limit(limit))
+            .get();
+    return albums.map((e) => e.albumId).toList();
+  }
+
+  Future<void> updateAlbumArtistId(String albumId, String artistId) async {
+    await (update(likedAlbums)..where(
+      (t) => t.albumId.equals(albumId),
+    )).write(LikedAlbumsCompanion(artistId: Value(artistId)));
+  }
+
+  Future<int> getAlbumCountMissingArtistId() async {
+    final result =
+        await customSelect(
+          'SELECT COUNT(*) as c FROM liked_albums WHERE artist_id IS NULL',
+        ).getSingle();
+    return result.read<int>('c');
   }
 }
