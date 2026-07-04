@@ -7,6 +7,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../providers/app_lifecycle_provider.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
+import '../../../shared/widgets/glass_app_bar_background.dart';
+import '../../../shared/widgets/sonora_logo.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_section_renderer.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -31,11 +33,18 @@ class HomeWideLayout extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(
-          _getGreeting(context),
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        flexibleSpace: const GlassAppBarBackground(),
+        title: Row(
+          spacing: 8,
+          children: [
+            const SonoraLogo.icon(22),
+            Text(
+              _getGreeting(context),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         centerTitle: false,
         actions: [

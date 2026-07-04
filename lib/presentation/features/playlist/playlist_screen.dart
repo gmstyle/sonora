@@ -21,6 +21,7 @@ import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/explicit_badge.dart';
+import '../../shared/widgets/glass_app_bar_background.dart';
 import 'providers/playlist_provider.dart';
 
 class PlaylistScreen extends ConsumerWidget {
@@ -255,15 +256,21 @@ class _PlaylistSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = Color.lerp(
+      Colors.white,
+      theme.colorScheme.onSurface,
+      scrollProgress,
+    );
+
     final thumbnailUrl =
         playlist.thumbnails.isNotEmpty ? playlist.thumbnails.last.url : null;
 
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 340,
       pinned: true,
-      // Back button and actions always white — readable on any artwork.
-      iconTheme: const IconThemeData(color: Colors.white),
-      foregroundColor: Colors.white,
+      iconTheme: IconThemeData(color: iconColor),
+      foregroundColor: iconColor,
       title: AnimatedOpacity(
         opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
         duration: const Duration(milliseconds: 150),
@@ -281,14 +288,20 @@ class _PlaylistSliverAppBar extends StatelessWidget {
               TextSpan(text: playlist.name),
             ],
           ),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: iconColor,
           ),
         ),
       ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: _buildHeaderBackground(context, thumbnailUrl),
+      flexibleSpace: Stack(
+        fit: StackFit.expand,
+        children: [
+          GlassAppBarBackground(opacity: scrollProgress),
+          FlexibleSpaceBar(
+            background: _buildHeaderBackground(context, thumbnailUrl),
+          ),
+        ],
       ),
     );
   }

@@ -11,6 +11,7 @@ import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../shared/widgets/song_tile.dart';
+import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../providers/smart_playlists_provider.dart';
 import '../../../providers/play_smart_mix_use_case_provider.dart';
 
@@ -241,83 +242,97 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                 stretch: true,
                 elevation: 0,
                 scrolledUnderElevation: 0,
-                backgroundColor: theme.colorScheme.surface,
+                backgroundColor: Colors.transparent,
                 leading: IconButton(
                   icon: const Icon(LucideIcons.arrowLeft),
                   onPressed: () => Navigator.pop(context),
                 ),
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  title:
-                      _scrollProgress > 0.6
-                          ? Text(
-                            title,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                          : null,
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Container(decoration: BoxDecoration(gradient: gradient)),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              theme.colorScheme.surface.withValues(alpha: 0.8),
-                              theme.colorScheme.surface,
-                            ],
-                            stops: const [0.0, 0.85, 1.0],
-                          ),
-                        ),
-                      ),
-                      Opacity(
-                        opacity: (1.0 - _scrollProgress * 2.0).clamp(0.0, 1.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 32),
-                            Icon(
-                              _getIcon(mixType),
-                              size: 72,
-                              color: Colors.white.withValues(alpha: 0.95),
-                            ),
-                            const SizedBox(height: 16),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              child: Text(
+                flexibleSpace: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    GlassAppBarBackground(opacity: _scrollProgress),
+                    FlexibleSpaceBar(
+                      centerTitle: true,
+                      title:
+                          _scrollProgress > 0.6
+                              ? Text(
                                 title,
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: theme.colorScheme.onSurface,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                textAlign: TextAlign.center,
+                              )
+                              : null,
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(gradient: gradient),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  theme.colorScheme.surface.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  theme.colorScheme.surface,
+                                ],
+                                stops: const [0.0, 0.85, 1.0],
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              child: Text(
-                                description,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
+                          ),
+                          Opacity(
+                            opacity: (1.0 - _scrollProgress * 2.0).clamp(
+                              0.0,
+                              1.0,
                             ),
-                          ],
-                        ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 32),
+                                Icon(
+                                  _getIcon(mixType),
+                                  size: 72,
+                                  color: Colors.white.withValues(alpha: 0.95),
+                                ),
+                                const SizedBox(height: 16),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: Text(
+                                    title,
+                                    style: theme.textTheme.headlineMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          color: theme.colorScheme.onSurface,
+                                        ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: Text(
+                                    description,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
 

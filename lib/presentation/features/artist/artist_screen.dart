@@ -24,6 +24,7 @@ import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
+import '../../shared/widgets/glass_app_bar_background.dart';
 import 'providers/artist_provider.dart';
 
 class ArtistScreen extends ConsumerWidget {
@@ -531,28 +532,40 @@ class _ArtistSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = Color.lerp(
+      Colors.white,
+      theme.colorScheme.onSurface,
+      scrollProgress,
+    );
+
     final thumbnailUrl =
         artist.thumbnails.isNotEmpty ? artist.thumbnails.last.url : null;
 
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 340,
       pinned: true,
-      // Back button and actions always white — readable on any artwork.
-      iconTheme: const IconThemeData(color: Colors.white),
-      foregroundColor: Colors.white,
+      iconTheme: IconThemeData(color: iconColor),
+      foregroundColor: iconColor,
       title: AnimatedOpacity(
         opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
         duration: const Duration(milliseconds: 150),
         child: Text(
           artist.name,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: iconColor,
           ),
         ),
       ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: _buildHeaderBackground(context, thumbnailUrl),
+      flexibleSpace: Stack(
+        fit: StackFit.expand,
+        children: [
+          GlassAppBarBackground(opacity: scrollProgress),
+          FlexibleSpaceBar(
+            background: _buildHeaderBackground(context, thumbnailUrl),
+          ),
+        ],
       ),
     );
   }

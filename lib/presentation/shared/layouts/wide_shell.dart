@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -112,7 +113,7 @@ class _WideShellState extends ConsumerState<WideShell> {
                             ],
                           ),
                         ),
-                        _NowPlayingPanel(isCollapsed: isCollapsed),
+                        _SidebarPlayerIndicator(isCollapsed: isCollapsed),
                       ],
                     ),
                   ),
@@ -255,10 +256,35 @@ String _getLabel(AppLocalizations l10n, int index) {
   ][index];
 }
 
-class _NowPlayingPanel extends ConsumerWidget {
+class _SidebarPlayerIndicator extends ConsumerStatefulWidget {
   final bool isCollapsed;
 
-  const _NowPlayingPanel({required this.isCollapsed});
+  const _SidebarPlayerIndicator({required this.isCollapsed});
+
+  @override
+  ConsumerState<_SidebarPlayerIndicator> createState() =>
+      _SidebarPlayerIndicatorState();
+}
+
+class _SidebarPlayerIndicatorState
+    extends ConsumerState<_SidebarPlayerIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 15),
+    );
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
 
   void _openFullPlayer(BuildContext context) {
     Navigator.of(context).push(
@@ -287,89 +313,230 @@ class _NowPlayingPanel extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final playerState = ref.watch(playerStateProvider);
     final currentSong = playerState.currentSong;
 
     if (currentSong == null) return const SizedBox.shrink();
 
-    if (isCollapsed) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Tooltip(
-          message: '${currentSong.title} - ${currentSong.artist ?? ''}',
-          child: ScaleButton(
-            onTap: () => _openFullPlayer(context),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+    if (playerState.isPlaying) {
+      if (!_rotationController.isAnimating) {
+        _rotationController.repeat();
+      }
+    } else {
+      if (_rotationController.isAnimating) {
+        _rotationController.stop();
+      }
+    }
+
+    final vinylWidget = ScaleButton(
+      onTap: () => _openFullPlayer(context),
+      child: Tooltip(
+        message:
+            widget.isCollapsed
+                ? '${currentSong.title} - ${currentSong.artist ?? ''}'
+                : 'Apri lettore',
+        child: RotationTransition(
+          turns: _rotationController,
+          child: Container(
+            width: widget.isCollapsed ? 44 : 52,
+            height: widget.isCollapsed ? 44 : 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  ThumbnailWidget(
+                    imageUrl: currentSong.artUri?.toString(),
+                    size: widget.isCollapsed ? 44 : 52,
+                    shape: ThumbnailShape.rounded,
+                  ),
+                  Container(
+                    width: widget.isCollapsed ? 10 : 12,
+                    height: widget.isCollapsed ? 10 : 12,
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 3,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              child: ThumbnailWidget(
-                imageUrl: currentSong.artUri?.toString(),
-                size: 48,
-                shape: ThumbnailShape.rounded,
               ),
             ),
           ),
         ),
+      ),
+    );
+
+    if (widget.isCollapsed) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Center(child: vinylWidget),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: ScaleButton(
-        onTap: () => _openFullPlayer(context),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outlineVariant.withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ThumbnailWidget(
-                imageUrl: currentSong.artUri?.toString(),
-                size:
-                    184, // 240 width - 32 parent padding - 24 container padding = 184px perfect fit!
-                shape: ThumbnailShape.rounded,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                currentSong.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                currentSong.artist ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+            width: 1,
           ),
         ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            vinylWidget,
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => _openFullPlayer(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      currentSong.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentSong.artist ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _MiniWaveform(isPlaying: playerState.isPlaying),
+            const SizedBox(width: 4),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _MiniWaveform extends StatefulWidget {
+  final bool isPlaying;
+
+  const _MiniWaveform({required this.isPlaying});
+
+  @override
+  State<_MiniWaveform> createState() => _MiniWaveformState();
+}
+
+class _MiniWaveformState extends State<_MiniWaveform>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    if (widget.isPlaying) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _MiniWaveform oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPlaying != oldWidget.isPlaying) {
+      if (widget.isPlaying) {
+        _controller.repeat();
+      } else {
+        _controller.stop();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return SizedBox(
+          height: 16,
+          width: 14,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(3, (index) {
+              double factor;
+              if (widget.isPlaying) {
+                final value = _controller.value;
+                final radians = value * 2 * math.pi;
+                if (index == 0) {
+                  factor = 0.3 + 0.7 * (0.5 + 0.5 * math.sin(radians * 2));
+                } else if (index == 1) {
+                  factor =
+                      0.3 + 0.7 * (0.5 + 0.5 * math.sin(radians * 1.5 + 1.0));
+                } else {
+                  factor =
+                      0.3 + 0.7 * (0.5 + 0.5 * math.sin(radians * 2.5 + 2.0));
+                }
+              } else {
+                factor = 0.25;
+              }
+
+              factor = factor.clamp(0.25, 1.0);
+
+              return Container(
+                width: 3,
+                height: 16 * factor,
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 }

@@ -18,6 +18,7 @@ import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_badge.dart';
+import '../../../shared/widgets/glass_app_bar_background.dart';
 import 'create_playlist_dialog.dart';
 import '../providers/library_provider.dart';
 
@@ -644,24 +645,35 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = Color.lerp(
+      Colors.white,
+      theme.colorScheme.onSurface,
+      scrollProgress,
+    );
+
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 340,
       pinned: true,
-      iconTheme: const IconThemeData(color: Colors.white),
-      foregroundColor: Colors.white,
+      iconTheme: IconThemeData(color: iconColor),
+      foregroundColor: iconColor,
       title: AnimatedOpacity(
         opacity: scrollProgress > 0.8 ? (scrollProgress - 0.8) / 0.2 : 0.0,
         duration: const Duration(milliseconds: 150),
         child: Text(
           playlist.name,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: iconColor,
           ),
         ),
       ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: _buildHeaderBackground(context),
+      flexibleSpace: Stack(
+        fit: StackFit.expand,
+        children: [
+          GlassAppBarBackground(opacity: scrollProgress),
+          FlexibleSpaceBar(background: _buildHeaderBackground(context)),
+        ],
       ),
     );
   }

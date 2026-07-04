@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../providers/app_lifecycle_provider.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/sonora_logo.dart';
+import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_section_renderer.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -32,6 +33,7 @@ class HomeMobileLayout extends ConsumerWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        flexibleSpace: const GlassAppBarBackground(),
         title: Row(
           spacing: 8,
           children: [

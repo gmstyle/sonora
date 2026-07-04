@@ -23,6 +23,7 @@ import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/explicit_badge.dart';
+import '../../shared/widgets/glass_app_bar_background.dart';
 import 'providers/album_provider.dart';
 
 class AlbumScreen extends ConsumerWidget {
@@ -168,6 +169,13 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = Color.lerp(
+      Colors.white,
+      theme.colorScheme.onSurface,
+      _scrollProgress,
+    );
+
     final thumbnailUrl =
         widget.album.thumbnails.isNotEmpty
             ? widget.album.thumbnails.last.url
@@ -193,9 +201,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
           SliverAppBar(
             expandedHeight: widget.isTablet || widget.isWide ? 360 : 340,
             pinned: true,
-            // Back button and actions always white — readable on any artwork.
-            iconTheme: const IconThemeData(color: Colors.white),
-            foregroundColor: Colors.white,
+            iconTheme: IconThemeData(color: iconColor),
+            foregroundColor: iconColor,
             title: AnimatedOpacity(
               opacity:
                   _scrollProgress > 0.8 ? (_scrollProgress - 0.8) / 0.2 : 0.0,
@@ -214,18 +221,24 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                     TextSpan(text: widget.album.name),
                   ],
                 ),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: iconColor,
                 ),
               ),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: _buildHeaderBackground(
-                context,
-                thumbnailUrl,
-                totalDuration,
-              ),
+            flexibleSpace: Stack(
+              fit: StackFit.expand,
+              children: [
+                GlassAppBarBackground(opacity: _scrollProgress),
+                FlexibleSpaceBar(
+                  background: _buildHeaderBackground(
+                    context,
+                    thumbnailUrl,
+                    totalDuration,
+                  ),
+                ),
+              ],
             ),
           ),
           SliverPadding(
