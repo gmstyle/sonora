@@ -7,6 +7,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import 'scale_button.dart';
+import 'hover_play_button.dart';
 
 enum SmartMixType { mostPlayed, recentlyPlayed, forgottenFavorites }
 
@@ -152,31 +153,12 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: AnimatedOpacity(
-                      opacity: _isHovered ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: ScaleButton(
-                        onTap: _play,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            LucideIcons.play,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                    child: HoverPlayButton(
+                      isVisible: _isHovered,
+                      onTap: _play,
+                      size: 32.0,
+                      iconSize: 16.0,
+                      iconColor: Colors.white,
                     ),
                   ),
                 ],

@@ -100,6 +100,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                           key: state.pageKey,
                           child: PlaylistScreen(
                             playlistId: state.pathParameters['playlistId']!,
+                            heroTag: state.uri.queryParameters['heroTag'],
                           ),
                           transitionsBuilder: (
                             context,

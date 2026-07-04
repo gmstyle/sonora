@@ -10,14 +10,13 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../providers/home_provider.dart';
 import '../../library/providers/library_provider.dart';
-import '../../library/widgets/playlist_detail_view.dart';
 
 import '../../../providers/player_provider.dart';
 import '../../../providers/palette_provider.dart';
 import '../../../shared/widgets/album_card.dart';
+import '../../../shared/widgets/release_card.dart';
 import '../../../shared/widgets/artist_card.dart';
 import '../../../shared/widgets/playlist_card.dart';
-import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
@@ -648,6 +647,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         artist: item.artist.name,
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        heroTag: 'home_section_playlist_${item.playlistId}',
       );
     }
     return const SizedBox.shrink();
@@ -671,14 +671,32 @@ class HomeYourPlaylists extends ConsumerWidget {
       error: (_, _) => const SizedBox.shrink(),
       data: (playlists) {
         if (playlists.isEmpty) return const SizedBox.shrink();
-        final height = cardWidth + 60;
+        final height = cardWidth + 80;
         return _HomeCarouselSection(
           title: AppLocalizations.of(context)!.yourPlaylists,
           height: height,
           itemCount: playlists.length,
           itemBuilder: (context, index) {
             final item = playlists[index];
-            return _HomePlaylistTile(item: item, cardWidth: cardWidth);
+            if (item is LocalPlaylistModel) {
+              return PlaylistCard(
+                localPlaylistId: item.id,
+                localPlaylist: item,
+                name: item.name,
+                artist: item.description,
+                cardWidth: cardWidth,
+                heroTag: 'home_playlist_${item.id}',
+              );
+            } else if (item is LikedPlaylistModel) {
+              return PlaylistCard(
+                playlistId: item.playlistId,
+                name: item.name,
+                thumbnailUrl: item.thumbnailUrl,
+                cardWidth: cardWidth,
+                heroTag: 'home_playlist_${item.playlistId}',
+              );
+            }
+            return const SizedBox.shrink();
           },
           onShowAll: () {
             ref
@@ -714,113 +732,6 @@ class HomeYourMixes extends ConsumerWidget {
             .update(5); // Mixes tab is index 5
         context.go('/library');
       },
-    );
-  }
-}
-
-class _LocalPlaylistCover extends ConsumerWidget {
-  final int playlistId;
-  final double size;
-
-  const _LocalPlaylistCover({required this.playlistId, required this.size});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entriesAsync = ref.watch(playlistEntriesProvider(playlistId));
-    final likedSongs = ref.watch(likedSongsProvider).asData?.value ?? [];
-
-    final urls = switch (entriesAsync) {
-      AsyncData(:final value) =>
-        value
-            .map((e) {
-              final liked = likedSongs.cast<LikedSongModel?>().firstWhere(
-                (l) => l?.videoId == e.videoId,
-                orElse: () => null,
-              );
-              return liked?.thumbnailUrl ?? e.thumbnailUrl;
-            })
-            .where((u) => u != null && u.isNotEmpty)
-            .cast<String>()
-            .take(3)
-            .toList(),
-      _ => <String>[],
-    };
-
-    return SizedBox(
-      width: size,
-      height: size,
-      child: PlaylistCoverCollage(thumbnailUrls: urls, borderRadius: 8),
-    );
-  }
-}
-
-class _HomePlaylistTile extends ConsumerWidget {
-  final dynamic item;
-  final double cardWidth;
-
-  const _HomePlaylistTile({required this.item, this.cardWidth = 140});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
-
-    String name;
-    String? thumbnailUrl;
-
-    if (item is LocalPlaylistModel) {
-      name = item.name;
-      thumbnailUrl = null;
-    } else if (item is LikedPlaylistModel) {
-      name = item.name;
-      thumbnailUrl = item.thumbnailUrl;
-    } else {
-      return const SizedBox.shrink();
-    }
-
-    return ScaleButton(
-      onTap: () {
-        if (item is LocalPlaylistModel) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (_) => PlaylistDetailView(
-                    playlist: item,
-                    onUpdated: () {
-                      ref.invalidate(playlistsProvider);
-                    },
-                  ),
-            ),
-          );
-        } else if (item is LikedPlaylistModel) {
-          context.push('/playlist/${item.playlistId}');
-        }
-      },
-      child: SizedBox(
-        width: cardWidth,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (item is LocalPlaylistModel)
-              _LocalPlaylistCover(playlistId: item.id, size: cardWidth)
-            else
-              ThumbnailWidget(
-                imageUrl: thumbnailUrl,
-                size: cardWidth,
-                shape: ThumbnailShape.rounded,
-              ),
-            const SizedBox(height: 8),
-            Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -928,104 +839,25 @@ class HomeNewReleases extends StatelessWidget {
           itemCount: albums.length,
           itemBuilder: (context, index) {
             final album = albums[index];
-            return _NewReleaseTile(
+            return ReleaseCard(
               albumId: album.albumId,
               name: album.name,
               artist: album.artist.name,
+              artistId: album.artist.artistId,
               thumbnailUrl:
                   album.thumbnails.isNotEmpty
                       ? album.thumbnails.last.url
                       : null,
               year: album.year,
+              type: ReleaseType.album,
               cardWidth: cardWidth,
+              badgeText: 'NEW',
+              showArtist: true,
+              heroTag: 'new_release_${album.albumId}',
             );
           },
         );
       },
-    );
-  }
-}
-
-class _NewReleaseTile extends StatelessWidget {
-  final String albumId;
-  final String name;
-  final String artist;
-  final String? thumbnailUrl;
-  final int? year;
-  final double cardWidth;
-
-  const _NewReleaseTile({
-    required this.albumId,
-    required this.name,
-    required this.artist,
-    this.thumbnailUrl,
-    this.year,
-    required this.cardWidth,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return ScaleButton(
-      onTap: () => context.push('/album/$albumId'),
-      child: SizedBox(
-        width: cardWidth,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ThumbnailWidget(
-                  imageUrl: thumbnailUrl,
-                  size: cardWidth,
-                  shape: ThumbnailShape.rounded,
-                ),
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'NEW',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              [artist, if (year != null) '$year'].join(' · '),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

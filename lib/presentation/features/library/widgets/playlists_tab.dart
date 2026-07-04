@@ -10,7 +10,6 @@ import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/playlist_card.dart';
-import '../../../shared/widgets/scale_button.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
@@ -125,17 +124,12 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
               gridDelegate: gridDelegate,
               delegate: SliverChildBuilderDelegate((_, i) {
                 final p = playlists[i];
-                return _LocalPlaylistCard(
-                  playlistId: p.id,
+                return PlaylistCard(
+                  localPlaylistId: p.id,
+                  localPlaylist: p,
                   name: p.name,
-                  description: p.description,
-                  onTap: () => _showPlaylistDetail(context, p),
-                  onLongPress:
-                      () => ContextMenuSheet.showForCustomPlaylist(
-                        context,
-                        playlist: p,
-                        onUpdated: () => ref.invalidate(playlistsProvider),
-                      ),
+                  artist: p.description,
+                  heroTag: 'library_local_playlist_${p.id}',
                 );
               }, childCount: playlists.length),
             ),
@@ -190,6 +184,7 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   thumbnailUrl: p.thumbnailUrl,
                   artist:
                       p.videoCount != null ? '${p.videoCount} videos' : null,
+                  heroTag: 'library_liked_playlist_${p.playlistId}',
                 );
               }, childCount: liked.length),
             ),
@@ -327,61 +322,7 @@ class _PlaylistCoverBuilder extends ConsumerWidget {
   }
 }
 
-class _LocalPlaylistCard extends StatelessWidget {
-  final int playlistId;
-  final String name;
-  final String? description;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
-  const _LocalPlaylistCard({
-    required this.playlistId,
-    required this.name,
-    this.description,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleButton(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: SizedBox(
-        width: 150,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Hero(
-              tag: 'local_playlist_art_$playlistId',
-              child: _PlaylistCoverBuilder(playlistId: playlistId, size: 150),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-            ),
-            if (description != null && description!.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                description!,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _LocalPlaylistTile extends StatelessWidget {
   final LocalPlaylistModel playlist;

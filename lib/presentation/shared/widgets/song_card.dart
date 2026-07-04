@@ -11,7 +11,7 @@ import 'thumbnail_widget.dart';
 import 'video_badge.dart';
 import 'explicit_badge.dart';
 
-class SongCard extends ConsumerStatefulWidget {
+class SongCard extends ConsumerWidget {
   final String videoId;
   final String? thumbnailUrl;
   final String title;
@@ -40,184 +40,131 @@ class SongCard extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SongCard> createState() => _SongCardState();
-}
-
-class _SongCardState extends ConsumerState<SongCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final statLabel =
-        widget.playCount != null && widget.playCount!.isNotEmpty
-            ? stripYtLabel(widget.playCount)
+        playCount != null && playCount!.isNotEmpty
+            ? stripYtLabel(playCount)
             : null;
     final downloadedIds = ref.watch(downloadedIdsProvider);
-    final isDownloaded = downloadedIds.contains(widget.videoId);
+    final isDownloaded = downloadedIds.contains(videoId);
 
-    final thumbRatio = widget.cardWidth / 150;
-    final thumbSize = widget.cardWidth;
+    final thumbRatio = cardWidth / 150;
+    final thumbSize = cardWidth;
     final height = (statLabel != null ? 236 : 220) * thumbRatio;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: ScaleButton(
-        onTap:
-            () => ref
-                .read(playerStateProvider.notifier)
-                .playVideoId(
-                  widget.videoId,
-                  isVideo: widget.isVideo,
-                  isExplicit: widget.isExplicit,
+    return ScaleButton(
+      onTap:
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit),
+      onLongPress:
+          () => ContextMenuSheet.showForSong(
+            context,
+            videoId: videoId,
+            title: title,
+            artist: artist,
+            thumbnailUrl: thumbnailUrl,
+            duration: duration,
+            isVideo: isVideo,
+            artistId: artistId,
+            albumId: albumId,
+            isExplicit: isExplicit,
+          ),
+      child: SizedBox(
+        width: cardWidth,
+        height: height,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ThumbnailWidget(
+                  imageUrl: thumbnailUrl,
+                  size: thumbSize,
+                  shape: ThumbnailShape.rounded,
                 ),
-        onLongPress:
-            () => ContextMenuSheet.showForSong(
-              context,
-              videoId: widget.videoId,
-              title: widget.title,
-              artist: widget.artist,
-              thumbnailUrl: widget.thumbnailUrl,
-              duration: widget.duration,
-              isVideo: widget.isVideo,
-              artistId: widget.artistId,
-              albumId: widget.albumId,
-              isExplicit: widget.isExplicit,
-            ),
-        child: SizedBox(
-          width: widget.cardWidth,
-          height: height,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  ThumbnailWidget(
-                    imageUrl: widget.thumbnailUrl,
-                    size: thumbSize,
-                    shape: ThumbnailShape.rounded,
-                  ),
-                  if (widget.duration != null && !_isHovered)
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          Duration(seconds: widget.duration!).format(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (isDownloaded)
-                    Positioned(
-                      bottom: 6,
-                      left: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          LucideIcons.checkCircle,
-                          size: 12,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      ),
-                    ),
-                  if (widget.isVideo)
-                    Positioned(
-                      bottom: 6,
-                      left: isDownloaded ? 28 : 6,
-                      child: const VideoBadge(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        borderRadius: 4,
-                      ),
-                    ),
+                if (duration != null)
                   Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: AnimatedOpacity(
-                      opacity: _isHovered ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: ScaleButton(
-                        onTap:
-                            () => ref
-                                .read(playerStateProvider.notifier)
-                                .playVideoId(
-                                  widget.videoId,
-                                  isVideo: widget.isVideo,
-                                ),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            LucideIcons.play,
-                            size: 20,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        Duration(seconds: duration!).format(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
                         ),
                       ),
                     ),
                   ),
+                if (isDownloaded)
+                  Positioned(
+                    bottom: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        LucideIcons.checkCircle,
+                        size: 12,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                if (isVideo)
+                  Positioned(
+                    bottom: 6,
+                    left: isDownloaded ? 28 : 6,
+                    child: const VideoBadge(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      borderRadius: 4,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text.rich(
+              TextSpan(
+                children: [
+                  if (isExplicit)
+                    const WidgetSpan(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 6.0),
+                        child: ExplicitBadge(),
+                      ),
+                      alignment: PlaceholderAlignment.middle,
+                    ),
+                  TextSpan(text: title),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    if (widget.isExplicit)
-                      const WidgetSpan(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: 6.0),
-                          child: ExplicitBadge(),
-                        ),
-                        alignment: PlaceholderAlignment.middle,
-                      ),
-                    TextSpan(text: widget.title),
-                  ],
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: 2),
-              Text(
-                [widget.artist, if (statLabel != null) statLabel].join(' · '),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              [artist, if (statLabel != null) statLabel].join(' · '),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

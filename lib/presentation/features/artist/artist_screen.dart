@@ -359,6 +359,8 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                                   playlist.thumbnails.isNotEmpty
                                       ? playlist.thumbnails.last.url
                                       : null,
+                              heroTag:
+                                  'artist_featured_playlist_${playlist.playlistId}',
                             );
                           },
                         ),

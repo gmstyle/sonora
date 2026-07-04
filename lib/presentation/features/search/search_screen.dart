@@ -653,6 +653,8 @@ class _SearchResults extends ConsumerWidget {
                                   pl.thumbnails.isNotEmpty
                                       ? pl.thumbnails.last.url
                                       : null,
+                              cardWidth: 120,
+                              heroTag: 'search_playlist_${pl.playlistId}',
                             ),
                           );
                         },

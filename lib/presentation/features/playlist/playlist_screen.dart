@@ -26,19 +26,26 @@ import 'providers/playlist_provider.dart';
 
 class PlaylistScreen extends ConsumerWidget {
   final String playlistId;
+  final String? heroTag;
 
-  const PlaylistScreen({super.key, required this.playlistId});
+  const PlaylistScreen({super.key, required this.playlistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _PlaylistMobileLayout(playlistId: playlistId);
+          return _PlaylistMobileLayout(
+            playlistId: playlistId,
+            heroTag: heroTag,
+          );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _PlaylistTabletLayout(playlistId: playlistId);
+          return _PlaylistTabletLayout(
+            playlistId: playlistId,
+            heroTag: heroTag,
+          );
         } else {
-          return _PlaylistWideLayout(playlistId: playlistId);
+          return _PlaylistWideLayout(playlistId: playlistId, heroTag: heroTag);
         }
       },
     );
@@ -47,8 +54,9 @@ class PlaylistScreen extends ConsumerWidget {
 
 class _PlaylistMobileLayout extends ConsumerWidget {
   final String playlistId;
+  final String? heroTag;
 
-  const _PlaylistMobileLayout({required this.playlistId});
+  const _PlaylistMobileLayout({required this.playlistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -68,16 +76,20 @@ class _PlaylistMobileLayout extends ConsumerWidget {
             ),
           ),
       data:
-          (playlist) =>
-              _PlaylistContent(playlist: playlist, videosAsync: videosAsync),
+          (playlist) => _PlaylistContent(
+            playlist: playlist,
+            videosAsync: videosAsync,
+            heroTag: heroTag,
+          ),
     );
   }
 }
 
 class _PlaylistTabletLayout extends ConsumerWidget {
   final String playlistId;
+  final String? heroTag;
 
-  const _PlaylistTabletLayout({required this.playlistId});
+  const _PlaylistTabletLayout({required this.playlistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -101,6 +113,7 @@ class _PlaylistTabletLayout extends ConsumerWidget {
             playlist: playlist,
             videosAsync: videosAsync,
             isTablet: true,
+            heroTag: heroTag,
           ),
     );
   }
@@ -108,8 +121,9 @@ class _PlaylistTabletLayout extends ConsumerWidget {
 
 class _PlaylistWideLayout extends ConsumerWidget {
   final String playlistId;
+  final String? heroTag;
 
-  const _PlaylistWideLayout({required this.playlistId});
+  const _PlaylistWideLayout({required this.playlistId, this.heroTag});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -133,6 +147,7 @@ class _PlaylistWideLayout extends ConsumerWidget {
             playlist: playlist,
             videosAsync: videosAsync,
             isWide: true,
+            heroTag: heroTag,
           ),
     );
   }
@@ -143,12 +158,14 @@ class _PlaylistContent extends ConsumerStatefulWidget {
   final AsyncValue<List<VideoDetailed>> videosAsync;
   final bool isTablet;
   final bool isWide;
+  final String? heroTag;
 
   const _PlaylistContent({
     required this.playlist,
     required this.videosAsync,
     this.isTablet = false,
     this.isWide = false,
+    this.heroTag,
   });
 
   @override
@@ -199,6 +216,7 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
             isTablet: widget.isTablet,
             isWide: widget.isWide,
             scrollProgress: _scrollProgress,
+            heroTag: widget.heroTag,
           ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
@@ -246,12 +264,14 @@ class _PlaylistSliverAppBar extends StatelessWidget {
   final bool isTablet;
   final bool isWide;
   final double scrollProgress;
+  final String? heroTag;
 
   const _PlaylistSliverAppBar({
     required this.playlist,
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
+    this.heroTag,
   });
 
   @override
@@ -263,6 +283,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
       scrollProgress,
     );
 
+    final tag = heroTag ?? 'playlist_art_${playlist.playlistId}';
     final thumbnailUrl =
         playlist.thumbnails.isNotEmpty ? playlist.thumbnails.last.url : null;
 
@@ -299,14 +320,18 @@ class _PlaylistSliverAppBar extends StatelessWidget {
         children: [
           GlassAppBarBackground(opacity: scrollProgress),
           FlexibleSpaceBar(
-            background: _buildHeaderBackground(context, thumbnailUrl),
+            background: _buildHeaderBackground(context, thumbnailUrl, tag),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
+  Widget _buildHeaderBackground(
+    BuildContext context,
+    String? thumbnailUrl,
+    String tag,
+  ) {
     final isTabletOrWide = isTablet || isWide;
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
@@ -361,7 +386,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                 children: [
                   if (thumbnailUrl != null)
                     Hero(
-                      tag: 'playlist_art_${playlist.playlistId}',
+                      tag: tag,
                       child: Container(
                         width: 140,
                         height: 140,
@@ -495,7 +520,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
               children: [
                 if (thumbnailUrl != null)
                   Hero(
-                    tag: 'playlist_art_${playlist.playlistId}',
+                    tag: tag,
                     child: Container(
                       width: isWide ? 190 : 150,
                       height: isWide ? 190 : 150,

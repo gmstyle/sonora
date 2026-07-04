@@ -148,6 +148,8 @@ class BrowseSectionScreen extends ConsumerWidget {
         artist: item.artist.name,
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        cardWidth: cardWidth,
+        heroTag: 'browse_section_playlist_${item.playlistId}',
       );
     }
     return const SizedBox.shrink();

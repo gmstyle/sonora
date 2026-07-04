@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'thumbnail_widget.dart';
+import 'hover_play_button.dart';
 
 class AlbumCard extends ConsumerStatefulWidget {
   final String albumId;
@@ -91,32 +91,7 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: AnimatedOpacity(
-                      opacity: _isHovered ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: ScaleButton(
-                        onTap: _play,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            LucideIcons.play,
-                            size: 20,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
                   ),
                 ],
               ),
