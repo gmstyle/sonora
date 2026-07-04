@@ -7,10 +7,8 @@ import '../../../core/utils/url_staleness.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:collection/collection.dart';
-import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'dart:io';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,11 +24,13 @@ import '../../../domain/usecases/player/start_radio_use_case.dart';
 import '../../../domain/usecases/home/get_discover_suggestions_use_case.dart';
 import '../../../domain/usecases/home/get_new_releases_use_case.dart';
 import '../../../domain/usecases/home/get_similar_artists_suggestions_use_case.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'package:dart_cast/dart_cast.dart';
 import '../../providers/cast_provider.dart';
 import '../../../data/services/cast_service.dart';
+
+import 'audio_cast_handler.dart';
+import 'audio_android_auto_browser_handler.dart';
 
 /// Represents the lifecycle of the player restore operation.
 ///
@@ -53,7 +53,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final Player _player = Player(
     configuration: const PlayerConfiguration(pitch: true),
   );
-  final MusicRepository _musicRepo;
   final LibraryRepository _libraryRepo;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final SharedPreferences _prefs;
@@ -67,9 +66,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   _getSimilarArtistsSuggestionsUseCase;
   late final StartRadioUseCase _startRadioUseCase;
 
-  CastState? _castState;
-  SonoraCastService? _castService;
-  bool _pausedForConnection = false;
+  late final AudioCastHandler _castHandler;
+  late final AudioAndroidAutoBrowserHandler _browserHandler;
 
   Player get player => _player;
 
@@ -125,56 +123,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Stream<(String videoId, String title)> get onPlayError =>
       _onPlayErrorController.stream;
 
-  // ── Android Auto extras ──────────────────────────────────────────────────────
-  static const String _kContentStyleBrowsable =
-      'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT';
-  static const String _kContentStylePlayable =
-      'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT';
-  static const int _kStyleList = 1;
-  static const int _kStyleGrid = 2;
-
   static const String _actionShuffle = 'shuffle';
   static const String _actionRepeat = 'repeat';
   static const String _actionLike = 'like';
   static const String _actionStartRadio = 'start_radio';
 
-  // ── AA browse-tree action IDs ──────────────────────────────────────────────
-  static const String _actionPlayAlbum = '__action__:play_album:';
-  static const String _actionShuffleAlbum = '__action__:shuffle_album:';
-  static const String _actionLikeAlbum = '__action__:like_album:';
-  static const String _actionPlayArtist = '__action__:play_artist:';
-  static const String _actionShuffleArtist = '__action__:shuffle_artist:';
-  static const String _actionFollowArtist = '__action__:follow_artist:';
-  static const String _actionPlayPlaylist = '__action__:play_playlist:';
-  static const String _actionShufflePlaylist = '__action__:shuffle_playlist:';
-  static const String _actionLikePlaylist = '__action__:like_playlist:';
+  // Expose internals for delegate handlers
+  double get lastSetVolume => _lastSetVolume;
+  bool get userWantsPlaying => _userWantsPlaying;
+  PlayVideoIdUseCase get playVideoIdUseCase => _playVideoIdUseCase;
 
-  // ── AA content tree IDs ──────────────────────────────────────────────────────
-  static const String _rootId = '/';
-  static const String _homeId = '__home__';
-  static const String _libraryId = '__library__';
-  static const String _exploreId = '__explore__';
-  static const String _recentId = '__recent__';
-  static const String _likedId = '__liked__';
-  static const String _playlistsId = '__playlists__';
-  static const String _artistsId = '__artists__';
-  static const String _albumsId = '__albums__';
-  static const String _historyId = '__history__';
-  static const String _homeSectionPrefix = '__home_section__:';
-  static const String _playlistPrefix = '__playlist__:';
-  static const String _artistPrefix = '__artist__:';
-  static const String _homeAlbumPrefix = '__home_album__:';
-  static const String _homePlaylistPrefix = '__home_playlist__:';
-  static const String _mixesId = '__mixes__';
-  static const String _newReleasesId = '__new_releases__';
-  static const String _discoverId = '__discover__';
-  static const String _similarArtistsId = '__similar_artists__';
-  static const String _downloadsId = '__downloads__';
-  static const String _mixPrefix = '__mix__:';
-  static const String _actionPlayMix = '__action__:play_mix:';
-  static const String _actionShuffleMix = '__action__:shuffle_mix:';
-  static const String _actionPlayDownloads = '__action__:play_downloads:';
-  static const String _actionShuffleDownloads = '__action__:shuffle_downloads:';
+  void setLocalVolume(double volume, {bool force = false}) =>
+      _setLocalVolume(volume, force: force);
 
   SonoraAudioHandler({
     required MusicRepository musicRepo,
@@ -182,8 +142,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required PlayVideoIdUseCase playVideoIdUseCase,
     required SharedPreferences prefs,
     required QueueRepository queueRepo,
-  }) : _musicRepo = musicRepo,
-       _libraryRepo = libraryRepo,
+  }) : _libraryRepo = libraryRepo,
        _playVideoIdUseCase = playVideoIdUseCase,
        _prefs = prefs,
        _queueRepo = queueRepo {
@@ -200,6 +159,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
       libraryRepo,
     );
     _startRadioUseCase = StartRadioUseCase(musicRepo);
+
+    _castHandler = AudioCastHandler(this);
+    _browserHandler = AudioAndroidAutoBrowserHandler(
+      audioHandler: this,
+      musicRepo: musicRepo,
+      libraryRepo: libraryRepo,
+      playVideoIdUseCase: playVideoIdUseCase,
+      playAlbumUseCase: _playAlbumUseCase,
+      playPlaylistUseCase: _playPlaylistUseCase,
+      playSmartMixUseCase: _playSmartMixUseCase,
+      getNewReleasesUseCase: _getNewReleasesUseCase,
+      getDiscoverSuggestionsUseCase: _getDiscoverSuggestionsUseCase,
+      getSimilarArtistsSuggestionsUseCase: _getSimilarArtistsSuggestionsUseCase,
+    );
+
     _setupAudioSession();
     _setupListeners();
     _playerErrorSub = _player.stream.error.listen(_onPlayerError);
@@ -211,83 +185,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     CastState state,
     SonoraCastService service,
   ) async {
-    _castService = service;
-
-    if (state.connectionState == CastConnectionState.connecting) {
-      if (_player.state.playing) {
-        _pausedForConnection = true;
-        await _player.pause();
-      }
-    } else if (state.connectionState == CastConnectionState.connected) {
-      if (_castState?.connectionState != CastConnectionState.connected) {
-        _setLocalVolume(0.0);
-        await _castCurrentSong(state, service);
-        _pausedForConnection = false;
-      }
-    } else if (state.connectionState == CastConnectionState.disconnected ||
-        state.connectionState == CastConnectionState.error) {
-      if (_castState?.connectionState == CastConnectionState.connected) {
-        _setLocalVolume(_lastSetVolume * 100.0, force: true);
-      }
-      if (_pausedForConnection) {
-        await _player.play();
-        _pausedForConnection = false;
-      }
-    }
-
-    _castState = state;
-  }
-
-  Future<void> _castCurrentSong(
-    CastState state,
-    SonoraCastService service,
-  ) async {
-    final item = mediaItem.value;
-    if (item == null) return;
-    final currentPos = _player.state.position;
-    await _castSong(item, state, service, startPosition: currentPos);
-  }
-
-  Future<void> _castSong(
-    MediaItem item,
-    CastState state,
-    SonoraCastService service, {
-    Duration? startPosition,
-  }) async {
-    final wasPlaying =
-        _player.state.playing || _pausedForConnection || _userWantsPlaying;
-    if (wasPlaying) {
-      _pausedForConnection = true;
-      await _player.pause();
-    }
-    _setLocalVolume(0.0);
-
-    String? url = item.extras?['url'] as String?;
-    if (url == null || url.isEmpty || item.extras?['needsUrl'] == true) {
-      try {
-        url = await _playVideoIdUseCase.resolveUrl(item.id);
-      } catch (_) {
-        _pausedForConnection = false;
-        return;
-      }
-    }
-
-    await service.castMedia(
-      url: url,
-      title: item.title,
-      artist: item.artist,
-      album: item.album,
-      artworkUrl: item.artUri?.toString(),
-      startPosition: startPosition,
-    );
-
-    if (wasPlaying) {
-      await _waitForCastSessionState(service, SessionState.playing);
-      _pausedForConnection = false;
-      await _player.play();
-    } else {
-      await service.pause();
-    }
+    await _castHandler.updateCastState(state, service);
   }
 
   Future<void> _setupAudioSession() async {
@@ -417,7 +315,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _userWantsPlaying = true;
       } else if (_restoreStatus != RestoreStatus.restoring &&
           !_isTransitionMuted &&
-          !_pausedForConnection) {
+          !_castHandler.pausedForConnection) {
         _userWantsPlaying = false;
       }
       _updatePlaybackState();
@@ -425,19 +323,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _player.stream.buffering.listen((_) => _updatePlaybackState());
     _player.stream.completed.listen((_) => _updatePlaybackState());
 
-    // Single playlist listener: guards _updatePlaybackState with _isResolvingItem
-    // to prevent the notification/MPRIS from seeing intermediate idle→buffering→ready
-    // states during the atomic remove/add/move/jump sequence used by URL resolution.
-    // Previously two separate listeners existed; merging them guarantees ordering.
     _player.stream.playlist.listen((playlist) {
       if (!_isResolvingItem) _updatePlaybackState();
       _onPlaylistChanged(playlist);
     });
 
-    // Update position ~1 Hz for Android Auto seek bar while avoiding
-    // excessive queue view re-renders caused by 5 Hz emissions.
-    // Android Auto interpolates position from updatePosition+updateTime,
-    // but it needs a fresh updateTime periodically to stay in sync.
     _player.stream.position.listen((pos) {
       _handleCrossfade(pos);
       _handlePositionTick(pos);
@@ -481,9 +371,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _updatePlaybackState() {
-    // Suppress ALL intermediate state emissions during restore.
-    // The notification and MPRIS stay on the last stable state until restore
-    // completes, at which point a single clean emission is sent.
     if (_restoreStatus == RestoreStatus.restoring) return;
 
     final processing = _getProcessingState();
@@ -493,10 +380,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _retryCount = 0;
     }
 
-    // Skip redundant playbackState emissions to avoid Android Auto
-    // continuously re-rendering the queue view. media_kit fires
-    // player state streams frequently. We only need to notify AA when the
-    // logical state visible to the user has actually changed.
     final stateUnchanged =
         processing == _lastEmittedProcessingState &&
         playing == _lastEmittedPlaying;
@@ -607,9 +490,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _onBufferedPositionChanged(Duration position) {
-    // Throttle: update AA only when the buffered position has advanced by at
-    // least 2 seconds to avoid continuous PlaybackState emissions that cause
-    // the Android Auto queue view to flash and reset its scroll position.
     final prev = playbackState.value.bufferedPosition;
     if ((position - prev).abs() >= const Duration(seconds: 2)) {
       _updateState((s) => s.copyWith(bufferedPosition: position));
@@ -621,12 +501,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     final index = playlist.index;
 
-    // Do NOT emit queueIndex or persist index during internal atomic operations
-    // (remove/add/move sequences in _resolveSinglePendingItem). Those operations
-    // cause playlist events with transient intermediate indices that would
-    // corrupt state.currentIndex in PlayerNotifier, causing skip to go to the
-    // wrong item. The correct queueIndex is emitted explicitly after the
-    // sequence completes.
     if (!_isResolvingItem) {
       _targetSkipIndex = null;
       _updateState((s) => s.copyWith(queueIndex: index));
@@ -638,20 +512,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
       var item = media.extras?['mediaItem'] as MediaItem?;
       if (item != null) {
         final playerDuration = _player.state.duration;
-        // Se il MediaItem dinamico o late-binded non ha durata impostata,
-        // recuperiamo la durata effettiva dal player per non bloccare la progress bar.
         if ((item.duration == null || item.duration == Duration.zero) &&
             playerDuration != Duration.zero) {
           item = item.copyWith(duration: playerDuration);
         }
 
-        // Emit mediaItem only when something meaningful changes:
-        // - the track ID changed (new song), or
-        // - the duration was previously unknown and is now available.
-        // media_kit fires streams for many internal reasons (buffer updates,
-        // URL resolution, shuffle state) even when the current track hasn't changed.
-        // Every mediaItem.add triggers an Android Auto UI refresh that resets
-        // the queue scroll position.
         final trackChanged = item.id != _lastEmittedMediaItemId;
         final durationResolved =
             !trackChanged &&
@@ -663,14 +528,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
           _lastEmittedDuration = item.duration;
           mediaItem.add(item);
           if (trackChanged) {
-            // Reset retry counter on every track change so the new track gets
-            // its own retry budget. Without this, a failed retry on track N
-            // leaves _retryCount at 1, silently disabling retries for track N+1.
             _retryCount = 0;
             _checkCurrentSongLiked(item.id);
-            if (_castState?.connectionState == CastConnectionState.connected) {
+            if (_castHandler.castState?.connectionState ==
+                CastConnectionState.connected) {
               if (item.extras?['needsUrl'] != true) {
-                _castSong(item, _castState!, _castService!);
+                _castHandler.castSong(
+                  item,
+                  _castHandler.castState!,
+                  _castHandler.castService!,
+                );
               }
             }
           }
@@ -693,9 +560,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
           queue.value
               .map((e) => e.extras?['queueId'] as String? ?? e.id)
               .toList();
-      // Emit queue only when the list of IDs changes (i.e. songs are added/removed/reordered).
-      // Skipping re-emission when only internal metadata (e.g. resolved URL) changed prevents
-      // Android Auto from resetting the queue scroll position on every URL resolution.
       final queueStructureChanged =
           newIds.length != currentIds.length ||
           !const ListEquality().equals(newIds, currentIds);
@@ -705,8 +569,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
     }
 
-    // Crossfade fade-in is only triggered on actual track transitions,
-    // not during internal URL resolve operations (which suppress _isResolvingItem).
     if (!_isResolvingItem &&
         _crossfadeDuration > Duration.zero &&
         _player.state.playing) {
@@ -715,13 +577,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
-  /// Pre-resolves stream URLs for pending items ([needsUrl]) before they
-  /// become current: resolves the item at [currentIndex] if needed (user
-  /// skipped to a pending track), and proactively resolves the next item
-  /// so playback can transition seamlessly.
-  ///
-  /// Look-ahead is intentionally limited to 1 item (instead of 2) to reduce
-  /// the number of concurrent YouTube requests and avoid rate limiting.
   Future<void> _resolvePendingItems(int currentIndex) async {
     await _resolveSinglePendingItem(currentIndex);
     await _resolveSinglePendingItem(currentIndex + 1);
@@ -740,10 +595,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     });
   }
 
-  /// Resolves the stream URL for a single item in the playlist.
-  ///
-  /// [forceResolve] bypasses the `needsUrl` guard, allowing re-resolution of
-  /// items whose URL was previously set but has since expired (warm resume).
   Future<void> _resolveSinglePendingItem(
     int index, {
     bool forceResolve = false,
@@ -753,32 +604,22 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (index >= playlist.medias.length) return;
     final media = playlist.medias[index];
     final item = media.extras?['mediaItem'] as MediaItem?;
-    // Skip if not pending — unless forceResolve (warm resume with stale URL).
     if (item == null) return;
     if (!forceResolve && item.extras?['needsUrl'] != true) return;
 
     final videoId = item.extras?['videoId'] as String?;
     if (videoId == null) return;
 
-    // Guard against concurrent resolution of the same videoId.
-    // _isResolvingItem is set HERE — before the network await — so that
-    // _onPlaylistChanged suppresses intermediate queueIndex emissions for
-    // the entire duration of the atomic remove/add/move/jump sequence.
-    // Previously this flag was set inside the inner try, after remove() had
-    // already fired _onPlaylistChanged with a transient wrong index.
     if (!_pendingResolutions.add(videoId)) return;
     _resolvingItemCount++;
     try {
       final url = await _playVideoIdUseCase.resolveUrl(videoId);
 
-      // Re-validate: index may have shifted or the queue may have changed
-      // entirely (e.g. user started a new song while we were awaiting).
       final playlist2 = _player.state.playlist;
       if (index >= playlist2.medias.length) return;
       final currentMedia = playlist2.medias[index];
       final currentItem = currentMedia.extras?['mediaItem'] as MediaItem?;
       if (currentItem?.extras?['videoId'] != videoId) return;
-      // Only skip the pending check when forceResolve was requested.
       if (!forceResolve && currentItem?.extras?['needsUrl'] != true) return;
 
       final updatedItem = (currentItem ?? item).copyWith(
@@ -789,21 +630,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
         extras: {...?currentMedia.extras, 'mediaItem': updatedItem},
       );
 
-      if (_castState?.connectionState == CastConnectionState.connected) {
+      if (_castHandler.castState?.connectionState ==
+          CastConnectionState.connected) {
         if (index == _player.state.playlist.index) {
           final wasPlaying = _player.state.playing || _userWantsPlaying;
           if (wasPlaying) {
-            _pausedForConnection = true;
+            _castHandler.pausedForConnection = true;
             await _player.pause();
           }
           _setLocalVolume(0.0);
 
-          await _player.remove(index);
-          await _player.add(updatedMedia);
-          await _player.move(_player.state.playlist.medias.length - 1, index);
-          await _player.jump(index);
-
-          await _castService?.castMedia(
+          await _castHandler.castService?.castMedia(
             url: url,
             title: updatedItem.title,
             artist: updatedItem.artist,
@@ -812,11 +649,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
           );
 
           if (wasPlaying) {
-            await _waitForCastSessionState(_castService!, SessionState.playing);
-            _pausedForConnection = false;
+            await _castHandler.waitForCastSessionState(
+              _castHandler.castService!,
+              SessionState.playing,
+            );
+            _castHandler.pausedForConnection = false;
             await _player.play();
           } else {
-            await _castService?.pause();
+            await _castHandler.castService?.pause();
           }
         } else {
           await _player.remove(index);
@@ -825,7 +665,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
       } else {
         if (index == _player.state.playlist.index) {
-          // Current item: pause → replace → restore position → resume.
           final wasPlaying = _player.state.playing;
           final currentPos = _player.state.position;
           if (wasPlaying) await _player.pause();
@@ -836,7 +675,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
           if (currentPos > Duration.zero) await _player.seek(currentPos);
           if (wasPlaying) await _player.play();
         } else {
-          // Non-current item: simple in-place replacement, no jump needed.
           await _player.remove(index);
           await _player.add(updatedMedia);
           await _player.move(_player.state.playlist.medias.length - 1, index);
@@ -849,16 +687,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _pendingResolutions.remove(videoId);
       _syncQueue();
       if (!_isResolvingItem) {
-        // All concurrent resolutions are done: re-emit the correct processing
-        // state so the notification and MPRIS are not left in a stale idle/
-        // buffering state from intermediate playlist mutations.
         _lastEmittedProcessingState = null;
         _lastEmittedPlaying = null;
         _updatePlaybackState();
       }
-      // Always re-emit the actual current queueIndex and mediaItem after releasing the lock.
-      // If the user skipped during resolution, _onPlaylistChanged was suppressed
-      // and the new index was never propagated to PlayerNotifier.
       final actualIndex = _player.state.playlist.index;
       if (actualIndex >= 0) {
         _updateState((s) => s.copyWith(queueIndex: actualIndex));
@@ -881,13 +713,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _userWantsPlaying = true;
     _isStopping = false;
     _playOnInterruptionEnd = false;
-    // Block until any in-progress restore completes.  This prevents a
-    // notification/MPRIS play command from racing with the playlist rebuild.
     await _readyCompleter.future.catchError((_) {});
     if (await _requestAudioFocus()) {
       await _player.play();
-      if (_castState?.connectionState == CastConnectionState.connected) {
-        await _castService?.play();
+      if (_castHandler.castState?.connectionState ==
+          CastConnectionState.connected) {
+        await _castHandler.castService?.play();
       }
     }
   }
@@ -900,16 +731,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> _pause() async {
     _userWantsPlaying = false;
-    // NOTE: do NOT release audio focus on pause.
-    // Calling session.setActive(false) abandons the Android AudioFocus and on
-    // some devices/OEMs causes subsequent AudioFocus requests (from play()) to
-    // be denied, which makes notification/MPRIS controls silently do nothing.
-    // Audio focus is released only on explicit stop() / onTaskRemoved().
-    // This matches the behaviour of every major music player (Spotify, YouTube
-    // Music, Musily, etc.) which never release focus on pause.
     await _player.pause();
-    if (_castState?.connectionState == CastConnectionState.connected) {
-      await _castService?.pause();
+    if (_castHandler.castState?.connectionState ==
+        CastConnectionState.connected) {
+      await _castHandler.castService?.pause();
     }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
@@ -922,9 +747,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> stop() async {
     _userWantsPlaying = false;
-    if (_castState?.connectionState == CastConnectionState.connected) {
+    if (_castHandler.castState?.connectionState ==
+        CastConnectionState.connected) {
       try {
-        await _castService?.disconnect();
+        await _castHandler.castService?.disconnect();
       } catch (_) {}
     }
     _playOnInterruptionEnd = false;
@@ -946,8 +772,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> seek(Duration position) async {
     await _player.seek(position);
     _updateState((s) => s, forcePosition: position);
-    if (_castState?.connectionState == CastConnectionState.connected) {
-      await _castService?.seek(position);
+    if (_castHandler.castState?.connectionState ==
+        CastConnectionState.connected) {
+      await _castHandler.castService?.seek(position);
     }
   }
 
@@ -1054,9 +881,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final needsUrl = item?.extras?['needsUrl'] == true;
 
       if (needsUrl) {
-        // Resolve the pending item in-place before jumping. Jumping directly to
-        // a dummy placeholder URL can make media_kit fall back to the previous
-        // track, which matches the reported "tapped X but played X-1" symptom.
         await _resolveSinglePendingItem(index);
       }
 
@@ -1088,7 +912,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void _setLocalVolume(double volume, {bool force = false}) {
     if (!force &&
-        _castState?.connectionState == CastConnectionState.connected) {
+        _castHandler.castState?.connectionState ==
+            CastConnectionState.connected) {
       _player.setVolume(0.0);
     } else {
       _player.setVolume(volume);
@@ -1102,29 +927,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (!_isTransitionMuted) {
         _setLocalVolume(v * 100.0);
       }
-    }
-  }
-
-  Future<void> _waitForCastSessionState(
-    SonoraCastService service,
-    SessionState targetState, {
-    Duration timeout = const Duration(seconds: 15),
-  }) async {
-    if (service.activeSession?.state == targetState) return;
-    final completer = Completer<void>();
-    StreamSubscription? sub;
-    sub = service.stateStream.listen((state) {
-      if (state == targetState) {
-        if (!completer.isCompleted) completer.complete();
-        sub?.cancel();
-      }
-    });
-    try {
-      await completer.future.timeout(timeout);
-    } catch (_) {
-      // Timeout fallback
-    } finally {
-      await sub.cancel();
     }
   }
 
@@ -1223,7 +1025,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (url != null && url.isNotEmpty) {
       return Media(url, extras: {'mediaItem': updatedItem});
     }
-    // Unique dummy URI to avoid cache collision
     final dummy = 'http://localhost/dummy_$videoId.wav';
     return Media(dummy, extras: {'mediaItem': updatedItem});
   }
@@ -1259,9 +1060,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       queue.add(itemsWithKeys);
       await _queueRepo.persistQueue(itemsWithKeys);
 
-      // Resolve the initial item up-front so that the previous song stops
-      // immediately and the user sees a loading state while the target URL is
-      // fetched, instead of hearing the old track until the new one is ready.
       if (initialIndex >= 0 && initialIndex < itemsWithKeys.length) {
         final initialItem = itemsWithKeys[initialIndex];
         if (initialItem.extras?['needsUrl'] == true) {
@@ -1279,7 +1077,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
             dev.log(
               '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
             );
-            // Leave as pending; _onPlayerError will recover on playback failure.
           }
         }
       }
@@ -1288,10 +1085,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         itemsWithKeys.map(_toMedia).toList(),
         index: initialIndex,
       );
-      // Always open the player regardless of focus result: this guarantees the
-      // player transitions through idle → buffering → ready, which resets
-      // isSwitching in PlayerNotifier via the playbackState stream.
-      // If focus is denied we open without auto-play; the user can retry manually.
       final hasFocus = await _requestAudioFocus();
       _userWantsPlaying = hasFocus;
       await _player.open(playlist, play: hasFocus);
@@ -1351,10 +1144,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (oldIndex < 0 || oldIndex >= len) return;
     if (newIndex < 0 || newIndex >= len) return;
 
-    // newIndex from onReorderItem is the final target index (already adjusted by Flutter).
-    // media_kit's _player.move(from, to) expects 'to' to be the unadjusted index.
     final toIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
-
     await _player.move(oldIndex, toIndex);
   }
 
@@ -1415,12 +1205,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _resolvingItemCount--;
         _syncQueue();
         if (!_isResolvingItem) {
-          // Re-emit correct processing state now that the atomic sequence is done.
           _lastEmittedProcessingState = null;
           _lastEmittedPlaying = null;
           _updatePlaybackState();
         }
-        // Re-emit actual queueIndex in case a skip occurred during retry.
         final actualIndex = _player.state.playlist.index;
         if (actualIndex >= 0) {
           _updateState((s) => s.copyWith(queueIndex: actualIndex));
@@ -1435,43 +1223,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await _player.stop();
       }
     } finally {
-      // Always reset _isRetrying so future errors on any track are retried.
-      // Previously this was after the try/catch, meaning a throw inside the
-      // catch block (e.g. _player.next() failing) would leave it stuck at true.
       _isRetrying = false;
     }
   }
 
-  // ── Single restore path ────────────────────────────────────────────────────
-  //
-  // Replaces the old warm/cold split.  The only criterion is:
-  //   "Does the player already have a valid, playable current item?"
-  //
-  //   YES → nothing to do, mark ready immediately.
-  //   NO  → full restore from DB with RestoreStatus.restoring for its entire
-  //          duration, so the UI can show a loading indicator and block controls.
-  //
-  // Called:
-  //   • once from the constructor (startup)
-  //   • from restoreIfNeeded() on AppLifecycleState.resumed
-  //
-  // If a restore is already running, the second call returns immediately and
-  // play() blocks on _readyCompleter until the first restore finishes.
-
   Future<void> _ensureReady() async {
-    // Already restoring — don't start a second parallel restore.
     if (_restoreStatus == RestoreStatus.restoring) return;
 
-    // ── Fast path: player is alive and playing ────────────────────────────────
-    // Never interrupt a live player.  The URL might be logically "stale" (the
-    // expire timestamp has passed) but it is clearly working, so leave it alone.
-    // URL refresh on error is handled reactively by _onPlayerError.
     if (_player.state.playing) {
       _setRestoreStatus(RestoreStatus.ready);
       return;
     }
 
-    // ── Fast path: playlist intact with a usable current URL ─────────────────
     final playlist = _player.state.playlist;
     if (playlist.medias.isNotEmpty) {
       final idx = playlist.index;
@@ -1486,7 +1249,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
     }
 
-    // ── Full restore from DB ──────────────────────────────────────────────────
     _setRestoreStatus(RestoreStatus.restoring);
     try {
       await _doRestore();
@@ -1494,10 +1256,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       dev.log('[AudioHandler] Error in _ensureReady/_doRestore: $e\n$stack');
     } finally {
       _setRestoreStatus(RestoreStatus.ready);
-      // Force-emit a clean playbackState now that the suppress is lifted.
-      // All player events that fired during _doRestore were suppressed; without
-      // this explicit call the notification would keep stale/empty controls
-      // until the next organic player event (e.g. user taps play).
       _lastEmittedProcessingState = null;
       _lastEmittedPlaying = null;
       _updatePlaybackState();
@@ -1511,9 +1269,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final rawItems = await _queueRepo.restoreQueue();
     if (rawItems.isEmpty) return;
 
-    // Discard all stale HTTP stream URLs.  YouTube URLs expire in ~6 hours.
-    // Mark them needsUrl so _resolvePendingItems resolves them lazily when
-    // the user plays/skips.  Local file:// URIs are kept only if still on disk.
     final seenIds = <String>{};
     final items =
         rawItems.map((item) {
@@ -1531,13 +1286,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
           );
         }).toList();
 
-    // Emit queue metadata immediately — artwork and title are already available.
     queue.add(items);
 
     int savedIndex = _prefs.getInt('last_playing_index') ?? 0;
     if (savedIndex < 0 || savedIndex >= items.length) savedIndex = 0;
 
-    // Resolve only the current item's URL up-front.  Everything else is lazy.
     var currentItem = items[savedIndex];
     try {
       final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
@@ -1546,8 +1299,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       );
       items[savedIndex] = currentItem;
     } catch (e) {
-      // Resolution failed.  The item keeps needsUrl:true.
-      // _onPlayerError will retry when the user presses play.
       dev.log(
         '[AudioHandler] _doRestore: failed URL resolve for index $savedIndex: $e',
       );
@@ -1556,7 +1307,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final savedPosMs = _prefs.getInt('last_playing_position_ms') ?? 0;
     _savedPosition = Duration(milliseconds: savedPosMs);
 
-    // Restore shuffle / repeat mode persisted from the last session.
     final savedShuffleName = _prefs.getString('last_shuffle_mode');
     if (savedShuffleName != null) {
       final shuffleMode = AudioServiceShuffleMode.values.firstWhere(
@@ -1583,7 +1333,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _updateState((s) => s.copyWith(repeatMode: repeatMode));
     }
 
-    // Open the rebuilt playlist in the player, paused.
     _isStopping = false;
     final restoredPlaylist = Playlist(
       items.map(_toMedia).toList(),
@@ -1592,35 +1341,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _userWantsPlaying = false;
     await _player.open(restoredPlaylist, play: false);
 
-    // Seek to the saved position.
-    // Use the first duration event as the trigger instead of a fixed poll loop:
-    // the seek is applied as soon as the media is loaded, deterministically.
-    // RestoreStatus stays restoring throughout so the UI shows the saved
-    // position (from _savedPosition) rather than the live player position (0).
     if (savedPosMs > 0) {
       try {
         await _player.stream.duration
             .where((d) => d > Duration.zero)
             .first
             .timeout(const Duration(seconds: 8));
-      } catch (_) {
-        // Timeout: seek anyway; it may be silently ignored if media isn't ready,
-        // but _onPlayerError will recover when the user presses play.
-      }
+      } catch (_) {}
       await _player.seek(_savedPosition);
     }
-    // _onPlaylistChanged fires after _player.open and calls _resolvePendingItems
-    // to eagerly resolve indices +1 and +2 in the background.
   }
 
   Future<void> persistQueue(List<MediaItem> items) async {
     await _queueRepo.persistQueue(items);
   }
 
-  /// Called by [PlayerNotifier] on [AppLifecycleState.resumed].
-  ///
-  /// Delegates entirely to [_ensureReady]: if the player is already in a sane
-  /// state nothing happens; otherwise a full restore is performed.
   Future<void> restoreIfNeeded() => _ensureReady();
 
   void _syncQueue() {
@@ -1666,1225 +1401,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<List<MediaItem>> getChildren(
     String parentMediaId, [
     Map<String, dynamic>? options,
-  ]) async {
-    dev.log('[AA] getChildren: "$parentMediaId"');
-    // audio_service returns BrowserRoot("/") to AA, so the root parentMediaId is "/"
-    final isRoot =
-        parentMediaId == _rootId ||
-        parentMediaId == 'root' ||
-        parentMediaId == 'root_id' ||
-        parentMediaId.isEmpty;
-    try {
-      if (isRoot) return _buildRootChildren();
-
-      switch (parentMediaId) {
-        // Top-level tabs
-        case _homeId:
-          return _buildHomeChildren();
-        case _mixesId:
-          return _buildMixesChildren();
-        case _libraryId:
-          return _buildLibraryChildren();
-        case _exploreId:
-          return _buildExploreChildren();
-
-        // Library sub-nodes
-        case _recentId:
-          return _buildRecentChildren();
-        case _likedId:
-          return _buildLikedChildren();
-        case _playlistsId:
-          return _buildPlaylistFolders();
-        case _artistsId:
-          return _buildArtistFolders();
-        case _albumsId:
-          return _buildLikedAlbumFolders();
-        case _historyId:
-          return _buildRecentChildren();
-        case _downloadsId:
-          return _buildDownloadChildren();
-        case _newReleasesId:
-          return _buildNewReleasesChildren();
-        case _discoverId:
-          return _buildDiscoverChildren();
-        case _similarArtistsId:
-          return _buildSimilarArtistsChildren();
-
-        // Dynamic prefixes
-        default:
-          if (parentMediaId.startsWith(_mixPrefix)) {
-            return _buildMixSongChildren(parentMediaId);
-          }
-          if (parentMediaId.startsWith(_homeSectionPrefix)) {
-            return _buildHomeSectionChildren(parentMediaId);
-          }
-          if (parentMediaId.startsWith(_playlistPrefix)) {
-            return _buildPlaylistEntryChildren(parentMediaId);
-          }
-          if (parentMediaId.startsWith(_artistPrefix)) {
-            return _buildArtistChildren(parentMediaId);
-          }
-          if (parentMediaId.startsWith(_homeAlbumPrefix)) {
-            return _buildHomeAlbumSongChildren(parentMediaId);
-          }
-          if (parentMediaId.startsWith(_homePlaylistPrefix)) {
-            return _buildHomePlaylistVideoChildren(parentMediaId);
-          }
-          return [];
-      }
-    } catch (e, st) {
-      dev.log('[AA] getChildren error for "$parentMediaId": $e\n$st');
-      return [];
-    }
-  }
-
-  Future<bool> _isOffline() async {
-    final results = await Connectivity().checkConnectivity();
-    return results.length == 1 && results.contains(ConnectivityResult.none);
-  }
-
-  List<MediaItem> _buildRootChildren() {
-    return [
-      MediaItem(
-        id: _homeId,
-        title: 'Home',
-        displaySubtitle: 'For you',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _mixesId,
-        title: 'Mixes',
-        displaySubtitle: 'Smart mixes',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleGrid,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _libraryId,
-        title: 'Library',
-        displaySubtitle: 'Your music',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _exploreId,
-        title: 'Explore',
-        displaySubtitle: 'Discover new music',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-    ];
-  }
-
-  Future<List<MediaItem>> _buildLibraryChildren() async {
-    return [
-      MediaItem(
-        id: _likedId,
-        title: 'Favorites',
-        displaySubtitle: 'Your liked songs',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _artistsId,
-        title: 'Artists',
-        displaySubtitle: 'Followed artists',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleGrid,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _playlistsId,
-        title: 'Playlists',
-        displaySubtitle: 'Your playlists',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleGrid,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _albumsId,
-        title: 'Albums',
-        displaySubtitle: 'Liked albums',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleGrid,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _historyId,
-        title: 'History',
-        displaySubtitle: 'Recent history',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: _downloadsId,
-        title: 'Downloads',
-        displaySubtitle: 'Offline music',
-        playable: false,
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-    ];
-  }
-
-  Future<List<MediaItem>> _buildHomeChildren() async {
-    final isOff = await _isOffline();
-    final items = <MediaItem>[];
-
-    if (isOff) {
-      // Offline mode: only local sections
-      await _addLocalHomeSections(items);
-      return items;
-    }
-
-    // Online mode: first YTM section + local sections
-    try {
-      final result = await _musicRepo.getHome();
-      final sections = result.sections;
-      dev.log('[AA] getHome returned ${sections.length} sections');
-
-      // 1. Add YTM Feed Section 0
-      if (sections.isNotEmpty) {
-        final section = sections[0];
-        if (section.contents.isNotEmpty) {
-          final sectionItems =
-              section.contents.expand(_contentToMediaItems).toList();
-          if (sectionItems.isNotEmpty) {
-            items.add(
-              MediaItem(
-                id: '${_homeSectionPrefix}0',
-                title: section.title,
-                playable: false,
-                extras: {
-                  _kContentStyleBrowsable: _kStyleList,
-                  _kContentStylePlayable: _kStyleList,
-                },
-              ),
-            );
-            items.addAll(sectionItems.take(3));
-          }
-        }
-      }
-
-      // 2. Add local sections
-      await _addLocalHomeSections(items);
-    } catch (e, st) {
-      dev.log(
-        '[AA] Error building online home, falling back to offline: $e\n$st',
-      );
-      items.clear();
-      await _addLocalHomeSections(items);
-    }
-
-    return items;
-  }
-
-  Future<void> _addLocalHomeSections(List<MediaItem> items) async {
-    // 1. Continue Listening (recent history) — most useful while driving
-    final recent = await _buildRecentChildren();
-    if (recent.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _historyId,
-          title: 'Continue Listening',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(recent.take(3));
-    }
-
-    // 2. Playlists (local + liked)
-    final playlists = await _buildPlaylistFolders();
-    if (playlists.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _playlistsId,
-          title: 'Your Playlists',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleGrid,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(playlists.take(3));
-    }
-
-    // 3. Your Artists (followed artists)
-    final artists = await _buildArtistFolders();
-    if (artists.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _artistsId,
-          title: 'Your Artists',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleGrid,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(artists.take(3));
-    }
-
-    // 4. Liked Albums
-    final albums = await _buildLikedAlbumFolders();
-    if (albums.isNotEmpty) {
-      items.add(
-        MediaItem(
-          id: _albumsId,
-          title: 'Liked Albums',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleGrid,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-      items.addAll(albums.take(3));
-    }
-  }
-
-  Future<List<MediaItem>> _buildExploreChildren() async {
-    final isOff = await _isOffline();
-    if (isOff) {
-      // Explore is mostly online content.
-      return [];
-    }
-
-    final items = <MediaItem>[];
-    try {
-      final result = await _musicRepo.getHome();
-      final sections = result.sections;
-      dev.log('[AA] getHome returned ${sections.length} sections for explore');
-
-      // 1. New Releases (from followed artists)
-      try {
-        final releases = await _getNewReleasesUseCase.execute();
-        if (releases.isNotEmpty) {
-          final releaseItems =
-              releases
-                  .map(
-                    (a) => MediaItem(
-                      id: '$_homeAlbumPrefix${a.albumId}',
-                      title: a.name,
-                      artist: a.artist.name,
-                      artUri:
-                          a.thumbnails.isNotEmpty
-                              ? Uri.tryParse(a.thumbnails.last.url)
-                              : null,
-                      playable: false,
-                      extras: {
-                        _kContentStyleBrowsable: _kStyleGrid,
-                        _kContentStylePlayable: _kStyleList,
-                      },
-                    ),
-                  )
-                  .toList();
-
-          items.add(
-            MediaItem(
-              id: _newReleasesId,
-              title: 'New Releases',
-              playable: false,
-              extras: {
-                _kContentStyleBrowsable: _kStyleGrid,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          );
-          items.addAll(releaseItems.take(3));
-        }
-      } catch (e) {
-        dev.log('[AA] Failed to load new releases for explore: $e');
-      }
-
-      // 2. Discover (recommendations)
-      try {
-        final suggestions = await _getDiscoverSuggestionsUseCase.execute();
-        if (suggestions.isNotEmpty) {
-          final discoverItems =
-              suggestions
-                  .map(
-                    (song) => MediaItem(
-                      id: song.videoId,
-                      title: song.title,
-                      artist: song.artists.name,
-                      artUri:
-                          song.thumbnails.isNotEmpty
-                              ? Uri.tryParse(song.thumbnails.last.url)
-                              : null,
-                      duration: Duration(seconds: song.duration),
-                      extras: {
-                        'needsUrl': true,
-                        'videoId': song.videoId,
-                        'isVideo': song.type == 'VIDEO',
-                        'isExplicit': song.isExplicit,
-                        _kContentStylePlayable: _kStyleList,
-                      },
-                    ),
-                  )
-                  .toList();
-
-          items.add(
-            MediaItem(
-              id: _discoverId,
-              title: 'Discover',
-              playable: false,
-              extras: {
-                _kContentStyleBrowsable: _kStyleList,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          );
-          items.addAll(discoverItems.take(3));
-        }
-      } catch (e) {
-        dev.log('[AA] Failed to load discover suggestions for explore: $e');
-      }
-
-      // 3. Similar Artists
-      try {
-        final similar = await _getSimilarArtistsSuggestionsUseCase.execute();
-        if (similar.isNotEmpty) {
-          final similarItems =
-              similar
-                  .map(
-                    (a) => MediaItem(
-                      id: '$_artistPrefix${a.artistId}',
-                      title: a.name,
-                      artUri:
-                          a.thumbnails.isNotEmpty
-                              ? Uri.tryParse(a.thumbnails.last.url)
-                              : null,
-                      playable: false,
-                      extras: {
-                        _kContentStyleBrowsable: _kStyleGrid,
-                        _kContentStylePlayable: _kStyleList,
-                      },
-                    ),
-                  )
-                  .toList();
-
-          items.add(
-            MediaItem(
-              id: _similarArtistsId,
-              title: 'Similar Artists',
-              playable: false,
-              extras: {
-                _kContentStyleBrowsable: _kStyleGrid,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          );
-          items.addAll(similarItems.take(3));
-        }
-      } catch (e) {
-        dev.log('[AA] Failed to load similar artists for explore: $e');
-      }
-
-      // 4. YTM Feed Sections 1..N
-      if (sections.length > 1) {
-        for (var i = 1; i < sections.length; i++) {
-          final section = sections[i];
-          if (section.contents.isEmpty) continue;
-          final sectionItems =
-              section.contents.expand(_contentToMediaItems).toList();
-          if (sectionItems.isEmpty) continue;
-          items.add(
-            MediaItem(
-              id: '$_homeSectionPrefix$i',
-              title: section.title,
-              playable: false,
-              extras: {
-                _kContentStyleBrowsable: _kStyleList,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          );
-          items.addAll(sectionItems.take(3));
-        }
-      }
-    } catch (e, st) {
-      dev.log('[AA] Error building explore: $e\n$st');
-    }
-
-    return items;
-  }
-
-  List<MediaItem> _contentToMediaItems(dynamic content) {
-    if (content is SongDetailed) {
-      return [
-        MediaItem(
-          id: content.videoId,
-          title: content.name,
-          artist: content.artist.name,
-          album: content.album?.name,
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
-          duration: Duration(seconds: content.duration ?? 0),
-          extras: {
-            'needsUrl': true,
-            'videoId': content.videoId,
-            'isVideo': content.type == 'VIDEO',
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      ];
-    } else if (content is VideoDetailed) {
-      return [
-        MediaItem(
-          id: content.videoId,
-          title: content.name,
-          artist: content.artist.name,
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
-          duration: Duration(seconds: content.duration ?? 0),
-          extras: {
-            'needsUrl': true,
-            'videoId': content.videoId,
-            'isVideo': true,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      ];
-    } else if (content is AlbumDetailed) {
-      return [
-        MediaItem(
-          id: '$_homeAlbumPrefix${content.albumId}',
-          title: content.name,
-          artist: content.artist.name,
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      ];
-    } else if (content is PlaylistDetailed) {
-      return [
-        MediaItem(
-          id: '$_homePlaylistPrefix${content.playlistId}',
-          title: content.name,
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      ];
-    }
-    return [];
-  }
-
-  Future<List<MediaItem>> _buildHomeSectionChildren(
-    String parentMediaId,
-  ) async {
-    final index = int.tryParse(
-      parentMediaId.substring(_homeSectionPrefix.length),
-    );
-    if (index == null) return [];
-    final result = await _musicRepo.getHome();
-    final sections = result.sections;
-    if (index >= sections.length) return [];
-    final section = sections[index];
-    return section.contents.expand(_contentToMediaItems).toList();
-  }
-
-  Future<List<MediaItem>> _buildRecentChildren() async {
-    final history = await _libraryRepo.getRecentHistory(limit: 50);
-    return history
-        .map(
-          (h) => MediaItem(
-            id: h.videoId,
-            title: h.title,
-            artist: h.artist,
-            artUri:
-                h.thumbnailUrl != null ? Uri.tryParse(h.thumbnailUrl!) : null,
-            extras: {
-              'needsUrl': true,
-              'videoId': h.videoId,
-              'isVideo': h.isVideo,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildDownloadMediaItems() async {
-    final downloads = await _libraryRepo.getAllDownloads();
-    return downloads
-        .where((d) => d.status == 'completed' && d.localPath != null)
-        .map(
-          (d) => MediaItem(
-            id: d.videoId,
-            title: d.title,
-            artist: d.artist,
-            artUri:
-                d.thumbnailUrl != null ? Uri.tryParse(d.thumbnailUrl!) : null,
-            duration: Duration.zero,
-            extras: {
-              'url': Uri.file(d.localPath!).toString(),
-              'videoId': d.videoId,
-              'isVideo': d.isVideo,
-              'isExplicit': d.isExplicit,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildDownloadChildren() async {
-    final items = await _buildDownloadMediaItems();
-    if (items.isEmpty) return [];
-
-    return [
-      MediaItem(
-        id: _actionPlayDownloads,
-        title: 'Play All',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: _actionShuffleDownloads,
-        title: 'Shuffle',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      ...items,
-    ];
-  }
-
-  Future<List<MediaItem>> _buildLikedChildren() async {
-    final songs = await _libraryRepo.getAllLikedSongs();
-    return songs
-        .map(
-          (s) => MediaItem(
-            id: s.videoId,
-            title: s.title,
-            artist: s.artist,
-            artUri:
-                s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
-            extras: {
-              'needsUrl': true,
-              'videoId': s.videoId,
-              'isVideo': s.isVideo,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildPlaylistFolders() async {
-    final (local, liked) =
-        await (
-          _libraryRepo.getAllPlaylists(),
-          _libraryRepo.getAllLikedPlaylists(),
-        ).wait;
-
-    return [
-      ...local.map(
-        (p) => MediaItem(
-          id: '$_playlistPrefix${p.id}',
-          title: p.name,
-          displaySubtitle: 'Local Playlist',
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      ),
-      ...liked.map(
-        (p) => MediaItem(
-          id: '$_homePlaylistPrefix${p.playlistId}',
-          title: p.name,
-          displaySubtitle: 'Liked Playlist',
-          artUri: p.thumbnailUrl != null ? Uri.tryParse(p.thumbnailUrl!) : null,
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      ),
-    ];
-  }
-
-  /// Converts a local playlist to a list of [MediaItem]s using exactly 2
-  /// database queries (entries + all liked songs), regardless of playlist size.
-  ///
-  /// Previously the code called [getLikedSong] once per entry (N+1 sequential
-  /// queries).  With playlists of 50+ tracks Android Auto's getChildren()
-  /// timeout (~2 s) could be exceeded on slow devices, causing the folder to
-  /// appear empty.  Fetching all liked songs once and doing an O(1) in-memory
-  /// lookup per entry is both faster and deterministic.
-  Future<List<MediaItem>> _localPlaylistToMediaItems(int playlistId) async {
-    // Run both queries in parallel — no data dependency between them.
-    final (entries, allLiked) =
-        await (
-          _libraryRepo.getPlaylistEntries(playlistId),
-          _libraryRepo.getAllLikedSongs(),
-        ).wait;
-
-    // Build a lookup map: videoId → LikedSongModel.
-    final likedByVideoId = <String, LikedSongModel>{
-      for (final s in allLiked) s.videoId: s,
-    };
-
-    return [
-      for (final entry in entries)
-        MediaItem(
-          id: entry.videoId,
-          title:
-              likedByVideoId[entry.videoId]?.title ??
-              entry.title ??
-              entry.videoId,
-          artist: likedByVideoId[entry.videoId]?.artist ?? entry.artist ?? '',
-          artUri:
-              (likedByVideoId[entry.videoId]?.thumbnailUrl ??
-                          entry.thumbnailUrl) !=
-                      null
-                  ? Uri.tryParse(
-                    likedByVideoId[entry.videoId]?.thumbnailUrl ??
-                        entry.thumbnailUrl!,
-                  )
-                  : null,
-          duration: Duration.zero,
-          extras: {
-            'needsUrl': true,
-            'videoId': entry.videoId,
-            'isVideo': likedByVideoId[entry.videoId]?.isVideo ?? entry.isVideo,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-    ];
-  }
-
-  Future<List<MediaItem>> _buildMixesChildren() async {
-    return _buildMixesFolder();
-  }
-
-  List<MediaItem> _buildMixesFolder() {
-    return [
-      MediaItem(
-        id: '${_mixPrefix}most_played',
-        title: 'Most Played',
-        displaySubtitle: 'Your most played tracks',
-        playable: false,
-        artUri: Uri.parse(
-          'android.resource://com.gmstyle.sonora/drawable/cover_most_played',
-        ),
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: '${_mixPrefix}recently_played',
-        title: 'Recently Played',
-        displaySubtitle: 'Your recently played tracks',
-        playable: false,
-        artUri: Uri.parse(
-          'android.resource://com.gmstyle.sonora/drawable/cover_recently_played',
-        ),
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-      MediaItem(
-        id: '${_mixPrefix}forgotten_favorites',
-        title: 'Forgotten Favorites',
-        displaySubtitle: 'Tracks you used to love',
-        playable: false,
-        artUri: Uri.parse(
-          'android.resource://com.gmstyle.sonora/drawable/cover_forgotten_favorites',
-        ),
-        extras: {
-          _kContentStyleBrowsable: _kStyleList,
-          _kContentStylePlayable: _kStyleList,
-        },
-      ),
-    ];
-  }
-
-  Future<List<MediaItem>> _buildMixSongChildren(String parentMediaId) async {
-    final mixTypeStr = parentMediaId.substring(_mixPrefix.length);
-    final songs = await _fetchMixSongs(mixTypeStr);
-
-    final songItems =
-        songs.map((s) {
-          final isVideo =
-              s is HistoryModel
-                  ? s.isVideo
-                  : s is LikedSongModel
-                  ? s.isVideo
-                  : false;
-          final isExplicit =
-              s is HistoryModel
-                  ? s.isExplicit
-                  : s is LikedSongModel
-                  ? s.isExplicit
-                  : false;
-          return MediaItem(
-            id: s.videoId,
-            title: s.title,
-            artist: s.artist,
-            artUri:
-                s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
-            duration:
-                s.duration != null ? Duration(seconds: s.duration!) : null,
-            extras: {
-              'needsUrl': true,
-              'videoId': s.videoId,
-              'isVideo': isVideo,
-              'isExplicit': isExplicit,
-              _kContentStylePlayable: _kStyleList,
-            },
-          );
-        }).toList();
-
-    return [
-      MediaItem(
-        id: '$_actionPlayMix$mixTypeStr',
-        title: 'Play All',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionShuffleMix$mixTypeStr',
-        title: 'Shuffle',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      ...songItems,
-    ];
-  }
-
-  Future<List<dynamic>> _fetchMixSongs(String mixTypeStr) async {
-    if (mixTypeStr == 'most_played') {
-      return _libraryRepo.getMostPlayedSongs(limit: 50);
-    } else if (mixTypeStr == 'recently_played') {
-      return _libraryRepo.getRecentHistory(limit: 50);
-    } else if (mixTypeStr == 'forgotten_favorites') {
-      return _libraryRepo.getForgottenFavorites(daysLimit: 30);
-    }
-    return [];
-  }
-
-  Future<List<MediaItem>> _buildNewReleasesChildren() async {
-    final releases = await _getNewReleasesUseCase.execute();
-    return releases
-        .map(
-          (a) => MediaItem(
-            id: '$_homeAlbumPrefix${a.albumId}',
-            title: a.name,
-            artist: a.artist.name,
-            artUri:
-                a.thumbnails.isNotEmpty
-                    ? Uri.tryParse(a.thumbnails.last.url)
-                    : null,
-            playable: false,
-            extras: {
-              _kContentStyleBrowsable: _kStyleList,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildDiscoverChildren() async {
-    final suggestions = await _getDiscoverSuggestionsUseCase.execute();
-    return suggestions
-        .map(
-          (song) => MediaItem(
-            id: song.videoId,
-            title: song.title,
-            artist: song.artists.name,
-            artUri:
-                song.thumbnails.isNotEmpty
-                    ? Uri.tryParse(song.thumbnails.last.url)
-                    : null,
-            duration: Duration(seconds: song.duration),
-            extras: {
-              'needsUrl': true,
-              'videoId': song.videoId,
-              'isVideo': song.type == 'VIDEO',
-              'isExplicit': song.isExplicit,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildSimilarArtistsChildren() async {
-    final similar = await _getSimilarArtistsSuggestionsUseCase.execute();
-    return similar
-        .map(
-          (a) => MediaItem(
-            id: '$_artistPrefix${a.artistId}',
-            title: a.name,
-            artUri:
-                a.thumbnails.isNotEmpty
-                    ? Uri.tryParse(a.thumbnails.last.url)
-                    : null,
-            playable: false,
-            extras: {
-              _kContentStyleBrowsable: _kStyleList,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildPlaylistEntryChildren(
-    String parentMediaId,
-  ) async {
-    final playlistId = int.parse(
-      parentMediaId.substring(_playlistPrefix.length),
-    );
-    final playlistIdStr = playlistId.toString();
-
-    final songItems = await _localPlaylistToMediaItems(playlistId);
-
-    return [
-      MediaItem(
-        id: '$_actionPlayPlaylist$playlistIdStr',
-        title: 'Play All',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionShufflePlaylist$playlistIdStr',
-        title: 'Shuffle',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      ...songItems,
-    ];
-  }
-
-  Future<List<MediaItem>> _buildArtistFolders() async {
-    final artists = await _libraryRepo.getAllFollowedArtists();
-    return artists
-        .map(
-          (a) => MediaItem(
-            id: '$_artistPrefix${a.artistId}',
-            title: a.name,
-            displaySubtitle: 'Artist',
-            artUri:
-                a.thumbnailUrl != null ? Uri.tryParse(a.thumbnailUrl!) : null,
-            playable: false,
-            extras: {
-              _kContentStyleBrowsable: _kStyleList,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildArtistChildren(String parentMediaId) async {
-    final artistId = parentMediaId.substring(_artistPrefix.length);
-    final artistInfo = await _musicRepo.getArtist(artistId);
-    final followed = await _libraryRepo.getFollowedArtist(artistId);
-
-    final mediaItems = <MediaItem>[
-      MediaItem(
-        id: '$_actionPlayArtist$artistId',
-        title: 'Play Top Songs',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionShuffleArtist$artistId',
-        title: 'Shuffle',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionFollowArtist$artistId',
-        title: followed != null ? 'Following' : 'Follow',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-    ];
-
-    // 1. Top Songs (Playable)
-    for (final song in artistInfo.topSongs) {
-      mediaItems.add(
-        MediaItem(
-          id: song.videoId,
-          title: song.name,
-          artist: song.artist.name,
-          artUri:
-              song.thumbnails.isNotEmpty
-                  ? Uri.tryParse(song.thumbnails.last.url)
-                  : null,
-          duration: Duration(seconds: song.duration ?? 0),
-          playable: true,
-          extras: {_kContentStylePlayable: _kStyleList},
-        ),
-      );
-    }
-
-    // 2. Albums (Browsable folders)
-    for (final album in artistInfo.topAlbums) {
-      mediaItems.add(
-        MediaItem(
-          id: '$_homeAlbumPrefix${album.albumId}',
-          title: album.name,
-          artist: 'Album',
-          artUri:
-              album.thumbnails.isNotEmpty
-                  ? Uri.tryParse(album.thumbnails.last.url)
-                  : null,
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-    }
-
-    // 3. Singles (Browsable folders)
-    for (final single in artistInfo.topSingles) {
-      mediaItems.add(
-        MediaItem(
-          id: '$_homeAlbumPrefix${single.albumId}',
-          title: single.name,
-          artist: 'Single',
-          artUri:
-              single.thumbnails.isNotEmpty
-                  ? Uri.tryParse(single.thumbnails.last.url)
-                  : null,
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-    }
-
-    // 4. Featured On (Playlists - Browsable folders)
-    for (final playlist in artistInfo.featuredOn) {
-      mediaItems.add(
-        MediaItem(
-          id: '$_homePlaylistPrefix${playlist.playlistId}',
-          title: playlist.name,
-          artist: 'Playlist',
-          artUri:
-              playlist.thumbnails.isNotEmpty
-                  ? Uri.tryParse(playlist.thumbnails.last.url)
-                  : null,
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-    }
-
-    // 5. Similar Artists (Browsable folders)
-    for (final related in artistInfo.similarArtists) {
-      mediaItems.add(
-        MediaItem(
-          id: '$_artistPrefix${related.artistId}',
-          title: related.name,
-          artist: 'Artist',
-          artUri:
-              related.thumbnails.isNotEmpty
-                  ? Uri.tryParse(related.thumbnails.last.url)
-                  : null,
-          playable: false,
-          extras: {
-            _kContentStyleBrowsable: _kStyleList,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-      );
-    }
-
-    return mediaItems;
-  }
-
-  Future<List<MediaItem>> _buildLikedAlbumFolders() async {
-    final albums = await _libraryRepo.getAllLikedAlbums();
-    return albums
-        .map(
-          (a) => MediaItem(
-            id: '$_homeAlbumPrefix${a.albumId}',
-            title: a.name,
-            artist: a.artistName,
-            artUri:
-                a.thumbnailUrl != null ? Uri.tryParse(a.thumbnailUrl!) : null,
-            playable: false,
-            extras: {
-              _kContentStyleBrowsable: _kStyleList,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
-  }
-
-  Future<List<MediaItem>> _buildHomeAlbumSongChildren(
-    String parentMediaId,
-  ) async {
-    final albumId = parentMediaId.substring(_homeAlbumPrefix.length);
-    final album = await _musicRepo.getAlbum(albumId);
-    final liked = await _libraryRepo.getLikedAlbum(albumId);
-
-    final items = <MediaItem>[
-      MediaItem(
-        id: '$_actionPlayAlbum$albumId',
-        title: 'Play All',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionShuffleAlbum$albumId',
-        title: 'Shuffle',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionLikeAlbum$albumId',
-        title: liked != null ? 'Unlike Album' : 'Like Album',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-    ];
-
-    items.addAll(
-      album.songs
-          .take(100)
-          .map(
-            (s) => MediaItem(
-              id: s.videoId,
-              title: s.name,
-              artist: s.artist.name,
-              album: album.name,
-              artUri:
-                  album.thumbnails.isNotEmpty
-                      ? Uri.tryParse(album.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: s.duration ?? 0),
-              extras: {
-                'needsUrl': true,
-                'videoId': s.videoId,
-                'isVideo': s.type == 'VIDEO',
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          ),
-    );
-    return items;
-  }
-
-  Future<List<MediaItem>> _buildHomePlaylistVideoChildren(
-    String parentMediaId,
-  ) async {
-    final playlistId = parentMediaId.substring(_homePlaylistPrefix.length);
-    final videos = await _musicRepo.getPlaylistVideos(playlistId);
-    final liked = await _libraryRepo.getLikedPlaylist(playlistId);
-
-    final items = <MediaItem>[
-      MediaItem(
-        id: '$_actionPlayPlaylist$playlistId',
-        title: 'Play All',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionShufflePlaylist$playlistId',
-        title: 'Shuffle',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-      MediaItem(
-        id: '$_actionLikePlaylist$playlistId',
-        title: liked != null ? 'Unlike Playlist' : 'Like Playlist',
-        playable: true,
-        extras: {_kContentStylePlayable: _kStyleList},
-      ),
-    ];
-
-    items.addAll(
-      videos
-          .take(100)
-          .map(
-            (v) => MediaItem(
-              id: v.videoId,
-              title: v.name,
-              artist: v.artist.name,
-              artUri:
-                  v.thumbnails.isNotEmpty
-                      ? Uri.tryParse(v.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: v.duration ?? 0),
-              extras: {
-                'needsUrl': true,
-                'videoId': v.videoId,
-                'isVideo': true,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          ),
-    );
-    return items;
+  ]) {
+    return _browserHandler.getChildren(parentMediaId, options);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -2892,364 +1410,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
   // ═══════════════════════════════════════════════════════════════
 
   @override
-  Future<void> playFromMediaId(
-    String mediaId, [
-    Map<String, dynamic>? extras,
-  ]) async {
-    try {
-      // ── Album actions ────────────────────────────────────────────
-      if (mediaId.startsWith(_actionPlayAlbum)) {
-        final albumId = mediaId.substring(_actionPlayAlbum.length);
-        final album = await _musicRepo.getAlbum(albumId);
-        final items = await _playAlbumUseCase.execute(album.songs);
-        await playNow(items);
-        return;
-      }
-      if (mediaId.startsWith(_actionShuffleAlbum)) {
-        final albumId = mediaId.substring(_actionShuffleAlbum.length);
-        final album = await _musicRepo.getAlbum(albumId);
-        final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
-        final items = await _playAlbumUseCase.execute(shuffled);
-        await playNow(items);
-        return;
-      }
-      if (mediaId.startsWith(_actionLikeAlbum)) {
-        final albumId = mediaId.substring(_actionLikeAlbum.length);
-        final existing = await _libraryRepo.getLikedAlbum(albumId);
-        if (existing != null) {
-          await _libraryRepo.deleteLikedAlbum(albumId);
-        } else {
-          final album = await _musicRepo.getAlbum(albumId);
-          await _libraryRepo.toggleLikedAlbum(
-            LikedAlbumModel(
-              albumId: albumId,
-              name: album.name,
-              artistName: album.artist.name,
-              thumbnailUrl:
-                  album.thumbnails.isNotEmpty
-                      ? album.thumbnails.last.url
-                      : null,
-              year: album.year,
-              addedAt: DateTime.now(),
-            ),
-          );
-        }
-        AudioServicePlatform.instance.notifyChildrenChanged(
-          NotifyChildrenChangedRequest(
-            parentMediaId: '$_homeAlbumPrefix$albumId',
-          ),
-        );
-        return;
-      }
-
-      // ── Artist actions ───────────────────────────────────────────
-      if (mediaId.startsWith(_actionPlayArtist)) {
-        final artistId = mediaId.substring(_actionPlayArtist.length);
-        final artist = await _musicRepo.getArtist(artistId);
-        final items = await _playAlbumUseCase.execute(artist.topSongs);
-        await playNow(items);
-        return;
-      }
-      if (mediaId.startsWith(_actionShuffleArtist)) {
-        final artistId = mediaId.substring(_actionShuffleArtist.length);
-        final artist = await _musicRepo.getArtist(artistId);
-        final shuffled = List<SongDetailed>.from(artist.topSongs)..shuffle();
-        final items = await _playAlbumUseCase.execute(shuffled);
-        await playNow(items);
-        return;
-      }
-      if (mediaId.startsWith(_actionFollowArtist)) {
-        final artistId = mediaId.substring(_actionFollowArtist.length);
-        final existing = await _libraryRepo.getFollowedArtist(artistId);
-        if (existing != null) {
-          await _libraryRepo.deleteFollowedArtist(artistId);
-        } else {
-          final artist = await _musicRepo.getArtist(artistId);
-          await _libraryRepo.toggleFollowedArtist(
-            FollowedArtistModel(
-              artistId: artistId,
-              name: artist.name,
-              thumbnailUrl:
-                  artist.thumbnails.isNotEmpty
-                      ? artist.thumbnails.last.url
-                      : null,
-              addedAt: DateTime.now(),
-            ),
-          );
-        }
-        AudioServicePlatform.instance.notifyChildrenChanged(
-          NotifyChildrenChangedRequest(
-            parentMediaId: '$_artistPrefix$artistId',
-          ),
-        );
-        return;
-      }
-
-      // ── Playlist actions ─────────────────────────────────────────
-      if (mediaId.startsWith(_actionPlayPlaylist)) {
-        final playlistId = mediaId.substring(_actionPlayPlaylist.length);
-        final localId = int.tryParse(playlistId);
-        if (localId != null) {
-          // Local playlist — 2 queries via _localPlaylistToMediaItems
-          var items = await _localPlaylistToMediaItems(localId);
-          if (items.isNotEmpty) {
-            try {
-              final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-              items = [
-                items.first.copyWith(
-                  extras: {
-                    ...items.first.extras!,
-                    'url': url,
-                    'needsUrl': false,
-                  },
-                ),
-                ...items.skip(1),
-              ];
-            } catch (_) {}
-          }
-          await playNow(items);
-        } else {
-          // YT Music playlist — fetch videos from API
-          final videos = await _musicRepo.getPlaylistVideos(playlistId);
-          final items = await _playPlaylistUseCase.execute(videos);
-          await playNow(items);
-        }
-        return;
-      }
-      if (mediaId.startsWith(_actionShufflePlaylist)) {
-        final playlistId = mediaId.substring(_actionShufflePlaylist.length);
-        final localId = int.tryParse(playlistId);
-        if (localId != null) {
-          // Local playlist — 2 queries via _localPlaylistToMediaItems
-          var items = await _localPlaylistToMediaItems(localId);
-          if (items.isNotEmpty) {
-            items = List<MediaItem>.from(items)..shuffle();
-            try {
-              final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-              items[0] = items.first.copyWith(
-                extras: {...items.first.extras!, 'url': url, 'needsUrl': false},
-              );
-            } catch (_) {}
-          }
-          await playNow(items);
-        } else {
-          // YT Music playlist — fetch videos from API
-          final videos = await _musicRepo.getPlaylistVideos(playlistId);
-          final shuffled = List<VideoDetailed>.from(videos)..shuffle();
-          final items = await _playPlaylistUseCase.execute(shuffled);
-          await playNow(items);
-        }
-        return;
-      }
-      if (mediaId.startsWith(_actionLikePlaylist)) {
-        final playlistId = mediaId.substring(_actionLikePlaylist.length);
-        final existing = await _libraryRepo.getLikedPlaylist(playlistId);
-        if (existing != null) {
-          await _libraryRepo.deleteLikedPlaylist(playlistId);
-        } else {
-          // Fetch playlist metadata — getPlaylist for YT Music playlists
-          final playlist = await _musicRepo.getPlaylist(playlistId);
-          await _libraryRepo.toggleLikedPlaylist(
-            LikedPlaylistModel(
-              playlistId: playlistId,
-              name: playlist.name,
-              thumbnailUrl:
-                  playlist.thumbnails.isNotEmpty
-                      ? playlist.thumbnails.last.url
-                      : null,
-              videoCount: playlist.videoCount,
-              addedAt: DateTime.now(),
-            ),
-          );
-        }
-        AudioServicePlatform.instance.notifyChildrenChanged(
-          NotifyChildrenChangedRequest(
-            parentMediaId: '$_homePlaylistPrefix$playlistId',
-          ),
-        );
-        return;
-      }
-
-      // ── Smart Mix actions ────────────────────────────────────────
-      if (mediaId.startsWith(_actionPlayMix)) {
-        final mixTypeStr = mediaId.substring(_actionPlayMix.length);
-        final songs = await _fetchMixSongs(mixTypeStr);
-        final items = await _playSmartMixUseCase.execute(songs: songs);
-        await playNow(items);
-        return;
-      }
-      if (mediaId.startsWith(_actionShuffleMix)) {
-        final mixTypeStr = mediaId.substring(_actionShuffleMix.length);
-        final songs = await _fetchMixSongs(mixTypeStr);
-        final shuffled = List<dynamic>.from(songs)..shuffle();
-        final items = await _playSmartMixUseCase.execute(songs: shuffled);
-        await playNow(items);
-        return;
-      }
-
-      // ── Downloads actions ────────────────────────────────────────
-      if (mediaId.startsWith(_actionPlayDownloads)) {
-        final items = await _buildDownloadMediaItems();
-        if (items.isNotEmpty) {
-          await playNow(items);
-        }
-        return;
-      }
-      if (mediaId.startsWith(_actionShuffleDownloads)) {
-        final items = await _buildDownloadMediaItems();
-        if (items.isNotEmpty) {
-          final shuffled = List<MediaItem>.from(items)..shuffle();
-          await playNow(shuffled);
-        }
-        return;
-      }
-
-      // ── Default: single song play ───────────────────────────
-      final item = await _playVideoIdUseCase.execute(mediaId);
-      await playNow([item]);
-    } catch (_) {}
+  Future<void> playFromMediaId(String mediaId, [Map<String, dynamic>? extras]) {
+    return _browserHandler.playFromMediaId(mediaId, extras);
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  Android Auto — search (FAB / text search → list of results)
+  //  Android Auto — search
   // ═══════════════════════════════════════════════════════════════
 
   @override
-  Future<List<MediaItem>> search(
-    String query, [
-    Map<String, dynamic>? extras,
-  ]) async {
-    try {
-      // Esegue le ricerche filtrate in parallelo per ottenere risultati ricchi e completi
-      // invece della ricerca mista (che restituisce pochi elementi condensati).
-      final futureArtists = _musicRepo.searchArtists(query);
-      final futureSongs = _musicRepo.searchSongs(query);
-      final futureAlbums = _musicRepo.searchAlbums(query);
-      final futurePlaylists = _musicRepo.searchPlaylists(query);
-
-      final results = await Future.wait([
-        futureArtists,
-        futureSongs,
-        futureAlbums,
-        futurePlaylists,
-      ]);
-
-      final artistsData = results[0];
-      final songsData = results[1];
-      final albumsData = results[2];
-      final playlistsData = results[3];
-
-      final artists = <MediaItem>[];
-      final songs = <MediaItem>[];
-      final albums = <MediaItem>[];
-      final playlists = <MediaItem>[];
-
-      // Mappatura Artisti
-      for (final result in artistsData) {
-        if (result is ArtistDetailed) {
-          artists.add(
-            MediaItem(
-              id: '$_artistPrefix${result.artistId}',
-              title: result.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
-              playable: false,
-              extras: {
-                _kContentStyleBrowsable: _kStyleList,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          );
-        }
-      }
-
-      // Mappatura Canzoni (e Video se presenti)
-      for (final result in songsData) {
-        if (result is SongDetailed) {
-          songs.add(
-            MediaItem(
-              id: result.videoId,
-              title: result.name,
-              artist: result.artist.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: result.duration ?? 0),
-              playable: true,
-              extras: {_kContentStylePlayable: _kStyleList},
-            ),
-          );
-        } else if (result is VideoDetailed) {
-          songs.add(
-            MediaItem(
-              id: result.videoId,
-              title: result.name,
-              artist: result.artist.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: result.duration ?? 0),
-              playable: true,
-              extras: {_kContentStylePlayable: _kStyleList},
-            ),
-          );
-        }
-      }
-
-      // Mappatura Album
-      for (final result in albumsData) {
-        if (result is AlbumDetailed) {
-          albums.add(
-            MediaItem(
-              id: '$_homeAlbumPrefix${result.albumId}',
-              title: result.name,
-              artist: result.artist.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
-              playable: false,
-              extras: {
-                _kContentStyleBrowsable: _kStyleList,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          );
-        }
-      }
-
-      // Mappatura Playlist
-      for (final result in playlistsData) {
-        if (result is PlaylistDetailed) {
-          playlists.add(
-            MediaItem(
-              id: '$_homePlaylistPrefix${result.playlistId}',
-              title: result.name,
-              // Le API delle playlist specifiche non sempre espongono author.name facilmente
-              // ma possiamo ometterlo e mostrare la thumbnail/titolo in Android Auto
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
-              playable: false,
-              extras: {
-                _kContentStyleBrowsable: _kStyleList,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          );
-        }
-      }
-
-      // Ritorna la lista unita con priorità logica: Artisti > Canzoni > Album > Playlist
-      return [...artists, ...songs, ...albums, ...playlists];
-    } catch (_) {
-      return [];
-    }
+  Future<List<MediaItem>> search(String query, [Map<String, dynamic>? extras]) {
+    return _browserHandler.search(query, extras);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -3257,16 +1428,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   // ═══════════════════════════════════════════════════════════════
 
   @override
-  Future<void> playFromSearch(
-    String query, [
-    Map<String, dynamic>? extras,
-  ]) async {
-    try {
-      final results = await _musicRepo.searchSongs(query);
-      if (results.isEmpty) return;
-      final item = await _playVideoIdUseCase.execute(results.first.videoId);
-      await playNow([item]);
-    } catch (_) {}
+  Future<void> playFromSearch(String query, [Map<String, dynamic>? extras]) {
+    return _browserHandler.playFromSearch(query, extras);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -3352,14 +1515,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
       case _actionStartRadio:
         final item = mediaItem.value;
         if (item != null) {
-          await _startRadio(item.id);
+          await startRadio(item.id);
         }
         break;
     }
     return null;
   }
 
-  Future<void> _startRadio(String videoId) async {
+  Future<void> startRadio(String videoId) async {
     try {
       final result = await _startRadioUseCase.execute(videoId);
       final firstItem = result.firstItem;
