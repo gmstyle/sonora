@@ -11,6 +11,7 @@ class AudioCastHandler {
   CastState? _castState;
   SonoraCastService? _castService;
   bool pausedForConnection = false;
+  int _castSongToken = 0;
 
   AudioCastHandler(this._audioHandler);
 
@@ -67,6 +68,9 @@ class AudioCastHandler {
     SonoraCastService service, {
     Duration? startPosition,
   }) async {
+    // Grab a token so concurrent calls from rapid skips can be cancelled.
+    final token = ++_castSongToken;
+
     final wasPlaying =
         _audioHandler.player.state.playing ||
         pausedForConnection ||
@@ -77,6 +81,9 @@ class AudioCastHandler {
     }
     _audioHandler.setLocalVolume(0.0);
 
+    // A newer castSong call has superseded this one — bail out.
+    if (_castSongToken != token) return;
+
     String? url = item.extras?['url'] as String?;
     if (url == null || url.isEmpty || item.extras?['needsUrl'] == true) {
       try {
@@ -86,6 +93,9 @@ class AudioCastHandler {
         return;
       }
     }
+
+    // Check again after the potentially slow URL resolve.
+    if (_castSongToken != token) return;
 
     await service.castMedia(
       url: url,
@@ -98,8 +108,12 @@ class AudioCastHandler {
 
     if (wasPlaying) {
       await waitForCastSessionState(service, SessionState.playing);
+      // Check after the wait — another skip could have fired during it.
+      if (_castSongToken != token) return;
       pausedForConnection = false;
-      await _audioHandler.player.play();
+      // Use _audioHandler.play() (not _audioHandler.player.play()) so that
+      // castService?.play() is also sent to the cast device.
+      await _audioHandler.play();
     } else {
       await service.pause();
     }

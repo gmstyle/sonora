@@ -533,10 +533,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
             if (_castHandler.castState?.connectionState ==
                 CastConnectionState.connected) {
               if (item.extras?['needsUrl'] != true) {
-                _castHandler.castSong(
-                  item,
-                  _castHandler.castState!,
-                  _castHandler.castService!,
+                unawaited(
+                  _castHandler
+                      .castSong(
+                        item,
+                        _castHandler.castState!,
+                        _castHandler.castService!,
+                      )
+                      .catchError(
+                        (Object e) =>
+                            dev.log('[AudioHandler] castSong error: $e'),
+                      ),
                 );
               }
             }
@@ -634,6 +641,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           CastConnectionState.connected) {
         if (index == _player.state.playlist.index) {
           final wasPlaying = _player.state.playing || _userWantsPlaying;
+          final currentPos = _player.state.position;
           if (wasPlaying) {
             _castHandler.pausedForConnection = true;
             await _player.pause();
@@ -648,13 +656,23 @@ class SonoraAudioHandler extends BaseAudioHandler {
             artworkUrl: updatedItem.artUri?.toString(),
           );
 
+          // Update the local playlist with the resolved URL so local playback
+          // can resume correctly if the cast session is disconnected later.
+          await _player.remove(index);
+          await _player.add(updatedMedia);
+          await _player.move(_player.state.playlist.medias.length - 1, index);
+          await _player.jump(index);
+          if (currentPos > Duration.zero) await _player.seek(currentPos);
+
           if (wasPlaying) {
             await _castHandler.waitForCastSessionState(
               _castHandler.castService!,
               SessionState.playing,
             );
             _castHandler.pausedForConnection = false;
-            await _player.play();
+            // Use play() (not _player.play()) so castService?.play() is also
+            // sent to the cast device, keeping local player and cast in sync.
+            await play();
           } else {
             await _castHandler.castService?.pause();
           }
@@ -1183,24 +1201,63 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
       final updatedMedia = Media(freshUrl, extras: {'mediaItem': updatedItem});
 
-      final wasPlaying = _player.state.playing;
+      final wasPlaying = _player.state.playing || _userWantsPlaying;
       final currentPos = _player.state.position;
 
       _resolvingItemCount++;
       try {
-        if (wasPlaying) await _player.pause();
-        await _player.remove(currentIndex);
-        await _player.add(updatedMedia);
-        await _player.move(
-          _player.state.playlist.medias.length - 1,
-          currentIndex,
-        );
-        await _player.jump(currentIndex);
+        if (_castHandler.castState?.connectionState ==
+            CastConnectionState.connected) {
+          // Cast is active: send the refreshed URL to the cast device too.
+          if (wasPlaying) {
+            _castHandler.pausedForConnection = true;
+            await _player.pause();
+          }
+          _setLocalVolume(0.0);
 
-        if (currentPos > Duration.zero) {
-          await _player.seek(currentPos);
+          await _castHandler.castService?.castMedia(
+            url: freshUrl,
+            title: updatedItem.title,
+            artist: updatedItem.artist,
+            album: updatedItem.album,
+            artworkUrl: updatedItem.artUri?.toString(),
+          );
+
+          // Update the local playlist with the refreshed URL.
+          await _player.remove(currentIndex);
+          await _player.add(updatedMedia);
+          await _player.move(
+            _player.state.playlist.medias.length - 1,
+            currentIndex,
+          );
+          await _player.jump(currentIndex);
+          if (currentPos > Duration.zero) await _player.seek(currentPos);
+
+          if (wasPlaying) {
+            await _castHandler.waitForCastSessionState(
+              _castHandler.castService!,
+              SessionState.playing,
+            );
+            _castHandler.pausedForConnection = false;
+            await play();
+          } else {
+            await _castHandler.castService?.pause();
+          }
+        } else {
+          if (wasPlaying) await _player.pause();
+          await _player.remove(currentIndex);
+          await _player.add(updatedMedia);
+          await _player.move(
+            _player.state.playlist.medias.length - 1,
+            currentIndex,
+          );
+          await _player.jump(currentIndex);
+
+          if (currentPos > Duration.zero) {
+            await _player.seek(currentPos);
+          }
+          if (wasPlaying) await _player.play();
         }
-        if (wasPlaying) await _player.play();
       } finally {
         _resolvingItemCount--;
         _syncQueue();
