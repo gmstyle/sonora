@@ -4,14 +4,14 @@
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#3949AB"
-                android:endColor="#8E24AA"
+                android:startColor="#D81B60"
+                android:endColor="#E53935"
                 android:angle="315" />
         </shape>
     </item>
     <!-- Centered icon -->
     <item
-        android:drawable="@drawable/ic_timer"
+        android:drawable="@drawable/ic_favorite"
         android:width="24dp"
         android:height="24dp"
         android:gravity="center" />

@@ -12,7 +12,7 @@
     <!-- Centered icon -->
     <item
         android:drawable="@drawable/ic_favorite"
-        android:width="48dp"
-        android:height="48dp"
+        android:width="24dp"
+        android:height="24dp"
         android:gravity="center" />
 </layer-list>

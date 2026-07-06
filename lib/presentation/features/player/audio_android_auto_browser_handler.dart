@@ -239,6 +239,9 @@ class AudioAndroidAutoBrowserHandler {
         title: 'Favorites',
         displaySubtitle: 'Your liked songs',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_favorites',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleList,
           _kContentStylePlayable: _kStyleList,
@@ -249,6 +252,9 @@ class AudioAndroidAutoBrowserHandler {
         title: 'Artists',
         displaySubtitle: 'Followed artists',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_artists',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
@@ -259,6 +265,9 @@ class AudioAndroidAutoBrowserHandler {
         title: 'Playlists',
         displaySubtitle: 'Your playlists',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_playlist',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
@@ -269,6 +278,9 @@ class AudioAndroidAutoBrowserHandler {
         title: 'Albums',
         displaySubtitle: 'Liked albums',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_albums',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
@@ -279,6 +291,9 @@ class AudioAndroidAutoBrowserHandler {
         title: 'History',
         displaySubtitle: 'Recent history',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_history',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleList,
           _kContentStylePlayable: _kStyleList,
@@ -289,6 +304,9 @@ class AudioAndroidAutoBrowserHandler {
         title: 'Downloads',
         displaySubtitle: 'Offline music',
         playable: false,
+        artUri: Uri.parse(
+          'android.resource://com.gmstyle.sonora/drawable/cover_downloads',
+        ),
         extras: {
           _kContentStyleBrowsable: _kStyleList,
           _kContentStylePlayable: _kStyleList,
