@@ -779,6 +779,9 @@ class AudioAndroidAutoBrowserHandler {
           title: p.name,
           displaySubtitle: 'Local Playlist',
           playable: false,
+          artUri: Uri.parse(
+            'android.resource://com.gmstyle.sonora/drawable/cover_playlist',
+          ),
           extras: {
             _kContentStyleBrowsable: _kStyleList,
             _kContentStylePlayable: _kStyleList,
@@ -790,7 +793,12 @@ class AudioAndroidAutoBrowserHandler {
           id: '$_homePlaylistPrefix${p.playlistId}',
           title: p.name,
           displaySubtitle: 'Liked Playlist',
-          artUri: p.thumbnailUrl != null ? Uri.tryParse(p.thumbnailUrl!) : null,
+          artUri:
+              p.thumbnailUrl != null
+                  ? Uri.tryParse(p.thumbnailUrl!)
+                  : Uri.parse(
+                    'android.resource://com.gmstyle.sonora/drawable/cover_playlist',
+                  ),
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
