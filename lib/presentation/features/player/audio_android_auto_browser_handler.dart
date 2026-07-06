@@ -31,6 +31,8 @@ class AudioAndroidAutoBrowserHandler {
   final GetDiscoverSuggestionsUseCase _getDiscoverSuggestionsUseCase;
   final GetSimilarArtistsSuggestionsUseCase
   _getSimilarArtistsSuggestionsUseCase;
+  // Injected by the caller so no extra Connectivity instance is created.
+  final Connectivity _connectivity;
 
   // ── Android Auto extras ──────────────────────────────────────────────────────
   static const String _kContentStyleBrowsable =
@@ -56,7 +58,6 @@ class AudioAndroidAutoBrowserHandler {
   static const String _homeId = '__home__';
   static const String _libraryId = '__library__';
   static const String _exploreId = '__explore__';
-  static const String _recentId = '__recent__';
   static const String _likedId = '__liked__';
   static const String _playlistsId = '__playlists__';
   static const String _artistsId = '__artists__';
@@ -90,6 +91,7 @@ class AudioAndroidAutoBrowserHandler {
     required GetDiscoverSuggestionsUseCase getDiscoverSuggestionsUseCase,
     required GetSimilarArtistsSuggestionsUseCase
     getSimilarArtistsSuggestionsUseCase,
+    required Connectivity connectivity,
   }) : _audioHandler = audioHandler,
        _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
@@ -100,7 +102,8 @@ class AudioAndroidAutoBrowserHandler {
        _getNewReleasesUseCase = getNewReleasesUseCase,
        _getDiscoverSuggestionsUseCase = getDiscoverSuggestionsUseCase,
        _getSimilarArtistsSuggestionsUseCase =
-           getSimilarArtistsSuggestionsUseCase;
+           getSimilarArtistsSuggestionsUseCase,
+       _connectivity = connectivity;
 
   // ═══════════════════════════════════════════════════════════════
   //  Android Auto — getChildren (AA browse tree)
@@ -132,8 +135,6 @@ class AudioAndroidAutoBrowserHandler {
           return _buildExploreChildren();
 
         // Library sub-nodes
-        case _recentId:
-          return _buildRecentChildren();
         case _likedId:
           return _buildLikedChildren();
         case _playlistsId:
@@ -182,7 +183,7 @@ class AudioAndroidAutoBrowserHandler {
   }
 
   Future<bool> _isOffline() async {
-    final results = await Connectivity().checkConnectivity();
+    final results = await _connectivity.checkConnectivity();
     return results.length == 1 && results.contains(ConnectivityResult.none);
   }
 
@@ -738,7 +739,8 @@ class AudioAndroidAutoBrowserHandler {
         playable: true,
         extras: {_kContentStylePlayable: _kStyleList},
       ),
-      ...items,
+      // AA has practical limits on browse-tree items; cap downloads to 100.
+      ...items.take(100),
     ];
   }
 
@@ -1022,9 +1024,13 @@ class AudioAndroidAutoBrowserHandler {
   Future<List<MediaItem>> _buildPlaylistEntryChildren(
     String parentMediaId,
   ) async {
-    final playlistId = int.parse(
+    final playlistId = int.tryParse(
       parentMediaId.substring(_playlistPrefix.length),
     );
+    if (playlistId == null) {
+      dev.log('[AA] _buildPlaylistEntryChildren: invalid id "$parentMediaId"');
+      return [];
+    }
     final playlistIdStr = playlistId.toString();
 
     final songItems = await _localPlaylistToMediaItems(playlistId);
@@ -1105,7 +1111,11 @@ class AudioAndroidAutoBrowserHandler {
                   : null,
           duration: Duration(seconds: song.duration ?? 0),
           playable: true,
-          extras: {_kContentStylePlayable: _kStyleList},
+          extras: {
+            'needsUrl': true,
+            'videoId': song.videoId,
+            _kContentStylePlayable: _kStyleList,
+          },
         ),
       );
     }
@@ -1604,7 +1614,11 @@ class AudioAndroidAutoBrowserHandler {
                       : null,
               duration: Duration(seconds: result.duration ?? 0),
               playable: true,
-              extras: {_kContentStylePlayable: _kStyleList},
+              extras: {
+                'needsUrl': true,
+                'videoId': result.videoId,
+                _kContentStylePlayable: _kStyleList,
+              },
             ),
           );
         } else if (result is VideoDetailed) {
@@ -1619,7 +1633,12 @@ class AudioAndroidAutoBrowserHandler {
                       : null,
               duration: Duration(seconds: result.duration ?? 0),
               playable: true,
-              extras: {_kContentStylePlayable: _kStyleList},
+              extras: {
+                'needsUrl': true,
+                'videoId': result.videoId,
+                'isVideo': true,
+                _kContentStylePlayable: _kStyleList,
+              },
             ),
           );
         }
@@ -1669,7 +1688,8 @@ class AudioAndroidAutoBrowserHandler {
       }
 
       return [...artists, ...songs, ...albums, ...playlists];
-    } catch (_) {
+    } catch (e, st) {
+      dev.log('[AA] search error for "$query": $e\n$st');
       return [];
     }
   }
@@ -1685,8 +1705,16 @@ class AudioAndroidAutoBrowserHandler {
     try {
       final results = await _musicRepo.searchSongs(query);
       if (results.isEmpty) return;
-      final item = await _playVideoIdUseCase.execute(results.first.videoId);
-      await _audioHandler.playNow([item]);
-    } catch (_) {}
+      // Resolve the first item eagerly for immediate playback start, then
+      // queue the remaining results as lazy-resolved pending items so the
+      // user can continue listening through the full set of search results.
+      final firstItem = await _playVideoIdUseCase.execute(
+        results.first.videoId,
+      );
+      final remaining = results.skip(1).expand(_contentToMediaItems).toList();
+      await _audioHandler.playNow([firstItem, ...remaining]);
+    } catch (e, st) {
+      dev.log('[AA] playFromSearch error for "$query": $e\n$st');
+    }
   }
 }

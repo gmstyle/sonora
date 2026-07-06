@@ -9,6 +9,7 @@ import '../../../domain/repositories/queue_repository.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:collection/collection.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:io';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
@@ -68,6 +69,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   late final AudioCastHandler _castHandler;
   late final AudioAndroidAutoBrowserHandler _browserHandler;
+
+  /// Single [Connectivity] instance shared across the entire player module.
+  /// Avoids multiple platform-channel registrations for the same signal.
+  static final Connectivity _sharedConnectivity = Connectivity();
 
   Player get player => _player;
 
@@ -176,6 +181,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       getNewReleasesUseCase: _getNewReleasesUseCase,
       getDiscoverSuggestionsUseCase: _getDiscoverSuggestionsUseCase,
       getSimilarArtistsSuggestionsUseCase: _getSimilarArtistsSuggestionsUseCase,
+      connectivity: _sharedConnectivity,
     );
 
     _setupAudioSession();
