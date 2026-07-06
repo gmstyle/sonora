@@ -306,10 +306,7 @@ class _SidebarPlayerIndicator extends ConsumerWidget {
     );
 
     if (isCollapsed) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: Center(child: vinylWidget),
-      );
+      return const SizedBox.shrink();
     }
 
     return Padding(
