@@ -126,7 +126,12 @@ lib/
         ├── artist/                       # ArtistScreen + stats row + description
         ├── album/                        # AlbumScreen + AlbumProvider
         ├── playlist/                     # PlaylistScreen + PlaylistProvider
-        ├── player/                       # audio_handler, player_sheet, ..., cast_button, cast_dialog
+        ├── player/                       # Playback Engine:
+        │   ├── audio_handler.dart        # Core playback, queue manager, lookahead logic
+        │   ├── audio_cast_handler.dart   # Bridge to Chromecast & DLNA casting flow
+        │   ├── audio_android_auto_browser_handler.dart # Android Auto browse tree & voice search
+        │   ├── player_sheet.dart         # Fullscreen player bottom sheet
+        │   └── widgets/                  # player_slider, controls, cast_dialog, etc.
         ├── library/                      # LibraryScreen + 3 layouts + PlaylistDetailView
         ├── downloads/                    # DownloadsScreen (adaptive layout)
         └── settings/                     # SettingsScreen + 3 layouts
@@ -269,12 +274,15 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 
 ### 6.1 `SonoraAudioHandler` (audio_handler.dart)
 
-Extends `BaseAudioHandler` from `audio_service`. Instantiated in `main.dart` and passed to both `AudioService.init()` (Android/Linux) and the Riverpod provider.
+Extends `BaseAudioHandler` from `audio_service`. It coordinates local playback, manages the playlist queue structure, and delegates specialized casting and Android Auto integration to companion helper handlers:
+- **`AudioCastHandler`** (`audio_cast_handler.dart`) — Manages the state, session sync, and command redirection when casting to a remote device.
+- **`AudioAndroidAutoBrowserHandler`** (`audio_android_auto_browser_handler.dart`) — Builds the hierarchical content browse tree and handles voice-activated searches for Android Auto.
 
 **Injected dependencies:**
 - `MusicRepository` — to resolve song metadata
 - `LibraryRepository` — to check local downloads and like status
 - `PlayVideoIdUseCase` — for URL resolution + getVideo fallback
+- `Connectivity` — single shared instance to detect connection state without redundant platform channels
 
 **Media Player:**
 Uses `media_kit` for cross-platform audio and video playback. Includes disk caching for network streams configured natively on `NativePlayer` platform backends, writing cache chunks to the temporary directory `sonora_stream_cache` with a maximum limit of `100MB` for buffer and `50MB` for back-buffer.
@@ -331,21 +339,43 @@ The `extras` field on `MediaItem` carries additional metadata:
 | `artistId` | String? | Song resolution | Navigation to artist page |
 | `albumId` | String? | Song resolution | Navigation to album page |
 
-### 6.4 Casting
+### 6.4 Casting & Session Synchronization (`audio_cast_handler.dart`)
 
-Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, Smart TVs) using `dart_cast`.
+Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, Smart TVs) using `dart_cast`. The casting engine is managed by `AudioCastHandler`, which bridges the main audio handler with the remote casting session.
 
 **Discovery:**
 `CastNotifier` manages the discovery lifecycle. When `startDiscovery()` is called (typically when opening the `CastDialog`), `SonoraCastService` starts scanning via mDNS (Chromecast) and SSDP (DLNA).
 
-**Session Redirection:**
+**Session Redirection & Dual-Player State Sync:**
 When a device is connected:
 1. Local playback in `SonoraAudioHandler` is paused.
-2. `SonoraAudioHandler` listens to `castStateProvider`. If connected, it redirects playback commands (`play`, `pause`, `seek`) to `SonoraCastService`.
-3. The current media URL (resolved via `PlayVideoIdUseCase`) is sent to the remote device via `loadMedia`.
+2. Playback commands (`play`, `pause`, `skip`, `seek`) are intercepted by `SonoraAudioHandler` and delegated to `AudioCastHandler` which forwards them to `SonoraCastService`.
+3. The queue state is synchronized in two ways:
+   - **Cast Media Resolution**: The current media URL is resolved on demand and sent to the remote device via `loadMedia`.
+   - **Queue Synchronization**: Whenever an item is resolved or changed on the cast device, the local player's queue is modified to match the cast state. On cast disconnection, the local player seamlessly resumes from the exact position and queue alignment of the cast session.
+
+**Concurreny & Race Mitigation:**
+- **Cast Song Token**: Rapid skip/play actions can fire multiple overlapping `castMedia` requests. A token-based cancellation strategy (`_castSongToken`) cancels obsolete cast media loads in-flight.
+- **Error Fallback**: If a URL expires or fails to stream on the Chromecast, `_onPlayerError` refreshes the stream URL and pushes the update directly to the active Chromecast session instead of restarting the local player.
 
 **Alexa Support:**
 Since Echo devices often don't support open casting protocols reliably, Sonora provides a shortcut to **Bluetooth Settings** within the Cast Dialog to facilitate manual pairing for Alexa speakers.
+
+### 6.5 Android Auto Browse Engine (`audio_android_auto_browser_handler.dart`)
+
+The `AudioAndroidAutoBrowserHandler` class handles the integration with Android Auto, implementing the hierarchical music browsing tree and responding to dashboard controls.
+
+**Browse Tree Hierarchy:**
+It exposes four primary root sections to the vehicle's dashboard:
+- **Home**: Adapts based on network connectivity. In online mode, it displays YouTube Music sections mixed with local listening history. In offline mode, it falls back to local history, playlists, followed artists, and liked albums.
+- **Mixes**: Exposes dynamically populated local smart playlists ("Most Played", "Recently Played", "Forgotten Favorites").
+- **Library**: Grants access to favorite songs, followed artists, local and liked playlists, liked albums, recent history, and downloaded songs (capped to 100 items to avoid UI latency).
+- **Explore**: Displays online suggestions, new releases, and similar artists.
+
+**Voice Search Integration:**
+Supports search via keyboard or Google Assistant voice commands (`playFromSearch`):
+- When a search is triggered, it performs parallel queries to resolve songs, videos, artists, and albums.
+- Eagerly resolves and starts playing the first matching song to minimize startup latency, while simultaneously populating the upcoming queue with the remaining search results.
 
 ### 6.5 Internet Connectivity & Offline Playback
 
