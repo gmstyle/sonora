@@ -973,4 +973,11 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get yourMixes => 'I tuoi Mix';
+
+  @override
+  String get useVinylStyle => 'Copertine in stile vinile';
+
+  @override
+  String get useVinylStyleHint =>
+      'Mostra le copertine a forma di disco in vinile rotante nei lettori';
 }

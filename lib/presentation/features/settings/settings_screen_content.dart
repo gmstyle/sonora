@@ -107,6 +107,13 @@ class _AppearanceSection extends StatelessWidget {
           onChanged: notifier.setReduceEffects,
           icon: LucideIcons.cpu,
         ),
+        SettingsSwitchTile(
+          title: AppLocalizations.of(context)!.useVinylStyle,
+          subtitle: AppLocalizations.of(context)!.useVinylStyleHint,
+          value: settings.useVinylStyle,
+          onChanged: notifier.setUseVinylStyle,
+          icon: LucideIcons.disc,
+        ),
       ],
     );
   }
@@ -455,6 +462,7 @@ class _BackupSection extends StatelessWidget {
         'trackHistory': settings.trackHistory,
         'checkUpdatesOnStartup': settings.checkUpdatesOnStartup,
         'isLibraryGridView': settings.isLibraryGridView,
+        'useVinylStyle': settings.useVinylStyle,
       };
       final path = await useCase.execute(settings: settingsMap);
 
@@ -600,6 +608,9 @@ class _BackupSection extends StatelessWidget {
           notifier.setLibraryGridView(
             importedSettings['isLibraryGridView'] as bool,
           );
+        }
+        if (importedSettings.containsKey('useVinylStyle')) {
+          notifier.setUseVinylStyle(importedSettings['useVinylStyle'] as bool);
         }
       }
 

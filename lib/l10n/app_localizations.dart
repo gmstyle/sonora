@@ -1783,6 +1783,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your Mixes'**
   String get yourMixes;
+
+  /// No description provided for @useVinylStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vinyl style artwork'**
+  String get useVinylStyle;
+
+  /// No description provided for @useVinylStyleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a rotating vinyl record design for artwork in player panels'**
+  String get useVinylStyleHint;
 }
 
 class _AppLocalizationsDelegate

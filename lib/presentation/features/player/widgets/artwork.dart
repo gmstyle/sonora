@@ -4,7 +4,10 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../providers/palette_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../providers/player_provider.dart';
 import '../../../providers/video_player_provider.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/vinyl_artwork.dart';
 import 'player_shared_widgets.dart';
 import 'video_player_widget.dart';
 
@@ -45,44 +48,89 @@ class Artwork extends ConsumerWidget {
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
-    final clampedSize = size.clamp(150.0, 600.0);
-    final artworkWidget = buildArtwork(
-      context,
-      artUrl,
-      isSwitching,
-      size,
-      dominantColor,
-      reduceEffects: reduceEffects,
+    final useVinylStyle = ref.watch(
+      settingsProvider.select((s) => s.useVinylStyle),
     );
+    final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
+    final clampedSize = size.clamp(150.0, 600.0);
 
-    return SizedBox(
-      width: clampedSize,
-      height: clampedSize,
-      child: Stack(
-        children: [
-          Positioned.fill(child: artworkWidget),
-          if (showFlipIndicator)
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    width: 1,
+    final artworkWidget =
+        useVinylStyle
+            ? Container(
+              width: clampedSize,
+              height: clampedSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  if (!reduceEffects)
+                    BoxShadow(
+                      color: dominantColor.withValues(alpha: 0.55),
+                      blurRadius: 32,
+                      spreadRadius: 4,
+                      offset: const Offset(0, 8),
+                    ),
+                ],
+              ),
+              child:
+                  isSwitching
+                      ? ClipOval(
+                        child: SizedBox(
+                          width: clampedSize,
+                          height: clampedSize,
+                          child: const ShimmerLoading(
+                            variant: ShimmerVariant.artworkLarge,
+                          ),
+                        ),
+                      )
+                      : VinylArtwork(
+                        imageUrl: artUrl,
+                        size: clampedSize,
+                        isPlaying: isPlaying,
+                        useShadow: false,
+                      ),
+            )
+            : buildArtwork(
+              context,
+              artUrl,
+              isSwitching,
+              size,
+              dominantColor,
+              reduceEffects: reduceEffects,
+            );
+
+    return Center(
+      child: AspectRatio(
+        aspectRatio: 1.0,
+        child: SizedBox(
+          width: clampedSize,
+          height: clampedSize,
+          child: Stack(
+            children: [
+              Positioned.fill(child: artworkWidget),
+              if (showFlipIndicator)
+                Positioned(
+                  top: useVinylStyle ? 24 : 12,
+                  right: useVinylStyle ? 24 : 12,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      LucideIcons.barChart2,
+                      size: 16,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
                   ),
                 ),
-                child: Icon(
-                  LucideIcons.barChart2,
-                  size: 16,
-                  color: Colors.white.withValues(alpha: 0.85),
-                ),
-              ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

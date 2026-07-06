@@ -11,8 +11,8 @@ import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
 import '../widgets/player_error_listener.dart';
 import '../widgets/sonora_logo.dart';
-import '../widgets/thumbnail_widget.dart';
 import '../widgets/scale_button.dart';
+import '../widgets/vinyl_artwork.dart';
 import '../../features/player/full_player_content.dart';
 
 final _icons = [
@@ -256,35 +256,10 @@ String _getLabel(AppLocalizations l10n, int index) {
   ][index];
 }
 
-class _SidebarPlayerIndicator extends ConsumerStatefulWidget {
+class _SidebarPlayerIndicator extends ConsumerWidget {
   final bool isCollapsed;
 
   const _SidebarPlayerIndicator({required this.isCollapsed});
-
-  @override
-  ConsumerState<_SidebarPlayerIndicator> createState() =>
-      _SidebarPlayerIndicatorState();
-}
-
-class _SidebarPlayerIndicatorState
-    extends ConsumerState<_SidebarPlayerIndicator>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _rotationController;
-
-  @override
-  void initState() {
-    super.initState();
-    _rotationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    );
-  }
-
-  @override
-  void dispose() {
-    _rotationController.dispose();
-    super.dispose();
-  }
 
   void _openFullPlayer(BuildContext context) {
     Navigator.of(context).push(
@@ -313,80 +288,24 @@ class _SidebarPlayerIndicatorState
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(playerStateProvider);
     final currentSong = playerState.currentSong;
 
     if (currentSong == null) return const SizedBox.shrink();
 
-    if (playerState.isPlaying) {
-      if (!_rotationController.isAnimating) {
-        _rotationController.repeat();
-      }
-    } else {
-      if (_rotationController.isAnimating) {
-        _rotationController.stop();
-      }
-    }
-
-    final vinylWidget = ScaleButton(
+    final vinylWidget = VinylArtwork(
+      imageUrl: currentSong.artUri?.toString(),
+      size: isCollapsed ? 44 : 52,
+      isPlaying: playerState.isPlaying,
       onTap: () => _openFullPlayer(context),
-      child: Tooltip(
-        message:
-            widget.isCollapsed
-                ? '${currentSong.title} - ${currentSong.artist ?? ''}'
-                : 'Apri lettore',
-        child: RotationTransition(
-          turns: _rotationController,
-          child: Container(
-            width: widget.isCollapsed ? 44 : 52,
-            height: widget.isCollapsed ? 44 : 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: ClipOval(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  ThumbnailWidget(
-                    imageUrl: currentSong.artUri?.toString(),
-                    size: widget.isCollapsed ? 44 : 52,
-                    shape: ThumbnailShape.rounded,
-                  ),
-                  Container(
-                    width: widget.isCollapsed ? 10 : 12,
-                    height: widget.isCollapsed ? 10 : 12,
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 3,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      tooltipMessage:
+          isCollapsed
+              ? '${currentSong.title} - ${currentSong.artist ?? ''}'
+              : 'Apri lettore',
     );
 
-    if (widget.isCollapsed) {
+    if (isCollapsed) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 20),
         child: Center(child: vinylWidget),

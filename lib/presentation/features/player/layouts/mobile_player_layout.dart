@@ -141,6 +141,10 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                                               ? (animation.value - 1.0) * pi
                                               : (1.0 - animation.value) * pi;
 
+                                      if (angle == 0.0) {
+                                        return child ?? const SizedBox.shrink();
+                                      }
+
                                       return Transform(
                                         transform:
                                             Matrix4.identity()

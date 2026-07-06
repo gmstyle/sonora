@@ -10,6 +10,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/vinyl_artwork.dart';
 import 'full_player_content.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/player_shared_widgets.dart';
@@ -76,6 +77,9 @@ class PlayerSheetMobile extends ConsumerWidget {
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
+    final useVinylStyle = ref.watch(
+      settingsProvider.select((s) => s.useVinylStyle),
+    );
 
     final innerContent = Column(
       mainAxisSize: MainAxisSize.min,
@@ -105,6 +109,8 @@ class PlayerSheetMobile extends ConsumerWidget {
                           radius: 8,
                           cs: cs,
                           isVideo: isVideo,
+                          isPlaying: isPlaying,
+                          useVinylStyle: useVinylStyle,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -256,12 +262,16 @@ class _MiniArtwork extends ConsumerWidget {
   final double radius;
   final ColorScheme cs;
   final bool isVideo;
+  final bool isPlaying;
+  final bool useVinylStyle;
 
   const _MiniArtwork({
     required this.artUrl,
     required this.size,
     required this.radius,
     required this.cs,
+    required this.isPlaying,
+    required this.useVinylStyle,
     this.isVideo = false,
   });
 
@@ -275,6 +285,14 @@ class _MiniArtwork extends ConsumerWidget {
         borderRadius: BorderRadius.circular(radius),
         fit: BoxFit.cover,
         showControls: false,
+      );
+    }
+    if (useVinylStyle && !isVideo) {
+      return VinylArtwork(
+        imageUrl: artUrl,
+        size: size,
+        isPlaying: isPlaying,
+        useShadow: false,
       );
     }
     return ClipRRect(

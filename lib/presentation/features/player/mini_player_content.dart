@@ -11,6 +11,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/vinyl_artwork.dart';
 import '../../shared/widgets/video_badge.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../providers/settings_provider.dart';
@@ -558,6 +559,17 @@ class MiniPlayerContent extends ConsumerWidget {
         borderRadius: BorderRadius.circular(radius),
         fit: BoxFit.cover,
         showControls: false,
+      );
+    }
+    final useVinylStyle = ref.watch(
+      settingsProvider.select((s) => s.useVinylStyle),
+    );
+    if (useVinylStyle && !isVideo) {
+      return VinylArtwork(
+        imageUrl: currentSong.artUri?.toString(),
+        size: size,
+        isPlaying: playerState.isPlaying,
+        useShadow: false,
       );
     }
     return ClipRRect(

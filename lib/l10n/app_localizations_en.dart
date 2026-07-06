@@ -968,4 +968,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yourMixes => 'Your Mixes';
+
+  @override
+  String get useVinylStyle => 'Vinyl style artwork';
+
+  @override
+  String get useVinylStyleHint =>
+      'Use a rotating vinyl record design for artwork in player panels';
 }
