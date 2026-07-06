@@ -77,6 +77,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   double _lastSetVolume = 1.0;
   int _retryCount = 0;
   bool _isRetrying = false;
+  // Tracks the videoId of the last retried track so we can reset _retryCount
+  // when a new track errors, even if _onPlaylistChanged's reset was suppressed
+  // by _isResolvingItem being true during a concurrent URL resolution.
+  String? _lastRetriedVideoId;
   bool _isStopping = false;
   bool _isCurrentSongLiked = false;
   bool _playOnInterruptionEnd = false;
@@ -552,7 +556,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
     }
 
-    _resolvePendingItems(index);
+    unawaited(
+      _resolvePendingItems(index).catchError(
+        (Object e) => dev.log('[AudioHandler] _resolvePendingItems error: $e'),
+      ),
+    );
 
     if (!_isResolvingItem) {
       final items =
@@ -903,6 +911,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
 
       await _player.jump(index);
+      // If the user wanted playback but the player is still paused after the
+      // jump (e.g., tap an item while paused), resume — but only when not in
+      // cast mode, since castSong (fired from _onPlaylistChanged) owns resumption.
+      if (_userWantsPlaying &&
+          !_player.state.playing &&
+          _castHandler.castState?.connectionState !=
+              CastConnectionState.connected) {
+        await play();
+      }
     } catch (e) {
       _endTransitionMute();
       rethrow;
@@ -1137,8 +1154,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> addAllToQueue(List<MediaItem> items) async {
-    for (final item in items) {
-      await _player.add(_toMedia(item));
+    if (items.isEmpty) return;
+    // Guard with _resolvingItemCount so _onPlaylistChanged suppresses
+    // intermediate queue syncs and disk writes during the batch add.
+    _resolvingItemCount++;
+    try {
+      for (final item in items) {
+        await _player.add(_toMedia(item));
+      }
+    } finally {
+      _resolvingItemCount--;
+      _syncQueue();
+      if (!_isResolvingItem) _updatePlaybackState();
     }
   }
 
@@ -1162,6 +1189,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (oldIndex < 0 || oldIndex >= len) return;
     if (newIndex < 0 || newIndex >= len) return;
 
+    // A queue reorder shifts indices; invalidate the pending skip target so
+    // the next skipToNext/Prev computes the correct index from scratch.
+    _targetSkipIndex = null;
+
     final toIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
     await _player.move(oldIndex, toIndex);
   }
@@ -1181,16 +1212,27 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _onPlayerError(String error) async {
-    if (_isRetrying || _retryCount >= 1) {
-      return;
-    }
+    // Always lift any pending transition mute on error so the player does not
+    // remain permanently muted (e.g., when a URL resolve fails inside playNow).
+    _endTransitionMute();
+
     final currentItem = mediaItem.value;
     final videoId = currentItem?.extras?['videoId'] as String?;
-    if (videoId == null) {
+    if (videoId == null) return;
+
+    // If this is a different track than the last retried one, reset the counter.
+    // This ensures a new track always gets its one retry attempt, even when
+    // _onPlaylistChanged's trackChanged reset was suppressed by _isResolvingItem.
+    if (_lastRetriedVideoId != videoId) {
+      _retryCount = 0;
+    }
+
+    if (_isRetrying || _retryCount >= 1) {
       return;
     }
 
     _isRetrying = true;
+    _lastRetriedVideoId = videoId;
     _retryCount++;
     try {
       final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
@@ -1275,7 +1317,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _onPlayErrorController.add((videoId, currentItem?.title ?? videoId));
       if (_player.state.playlist.medias.length >
           _player.state.playlist.index + 1) {
-        await _player.next();
+        // Use skipToNext() instead of _player.next() so the cast device is
+        // also advanced when a session is active.
+        await skipToNext();
       } else {
         await _player.stop();
       }
