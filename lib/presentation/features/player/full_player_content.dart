@@ -78,6 +78,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final availableHeight =

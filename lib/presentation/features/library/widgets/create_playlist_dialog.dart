@@ -45,6 +45,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AlertDialog(
+      scrollable: true,
       title: Text(widget.title),
       content: TextField(
         controller: _controller,
