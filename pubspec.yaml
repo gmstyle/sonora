@@ -45,7 +45,7 @@ dependencies:
   go_router: ^17.2.3
 
   # ── Local Database ────────────────────────────────────────────
-  drift: ^2.33.0
+  drift: ^2.34.1
   drift_flutter: ^0.3.0
 
   # ── File System & Permissions ─────────────────────────────────
@@ -61,10 +61,10 @@ dependencies:
   flutter_svg: ^2.3.0
 
   # ── Sharing ───────────────────────────────────────────────────
-  share_plus: ^12.0.2
+  share_plus: ^13.2.0
 
   # ── App Info & Update Check ───────────────────────────────────
-  package_info_plus: ^9.0.1
+  package_info_plus: ^10.2.0
   url_launcher: ^6.3.1
   
 
@@ -86,13 +86,13 @@ dependencies:
   disable_battery_optimization: ^1.1.2
 
   # ── Localizzazione ────────────────────────────────────────────
-  intl: ^0.20.2
+  intl: any
 
   # ── Backup ──────────────────────────────────────
   archive: ^4.0.9
 
   # ── File Picker ──────────────────────────────────────────────
-  file_picker: ^11.0.2
+  file_picker: ^12.0.0-beta.7
 
   # ── Notifications ────────────────────────────────────────────────
   flutter_local_notifications: ^22.0.1
@@ -103,7 +103,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  drift_dev: ^2.33.0
+  drift_dev: ^2.34.0
   build_runner: ^2.4.15
   flutter_native_splash: ^2.4.7
   flutter_launcher_icons: ^0.14.4
