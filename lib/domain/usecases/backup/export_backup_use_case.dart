@@ -10,7 +10,9 @@ class ExportBackupUseCase {
 
   ExportBackupUseCase(this.libraryRepository);
 
-  Future<String> execute({Map<String, dynamic>? settings}) async {
+  Future<Map<String, dynamic>> buildBackupMap({
+    Map<String, dynamic>? settings,
+  }) async {
     final likedSongs = await libraryRepository.getAllLikedSongs();
     final followedArtists = await libraryRepository.getAllFollowedArtists();
     final likedAlbums = await libraryRepository.getAllLikedAlbums();
@@ -40,7 +42,7 @@ class ExportBackupUseCase {
               .toList();
     }
 
-    final data = <String, dynamic>{
+    return <String, dynamic>{
       'version': 2,
       'exportedAt': DateTime.now().toIso8601String(),
       'likedSongs':
@@ -136,6 +138,10 @@ class ExportBackupUseCase {
               .toList(),
       'settings': settings,
     };
+  }
+
+  Future<String> execute({Map<String, dynamic>? settings}) async {
+    final data = await buildBackupMap(settings: settings);
 
     final jsonString = jsonEncode(data);
     final jsonBytes = utf8.encode(jsonString);

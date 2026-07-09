@@ -574,6 +574,66 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get localSync => 'Sincronizzazione Locale (Wi-Fi)';
+
+  @override
+  String get localSyncEnabled => 'Visibilità locale';
+
+  @override
+  String get localSyncEnabledHint =>
+      'Consenti ad altri dispositivi Sonora sulla stessa rete Wi-Fi di sincronizzare i dati della libreria. Le impostazioni rimangono locali.';
+
+  @override
+  String get syncNow => 'Sincronizza Libreria';
+
+  @override
+  String get syncNowHint =>
+      'Trova altri dispositivi Sonora sulla rete Wi-Fi e unisci i dati della libreria (Mi Piace, playlist, cronologia). Le impostazioni non vengono sincronizzate.';
+
+  @override
+  String get searchingDevices => 'Ricerca dispositivi…';
+
+  @override
+  String get noDevicesFound =>
+      'Nessun dispositivo Sonora trovato sulla rete locale';
+
+  @override
+  String get incomingSyncRequestTitle => 'Richiesta di Sincronizzazione';
+
+  @override
+  String incomingSyncRequestMsg(String name, String ip) {
+    return 'Il dispositivo \"$name\" ($ip) desidera sincronizzare la sua libreria con questo dispositivo. Vuoi unire e sincronizzare i dati?';
+  }
+
+  @override
+  String get accept => 'Consenti';
+
+  @override
+  String get reject => 'Rifiuta';
+
+  @override
+  String get syncSuccess => 'Libreria sincronizzata con successo!';
+
+  @override
+  String syncFailed(String error) {
+    return 'Sincronizzazione fallita: $error';
+  }
+
+  @override
+  String get syncingData => 'Sincronizzazione in corso...';
+
+  @override
+  String get devicesFound => 'Dispositivi trovati:';
+
+  @override
+  String get syncRejected =>
+      'La richiesta di sincronizzazione è stata rifiutata dal dispositivo remoto.';
+
+  @override
+  String get connectionError =>
+      'Impossibile connettersi al dispositivo remoto. Verifica che entrambi i dispositivi siano sulla stessa rete Wi-Fi.';
+
+  @override
   String get updates => 'Aggiornamenti';
 
   @override
@@ -875,9 +935,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get castToDevice => 'Invia a un dispositivo';
-
-  @override
-  String get searchingDevices => 'Ricerca dispositivi…';
 
   @override
   String get disconnect => 'Disconnetti';

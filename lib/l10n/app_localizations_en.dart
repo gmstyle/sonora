@@ -570,6 +570,65 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get localSync => 'Local Synchronization (Wi-Fi)';
+
+  @override
+  String get localSyncEnabled => 'Local Visibility';
+
+  @override
+  String get localSyncEnabledHint =>
+      'Allow other Sonora devices on the local Wi-Fi to sync library data. Settings remain local.';
+
+  @override
+  String get syncNow => 'Sync Library';
+
+  @override
+  String get syncNowHint =>
+      'Find other Sonora devices on the Wi-Fi to merge library data (likes, playlists, history). Settings are not synced.';
+
+  @override
+  String get searchingDevices => 'Searching for devices…';
+
+  @override
+  String get noDevicesFound => 'No Sonora devices found on local network';
+
+  @override
+  String get incomingSyncRequestTitle => 'Sync Request';
+
+  @override
+  String incomingSyncRequestMsg(String name, String ip) {
+    return 'The device \"$name\" ($ip) wants to synchronize its library with this device. Do you want to merge and sync data?';
+  }
+
+  @override
+  String get accept => 'Accept';
+
+  @override
+  String get reject => 'Reject';
+
+  @override
+  String get syncSuccess => 'Library synchronized successfully!';
+
+  @override
+  String syncFailed(String error) {
+    return 'Synchronization failed: $error';
+  }
+
+  @override
+  String get syncingData => 'Syncing library...';
+
+  @override
+  String get devicesFound => 'Devices found:';
+
+  @override
+  String get syncRejected =>
+      'The synchronization request was rejected by the remote device.';
+
+  @override
+  String get connectionError =>
+      'Could not connect to the remote device. Verify both devices are on the same Wi-Fi.';
+
+  @override
   String get updates => 'Updates';
 
   @override
@@ -870,9 +929,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get castToDevice => 'Cast to a device';
-
-  @override
-  String get searchingDevices => 'Searching for devices…';
 
   @override
   String get disconnect => 'Disconnect';

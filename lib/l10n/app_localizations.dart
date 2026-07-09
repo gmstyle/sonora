@@ -1064,6 +1064,108 @@ abstract class AppLocalizations {
   /// **'Import failed: {error}'**
   String importFailed(String error);
 
+  /// No description provided for @localSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Synchronization (Wi-Fi)'**
+  String get localSync;
+
+  /// No description provided for @localSyncEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Visibility'**
+  String get localSyncEnabled;
+
+  /// No description provided for @localSyncEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow other Sonora devices on the local Wi-Fi to sync library data. Settings remain local.'**
+  String get localSyncEnabledHint;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Library'**
+  String get syncNow;
+
+  /// No description provided for @syncNowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Find other Sonora devices on the Wi-Fi to merge library data (likes, playlists, history). Settings are not synced.'**
+  String get syncNowHint;
+
+  /// No description provided for @searchingDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for devices…'**
+  String get searchingDevices;
+
+  /// No description provided for @noDevicesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No Sonora devices found on local network'**
+  String get noDevicesFound;
+
+  /// No description provided for @incomingSyncRequestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Request'**
+  String get incomingSyncRequestTitle;
+
+  /// No description provided for @incomingSyncRequestMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'The device \"{name}\" ({ip}) wants to synchronize its library with this device. Do you want to merge and sync data?'**
+  String incomingSyncRequestMsg(String name, String ip);
+
+  /// No description provided for @accept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get accept;
+
+  /// No description provided for @reject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get reject;
+
+  /// No description provided for @syncSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Library synchronized successfully!'**
+  String get syncSuccess;
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Synchronization failed: {error}'**
+  String syncFailed(String error);
+
+  /// No description provided for @syncingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing library...'**
+  String get syncingData;
+
+  /// No description provided for @devicesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices found:'**
+  String get devicesFound;
+
+  /// No description provided for @syncRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The synchronization request was rejected by the remote device.'**
+  String get syncRejected;
+
+  /// No description provided for @connectionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the remote device. Verify both devices are on the same Wi-Fi.'**
+  String get connectionError;
+
   /// No description provided for @updates.
   ///
   /// In en, this message translates to:
@@ -1603,12 +1705,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cast to a device'**
   String get castToDevice;
-
-  /// No description provided for @searchingDevices.
-  ///
-  /// In en, this message translates to:
-  /// **'Searching for devices…'**
-  String get searchingDevices;
 
   /// No description provided for @disconnect.
   ///

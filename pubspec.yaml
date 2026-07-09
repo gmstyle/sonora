@@ -98,6 +98,9 @@ dependencies:
   flutter_local_notifications: ^22.0.1
   flutter_local_notifications_linux: ^8.0.1
   
+  # ── Local Synchronization ────────────────────────────────────────
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
 
 dev_dependencies:
   flutter_test:

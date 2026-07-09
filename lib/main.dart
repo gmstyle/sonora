@@ -28,6 +28,7 @@ import 'data/datasources/remote/ytmusic_datasource.dart';
 import 'data/repositories/library_repository_impl.dart';
 import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
+import 'data/services/sync_service.dart';
 import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
@@ -39,8 +40,10 @@ import 'presentation/providers/metadata_sync_service.dart';
 import 'presentation/providers/play_video_id_use_case_provider.dart';
 import 'presentation/providers/player_provider.dart';
 import 'presentation/providers/settings_provider.dart';
+import 'presentation/providers/sync_provider.dart';
 import 'presentation/providers/cast_provider.dart';
 import 'presentation/providers/stream_datasource_provider.dart';
+
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
 import 'presentation/providers/ytmusic_provider.dart';
@@ -230,6 +233,52 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     );
   }
 
+  void _showIncomingSyncRequestDialog(
+    BuildContext context,
+    WidgetRef ref,
+    SyncRequest request,
+  ) {
+    final navContext = rootNavigatorKey.currentContext;
+    if (navContext == null) return;
+    final l10n = AppLocalizations.of(navContext)!;
+
+    showDialog(
+      context: navContext,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.incomingSyncRequestTitle),
+          content: Text(
+            l10n.incomingSyncRequestMsg(request.clientName, request.clientIp),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                ref
+                    .read(syncNotifierProvider.notifier)
+                    .respondToIncomingRequest(false);
+              },
+              child: Text(l10n.reject),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                ref
+                    .read(syncNotifierProvider.notifier)
+                    .respondToIncomingRequest(true);
+                ScaffoldMessenger.of(
+                  navContext,
+                ).showSnackBar(SnackBar(content: Text(l10n.syncingData)));
+              },
+              child: Text(l10n.accept),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _requestNotificationPermission() async {
     if (!isAndroid) return;
     try {
@@ -242,6 +291,15 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
   @override
   Widget build(BuildContext context) {
     ref.watch(metadataSyncServiceProvider);
+
+    ref.listen(syncNotifierProvider.select((s) => s.activeIncomingRequest), (
+      previous,
+      next,
+    ) {
+      if (next != null && previous != next) {
+        _showIncomingSyncRequestDialog(context, ref, next);
+      }
+    });
 
     ref.listen(playerStateProvider, (prev, next) {
       if (isLinux) {

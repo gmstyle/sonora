@@ -302,6 +302,34 @@
       "error": {"type": "String"}
     }
   },
+  "localSync": "Local Synchronization (Wi-Fi)",
+  "localSyncEnabled": "Local Visibility",
+  "localSyncEnabledHint": "Allow other Sonora devices on the local Wi-Fi to sync library data. Settings remain local.",
+  "syncNow": "Sync Library",
+  "syncNowHint": "Find other Sonora devices on the Wi-Fi to merge library data (likes, playlists, history). Settings are not synced.",
+  "searchingDevices": "Searching for Sonora devices...",
+  "noDevicesFound": "No Sonora devices found on local network",
+  "incomingSyncRequestTitle": "Sync Request",
+  "incomingSyncRequestMsg": "The device \"{name}\" ({ip}) wants to synchronize its library with this device. Do you want to merge and sync data?",
+  "@incomingSyncRequestMsg": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "ip": {"type": "String"}
+    }
+  },
+  "accept": "Accept",
+  "reject": "Reject",
+  "syncSuccess": "Library synchronized successfully!",
+  "syncFailed": "Synchronization failed: {error}",
+  "@syncFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "syncingData": "Syncing library...",
+  "devicesFound": "Devices found:",
+  "syncRejected": "The synchronization request was rejected by the remote device.",
+  "connectionError": "Could not connect to the remote device. Verify both devices are on the same Wi-Fi.",
   "updates": "Updates",
   "checkOnStartup": "Check on startup",
   "checkOnStartupHint": "Auto-check for updates (max once per 24h)",

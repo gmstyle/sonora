@@ -21,6 +21,7 @@ import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
 import 'settings_shared.dart';
+import 'widgets/local_sync_bottom_sheet.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
   const SettingsScreenContent({super.key});
@@ -425,21 +426,42 @@ class _BackupSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(settingsProvider);
+
     return SettingsSection(
-      title: AppLocalizations.of(context)!.backupRestore,
+      title: l10n.backupRestore,
       children: [
         SettingsButtonTile(
-          title: AppLocalizations.of(context)!.exportData,
-          subtitle: AppLocalizations.of(context)!.exportDataHint,
+          title: l10n.exportData,
+          subtitle: l10n.exportDataHint,
           icon: LucideIcons.fileUp,
           onPressed: () => _exportData(context),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
-          title: AppLocalizations.of(context)!.importData,
-          subtitle: AppLocalizations.of(context)!.importDataHint,
+          title: l10n.importData,
+          subtitle: l10n.importDataHint,
           icon: LucideIcons.fileDown,
           onPressed: () => _importData(context),
+        ),
+        const Divider(height: 1),
+        SettingsSwitchTile(
+          title: l10n.localSyncEnabled,
+          subtitle: l10n.localSyncEnabledHint,
+          value: settings.localSyncEnabled,
+          icon: LucideIcons.wifi,
+          onChanged:
+              (value) => ref
+                  .read(settingsProvider.notifier)
+                  .setLocalSyncEnabled(value),
+        ),
+        const Divider(height: 1),
+        SettingsButtonTile(
+          title: l10n.localSync,
+          subtitle: l10n.syncNowHint,
+          icon: LucideIcons.refreshCw,
+          onPressed: () => LocalSyncBottomSheet.show(context),
         ),
       ],
     );
@@ -463,6 +485,8 @@ class _BackupSection extends StatelessWidget {
         'checkUpdatesOnStartup': settings.checkUpdatesOnStartup,
         'isLibraryGridView': settings.isLibraryGridView,
         'useVinylStyle': settings.useVinylStyle,
+        'reduceEffects': settings.reduceEffects,
+        'offlineMode': settings.offlineMode,
       };
       final path = await useCase.execute(settings: settingsMap);
 
@@ -611,6 +635,12 @@ class _BackupSection extends StatelessWidget {
         }
         if (importedSettings.containsKey('useVinylStyle')) {
           notifier.setUseVinylStyle(importedSettings['useVinylStyle'] as bool);
+        }
+        if (importedSettings.containsKey('reduceEffects')) {
+          notifier.setReduceEffects(importedSettings['reduceEffects'] as bool);
+        }
+        if (importedSettings.containsKey('offlineMode')) {
+          notifier.setOfflineMode(importedSettings['offlineMode'] as bool);
         }
       }
 

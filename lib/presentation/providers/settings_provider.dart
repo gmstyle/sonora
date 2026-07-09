@@ -29,6 +29,7 @@ class Settings {
   final bool reduceEffects;
   final bool offlineMode;
   final bool useVinylStyle;
+  final bool localSyncEnabled;
 
   const Settings({
     this.themeMode = ThemeMode.system,
@@ -47,6 +48,7 @@ class Settings {
     this.reduceEffects = false,
     this.offlineMode = false,
     this.useVinylStyle = true,
+    this.localSyncEnabled = false,
   });
 
   Settings copyWith({
@@ -66,6 +68,7 @@ class Settings {
     bool? reduceEffects,
     bool? offlineMode,
     bool? useVinylStyle,
+    bool? localSyncEnabled,
     bool clearDownloadPath = false,
   }) {
     return Settings(
@@ -88,6 +91,7 @@ class Settings {
       reduceEffects: reduceEffects ?? this.reduceEffects,
       offlineMode: offlineMode ?? this.offlineMode,
       useVinylStyle: useVinylStyle ?? this.useVinylStyle,
+      localSyncEnabled: localSyncEnabled ?? this.localSyncEnabled,
     );
   }
 
@@ -117,6 +121,7 @@ class SettingsNotifier extends Notifier<Settings> {
       reduceEffects: _prefs.getBool(kReduceEffectsKey) ?? false,
       offlineMode: _prefs.getBool(kOfflineModeKey) ?? false,
       useVinylStyle: _prefs.getBool(kUseVinylStyleKey) ?? true,
+      localSyncEnabled: _prefs.getBool(kLocalSyncEnabledKey) ?? false,
     );
   }
 
@@ -141,6 +146,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kReduceEffectsKey, state.reduceEffects);
     await _prefs.setBool(kOfflineModeKey, state.offlineMode);
     await _prefs.setBool(kUseVinylStyleKey, state.useVinylStyle);
+    await _prefs.setBool(kLocalSyncEnabledKey, state.localSyncEnabled);
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -232,6 +238,11 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(useVinylStyle: value);
     await _save();
   }
+
+  Future<void> setLocalSyncEnabled(bool value) async {
+    state = state.copyWith(localSyncEnabled: value);
+    await _save();
+  }
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
@@ -256,6 +267,7 @@ const kIsLibraryGridViewKey = 'isLibraryGridView';
 const kReduceEffectsKey = 'reduceEffects';
 const kOfflineModeKey = 'offlineMode';
 const kUseVinylStyleKey = 'useVinylStyle';
+const kLocalSyncEnabledKey = 'localSyncEnabled';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 
 // ── Battery Optimization (Android only) ───────────────────────────
