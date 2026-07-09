@@ -21,12 +21,13 @@ class DownloadsScreen extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= kExpandedBreakpoint;
-        final isTablet = constraints.maxWidth >= kCompactBreakpoint;
+        final screenWidth = constraints.maxWidth;
+        final isWide = screenWidth >= kExpandedBreakpoint;
+        final isTablet = screenWidth >= kCompactBreakpoint;
+        final isCompact = screenWidth < kCompactBreakpoint;
 
-        return Scaffold(
-          appBar: AppBar(title: Text(AppLocalizations.of(context)!.downloads)),
-          body: allDownloadsAsync.when(
+        Widget contentWidget(bool inCard) {
+          return allDownloadsAsync.when(
             loading:
                 () => ListView.builder(
                   itemCount: 6,
@@ -48,7 +49,8 @@ class DownloadsScreen extends ConsumerWidget {
                 return _EmptyState(isTablet: isTablet);
               }
 
-              final crossAxisCount = isWide ? 3 : (isTablet ? 2 : 1);
+              final crossAxisCount =
+                  inCard ? 1 : (isWide ? 3 : (isTablet ? 2 : 1));
 
               return CustomScrollView(
                 slivers: [
@@ -67,6 +69,61 @@ class DownloadsScreen extends ConsumerWidget {
                 ],
               );
             },
+          );
+        }
+
+        if (isCompact) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.downloads),
+            ),
+            body: contentWidget(false),
+          );
+        }
+
+        final theme = Theme.of(context);
+        return Scaffold(
+          backgroundColor: theme.colorScheme.surface,
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 48.0 : 16.0,
+                vertical: isWide ? 32.0 : 16.0,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1240),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                    ),
+                  ),
+                  color: theme.colorScheme.surfaceContainerLow,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                          child: Text(
+                            AppLocalizations.of(context)!.downloads,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: contentWidget(true)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         );
       },
