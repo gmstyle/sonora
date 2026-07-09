@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../l10n/app_localizations.dart';
 
 // ── Section container ────────────────────────────────────────────
 
@@ -277,3 +278,81 @@ const kLanguageCodes = <String, String>{
   'uk': 'Ukrainian',
   'vi': 'Vietnamese',
 };
+
+// ── Settings categories ──────────────────────────────────────────
+
+enum SettingsCategory {
+  appearance,
+  playback,
+  downloads,
+  privacy,
+  backup,
+  about,
+}
+
+extension SettingsCategoryExtension on SettingsCategory {
+  String getTitle(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (this) {
+      case SettingsCategory.appearance:
+        return l10n.appearance;
+      case SettingsCategory.playback:
+        return l10n.playback;
+      case SettingsCategory.downloads:
+        return l10n.downloadsSettings;
+      case SettingsCategory.privacy:
+        return l10n.privacy;
+      case SettingsCategory.backup:
+        return l10n.backupRestore;
+      case SettingsCategory.about:
+        return l10n.about;
+    }
+  }
+
+  String getSubtitle(BuildContext context) {
+    final isIt = Localizations.localeOf(context).languageCode == 'it';
+    switch (this) {
+      case SettingsCategory.appearance:
+        return isIt
+            ? 'Tema, AMOLED, colori e stile del vinile'
+            : 'Theme, AMOLED, colors and vinyl style';
+      case SettingsCategory.playback:
+        return isIt
+            ? 'Dissolvenza, Up Next, paese e lingua'
+            : 'Crossfade, Up Next, country and language';
+      case SettingsCategory.downloads:
+        return isIt
+            ? 'Cartella, Wi-Fi e batteria background'
+            : 'Folder, Wi-Fi and background battery';
+      case SettingsCategory.privacy:
+        return isIt
+            ? 'Cronologia di ascolto e ricerca'
+            : 'Listening and search history';
+      case SettingsCategory.backup:
+        return isIt
+            ? 'Esportazione, importazione e sincronizzazione locale'
+            : 'Export, import and local synchronization';
+      case SettingsCategory.about:
+        return isIt
+            ? 'Versione, licenze, aggiornamenti e donazioni'
+            : 'Version, licenses, updates and donations';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case SettingsCategory.appearance:
+        return LucideIcons.palette;
+      case SettingsCategory.playback:
+        return LucideIcons.sliders;
+      case SettingsCategory.downloads:
+        return LucideIcons.download;
+      case SettingsCategory.privacy:
+        return LucideIcons.shield;
+      case SettingsCategory.backup:
+        return LucideIcons.refreshCw;
+      case SettingsCategory.about:
+        return LucideIcons.info;
+    }
+  }
+}

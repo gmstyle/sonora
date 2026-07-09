@@ -28,25 +28,126 @@ class SettingsScreenContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      itemCount: SettingsCategory.values.length,
+      itemBuilder: (context, index) {
+        final category = SettingsCategory.values[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
+            leading: Icon(category.icon, color: theme.colorScheme.primary),
+            title: Text(
+              category.getTitle(context),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text(
+              category.getSubtitle(context),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            trailing: const Icon(LucideIcons.chevronRight),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => SettingsCategoryScreen(category: category),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SettingsCategoryScreen extends StatelessWidget {
+  final SettingsCategory category;
+
+  const SettingsCategoryScreen({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(category.getTitle(context)),
+        centerTitle: false,
+      ),
+      body: SettingsCategoryContent(category: category),
+    );
+  }
+}
+
+class SettingsCategoryContent extends ConsumerWidget {
+  final SettingsCategory category;
+
+  const SettingsCategoryContent({super.key, required this.category});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
 
-    return ListView(
-      children: [
-        _AppearanceSection(settings: settings, notifier: notifier),
-        _ContentSection(settings: settings, notifier: notifier),
-        _ConnectionSection(settings: settings, notifier: notifier),
-        _PlaybackSection(settings: settings, notifier: notifier),
-        _DownloadSection(settings: settings, notifier: notifier),
-        if (isAndroid) const _BatterySection(),
-        _PrivacySection(settings: settings, notifier: notifier, ref: ref),
-        _BackupSection(ref: ref),
-        _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
-        _SupportSection(),
-        _AboutSection(),
-        const SizedBox(height: 32),
-      ],
-    );
+    switch (category) {
+      case SettingsCategory.appearance:
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            _AppearanceSection(settings: settings, notifier: notifier),
+          ],
+        );
+      case SettingsCategory.playback:
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            _PlaybackSection(settings: settings, notifier: notifier),
+            _ContentSection(settings: settings, notifier: notifier),
+            _ConnectionSection(settings: settings, notifier: notifier),
+          ],
+        );
+      case SettingsCategory.downloads:
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            _DownloadSection(settings: settings, notifier: notifier),
+            if (isAndroid) const _BatterySection(),
+          ],
+        );
+      case SettingsCategory.privacy:
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            _PrivacySection(settings: settings, notifier: notifier, ref: ref),
+          ],
+        );
+      case SettingsCategory.backup:
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [_BackupSection(ref: ref)],
+        );
+      case SettingsCategory.about:
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
+            _SupportSection(),
+            _AboutSection(),
+          ],
+        );
+    }
   }
 }
 
