@@ -42,6 +42,7 @@ Sonora is a cross-platform music and video streaming app built with Flutter. It 
 - **Auto-update** — automatic update check via GitHub Releases
 - **Headless CLI** — control Sonora from the terminal: search, play, download, and manage library without the GUI
 - **Backup & restore** — export and import your local library
+- **P2P Local Synchronization** — synchronize your music library (likes, playlists, history) peer-to-peer over Wi-Fi between multiple Sonora instances (Android & Linux) without cloud dependencies
 - **Localization** — Italian and English
 
 ---

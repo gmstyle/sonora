@@ -72,7 +72,8 @@ lib/
 │   │   ├── library_repository_impl.dart
 │   │   └── queue_repository_impl.dart
 │   └── services/
-│       └── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
+│       ├── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
+│       └── sync_service.dart           # P2P local synchronization service
 ├── domain/
 │   ├── models/
 │   │   └── library_models.dart         # 10 PODO (LikedSong, FollowedArtist, ...History, SearchHistory)
@@ -83,7 +84,8 @@ lib/
 │   └── usecases/
 │       ├── backup/
 │       │   ├── export_backup_use_case.dart
-│       │   └── import_backup_use_case.dart
+│       │   ├── import_backup_use_case.dart
+│       │   └── merge_library_use_case.dart # SQLite database merge
 │       ├── download/
 │       │   └── start_download_use_case.dart
 │       ├── home/
@@ -105,9 +107,10 @@ lib/
 └── presentation/
     ├── app/
     │   └── router.dart                  # go_router StatefulShellRoute
-    ├── providers/                       # 26 provider files
+    ├── providers/                       # 27 provider files
     │   ├── player_provider.dart          # PlayerNotifier + PlayerState + PlayerSubView
     │   ├── cast_provider.dart            # CastNotifier + CastState (discovery/session)
+    │   ├── sync_provider.dart            # SyncNotifier + SyncState (P2P synchronization)
     │   ├── settings_provider.dart        # SettingsNotifier (SharedPreferences)
     │   ├── theme_provider.dart           # themeModeProvider, lightThemeProvider, darkThemeProvider
     │   ├── library_notifier.dart         # CRUD library
@@ -779,3 +782,42 @@ bash packaging/linux/build-packages.sh --format all
 ```
 
 The CI/CD `release.yml` workflow handles everything automatically on push to `main`.
+
+---
+
+## 19. P2P Local Synchronization
+
+Sonora implements a peer-to-peer (P2P) local synchronization mechanism to sync the user's music library (likes, custom playlists, listening history, search history) directly over Wi-Fi between two devices (Android & Linux) running the application.
+
+### 19.1 Architecture & Flow
+
+The sync process is divided into discovery and data transfer:
+
+1. **Discovery (UDP Sockets)**:
+   - When the user opens the Sync Dialog, the app starts listening on UDP port `53530`.
+   - The scanning client broadcasts a `SONORA_DISCOVERY_REQUEST` packet to the subnet on port `53530`.
+   - Listening servers respond with a unicast message formatted as: `SONORA_DISCOVERY_RESPONSE;<friendly_device_name>;<http_server_port>`.
+   - The scanner parses this response and adds the device to the list.
+
+2. **Data Sync Server (Shelf)**:
+   - When **Local Sync** is toggled ON in Settings, `SonoraSyncService` boots a local HTTP `shelf` server bound to a dynamic free port.
+   - The server exposes a `POST /api/sync/merge` endpoint to receive library sync requests.
+   - When a request is received, the server extracts the payload containing the remote library details.
+   - A global approval prompt is shown to the user on the receiving device via `main.dart`'s incoming request stream. If accepted, it invokes `MergeLibraryUseCase` to merge the SQLite data.
+
+3. **Client Request**:
+   - The client serializes its local Drift DB data in memory (similar to the backup mechanism but without writing files to disk) and POSTs it to the target device's `/api/sync/merge` endpoint.
+   - Once the server processes and merges the data, it returns its own merged library payload back to the client, allowing both devices to stay fully in sync (mutual two-way sync).
+
+### 19.2 Key Classes
+
+- `SonoraSyncService` ([sync_service.dart](file:///home/gmstyle/VisualStudioCodeProjects/sonora/lib/data/services/sync_service.dart)): Direct interface with raw sockets and HTTP servers. Controls server/client lifecycles and parses UDP payloads.
+- `MergeLibraryUseCase` ([merge_library_use_case.dart](file:///home/gmstyle/VisualStudioCodeProjects/sonora/lib/domain/usecases/backup/merge_library_use_case.dart)): Deep SQLite library merging logic. Merges liked songs, artists, playlists, albums, local playlists, history, and search histories. Uses database transactions to ensure data consistency.
+- `SyncNotifier` ([sync_provider.dart](file:///home/gmstyle/VisualStudioCodeProjects/sonora/lib/presentation/providers/sync_provider.dart)): Riverpod notifier representing the P2P sync state machine (`SyncState`). Operates reactively and toggles the local server on/off based on the persistent `localSyncEnabled` settings provider.
+
+### 19.3 User Experience & Error Handling
+
+- **Device Naming**: Automatically generates a friendly name based on OS and environment (e.g. `"Sonora (gmstyle - Linux)"` by reading the host's `USER` env variable, or `"Sonora (Android)"`), preventing loopback IP aliases (`"localhost"` or DHCP router hostnames) from cluttering the UI.
+- **Friendly Exceptions**: Dio connection errors or rejected requests (HTTP 403) are caught and mapped to user-friendly translated labels.
+- **Debug Inspection**: Technical exceptions (stack traces/raw errors) are only displayed in the UI when compiled in debug mode (`kDebugMode` is true). In release builds, only clean and descriptive localized alerts are presented to the user.
+
