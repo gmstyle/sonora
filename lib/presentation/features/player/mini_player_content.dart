@@ -315,70 +315,95 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         // LEFT — artwork + title/artist (tap to open full player)
-                        if (isSidebarExpanded)
-                          const Spacer(flex: 3)
-                        else
-                          Expanded(
-                            flex: 3,
-                            child: GestureDetector(
-                              onTap: isSwitching ? null : onTap,
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 12),
-                                  _artwork(
-                                    size: 56,
-                                    radius: 8,
-                                    cs: cs,
-                                    ref: ref,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                        Expanded(
+                          flex: 3,
+                          child: AnimatedCrossFade(
+                            firstChild: AnimatedSlide(
+                              offset:
+                                  isSidebarExpanded
+                                      ? const Offset(-0.2, 0.0)
+                                      : Offset.zero,
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeInOut,
+                              child: AnimatedOpacity(
+                                opacity: isSidebarExpanded ? 0.0 : 1.0,
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeInOut,
+                                child: IgnorePointer(
+                                  ignoring: isSidebarExpanded,
+                                  child: GestureDetector(
+                                    onTap: isSwitching ? null : onTap,
+                                    child: Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                currentSong.title,
+                                        const SizedBox(width: 12),
+                                        _artwork(
+                                          size: 56,
+                                          radius: 8,
+                                          cs: cs,
+                                          ref: ref,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      currentSong.title,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: theme
+                                                          .textTheme
+                                                          .titleSmall
+                                                          ?.copyWith(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                      maxLines: 1,
+                                                    ),
+                                                  ),
+                                                  if (currentSong
+                                                          .extras?['isExplicit'] ==
+                                                      true)
+                                                    const ExplicitBadge(
+                                                      leading: SizedBox(
+                                                        width: 6,
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              Text(
+                                                currentSong.artist ?? '',
                                                 overflow: TextOverflow.ellipsis,
-                                                style: theme
-                                                    .textTheme
-                                                    .titleSmall
+                                                style: theme.textTheme.bodySmall
                                                     ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                                      color:
+                                                          cs.onSurfaceVariant,
                                                     ),
                                                 maxLines: 1,
                                               ),
-                                            ),
-                                            if (currentSong
-                                                    .extras?['isExplicit'] ==
-                                                true)
-                                              const ExplicitBadge(
-                                                leading: SizedBox(width: 6),
-                                              ),
-                                          ],
-                                        ),
-                                        Text(
-                                          currentSong.artist ?? '',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: cs.onSurfaceVariant,
-                                              ),
-                                          maxLines: 1,
+                                            ],
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
+                            secondChild: const SizedBox.shrink(),
+                            crossFadeState:
+                                isSidebarExpanded
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
+                            duration: const Duration(milliseconds: 250),
                           ),
+                        ),
                         // CENTER — controls + progress + time
                         Expanded(
                           flex: 4,

@@ -305,60 +305,90 @@ class _SidebarPlayerIndicator extends ConsumerWidget {
               : 'Apri lettore',
     );
 
-    if (isCollapsed) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          children: [
-            vinylWidget,
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _openFullPlayer(context),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      currentSong.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+    return IgnorePointer(
+      ignoring: isCollapsed,
+      child: AnimatedOpacity(
+        opacity: isCollapsed ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        child: AnimatedAlign(
+          alignment: Alignment.topCenter,
+          heightFactor: isCollapsed ? 0.0 : 1.0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          child: AnimatedSlide(
+            offset: isCollapsed ? const Offset(0.2, 0.0) : Offset.zero,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: 196,
+                    child: Row(
+                      children: [
+                        vinylWidget,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _openFullPlayer(context),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  currentSong.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  currentSong.artist ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _MiniWaveform(isPlaying: playerState.isPlaying),
+                        const SizedBox(width: 4),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      currentSong.artist ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            _MiniWaveform(isPlaying: playerState.isPlaying),
-            const SizedBox(width: 4),
-          ],
+          ),
         ),
       ),
     );
