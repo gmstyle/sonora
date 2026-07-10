@@ -33,9 +33,18 @@ class Artwork extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final videoState = ref.watch(videoPlayerProvider);
     if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
+      final double videoWidth;
+      final double videoHeight;
+      if (videoState.aspectRatio > 1.0) {
+        videoWidth = size;
+        videoHeight = size / videoState.aspectRatio;
+      } else {
+        videoHeight = size;
+        videoWidth = size * videoState.aspectRatio;
+      }
       return SonoraVideoPlayer(
-        width: size,
-        height: size / videoState.aspectRatio,
+        width: videoWidth,
+        height: videoHeight,
         borderRadius: BorderRadius.circular(12),
         autoFullscreenOnLandscape: true,
       );

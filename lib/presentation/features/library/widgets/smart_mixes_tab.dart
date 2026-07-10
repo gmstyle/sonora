@@ -22,13 +22,13 @@ class SmartMixesTab extends ConsumerWidget {
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: 0.68,
+              childAspectRatio: 0.64,
             )
             : const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 170.0,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: 0.68,
+              childAspectRatio: 0.64,
             );
 
     return CustomScrollView(

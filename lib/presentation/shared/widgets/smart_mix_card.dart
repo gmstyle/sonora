@@ -173,13 +173,15 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
-              Text(
-                mixDesc,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Flexible(
+                child: Text(
+                  mixDesc,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
