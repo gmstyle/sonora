@@ -1,7 +1,8 @@
 import 'dart:io';
+import '../../../data/services/media_cache_service.dart';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/utils/connectivity_utils.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
 
@@ -55,7 +56,7 @@ class PlayVideoIdUseCase {
     }
 
     // 2. If not downloaded, fail fast if offline
-    final offline = await _isOffline();
+    final offline = await ConnectivityUtils.isOffline();
     if (offline) {
       throw const SocketException(
         'Offline: internet connection is required to stream music.',
@@ -154,8 +155,18 @@ class PlayVideoIdUseCase {
       } catch (_) {}
     }
 
+    // Check temporary media cache
+    try {
+      final cachedUri = await MediaCacheService.instance.getCachedFileUri(
+        videoId,
+      );
+      if (cachedUri != null) {
+        return cachedUri;
+      }
+    } catch (_) {}
+
     // Fail fast if offline
-    final offline = await _isOffline();
+    final offline = await ConnectivityUtils.isOffline();
     if (offline) {
       throw const SocketException('Offline: cannot resolve stream URL.');
     }
@@ -167,15 +178,5 @@ class PlayVideoIdUseCase {
   /// Used when metadata (title, artist, etc.) is already available from the UI.
   Future<String> resolveStreamUrl(String videoId) async {
     return _repo.getStreamUrl(videoId).timeout(const Duration(seconds: 10));
-  }
-
-  Future<bool> _isOffline() async {
-    try {
-      final results = await Connectivity().checkConnectivity();
-      return results.isEmpty ||
-          (results.length == 1 && results.contains(ConnectivityResult.none));
-    } catch (_) {
-      return true; // Safe fallback: assume offline
-    }
   }
 }

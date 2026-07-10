@@ -222,6 +222,7 @@ No widget ever directly calls `ref.read(*repositoryProvider)`. Allowed paths:
 ### 4.3 Error Handling
 
 The domain layer uses `sealed class Failure` for typed errors (Server, Cache, Network, Unknown). The presentation layer uses:
+
 - `ErrorRetryWidget` for inline error states
 - `SnackBar` / `FeedbackToast` for contextual errors
 - `PlayerNotifier.hasError` / `errorMessage` for playback errors
@@ -238,6 +239,7 @@ Fields like `playCount`, `viewCount`, `subscriberCount` come from the API in mix
 ### 4.5 Localization
 
 ARB files in `lib/l10n/`: `app_en.arb` (primary) + `app_it.arb`. After modification:
+
 ```bash
 flutter gen-l10n
 ```
@@ -270,6 +272,7 @@ dart run build_runner build --delete-conflicting-outputs
 ```
 
 Generated file: `database.g.dart`. **Every table modification** requires:
+
 1. Increment `schemaVersion` in `database.dart`
 2. Add migration in `MigrationStrategy.onUpgrade`
 3. Re-run `build_runner`
@@ -281,10 +284,12 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 ### 6.1 `SonoraAudioHandler` (audio_handler.dart)
 
 Extends `BaseAudioHandler` from `audio_service`. It coordinates local playback, manages the playlist queue structure, and delegates specialized casting and Android Auto integration to companion helper handlers:
+
 - **`AudioCastHandler`** (`audio_cast_handler.dart`) — Manages the state, session sync, and command redirection when casting to a remote device.
 - **`AudioAndroidAutoBrowserHandler`** (`audio_android_auto_browser_handler.dart`) — Builds the hierarchical content browse tree and handles voice-activated searches for Android Auto.
 
 **Injected dependencies:**
+
 - `MusicRepository` — to resolve song metadata
 - `LibraryRepository` — to check local downloads and like status
 - `PlayVideoIdUseCase` — for URL resolution + getVideo fallback
@@ -297,9 +302,10 @@ Uses `media_kit` for cross-platform audio and video playback. Includes disk cach
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When `currentIndexStream` changes, `_resolvePendingItems` resolves the URL for the current item (`currentIndex`) and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background `_lookaheadTimer` triggers to pre-resolve `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
 
 **Dart-Side Shuffle & Race Condition Protection:**
-*   **Custom Shuffle**: Because `media_kit`'s native `next()` method jumps to `currentIndex + 1` sequentially (ignoring mpv's internal shuffle state), custom shuffle is implemented on the Dart side. When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` and `PlayerNotifier`'s completed listener select a random index. A `_shuffledHistory` list tracks previously played indices so that `skipToPrevious()` can step backward along the exact shuffled path.
-*   **Rapid Skip Protection**: During rapid manual skips, the asynchronous `_player.state.playlist.index` does not update fast enough, causing subsequent taps to calculate target indices using stale player state. We use a synchronous `_targetSkipIndex` to keep track of the target index during transitions, ensuring each rapid tap resolves and jumps to the correct item.
-*   **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
+
+- **Custom Shuffle**: Because `media_kit`'s native `next()` method jumps to `currentIndex + 1` sequentially (ignoring mpv's internal shuffle state), custom shuffle is implemented on the Dart side. When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` and `PlayerNotifier`'s completed listener select a random index. A `_shuffledHistory` list tracks previously played indices so that `skipToPrevious()` can step backward along the exact shuffled path.
+- **Rapid Skip Protection**: During rapid manual skips, the asynchronous `_player.state.playlist.index` does not update fast enough, causing subsequent taps to calculate target indices using stale player state. We use a synchronous `_targetSkipIndex` to keep track of the target index during transitions, ensuring each rapid tap resolves and jumps to the correct item.
+- **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
 
 **Auto-skip on error:**
 If the stream URL expires or fails, the handler retries with a fresh URL. If the retry also fails, it auto-skips to the next song and notifies via `_onPlayErrorController`.
@@ -354,6 +360,7 @@ Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, S
 
 **Session Redirection & Dual-Player State Sync:**
 When a device is connected:
+
 1. Local playback in `SonoraAudioHandler` is paused.
 2. Playback commands (`play`, `pause`, `skip`, `seek`) are intercepted by `SonoraAudioHandler` and delegated to `AudioCastHandler` which forwards them to `SonoraCastService`.
 3. The queue state is synchronized in two ways:
@@ -361,6 +368,7 @@ When a device is connected:
    - **Queue Synchronization**: Whenever an item is resolved or changed on the cast device, the local player's queue is modified to match the cast state. On cast disconnection, the local player seamlessly resumes from the exact position and queue alignment of the cast session.
 
 **Concurreny & Race Mitigation:**
+
 - **Cast Song Token**: Rapid skip/play actions can fire multiple overlapping `castMedia` requests. A token-based cancellation strategy (`_castSongToken`) cancels obsolete cast media loads in-flight.
 - **Error Fallback**: If a URL expires or fails to stream on the Chromecast, `_onPlayerError` refreshes the stream URL and pushes the update directly to the active Chromecast session instead of restarting the local player.
 
@@ -373,6 +381,7 @@ The `AudioAndroidAutoBrowserHandler` class handles the integration with Android 
 
 **Browse Tree Hierarchy:**
 It exposes four primary root sections to the vehicle's dashboard:
+
 - **Home**: Adapts based on network connectivity. In online mode, it displays YouTube Music sections mixed with local listening history. In offline mode, it falls back to local history, playlists, followed artists, and liked albums.
 - **Mixes**: Exposes dynamically populated local smart playlists ("Most Played", "Recently Played", "Forgotten Favorites").
 - **Library**: Grants access to favorite songs, followed artists, local and liked playlists, liked albums, recent history, and downloaded songs (capped to 100 items to avoid UI latency).
@@ -380,6 +389,7 @@ It exposes four primary root sections to the vehicle's dashboard:
 
 **Voice Search Integration:**
 Supports search via keyboard or Google Assistant voice commands (`playFromSearch`):
+
 - When a search is triggered, it performs parallel queries to resolve songs, videos, artists, and albums.
 - Eagerly resolves and starts playing the first matching song to minimize startup latency, while simultaneously populating the upcoming queue with the remaining search results.
 
@@ -404,12 +414,12 @@ Sonora monitors network state globally using `connectivity_plus` and local user 
 
 Sonora features a software-based **5-Band Equalizer** integrated directly into the `media_kit` playback pipeline via custom FFmpeg `superequalizer` audio filters.
 
-* **Filter Orchestration**: Adjustments to band gains are translated to an FFmpeg filtergraph string:
+- **Filter Orchestration**: Adjustments to band gains are translated to an FFmpeg filtergraph string:
   `superequalizer=1b=G1:2b=G2:3b=G3:4b=G4:5b=G5`
   where `G1` to `G5` represent the decibel gain adjustments (clamped between `-12.0` and `12.0` dB) for the respective frequency ranges (Bass, Mid-Bass, Mid, Mid-High, High).
-* **Native Platform Application**: The filter is applied dynamically to the active `Player` instance via the `_player.setAudioFilter(...)` method.
-* **Equalizer State**: Managed via `EqualizerNotifier` and persisted locally in `Settings` using `SharedPreferences`.
-* **Presets**: Offers predefined gain tables for common genres (e.g., Rock, Pop, Classical, Bass Boost, Vocals).
+- **Native Platform Application**: The filter is applied dynamically to the active `Player` instance via the `_player.setAudioFilter(...)` method.
+- **Equalizer State**: Managed via `EqualizerNotifier` and persisted locally in `Settings` using `SharedPreferences`.
+- **Presets**: Offers predefined gain tables for common genres (e.g., Rock, Pop, Classical, Bass Boost, Vocals).
 
 ---
 
@@ -444,14 +454,14 @@ The player is a `DraggableScrollableSheet` living **above** the shell — it is 
 
 To offer a premium, native-feeling user experience on both mobile and wide screens, panels that present temporary secondary configurations are adaptive:
 
-*   **Adaptive Breakpoint**: Evaluated dynamically using the screen width against `kExpandedBreakpoint` (1200.0 dp).
-*   **Mobile / Tablet (<1200dp)**: Rendered as a modal bottom sheet (`showModalBottomSheet`) that slides up from the bottom.
-*   **Desktop / Wide (>=1200dp)**: Rendered as a centered modal dialog (`showDialog`) with a fixed maximum width, visual dark backdrop overlay, and a prominent exit button (`X`).
-*   **Affected Overlays**:
-    *   **Equalizer** (`EqualizerPanel`)
-    *   **Local Synchronization** (`LocalSyncPanel`)
-    *   **Device Casting** (`CastDialog`)
-    *   **Sleep Timer** (`showPlayerTimerDialog` inside `PlayerSharedWidgets`)
+- **Adaptive Breakpoint**: Evaluated dynamically using the screen width against `kExpandedBreakpoint` (1200.0 dp).
+- **Mobile / Tablet (<1200dp)**: Rendered as a modal bottom sheet (`showModalBottomSheet`) that slides up from the bottom.
+- **Desktop / Wide (>=1200dp)**: Rendered as a centered modal dialog (`showDialog`) with a fixed maximum width, visual dark backdrop overlay, and a prominent exit button (`X`).
+- **Affected Overlays**:
+- **Equalizer** (`EqualizerPanel`)
+- **Local Synchronization** (`LocalSyncPanel`)
+- **Device Casting** (`CastDialog`)
+- **Sleep Timer** (`showPlayerTimerDialog` inside `PlayerSharedWidgets`)
 
 ---
 
@@ -477,6 +487,7 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 The release workflow can be simulated locally with [`act`](https://github.com/nektos/act) before pushing to `main`.
 
 **Prerequisites:**
+
 - `podman` (v5+), with socket enabled: `systemctl --user enable --now podman.socket`
 - `act` v0.2+ installed from [GitHub releases](https://github.com/nektos/act/releases)
 
@@ -496,6 +507,7 @@ act -j release --dryrun
 The `validate` job runs the full Flutter analysis + 124 tests inside a container mimicking the GitHub runner. The `release` job requires the `production` environment and GitHub secrets (`KEYSTORE_BASE64`, etc.), so it cannot run end-to-end locally — use `--dryrun` to verify step sequencing and conditional execution.
 
 **Packaging test (no container):**
+
 ```bash
 flutter build linux --release
 bash packaging/linux/build-packages.sh --format all --skip-build
@@ -615,6 +627,7 @@ AudioServiceConfig(
 ### 11.1 System Tray
 
 `LinuxTrayService` uses `tray_manager` for:
+
 - Tray icon with play/pause state
 - Context menu: Show, Play/Pause, Next, Previous, Quit
 - `window_manager` with `setPreventClose(true)` — close → hide to tray
@@ -633,12 +646,14 @@ bash packaging/linux/build-packages.sh --format all
 ```
 
 Produces:
+
 | Format | File | Install command |
 |--------|------|----------------|
 | **DEB** | `build/packages/sonora_<version>-<build>_amd64.deb` | `sudo dpkg -i build/packages/sonora_*.deb` <br> `sudo apt install -f` (auto-resolve deps) |
 | **RPM** | `build/packages/sonora-<version>-<build>.x86_64.rpm` | `sudo dnf install build/packages/sonora-*.x86_64.rpm` |
 
 **Layout** (both formats):
+
 - Binary → `/opt/sonora/sonora`
 - Symlink → `/usr/bin/sonora` (PATH access)
 - Desktop entry → `/usr/share/applications/com.gmstyle.sonora.desktop`
@@ -647,11 +662,13 @@ Produces:
 - Post-install → `gtk-update-icon-cache` + `update-desktop-database`
 
 **Dependencies** (auto-resolved by the package manager):
+
 - `libgtk-3-0` / `gtk3` — GTK3 runtime
 - `libayatana-appindicator3-1` / `libappindicator-gtk3` — System tray icon
 - `libmpv2` / `mpv-libs` — media_kit audio backend
 
 **Options:**
+
 - `--format deb|rpm|all` — select package format
 - `--skip-build` — skip `flutter build linux --release` if bundle already exists
 
@@ -726,6 +743,7 @@ dart_ytmusic_api:
 ```
 
 To update:
+
 ```bash
 flutter pub upgrade dart_ytmusic_api
 ```
@@ -859,30 +877,30 @@ Sonora features a local-first **Listening Statistics** dashboard and an interact
 
 ### 20.1 Offline Data Aggregation
 
-*   **Database Query**: The dashboard listens to a real-time reactive Stream of the `history` table (`db.history`), which triggers recalculations automatically when new songs are listened to.
-*   **Listening Time Calculation**:
-    *   For each history row, the total listening time is calculated as `duration * playCount`.
-    *   If a song doesn't have a duration set, Sonora uses a standard estimate of **3.5 minutes (210 seconds)** to prevent gaps in the statistics.
-*   **Top Items**:
-    *   **Top Songs**: History items sorted by `playCount` descending, limited to 5.
-    *   **Top Artists**: History items grouped by `artist` name, summing their play counts, and sorted in descending order. It also retrieves the latest available artist thumbnail from the tracks history.
-*   **Activity Charts**:
-    *   **Hourly Distribution**: Accumulates play counts into 24 bins corresponding to the hour of `playedAt` (0-23).
-    *   **Weekly Distribution**: Accumulates play counts into 7 bins corresponding to the weekday of `playedAt` (Monday-Sunday).
-*   **Availability Guard**: The "Sonora Wrapped" is unlocked only when the user's local database contains at least **3 unique tracks** and a total listening duration of at least **5 minutes**.
+- **Database Query**: The dashboard listens to a real-time reactive Stream of the `history` table (`db.history`), which triggers recalculations automatically when new songs are listened to.
+- **Listening Time Calculation**:
+- For each history row, the total listening time is calculated as `duration * playCount`.
+- If a song doesn't have a duration set, Sonora uses a standard estimate of **3.5 minutes (210 seconds)** to prevent gaps in the statistics.
+- **Top Items**:
+- **Top Songs**: History items sorted by `playCount` descending, limited to 5.
+- **Top Artists**: History items grouped by `artist` name, summing their play counts, and sorted in descending order. It also retrieves the latest available artist thumbnail from the tracks history.
+- **Activity Charts**:
+- **Hourly Distribution**: Accumulates play counts into 24 bins corresponding to the hour of `playedAt` (0-23).
+- **Weekly Distribution**: Accumulates play counts into 7 bins corresponding to the weekday of `playedAt` (Monday-Sunday).
+- **Availability Guard**: The "Sonora Wrapped" is unlocked only when the user's local database contains at least **3 unique tracks** and a total listening duration of at least **5 minutes**.
 
 ### 20.2 Sonora Wrapped Stories UI (`sonora_wrapped_view.dart`)
 
 The Wrapped features a story-style sequential slide transition mechanism (similar to Instagram/Spotify Stories) designed with a glassmorphic aesthetic:
 
-*   **Slide Sequencing**: Handled using a state machine (`_currentSlide` from 0 to 4) and a `Timer` ticking progress indicators (5 bars) at the top of the viewport.
-*   **Story Timeline**:
-    *   **Slide 0 (Intro)**: A neon gradient background with a spinning vinyl disc animation.
-    *   **Slide 1 (Duration)**: Total minutes of listening time animated from 0 to the target count using a `TweenAnimationBuilder`.
-    *   **Slide 2 (Top Artist)**: Highlights the top artist with a large visual avatar and total play count.
-    *   **Slide 3 (Top Songs)**: Lists the top 5 most listened songs with index badges.
-    *   **Slide 4 (Summary & Share)**: Provides a consolidated summary card and integrates with `SharePlus` to let users share their musical summary.
-*   **Interactions**:
-    *   Tap on the left 30% of the screen: Go back one slide.
-    *   Tap on the right 70% of the screen: Go forward / skip to the next slide.
-    *   Press the top-right `X` button: Close/Exit the Wrapped flow.
+- **Slide Sequencing**: Handled using a state machine (`_currentSlide` from 0 to 4) and a `Timer` ticking progress indicators (5 bars) at the top of the viewport.
+- **Story Timeline**:
+- **Slide 0 (Intro)**: A neon gradient background with a spinning vinyl disc animation.
+- **Slide 1 (Duration)**: Total minutes of listening time animated from 0 to the target count using a `TweenAnimationBuilder`.
+- **Slide 2 (Top Artist)**: Highlights the top artist with a large visual avatar and total play count.
+- **Slide 3 (Top Songs)**: Lists the top 5 most listened songs with index badges.
+- **Slide 4 (Summary & Share)**: Provides a consolidated summary card and integrates with `SharePlus` to let users share their musical summary.
+- **Interactions**:
+- Tap on the left 30% of the screen: Go back one slide.
+- Tap on the right 70% of the screen: Go forward / skip to the next slide.
+- Press the top-right `X` button: Close/Exit the Wrapped flow.

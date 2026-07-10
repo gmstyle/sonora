@@ -13,6 +13,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:io';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../core/utils/connectivity_utils.dart';
+import '../../../data/services/media_cache_service.dart';
 
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
@@ -105,6 +107,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   int? _targetSkipIndex;
   bool _isTransitionMuted = false;
   bool _userWantsPlaying = false;
+  bool _interruptedByNetworkDrop = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   // ── Restore state ──────────────────────────────────────────────────────────
   RestoreStatus _restoreStatus = RestoreStatus.idle;
@@ -191,6 +195,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _setupAudioSession();
     _setupListeners();
     _playerErrorSub = _player.stream.error.listen(_onPlayerError);
+    _connectivitySub = _sharedConnectivity.onConnectivityChanged.listen(
+      _onConnectivityChanged,
+    );
     unawaited(_initPlayerCache());
     unawaited(_ensureReady());
 
@@ -623,15 +630,75 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _resolveSinglePendingItem(currentIndex);
     await _resolveSinglePendingItem(currentIndex + 1);
 
+    // Trigger pre-caching for the resolved upcoming track
+    final playlist = _player.state.playlist;
+    if (currentIndex + 1 < playlist.medias.length) {
+      final media = playlist.medias[currentIndex + 1];
+      final item = media.extras?['mediaItem'] as MediaItem?;
+      final url = item?.extras?['url'] as String?;
+      final needsUrl = item?.extras?['needsUrl'] == true;
+      if (item != null &&
+          url != null &&
+          url.isNotEmpty &&
+          !needsUrl &&
+          !url.startsWith('file://') &&
+          !url.startsWith('http://localhost')) {
+        unawaited(MediaCacheService.instance.downloadToCache(item.id, url));
+      }
+    }
+
+    // Clean up older cache files
+    final activeIds =
+        playlist.medias
+            .skip(currentIndex)
+            .take(5)
+            .map((m) => (m.extras?['mediaItem'] as MediaItem?)?.id)
+            .nonNulls
+            .toList();
+    unawaited(MediaCacheService.instance.cleanOldCacheFiles(activeIds));
+
     _lookaheadTimer?.cancel();
     _lookaheadTimer = Timer(const Duration(seconds: 20), () async {
       final actualIndex = _player.state.playlist.index;
       if (actualIndex == currentIndex && _player.state.playing) {
         await _resolveSinglePendingItem(currentIndex + 2);
+        if (currentIndex + 2 < playlist.medias.length) {
+          final media2 = playlist.medias[currentIndex + 2];
+          final item2 = media2.extras?['mediaItem'] as MediaItem?;
+          final url2 = item2?.extras?['url'] as String?;
+          final needsUrl2 = item2?.extras?['needsUrl'] == true;
+          if (item2 != null &&
+              url2 != null &&
+              url2.isNotEmpty &&
+              !needsUrl2 &&
+              !url2.startsWith('file://') &&
+              !url2.startsWith('http://localhost')) {
+            unawaited(
+              MediaCacheService.instance.downloadToCache(item2.id, url2),
+            );
+          }
+        }
+
         await Future.delayed(const Duration(seconds: 3));
         final finalIndex = _player.state.playlist.index;
         if (finalIndex == currentIndex && _player.state.playing) {
           await _resolveSinglePendingItem(currentIndex + 3);
+          if (currentIndex + 3 < playlist.medias.length) {
+            final media3 = playlist.medias[currentIndex + 3];
+            final item3 = media3.extras?['mediaItem'] as MediaItem?;
+            final url3 = item3?.extras?['url'] as String?;
+            final needsUrl3 = item3?.extras?['needsUrl'] == true;
+            if (item3 != null &&
+                url3 != null &&
+                url3.isNotEmpty &&
+                !needsUrl3 &&
+                !url3.startsWith('file://') &&
+                !url3.startsWith('http://localhost')) {
+              unawaited(
+                MediaCacheService.instance.downloadToCache(item3.id, url3),
+              );
+            }
+          }
         }
       }
     });
@@ -655,7 +722,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (!_pendingResolutions.add(videoId)) return;
     _resolvingItemCount++;
     try {
-      final url = await _playVideoIdUseCase.resolveUrl(videoId);
+      // Background items timeout in 5 seconds, active item timeouts in 10 seconds.
+      final isCurrent = index == playlist.index;
+      final url = await _playVideoIdUseCase
+          .resolveUrl(videoId)
+          .timeout(Duration(seconds: isCurrent ? 10 : 5));
 
       final playlist2 = _player.state.playlist;
       if (index >= playlist2.medias.length) return;
@@ -735,6 +806,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
     } catch (e) {
       dev.log('[AudioHandler] Failed to resolve URL for item at $index: $e');
+      final playlist3 = _player.state.playlist;
+      if (index == playlist3.index) {
+        await _handlePlaybackConnectionFailure(videoId, item.title);
+      }
     } finally {
       _resolvingItemCount--;
       _pendingResolutions.remove(videoId);
@@ -757,6 +832,71 @@ class SonoraAudioHandler extends BaseAudioHandler {
             mediaItem.add(item);
           }
         }
+      }
+    }
+  }
+
+  Future<void> _handlePlaybackConnectionFailure(
+    String videoId,
+    String title,
+  ) async {
+    _interruptedByNetworkDrop = true;
+    final playlist = _player.state.playlist;
+    final currentIndex = playlist.index;
+    if (currentIndex < 0) return;
+
+    // Scan remaining queue for a playable offline/cached track
+    int targetIndex = -1;
+    for (int i = currentIndex + 1; i < playlist.medias.length; i++) {
+      final mediaItem = playlist.medias[i].extras?['mediaItem'] as MediaItem?;
+      final url = mediaItem?.extras?['url'] as String?;
+      final needsUrl = mediaItem?.extras?['needsUrl'] == true;
+      final isLocal = url != null && url.startsWith('file://');
+
+      bool isCached = false;
+      if (mediaItem != null) {
+        final cachedUri = await MediaCacheService.instance.getCachedFileUri(
+          mediaItem.id,
+        );
+        isCached = cachedUri != null;
+      }
+
+      if (isLocal || isCached || !needsUrl) {
+        targetIndex = i;
+        break;
+      }
+    }
+
+    if (targetIndex != -1) {
+      dev.log(
+        '[AudioHandler] Connection failed. Advancing queue index to offline track at $targetIndex.',
+      );
+      await skipToQueueItem(targetIndex);
+    } else {
+      dev.log(
+        '[AudioHandler] Connection failed and no offline tracks found. Stopping playback.',
+      );
+      await _player.stop();
+      _onPlayErrorController.add((videoId, title));
+    }
+  }
+
+  void _onConnectivityChanged(List<ConnectivityResult> results) async {
+    if (!_interruptedByNetworkDrop) return;
+    if (results.isEmpty ||
+        (results.length == 1 && results.contains(ConnectivityResult.none))) {
+      return;
+    }
+
+    final isOnline = await ConnectivityUtils.isOnline();
+    if (isOnline && _interruptedByNetworkDrop) {
+      dev.log('[AudioHandler] Network connection restored. Auto-resuming...');
+      _interruptedByNetworkDrop = false;
+      final currentIndex = _player.state.playlist.index;
+      if (currentIndex >= 0 &&
+          currentIndex < _player.state.playlist.medias.length) {
+        await _resolveSinglePendingItem(currentIndex, forceResolve: true);
+        await play();
       }
     }
   }
@@ -1341,15 +1481,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
       }
     } catch (e) {
-      _onPlayErrorController.add((videoId, currentItem?.title ?? videoId));
-      if (_player.state.playlist.medias.length >
-          _player.state.playlist.index + 1) {
-        // Use skipToNext() instead of _player.next() so the cast device is
-        // also advanced when a session is active.
-        await skipToNext();
-      } else {
-        await _player.stop();
-      }
+      await _handlePlaybackConnectionFailure(
+        videoId,
+        currentItem?.title ?? videoId,
+      );
     } finally {
       _isRetrying = false;
     }
@@ -1516,6 +1651,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = true;
     _lookaheadTimer?.cancel();
     _playerErrorSub?.cancel();
+    _connectivitySub?.cancel();
     _onPlayErrorController.close();
     _restoreStatusController.close();
     _player.dispose();
