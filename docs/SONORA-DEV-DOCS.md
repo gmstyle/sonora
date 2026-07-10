@@ -1,6 +1,6 @@
 # SONORA — Developer Documentation
 
-> **Ultima aggiornamento**: 2026-07-01 10:57 | **Version**: 1.3.4+24 | **Status**: Release-ready | **Platforms**: Android + Linux
+> **Ultimo aggiornamento**: 2026-07-10 18:00 | **Version**: 1.5.0+35 | **Status**: Release-ready | **Platforms**: Android + Linux
 
 ---
 
@@ -107,11 +107,12 @@ lib/
 └── presentation/
     ├── app/
     │   └── router.dart                  # go_router StatefulShellRoute
-    ├── providers/                       # 27 provider files
+    ├── providers/                       # 28 provider files
     │   ├── player_provider.dart          # PlayerNotifier + PlayerState + PlayerSubView
     │   ├── cast_provider.dart            # CastNotifier + CastState (discovery/session)
     │   ├── sync_provider.dart            # SyncNotifier + SyncState (P2P synchronization)
     │   ├── settings_provider.dart        # SettingsNotifier (SharedPreferences)
+    │   ├── stats_provider.dart           # StatsNotifier + StatsState (listening stats calculator)
     │   ├── theme_provider.dart           # themeModeProvider, lightThemeProvider, darkThemeProvider
     │   ├── library_notifier.dart         # CRUD library
     │   ├── download_provider.dart        # Download progress (DownloadsNotifier)
@@ -134,10 +135,12 @@ lib/
         │   ├── audio_cast_handler.dart   # Bridge to Chromecast & DLNA casting flow
         │   ├── audio_android_auto_browser_handler.dart # Android Auto browse tree & voice search
         │   ├── player_sheet.dart         # Fullscreen player bottom sheet
-        │   └── widgets/                  # player_slider, controls, cast_dialog, etc.
+        │   └── widgets/                  # player_slider, controls, cast_dialog, equalizer_panel.dart
         ├── library/                      # LibraryScreen + 3 layouts + PlaylistDetailView
+        │   ├── layouts/                  # library_mobile_layout.dart, library_split_layout.dart
+        │   └── widgets/                  # Tab views + stats_tab.dart & sonora_wrapped_view.dart
         ├── downloads/                    # DownloadsScreen (adaptive layout)
-        └── settings/                     # SettingsScreen + 3 layouts
+        └── settings/                     # SettingsScreen + 3 layouts + local_sync_panel.dart
 ```
 
 ---
@@ -397,6 +400,17 @@ Sonora monitors network state globally using `connectivity_plus` and local user 
 - **Error Interception**:
   - `PlayerErrorListener` and `ErrorRetryWidget` intercept raw socket/timeout exceptions and format them into localized user-friendly messages (`weakConnectionError`).
 
+### 6.6 5-Band Equalizer (FFmpeg lavfi Audio Filters)
+
+Sonora features a software-based **5-Band Equalizer** integrated directly into the `media_kit` playback pipeline via custom FFmpeg `superequalizer` audio filters.
+
+* **Filter Orchestration**: Adjustments to band gains are translated to an FFmpeg filtergraph string:
+  `superequalizer=1b=G1:2b=G2:3b=G3:4b=G4:5b=G5`
+  where `G1` to `G5` represent the decibel gain adjustments (clamped between `-12.0` and `12.0` dB) for the respective frequency ranges (Bass, Mid-Bass, Mid, Mid-High, High).
+* **Native Platform Application**: The filter is applied dynamically to the active `Player` instance via the `_player.setAudioFilter(...)` method.
+* **Equalizer State**: Managed via `EqualizerNotifier` and persisted locally in `Settings` using `SharedPreferences`.
+* **Presets**: Offers predefined gain tables for common genres (e.g., Rock, Pop, Classical, Bass Boost, Vocals).
+
 ---
 
 ## 7. Adaptive UI
@@ -425,6 +439,19 @@ Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.
 | 4 | `/settings` | SettingsScreen | — |
 
 The player is a `DraggableScrollableSheet` living **above** the shell — it is not a route. States: collapsed (72dp mini player) ↔ expanded (full player).
+
+### 7.3 Adaptive Overlays (Modal BottomSheets & Dialogs)
+
+To offer a premium, native-feeling user experience on both mobile and wide screens, panels that present temporary secondary configurations are adaptive:
+
+*   **Adaptive Breakpoint**: Evaluated dynamically using the screen width against `kExpandedBreakpoint` (1200.0 dp).
+*   **Mobile / Tablet (<1200dp)**: Rendered as a modal bottom sheet (`showModalBottomSheet`) that slides up from the bottom.
+*   **Desktop / Wide (>=1200dp)**: Rendered as a centered modal dialog (`showDialog`) with a fixed maximum width, visual dark backdrop overlay, and a prominent exit button (`X`).
+*   **Affected Overlays**:
+    *   **Equalizer** (`EqualizerPanel`)
+    *   **Local Synchronization** (`LocalSyncPanel`)
+    *   **Device Casting** (`CastDialog`)
+    *   **Sleep Timer** (`showPlayerTimerDialog` inside `PlayerSharedWidgets`)
 
 ---
 
@@ -649,6 +676,9 @@ Produces:
 | `trackHistory` | bool | true | AudioHandler history insert |
 | `offlineMode` | bool | false | Overrides network state to restrict online calls |
 | `checkUpdatesOnStartup` | bool | true | UpdateNotifier at boot |
+| `equalizerEnabled` | bool | false | AudioHandler filter application |
+| `equalizerGains` | String | "0,0,0,0,0" | AudioHandler filter gains |
+| `equalizerPreset` | String | "flat" | Display preset name in Equalizer UI |
 
 ---
 
@@ -821,3 +851,38 @@ The sync process is divided into discovery and data transfer:
 - **Friendly Exceptions**: Dio connection errors or rejected requests (HTTP 403) are caught and mapped to user-friendly translated labels.
 - **Debug Inspection**: Technical exceptions (stack traces/raw errors) are only displayed in the UI when compiled in debug mode (`kDebugMode` is true). In release builds, only clean and descriptive localized alerts are presented to the user.
 
+---
+
+## 20. Listening Statistics & Sonora Wrapped
+
+Sonora features a local-first **Listening Statistics** dashboard and an interactive **Sonora Wrapped** flow. All statistics and summaries are calculated offline directly from the Drift SQLite database.
+
+### 20.1 Offline Data Aggregation
+
+*   **Database Query**: The dashboard listens to a real-time reactive Stream of the `history` table (`db.history`), which triggers recalculations automatically when new songs are listened to.
+*   **Listening Time Calculation**:
+    *   For each history row, the total listening time is calculated as `duration * playCount`.
+    *   If a song doesn't have a duration set, Sonora uses a standard estimate of **3.5 minutes (210 seconds)** to prevent gaps in the statistics.
+*   **Top Items**:
+    *   **Top Songs**: History items sorted by `playCount` descending, limited to 5.
+    *   **Top Artists**: History items grouped by `artist` name, summing their play counts, and sorted in descending order. It also retrieves the latest available artist thumbnail from the tracks history.
+*   **Activity Charts**:
+    *   **Hourly Distribution**: Accumulates play counts into 24 bins corresponding to the hour of `playedAt` (0-23).
+    *   **Weekly Distribution**: Accumulates play counts into 7 bins corresponding to the weekday of `playedAt` (Monday-Sunday).
+*   **Availability Guard**: The "Sonora Wrapped" is unlocked only when the user's local database contains at least **3 unique tracks** and a total listening duration of at least **5 minutes**.
+
+### 20.2 Sonora Wrapped Stories UI (`sonora_wrapped_view.dart`)
+
+The Wrapped features a story-style sequential slide transition mechanism (similar to Instagram/Spotify Stories) designed with a glassmorphic aesthetic:
+
+*   **Slide Sequencing**: Handled using a state machine (`_currentSlide` from 0 to 4) and a `Timer` ticking progress indicators (5 bars) at the top of the viewport.
+*   **Story Timeline**:
+    *   **Slide 0 (Intro)**: A neon gradient background with a spinning vinyl disc animation.
+    *   **Slide 1 (Duration)**: Total minutes of listening time animated from 0 to the target count using a `TweenAnimationBuilder`.
+    *   **Slide 2 (Top Artist)**: Highlights the top artist with a large visual avatar and total play count.
+    *   **Slide 3 (Top Songs)**: Lists the top 5 most listened songs with index badges.
+    *   **Slide 4 (Summary & Share)**: Provides a consolidated summary card and integrates with `SharePlus` to let users share their musical summary.
+*   **Interactions**:
+    *   Tap on the left 30% of the screen: Go back one slide.
+    *   Tap on the right 70% of the screen: Go forward / skip to the next slide.
+    *   Press the top-right `X` button: Close/Exit the Wrapped flow.

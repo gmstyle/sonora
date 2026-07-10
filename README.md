@@ -34,7 +34,9 @@ Sonora is a cross-platform music and video streaming app built with Flutter. It 
 - **Smart Playlists (Auto-mixes)** — dynamic automatically generated playlists based on listening history (Most Played, Recently Played, Forgotten Favorites)
 - **Listening history** — track your listened songs
 - **Search** — search songs, albums, artists, playlists, and music videos
-- **Adaptive UI** — optimized layouts for mobile, tablet, and wide screens (NavigationBar / NavigationRail / NavigationDrawer)
+- **5-Band Equalizer** — customize audio gain (-12dB to +12dB) across 5 bands (Bass, Mid-Bass, Mid, Mid-High, High) with pre-built presets managed natively through `media_kit` FFmpeg audio filters
+- **Listening Stats & Sonora Wrapped** — offline-first dashboard summarizing total listening time, Top Songs, Top Artists, hourly/weekly listening charts, and a timed Instagram/Spotify-style stories view for sharing your Sonora Wrapped
+- **Adaptive UI & Overlays** — optimized layouts for mobile, tablet, and wide screens (NavigationBar / NavigationRail / NavigationDrawer). Temporary panels (Equalizer, Casting, Sleep Timer, Sync Panel) adaptively display as centered dialogs on wide desktops and modal bottom sheets on mobile.
 - **Themes** — light, dark, and AMOLED themes, with Dynamic Color support on Android 12+
 - **Crossfade** — smooth transitions between songs (configurable duration)
 - **Sleep timer** — stop playback after a set time
