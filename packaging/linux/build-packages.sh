@@ -55,6 +55,14 @@ BUILD_NUMBER=$(echo "$VERSION" | cut -d'+' -f2)
 echo "==> $APP_NAME v$APP_VERSION (build $BUILD_NUMBER)"
 echo ""
 
+# ─── ImageMagick detection ───────────────────────────────────────────────────
+CONVERT_CMD=""
+if command -v magick &>/dev/null; then
+  CONVERT_CMD="magick"
+elif command -v convert &>/dev/null; then
+  CONVERT_CMD="convert"
+fi
+
 # ─── Dependency checks ────────────────────────────────────────────────────────
 if [[ "$FORMAT" == "deb" || "$FORMAT" == "rpm" || "$FORMAT" == "all" ]]; then
   if ! command -v fpm &>/dev/null; then
@@ -90,8 +98,8 @@ cp "$PROJECT_ROOT/assets/logo_full.png" "$STAGING_DIR/opt/$APP_NAME/sonora.png"
 
 # Tray icon (downscale to 48x48 for system tray compatibility)
 cp "$PROJECT_ROOT/assets/icons/tray/tray_icon.png" "$STAGING_DIR/opt/$APP_NAME/tray_icon.png"
-if command -v convert &>/dev/null; then
-  convert "$STAGING_DIR/opt/$APP_NAME/tray_icon.png" \
+if [[ -n "$CONVERT_CMD" ]]; then
+  $CONVERT_CMD "$STAGING_DIR/opt/$APP_NAME/tray_icon.png" \
     -resize 48x48 "$STAGING_DIR/opt/$APP_NAME/tray_icon.png"
 fi
 
@@ -120,8 +128,8 @@ cp "$PROJECT_ROOT/assets/logo_full.svg" \
 
 for SIZE in 48 64 128 256; do
   mkdir -p "$STAGING_DIR/usr/share/icons/hicolor/${SIZE}x${SIZE}/apps"
-  if command -v convert &>/dev/null; then
-    convert "$PROJECT_ROOT/assets/logo_full.png" \
+  if [[ -n "$CONVERT_CMD" ]]; then
+    $CONVERT_CMD "$PROJECT_ROOT/assets/logo_full.png" \
       -resize "${SIZE}x${SIZE}" \
       "$STAGING_DIR/usr/share/icons/hicolor/${SIZE}x${SIZE}/apps/sonora.png"
   else
