@@ -21,7 +21,8 @@ import '../../../shared/widgets/explicit_badge.dart';
 import 'progress_bar_widget.dart';
 import 'cast_button.dart';
 import '../../../providers/equalizer_provider.dart';
-import 'equalizer_bottom_sheet.dart';
+import 'equalizer_panel.dart';
+import '../../../../core/constants/app_constants.dart';
 
 /// Blurred artwork + animated gradient overlay.
 ///
@@ -495,7 +496,7 @@ Widget buildBottomActionsRow(
                   ? Theme.of(context).colorScheme.primary
                   : theme.colorScheme.onSurfaceVariant,
         ),
-        onPressed: () => EqualizerBottomSheet.show(context),
+        onPressed: () => EqualizerPanel.show(context),
         tooltip: AppLocalizations.of(context)!.equalizer,
       ),
       IconButton(
@@ -517,59 +518,89 @@ Widget buildBottomActionsRow(
   );
 }
 
-/// Modal bottom sheet with sleep timer options.
+/// Modal bottom sheet or dialog with sleep timer options.
 void showPlayerTimerDialog(BuildContext context, PlayerNotifier notifier) {
   final options = [5, 10, 15, 30, 45, 60];
-  showModalBottomSheet(
-    context: context,
-    useRootNavigator: true,
-    builder: (ctx) {
-      return SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+  final width = MediaQuery.of(context).size.width;
+  final isWide = width >= kExpandedBreakpoint;
+
+  Widget buildContent(BuildContext routeCtx) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  AppLocalizations.of(context)!.sleepTimer,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+              Text(
+                AppLocalizations.of(routeCtx)!.sleepTimer,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              if (isWide)
+                IconButton(
+                  icon: const Icon(LucideIcons.x),
+                  onPressed: () => Navigator.pop(routeCtx),
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(36, 36),
                   ),
                 ),
-              ),
-              ...options.map(
-                (minutes) => ListTile(
-                  title: Text(
-                    minutes >= 60
-                        ? '${minutes ~/ 60} hour'
-                        : '$minutes minutes',
-                  ),
-                  onTap: () {
-                    notifier.setSleepTimer(Duration(minutes: minutes));
-                    Navigator.pop(ctx);
-                  },
-                ),
-              ),
-              ListTile(
-                leading: Icon(
-                  LucideIcons.timerOff,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                title: Text(
-                  AppLocalizations.of(context)!.cancelTimer,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                onTap: () {
-                  notifier.cancelSleepTimer();
-                  Navigator.pop(ctx);
-                },
-              ),
             ],
           ),
         ),
-      );
-    },
-  );
+        ...options.map(
+          (minutes) => ListTile(
+            title: Text(
+              minutes >= 60 ? '${minutes ~/ 60} hour' : '$minutes minutes',
+            ),
+            onTap: () {
+              notifier.setSleepTimer(Duration(minutes: minutes));
+              Navigator.pop(routeCtx);
+            },
+          ),
+        ),
+        ListTile(
+          leading: Icon(
+            LucideIcons.timerOff,
+            color: Theme.of(routeCtx).colorScheme.error,
+          ),
+          title: Text(
+            AppLocalizations.of(routeCtx)!.cancelTimer,
+            style: TextStyle(color: Theme.of(routeCtx).colorScheme.error),
+          ),
+          onTap: () {
+            notifier.cancelSleepTimer();
+            Navigator.pop(routeCtx);
+          },
+        ),
+      ],
+    );
+  }
+
+  if (isWide) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => Dialog(
+            child: Container(
+              width: 400,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: SingleChildScrollView(child: buildContent(ctx)),
+            ),
+          ),
+    );
+  } else {
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) {
+        return SafeArea(child: SingleChildScrollView(child: buildContent(ctx)));
+      },
+    );
+  }
 }

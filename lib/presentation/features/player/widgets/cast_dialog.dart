@@ -4,9 +4,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/cast_provider.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class CastDialog extends ConsumerStatefulWidget {
-  const CastDialog({super.key});
+  final bool isDialog;
+  const CastDialog({super.key, this.isDialog = false});
+
+  static Future<void> show(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isWide = width >= kExpandedBreakpoint;
+
+    if (isWide) {
+      return showDialog(
+        context: context,
+        builder:
+            (context) => const Dialog(
+              child: SizedBox(width: 450, child: CastDialog(isDialog: true)),
+            ),
+      );
+    } else {
+      return showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (context) => const CastDialog(isDialog: false),
+      );
+    }
+  }
 
   @override
   ConsumerState<CastDialog> createState() => _CastDialogState();
@@ -69,12 +95,28 @@ class _CastDialogState extends ConsumerState<CastDialog> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (state.isDiscovering)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (state.isDiscovering)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    if (widget.isDialog) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(LucideIcons.x),
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: IconButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(36, 36),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),

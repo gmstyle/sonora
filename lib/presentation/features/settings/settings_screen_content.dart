@@ -21,9 +21,9 @@ import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
 import 'settings_shared.dart';
-import 'widgets/local_sync_bottom_sheet.dart';
+import 'widgets/local_sync_panel.dart';
 import '../../providers/equalizer_provider.dart';
-import '../player/widgets/equalizer_bottom_sheet.dart';
+import '../player/widgets/equalizer_panel.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
   const SettingsScreenContent({super.key});
@@ -327,7 +327,7 @@ class _PlaybackSection extends ConsumerWidget {
                   ? '${l10n.onLabel} (${getPresetName(eqState.preset)})'
                   : l10n.offLabel,
           icon: LucideIcons.sliders,
-          onPressed: () => EqualizerBottomSheet.show(context),
+          onPressed: () => EqualizerPanel.show(context),
         ),
       ],
     );
@@ -598,7 +598,7 @@ class _BackupSection extends StatelessWidget {
           title: l10n.localSync,
           subtitle: l10n.syncNowHint,
           icon: LucideIcons.refreshCw,
-          onPressed: () => LocalSyncBottomSheet.show(context),
+          onPressed: () => LocalSyncPanel.show(context),
         ),
       ],
     );
