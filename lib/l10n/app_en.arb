@@ -522,5 +522,19 @@
   "presetRock": "Rock",
   "presetPop": "Pop",
   "presetClassical": "Classical",
-  "presetVocal": "Vocal"
+  "presetVocal": "Vocal",
+  "stats": "Stats",
+  "listeningTime": "Listening Time",
+  "topSongs": "Top Songs",
+  "topArtists": "Top Artists",
+  "insufficientData": "Listen to more tracks to unlock your stats!",
+  "wrappedTitle": "Sonora Wrapped",
+  "minutesLabel": "minutes",
+  "startWrapped": "Launch your Wrapped",
+  "wrappedIntro": "Your musical year in Sonora",
+  "wrappedTimeSubtitle": "You spent a lot of time with music!",
+  "wrappedTopArtistSubtitle": "Your number one artist!",
+  "wrappedTopSongsSubtitle": "The soundtrack of your days",
+  "wrappedSummary": "Your music profile",
+  "plays": "plays"
 }

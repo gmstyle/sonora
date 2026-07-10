@@ -8,6 +8,7 @@ import '../widgets/playlists_tab.dart';
 import '../widgets/albums_tab.dart';
 import '../widgets/history_tab.dart';
 import '../widgets/smart_mixes_tab.dart';
+import '../widgets/stats_tab.dart';
 import '../widgets/library_header_controls.dart';
 import '../widgets/library_search_results_view.dart';
 import '../providers/library_provider.dart';
@@ -22,6 +23,7 @@ class LibraryMobileLayout extends ConsumerWidget {
     AppLocalizations.of(context)!.albums,
     AppLocalizations.of(context)!.history,
     AppLocalizations.of(context)!.mixes,
+    AppLocalizations.of(context)!.stats,
   ];
 
   @override
@@ -73,10 +75,12 @@ class LibraryMobileLayout extends ConsumerWidget {
                 },
               ),
             ),
-          LibraryHeaderControls(
-            showViewSwitcher: !isSearchActive && isListOrGridTab,
-          ),
-          const SizedBox(height: 8),
+          if (selectedIndex != 6) ...[
+            LibraryHeaderControls(
+              showViewSwitcher: !isSearchActive && isListOrGridTab,
+            ),
+            const SizedBox(height: 8),
+          ],
           Expanded(
             child:
                 isSearchActive
@@ -90,6 +94,7 @@ class LibraryMobileLayout extends ConsumerWidget {
                         AlbumsTab(),
                         HistoryTab(),
                         SmartMixesTab(),
+                        StatsTab(),
                       ],
                     ),
           ),

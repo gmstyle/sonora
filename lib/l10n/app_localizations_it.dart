@@ -39,7 +39,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get similarArtists => 'Artisti Simili';
 
   @override
-  String get topSongs => 'Brani Popolari';
+  String get topSongs => 'Brani più ascoltati';
 
   @override
   String get featuredOn => 'In Primo Piano';
@@ -1064,4 +1064,46 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get presetVocal => 'Vocale';
+
+  @override
+  String get stats => 'Statistiche';
+
+  @override
+  String get listeningTime => 'Tempo di ascolto';
+
+  @override
+  String get topArtists => 'Artisti più ascoltati';
+
+  @override
+  String get insufficientData =>
+      'Ascolta più brani per sbloccare le statistiche!';
+
+  @override
+  String get wrappedTitle => 'Sonora Wrapped';
+
+  @override
+  String get minutesLabel => 'minuti';
+
+  @override
+  String get startWrapped => 'Scopri il tuo Wrapped';
+
+  @override
+  String get wrappedIntro => 'Il tuo anno in musica su Sonora';
+
+  @override
+  String get wrappedTimeSubtitle =>
+      'Hai trascorso parecchio tempo in compagnia della musica!';
+
+  @override
+  String get wrappedTopArtistSubtitle =>
+      'Il tuo artista preferito in assoluto!';
+
+  @override
+  String get wrappedTopSongsSubtitle => 'La colonna sonora dei tuoi giorni';
+
+  @override
+  String get wrappedSummary => 'Il tuo profilo musicale';
+
+  @override
+  String get plays => 'riproduzioni';
 }

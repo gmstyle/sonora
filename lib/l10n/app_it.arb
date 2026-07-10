@@ -371,5 +371,19 @@
   "presetRock": "Rock",
   "presetPop": "Pop",
   "presetClassical": "Classica",
-  "presetVocal": "Vocale"
+  "presetVocal": "Vocale",
+  "stats": "Statistiche",
+  "listeningTime": "Tempo di ascolto",
+  "topSongs": "Brani più ascoltati",
+  "topArtists": "Artisti più ascoltati",
+  "insufficientData": "Ascolta più brani per sbloccare le statistiche!",
+  "wrappedTitle": "Sonora Wrapped",
+  "minutesLabel": "minuti",
+  "startWrapped": "Scopri il tuo Wrapped",
+  "wrappedIntro": "Il tuo anno in musica su Sonora",
+  "wrappedTimeSubtitle": "Hai trascorso parecchio tempo in compagnia della musica!",
+  "wrappedTopArtistSubtitle": "Il tuo artista preferito in assoluto!",
+  "wrappedTopSongsSubtitle": "La colonna sonora dei tuoi giorni",
+  "wrappedSummary": "Il tuo profilo musicale",
+  "plays": "riproduzioni"
 }

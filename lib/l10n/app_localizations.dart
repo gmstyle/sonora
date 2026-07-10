@@ -1945,6 +1945,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vocal'**
   String get presetVocal;
+
+  /// No description provided for @stats.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats'**
+  String get stats;
+
+  /// No description provided for @listeningTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening Time'**
+  String get listeningTime;
+
+  /// No description provided for @topArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Artists'**
+  String get topArtists;
+
+  /// No description provided for @insufficientData.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen to more tracks to unlock your stats!'**
+  String get insufficientData;
+
+  /// No description provided for @wrappedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonora Wrapped'**
+  String get wrappedTitle;
+
+  /// No description provided for @minutesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'minutes'**
+  String get minutesLabel;
+
+  /// No description provided for @startWrapped.
+  ///
+  /// In en, this message translates to:
+  /// **'Launch your Wrapped'**
+  String get startWrapped;
+
+  /// No description provided for @wrappedIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Your musical year in Sonora'**
+  String get wrappedIntro;
+
+  /// No description provided for @wrappedTimeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You spent a lot of time with music!'**
+  String get wrappedTimeSubtitle;
+
+  /// No description provided for @wrappedTopArtistSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your number one artist!'**
+  String get wrappedTopArtistSubtitle;
+
+  /// No description provided for @wrappedTopSongsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The soundtrack of your days'**
+  String get wrappedTopSongsSubtitle;
+
+  /// No description provided for @wrappedSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your music profile'**
+  String get wrappedSummary;
+
+  /// No description provided for @plays.
+  ///
+  /// In en, this message translates to:
+  /// **'plays'**
+  String get plays;
 }
 
 class _AppLocalizationsDelegate

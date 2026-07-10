@@ -1058,4 +1058,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetVocal => 'Vocal';
+
+  @override
+  String get stats => 'Stats';
+
+  @override
+  String get listeningTime => 'Listening Time';
+
+  @override
+  String get topArtists => 'Top Artists';
+
+  @override
+  String get insufficientData => 'Listen to more tracks to unlock your stats!';
+
+  @override
+  String get wrappedTitle => 'Sonora Wrapped';
+
+  @override
+  String get minutesLabel => 'minutes';
+
+  @override
+  String get startWrapped => 'Launch your Wrapped';
+
+  @override
+  String get wrappedIntro => 'Your musical year in Sonora';
+
+  @override
+  String get wrappedTimeSubtitle => 'You spent a lot of time with music!';
+
+  @override
+  String get wrappedTopArtistSubtitle => 'Your number one artist!';
+
+  @override
+  String get wrappedTopSongsSubtitle => 'The soundtrack of your days';
+
+  @override
+  String get wrappedSummary => 'Your music profile';
+
+  @override
+  String get plays => 'plays';
 }
