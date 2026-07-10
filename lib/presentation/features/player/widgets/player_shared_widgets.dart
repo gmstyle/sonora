@@ -20,6 +20,8 @@ import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/explicit_badge.dart';
 import 'progress_bar_widget.dart';
 import 'cast_button.dart';
+import '../../../providers/equalizer_provider.dart';
+import 'equalizer_bottom_sheet.dart';
 
 /// Blurred artwork + animated gradient overlay.
 ///
@@ -483,6 +485,18 @@ Widget buildBottomActionsRow(
               );
         },
         tooltip: AppLocalizations.of(context)!.queue,
+      ),
+      IconButton(
+        icon: Icon(
+          LucideIcons.sliders,
+          size: iconSize,
+          color:
+              ref.watch(equalizerNotifierProvider).enabled
+                  ? Theme.of(context).colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+        ),
+        onPressed: () => EqualizerBottomSheet.show(context),
+        tooltip: AppLocalizations.of(context)!.equalizer,
       ),
       IconButton(
         icon: Icon(

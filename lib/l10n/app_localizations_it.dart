@@ -1037,4 +1037,31 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get useVinylStyleHint =>
       'Mostra le copertine a forma di disco in vinile rotante nei lettori';
+
+  @override
+  String get equalizer => 'Equalizzatore';
+
+  @override
+  String get equalizerEnabled => 'Equalizzatore attivo';
+
+  @override
+  String get presetCustom => 'Personalizzato';
+
+  @override
+  String get presetFlat => 'Flat';
+
+  @override
+  String get presetBassBoost => 'Amplificazione Bassi';
+
+  @override
+  String get presetRock => 'Rock';
+
+  @override
+  String get presetPop => 'Pop';
+
+  @override
+  String get presetClassical => 'Classica';
+
+  @override
+  String get presetVocal => 'Vocale';
 }

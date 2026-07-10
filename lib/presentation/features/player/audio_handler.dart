@@ -32,6 +32,7 @@ import '../../../data/services/cast_service.dart';
 
 import 'audio_cast_handler.dart';
 import 'audio_android_auto_browser_handler.dart';
+import 'audio_equalizer_handler.dart';
 
 /// Represents the lifecycle of the player restore operation.
 ///
@@ -69,6 +70,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   late final AudioCastHandler _castHandler;
   late final AudioAndroidAutoBrowserHandler _browserHandler;
+  late final AudioEqualizerHandler _equalizerHandler;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -184,11 +186,23 @@ class SonoraAudioHandler extends BaseAudioHandler {
       connectivity: _sharedConnectivity,
     );
 
+    _equalizerHandler = AudioEqualizerHandler(this);
+
     _setupAudioSession();
     _setupListeners();
     _playerErrorSub = _player.stream.error.listen(_onPlayerError);
     unawaited(_initPlayerCache());
     unawaited(_ensureReady());
+
+    // Inizializza l'equalizzatore all'avvio in base alle impostazioni persistite
+    final eqEnabled = _prefs.getBool('equalizerEnabled') ?? false;
+    final eqGainsStr =
+        _prefs.getStringList('equalizerGains') ??
+        ['0.0', '0.0', '0.0', '0.0', '0.0'];
+    final eqGains = eqGainsStr.map((s) => double.tryParse(s) ?? 0.0).toList();
+    unawaited(
+      _equalizerHandler.setEqualizer(enabled: eqEnabled, gains: eqGains),
+    );
   }
 
   Future<void> updateCastState(
@@ -196,6 +210,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
     SonoraCastService service,
   ) async {
     await _castHandler.updateCastState(state, service);
+  }
+
+  Future<void> setEqualizer({
+    required bool enabled,
+    required List<double> gains,
+  }) async {
+    await _equalizerHandler.setEqualizer(enabled: enabled, gains: gains);
   }
 
   Future<void> _setupAudioSession() async {

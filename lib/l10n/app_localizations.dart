@@ -1891,6 +1891,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use a rotating vinyl record design for artwork in player panels'**
   String get useVinylStyleHint;
+
+  /// No description provided for @equalizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Equalizer'**
+  String get equalizer;
+
+  /// No description provided for @equalizerEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Equalizer enabled'**
+  String get equalizerEnabled;
+
+  /// No description provided for @presetCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get presetCustom;
+
+  /// No description provided for @presetFlat.
+  ///
+  /// In en, this message translates to:
+  /// **'Flat'**
+  String get presetFlat;
+
+  /// No description provided for @presetBassBoost.
+  ///
+  /// In en, this message translates to:
+  /// **'Bass Boost'**
+  String get presetBassBoost;
+
+  /// No description provided for @presetRock.
+  ///
+  /// In en, this message translates to:
+  /// **'Rock'**
+  String get presetRock;
+
+  /// No description provided for @presetPop.
+  ///
+  /// In en, this message translates to:
+  /// **'Pop'**
+  String get presetPop;
+
+  /// No description provided for @presetClassical.
+  ///
+  /// In en, this message translates to:
+  /// **'Classical'**
+  String get presetClassical;
+
+  /// No description provided for @presetVocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Vocal'**
+  String get presetVocal;
 }
 
 class _AppLocalizationsDelegate

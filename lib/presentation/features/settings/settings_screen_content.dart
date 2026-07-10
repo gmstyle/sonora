@@ -22,6 +22,8 @@ import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
 import 'settings_shared.dart';
 import 'widgets/local_sync_bottom_sheet.dart';
+import '../../providers/equalizer_provider.dart';
+import '../player/widgets/equalizer_bottom_sheet.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
   const SettingsScreenContent({super.key});
@@ -258,20 +260,44 @@ class _ContentSection extends StatelessWidget {
 
 // ── Playback ─────────────────────────────────────────────────────
 
-class _PlaybackSection extends StatelessWidget {
+class _PlaybackSection extends ConsumerWidget {
   final Settings settings;
   final SettingsNotifier notifier;
 
   const _PlaybackSection({required this.settings, required this.notifier});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eqState = ref.watch(equalizerNotifierProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    String getPresetName(String key) {
+      switch (key) {
+        case 'flat':
+          return l10n.presetFlat;
+        case 'bass_boost':
+          return l10n.presetBassBoost;
+        case 'rock':
+          return l10n.presetRock;
+        case 'pop':
+          return l10n.presetPop;
+        case 'classical':
+          return l10n.presetClassical;
+        case 'vocal':
+          return l10n.presetVocal;
+        case 'custom':
+          return l10n.presetCustom;
+        default:
+          return key;
+      }
+    }
+
     return SettingsSection(
-      title: AppLocalizations.of(context)!.playback,
+      title: l10n.playback,
       children: [
         SettingsSliderTile(
-          title: AppLocalizations.of(context)!.crossfade,
-          subtitle: AppLocalizations.of(context)!.duration,
+          title: l10n.crossfade,
+          subtitle: l10n.duration,
           value: settings.crossfadeSeconds.toDouble(),
           min: 0,
           max: 12,
@@ -280,18 +306,28 @@ class _PlaybackSection extends StatelessWidget {
         ),
         const Divider(height: 1),
         SettingsSwitchTile(
-          title: AppLocalizations.of(context)!.restoreQueueOnStartup,
+          title: l10n.restoreQueueOnStartup,
           value: settings.restoreQueueOnStartup,
           onChanged: notifier.setRestoreQueueOnStartup,
           icon: LucideIcons.rotateCcw,
         ),
         const Divider(height: 1),
         SettingsSwitchTile(
-          title: AppLocalizations.of(context)!.autoPlayUpNext,
-          subtitle: AppLocalizations.of(context)!.autoPlayUpNextHint,
+          title: l10n.autoPlayUpNext,
+          subtitle: l10n.autoPlayUpNextHint,
           value: settings.autoPlayUpNext,
           onChanged: notifier.setAutoPlayUpNext,
           icon: LucideIcons.listVideo,
+        ),
+        const Divider(height: 1),
+        SettingsButtonTile(
+          title: l10n.equalizer,
+          subtitle:
+              eqState.enabled
+                  ? '${l10n.onLabel} (${getPresetName(eqState.preset)})'
+                  : l10n.offLabel,
+          icon: LucideIcons.sliders,
+          onPressed: () => EqualizerBottomSheet.show(context),
         ),
       ],
     );

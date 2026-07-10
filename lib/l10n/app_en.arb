@@ -513,5 +513,14 @@
   "forgottenFavoritesDesc": "Liked tracks you haven't heard in a while",
   "yourMixes": "Your Mixes",
   "useVinylStyle": "Vinyl style artwork",
-  "useVinylStyleHint": "Use a rotating vinyl record design for artwork in player panels"
+  "useVinylStyleHint": "Use a rotating vinyl record design for artwork in player panels",
+  "equalizer": "Equalizer",
+  "equalizerEnabled": "Equalizer enabled",
+  "presetCustom": "Custom",
+  "presetFlat": "Flat",
+  "presetBassBoost": "Bass Boost",
+  "presetRock": "Rock",
+  "presetPop": "Pop",
+  "presetClassical": "Classical",
+  "presetVocal": "Vocal"
 }

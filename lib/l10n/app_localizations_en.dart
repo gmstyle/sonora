@@ -1031,4 +1031,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get useVinylStyleHint =>
       'Use a rotating vinyl record design for artwork in player panels';
+
+  @override
+  String get equalizer => 'Equalizer';
+
+  @override
+  String get equalizerEnabled => 'Equalizer enabled';
+
+  @override
+  String get presetCustom => 'Custom';
+
+  @override
+  String get presetFlat => 'Flat';
+
+  @override
+  String get presetBassBoost => 'Bass Boost';
+
+  @override
+  String get presetRock => 'Rock';
+
+  @override
+  String get presetPop => 'Pop';
+
+  @override
+  String get presetClassical => 'Classical';
+
+  @override
+  String get presetVocal => 'Vocal';
 }
