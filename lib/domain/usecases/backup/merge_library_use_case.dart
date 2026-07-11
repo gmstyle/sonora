@@ -1,12 +1,17 @@
 import '../../models/library_models.dart';
 import '../../repositories/library_repository.dart';
 
+enum PlaylistConflictStrategy { merge, keepBoth, overwrite }
+
 class MergeLibraryUseCase {
   final LibraryRepository libraryRepository;
 
   MergeLibraryUseCase(this.libraryRepository);
 
-  Future<Map<String, int>> execute(Map<String, dynamic> data) async {
+  Future<Map<String, int>> execute(
+    Map<String, dynamic> data, {
+    PlaylistConflictStrategy conflictStrategy = PlaylistConflictStrategy.merge,
+  }) async {
     int likedSongsCount = 0;
     int followedArtistsCount = 0;
     int likedAlbumsCount = 0;
@@ -156,19 +161,45 @@ class MergeLibraryUseCase {
       int nextPosition;
 
       if (existingPlaylistId != null) {
-        // Playlist already exists locally with the same name, merge entries
-        targetPlaylistId = existingPlaylistId;
-        final localEntries = await libraryRepository.getPlaylistEntries(
-          targetPlaylistId,
-        );
-        existingVideoIds = localEntries.map((e) => e.videoId).toSet();
-        nextPosition =
-            localEntries.isEmpty
-                ? 1
-                : localEntries
-                        .map((e) => e.position)
-                        .reduce((a, b) => a > b ? a : b) +
-                    1;
+        if (conflictStrategy == PlaylistConflictStrategy.overwrite) {
+          targetPlaylistId = existingPlaylistId;
+          final localEntries = await libraryRepository.getPlaylistEntries(
+            targetPlaylistId,
+          );
+          for (final entry in localEntries) {
+            await libraryRepository.removeEntry(
+              targetPlaylistId,
+              entry.videoId,
+            );
+          }
+          existingVideoIds = const <String>{};
+          nextPosition = 1;
+        } else if (conflictStrategy == PlaylistConflictStrategy.keepBoth) {
+          final renamedName = '$playlistName (Sync)';
+          targetPlaylistId = await libraryRepository.createPlaylistWithDate(
+            renamedName,
+            description: p['description'] as String?,
+            createdAt: createdAt,
+          );
+          nameToIdMap[renamedName.toLowerCase()] = targetPlaylistId;
+          playlistsCount++;
+          existingVideoIds = const <String>{};
+          nextPosition = 1;
+        } else {
+          // Playlist already exists locally with the same name, merge entries
+          targetPlaylistId = existingPlaylistId;
+          final localEntries = await libraryRepository.getPlaylistEntries(
+            targetPlaylistId,
+          );
+          existingVideoIds = localEntries.map((e) => e.videoId).toSet();
+          nextPosition =
+              localEntries.isEmpty
+                  ? 1
+                  : localEntries
+                          .map((e) => e.position)
+                          .reduce((a, b) => a > b ? a : b) +
+                      1;
+        }
       } else {
         // Create a new playlist
         targetPlaylistId = await libraryRepository.createPlaylistWithDate(

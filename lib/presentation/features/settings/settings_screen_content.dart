@@ -32,8 +32,9 @@ class SettingsScreenContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
       itemCount: SettingsCategory.values.length,
       itemBuilder: (context, index) {
         final category = SettingsCategory.values[index];
@@ -84,37 +85,47 @@ class SettingsCategoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return Scaffold(
       appBar: AppBar(
         title: Text(category.getTitle(context)),
         centerTitle: false,
       ),
-      body: SettingsCategoryContent(category: category),
+      body: SettingsCategoryContent(
+        category: category,
+        bottomPadding: bottomPadding,
+      ),
     );
   }
 }
 
 class SettingsCategoryContent extends ConsumerWidget {
   final SettingsCategory category;
+  final double bottomPadding;
 
-  const SettingsCategoryContent({super.key, required this.category});
+  const SettingsCategoryContent({
+    super.key,
+    required this.category,
+    this.bottomPadding = 0.0,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
+    final listPadding = EdgeInsets.only(bottom: 32 + bottomPadding);
 
     switch (category) {
       case SettingsCategory.appearance:
         return ListView(
-          padding: const EdgeInsets.only(bottom: 32),
+          padding: listPadding,
           children: [
             _AppearanceSection(settings: settings, notifier: notifier),
           ],
         );
       case SettingsCategory.playback:
         return ListView(
-          padding: const EdgeInsets.only(bottom: 32),
+          padding: listPadding,
           children: [
             _PlaybackSection(settings: settings, notifier: notifier),
             _ContentSection(settings: settings, notifier: notifier),
@@ -123,7 +134,7 @@ class SettingsCategoryContent extends ConsumerWidget {
         );
       case SettingsCategory.downloads:
         return ListView(
-          padding: const EdgeInsets.only(bottom: 32),
+          padding: listPadding,
           children: [
             _DownloadSection(settings: settings, notifier: notifier),
             if (isAndroid) const _BatterySection(),
@@ -131,19 +142,19 @@ class SettingsCategoryContent extends ConsumerWidget {
         );
       case SettingsCategory.privacy:
         return ListView(
-          padding: const EdgeInsets.only(bottom: 32),
+          padding: listPadding,
           children: [
             _PrivacySection(settings: settings, notifier: notifier, ref: ref),
           ],
         );
       case SettingsCategory.backup:
         return ListView(
-          padding: const EdgeInsets.only(bottom: 32),
-          children: [_BackupSection(ref: ref)],
+          padding: listPadding,
+          children: [_BackupSection(ref: ref), _LocalSyncSection(ref: ref)],
         );
       case SettingsCategory.about:
         return ListView(
-          padding: const EdgeInsets.only(bottom: 32),
+          padding: listPadding,
           children: [
             _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
             _SupportSection(),
@@ -565,7 +576,6 @@ class _BackupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final settings = ref.watch(settingsProvider);
 
     return SettingsSection(
       title: l10n.backupRestore,
@@ -583,62 +593,6 @@ class _BackupSection extends StatelessWidget {
           icon: LucideIcons.fileDown,
           onPressed: () => _importData(context),
         ),
-        const Divider(height: 1),
-        SettingsSwitchTile(
-          title: l10n.localSyncEnabled,
-          subtitle: l10n.localSyncEnabledHint,
-          value: settings.localSyncEnabled,
-          icon: LucideIcons.wifi,
-          onChanged:
-              (value) => ref
-                  .read(settingsProvider.notifier)
-                  .setLocalSyncEnabled(value),
-        ),
-        const Divider(height: 1),
-        SettingsButtonTile(
-          title: l10n.localSync,
-          subtitle: l10n.syncNowHint,
-          icon: LucideIcons.refreshCw,
-          onPressed: () => LocalSyncPanel.show(context),
-        ),
-        if (settings.localSyncEnabled) ...[
-          const Divider(height: 1),
-          SettingsButtonTile(
-            title: l10n.resetPairedDevices,
-            subtitle: l10n.resetPairedDevicesDesc,
-            icon: LucideIcons.trash2,
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder:
-                    (context) => AlertDialog(
-                      title: Text(l10n.resetPairedDevicesConfirmTitle),
-                      content: Text(l10n.resetPairedDevicesConfirmMsg),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: Text(l10n.cancel),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: Text(l10n.confirm),
-                        ),
-                      ],
-                    ),
-              );
-              if (confirm != true) return;
-
-              await ref
-                  .read(syncNotifierProvider.notifier)
-                  .clearPairedDevices();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.resetPairedDevicesSuccess)),
-                );
-              }
-            },
-          ),
-        ],
       ],
     );
   }
@@ -663,6 +617,9 @@ class _BackupSection extends StatelessWidget {
         'useVinylStyle': settings.useVinylStyle,
         'reduceEffects': settings.reduceEffects,
         'offlineMode': settings.offlineMode,
+        'localSyncEnabled': settings.localSyncEnabled,
+        'localSyncAutoEnabled': settings.localSyncAutoEnabled,
+        'playlistConflictStrategy': settings.playlistConflictStrategy,
       };
       final path = await useCase.execute(settings: settingsMap);
 
@@ -818,6 +775,21 @@ class _BackupSection extends StatelessWidget {
         if (importedSettings.containsKey('offlineMode')) {
           notifier.setOfflineMode(importedSettings['offlineMode'] as bool);
         }
+        if (importedSettings.containsKey('localSyncEnabled')) {
+          notifier.setLocalSyncEnabled(
+            importedSettings['localSyncEnabled'] as bool,
+          );
+        }
+        if (importedSettings.containsKey('localSyncAutoEnabled')) {
+          notifier.setLocalSyncAutoEnabled(
+            importedSettings['localSyncAutoEnabled'] as bool,
+          );
+        }
+        if (importedSettings.containsKey('playlistConflictStrategy')) {
+          notifier.setPlaylistConflictStrategy(
+            importedSettings['playlistConflictStrategy'] as String,
+          );
+        }
       }
 
       if (context.mounted) {
@@ -840,6 +812,109 @@ class _BackupSection extends StatelessWidget {
         );
       }
     }
+  }
+}
+
+class _LocalSyncSection extends StatelessWidget {
+  final WidgetRef ref;
+
+  const _LocalSyncSection({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(settingsProvider);
+
+    return SettingsSection(
+      title: l10n.localSync,
+      children: [
+        SettingsSwitchTile(
+          title: l10n.localSyncEnabled,
+          subtitle: l10n.localSyncEnabledHint,
+          value: settings.localSyncEnabled,
+          icon: LucideIcons.wifi,
+          onChanged:
+              (value) => ref
+                  .read(settingsProvider.notifier)
+                  .setLocalSyncEnabled(value),
+        ),
+        if (settings.localSyncEnabled) ...[
+          const Divider(height: 1),
+          SettingsSwitchTile(
+            title: l10n.localSyncAutoEnabled,
+            subtitle: l10n.localSyncAutoEnabledHint,
+            value: settings.localSyncAutoEnabled,
+            icon: LucideIcons.refreshCw,
+            onChanged:
+                (value) => ref
+                    .read(settingsProvider.notifier)
+                    .setLocalSyncAutoEnabled(value),
+          ),
+          const Divider(height: 1),
+          SettingsDropdownTile(
+            title: l10n.playlistConflictStrategy,
+            value: settings.playlistConflictStrategy,
+            options: {
+              'merge': l10n.conflictStrategyMerge,
+              'keepBoth': l10n.conflictStrategyKeepBoth,
+              'overwrite': l10n.conflictStrategyOverwrite,
+            },
+            onChanged: (value) {
+              if (value != null) {
+                ref
+                    .read(settingsProvider.notifier)
+                    .setPlaylistConflictStrategy(value);
+              }
+            },
+          ),
+        ],
+        const Divider(height: 1),
+        SettingsButtonTile(
+          title: l10n.localSync,
+          subtitle: l10n.syncNowHint,
+          icon: LucideIcons.refreshCw,
+          onPressed: () => LocalSyncPanel.show(context),
+        ),
+        if (settings.localSyncEnabled) ...[
+          const Divider(height: 1),
+          SettingsButtonTile(
+            title: l10n.resetPairedDevices,
+            subtitle: l10n.resetPairedDevicesDesc,
+            icon: LucideIcons.trash2,
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: Text(l10n.resetPairedDevicesConfirmTitle),
+                      content: Text(l10n.resetPairedDevicesConfirmMsg),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: Text(l10n.cancel),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: Text(l10n.confirm),
+                        ),
+                      ],
+                    ),
+              );
+              if (confirm != true) return;
+
+              await ref
+                  .read(syncNotifierProvider.notifier)
+                  .clearPairedDevices();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.resetPairedDevicesSuccess)),
+                );
+              }
+            },
+          ),
+        ],
+      ],
+    );
   }
 }
 

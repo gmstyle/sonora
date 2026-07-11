@@ -30,6 +30,8 @@ class Settings {
   final bool offlineMode;
   final bool useVinylStyle;
   final bool localSyncEnabled;
+  final bool localSyncAutoEnabled;
+  final String playlistConflictStrategy;
 
   const Settings({
     this.themeMode = ThemeMode.system,
@@ -49,6 +51,8 @@ class Settings {
     this.offlineMode = false,
     this.useVinylStyle = true,
     this.localSyncEnabled = false,
+    this.localSyncAutoEnabled = false,
+    this.playlistConflictStrategy = 'merge',
   });
 
   Settings copyWith({
@@ -69,6 +73,8 @@ class Settings {
     bool? offlineMode,
     bool? useVinylStyle,
     bool? localSyncEnabled,
+    bool? localSyncAutoEnabled,
+    String? playlistConflictStrategy,
     bool clearDownloadPath = false,
   }) {
     return Settings(
@@ -92,6 +98,9 @@ class Settings {
       offlineMode: offlineMode ?? this.offlineMode,
       useVinylStyle: useVinylStyle ?? this.useVinylStyle,
       localSyncEnabled: localSyncEnabled ?? this.localSyncEnabled,
+      localSyncAutoEnabled: localSyncAutoEnabled ?? this.localSyncAutoEnabled,
+      playlistConflictStrategy:
+          playlistConflictStrategy ?? this.playlistConflictStrategy,
     );
   }
 
@@ -122,6 +131,9 @@ class SettingsNotifier extends Notifier<Settings> {
       offlineMode: _prefs.getBool(kOfflineModeKey) ?? false,
       useVinylStyle: _prefs.getBool(kUseVinylStyleKey) ?? true,
       localSyncEnabled: _prefs.getBool(kLocalSyncEnabledKey) ?? false,
+      localSyncAutoEnabled: _prefs.getBool(kLocalSyncAutoEnabledKey) ?? false,
+      playlistConflictStrategy:
+          _prefs.getString(kPlaylistConflictStrategyKey) ?? 'merge',
     );
   }
 
@@ -147,6 +159,11 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kOfflineModeKey, state.offlineMode);
     await _prefs.setBool(kUseVinylStyleKey, state.useVinylStyle);
     await _prefs.setBool(kLocalSyncEnabledKey, state.localSyncEnabled);
+    await _prefs.setBool(kLocalSyncAutoEnabledKey, state.localSyncAutoEnabled);
+    await _prefs.setString(
+      kPlaylistConflictStrategyKey,
+      state.playlistConflictStrategy,
+    );
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -243,6 +260,16 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(localSyncEnabled: value);
     await _save();
   }
+
+  Future<void> setLocalSyncAutoEnabled(bool value) async {
+    state = state.copyWith(localSyncAutoEnabled: value);
+    await _save();
+  }
+
+  Future<void> setPlaylistConflictStrategy(String value) async {
+    state = state.copyWith(playlistConflictStrategy: value);
+    await _save();
+  }
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
@@ -256,6 +283,8 @@ const kUseDynamicColorKey = 'useDynamicColor';
 const kUseAmoledKey = 'useAmoled';
 const kGlKey = 'gl';
 const kHlKey = 'hl';
+const kLocalSyncAutoEnabledKey = 'localSyncAutoEnabled';
+const kPlaylistConflictStrategyKey = 'playlistConflictStrategy';
 const kCrossfadeSecondsKey = 'crossfadeSeconds';
 const kRestoreQueueKey = 'restoreQueueOnStartup';
 const kAutoPlayUpNextKey = 'autoPlayUpNext';

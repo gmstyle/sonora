@@ -276,6 +276,22 @@
     }
   },
   "syncSummaryNoChanges": "La tua libreria è già aggiornata!",
+  "localSyncAutoEnabled": "Sincronizzazione Automatica",
+  "localSyncAutoEnabledHint": "La sincronizzazione avviene all'avvio dell'applicazione, alla connessione a reti Wi-Fi e periodicamente ogni 30 minuti.",
+  "playlistConflictStrategy": "Gestione Conflitti Playlist",
+  "playlistConflictStrategyHint": "Scegli come gestire i conflitti di nomi duplicati per le playlist",
+  "conflictStrategyMerge": "Unisci i brani",
+  "conflictStrategyKeepBoth": "Mantieni entrambe (Rinomina)",
+  "conflictStrategyOverwrite": "Sovrascrivi playlist locale",
+  "notificationSyncTitle": "Sincronizzazione Sonora Completata",
+  "notificationSyncBody": "Aggiunto {count, plural, =1{1 nuovo elemento} other{{count} nuovi elementi}} alla tua libreria",
+  "@notificationSyncBody": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "syncSuccess": "Libreria sincronizzata con successo!",
   "syncFailed": "Sincronizzazione fallita: {error}",
   "syncingData": "Sincronizzazione in corso...",

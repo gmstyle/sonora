@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../data/services/sync_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/sync_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 
 class LocalSyncPanel extends ConsumerStatefulWidget {
@@ -286,6 +287,10 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
                       ref.read(syncNotifierProvider.notifier).startDiscovery(),
             ),
           ] else ...[
+            _buildConflictStrategySelector(theme, l10n, ref),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
             if (pairedDevices.isNotEmpty) ...[
               Text(
                 l10n.pairedDevicesSection,
@@ -686,6 +691,76 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
           ...statRows,
         ],
       ),
+    );
+  }
+
+  Widget _buildConflictStrategySelector(
+    ThemeData theme,
+    AppLocalizations l10n,
+    WidgetRef ref,
+  ) {
+    final settings = ref.watch(settingsProvider);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.playlistConflictStrategy,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                l10n.playlistConflictStrategyHint,
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 150,
+          child: DropdownButton<String>(
+            value: settings.playlistConflictStrategy,
+            isExpanded: true,
+            underline: const SizedBox(),
+            items: [
+              DropdownMenuItem(
+                value: 'merge',
+                child: Text(
+                  l10n.conflictStrategyMerge,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'keepBoth',
+                child: Text(
+                  l10n.conflictStrategyKeepBoth,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'overwrite',
+                child: Text(
+                  l10n.conflictStrategyOverwrite,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                ref
+                    .read(settingsProvider.notifier)
+                    .setPlaylistConflictStrategy(value);
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 }

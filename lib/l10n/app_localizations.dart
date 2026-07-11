@@ -1298,6 +1298,60 @@ abstract class AppLocalizations {
   /// **'Your library is already up to date!'**
   String get syncSummaryNoChanges;
 
+  /// No description provided for @localSyncAutoEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic Sync'**
+  String get localSyncAutoEnabled;
+
+  /// No description provided for @localSyncAutoEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync occurs at app startup, whenever connected to a Wi-Fi network, and every 30 minutes in the background.'**
+  String get localSyncAutoEnabledHint;
+
+  /// No description provided for @playlistConflictStrategy.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist Conflict Strategy'**
+  String get playlistConflictStrategy;
+
+  /// No description provided for @playlistConflictStrategyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to handle conflicting duplicate playlist names'**
+  String get playlistConflictStrategyHint;
+
+  /// No description provided for @conflictStrategyMerge.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge tracks'**
+  String get conflictStrategyMerge;
+
+  /// No description provided for @conflictStrategyKeepBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep both (Rename)'**
+  String get conflictStrategyKeepBoth;
+
+  /// No description provided for @conflictStrategyOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Overwrite local playlist'**
+  String get conflictStrategyOverwrite;
+
+  /// No description provided for @notificationSyncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonora Sync Complete'**
+  String get notificationSyncTitle;
+
+  /// No description provided for @notificationSyncBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {count, plural, =1{1 new item} other{{count} new items}} to your library'**
+  String notificationSyncBody(num count);
+
   /// No description provided for @syncSuccess.
   ///
   /// In en, this message translates to:

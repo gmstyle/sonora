@@ -6,13 +6,13 @@ import 'dart:math';
 import 'package:dio/dio.dart' hide Response;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_multicast_lock/flutter_multicast_lock.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
 import '../../domain/usecases/backup/export_backup_use_case.dart';
 import '../../domain/usecases/backup/merge_library_use_case.dart';
+import 'sync_storage.dart';
 
 class DiscoveredSyncDevice {
   final String ip;
@@ -84,7 +84,7 @@ class PairingRequest {
 class SonoraSyncService {
   final MergeLibraryUseCase mergeLibraryUseCase;
   final ExportBackupUseCase exportBackupUseCase;
-  final SharedPreferences _prefs;
+  final SyncStorage _prefs;
   final Dio _dio = Dio();
 
   HttpServer? _httpServer;
@@ -119,7 +119,7 @@ class SonoraSyncService {
   SonoraSyncService({
     required this.mergeLibraryUseCase,
     required this.exportBackupUseCase,
-    required SharedPreferences prefs,
+    required SyncStorage prefs,
   }) : _prefs = prefs;
 
   /// Retrieves or generates a permanent unique device identifier.
@@ -611,6 +611,7 @@ class SonoraSyncService {
   Future<Map<String, int>> performSyncWith(
     DiscoveredSyncDevice target, {
     void Function(String)? onStageChanged,
+    PlaylistConflictStrategy conflictStrategy = PlaylistConflictStrategy.merge,
   }) async {
     try {
       debugPrint(
@@ -649,6 +650,7 @@ class SonoraSyncService {
 
         final clientStats = await mergeLibraryUseCase.execute(
           remoteMergedLibrary,
+          conflictStrategy: conflictStrategy,
         );
 
         // Combine client and server merge statistics to reflect the true bidirectional sync

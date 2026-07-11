@@ -735,6 +735,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncSummaryNoChanges => 'Your library is already up to date!';
 
   @override
+  String get localSyncAutoEnabled => 'Automatic Sync';
+
+  @override
+  String get localSyncAutoEnabledHint =>
+      'Sync occurs at app startup, whenever connected to a Wi-Fi network, and every 30 minutes in the background.';
+
+  @override
+  String get playlistConflictStrategy => 'Playlist Conflict Strategy';
+
+  @override
+  String get playlistConflictStrategyHint =>
+      'Choose how to handle conflicting duplicate playlist names';
+
+  @override
+  String get conflictStrategyMerge => 'Merge tracks';
+
+  @override
+  String get conflictStrategyKeepBoth => 'Keep both (Rename)';
+
+  @override
+  String get conflictStrategyOverwrite => 'Overwrite local playlist';
+
+  @override
+  String get notificationSyncTitle => 'Sonora Sync Complete';
+
+  @override
+  String notificationSyncBody(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new items',
+      one: '1 new item',
+    );
+    return 'Added $_temp0 to your library';
+  }
+
+  @override
   String get syncSuccess => 'Library synchronized successfully!';
 
   @override

@@ -1,8 +1,15 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../core/utils/notification_utils.dart';
 import '../../data/services/sync_service.dart';
+import '../../data/services/sync_storage.dart';
+import '../../domain/usecases/backup/merge_library_use_case.dart';
 import 'export_backup_use_case_provider.dart';
 import 'merge_library_use_case_provider.dart';
 import 'settings_provider.dart';
@@ -11,7 +18,7 @@ final syncServiceProvider = Provider<SonoraSyncService>((ref) {
   final service = SonoraSyncService(
     mergeLibraryUseCase: ref.watch(mergeLibraryUseCaseProvider),
     exportBackupUseCase: ref.watch(exportBackupUseCaseProvider),
-    prefs: ref.watch(sharedPreferencesProvider),
+    prefs: SharedPreferencesSyncStorage(ref.watch(sharedPreferencesProvider)),
   );
   ref.onDispose(() {
     service.dispose();
@@ -85,7 +92,10 @@ class SyncNotifier extends Notifier<SyncState> {
   late final SonoraSyncService _service;
   StreamSubscription? _requestsSub;
   StreamSubscription? _devicesSub;
+  StreamSubscription? _connectivitySub;
+  Timer? _autoSyncTimer;
   Completer<String?>? _pinInputCompleter;
+  bool _isSilentSyncing = false;
 
   @override
   SyncState build() {
@@ -110,9 +120,32 @@ class SyncNotifier extends Notifier<SyncState> {
       }
     }, fireImmediately: true);
 
+    // Setup background auto sync
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      dynamic r = results;
+      bool hasWifi = false;
+      if (r is Iterable) {
+        hasWifi = r.contains(ConnectivityResult.wifi);
+      } else if (r == ConnectivityResult.wifi) {
+        hasWifi = true;
+      }
+      if (hasWifi) {
+        triggerSilentSync();
+      }
+    });
+
+    _autoSyncTimer = Timer.periodic(const Duration(minutes: 30), (_) {
+      triggerSilentSync();
+    });
+
+    // Run a silent sync at startup
+    Future.microtask(() => triggerSilentSync());
+
     ref.onDispose(() {
       _requestsSub?.cancel();
       _devicesSub?.cancel();
+      _connectivitySub?.cancel();
+      _autoSyncTimer?.cancel();
     });
 
     return SyncState(isServerRunning: _service.isServerRunning);
@@ -189,12 +222,20 @@ class SyncNotifier extends Notifier<SyncState> {
       }
 
       isPairingPhase = false;
+      final settings = ref.read(settingsProvider);
+      final strategyStr = settings.playlistConflictStrategy;
+      final conflictStrategy = PlaylistConflictStrategy.values.firstWhere(
+        (e) => e.name == strategyStr,
+        orElse: () => PlaylistConflictStrategy.merge,
+      );
+
       // Proceed with the merge sync
       final stats = await _service.performSyncWith(
         device,
         onStageChanged: (stage) {
           state = state.copyWith(currentStage: stage);
         },
+        conflictStrategy: conflictStrategy,
       );
 
       // Save/update paired device metadata with latest IP/port
@@ -279,6 +320,89 @@ class SyncNotifier extends Notifier<SyncState> {
 
   void resetStatus() {
     state = state.copyWith(status: SyncStatus.idle, clearError: true);
+  }
+
+  Future<void> triggerSilentSync() async {
+    if (_isSilentSyncing) return;
+    final settings = ref.read(settingsProvider);
+    if (!settings.localSyncEnabled || !settings.localSyncAutoEnabled) return;
+
+    _isSilentSyncing = true;
+    try {
+      debugPrint('[Auto Sync] Starting discovery...');
+      final discovered = await _service.discoverDevices(
+        duration: const Duration(seconds: 2),
+      );
+      final paired = _service.getPairedDevicesMetadata();
+
+      for (final device in discovered) {
+        if (paired.any((p) => p.deviceId == device.deviceId)) {
+          debugPrint(
+            '[Auto Sync] Found paired device online: ${device.name}. Syncing...',
+          );
+
+          final strategyStr = settings.playlistConflictStrategy;
+          final conflictStrategy = PlaylistConflictStrategy.values.firstWhere(
+            (e) => e.name == strategyStr,
+            orElse: () => PlaylistConflictStrategy.merge,
+          );
+
+          final stats = await _service.performSyncWith(
+            device,
+            conflictStrategy: conflictStrategy,
+          );
+
+          // Save latest IP/port
+          await _service.savePairedDeviceMetadata(
+            PairedDeviceMetadata(
+              deviceId: device.deviceId,
+              name: device.name,
+              ip: device.ip,
+              port: device.port,
+            ),
+          );
+
+          final totalChanges =
+              (stats['likedSongs'] ?? 0) +
+              (stats['playlists'] ?? 0) +
+              (stats['followedArtists'] ?? 0) +
+              (stats['likedAlbums'] ?? 0) +
+              (stats['history'] ?? 0);
+
+          if (totalChanges > 0) {
+            debugPrint('[Auto Sync] Sync complete, $totalChanges items added.');
+            final locale = Locale(settings.hl);
+            final l10n = await AppLocalizations.delegate.load(locale);
+
+            try {
+              await flutterLocalNotificationsPlugin.show(
+                id: 9999,
+                title: l10n.notificationSyncTitle,
+                body: l10n.notificationSyncBody(totalChanges),
+                notificationDetails: NotificationDetails(
+                  android: const AndroidNotificationDetails(
+                    'sonora_sync',
+                    'Sonora Synchronization',
+                    importance: Importance.defaultImportance,
+                  ),
+                  linux: LinuxNotificationDetails(
+                    defaultActionName: l10n.accept,
+                  ),
+                ),
+              );
+            } catch (e) {
+              debugPrint('[Auto Sync] Failed to show local notification: $e');
+            }
+          } else {
+            debugPrint('[Auto Sync] Sync complete, no changes.');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[Auto Sync] Error during auto sync: $e');
+    } finally {
+      _isSilentSyncing = false;
+    }
   }
 }
 

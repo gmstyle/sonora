@@ -740,6 +740,43 @@ class AppLocalizationsIt extends AppLocalizations {
   String get syncSummaryNoChanges => 'La tua libreria è già aggiornata!';
 
   @override
+  String get localSyncAutoEnabled => 'Sincronizzazione Automatica';
+
+  @override
+  String get localSyncAutoEnabledHint =>
+      'La sincronizzazione avviene all\'avvio dell\'applicazione, alla connessione a reti Wi-Fi e periodicamente ogni 30 minuti.';
+
+  @override
+  String get playlistConflictStrategy => 'Gestione Conflitti Playlist';
+
+  @override
+  String get playlistConflictStrategyHint =>
+      'Scegli come gestire i conflitti di nomi duplicati per le playlist';
+
+  @override
+  String get conflictStrategyMerge => 'Unisci i brani';
+
+  @override
+  String get conflictStrategyKeepBoth => 'Mantieni entrambe (Rinomina)';
+
+  @override
+  String get conflictStrategyOverwrite => 'Sovrascrivi playlist locale';
+
+  @override
+  String get notificationSyncTitle => 'Sincronizzazione Sonora Completata';
+
+  @override
+  String notificationSyncBody(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nuovi elementi',
+      one: '1 nuovo elemento',
+    );
+    return 'Aggiunto $_temp0 alla tua libreria';
+  }
+
+  @override
   String get syncSuccess => 'Libreria sincronizzata con successo!';
 
   @override

@@ -88,19 +88,23 @@ class SettingsDropdownTile extends StatelessWidget {
     return ListTile(
       title: Text(title),
       subtitle: Text(options[value] ?? value),
-      trailing: DropdownButton<String>(
-        value: value,
-        underline: const SizedBox(),
-        items:
-            options.entries
-                .map(
-                  (e) => DropdownMenuItem<String>(
-                    value: e.key,
-                    child: Text(e.value),
-                  ),
-                )
-                .toList(),
-        onChanged: onChanged,
+      trailing: SizedBox(
+        width: 150,
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          underline: const SizedBox(),
+          items:
+              options.entries
+                  .map(
+                    (e) => DropdownMenuItem<String>(
+                      value: e.key,
+                      child: Text(e.value, overflow: TextOverflow.ellipsis),
+                    ),
+                  )
+                  .toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }

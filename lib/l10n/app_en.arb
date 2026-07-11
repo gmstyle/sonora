@@ -381,6 +381,22 @@
     }
   },
   "syncSummaryNoChanges": "Your library is already up to date!",
+  "localSyncAutoEnabled": "Automatic Sync",
+  "localSyncAutoEnabledHint": "Sync occurs at app startup, whenever connected to a Wi-Fi network, and every 30 minutes in the background.",
+  "playlistConflictStrategy": "Playlist Conflict Strategy",
+  "playlistConflictStrategyHint": "Choose how to handle conflicting duplicate playlist names",
+  "conflictStrategyMerge": "Merge tracks",
+  "conflictStrategyKeepBoth": "Keep both (Rename)",
+  "conflictStrategyOverwrite": "Overwrite local playlist",
+  "notificationSyncTitle": "Sonora Sync Complete",
+  "notificationSyncBody": "Added {count, plural, =1{1 new item} other{{count} new items}} to your library",
+  "@notificationSyncBody": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
   "syncSuccess": "Library synchronized successfully!",
   "syncFailed": "Synchronization failed: {error}",
   "@syncFailed": {
