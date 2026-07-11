@@ -6,26 +6,44 @@ class MergeLibraryUseCase {
 
   MergeLibraryUseCase(this.libraryRepository);
 
-  Future<void> execute(Map<String, dynamic> data) async {
+  Future<Map<String, int>> execute(Map<String, dynamic> data) async {
+    int likedSongsCount = 0;
+    int followedArtistsCount = 0;
+    int likedAlbumsCount = 0;
+    int likedPlaylistsCount = 0;
+    int playlistsCount = 0;
+    int playlistEntriesCount = 0;
+    int historyCount = 0;
+    int searchHistoryCount = 0;
+
     // 1. Synchronize Liked Songs (Native Upsert)
     final likedSongs =
         (data['likedSongs'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
         [];
-    for (final s in likedSongs) {
-      await libraryRepository.ensureLikedSong(
-        LikedSongModel(
-          videoId: s['videoId'] as String,
-          title: s['title'] as String,
-          artist: s['artist'] as String,
-          thumbnailUrl: s['thumbnailUrl'] as String?,
-          artistId: s['artistId'] as String?,
-          albumId: s['albumId'] as String?,
-          addedAt: DateTime.parse(s['addedAt'] as String),
-          duration: s['duration'] as int?,
-          isVideo: s['isVideo'] as bool? ?? false,
-          isExplicit: s['isExplicit'] as bool? ?? false,
-        ),
-      );
+    if (likedSongs.isNotEmpty) {
+      final localSongs = await libraryRepository.getAllLikedSongs();
+      final localSongIds = localSongs.map((s) => s.videoId).toSet();
+
+      for (final s in likedSongs) {
+        final videoId = s['videoId'] as String;
+        if (!localSongIds.contains(videoId)) {
+          await libraryRepository.ensureLikedSong(
+            LikedSongModel(
+              videoId: videoId,
+              title: s['title'] as String,
+              artist: s['artist'] as String,
+              thumbnailUrl: s['thumbnailUrl'] as String?,
+              artistId: s['artistId'] as String?,
+              albumId: s['albumId'] as String?,
+              addedAt: DateTime.parse(s['addedAt'] as String),
+              duration: s['duration'] as int?,
+              isVideo: s['isVideo'] as bool? ?? false,
+              isExplicit: s['isExplicit'] as bool? ?? false,
+            ),
+          );
+          likedSongsCount++;
+        }
+      }
     }
 
     // 2. Synchronize Followed Artists (Native Upsert)
@@ -33,36 +51,54 @@ class MergeLibraryUseCase {
         (data['followedArtists'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
         [];
-    for (final a in followedArtists) {
-      await libraryRepository.ensureFollowedArtist(
-        FollowedArtistModel(
-          artistId: a['artistId'] as String,
-          name: a['name'] as String,
-          thumbnailUrl: a['thumbnailUrl'] as String?,
-          addedAt:
-              a['addedAt'] != null
-                  ? DateTime.parse(a['addedAt'] as String)
-                  : DateTime.now(),
-        ),
-      );
+    if (followedArtists.isNotEmpty) {
+      final localArtists = await libraryRepository.getAllFollowedArtists();
+      final localArtistIds = localArtists.map((a) => a.artistId).toSet();
+
+      for (final a in followedArtists) {
+        final artistId = a['artistId'] as String;
+        if (!localArtistIds.contains(artistId)) {
+          await libraryRepository.ensureFollowedArtist(
+            FollowedArtistModel(
+              artistId: artistId,
+              name: a['name'] as String,
+              thumbnailUrl: a['thumbnailUrl'] as String?,
+              addedAt:
+                  a['addedAt'] != null
+                      ? DateTime.parse(a['addedAt'] as String)
+                      : DateTime.now(),
+            ),
+          );
+          followedArtistsCount++;
+        }
+      }
     }
 
     // 3. Synchronize Liked Albums (Native Upsert)
     final likedAlbums =
         (data['likedAlbums'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
         [];
-    for (final a in likedAlbums) {
-      await libraryRepository.ensureLikedAlbum(
-        LikedAlbumModel(
-          albumId: a['albumId'] as String,
-          name: a['name'] as String,
-          artistName: a['artistName'] as String,
-          artistId: a['artistId'] as String?,
-          thumbnailUrl: a['thumbnailUrl'] as String?,
-          year: a['year'] as int?,
-          addedAt: DateTime.parse(a['addedAt'] as String),
-        ),
-      );
+    if (likedAlbums.isNotEmpty) {
+      final localAlbums = await libraryRepository.getAllLikedAlbums();
+      final localAlbumIds = localAlbums.map((a) => a.albumId).toSet();
+
+      for (final a in likedAlbums) {
+        final albumId = a['albumId'] as String;
+        if (!localAlbumIds.contains(albumId)) {
+          await libraryRepository.ensureLikedAlbum(
+            LikedAlbumModel(
+              albumId: albumId,
+              name: a['name'] as String,
+              artistName: a['artistName'] as String,
+              artistId: a['artistId'] as String?,
+              thumbnailUrl: a['thumbnailUrl'] as String?,
+              year: a['year'] as int?,
+              addedAt: DateTime.parse(a['addedAt'] as String),
+            ),
+          );
+          likedAlbumsCount++;
+        }
+      }
     }
 
     // 4. Synchronize Liked Playlists (Native Upsert)
@@ -70,16 +106,27 @@ class MergeLibraryUseCase {
         (data['likedPlaylists'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
         [];
-    for (final p in likedPlaylists) {
-      await libraryRepository.ensureLikedPlaylist(
-        LikedPlaylistModel(
-          playlistId: p['playlistId'] as String,
-          name: p['name'] as String,
-          thumbnailUrl: p['thumbnailUrl'] as String?,
-          videoCount: p['videoCount'] as int?,
-          addedAt: DateTime.parse(p['addedAt'] as String),
-        ),
-      );
+    if (likedPlaylists.isNotEmpty) {
+      final localLikedPlaylists =
+          await libraryRepository.getAllLikedPlaylists();
+      final localLikedPlaylistIds =
+          localLikedPlaylists.map((p) => p.playlistId).toSet();
+
+      for (final p in likedPlaylists) {
+        final playlistId = p['playlistId'] as String;
+        if (!localLikedPlaylistIds.contains(playlistId)) {
+          await libraryRepository.ensureLikedPlaylist(
+            LikedPlaylistModel(
+              playlistId: playlistId,
+              name: p['name'] as String,
+              thumbnailUrl: p['thumbnailUrl'] as String?,
+              videoCount: p['videoCount'] as int?,
+              addedAt: DateTime.parse(p['addedAt'] as String),
+            ),
+          );
+          likedPlaylistsCount++;
+        }
+      }
     }
 
     // 5. Synchronize Local Playlists and Entries
@@ -105,10 +152,23 @@ class MergeLibraryUseCase {
 
       int targetPlaylistId;
       final existingPlaylistId = nameToIdMap[playlistName.toLowerCase()];
+      final Set<String> existingVideoIds;
+      int nextPosition;
 
       if (existingPlaylistId != null) {
         // Playlist already exists locally with the same name, merge entries
         targetPlaylistId = existingPlaylistId;
+        final localEntries = await libraryRepository.getPlaylistEntries(
+          targetPlaylistId,
+        );
+        existingVideoIds = localEntries.map((e) => e.videoId).toSet();
+        nextPosition =
+            localEntries.isEmpty
+                ? 1
+                : localEntries
+                        .map((e) => e.position)
+                        .reduce((a, b) => a > b ? a : b) +
+                    1;
       } else {
         // Create a new playlist
         targetPlaylistId = await libraryRepository.createPlaylistWithDate(
@@ -117,6 +177,9 @@ class MergeLibraryUseCase {
           createdAt: createdAt,
         );
         nameToIdMap[playlistName.toLowerCase()] = targetPlaylistId;
+        playlistsCount++;
+        existingVideoIds = const <String>{};
+        nextPosition = 1;
       }
 
       // Read entries from the remote playlist
@@ -125,20 +188,6 @@ class MergeLibraryUseCase {
               ?.cast<Map<String, dynamic>>() ??
           [];
       if (remoteEntries.isEmpty) continue;
-
-      // Retrieve existing entries in the local playlist to avoid duplicates
-      final localEntries = await libraryRepository.getPlaylistEntries(
-        targetPlaylistId,
-      );
-      final existingVideoIds = localEntries.map((e) => e.videoId).toSet();
-
-      int nextPosition =
-          localEntries.isEmpty
-              ? 1
-              : localEntries
-                      .map((e) => e.position)
-                      .reduce((a, b) => a > b ? a : b) +
-                  1;
 
       for (final e in remoteEntries) {
         final videoId = e['videoId'] as String;
@@ -154,6 +203,7 @@ class MergeLibraryUseCase {
             isVideo: e['isVideo'] as bool? ?? false,
             isExplicit: e['isExplicit'] as bool? ?? false,
           );
+          playlistEntriesCount++;
         }
       }
     }
@@ -183,6 +233,7 @@ class MergeLibraryUseCase {
             isVideo: h['isVideo'] as bool? ?? false,
             isExplicit: h['isExplicit'] as bool? ?? false,
           );
+          historyCount++;
         }
       }
     }
@@ -214,8 +265,20 @@ class MergeLibraryUseCase {
             query,
             searchedAt: searchedAt,
           );
+          searchHistoryCount++;
         }
       }
     }
+
+    return {
+      'likedSongs': likedSongsCount,
+      'followedArtists': followedArtistsCount,
+      'likedAlbums': likedAlbumsCount,
+      'likedPlaylists': likedPlaylistsCount,
+      'playlists': playlistsCount,
+      'playlistEntries': playlistEntriesCount,
+      'history': historyCount,
+      'searchHistory': searchHistoryCount,
+    };
   }
 }

@@ -69,6 +69,22 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
+    double progressValue = 0.1;
+    String stageText = l10n.syncingData;
+    if (syncState.currentStage == 'exporting') {
+      progressValue = 0.15;
+      stageText = l10n.syncStageExporting;
+    } else if (syncState.currentStage == 'exchanging') {
+      progressValue = 0.45;
+      stageText = l10n.syncStageExchanging;
+    } else if (syncState.currentStage == 'merging') {
+      progressValue = 0.75;
+      stageText = l10n.syncStageMerging;
+    } else if (syncState.currentStage == 'finalizing') {
+      progressValue = 0.95;
+      stageText = l10n.syncStageFinalizing;
+    }
+
     // Map raw error messages to user-friendly localizations
     String? friendlyError;
     if (syncState.errorMessage == 'incorrectPin') {
@@ -124,20 +140,30 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
             ),
           ),
         ] else if (syncState.status == SyncStatus.syncing) ...[
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 32.0),
-              child: Column(
-                children: [CircularProgressIndicator(), SizedBox(height: 16)],
-              ),
-            ),
-          ),
-          Center(
-            child: Text(
-              l10n.syncingData,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
+            child: Column(
+              children: [
+                LinearProgressIndicator(
+                  value: progressValue,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  stageText,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${(progressValue * 100).toStringAsFixed(0)}%',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
             ),
           ),
         ] else if (syncState.status == SyncStatus.waitingForPin) ...[
@@ -145,26 +171,31 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
         ] else if (syncState.status == SyncStatus.success) ...[
           const Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 24.0),
+              padding: EdgeInsets.symmetric(vertical: 16.0),
               child: Icon(
                 LucideIcons.checkCircle,
                 color: Colors.green,
-                size: 64,
+                size: 56,
               ),
             ),
           ),
           Center(
             child: Text(
-              l10n.syncSuccess,
+              l10n.syncSummarySuccess,
+              textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: Colors.green,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          _buildSyncStatsSummary(theme, l10n, syncState.syncStats),
           const SizedBox(height: 24),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed:
+                () =>
+                    ref.read(syncNotifierProvider.notifier).resetSuccessState(),
             child: Text(l10n.close),
           ),
         ] else if (syncState.status == SyncStatus.error) ...[
@@ -546,6 +577,114 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
         subtitle: Text('${device.ip}:${device.port}'),
         trailing: const Icon(LucideIcons.refreshCw, size: 18),
         onTap: () => ref.read(syncNotifierProvider.notifier).syncWith(device),
+      ),
+    );
+  }
+
+  Widget _buildSyncStatsSummary(
+    ThemeData theme,
+    AppLocalizations l10n,
+    Map<String, int>? stats,
+  ) {
+    if (stats == null || stats.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            l10n.syncSummaryNoChanges,
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    final likedSongs = stats['likedSongs'] ?? 0;
+    final followedArtists = stats['followedArtists'] ?? 0;
+    final likedAlbums = stats['likedAlbums'] ?? 0;
+    final likedPlaylists = stats['likedPlaylists'] ?? 0;
+    final playlists = stats['playlists'] ?? 0;
+    final playlistEntries = stats['playlistEntries'] ?? 0;
+    final history = stats['history'] ?? 0;
+
+    final totalChanges =
+        likedSongs +
+        followedArtists +
+        likedAlbums +
+        likedPlaylists +
+        playlists +
+        playlistEntries +
+        history;
+
+    if (totalChanges == 0) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            l10n.syncSummaryNoChanges,
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    final List<Widget> statRows = [];
+
+    void addStatRow(IconData icon, String text) {
+      statRows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            children: [
+              Icon(icon, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (likedSongs > 0) {
+      addStatRow(LucideIcons.heart, l10n.syncSummaryAddedSongs(likedSongs));
+    }
+    if (playlists > 0) {
+      addStatRow(
+        LucideIcons.listMusic,
+        l10n.syncSummaryAddedPlaylists(playlists),
+      );
+    }
+    if (followedArtists > 0) {
+      addStatRow(
+        LucideIcons.users,
+        l10n.syncSummaryAddedArtists(followedArtists),
+      );
+    }
+    if (likedAlbums > 0) {
+      addStatRow(LucideIcons.disc, l10n.syncSummaryAddedAlbums(likedAlbums));
+    }
+    if (history > 0) {
+      addStatRow(LucideIcons.history, l10n.syncSummaryAddedHistory(history));
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.syncSummaryTitle,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...statRows,
+        ],
       ),
     );
   }

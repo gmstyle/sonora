@@ -378,13 +378,13 @@ class SonoraSyncService {
 
           // Merge remote library data into server's local DB automatically
           final libraryData = data['library'] as Map<String, dynamic>;
-          await mergeLibraryUseCase.execute(libraryData);
+          final serverStats = await mergeLibraryUseCase.execute(libraryData);
 
           // Export server's library data to return to client
           final mergedLocalData = await exportBackupUseCase.buildBackupMap();
 
           return Response.ok(
-            jsonEncode({'library': mergedLocalData}),
+            jsonEncode({'library': mergedLocalData, 'stats': serverStats}),
             headers: {'content-type': 'application/json'},
           );
         } catch (e) {
@@ -608,14 +608,20 @@ class SonoraSyncService {
 
   /// Initiates client-side synchronization: sends local data to target,
   /// awaits the response with merged data, and applies it locally.
-  Future<void> performSyncWith(DiscoveredSyncDevice target) async {
+  Future<Map<String, int>> performSyncWith(
+    DiscoveredSyncDevice target, {
+    void Function(String)? onStageChanged,
+  }) async {
     try {
       debugPrint(
         'Starting synchronization with ${target.name} (${target.ip}:${target.port})',
       );
 
+      onStageChanged?.call('exporting');
       final myDeviceId = await _getOrCreateDeviceId();
       final localLibrary = await exportBackupUseCase.buildBackupMap();
+
+      onStageChanged?.call('exchanging');
       final requestPayload = {
         'clientId': myDeviceId,
         'clientName': _getDeviceName(),
@@ -634,15 +640,31 @@ class SonoraSyncService {
       );
 
       if (response.statusCode == 200) {
+        onStageChanged?.call('merging');
         final responseData =
             jsonDecode(response.data as String) as Map<String, dynamic>;
         final remoteMergedLibrary =
             responseData['library'] as Map<String, dynamic>;
+        final serverStats = responseData['stats'] as Map<String, dynamic>?;
 
-        await mergeLibraryUseCase.execute(remoteMergedLibrary);
+        final clientStats = await mergeLibraryUseCase.execute(
+          remoteMergedLibrary,
+        );
+
+        // Combine client and server merge statistics to reflect the true bidirectional sync
+        final combinedStats = <String, int>{};
+        final keys = {...clientStats.keys, ...?serverStats?.keys};
+        for (final key in keys) {
+          final clientCount = clientStats[key] ?? 0;
+          final serverCount = (serverStats?[key] as num?)?.toInt() ?? 0;
+          combinedStats[key] = clientCount + serverCount;
+        }
+
+        onStageChanged?.call('finalizing');
         debugPrint(
           'Synchronization successfully completed with ${target.name}',
         );
+        return combinedStats;
       } else {
         throw Exception('Server responded with code ${response.statusCode}');
       }

@@ -229,6 +229,53 @@
   "pairingSuccess": "Dispositivo associato con successo!",
   "accept": "Consenti",
   "reject": "Rifiuta",
+  "syncStageExporting": "Esportazione della libreria locale...",
+  "syncStageExchanging": "Scambio dati con il dispositivo...",
+  "syncStageMerging": "Unione della libreria...",
+  "syncStageFinalizing": "Completamento...",
+  "syncSummaryTitle": "Riepilogo Sincronizzazione",
+  "syncSummarySuccess": "Libreria sincronizzata con successo!",
+  "syncSummaryAddedSongs": "{count, plural, =1{1 brano preferito aggiunto} other{{count} brani preferiti aggiunti}}",
+  "@syncSummaryAddedSongs": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedPlaylists": "{count, plural, =1{1 playlist aggiunta} other{{count} playlist aggiunte}}",
+  "@syncSummaryAddedPlaylists": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedAlbums": "{count, plural, =1{1 album aggiunto} other{{count} album aggiunti}}",
+  "@syncSummaryAddedAlbums": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedArtists": "{count, plural, =1{1 artista aggiunto} other{{count} artisti aggiunti}}",
+  "@syncSummaryAddedArtists": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedHistory": "{count, plural, =1{1 ascolto aggiunto} other{{count} ascolti aggiunti}}",
+  "@syncSummaryAddedHistory": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryNoChanges": "La tua libreria è già aggiornata!",
   "syncSuccess": "Libreria sincronizzata con successo!",
   "syncFailed": "Sincronizzazione fallita: {error}",
   "syncingData": "Sincronizzazione in corso...",

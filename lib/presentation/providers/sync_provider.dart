@@ -36,6 +36,8 @@ class SyncState {
   final String? errorMessage;
   final String? rawErrorMessage;
   final PairingRequest? activeIncomingRequest;
+  final String? currentStage;
+  final Map<String, int>? syncStats;
 
   SyncState({
     this.status = SyncStatus.idle,
@@ -44,6 +46,8 @@ class SyncState {
     this.errorMessage,
     this.rawErrorMessage,
     this.activeIncomingRequest,
+    this.currentStage,
+    this.syncStats,
   });
 
   SyncState copyWith({
@@ -53,8 +57,12 @@ class SyncState {
     String? errorMessage,
     String? rawErrorMessage,
     PairingRequest? activeIncomingRequest,
+    String? currentStage,
+    Map<String, int>? syncStats,
     bool clearRequest = false,
     bool clearError = false,
+    bool clearStats = false,
+    bool clearStage = false,
   }) {
     return SyncState(
       status: status ?? this.status,
@@ -67,6 +75,8 @@ class SyncState {
           clearRequest
               ? null
               : (activeIncomingRequest ?? this.activeIncomingRequest),
+      currentStage: clearStage ? null : (currentStage ?? this.currentStage),
+      syncStats: clearStats ? null : (syncStats ?? this.syncStats),
     );
   }
 }
@@ -180,7 +190,12 @@ class SyncNotifier extends Notifier<SyncState> {
 
       isPairingPhase = false;
       // Proceed with the merge sync
-      await _service.performSyncWith(device);
+      final stats = await _service.performSyncWith(
+        device,
+        onStageChanged: (stage) {
+          state = state.copyWith(currentStage: stage);
+        },
+      );
 
       // Save/update paired device metadata with latest IP/port
       await _service.savePairedDeviceMetadata(
@@ -192,7 +207,11 @@ class SyncNotifier extends Notifier<SyncState> {
         ),
       );
 
-      state = state.copyWith(status: SyncStatus.success);
+      state = state.copyWith(
+        status: SyncStatus.success,
+        syncStats: stats,
+        clearStage: true,
+      );
     } catch (e) {
       String friendlyMessage = e.toString();
       if (friendlyMessage.contains('incorrect_pin')) {
@@ -219,8 +238,17 @@ class SyncNotifier extends Notifier<SyncState> {
         status: SyncStatus.error,
         errorMessage: friendlyMessage,
         rawErrorMessage: e.toString(),
+        clearStage: true,
       );
     }
+  }
+
+  void resetSuccessState() {
+    state = state.copyWith(
+      status: SyncStatus.idle,
+      clearStats: true,
+      clearStage: true,
+    );
   }
 
   void submitPin(String pin) {

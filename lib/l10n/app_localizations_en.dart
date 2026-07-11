@@ -659,6 +659,82 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reject => 'Reject';
 
   @override
+  String get syncStageExporting => 'Exporting local library...';
+
+  @override
+  String get syncStageExchanging => 'Exchanging data with remote device...';
+
+  @override
+  String get syncStageMerging => 'Merging remote library...';
+
+  @override
+  String get syncStageFinalizing => 'Finalizing...';
+
+  @override
+  String get syncSummaryTitle => 'Sync Summary';
+
+  @override
+  String get syncSummarySuccess => 'Library synchronized successfully!';
+
+  @override
+  String syncSummaryAddedSongs(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count favorite songs added',
+      one: '1 favorite song added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedPlaylists(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists added',
+      one: '1 playlist added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedAlbums(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count albums added',
+      one: '1 album added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedArtists(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count artists added',
+      one: '1 artist added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedHistory(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count listening history items added',
+      one: '1 listening history item added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncSummaryNoChanges => 'Your library is already up to date!';
+
+  @override
   String get syncSuccess => 'Library synchronized successfully!';
 
   @override

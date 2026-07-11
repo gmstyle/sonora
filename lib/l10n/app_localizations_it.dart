@@ -664,6 +664,82 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reject => 'Rifiuta';
 
   @override
+  String get syncStageExporting => 'Esportazione della libreria locale...';
+
+  @override
+  String get syncStageExchanging => 'Scambio dati con il dispositivo...';
+
+  @override
+  String get syncStageMerging => 'Unione della libreria...';
+
+  @override
+  String get syncStageFinalizing => 'Completamento...';
+
+  @override
+  String get syncSummaryTitle => 'Riepilogo Sincronizzazione';
+
+  @override
+  String get syncSummarySuccess => 'Libreria sincronizzata con successo!';
+
+  @override
+  String syncSummaryAddedSongs(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brani preferiti aggiunti',
+      one: '1 brano preferito aggiunto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedPlaylists(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlist aggiunte',
+      one: '1 playlist aggiunta',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedAlbums(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count album aggiunti',
+      one: '1 album aggiunto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedArtists(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count artisti aggiunti',
+      one: '1 artista aggiunto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncSummaryAddedHistory(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ascolti aggiunti',
+      one: '1 ascolto aggiunto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncSummaryNoChanges => 'La tua libreria è già aggiornata!';
+
+  @override
   String get syncSuccess => 'Libreria sincronizzata con successo!';
 
   @override

@@ -334,6 +334,53 @@
   "pairingSuccess": "Device paired successfully!",
   "accept": "Accept",
   "reject": "Reject",
+  "syncStageExporting": "Exporting local library...",
+  "syncStageExchanging": "Exchanging data with remote device...",
+  "syncStageMerging": "Merging remote library...",
+  "syncStageFinalizing": "Finalizing...",
+  "syncSummaryTitle": "Sync Summary",
+  "syncSummarySuccess": "Library synchronized successfully!",
+  "syncSummaryAddedSongs": "{count, plural, =1{1 favorite song added} other{{count} favorite songs added}}",
+  "@syncSummaryAddedSongs": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedPlaylists": "{count, plural, =1{1 playlist added} other{{count} playlists added}}",
+  "@syncSummaryAddedPlaylists": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedAlbums": "{count, plural, =1{1 album added} other{{count} albums added}}",
+  "@syncSummaryAddedAlbums": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedArtists": "{count, plural, =1{1 artist added} other{{count} artists added}}",
+  "@syncSummaryAddedArtists": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryAddedHistory": "{count, plural, =1{1 listening history item added} other{{count} listening history items added}}",
+  "@syncSummaryAddedHistory": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "syncSummaryNoChanges": "Your library is already up to date!",
   "syncSuccess": "Library synchronized successfully!",
   "syncFailed": "Synchronization failed: {error}",
   "@syncFailed": {

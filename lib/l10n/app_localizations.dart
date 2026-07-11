@@ -1226,6 +1226,78 @@ abstract class AppLocalizations {
   /// **'Reject'**
   String get reject;
 
+  /// No description provided for @syncStageExporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting local library...'**
+  String get syncStageExporting;
+
+  /// No description provided for @syncStageExchanging.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchanging data with remote device...'**
+  String get syncStageExchanging;
+
+  /// No description provided for @syncStageMerging.
+  ///
+  /// In en, this message translates to:
+  /// **'Merging remote library...'**
+  String get syncStageMerging;
+
+  /// No description provided for @syncStageFinalizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Finalizing...'**
+  String get syncStageFinalizing;
+
+  /// No description provided for @syncSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Summary'**
+  String get syncSummaryTitle;
+
+  /// No description provided for @syncSummarySuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Library synchronized successfully!'**
+  String get syncSummarySuccess;
+
+  /// No description provided for @syncSummaryAddedSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 favorite song added} other{{count} favorite songs added}}'**
+  String syncSummaryAddedSongs(num count);
+
+  /// No description provided for @syncSummaryAddedPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 playlist added} other{{count} playlists added}}'**
+  String syncSummaryAddedPlaylists(num count);
+
+  /// No description provided for @syncSummaryAddedAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 album added} other{{count} albums added}}'**
+  String syncSummaryAddedAlbums(num count);
+
+  /// No description provided for @syncSummaryAddedArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 artist added} other{{count} artists added}}'**
+  String syncSummaryAddedArtists(num count);
+
+  /// No description provided for @syncSummaryAddedHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 listening history item added} other{{count} listening history items added}}'**
+  String syncSummaryAddedHistory(num count);
+
+  /// No description provided for @syncSummaryNoChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is already up to date!'**
+  String get syncSummaryNoChanges;
+
   /// No description provided for @syncSuccess.
   ///
   /// In en, this message translates to:
