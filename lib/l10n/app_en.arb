@@ -119,6 +119,7 @@
     }
   },
   "cancel": "Cancel",
+  "confirm": "Confirm",
   "continueAction": "Continue",
   "downloadingSongs": "Downloading {count, plural, =1{1 song} other{{count} songs}} from {playlistName}…",
   "@downloadingSongs": {
@@ -309,14 +310,28 @@
   "syncNowHint": "Find other Sonora devices on the Wi-Fi to merge library data (likes, playlists, history). Settings are not synced.",
   "searchingDevices": "Searching for Sonora devices...",
   "noDevicesFound": "No Sonora devices found on local network",
-  "incomingSyncRequestTitle": "Sync Request",
-  "incomingSyncRequestMsg": "The device \"{name}\" ({ip}) wants to synchronize its library with this device. Do you want to merge and sync data?",
-  "@incomingSyncRequestMsg": {
+  "pairingRequiredTitle": "Pairing Required",
+  "pairingRequiredDesc": "Enter the 4-digit PIN shown on the other device to authorize pairing.",
+  "incorrectPinError": "Incorrect pairing PIN. Please try again.",
+  "devicePairingTitle": "Device Pairing",
+  "devicePairingDesc": "The device \"{name}\" wants to pair. Type this PIN on the other device to authorize:",
+  "@devicePairingDesc": {
     "placeholders": {
-      "name": {"type": "String"},
-      "ip": {"type": "String"}
+      "name": {"type": "String"}
     }
   },
+  "resetPairedDevices": "Reset paired devices",
+  "resetPairedDevicesSuccess": "Associations successfully reset",
+  "resetPairedDevicesDesc": "Remove pairing association with all devices",
+  "pairingRemovedError": "The remote device has removed the pairing. Please pair the devices again.",
+  "paired": "Paired",
+  "pairedDevicesSection": "My Devices",
+  "otherDevicesSection": "Discovered Devices",
+  "online": "Online",
+  "offline": "Offline",
+  "resetPairedDevicesConfirmTitle": "Reset Paired Devices",
+  "resetPairedDevicesConfirmMsg": "Are you sure you want to remove the pairing association with all devices? Future syncs will require pairing again.",
+  "pairingSuccess": "Device paired successfully!",
   "accept": "Accept",
   "reject": "Reject",
   "syncSuccess": "Library synchronized successfully!",

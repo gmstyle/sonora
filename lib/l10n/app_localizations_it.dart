@@ -192,6 +192,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get cancel => 'Annulla';
 
   @override
+  String get confirm => 'Conferma';
+
+  @override
   String get continueAction => 'Continua';
 
   @override
@@ -598,12 +601,61 @@ class AppLocalizationsIt extends AppLocalizations {
       'Nessun dispositivo Sonora trovato sulla rete locale';
 
   @override
-  String get incomingSyncRequestTitle => 'Richiesta di Sincronizzazione';
+  String get pairingRequiredTitle => 'Associazione Richiesta';
 
   @override
-  String incomingSyncRequestMsg(String name, String ip) {
-    return 'Il dispositivo \"$name\" ($ip) desidera sincronizzare la sua libreria con questo dispositivo. Vuoi unire e sincronizzare i dati?';
+  String get pairingRequiredDesc =>
+      'Inserisci il PIN da 4 cifre visualizzato sull\'altro dispositivo per autorizzare l\'associazione.';
+
+  @override
+  String get incorrectPinError => 'PIN di associazione errato. Riprova.';
+
+  @override
+  String get devicePairingTitle => 'Associazione Dispositivo';
+
+  @override
+  String devicePairingDesc(String name) {
+    return 'Il dispositivo \"$name\" vuole associarsi. Digita questo PIN sull\'altro dispositivo per autorizzarlo:';
   }
+
+  @override
+  String get resetPairedDevices => 'Resetta dispositivi associati';
+
+  @override
+  String get resetPairedDevicesSuccess => 'Associazioni resettate con successo';
+
+  @override
+  String get resetPairedDevicesDesc =>
+      'Rimuovi l\'associazione con tutti i dispositivi';
+
+  @override
+  String get pairingRemovedError =>
+      'L\'altro dispositivo ha rimosso l\'associazione. Effettua nuovamente l\'accoppiamento.';
+
+  @override
+  String get paired => 'Associato';
+
+  @override
+  String get pairedDevicesSection => 'I miei dispositivi';
+
+  @override
+  String get otherDevicesSection => 'Dispositivi rilevati';
+
+  @override
+  String get online => 'Online';
+
+  @override
+  String get offline => 'Scollegato';
+
+  @override
+  String get resetPairedDevicesConfirmTitle => 'Resetta Dispositivi Associati';
+
+  @override
+  String get resetPairedDevicesConfirmMsg =>
+      'Sei sicuro di voler rimuovere l\'associazione con tutti i dispositivi? Le sincronizzazioni future richiederanno un nuovo accoppiamento.';
+
+  @override
+  String get pairingSuccess => 'Dispositivo associato con successo!';
 
   @override
   String get accept => 'Consenti';

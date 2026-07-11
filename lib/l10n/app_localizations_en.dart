@@ -192,6 +192,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get confirm => 'Confirm';
+
+  @override
   String get continueAction => 'Continue';
 
   @override
@@ -593,12 +596,61 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noDevicesFound => 'No Sonora devices found on local network';
 
   @override
-  String get incomingSyncRequestTitle => 'Sync Request';
+  String get pairingRequiredTitle => 'Pairing Required';
 
   @override
-  String incomingSyncRequestMsg(String name, String ip) {
-    return 'The device \"$name\" ($ip) wants to synchronize its library with this device. Do you want to merge and sync data?';
+  String get pairingRequiredDesc =>
+      'Enter the 4-digit PIN shown on the other device to authorize pairing.';
+
+  @override
+  String get incorrectPinError => 'Incorrect pairing PIN. Please try again.';
+
+  @override
+  String get devicePairingTitle => 'Device Pairing';
+
+  @override
+  String devicePairingDesc(String name) {
+    return 'The device \"$name\" wants to pair. Type this PIN on the other device to authorize:';
   }
+
+  @override
+  String get resetPairedDevices => 'Reset paired devices';
+
+  @override
+  String get resetPairedDevicesSuccess => 'Associations successfully reset';
+
+  @override
+  String get resetPairedDevicesDesc =>
+      'Remove pairing association with all devices';
+
+  @override
+  String get pairingRemovedError =>
+      'The remote device has removed the pairing. Please pair the devices again.';
+
+  @override
+  String get paired => 'Paired';
+
+  @override
+  String get pairedDevicesSection => 'My Devices';
+
+  @override
+  String get otherDevicesSection => 'Discovered Devices';
+
+  @override
+  String get online => 'Online';
+
+  @override
+  String get offline => 'Offline';
+
+  @override
+  String get resetPairedDevicesConfirmTitle => 'Reset Paired Devices';
+
+  @override
+  String get resetPairedDevicesConfirmMsg =>
+      'Are you sure you want to remove the pairing association with all devices? Future syncs will require pairing again.';
+
+  @override
+  String get pairingSuccess => 'Device paired successfully!';
 
   @override
   String get accept => 'Accept';

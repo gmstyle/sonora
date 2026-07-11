@@ -11,6 +11,7 @@ final syncServiceProvider = Provider<SonoraSyncService>((ref) {
   final service = SonoraSyncService(
     mergeLibraryUseCase: ref.watch(mergeLibraryUseCaseProvider),
     exportBackupUseCase: ref.watch(exportBackupUseCaseProvider),
+    prefs: ref.watch(sharedPreferencesProvider),
   );
   ref.onDispose(() {
     service.dispose();
@@ -18,7 +19,15 @@ final syncServiceProvider = Provider<SonoraSyncService>((ref) {
   return service;
 });
 
-enum SyncStatus { idle, scanning, syncing, success, error }
+enum SyncStatus {
+  idle,
+  scanning,
+  syncing,
+  success,
+  error,
+  waitingForPin,
+  displayingPin,
+}
 
 class SyncState {
   final SyncStatus status;
@@ -26,7 +35,7 @@ class SyncState {
   final bool isServerRunning;
   final String? errorMessage;
   final String? rawErrorMessage;
-  final SyncRequest? activeIncomingRequest;
+  final PairingRequest? activeIncomingRequest;
 
   SyncState({
     this.status = SyncStatus.idle,
@@ -43,7 +52,7 @@ class SyncState {
     bool? isServerRunning,
     String? errorMessage,
     String? rawErrorMessage,
-    SyncRequest? activeIncomingRequest,
+    PairingRequest? activeIncomingRequest,
     bool clearRequest = false,
     bool clearError = false,
   }) {
@@ -66,12 +75,13 @@ class SyncNotifier extends Notifier<SyncState> {
   late final SonoraSyncService _service;
   StreamSubscription? _requestsSub;
   StreamSubscription? _devicesSub;
+  Completer<String?>? _pinInputCompleter;
 
   @override
   SyncState build() {
     _service = ref.watch(syncServiceProvider);
 
-    _requestsSub = _service.syncRequestsStream.listen((request) {
+    _requestsSub = _service.pairingRequestsStream.listen((request) {
       state = state.copyWith(activeIncomingRequest: request);
     });
 
@@ -137,14 +147,67 @@ class SyncNotifier extends Notifier<SyncState> {
 
   Future<void> syncWith(DiscoveredSyncDevice device) async {
     state = state.copyWith(status: SyncStatus.syncing);
+    bool isPairingPhase = false;
     try {
+      // Check if already paired
+      final isAlreadyPaired = _service.isDevicePaired(device.deviceId);
+      if (!isAlreadyPaired) {
+        isPairingPhase = true;
+        // Request pairing
+        final status = await _service.pairWith(device);
+        if (status == 'pairing_started') {
+          // Transition to waitingForPin
+          state = state.copyWith(status: SyncStatus.waitingForPin);
+
+          // Await user PIN input from the UI
+          _pinInputCompleter = Completer<String?>();
+          final pin = await _pinInputCompleter!.future;
+          _pinInputCompleter = null;
+
+          if (pin == null || pin.isEmpty) {
+            // Pairing cancelled
+            state = state.copyWith(status: SyncStatus.idle);
+            return;
+          }
+
+          state = state.copyWith(status: SyncStatus.syncing);
+          final success = await _service.verifyPairingPin(device, pin);
+          if (!success) {
+            throw Exception('incorrect_pin');
+          }
+        }
+      }
+
+      isPairingPhase = false;
+      // Proceed with the merge sync
       await _service.performSyncWith(device);
+
+      // Save/update paired device metadata with latest IP/port
+      await _service.savePairedDeviceMetadata(
+        PairedDeviceMetadata(
+          deviceId: device.deviceId,
+          name: device.name,
+          ip: device.ip,
+          port: device.port,
+        ),
+      );
+
       state = state.copyWith(status: SyncStatus.success);
     } catch (e) {
       String friendlyMessage = e.toString();
-      if (e is DioException) {
-        if (e.response?.statusCode == 403) {
-          friendlyMessage = 'syncRejected';
+      if (friendlyMessage.contains('incorrect_pin')) {
+        friendlyMessage = 'incorrectPin';
+      } else if (e is DioException) {
+        final dynamic responseData = e.response?.data;
+        final responseString =
+            responseData is Map
+                ? (responseData['error'] ?? '').toString()
+                : responseData.toString();
+        if (responseString.contains('incorrect_pin')) {
+          friendlyMessage = 'incorrectPin';
+        } else if (e.response?.statusCode == 403) {
+          friendlyMessage = isPairingPhase ? 'syncRejected' : 'pairingRemoved';
+          await _service.removePairedDevice(device.deviceId);
         } else if (e.type == DioExceptionType.connectionTimeout ||
             e.type == DioExceptionType.sendTimeout ||
             e.type == DioExceptionType.receiveTimeout ||
@@ -160,12 +223,30 @@ class SyncNotifier extends Notifier<SyncState> {
     }
   }
 
+  void submitPin(String pin) {
+    if (_pinInputCompleter != null && !_pinInputCompleter!.isCompleted) {
+      _pinInputCompleter!.complete(pin);
+    }
+  }
+
+  void cancelPinInput() {
+    if (_pinInputCompleter != null && !_pinInputCompleter!.isCompleted) {
+      _pinInputCompleter!.complete(null);
+    }
+  }
+
   void respondToIncomingRequest(bool approve) {
     final req = state.activeIncomingRequest;
     if (req != null) {
-      req.completer.complete(approve);
+      if (!approve) {
+        _service.cancelPendingPairing();
+      }
       state = state.copyWith(clearRequest: true);
     }
+  }
+
+  Future<void> clearPairedDevices() async {
+    await _service.clearPairedDevices();
   }
 
   void resetStatus() {

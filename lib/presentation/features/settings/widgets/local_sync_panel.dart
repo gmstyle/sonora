@@ -37,9 +37,12 @@ class LocalSyncPanel extends ConsumerStatefulWidget {
 }
 
 class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
+  late final TextEditingController _pinController;
+
   @override
   void initState() {
     super.initState();
+    _pinController = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(syncNotifierProvider.notifier).resetStatus();
@@ -49,14 +52,30 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
   }
 
   @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final syncState = ref.watch(syncNotifierProvider);
+    final syncService = ref.watch(syncServiceProvider);
+    final pairedDevices = syncService.getPairedDevicesMetadata();
+    final otherDevices =
+        syncState.discoveredDevices
+            .where((d) => !pairedDevices.any((p) => p.deviceId == d.deviceId))
+            .toList();
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     // Map raw error messages to user-friendly localizations
     String? friendlyError;
-    if (syncState.rawErrorMessage != null) {
+    if (syncState.errorMessage == 'incorrectPin') {
+      friendlyError = l10n.incorrectPinError;
+    } else if (syncState.errorMessage == 'pairingRemoved') {
+      friendlyError = l10n.pairingRemovedError;
+    } else if (syncState.rawErrorMessage != null) {
       final err = syncState.rawErrorMessage!.toLowerCase();
       if (err.contains('socketexception') || err.contains('host unreachable')) {
         friendlyError = l10n.weakConnectionError;
@@ -121,6 +140,8 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
               ),
             ),
           ),
+        ] else if (syncState.status == SyncStatus.waitingForPin) ...[
+          _buildPinInputSection(theme, l10n),
         ] else if (syncState.status == SyncStatus.success) ...[
           const Center(
             child: Padding(
@@ -209,7 +230,7 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
             ],
           ),
         ] else ...[
-          if (syncState.discoveredDevices.isEmpty) ...[
+          if (syncState.discoveredDevices.isEmpty && pairedDevices.isEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 32.0),
               child: Column(
@@ -234,46 +255,83 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
                       ref.read(syncNotifierProvider.notifier).startDiscovery(),
             ),
           ] else ...[
-            Text(
-              l10n.devicesFound,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
+            if (pairedDevices.isNotEmpty) ...[
+              Text(
+                l10n.pairedDevicesSection,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 250),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: syncState.discoveredDevices.length,
-                itemBuilder: (context, index) {
-                  final DiscoveredSyncDevice device =
-                      syncState.discoveredDevices[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    child: ListTile(
-                      leading: Icon(
-                        device.name.toLowerCase().contains('android') ||
-                                device.name.toLowerCase().contains('phone') ||
-                                device.name.toLowerCase().contains('pixel')
-                            ? LucideIcons.smartphone
-                            : LucideIcons.monitor,
-                        color: theme.colorScheme.primary,
-                      ),
-                      title: Text(device.name),
-                      subtitle: Text('${device.ip}:${device.port}'),
-                      trailing: const Icon(LucideIcons.refreshCw, size: 18),
-                      onTap:
-                          () => ref
-                              .read(syncNotifierProvider.notifier)
-                              .syncWith(device),
-                    ),
-                  );
-                },
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 250),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: pairedDevices.length,
+                  itemBuilder: (context, index) {
+                    final paired = pairedDevices[index];
+                    DiscoveredSyncDevice? discovered;
+                    try {
+                      discovered = syncState.discoveredDevices.firstWhere(
+                        (d) => d.deviceId == paired.deviceId,
+                      );
+                    } catch (_) {
+                      discovered = null;
+                    }
+
+                    final isOnline = discovered != null;
+                    final device =
+                        discovered ??
+                        DiscoveredSyncDevice(
+                          ip: paired.ip,
+                          port: paired.port,
+                          name: paired.name,
+                          deviceId: paired.deviceId,
+                        );
+
+                    return _buildDeviceCard(
+                      device: device,
+                      theme: theme,
+                      isPaired: true,
+                      isOnline: isOnline,
+                      l10n: l10n,
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ],
+
+            if (otherDevices.isNotEmpty) ...[
+              Text(
+                l10n.otherDevicesSection,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 250),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: otherDevices.length,
+                  itemBuilder: (context, index) {
+                    final device = otherDevices[index];
+                    return _buildDeviceCard(
+                      device: device,
+                      theme: theme,
+                      isPaired: false,
+                      isOnline: false,
+                      l10n: l10n,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             OutlinedButton.icon(
               icon: const Icon(LucideIcons.refreshCw),
               label: Text(l10n.checkNow),
@@ -282,6 +340,7 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
                       ref.read(syncNotifierProvider.notifier).startDiscovery(),
             ),
           ],
+          _buildResetPairingsButton(theme, l10n),
         ],
       ],
     );
@@ -306,6 +365,188 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
         bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SafeArea(top: false, child: SingleChildScrollView(child: content)),
+    );
+  }
+
+  Widget _buildPinInputSection(ThemeData theme, AppLocalizations l10n) {
+    final titleText = l10n.pairingRequiredTitle;
+    final descText = l10n.pairingRequiredDesc;
+    final confirmText = l10n.confirm;
+    final cancelText = l10n.cancel;
+
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        Icon(LucideIcons.key, size: 48, color: theme.colorScheme.primary),
+        const SizedBox(height: 16),
+        Text(
+          titleText,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          descText,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: 150,
+          child: TextField(
+            controller: _pinController,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 24,
+              letterSpacing: 8,
+              fontWeight: FontWeight.bold,
+            ),
+            decoration: const InputDecoration(
+              counterText: '',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(vertical: 8),
+            ),
+            autofocus: true,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            OutlinedButton(
+              onPressed: () {
+                _pinController.clear();
+                ref.read(syncNotifierProvider.notifier).cancelPinInput();
+              },
+              child: Text(cancelText),
+            ),
+            FilledButton(
+              onPressed: () {
+                final pin = _pinController.text.trim();
+                if (pin.length == 4) {
+                  _pinController.clear();
+                  ref.read(syncNotifierProvider.notifier).submitPin(pin);
+                }
+              },
+              child: Text(confirmText),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _buildResetPairingsButton(ThemeData theme, AppLocalizations l10n) {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          icon: const Icon(LucideIcons.trash2, size: 16),
+          label: Text(l10n.resetPairedDevices),
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder:
+                  (context) => AlertDialog(
+                    title: Text(l10n.resetPairedDevicesConfirmTitle),
+                    content: Text(l10n.resetPairedDevicesConfirmMsg),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: Text(l10n.cancel),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: Text(l10n.confirm),
+                      ),
+                    ],
+                  ),
+            );
+            if (confirm != true) return;
+
+            await ref.read(syncNotifierProvider.notifier).clearPairedDevices();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.resetPairedDevicesSuccess)),
+              );
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeviceCard({
+    required DiscoveredSyncDevice device,
+    required ThemeData theme,
+    required bool isPaired,
+    required bool isOnline,
+    required AppLocalizations l10n,
+  }) {
+    final leadingColor =
+        isPaired
+            ? (isOnline ? Colors.green : Colors.grey)
+            : theme.colorScheme.primary;
+
+    final isSmartphone =
+        device.name.toLowerCase().contains('android') ||
+        device.name.toLowerCase().contains('phone') ||
+        device.name.toLowerCase().contains('pixel');
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: ListTile(
+        leading: Icon(
+          isSmartphone ? LucideIcons.smartphone : LucideIcons.monitor,
+          color: leadingColor,
+        ),
+        title:
+            isPaired
+                ? Row(
+                  children: [
+                    Expanded(child: Text(device.name)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            isOnline
+                                ? Colors.green.withValues(alpha: 0.12)
+                                : Colors.grey.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color:
+                              isOnline
+                                  ? Colors.green.withValues(alpha: 0.5)
+                                  : Colors.grey.withValues(alpha: 0.5),
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        isOnline ? l10n.online : l10n.offline,
+                        style: TextStyle(
+                          color: isOnline ? Colors.green : Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                : Text(device.name),
+        subtitle: Text('${device.ip}:${device.port}'),
+        trailing: const Icon(LucideIcons.refreshCw, size: 18),
+        onTap: () => ref.read(syncNotifierProvider.notifier).syncWith(device),
+      ),
     );
   }
 }

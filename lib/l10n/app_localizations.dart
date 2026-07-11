@@ -368,6 +368,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
   /// No description provided for @continueAction.
   ///
   /// In en, this message translates to:
@@ -1106,17 +1112,107 @@ abstract class AppLocalizations {
   /// **'No Sonora devices found on local network'**
   String get noDevicesFound;
 
-  /// No description provided for @incomingSyncRequestTitle.
+  /// No description provided for @pairingRequiredTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sync Request'**
-  String get incomingSyncRequestTitle;
+  /// **'Pairing Required'**
+  String get pairingRequiredTitle;
 
-  /// No description provided for @incomingSyncRequestMsg.
+  /// No description provided for @pairingRequiredDesc.
   ///
   /// In en, this message translates to:
-  /// **'The device \"{name}\" ({ip}) wants to synchronize its library with this device. Do you want to merge and sync data?'**
-  String incomingSyncRequestMsg(String name, String ip);
+  /// **'Enter the 4-digit PIN shown on the other device to authorize pairing.'**
+  String get pairingRequiredDesc;
+
+  /// No description provided for @incorrectPinError.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect pairing PIN. Please try again.'**
+  String get incorrectPinError;
+
+  /// No description provided for @devicePairingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Pairing'**
+  String get devicePairingTitle;
+
+  /// No description provided for @devicePairingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'The device \"{name}\" wants to pair. Type this PIN on the other device to authorize:'**
+  String devicePairingDesc(String name);
+
+  /// No description provided for @resetPairedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset paired devices'**
+  String get resetPairedDevices;
+
+  /// No description provided for @resetPairedDevicesSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Associations successfully reset'**
+  String get resetPairedDevicesSuccess;
+
+  /// No description provided for @resetPairedDevicesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove pairing association with all devices'**
+  String get resetPairedDevicesDesc;
+
+  /// No description provided for @pairingRemovedError.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote device has removed the pairing. Please pair the devices again.'**
+  String get pairingRemovedError;
+
+  /// No description provided for @paired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired'**
+  String get paired;
+
+  /// No description provided for @pairedDevicesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'My Devices'**
+  String get pairedDevicesSection;
+
+  /// No description provided for @otherDevicesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered Devices'**
+  String get otherDevicesSection;
+
+  /// No description provided for @online.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get online;
+
+  /// No description provided for @offline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get offline;
+
+  /// No description provided for @resetPairedDevicesConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Paired Devices'**
+  String get resetPairedDevicesConfirmTitle;
+
+  /// No description provided for @resetPairedDevicesConfirmMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to remove the pairing association with all devices? Future syncs will require pairing again.'**
+  String get resetPairedDevicesConfirmMsg;
+
+  /// No description provided for @pairingSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Device paired successfully!'**
+  String get pairingSuccess;
 
   /// No description provided for @accept.
   ///

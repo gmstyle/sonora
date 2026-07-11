@@ -22,6 +22,7 @@ import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
 import 'settings_shared.dart';
 import 'widgets/local_sync_panel.dart';
+import '../../providers/sync_provider.dart';
 import '../../providers/equalizer_provider.dart';
 import '../player/widgets/equalizer_panel.dart';
 
@@ -600,6 +601,44 @@ class _BackupSection extends StatelessWidget {
           icon: LucideIcons.refreshCw,
           onPressed: () => LocalSyncPanel.show(context),
         ),
+        if (settings.localSyncEnabled) ...[
+          const Divider(height: 1),
+          SettingsButtonTile(
+            title: l10n.resetPairedDevices,
+            subtitle: l10n.resetPairedDevicesDesc,
+            icon: LucideIcons.trash2,
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: Text(l10n.resetPairedDevicesConfirmTitle),
+                      content: Text(l10n.resetPairedDevicesConfirmMsg),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: Text(l10n.cancel),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: Text(l10n.confirm),
+                        ),
+                      ],
+                    ),
+              );
+              if (confirm != true) return;
+
+              await ref
+                  .read(syncNotifierProvider.notifier)
+                  .clearPairedDevices();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.resetPairedDevicesSuccess)),
+                );
+              }
+            },
+          ),
+        ],
       ],
     );
   }

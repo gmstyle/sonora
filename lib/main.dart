@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -233,10 +234,10 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     );
   }
 
-  void _showIncomingSyncRequestDialog(
+  void _showIncomingPairingRequestPinDialog(
     BuildContext context,
     WidgetRef ref,
-    SyncRequest request,
+    PairingRequest request,
   ) {
     final navContext = rootNavigatorKey.currentContext;
     if (navContext == null) return;
@@ -246,34 +247,18 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       context: navContext,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          title: Text(l10n.incomingSyncRequestTitle),
-          content: Text(
-            l10n.incomingSyncRequestMsg(request.clientName, request.clientIp),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ref
-                    .read(syncNotifierProvider.notifier)
-                    .respondToIncomingRequest(false);
-              },
-              child: Text(l10n.reject),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ref
-                    .read(syncNotifierProvider.notifier)
-                    .respondToIncomingRequest(true);
-                ScaffoldMessenger.of(
-                  navContext,
-                ).showSnackBar(SnackBar(content: Text(l10n.syncingData)));
-              },
-              child: Text(l10n.accept),
-            ),
-          ],
+        return _PairingPinDialog(
+          request: request,
+          titleText: l10n.devicePairingTitle,
+          messageText: l10n.devicePairingDesc(request.clientName),
+          cancelText: l10n.cancel,
+          onCancel: () {
+            ref
+                .read(syncNotifierProvider.notifier)
+                .respondToIncomingRequest(false);
+          },
+          pairingSuccessText: l10n.pairingSuccess,
+          navContext: navContext,
         );
       },
     );
@@ -297,7 +282,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       next,
     ) {
       if (next != null && previous != next) {
-        _showIncomingSyncRequestDialog(context, ref, next);
+        _showIncomingPairingRequestPinDialog(context, ref, next);
       }
     });
 
@@ -498,5 +483,129 @@ class _StartupUpdateDialogState extends ConsumerState<_StartupUpdateDialog> {
             ),
         ];
     }
+  }
+}
+
+class _PairingPinDialog extends StatefulWidget {
+  final PairingRequest request;
+  final String titleText;
+  final String messageText;
+  final String cancelText;
+  final VoidCallback onCancel;
+  final String pairingSuccessText;
+  final BuildContext navContext;
+
+  const _PairingPinDialog({
+    required this.request,
+    required this.titleText,
+    required this.messageText,
+    required this.cancelText,
+    required this.onCancel,
+    required this.pairingSuccessText,
+    required this.navContext,
+  });
+
+  @override
+  State<_PairingPinDialog> createState() => _PairingPinDialogState();
+}
+
+class _PairingPinDialogState extends State<_PairingPinDialog> {
+  int _secondsRemaining = 60;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 0) {
+        setState(() {
+          _secondsRemaining--;
+        });
+      } else {
+        _timer?.cancel();
+      }
+    });
+
+    final messenger = ScaffoldMessenger.maybeOf(widget.navContext);
+
+    widget.request.completer.future.then((paired) {
+      if (mounted) {
+        Navigator.of(context).pop();
+        if (paired == true && messenger != null) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(widget.pairingSuccessText)),
+          );
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isIt = Localizations.localeOf(context).languageCode == 'it';
+    final expireText =
+        isIt
+            ? 'Scade in $_secondsRemaining secondi'
+            : 'Expires in $_secondsRemaining seconds';
+
+    return AlertDialog(
+      title: Text(widget.titleText),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(widget.messageText, textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              widget.request.pin,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 4,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          LinearProgressIndicator(
+            value: _secondsRemaining / 60.0,
+            color:
+                _secondsRemaining < 15 ? Colors.red : theme.colorScheme.primary,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            expireText,
+            style: TextStyle(
+              color: _secondsRemaining < 15 ? Colors.red : Colors.grey,
+              fontWeight: _secondsRemaining < 15 ? FontWeight.bold : null,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            _timer?.cancel();
+            Navigator.of(context).pop();
+            widget.onCancel();
+          },
+          child: Text(widget.cancelText),
+        ),
+      ],
+    );
   }
 }
