@@ -7,6 +7,8 @@ Sonora is a cross-platform music and video streaming app built with Flutter. It 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform: Android + Linux](https://img.shields.io/badge/Platform-Android%20%7C%20Linux-blue)
+[![Total Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/total.svg)](https://github.com/gmstyle/sonora/releases)
+[![Latest Release Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/latest/total.svg)](https://github.com/gmstyle/sonora/releases/latest)
 
 ---
 
