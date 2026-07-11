@@ -1,9 +1,5 @@
 # SONORA — Developer Documentation
 
-> **Ultimo aggiornamento**: 2026-07-10 18:00 | **Version**: 1.5.0+35 | **Status**: Release-ready | **Platforms**: Android + Linux
-
----
-
 ## 1. Architectural Overview
 
 Sonora is a cross-platform Flutter music and video streaming app that uses **YouTube Music** as its data source via `dart_ytmusic_api` and `youtube_explode_dart` for stream URL resolution.
