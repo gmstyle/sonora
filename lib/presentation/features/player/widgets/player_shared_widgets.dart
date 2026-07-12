@@ -386,6 +386,7 @@ Widget buildProgressBar(
     duration: playerState.duration,
     seed: videoId.hashCode,
     disabled: playerState.isRestoring,
+    isPlaying: playerState.isPlaying,
     onSeek: (pos) => ref.read(playerStateProvider.notifier).seek(pos),
   );
 }

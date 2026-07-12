@@ -19,6 +19,7 @@ import '../../../core/constants/app_constants.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/video_player_widget.dart';
 import 'widgets/cast_button.dart';
+import 'widgets/progress_bar_widget.dart';
 import '../../../core/extensions/duration_ext.dart';
 
 class MiniPlayerContent extends ConsumerWidget {
@@ -91,16 +92,8 @@ class MiniPlayerContent extends ConsumerWidget {
           onSkipPrevious?.call();
         }
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
         children: [
-          if (!isSwitching)
-            LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 2,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-            ),
           _glassBar(
             cs: cs,
             ref: ref,
@@ -159,6 +152,19 @@ class MiniPlayerContent extends ConsumerWidget {
                       ],
                     ),
           ),
+          if (!isSwitching)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ProgressBarWidget(
+                position: playerState.position,
+                duration: playerState.duration,
+                disabled: playerState.isRestoring,
+                isPlaying: playerState.isPlaying,
+                isMini: true,
+              ),
+            ),
         ],
       ),
     );
@@ -188,16 +194,8 @@ class MiniPlayerContent extends ConsumerWidget {
           onSkipPrevious?.call();
         }
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
         children: [
-          if (!isSwitching)
-            LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 2,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-            ),
           _glassBar(
             cs: cs,
             ref: ref,
@@ -264,6 +262,19 @@ class MiniPlayerContent extends ConsumerWidget {
                       ],
                     ),
           ),
+          if (!isSwitching)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ProgressBarWidget(
+                position: playerState.position,
+                duration: playerState.duration,
+                disabled: playerState.isRestoring,
+                isPlaying: playerState.isPlaying,
+                isMini: true,
+              ),
+            ),
         ],
       ),
     );
@@ -442,14 +453,12 @@ class MiniPlayerContent extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: LinearProgressIndicator(
-                                      value: progress.clamp(0.0, 1.0),
-                                      minHeight: 2,
-                                      backgroundColor:
-                                          cs.surfaceContainerHighest,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        cs.primary,
-                                      ),
+                                    child: ProgressBarWidget(
+                                      position: playerState.position,
+                                      duration: playerState.duration,
+                                      disabled: playerState.isRestoring,
+                                      isPlaying: playerState.isPlaying,
+                                      isMini: true,
                                     ),
                                   ),
                                   const SizedBox(width: 8),

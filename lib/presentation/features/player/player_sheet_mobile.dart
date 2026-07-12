@@ -15,6 +15,7 @@ import 'full_player_content.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/player_shared_widgets.dart';
 import 'widgets/video_player_widget.dart';
+import 'widgets/progress_bar_widget.dart';
 
 /// Mobile-only 72 px mini player bar.
 ///
@@ -68,11 +69,6 @@ class PlayerSheetMobile extends ConsumerWidget {
     final isSwitching = playerState.isBlocked;
     final isVideo = currentSong.extras?['isVideo'] == true;
     final artUrl = currentSong.artUri?.toString();
-    final progress =
-        playerState.duration.inMilliseconds > 0
-            ? playerState.position.inMilliseconds /
-                playerState.duration.inMilliseconds
-            : 0.0;
 
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
@@ -81,17 +77,9 @@ class PlayerSheetMobile extends ConsumerWidget {
       settingsProvider.select((s) => s.useVinylStyle),
     );
 
-    final innerContent = Column(
-      mainAxisSize: MainAxisSize.min,
+    final innerContent = Stack(
       children: [
-        if (!isSwitching)
-          LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0),
-            minHeight: 2,
-            backgroundColor: Colors.transparent,
-            valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-          ),
-        Expanded(
+        Positioned.fill(
           child: Container(
             color:
                 reduceEffects
@@ -199,6 +187,19 @@ class PlayerSheetMobile extends ConsumerWidget {
                     ),
           ),
         ),
+        if (!isSwitching)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ProgressBarWidget(
+              position: playerState.position,
+              duration: playerState.duration,
+              disabled: playerState.isRestoring,
+              isPlaying: playerState.isPlaying,
+              isMini: true,
+            ),
+          ),
       ],
     );
 
