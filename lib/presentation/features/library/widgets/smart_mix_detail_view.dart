@@ -167,6 +167,15 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     await player.playSmartMix(songs, startIndex: index);
   }
 
+  Future<void> _playSong(
+    String videoId, {
+    bool isVideo = false,
+    bool isExplicit = false,
+  }) async {
+    final player = ref.read(playerStateProvider.notifier);
+    await player.playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit);
+  }
+
   Future<void> _addToQueue(List<dynamic> songs, AppLocalizations l10n) async {
     final useCase = ref.read(playSmartMixUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
@@ -462,7 +471,12 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                           artistId:
                               song is LikedSongModel ? song.artistId : null,
                           albumId: song is LikedSongModel ? song.albumId : null,
-                          onTap: () => _playFrom(songs, index),
+                          onTap:
+                              () => _playSong(
+                                videoId,
+                                isVideo: isVideo,
+                                isExplicit: isExplicit,
+                              ),
                         ),
                       );
                     }, childCount: songs.length),

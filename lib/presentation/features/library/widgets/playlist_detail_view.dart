@@ -326,7 +326,7 @@ class _PlaylistDetailContentState
                         isVideo: entry.isVideo,
                         artistId: liked?.artistId,
                         albumId: liked?.albumId,
-                        onTap: () => _playFrom(displayEntries, index),
+                        onTap: () => _playSong(displayEntries, index),
                         leadingOverride: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -468,10 +468,16 @@ class _PlaylistDetailContentState
     }
   }
 
-  Future<void> _playFrom(List<PlaylistEntryModel> entries, int index) async {
+  Future<void> _playSong(List<PlaylistEntryModel> entries, int index) async {
     final l10n = AppLocalizations.of(context)!;
+    final player = ref.read(playerStateProvider.notifier);
+    final entry = entries[index];
     try {
-      await _buildMediaItemsAndPlay(entries, startIndex: index);
+      await player.playVideoId(
+        entry.videoId,
+        isVideo: entry.isVideo,
+        isExplicit: entry.isExplicit,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

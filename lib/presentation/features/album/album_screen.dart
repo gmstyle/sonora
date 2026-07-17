@@ -349,7 +349,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         widget.album.artist.artistId,
                     playCount: widget.album.songs[i].playCount,
                     isExplicit: widget.album.songs[i].isExplicit,
-                    onTap: () => _playAlbumFromIndex(context, ref, i),
+                    onTap: () => _playSong(context, ref, i),
                   ),
                 ),
               ],
@@ -359,14 +359,19 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     );
   }
 
-  Future<void> _playAlbumFromIndex(
+  Future<void> _playSong(
     BuildContext context,
     WidgetRef ref,
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
+    final song = widget.album.songs[startIndex];
     try {
-      await player.playAlbum(widget.album.songs, startIndex: startIndex);
+      await player.playVideoId(
+        song.videoId,
+        isVideo: false,
+        isExplicit: song.isExplicit,
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
