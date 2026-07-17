@@ -10,6 +10,11 @@ Sonora is a cross-platform music and video streaming app built with Flutter. It 
 [![Total Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/total.svg)](https://github.com/gmstyle/sonora/releases)
 [![Latest Release Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/latest/total.svg)](https://github.com/gmstyle/sonora/releases/latest)
 
+## Donate
+If you enjoy Sonora and want to support its development, a small donation is always appreciated:
+
+[![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://paypal.me/gmstyle)
+
 ---
 
 ## Screenshots
