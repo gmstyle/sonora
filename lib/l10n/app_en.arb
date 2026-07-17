@@ -491,6 +491,12 @@
   "lyricsNotAvailable": "Lyrics not available",
   "upNext": "Up Next",
   "noUpcomingSongs": "No upcoming songs",
+  "playingNext": "Playing Next",
+  "userQueueEmpty": "No tracks queued. Add songs from the menu or use Play all.",
+  "upNextWillPopulate": "Up Next will populate automatically when the queue ends.",
+  "autoplayDisabled": "Autoplay is off. Enable it to get related tracks when the queue ends.",
+  "autoplayEnable": "Enable",
+  "autoplayDisable": "Disable autoplay",
 
   "@@sectionMeta": {
     "contextMenu": "Context Menu"

@@ -9,6 +9,10 @@ enum ShimmerVariant {
   artworkLarge,
   chipsBar,
   section,
+
+  /// Mimics the layout of the playback queue sheet (header + 2 rows
+  /// per section). Used while the queue is being restored on startup.
+  queue,
 }
 
 class ShimmerLoading extends StatelessWidget {
@@ -43,6 +47,7 @@ class ShimmerLoading extends StatelessWidget {
         ShimmerVariant.artworkLarge => _ShimmerArtworkLarge(),
         ShimmerVariant.chipsBar => _ShimmerChipsBar(),
         ShimmerVariant.section => const _ShimmerSection(),
+        ShimmerVariant.queue => const _ShimmerQueue(),
       },
     );
   }
@@ -268,6 +273,94 @@ class _ShimmerSection extends StatelessWidget {
         ),
         SizedBox(height: 220, child: _ShimmerCardRow()),
       ],
+    );
+  }
+}
+
+// ── Queue skeleton ───────────────────────────────────────────────────────
+
+class _ShimmerQueue extends StatelessWidget {
+  const _ShimmerQueue();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: const [
+        _ShimmerHeader(),
+        _ShimmerQueueTile(),
+        _ShimmerQueueTile(),
+        _ShimmerQueueTile(),
+        SizedBox(height: 16),
+        _ShimmerHeader(),
+        _ShimmerQueueTile(),
+        _ShimmerQueueTile(),
+      ],
+    );
+  }
+}
+
+class _ShimmerHeader extends StatelessWidget {
+  const _ShimmerHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: ColoredBox(color: Colors.white),
+          ),
+          SizedBox(width: 8),
+          SizedBox(
+            width: 100,
+            height: 12,
+            child: ColoredBox(color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShimmerQueueTile extends StatelessWidget {
+  const _ShimmerQueueTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: ColoredBox(color: Colors.white),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 14,
+                  width: double.infinity,
+                  child: ColoredBox(color: Colors.white),
+                ),
+                SizedBox(height: 6),
+                SizedBox(
+                  height: 12,
+                  width: 140,
+                  child: ColoredBox(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

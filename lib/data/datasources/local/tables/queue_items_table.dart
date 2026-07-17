@@ -14,6 +14,10 @@ class QueueItems extends Table {
   TextColumn get albumId => text().nullable()();
   BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
 
+  /// Queue section this item belongs to: `'user'` or `'upnext'`.
+  /// Defaults to `'user'` for legacy rows written before the queue split.
+  TextColumn get section => text().withDefault(const Constant('user'))();
+
   @override
   Set<Column> get primaryKey => {position};
 }

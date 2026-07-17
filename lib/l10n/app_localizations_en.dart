@@ -973,6 +973,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noUpcomingSongs => 'No upcoming songs';
 
   @override
+  String get playingNext => 'Playing Next';
+
+  @override
+  String get userQueueEmpty =>
+      'No tracks queued. Add songs from the menu or use Play all.';
+
+  @override
+  String get upNextWillPopulate =>
+      'Up Next will populate automatically when the queue ends.';
+
+  @override
+  String get autoplayDisabled =>
+      'Autoplay is off. Enable it to get related tracks when the queue ends.';
+
+  @override
+  String get autoplayEnable => 'Enable';
+
+  @override
+  String get autoplayDisable => 'Disable autoplay';
+
+  @override
   String get playNow => 'Play Now';
 
   @override

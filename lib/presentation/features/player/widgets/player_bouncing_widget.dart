@@ -220,11 +220,13 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     // Sleep Timer
     final remaining = playerState.sleepTimerRemaining;
 
-    // Up Next
-    final queue = playerState.queue;
-    final currentIndex = playerState.currentIndex;
-    final hasNext = currentIndex + 1 < queue.length;
-    final nextSong = hasNext ? queue[currentIndex + 1] : null;
+    // Up Next — we display the first upnext item if any. The card is
+    // always rendered (even when the upnext section is empty) so the
+    // user sees the autoplay status ("attivo" / "disattivato") and can
+    // toggle it inline.
+    final upNextQueue = playerState.upNextQueue;
+    final nextSong = upNextQueue.isNotEmpty ? upNextQueue.first : null;
+    final hasNext = nextSong != null;
 
     final clampedSize = widget.size?.clamp(150.0, 600.0);
 
@@ -576,6 +578,19 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
               ],
             ),
           ),
+          if (!isAutoplay)
+            TextButton(
+              onPressed: () {
+                ref.read(settingsProvider.notifier).setAutoPlayUpNext(true);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: pc.iconPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(AppLocalizations.of(context)!.autoplayEnable),
+            ),
         ],
       ],
     );

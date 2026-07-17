@@ -299,6 +299,11 @@ const kUseVinylStyleKey = 'useVinylStyle';
 const kLocalSyncEnabledKey = 'localSyncEnabled';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 
+/// Set to `true` after the queue User/UpNext split migration has run once.
+/// On the first startup after the upgrade the persisted queue is cleared
+/// so the new section-aware playback starts from a clean state.
+const kPostQueueSplitDoneKey = 'postQueueSplitDone';
+
 // ── Battery Optimization (Android only) ───────────────────────────
 
 final batteryOptimizationProvider = FutureProvider<bool>((ref) async {

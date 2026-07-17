@@ -356,6 +356,12 @@
   "lyricsNotAvailable": "Testi non disponibili",
   "upNext": "In arrivo",
   "noUpcomingSongs": "Nessun brano in arrivo",
+  "playingNext": "In coda",
+  "userQueueEmpty": "Nessun brano in coda. Aggiungi brani dal menu o usa Riproduci tutto.",
+  "upNextWillPopulate": "Up Next si popolerà automaticamente quando la coda finirà.",
+  "autoplayDisabled": "Autoplay disattivato. Attivalo per avere brani simili quando la coda finisce.",
+  "autoplayEnable": "Attiva",
+  "autoplayDisable": "Disattiva autoplay",
 
   "@@sectionMeta": {
     "contextMenu": "Menu Contestuale"

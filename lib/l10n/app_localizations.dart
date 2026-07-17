@@ -1694,6 +1694,42 @@ abstract class AppLocalizations {
   /// **'No upcoming songs'**
   String get noUpcomingSongs;
 
+  /// No description provided for @playingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing Next'**
+  String get playingNext;
+
+  /// No description provided for @userQueueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracks queued. Add songs from the menu or use Play all.'**
+  String get userQueueEmpty;
+
+  /// No description provided for @upNextWillPopulate.
+  ///
+  /// In en, this message translates to:
+  /// **'Up Next will populate automatically when the queue ends.'**
+  String get upNextWillPopulate;
+
+  /// No description provided for @autoplayDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay is off. Enable it to get related tracks when the queue ends.'**
+  String get autoplayDisabled;
+
+  /// No description provided for @autoplayEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get autoplayEnable;
+
+  /// No description provided for @autoplayDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable autoplay'**
+  String get autoplayDisable;
+
   /// No description provided for @playNow.
   ///
   /// In en, this message translates to:

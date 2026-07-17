@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -208,6 +208,19 @@ class AppDatabase extends _$AppDatabase {
         if (!hasLikedAlbumsArtistId) {
           await m.addColumn(likedAlbums, likedAlbums.artistId);
         }
+      }
+      if (from < 18) {
+        final queueItemsInfo =
+            await customSelect('PRAGMA table_info(queue_items)').get();
+        final hasSection = queueItemsInfo.any(
+          (row) => row.read<String>('name') == 'section',
+        );
+        if (!hasSection) {
+          await m.addColumn(queueItems, queueItems.section);
+        }
+        // Legacy rows default to 'user' via the column's default value.
+        // The queue itself is reset on next startup by
+        // [_doRestore] / kPostQueueSplitDone — see [audio_handler.dart].
       }
     },
   );

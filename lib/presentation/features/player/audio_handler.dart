@@ -36,6 +36,9 @@ import 'audio_cast_handler.dart';
 import 'audio_android_auto_browser_handler.dart';
 import 'audio_equalizer_handler.dart';
 
+import '../../../domain/models/queue_section.dart';
+import '../../providers/settings_provider.dart';
+
 /// Represents the lifecycle of the player restore operation.
 ///
 /// The UI observes this via [SonoraAudioHandler.restoreStatusStream] to decide
@@ -110,6 +113,24 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _interruptedByNetworkDrop = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
+  Future<void>? _playlistOpenLock;
+
+  Future<void> _synchronizedOpen(Future<void> Function() action) async {
+    final previous = _playlistOpenLock;
+    final completer = Completer<void>();
+    _playlistOpenLock = completer.future;
+    if (previous != null) {
+      try {
+        await previous;
+      } catch (_) {}
+    }
+    try {
+      await action();
+    } finally {
+      completer.complete();
+    }
+  }
+
   // ── Restore state ──────────────────────────────────────────────────────────
   RestoreStatus _restoreStatus = RestoreStatus.idle;
   final StreamController<RestoreStatus> _restoreStatusController =
@@ -142,6 +163,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   static const String _actionRepeat = 'repeat';
   static const String _actionLike = 'like';
   static const String _actionStartRadio = 'start_radio';
+
+  /// Key under [MediaItem.extras] that tags the queue section an item
+  /// belongs to (`'user'` or `'upnext'`). See [QueueSection].
+  static const String _kSectionKey = 'section';
 
   // Expose internals for delegate handlers
   double get lastSetVolume => _lastSetVolume;
@@ -1199,6 +1224,39 @@ class SonoraAudioHandler extends BaseAudioHandler {
           .nonNulls
           .toList();
 
+  /// Public read-only view of the current playlist, exposed for
+  /// integrations (Android Auto, Cast) that need to inspect the queue
+  /// without modifying it.
+  List<MediaItem> get currentQueue => _currentQueue;
+
+  // ── Queue section helpers (User Queue / Up Next) ───────────────────────────
+
+  /// Returns the [QueueSection] of [item] based on [MediaItem.extras].
+  /// Defaults to [QueueSection.user] for legacy items without the tag.
+  static QueueSection sectionOf(MediaItem item) {
+    return QueueSection.fromTag(item.extras?[_kSectionKey] as String?);
+  }
+
+  /// True if [item] belongs to the autoplay "Up Next" section.
+  static bool isUpNext(MediaItem item) =>
+      sectionOf(item) == QueueSection.upnext;
+
+  /// Returns a copy of [item] tagged with the given [section].
+  static MediaItem _tagSection(MediaItem item, QueueSection section) {
+    if (sectionOf(item) == section) return item;
+    final extras = Map<String, dynamic>.from(item.extras ?? {});
+    extras[_kSectionKey] = section.tag;
+    return item.copyWith(extras: extras);
+  }
+
+  /// Tags [item] as a user-queue item (no-op if already tagged).
+  static MediaItem _tagUser(MediaItem item) =>
+      _tagSection(item, QueueSection.user);
+
+  /// Tags [item] as an upnext item (no-op if already tagged).
+  static MediaItem _tagUpNext(MediaItem item) =>
+      _tagSection(item, QueueSection.upnext);
+
   MediaItem _ensureQueueId(MediaItem item, [Set<String>? seenIds]) {
     final existingId = item.extras?['queueId'] as String?;
     final isAlreadyInQueue =
@@ -1220,80 +1278,87 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Media _toMedia(MediaItem item) {
-    final updatedItem = _ensureQueueId(item);
+    // Default any untagged item to the user section. Real upnext tagging
+    // happens upstream (see [appendUpNext]) so this is just a safety net
+    // for legacy call-sites.
+    final tagged = _tagUser(_ensureQueueId(item));
 
-    final url = updatedItem.extras?['url'] as String?;
-    final videoId = updatedItem.extras?['videoId'] as String? ?? updatedItem.id;
+    final url = tagged.extras?['url'] as String?;
+    final videoId = tagged.extras?['videoId'] as String? ?? tagged.id;
     if (url != null && url.isNotEmpty) {
-      return Media(url, extras: {'mediaItem': updatedItem});
+      return Media(url, extras: {'mediaItem': tagged});
     }
     final dummy = 'http://localhost/dummy_$videoId.wav';
-    return Media(dummy, extras: {'mediaItem': updatedItem});
+    return Media(dummy, extras: {'mediaItem': tagged});
   }
 
   Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
     _prepareTransitionMute();
-    try {
-      final seenIds = <String>{};
-      final itemsWithKeys =
-          items.map((item) => _ensureQueueId(item, seenIds)).toList();
-      queue.add(itemsWithKeys);
-      await _queueRepo.persistQueue(itemsWithKeys);
-      final playlist = Playlist(
-        itemsWithKeys.map(_toMedia).toList(),
-        index: initialIndex,
-      );
-      _userWantsPlaying = false;
-      await _player.open(playlist, play: false);
-    } catch (e) {
-      _endTransitionMute();
-      rethrow;
-    }
+    await _synchronizedOpen(() async {
+      try {
+        final seenIds = <String>{};
+        final itemsWithKeys =
+            items.map((item) => _ensureQueueId(item, seenIds)).toList();
+        queue.add(itemsWithKeys);
+        await _queueRepo.persistQueue(itemsWithKeys);
+        final playlist = Playlist(
+          itemsWithKeys.map(_toMedia).toList(),
+          index: initialIndex,
+        );
+        _userWantsPlaying = false;
+        await _player.open(playlist, play: false);
+      } catch (e) {
+        _endTransitionMute();
+        rethrow;
+      }
+    });
   }
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     _isStopping = false;
     _prepareTransitionMute();
-    try {
-      final seenIds = <String>{};
-      var itemsWithKeys =
-          items.map((item) => _ensureQueueId(item, seenIds)).toList();
-      queue.add(itemsWithKeys);
-      await _queueRepo.persistQueue(itemsWithKeys);
+    await _synchronizedOpen(() async {
+      try {
+        final seenIds = <String>{};
+        var itemsWithKeys =
+            items.map((item) => _ensureQueueId(item, seenIds)).toList();
+        queue.add(itemsWithKeys);
+        await _queueRepo.persistQueue(itemsWithKeys);
 
-      if (initialIndex >= 0 && initialIndex < itemsWithKeys.length) {
-        final initialItem = itemsWithKeys[initialIndex];
-        if (initialItem.extras?['needsUrl'] == true) {
-          final videoId =
-              initialItem.extras?['videoId'] as String? ?? initialItem.id;
-          try {
-            final url = await _playVideoIdUseCase.resolveUrl(videoId);
-            final resolved = initialItem.copyWith(
-              extras: {...?initialItem.extras, 'url': url, 'needsUrl': false},
-            );
-            itemsWithKeys[initialIndex] = resolved;
-            queue.add(itemsWithKeys);
-            await _queueRepo.persistQueue(itemsWithKeys);
-          } catch (e) {
-            dev.log(
-              '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
-            );
+        if (initialIndex >= 0 && initialIndex < itemsWithKeys.length) {
+          final initialItem = itemsWithKeys[initialIndex];
+          if (initialItem.extras?['needsUrl'] == true) {
+            final videoId =
+                initialItem.extras?['videoId'] as String? ?? initialItem.id;
+            try {
+              final url = await _playVideoIdUseCase.resolveUrl(videoId);
+              final resolved = initialItem.copyWith(
+                extras: {...?initialItem.extras, 'url': url, 'needsUrl': false},
+              );
+              itemsWithKeys[initialIndex] = resolved;
+              queue.add(itemsWithKeys);
+              await _queueRepo.persistQueue(itemsWithKeys);
+            } catch (e) {
+              dev.log(
+                '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
+              );
+            }
           }
         }
-      }
 
-      final playlist = Playlist(
-        itemsWithKeys.map(_toMedia).toList(),
-        index: initialIndex,
-      );
-      final hasFocus = await _requestAudioFocus();
-      _userWantsPlaying = hasFocus;
-      await _player.open(playlist, play: hasFocus);
-    } catch (e) {
-      _endTransitionMute();
-      rethrow;
-    }
+        final playlist = Playlist(
+          itemsWithKeys.map(_toMedia).toList(),
+          index: initialIndex,
+        );
+        final hasFocus = await _requestAudioFocus();
+        _userWantsPlaying = hasFocus;
+        await _player.open(playlist, play: hasFocus);
+      } catch (e) {
+        _endTransitionMute();
+        rethrow;
+      }
+    });
   }
 
   Future<void> playNext(MediaItem item) async {
@@ -1336,6 +1401,58 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// Appends [items] to the playlist tagging each as part of the autoplay
+  /// "Up Next" section. Used by [PlayerNotifier] when refilling the queue
+  /// with related tracks (gated by [Settings.autoPlayUpNext]).
+  ///
+  /// Safe to call with an empty list (no-op). The first item is appended
+  /// last so [Media.extras] is preserved through the player.
+  Future<void> appendUpNext(List<MediaItem> items) async {
+    if (items.isEmpty) return;
+    _resolvingItemCount++;
+    try {
+      for (final item in items) {
+        await _player.add(_toMedia(_tagUpNext(item)));
+      }
+    } finally {
+      _resolvingItemCount--;
+      _syncQueue();
+      if (!_isResolvingItem) _updatePlaybackState();
+    }
+  }
+
+  /// Removes every item currently tagged as [QueueSection.upnext] from the
+  /// underlying media_kit playlist, leaving the user queue untouched.
+  ///
+  /// The current playback is preserved (if the current item itself is
+  /// upnext, it is left in place to avoid a jarring skip).
+  Future<void> _purgeUpNext() async {
+    final medias = _player.state.playlist.medias;
+    final currentIndex = _player.state.playlist.index;
+
+    // Walk back-to-front so indices stay valid as we remove.
+    for (int i = medias.length - 1; i >= 0; i--) {
+      if (i == currentIndex) continue;
+      final item = medias[i].extras?['mediaItem'] as MediaItem?;
+      if (item != null && isUpNext(item)) {
+        await _player.remove(i);
+      }
+    }
+  }
+
+  /// Enables or disables autoplay. When [enabled] is `false`, the current
+  /// "Up Next" section is purged from the playlist and the internal
+  /// autoplay flag is flipped so subsequent refill attempts are skipped
+  /// until the flag is turned back on.
+  ///
+  /// The flag is held in memory only (PlayerNotifier reads it through
+  /// [Settings.autoPlayUpNext] on every refill trigger).
+  Future<void> setAutoplayEnabled(bool enabled) async {
+    if (!enabled) {
+      await _purgeUpNext();
+    }
+  }
+
   @override
   Future<void> removeQueueItemAt(int index) async {
     if (index < 0 || index >= _player.state.playlist.medias.length) return;
@@ -1348,6 +1465,36 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _player.stop();
     await _player.open(const Playlist([]), play: false);
     queue.add([]);
+  }
+
+  /// Removes every track in the user queue (i.e. everything not tagged as
+  /// [QueueSection.upnext]) from the underlying playlist. Stops playback
+  /// if the current item itself is in the user queue. The "Up Next"
+  /// section is preserved untouched.
+  Future<void> purgeUserQueue() async {
+    final medias = _player.state.playlist.medias;
+    final currentIndex = _player.state.playlist.index;
+    final currentIsUser =
+        currentIndex >= 0 &&
+        currentIndex < medias.length &&
+        !isUpNext(medias[currentIndex].extras?['mediaItem'] as MediaItem);
+
+    if (currentIsUser) {
+      // The current item is in the user queue — wipe everything (incl.
+      // upnext) to avoid an inconsistent state where the current track
+      // is gone but the rest of the queue keeps playing.
+      await clearQueue();
+      return;
+    }
+
+    // Walk back-to-front so indices stay valid as we remove.
+    for (int i = medias.length - 1; i >= 0; i--) {
+      if (i == currentIndex) continue;
+      final item = medias[i].extras?['mediaItem'] as MediaItem?;
+      if (item != null && !isUpNext(item)) {
+        await _player.remove(i);
+      }
+    }
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
@@ -1526,15 +1673,45 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _doRestore() async {
+    // One-shot migration: the User/UpNext queue split was introduced with
+    // schemaVersion 18. On the first startup after the upgrade, clear any
+    // pre-split persisted queue so the new section-aware playback starts
+    // from a clean state. The flag is set after the clear so the next
+    // restore proceeds normally.
+    final splitDone = _prefs.getBool(kPostQueueSplitDoneKey) ?? false;
+    if (!splitDone) {
+      dev.log(
+        '[AudioHandler] Queue User/UpNext split: clearing legacy queue on '
+        'first run after upgrade.',
+      );
+      await _queueRepo.clearQueue();
+      await _prefs.setBool(kPostQueueSplitDoneKey, true);
+      // Reset last-known playback position so the player doesn't try to
+      // resume a song from a queue that no longer exists.
+      await _prefs.remove('last_playing_index');
+      await _prefs.remove('last_playing_position_ms');
+      // Fall through to the empty-queue restore path below.
+    }
+
     final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
     if (!restoreOnStartup) return;
 
     final rawItems = await _queueRepo.restoreQueue();
     if (rawItems.isEmpty) return;
 
+    // Honor the current autoplay setting: if the user disabled Up Next
+    // between sessions, strip the upnext section from the restored queue.
+    final autoplayEnabled = _prefs.getBool(kAutoPlayUpNextKey) ?? true;
+    final filtered =
+        autoplayEnabled
+            ? rawItems
+            : rawItems
+                .where((it) => sectionOf(it) == QueueSection.user)
+                .toList();
+
     final seenIds = <String>{};
     final items =
-        rawItems.map((item) {
+        filtered.map((item) {
           final url = item.extras?['url'] as String?;
           final isLocalAndValid =
               url != null &&

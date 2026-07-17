@@ -55,6 +55,12 @@ class PlayerState {
   ///   • show the shimmer on the mini-player bar
   final bool isRestoring;
 
+  /// True once [PlayerNotifier] has received at least one emission from the
+  /// underlying [BaseAudioHandler.queue] stream (or the initial queue
+  /// value was already populated). While false, the queue sheet shows a
+  /// skeleton to avoid the 'empty queue during restore' flash.
+  final bool isQueueSynced;
+
   final bool isPaused;
   final bool hasError;
   final String? errorMessage;
@@ -67,11 +73,27 @@ class PlayerState {
   final AudioServiceRepeatMode repeatMode;
   final Duration? sleepTimerRemaining;
 
+  /// Subset of [queue] containing the user-driven entries
+  /// (every item with `extras['section'] == 'user'`).
+  /// Derived — kept in sync via [PlayerNotifier].
+  final List<MediaItem> userQueue;
+
+  /// Subset of [queue] containing the autoplay "Up Next" entries
+  /// (every item with `extras['section'] == 'upnext'`).
+  /// Derived — kept in sync via [PlayerNotifier].
+  final List<MediaItem> upNextQueue;
+
+  /// First index in [queue] belonging to the upnext section, or `null`
+  /// when the autoplay section is empty. Used by the UI to split the
+  /// queue sheet into two visual sections.
+  final int? upNextStartIndex;
+
   const PlayerState({
     this.isPlaying = false,
     this.isLoading = false,
     this.isSwitching = false,
     this.isRestoring = false,
+    this.isQueueSynced = false,
     this.isPaused = false,
     this.hasError = false,
     this.errorMessage,
@@ -83,6 +105,9 @@ class PlayerState {
     this.shuffleMode = AudioServiceShuffleMode.none,
     this.repeatMode = AudioServiceRepeatMode.none,
     this.sleepTimerRemaining,
+    this.userQueue = const [],
+    this.upNextQueue = const [],
+    this.upNextStartIndex,
   });
 
   bool get isVideo => currentSong?.extras?['isVideo'] == true;
@@ -92,11 +117,24 @@ class PlayerState {
   /// interactive controls at once.
   bool get isBlocked => isRestoring || isSwitching;
 
+  /// True when there are no more user-driven tracks ahead of the current
+  /// one (i.e. the autoplay "Up Next" section is the only thing left to
+  /// play). UI uses this to decide whether to show "Fine coda" vs the
+  /// first upnext card.
+  bool get userQueueExhausted {
+    if (userQueue.isEmpty) return true;
+    final lastUser = queue.lastIndexWhere(
+      (it) => it.extras?['section'] != 'upnext',
+    );
+    return lastUser < currentIndex;
+  }
+
   PlayerState copyWith({
     bool? isPlaying,
     bool? isLoading,
     bool? isSwitching,
     bool? isRestoring,
+    bool? isQueueSynced,
     bool? isPaused,
     bool? hasError,
     String? errorMessage,
@@ -108,6 +146,9 @@ class PlayerState {
     AudioServiceShuffleMode? shuffleMode,
     AudioServiceRepeatMode? repeatMode,
     Duration? sleepTimerRemaining,
+    List<MediaItem>? userQueue,
+    List<MediaItem>? upNextQueue,
+    int? upNextStartIndex,
     bool clearError = false,
     bool clearSleepTimer = false,
   }) {
@@ -116,6 +157,7 @@ class PlayerState {
       isLoading: isLoading ?? this.isLoading,
       isSwitching: isSwitching ?? this.isSwitching,
       isRestoring: isRestoring ?? this.isRestoring,
+      isQueueSynced: isQueueSynced ?? this.isQueueSynced,
       isPaused: isPaused ?? this.isPaused,
       hasError: hasError ?? this.hasError,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -130,6 +172,9 @@ class PlayerState {
           clearSleepTimer
               ? null
               : (sleepTimerRemaining ?? this.sleepTimerRemaining),
+      userQueue: userQueue ?? this.userQueue,
+      upNextQueue: upNextQueue ?? this.upNextQueue,
+      upNextStartIndex: upNextStartIndex ?? this.upNextStartIndex,
     );
   }
 }
@@ -148,9 +193,58 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   int _operationVersion = 0;
   Timer? _sleepTimer;
   Timer? _sleepTimerTick;
+  Timer? _playDebounceTimer;
+  Completer<void>? _playDebounceCompleter;
   DateTime? _sleepTimerStart;
   Duration? _sleepTimerDuration;
   bool _isReordering = false;
+
+  Future<void>? _playLock;
+
+  Future<void> _synchronizedPlay(
+    int version,
+    Future<void> Function() action,
+  ) async {
+    final previous = _playLock;
+    final completer = Completer<void>();
+    _playLock = completer.future;
+    if (previous != null) {
+      try {
+        await previous;
+      } catch (_) {}
+    }
+    if (_operationVersion != version) {
+      completer.complete();
+      return;
+    }
+    try {
+      await action();
+    } finally {
+      completer.complete();
+    }
+  }
+
+  /// Splits [queue] into a (userQueue, upNextQueue, upNextStartIndex)
+  /// triple based on `extras['section']`. Returns `([], [], null)` when
+  /// the queue is empty.
+  static (List<MediaItem>, List<MediaItem>, int?) _splitQueueBySection(
+    List<MediaItem> queue,
+  ) {
+    if (queue.isEmpty) return (const [], const [], null);
+    int? start;
+    final user = <MediaItem>[];
+    final up = <MediaItem>[];
+    for (int i = 0; i < queue.length; i++) {
+      final tag = queue[i].extras?['section'] as String?;
+      if (tag == 'upnext') {
+        start ??= i;
+        up.add(queue[i]);
+      } else {
+        user.add(queue[i]);
+      }
+    }
+    return (user, up, start);
+  }
 
   @override
   PlayerState build() {
@@ -181,7 +275,14 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       initialState = initialState.copyWith(currentSong: item);
     }
     if (items != null) {
-      initialState = initialState.copyWith(queue: items);
+      final (u, up, start) = _splitQueueBySection(items);
+      initialState = initialState.copyWith(
+        queue: items,
+        userQueue: u,
+        upNextQueue: up,
+        upNextStartIndex: start,
+        isQueueSynced: true,
+      );
     }
 
     if (_handler.currentRestoreStatus == RestoreStatus.restoring) {
@@ -204,6 +305,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _restoreStatusSub?.cancel();
       _sleepTimer?.cancel();
       _sleepTimerTick?.cancel();
+      _playDebounceTimer?.cancel();
+      if (_playDebounceCompleter != null &&
+          !_playDebounceCompleter!.isCompleted) {
+        _playDebounceCompleter!.complete();
+      }
     });
 
     // Defer stream subscriptions to a microtask so that any synchronous initial
@@ -328,6 +434,17 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
       _queueSub = _handler.queue.listen((items) {
         if (_isReordering) return;
+        if (!state.isQueueSynced) {
+          final (u, up, start) = _splitQueueBySection(items);
+          state = state.copyWith(
+            queue: items,
+            userQueue: u,
+            upNextQueue: up,
+            upNextStartIndex: start,
+            isQueueSynced: true,
+          );
+          return;
+        }
         final currentQueue = state.queue;
         final queueChanged =
             currentQueue.length != items.length ||
@@ -340,10 +457,16 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
                   .toList(),
             );
         if (queueChanged) {
-          state = state.copyWith(queue: items);
+          final (u, up, start) = _splitQueueBySection(items);
+          state = state.copyWith(
+            queue: items,
+            userQueue: u,
+            upNextQueue: up,
+            upNextStartIndex: start,
+          );
         }
 
-        // isSwitching is true during playSong/playVideoId/playQueue while the new
+        // isSwitching is true during playVideoId/playAlbum/playPlaylist while the new
         // queue is being set up. Skipping here prevents a spurious prefetch when
         // state.currentIndex still holds the old (larger) index from the previous
         // queue and state.isPlaying hasn't been updated yet from the pending
@@ -377,6 +500,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       if (prev?.crossfadeDuration != next.crossfadeDuration) {
         _handler.setCrossfadeDuration(next.crossfadeDuration);
       }
+      if (prev?.autoPlayUpNext == true && next.autoPlayUpNext == false) {
+        // User just turned autoplay off — purge the upnext section
+        // immediately and skip any in-flight fetch.
+        unawaited(_handler.setAutoplayEnabled(false));
+      }
     });
 
     return initialState;
@@ -391,9 +519,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   /// Fallback triggered when the current track has already finished
   /// (processingState == completed). It fetches related content, appends it
-  /// to the queue and immediately skips to the first new item so playback
-  /// never stalls. Used as a safety net when the background prefetch has
-  /// not completed in time.
+  /// to the upnext section and immediately skips to the first new item so
+  /// playback never stalls. Used as a safety net when the background
+  /// prefetch has not completed in time.
   ///
   /// Guards _operationVersion after every await so that if the user taps a
   /// new song while this is running, we abort before touching skipToQueueItem
@@ -403,6 +531,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   /// Remaining items are added as pending ([needsUrl]) — the player resolves
   /// their URLs lazily when they are about to play.
   Future<void> _fetchAutoPlayUpNext() async {
+    if (!ref.read(settingsProvider).autoPlayUpNext) return;
     try {
       final lastItem = state.currentSong;
       if (lastItem == null) return;
@@ -414,7 +543,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
       final firstItem = result.firstItem;
       final oldLength = state.queue.length;
-      await _handler.addToQueue(firstItem);
+      await _handler.appendUpNext([firstItem]);
       if (_operationVersion != v) return;
 
       await _handler.skipToQueueItem(oldLength);
@@ -425,7 +554,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       if (result.remaining.isNotEmpty) {
         final pendingItems = radioUseCase.toPendingItems(result.remaining);
         if (_operationVersion != v) return;
-        await _handler.addAllToQueue(pendingItems);
+        await _handler.appendUpNext(pendingItems);
       }
     } catch (_) {
     } finally {
@@ -434,6 +563,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }
 
   Future<void> _prefetchAutoPlayUpNext() async {
+    if (!ref.read(settingsProvider).autoPlayUpNext) return;
     try {
       final seedItem = state.currentSong;
       if (seedItem == null) return;
@@ -443,13 +573,13 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final result = await radioUseCase.execute(seedId, resolveFirstUrl: false);
       if (state.currentSong?.id != seedId) return;
 
-      await _handler.addToQueue(result.firstItem);
+      await _handler.appendUpNext([result.firstItem]);
       if (state.currentSong?.id != seedId) return;
 
       if (result.remaining.isNotEmpty) {
         final pendingItems = radioUseCase.toPendingItems(result.remaining);
         if (state.currentSong?.id != seedId) return;
-        await _handler.addAllToQueue(pendingItems);
+        await _handler.appendUpNext(pendingItems);
       }
     } catch (_) {
     } finally {
@@ -460,17 +590,21 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   // ── API mutazione coda ────────────────────────────────────────
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
-    ++_operationVersion;
+    final v = ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     try {
-      await _handler.playNow(items, initialIndex: initialIndex);
+      await _synchronizedPlay(v, () async {
+        await _handler.playNow(items, initialIndex: initialIndex);
+      });
     } catch (e) {
-      state = state.copyWith(
-        isSwitching: false,
-        hasError: true,
-        errorMessage: 'Failed to start playback: $e',
-      );
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to start playback: $e',
+        );
+      }
     }
   }
 
@@ -482,7 +616,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final useCase = ref.read(playAlbumUseCaseProvider);
       final items = await useCase.execute(songs, playIndex: startIndex);
       if (_operationVersion != v) return;
-      await _handler.playNow(items, initialIndex: startIndex);
+      await _synchronizedPlay(v, () async {
+        await _handler.playNow(items, initialIndex: startIndex);
+      });
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -505,7 +641,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final useCase = ref.read(playPlaylistUseCaseProvider);
       final items = await useCase.execute(videos, playIndex: startIndex);
       if (_operationVersion != v) return;
-      await _handler.playNow(items, initialIndex: startIndex);
+      await _synchronizedPlay(v, () async {
+        await _handler.playNow(items, initialIndex: startIndex);
+      });
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -525,7 +663,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final useCase = ref.read(playSmartMixUseCaseProvider);
       final items = await useCase.execute(songs: songs, playIndex: startIndex);
       if (_operationVersion != v) return;
-      await _handler.playNow(items, initialIndex: startIndex);
+      await _synchronizedPlay(v, () async {
+        await _handler.playNow(items, initialIndex: startIndex);
+      });
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -642,7 +782,17 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (newIndex >= 0 && newIndex < items.length) {
       final moved = items.removeAt(oldIndex);
       items.insert(newIndex, moved);
-      state = state.copyWith(queue: items);
+      // Re-tag the moved item based on the section it landed in. Items
+      // before [upNextStartIndex] (if any) are user; items from it on are
+      // upnext. We compute against the *post-move* layout.
+      final retagged = _retagAfterMove(items, oldIndex, newIndex);
+      final (u, up, start) = _splitQueueBySection(retagged);
+      state = state.copyWith(
+        queue: retagged,
+        userQueue: u,
+        upNextQueue: up,
+        upNextStartIndex: start,
+      );
     }
 
     try {
@@ -664,13 +814,77 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
                 .toList(),
           );
       if (queueChanged) {
-        state = state.copyWith(queue: actualQueue);
+        final (u, up, start) = _splitQueueBySection(actualQueue);
+        state = state.copyWith(
+          queue: actualQueue,
+          userQueue: u,
+          upNextQueue: up,
+          upNextStartIndex: start,
+        );
       }
     }
   }
 
-  Future<void> clearQueue() async {
-    await _handler.clearQueue();
+  /// Re-tags the item at [newIndex] in [items] based on the section it
+  /// now belongs to after a drag from [oldIndex] to [newIndex]. If the
+  /// user dragged an upnext item above the user section, it becomes
+  /// user. If the user dragged a user item into the upnext section, it
+  /// becomes upnext.
+  List<MediaItem> _retagAfterMove(
+    List<MediaItem> items,
+    int oldIndex,
+    int newIndex,
+  ) {
+    if (newIndex < 0 || newIndex >= items.length) return items;
+    if (oldIndex == newIndex) return items;
+
+    final moved = items[newIndex];
+
+    // Find the new boundary after the move: first item tagged 'upnext'
+    // in the post-move layout. If none, the moved item must be 'user'.
+    int? newStart;
+    for (int i = 0; i < items.length; i++) {
+      if (items[i].extras?['section'] == 'upnext') {
+        newStart = i;
+        break;
+      }
+    }
+
+    String targetTag;
+    if (newStart == null) {
+      targetTag = 'user';
+    } else if (newIndex < newStart) {
+      targetTag = 'user';
+    } else {
+      targetTag = 'upnext';
+    }
+
+    if ((moved.extras?['section'] as String?) == targetTag) {
+      return items;
+    }
+
+    final updated = List<MediaItem>.from(items);
+    final extras = Map<String, dynamic>.from(moved.extras ?? {});
+    extras['section'] = targetTag;
+    updated[newIndex] = moved.copyWith(extras: extras);
+    return updated;
+  }
+
+  /// Clears the playback queue.
+  ///
+  /// When [includeUpNext] is `false` (the default) only the user queue
+  /// is removed; the autoplay "Up Next" section is preserved (handy for
+  /// the queue sheet's "Clear" button — disabling autoplay has its own
+  /// path through [Settings.autoPlayUpNext]).
+  ///
+  /// When [includeUpNext] is `true` both sections are removed and the
+  /// player is stopped.
+  Future<void> clearQueue({bool includeUpNext = false}) async {
+    if (includeUpNext) {
+      await _handler.clearQueue();
+    } else {
+      await _handler.purgeUserQueue();
+    }
     await ref.read(queueUseCaseProvider).clearQueue();
   }
 
@@ -726,65 +940,56 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> playSong(MediaItem song) async {
-    final v = ++_operationVersion;
-    await _handler.pause();
-    state = state.copyWith(isSwitching: true);
-    try {
-      await _handler.setQueue([song]);
-      if (_operationVersion != v) return;
-      await _handler.play();
-    } catch (e) {
-      if (_operationVersion == v) {
-        state = state.copyWith(
-          isSwitching: false,
-          hasError: true,
-          errorMessage: 'Failed to play song: $e',
-        );
-      }
-    }
-  }
-
-  Future<void> playQueue(List<MediaItem> songs, {int initialIndex = 0}) async {
-    ++_operationVersion;
-    await _handler.pause();
-    state = state.copyWith(isSwitching: true);
-    try {
-      await _handler.playNow(songs, initialIndex: initialIndex);
-    } catch (e) {
-      state = state.copyWith(
-        isSwitching: false,
-        hasError: true,
-        errorMessage: 'Failed to start playback: $e',
-      );
-    }
-  }
-
   Future<void> playVideoId(
     String videoId, {
     bool? isVideo,
     bool? isExplicit,
   }) async {
+    _playDebounceTimer?.cancel();
+    if (_playDebounceCompleter != null &&
+        !_playDebounceCompleter!.isCompleted) {
+      _playDebounceCompleter!.complete();
+    }
+
     final v = ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
-    try {
-      final item = await ref
-          .read(playVideoIdUseCaseProvider)
-          .execute(videoId, isVideoHint: isVideo, isExplicitHint: isExplicit);
-      if (_operationVersion != v) return;
-      await _handler.setQueue([item]);
-      if (_operationVersion != v) return;
-      await _handler.play();
-    } catch (e) {
-      if (_operationVersion == v) {
-        state = state.copyWith(
-          hasError: true,
-          errorMessage: 'Failed to play video: $e',
-          isSwitching: false,
-        );
+
+    final completer = Completer<void>();
+    _playDebounceCompleter = completer;
+
+    _playDebounceTimer = Timer(const Duration(milliseconds: 250), () async {
+      try {
+        if (_operationVersion != v) {
+          if (!completer.isCompleted) completer.complete();
+          return;
+        }
+        final item = await ref
+            .read(playVideoIdUseCaseProvider)
+            .execute(videoId, isVideoHint: isVideo, isExplicitHint: isExplicit);
+        if (_operationVersion != v) {
+          if (!completer.isCompleted) completer.complete();
+          return;
+        }
+        await _synchronizedPlay(v, () async {
+          await _handler.setQueue([item]);
+          if (_operationVersion != v) return;
+          await _handler.play();
+        });
+        if (!completer.isCompleted) completer.complete();
+      } catch (e) {
+        if (_operationVersion == v) {
+          state = state.copyWith(
+            hasError: true,
+            errorMessage: 'Failed to play video: $e',
+            isSwitching: false,
+          );
+        }
+        if (!completer.isCompleted) completer.complete();
       }
-    }
+    });
+
+    await completer.future;
   }
 
   Future<void> setShuffleMode(AudioServiceShuffleMode mode) =>

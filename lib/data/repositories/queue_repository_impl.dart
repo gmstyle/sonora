@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:drift/drift.dart';
 
+import '../../domain/models/queue_section.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../datasources/local/database.dart';
 
@@ -15,6 +16,8 @@ class QueueRepositoryImpl implements QueueRepository {
       batch.deleteAll(_db.queueItems);
       for (int i = 0; i < items.length; i++) {
         final item = items[i];
+        final section =
+            QueueSection.fromTag(item.extras?['section'] as String?).tag;
         batch.insert(
           _db.queueItems,
           QueueItemsCompanion.insert(
@@ -30,6 +33,7 @@ class QueueRepositoryImpl implements QueueRepository {
             artistId: Value(item.extras?['artistId'] as String?),
             albumId: Value(item.extras?['albumId'] as String?),
             isExplicit: Value(item.extras?['isExplicit'] == true),
+            section: Value(section),
           ),
         );
       }
@@ -55,6 +59,7 @@ class QueueRepositoryImpl implements QueueRepository {
           'videoId': row.videoId,
           'isVideo': row.isVideo,
           'isExplicit': row.isExplicit,
+          'section': QueueSection.fromTag(row.section).tag,
           if (row.artistId != null) 'artistId': row.artistId,
           if (row.albumId != null) 'albumId': row.albumId,
         },

@@ -53,6 +53,10 @@ class AudioAndroidAutoBrowserHandler {
   static const String _actionShufflePlaylist = '__action__:shuffle_playlist:';
   static const String _actionLikePlaylist = '__action__:like_playlist:';
 
+  // ── Queue section browse IDs (User Queue / Up Next) ───────────────────────
+  static const String _userQueueId = '__queue__:user';
+  static const String _upNextQueueId = '__queue__:upnext';
+
   // ── AA content tree IDs ──────────────────────────────────────────────────────
   static const String _rootId = '/';
   static const String _homeId = '__home__';
@@ -154,6 +158,12 @@ class AudioAndroidAutoBrowserHandler {
         case _similarArtistsId:
           return _buildSimilarArtistsChildren();
 
+        // Live queue sections (User Queue / Up Next)
+        case _userQueueId:
+          return _buildQueueSectionChildren(upNext: false);
+        case _upNextQueueId:
+          return _buildQueueSectionChildren(upNext: true);
+
         // Dynamic prefixes
         default:
           if (parentMediaId.startsWith(_mixPrefix)) {
@@ -188,7 +198,7 @@ class AudioAndroidAutoBrowserHandler {
   }
 
   List<MediaItem> _buildRootChildren() {
-    return [
+    final children = <MediaItem>[
       MediaItem(
         id: _homeId,
         title: 'Home',
@@ -219,6 +229,45 @@ class AudioAndroidAutoBrowserHandler {
           _kContentStylePlayable: _kStyleList,
         },
       ),
+    ];
+
+    // Expose the live playback queue as two distinct browse nodes so AA
+    // mirrors the User Queue / Up Next split used in the in-app queue
+    // sheet. The containers are only shown when the queue has at least
+    // one item in the corresponding section.
+    final queue = _audioHandler.currentQueue;
+    final hasUser = queue.any((it) => !SonoraAudioHandler.isUpNext(it));
+    final hasUpNext = queue.any((it) => SonoraAudioHandler.isUpNext(it));
+    if (hasUser) {
+      children.add(
+        MediaItem(
+          id: _userQueueId,
+          title: 'Playing Next',
+          displaySubtitle: 'Tracks in your queue',
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+    }
+    if (hasUpNext) {
+      children.add(
+        MediaItem(
+          id: _upNextQueueId,
+          title: 'Up Next',
+          displaySubtitle: 'Autoplay suggestions',
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+    }
+
+    children.add(
       MediaItem(
         id: _exploreId,
         title: 'Explore',
@@ -229,7 +278,17 @@ class AudioAndroidAutoBrowserHandler {
           _kContentStylePlayable: _kStyleList,
         },
       ),
-    ];
+    );
+    return children;
+  }
+
+  /// Returns the live queue items belonging to either the user queue
+  /// or the upnext section, depending on [upNext]. Each item is marked
+  /// as playable so AA can offer the user to jump to a specific track.
+  List<MediaItem> _buildQueueSectionChildren({required bool upNext}) {
+    return _audioHandler.currentQueue
+        .where((it) => SonoraAudioHandler.isUpNext(it) == upNext)
+        .toList();
   }
 
   Future<List<MediaItem>> _buildLibraryChildren() async {

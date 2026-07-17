@@ -346,6 +346,47 @@ The `extras` field on `MediaItem` carries additional metadata:
 | `musicVideoType` | String? | SongFull/VideoFull.musicVideoType | MV badge |
 | `artistId` | String? | Song resolution | Navigation to artist page |
 | `albumId` | String? | Song resolution | Navigation to album page |
+| `section` | String ("user" / "upnext") | PlayerNotifier / queue repository | Tag identifying which conceptual queue section the item belongs to (see §6.3) |
+
+### 6.3 User Queue / Up Next Split (schemaVersion 18)
+
+The playback queue is logically split into two **sections** that share the same underlying `media_kit` playlist but are presented as distinct zones in the UI (and on Android Auto). A single `MediaItem` belongs to exactly one section, encoded in `extras['section']` as `'user'` or `'upnext'`. Items written before this feature have no `section` key and are interpreted as `'user'`.
+
+- **User Queue** (`section: 'user'`) — tracks the user explicitly added via "Play all", "Play next", "Add to queue", or any single-track tap. This is the only section the user can fully manage (reorder, remove, clear).
+- **Up Next** (`section: 'upnext'`) — autoplay suggestions fetched by `StartRadioUseCase` (gated by `Settings.autoPlayUpNext`). Items are appended to the playlist with this tag and removed when the user disables autoplay.
+
+**Data model:**
+
+- `QueueSection` enum (`lib/domain/models/queue_section.dart`) with values `user` and `upnext`, plus a `tag`/`fromTag(String?)` helper that defaults to `user` for legacy values.
+- The `queue_items` Drift table carries a `section` column (default `'user'`) added by migration 17 → 18.
+- `QueueRepositoryImpl.persistQueue` writes each item's section; `restoreQueue` reads it back and exposes it via `extras['section']`.
+
+**Player side:**
+
+- `SonoraAudioHandler._toMedia` defaults every untagged item to the user section as a safety net for legacy call-sites.
+- A new public `appendUpNext(List<MediaItem>)` helper tags each item as upnext and forwards it to `_player.add` under a `_resolvingItemCount` guard (so `_onPlaylistChanged` doesn't emit intermediate queue syncs).
+- A new public `setAutoplayEnabled(bool)` purges the upnext section in-place when the user toggles autoplay off. The current track is preserved if it itself is upnext.
+- A new public `purgeUserQueue()` removes every user-queue item, preserving the upnext section (and stopping playback if the current item is in the user queue).
+- `MediaItem.extras['section']` is the only authoritative source of truth — there is no second playlist.
+
+**PlayerNotifier side:**
+
+- `PlayerState` exposes three derived fields that are recomputed whenever the queue changes: `userQueue` (user items), `upNextQueue` (upnext items), `upNextStartIndex` (the global index of the first upnext item, or `null` if empty). A `userQueueExhausted` getter is also provided.
+- `_prefetchAutoPlayUpNext` and `_fetchAutoPlayUpNext` use `appendUpNext` instead of `addToQueue`/`addAllToQueue`. The trigger logic (when to fetch) is unchanged: still guarded by `Settings.autoPlayUpNext`, `_isFetchingUpNext`, and `_operationVersion`.
+- A listener on `settingsProvider` calls `_handler.setAutoplayEnabled(false)` the moment the user toggles autoplay off, so the upnext section disappears immediately.
+- `clearQueue({bool includeUpNext = false})` defaults to clearing only the user queue (preserving upnext). Pass `includeUpNext: true` to wipe everything.
+- `moveQueueItem` re-tags the moved item based on the section it lands in (an upnext item dragged into the user section is promoted; a user item dragged into the upnext section is demoted).
+
+**Persistence & restore:**
+
+- On the first startup after the upgrade, the persisted queue is cleared (`kPostQueueSplitDoneKey` flag in SharedPreferences) and `last_playing_index` / `last_playing_position_ms` are removed, so playback starts from a clean state.
+- If `autoPlayUpNext` is off at restore time, any upnext items still in the persisted queue are filtered out (handled in `_doRestore`).
+
+**UI:**
+
+- `QueueSheet` renders two stacked sections with a header for each: "Playing Next" (user) with a `SliverReorderableList`, and "Up Next" with a non-reorderable `SliverList`. The upnext header carries an inline toggle that calls `setAutoPlayUpNext`.
+- `PlayerDefaultView`'s "Up Next" card always shows the first upnext item, or an "Autoplay off — Enable" inline button if the section is empty and the feature is disabled. Tapping the card jumps to the first upnext item.
+- Android Auto exposes the same split through two new browse nodes under the root (`__queue__:user` and `__queue__:upnext`).
 
 ### 6.4 Casting & Session Synchronization (`audio_cast_handler.dart`)
 

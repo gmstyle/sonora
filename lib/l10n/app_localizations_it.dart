@@ -979,6 +979,27 @@ class AppLocalizationsIt extends AppLocalizations {
   String get noUpcomingSongs => 'Nessun brano in arrivo';
 
   @override
+  String get playingNext => 'In coda';
+
+  @override
+  String get userQueueEmpty =>
+      'Nessun brano in coda. Aggiungi brani dal menu o usa Riproduci tutto.';
+
+  @override
+  String get upNextWillPopulate =>
+      'Up Next si popolerà automaticamente quando la coda finirà.';
+
+  @override
+  String get autoplayDisabled =>
+      'Autoplay disattivato. Attivalo per avere brani simili quando la coda finisce.';
+
+  @override
+  String get autoplayEnable => 'Attiva';
+
+  @override
+  String get autoplayDisable => 'Disattiva autoplay';
+
+  @override
   String get playNow => 'Riproduci Ora';
 
   @override
