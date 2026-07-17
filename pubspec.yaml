@@ -45,8 +45,8 @@ dependencies:
   go_router: ^17.2.3
 
   # ── Local Database ────────────────────────────────────────────
-  drift: ^2.34.1
-  drift_flutter: ^0.3.0
+  drift: ^2.34.2
+  drift_flutter: ^0.3.1
 
   # ── File System & Permissions ─────────────────────────────────
   path_provider: ^2.1.6
@@ -54,17 +54,17 @@ dependencies:
 
   # ── Download ─────────────────────────────────────────────────
   dio: ^5.9.2
-  connectivity_plus: ^7.1.1 
+  connectivity_plus: ^7.3.0
 
   # ── Images ──────────────────────────────────────────────────
   cached_network_image: ^3.4.1
   flutter_svg: ^2.3.0
 
   # ── Sharing ───────────────────────────────────────────────────
-  share_plus: ^13.2.0
+  share_plus: ^13.2.1
 
   # ── App Info & Update Check ───────────────────────────────────
-  package_info_plus: ^10.2.0
+  package_info_plus: ^10.2.1
   url_launcher: ^6.3.1
   
 
@@ -78,8 +78,8 @@ dependencies:
   dynamic_color: ^1.8.1
   marquee: ^2.3.0
   palette_generator_master: ^1.1.0
-  google_fonts: ^8.1.0
-  lucide_icons_flutter: ^3.1.14+2
+  google_fonts: ^8.2.0
+  lucide_icons_flutter: ^3.1.15
 
   # ── Settings ─────────────────────────────────────────────────
   shared_preferences: ^2.5.3
@@ -107,7 +107,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.0
-  build_runner: ^2.4.15
+  build_runner: ^2.15.1
   flutter_native_splash: ^2.4.7
   flutter_launcher_icons: ^0.14.4
 
