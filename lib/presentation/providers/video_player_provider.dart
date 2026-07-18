@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide PlayerState;
@@ -112,6 +113,7 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
         _videoParamsSub?.cancel();
         _videoParamsSub = null;
         _player.setVideoTrack(VideoTrack.no());
+        _setVideoDecoding(false);
         state = state.copyWith(
           isInitialized: false,
           isLoading: false,
@@ -122,6 +124,7 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
     }
 
     _ensureInitialized();
+    _setVideoDecoding(true);
 
     final videoId = currentSong?.id;
     if (videoId != _lastVideoId) {
@@ -155,6 +158,20 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
       _player.setVideoTrack(VideoTrack.auto());
     } else {
       _player.setVideoTrack(VideoTrack.no());
+    }
+  }
+
+  /// Toggle mpv video decoding subsystem.
+  /// When disabled (`video=no`), mpv won't allocate video decoding resources,
+  /// preventing crashes when Android destroys the rendering surface in background.
+  void _setVideoDecoding(bool enabled) {
+    try {
+      final platform = _player.platform;
+      if (platform is NativePlayer) {
+        platform.setProperty('video', enabled ? 'auto' : 'no');
+      }
+    } catch (e) {
+      dev.log('[VideoPlayerNotifier] Failed to set video decoding: $e');
     }
   }
 

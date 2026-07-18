@@ -318,8 +318,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await playerPlatform.setProperty('cache', 'yes');
         await playerPlatform.setProperty('cache-on-disk', 'yes');
         await playerPlatform.setProperty('cache-dir', cacheDir.path);
-        await playerPlatform.setProperty('demuxer-max-bytes', '104857600');
-        await playerPlatform.setProperty('demuxer-max-back-bytes', '52428800');
+        await playerPlatform.setProperty('demuxer-max-bytes', '20971520');
+        await playerPlatform.setProperty('demuxer-max-back-bytes', '10485760');
+
+        // Disable video decoding for audio-only playback.
+        // Prevents mpv from allocating video resources that crash when
+        // Android destroys the rendering surface in background.
+        await playerPlatform.setProperty('video', 'no');
+
+        // Fill audio gaps with silence instead of pausing/clicking on underruns.
+        // Prevents crackling when Android throttles network in background.
+        await playerPlatform.setProperty('audio-stream-silence', 'yes');
+
         dev.log(
           '[AudioHandler] Stream caching configured at: ${cacheDir.path}',
         );
