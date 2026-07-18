@@ -289,6 +289,7 @@ enum SettingsCategory {
   appearance,
   playback,
   downloads,
+  background,
   privacy,
   backup,
   about,
@@ -304,6 +305,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return l10n.playback;
       case SettingsCategory.downloads:
         return l10n.downloadsSettings;
+      case SettingsCategory.background:
+        return l10n.backgroundPlayback;
       case SettingsCategory.privacy:
         return l10n.privacy;
       case SettingsCategory.backup:
@@ -326,8 +329,12 @@ extension SettingsCategoryExtension on SettingsCategory {
             : 'Crossfade, Up Next, country and language';
       case SettingsCategory.downloads:
         return isIt
-            ? 'Cartella, Wi-Fi e batteria background'
-            : 'Folder, Wi-Fi and background battery';
+            ? 'Cartella, Wi-Fi e spazio disco'
+            : 'Folder, Wi-Fi and disk space';
+      case SettingsCategory.background:
+        return isIt
+            ? 'Ottimizzazione batteria per riproduzione in background'
+            : 'Battery optimization for background playback';
       case SettingsCategory.privacy:
         return isIt
             ? 'Cronologia di ascolto e ricerca'
@@ -351,6 +358,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return LucideIcons.sliders;
       case SettingsCategory.downloads:
         return LucideIcons.download;
+      case SettingsCategory.background:
+        return LucideIcons.batteryFull;
       case SettingsCategory.privacy:
         return LucideIcons.shield;
       case SettingsCategory.backup:

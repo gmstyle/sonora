@@ -950,6 +950,12 @@ abstract class AppLocalizations {
   /// **'Download only on Wi-Fi'**
   String get downloadOnlyOnWifi;
 
+  /// No description provided for @backgroundPlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Background Playback'**
+  String get backgroundPlayback;
+
   /// No description provided for @privacy.
   ///
   /// In en, this message translates to:

@@ -35,9 +35,14 @@ class SettingsScreenContent extends ConsumerWidget {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView.builder(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
-      itemCount: SettingsCategory.values.length,
+      itemCount:
+          SettingsCategory.values
+              .where((c) => c != SettingsCategory.background || isAndroid)
+              .length,
       itemBuilder: (context, index) {
-        final category = SettingsCategory.values[index];
+        final category = SettingsCategory.values
+            .where((c) => c != SettingsCategory.background || isAndroid)
+            .elementAt(index);
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 6),
           shape: RoundedRectangleBorder(
@@ -135,10 +140,12 @@ class SettingsCategoryContent extends ConsumerWidget {
       case SettingsCategory.downloads:
         return ListView(
           padding: listPadding,
-          children: [
-            _DownloadSection(settings: settings, notifier: notifier),
-            if (isAndroid) const _BatterySection(),
-          ],
+          children: [_DownloadSection(settings: settings, notifier: notifier)],
+        );
+      case SettingsCategory.background:
+        return ListView(
+          padding: listPadding,
+          children: [if (isAndroid) const _BatterySection()],
         );
       case SettingsCategory.privacy:
         return ListView(

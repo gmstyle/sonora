@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/platform_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../settings_shared.dart';
@@ -43,9 +44,19 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
                     horizontal: 12,
                     vertical: 8,
                   ),
-                  itemCount: SettingsCategory.values.length,
+                  itemCount:
+                      SettingsCategory.values
+                          .where(
+                            (c) =>
+                                c != SettingsCategory.background || isAndroid,
+                          )
+                          .length,
                   itemBuilder: (context, index) {
-                    final category = SettingsCategory.values[index];
+                    final category = SettingsCategory.values
+                        .where(
+                          (c) => c != SettingsCategory.background || isAndroid,
+                        )
+                        .elementAt(index);
                     final isSelected = category == _selectedCategory;
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),

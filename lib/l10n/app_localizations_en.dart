@@ -506,6 +506,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadOnlyOnWifi => 'Download only on Wi-Fi';
 
   @override
+  String get backgroundPlayback => 'Background Playback';
+
+  @override
   String get privacy => 'Privacy';
 
   @override
