@@ -708,6 +708,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
         final fullAlbumId = data.album?.albumId;
         if (fullId != null || fullAlbumId != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
             ref
                 .read(libraryNotifierProvider.notifier)
                 .updateLikedSongMetadata(
