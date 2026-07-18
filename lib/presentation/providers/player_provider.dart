@@ -194,35 +194,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Timer? _sleepTimer;
   Timer? _sleepTimerTick;
   Timer? _playDebounceTimer;
-  Completer<void>? _playDebounceCompleter;
   DateTime? _sleepTimerStart;
   Duration? _sleepTimerDuration;
   bool _isReordering = false;
-
-  Future<void>? _playLock;
-
-  Future<void> _synchronizedPlay(
-    int version,
-    Future<void> Function() action,
-  ) async {
-    final previous = _playLock;
-    final completer = Completer<void>();
-    _playLock = completer.future;
-    if (previous != null) {
-      try {
-        await previous;
-      } catch (_) {}
-    }
-    if (_operationVersion != version) {
-      completer.complete();
-      return;
-    }
-    try {
-      await action();
-    } finally {
-      completer.complete();
-    }
-  }
 
   /// Splits [queue] into a (userQueue, upNextQueue, upNextStartIndex)
   /// triple based on `extras['section']`. Returns `([], [], null)` when
@@ -306,10 +280,6 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _sleepTimer?.cancel();
       _sleepTimerTick?.cancel();
       _playDebounceTimer?.cancel();
-      if (_playDebounceCompleter != null &&
-          !_playDebounceCompleter!.isCompleted) {
-        _playDebounceCompleter!.complete();
-      }
     });
 
     // Defer stream subscriptions to a microtask so that any synchronous initial
@@ -568,16 +538,20 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final seedItem = state.currentSong;
       if (seedItem == null) return;
       final seedId = seedItem.id;
+      final v = _operationVersion;
 
       final radioUseCase = ref.read(startRadioUseCaseProvider);
       final result = await radioUseCase.execute(seedId, resolveFirstUrl: false);
+      if (_operationVersion != v) return;
       if (state.currentSong?.id != seedId) return;
 
       await _handler.appendUpNext([result.firstItem]);
+      if (_operationVersion != v) return;
       if (state.currentSong?.id != seedId) return;
 
       if (result.remaining.isNotEmpty) {
         final pendingItems = radioUseCase.toPendingItems(result.remaining);
+        if (_operationVersion != v) return;
         if (state.currentSong?.id != seedId) return;
         await _handler.appendUpNext(pendingItems);
       }
@@ -594,9 +568,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
     try {
-      await _synchronizedPlay(v, () async {
-        await _handler.playNow(items, initialIndex: initialIndex);
-      });
+      await _handler.playNow(
+        items,
+        initialIndex: initialIndex,
+        shouldAbort: () => _operationVersion != v,
+      );
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -616,9 +592,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final useCase = ref.read(playAlbumUseCaseProvider);
       final items = await useCase.execute(songs, playIndex: startIndex);
       if (_operationVersion != v) return;
-      await _synchronizedPlay(v, () async {
-        await _handler.playNow(items, initialIndex: startIndex);
-      });
+      await _handler.playNow(
+        items,
+        initialIndex: startIndex,
+        shouldAbort: () => _operationVersion != v,
+      );
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -641,9 +619,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final useCase = ref.read(playPlaylistUseCaseProvider);
       final items = await useCase.execute(videos, playIndex: startIndex);
       if (_operationVersion != v) return;
-      await _synchronizedPlay(v, () async {
-        await _handler.playNow(items, initialIndex: startIndex);
-      });
+      await _handler.playNow(
+        items,
+        initialIndex: startIndex,
+        shouldAbort: () => _operationVersion != v,
+      );
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -663,9 +643,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final useCase = ref.read(playSmartMixUseCaseProvider);
       final items = await useCase.execute(songs: songs, playIndex: startIndex);
       if (_operationVersion != v) return;
-      await _synchronizedPlay(v, () async {
-        await _handler.playNow(items, initialIndex: startIndex);
-      });
+      await _handler.playNow(
+        items,
+        initialIndex: startIndex,
+        shouldAbort: () => _operationVersion != v,
+      );
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -777,18 +759,15 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
     _isReordering = true;
-    // Optimistic UI update
+    // Optimistic UI update (the audio handler owns the section re-tag;
+    // _queueSub reconciles the final state, including the moved item's tag).
     final items = List<MediaItem>.from(state.queue);
     if (newIndex >= 0 && newIndex < items.length) {
       final moved = items.removeAt(oldIndex);
       items.insert(newIndex, moved);
-      // Re-tag the moved item based on the section it landed in. Items
-      // before [upNextStartIndex] (if any) are user; items from it on are
-      // upnext. We compute against the *post-move* layout.
-      final retagged = _retagAfterMove(items, oldIndex, newIndex);
-      final (u, up, start) = _splitQueueBySection(retagged);
+      final (u, up, start) = _splitQueueBySection(items);
       state = state.copyWith(
-        queue: retagged,
+        queue: items,
         userQueue: u,
         upNextQueue: up,
         upNextStartIndex: start,
@@ -797,7 +776,6 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
     try {
       await _handler.moveQueueItem(oldIndex, newIndex);
-      await _handler.persistQueue(state.queue);
     } finally {
       _isReordering = false;
       // Manually sync with the handler's final queue state to ensure correctness.
@@ -825,51 +803,6 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
-  /// Re-tags the item at [newIndex] in [items] based on the section it
-  /// now belongs to after a drag from [oldIndex] to [newIndex]. If the
-  /// user dragged an upnext item above the user section, it becomes
-  /// user. If the user dragged a user item into the upnext section, it
-  /// becomes upnext.
-  List<MediaItem> _retagAfterMove(
-    List<MediaItem> items,
-    int oldIndex,
-    int newIndex,
-  ) {
-    if (newIndex < 0 || newIndex >= items.length) return items;
-    if (oldIndex == newIndex) return items;
-
-    final moved = items[newIndex];
-
-    // Find the new boundary after the move: first item tagged 'upnext'
-    // in the post-move layout. If none, the moved item must be 'user'.
-    int? newStart;
-    for (int i = 0; i < items.length; i++) {
-      if (items[i].extras?['section'] == 'upnext') {
-        newStart = i;
-        break;
-      }
-    }
-
-    String targetTag;
-    if (newStart == null) {
-      targetTag = 'user';
-    } else if (newIndex < newStart) {
-      targetTag = 'user';
-    } else {
-      targetTag = 'upnext';
-    }
-
-    if ((moved.extras?['section'] as String?) == targetTag) {
-      return items;
-    }
-
-    final updated = List<MediaItem>.from(items);
-    final extras = Map<String, dynamic>.from(moved.extras ?? {});
-    extras['section'] = targetTag;
-    updated[newIndex] = moved.copyWith(extras: extras);
-    return updated;
-  }
-
   /// Clears the playback queue.
   ///
   /// When [includeUpNext] is `false` (the default) only the user queue
@@ -882,10 +815,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Future<void> clearQueue({bool includeUpNext = false}) async {
     if (includeUpNext) {
       await _handler.clearQueue();
+      await ref.read(queueUseCaseProvider).clearQueue();
     } else {
       await _handler.purgeUserQueue();
+      await ref.read(queueUseCaseProvider).clearUserQueue();
     }
-    await ref.read(queueUseCaseProvider).clearQueue();
   }
 
   // ── Metodi base ───────────────────────────────────────────────
@@ -946,37 +880,27 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     bool? isExplicit,
   }) async {
     _playDebounceTimer?.cancel();
-    if (_playDebounceCompleter != null &&
-        !_playDebounceCompleter!.isCompleted) {
-      _playDebounceCompleter!.complete();
-    }
 
     final v = ++_operationVersion;
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
 
-    final completer = Completer<void>();
-    _playDebounceCompleter = completer;
-
+    // Debounce rapid taps: only the last tap within 250ms triggers the
+    // (expensive) metadata + stream-URL resolution. This guarantees the
+    // last tap wins while protecting YouTube Music from rate-limiting
+    // (HTTP 429) on rapid successive taps.
     _playDebounceTimer = Timer(const Duration(milliseconds: 250), () async {
       try {
-        if (_operationVersion != v) {
-          if (!completer.isCompleted) completer.complete();
-          return;
-        }
+        if (_operationVersion != v) return;
         final item = await ref
             .read(playVideoIdUseCaseProvider)
             .execute(videoId, isVideoHint: isVideo, isExplicitHint: isExplicit);
-        if (_operationVersion != v) {
-          if (!completer.isCompleted) completer.complete();
-          return;
-        }
-        await _synchronizedPlay(v, () async {
-          await _handler.setQueue([item]);
-          if (_operationVersion != v) return;
-          await _handler.play();
-        });
-        if (!completer.isCompleted) completer.complete();
+        if (_operationVersion != v) return;
+        await _handler.setQueue([
+          item,
+        ], shouldAbort: () => _operationVersion != v);
+        if (_operationVersion != v) return;
+        await _handler.play();
       } catch (e) {
         if (_operationVersion == v) {
           state = state.copyWith(
@@ -985,11 +909,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
             isSwitching: false,
           );
         }
-        if (!completer.isCompleted) completer.complete();
       }
     });
-
-    await completer.future;
   }
 
   Future<void> setShuffleMode(AudioServiceShuffleMode mode) =>

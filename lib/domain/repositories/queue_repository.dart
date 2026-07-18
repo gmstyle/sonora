@@ -13,4 +13,8 @@ abstract class QueueRepository {
 
   /// Deletes all persisted queue items.
   Future<void> clearQueue();
+
+  /// Deletes only the persisted items belonging to the user queue
+  /// (`section = 'user'`), preserving the autoplay "Up Next" section.
+  Future<void> clearUserQueue();
 }

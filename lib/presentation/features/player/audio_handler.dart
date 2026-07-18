@@ -115,7 +115,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void>? _playlistOpenLock;
 
-  Future<void> _synchronizedOpen(Future<void> Function() action) async {
+  /// Serializes calls that rebuild the underlying media_kit playlist
+  /// (setQueue / playNow). Actions run one at a time, in call order.
+  ///
+  /// When [shouldAbort] is provided it is evaluated right before the
+  /// action runs (i.e. after any in-flight action completes); if it
+  /// returns `true` the action is skipped entirely, so an obsolete caller
+  /// never touches the player — the most recent call always wins.
+  Future<void> _synchronizedOpen(
+    Future<void> Function() action, {
+    bool Function()? shouldAbort,
+  }) async {
     final previous = _playlistOpenLock;
     final completer = Completer<void>();
     _playlistOpenLock = completer.future;
@@ -125,9 +135,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
       } catch (_) {}
     }
     try {
+      if (shouldAbort?.call() ?? false) return;
       await action();
     } finally {
       completer.complete();
+      // Only clear the lock if no newer call already replaced it.
+      if (identical(_playlistOpenLock, completer.future)) {
+        _playlistOpenLock = null;
+      }
     }
   }
 
@@ -1229,6 +1244,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// without modifying it.
   List<MediaItem> get currentQueue => _currentQueue;
 
+  /// User-queue portion of the current playlist (items not tagged as
+  /// upnext). Single source of truth for the User/UpNext split used by
+  /// the UI and Android Auto.
+  List<MediaItem> get userQueue =>
+      _currentQueue.where((it) => !isUpNext(it)).toList();
+
+  /// Autoplay "Up Next" portion of the current playlist.
+  List<MediaItem> get upNextQueue => _currentQueue.where(isUpNext).toList();
+
   // ── Queue section helpers (User Queue / Up Next) ───────────────────────────
 
   /// Returns the [QueueSection] of [item] based on [MediaItem.extras].
@@ -1292,7 +1316,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
     return Media(dummy, extras: {'mediaItem': tagged});
   }
 
-  Future<void> setQueue(List<MediaItem> items, {int initialIndex = 0}) async {
+  Future<void> setQueue(
+    List<MediaItem> items, {
+    int initialIndex = 0,
+    bool Function()? shouldAbort,
+  }) async {
     _isStopping = false;
     _prepareTransitionMute();
     await _synchronizedOpen(() async {
@@ -1312,10 +1340,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _endTransitionMute();
         rethrow;
       }
-    });
+    }, shouldAbort: shouldAbort);
   }
 
-  Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
+  Future<void> playNow(
+    List<MediaItem> items, {
+    int initialIndex = 0,
+    bool Function()? shouldAbort,
+  }) async {
     _isStopping = false;
     _prepareTransitionMute();
     await _synchronizedOpen(() async {
@@ -1358,7 +1390,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _endTransitionMute();
         rethrow;
       }
-    });
+    }, shouldAbort: shouldAbort);
   }
 
   Future<void> playNext(MediaItem item) async {
@@ -1467,25 +1499,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
     queue.add([]);
   }
 
-  /// Removes every track in the user queue (i.e. everything not tagged as
-  /// [QueueSection.upnext]) from the underlying playlist. Stops playback
-  /// if the current item itself is in the user queue. The "Up Next"
-  /// section is preserved untouched.
+  /// Removes every user-queue track (everything not tagged as
+  /// [QueueSection.upnext]) from the underlying playlist, preserving the
+  /// autoplay "Up Next" section.
+  ///
+  /// The currently playing track is always kept in place (mirroring
+  /// [_purgeUpNext]) so a queue-clear action never interrupts playback.
   Future<void> purgeUserQueue() async {
     final medias = _player.state.playlist.medias;
     final currentIndex = _player.state.playlist.index;
-    final currentIsUser =
-        currentIndex >= 0 &&
-        currentIndex < medias.length &&
-        !isUpNext(medias[currentIndex].extras?['mediaItem'] as MediaItem);
-
-    if (currentIsUser) {
-      // The current item is in the user queue — wipe everything (incl.
-      // upnext) to avoid an inconsistent state where the current track
-      // is gone but the rest of the queue keeps playing.
-      await clearQueue();
-      return;
-    }
 
     // Walk back-to-front so indices stay valid as we remove.
     for (int i = medias.length - 1; i >= 0; i--) {
@@ -1502,13 +1524,69 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     if (oldIndex < 0 || oldIndex >= len) return;
     if (newIndex < 0 || newIndex >= len) return;
+    if (oldIndex == newIndex) return;
 
     // A queue reorder shifts indices; invalidate the pending skip target so
     // the next skipToNext/Prev computes the correct index from scratch.
     _targetSkipIndex = null;
 
-    final toIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
-    await _player.move(oldIndex, toIndex);
+    // Capture the up-next boundary BEFORE the move: the moved item's final
+    // section is decided against the pre-move layout (an upnext item
+    // dragged above the boundary is promoted to user; a user item dragged
+    // to/past the boundary is demoted to upnext).
+    int? boundary;
+    for (int i = 0; i < len; i++) {
+      final it =
+          _player.state.playlist.medias[i].extras?['mediaItem'] as MediaItem?;
+      if (it != null && isUpNext(it)) {
+        boundary = i;
+        break;
+      }
+    }
+
+    // Guard with _resolvingItemCount so _onPlaylistChanged suppresses
+    // intermediate queue syncs during the move + possible retag.
+    _resolvingItemCount++;
+    try {
+      final toIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
+      await _player.move(oldIndex, toIndex);
+      await _retagMovedItem(newIndex, boundary);
+    } finally {
+      _resolvingItemCount--;
+      _syncQueue();
+      if (!_isResolvingItem) _updatePlaybackState();
+    }
+  }
+
+  /// Re-tags the item now sitting at [newIndex] based on the up-next
+  /// [boundary] captured before the move. Replaces the underlying media
+  /// in-place (remove + add + move) since media_kit has no update API.
+  ///
+  /// The currently playing item is never re-tagged: removing it would
+  /// interrupt playback.
+  Future<void> _retagMovedItem(int newIndex, int? boundary) async {
+    final playlist = _player.state.playlist;
+    if (newIndex < 0 || newIndex >= playlist.medias.length) return;
+    if (newIndex == playlist.index) return;
+
+    final media = playlist.medias[newIndex];
+    final item = media.extras?['mediaItem'] as MediaItem?;
+    if (item == null) return;
+
+    final target =
+        (boundary == null || newIndex < boundary)
+            ? QueueSection.user
+            : QueueSection.upnext;
+    if (sectionOf(item) == target) return;
+
+    final retagged = _tagSection(item, target);
+    final newMedia = Media(
+      media.uri,
+      extras: {...?media.extras, 'mediaItem': retagged},
+    );
+    await _player.remove(newIndex);
+    await _player.add(newMedia);
+    await _player.move(_player.state.playlist.medias.length - 1, newIndex);
   }
 
   @override
@@ -1541,7 +1619,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _retryCount = 0;
     }
 
-    if (_isRetrying || _retryCount >= 1) {
+    if (_isRetrying ||
+        _retryCount >= 1 ||
+        _pendingResolutions.contains(videoId)) {
       return;
     }
 

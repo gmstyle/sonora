@@ -244,7 +244,7 @@ Keys cover: navigation, artist, album, playlist, library, downloads, search, set
 
 ---
 
-## 5. Drift Database — Schema v14
+## 5. Drift Database — Schema v18
 
 ### 5.1 Tables
 
@@ -259,7 +259,7 @@ Keys cover: navigation, artist, album, playlist, library, downloads, search, set
 | `downloads` | videoId | title, artist, thumbnailUrl, localPath, format, fileSize, downloadedAt, status, isVideo | v5/v6: +title/artist/thumbnailUrl, v11: +isVideo |
 | `history` | id (auto) | videoId, title, artist, thumbnailUrl, playedAt, playCount, isVideo, duration | v4: +thumbnailUrl, v11: +isVideo, v14: +duration |
 | `search_history` | id (auto) | query, searchedAt | |
-| `queue_items` | position (auto) | videoId, title, artist, albumTitle, thumbnailUrl, durationSec, isVideo, streamUrl, artistId, albumId | v3: +streamUrl, v10: +artistId/albumId |
+| `queue_items` | position (auto) | videoId, title, artist, albumTitle, thumbnailUrl, durationSec, isVideo, streamUrl, artistId, albumId, **section** | v3: +streamUrl, v10: +artistId/albumId, v18: +section |
 
 ### 5.2 Code Generation
 
@@ -346,9 +346,9 @@ The `extras` field on `MediaItem` carries additional metadata:
 | `musicVideoType` | String? | SongFull/VideoFull.musicVideoType | MV badge |
 | `artistId` | String? | Song resolution | Navigation to artist page |
 | `albumId` | String? | Song resolution | Navigation to album page |
-| `section` | String ("user" / "upnext") | PlayerNotifier / queue repository | Tag identifying which conceptual queue section the item belongs to (see §6.3) |
+| `section` | String ("user" / "upnext") | `audio_handler.dart` / queue repository | Tag identifying which conceptual queue section the item belongs to (see §6.3) |
 
-### 6.3 User Queue / Up Next Split (schemaVersion 18)
+### 6.4 User Queue / Up Next Split (schemaVersion 18)
 
 The playback queue is logically split into two **sections** that share the same underlying `media_kit` playlist but are presented as distinct zones in the UI (and on Android Auto). A single `MediaItem` belongs to exactly one section, encoded in `extras['section']` as `'user'` or `'upnext'`. Items written before this feature have no `section` key and are interpreted as `'user'`.
 
@@ -361,21 +361,28 @@ The playback queue is logically split into two **sections** that share the same 
 - The `queue_items` Drift table carries a `section` column (default `'user'`) added by migration 17 → 18.
 - `QueueRepositoryImpl.persistQueue` writes each item's section; `restoreQueue` reads it back and exposes it via `extras['section']`.
 
-**Player side:**
+**Lock model (audio_handler.dart):**
+
+All playlist-rebuilding actions (`setQueue`, `playNow`, `appendUpNext`) are serialized through a single `_synchronizedOpen` lock with an optional `shouldAbort` predicate. When provided, `shouldAbort` is evaluated right after any in-flight action completes; if it returns `true`, the queued action is skipped entirely, so the most recent caller always wins. The lock is reset to `null` only if no newer call replaced it (identity check: `identical(_playlistOpenLock, completer.future)`). `PlayerNotifier` passes `shouldAbort: () => _operationVersion != v` to all handler calls, ensuring that a newer user tap or autoplay trigger discards the stale in-flight action.
+
+**Player side (audio_handler.dart):**
 
 - `SonoraAudioHandler._toMedia` defaults every untagged item to the user section as a safety net for legacy call-sites.
-- A new public `appendUpNext(List<MediaItem>)` helper tags each item as upnext and forwards it to `_player.add` under a `_resolvingItemCount` guard (so `_onPlaylistChanged` doesn't emit intermediate queue syncs).
-- A new public `setAutoplayEnabled(bool)` purges the upnext section in-place when the user toggles autoplay off. The current track is preserved if it itself is upnext.
-- A new public `purgeUserQueue()` removes every user-queue item, preserving the upnext section (and stopping playback if the current item is in the user queue).
+- `setQueue` and `playNow` accept `shouldAbort` and forward it to `_synchronizedOpen`.
+- `appendUpNext(List<MediaItem>)` tags each item as upnext and forwards it to `_player.add` under a `_resolvingItemCount` guard (so `_onPlaylistChanged` doesn't emit intermediate queue syncs).
+- `setAutoplayEnabled(bool)` purges the upnext section in-place when the user toggles autoplay off. The current track is preserved if it itself is upnext.
+- `purgeUserQueue()` removes every user-queue item, preserving the upnext section (and the currently playing item).
+- `moveQueueItem(int oldIndex, int newIndex)` performs the physical move and then re-tags the moved item via `_retagMovedItem`. The up-next boundary is captured **before** the move; if the item crosses the boundary its section tag is updated (upnext item dragged above boundary → promoted to user; user item dragged below boundary → demoted to upnext). The currently playing item is never re-tagged. All re-tagging logic lives in the handler — `PlayerNotifier` does not perform any re-tagging.
 - `MediaItem.extras['section']` is the only authoritative source of truth — there is no second playlist.
 
 **PlayerNotifier side:**
 
-- `PlayerState` exposes three derived fields that are recomputed whenever the queue changes: `userQueue` (user items), `upNextQueue` (upnext items), `upNextStartIndex` (the global index of the first upnext item, or `null` if empty). A `userQueueExhausted` getter is also provided.
-- `_prefetchAutoPlayUpNext` and `_fetchAutoPlayUpNext` use `appendUpNext` instead of `addToQueue`/`addAllToQueue`. The trigger logic (when to fetch) is unchanged: still guarded by `Settings.autoPlayUpNext`, `_isFetchingUpNext`, and `_operationVersion`.
+- `PlayerState` exposes three derived fields recomputed whenever the queue changes: `userQueue` (user items), `upNextQueue` (upnext items), `upNextStartIndex` (the global index of the first upnext item, or `null` if empty). A `userQueueExhausted` getter is also provided.
+- `_prefetchAutoPlayUpNext` and `_fetchAutoPlayUpNext` use `appendUpNext` instead of `addToQueue`/`addAllToQueue`. The trigger logic is unchanged: still guarded by `Settings.autoPlayUpNext`, `_isFetchingUpNext`, and `_operationVersion`.
 - A listener on `settingsProvider` calls `_handler.setAutoplayEnabled(false)` the moment the user toggles autoplay off, so the upnext section disappears immediately.
-- `clearQueue({bool includeUpNext = false})` defaults to clearing only the user queue (preserving upnext). Pass `includeUpNext: true` to wipe everything.
-- `moveQueueItem` re-tags the moved item based on the section it lands in (an upnext item dragged into the user section is promoted; a user item dragged into the upnext section is demoted).
+- `playVideoId` uses a **250ms debounce timer** (fire-and-forget, no Completer). Last tap wins via `_operationVersion`. `state.isSwitching` drives the UI loading indicator.
+- `playNow`, `playAlbum`, `playPlaylist`, `playSmartMix` all pass `shouldAbort: () => _operationVersion != v` to the handler so that a newer user action skips the in-flight operation.
+- `clearQueue({bool includeUpNext = false})` defaults to clearing only the user queue (`purgeUserQueue` on the handler + `clearUserQueue` on the DB). Pass `includeUpNext: true` to wipe everything (`clearQueue` on both).
 
 **Persistence & restore:**
 
@@ -384,11 +391,11 @@ The playback queue is logically split into two **sections** that share the same 
 
 **UI:**
 
-- `QueueSheet` renders two stacked sections with a header for each: "Playing Next" (user) with a `SliverReorderableList`, and "Up Next" with a non-reorderable `SliverList`. The upnext header carries an inline toggle that calls `setAutoPlayUpNext`.
+- `QueueSheet` renders two stacked sections with a header for each: "Playing Next" (user) with a `SliverReorderableList`, and "Up Next" with a non-reorderable `SliverList`. Drag reorder uses `ReorderableDelayedDragStartListener` (long-press to initiate). Shows `ShimmerVariant.queue` skeleton while `isQueueSynced` is false.
 - `PlayerDefaultView`'s "Up Next" card always shows the first upnext item, or an "Autoplay off — Enable" inline button if the section is empty and the feature is disabled. Tapping the card jumps to the first upnext item.
-- Android Auto exposes the same split through two new browse nodes under the root (`__queue__:user` and `__queue__:upnext`).
+- Android Auto exposes the same split through two browse nodes under the root (`__queue__:user` and `__queue__:upnext`), using `userQueue`/`upNextQueue` getters from `SonoraAudioHandler`.
 
-### 6.4 Casting & Session Synchronization (`audio_cast_handler.dart`)
+### 6.5 Casting & Session Synchronization (`audio_cast_handler.dart`)
 
 Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, Smart TVs) using `dart_cast`. The casting engine is managed by `AudioCastHandler`, which bridges the main audio handler with the remote casting session.
 
@@ -412,7 +419,7 @@ When a device is connected:
 **Alexa Support:**
 Since Echo devices often don't support open casting protocols reliably, Sonora provides a shortcut to **Bluetooth Settings** within the Cast Dialog to facilitate manual pairing for Alexa speakers.
 
-### 6.5 Android Auto Browse Engine (`audio_android_auto_browser_handler.dart`)
+### 6.6 Android Auto Browse Engine (`audio_android_auto_browser_handler.dart`)
 
 The `AudioAndroidAutoBrowserHandler` class handles the integration with Android Auto, implementing the hierarchical music browsing tree and responding to dashboard controls.
 
@@ -430,7 +437,7 @@ Supports search via keyboard or Google Assistant voice commands (`playFromSearch
 - When a search is triggered, it performs parallel queries to resolve songs, videos, artists, and albums.
 - Eagerly resolves and starts playing the first matching song to minimize startup latency, while simultaneously populating the upcoming queue with the remaining search results.
 
-### 6.5 Internet Connectivity & Offline Playback
+### 6.7 Internet Connectivity & Offline Playback
 
 Sonora monitors network state globally using `connectivity_plus` and local user settings override to handle offline scenarios gracefully.
 
@@ -447,7 +454,7 @@ Sonora monitors network state globally using `connectivity_plus` and local user 
 - **Error Interception**:
   - `PlayerErrorListener` and `ErrorRetryWidget` intercept raw socket/timeout exceptions and format them into localized user-friendly messages (`weakConnectionError`).
 
-### 6.6 5-Band Equalizer (FFmpeg lavfi Audio Filters)
+### 6.8 5-Band Equalizer (FFmpeg lavfi Audio Filters)
 
 Sonora features a software-based **5-Band Equalizer** integrated directly into the `media_kit` playback pipeline via custom FFmpeg `superequalizer` audio filters.
 

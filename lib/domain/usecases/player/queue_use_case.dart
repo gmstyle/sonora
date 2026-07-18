@@ -18,4 +18,8 @@ class QueueUseCase {
   Future<void> clearQueue() async {
     await _queueRepository.clearQueue();
   }
+
+  Future<void> clearUserQueue() async {
+    await _queueRepository.clearUserQueue();
+  }
 }

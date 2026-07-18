@@ -235,9 +235,8 @@ class AudioAndroidAutoBrowserHandler {
     // mirrors the User Queue / Up Next split used in the in-app queue
     // sheet. The containers are only shown when the queue has at least
     // one item in the corresponding section.
-    final queue = _audioHandler.currentQueue;
-    final hasUser = queue.any((it) => !SonoraAudioHandler.isUpNext(it));
-    final hasUpNext = queue.any((it) => SonoraAudioHandler.isUpNext(it));
+    final hasUser = _audioHandler.userQueue.isNotEmpty;
+    final hasUpNext = _audioHandler.upNextQueue.isNotEmpty;
     if (hasUser) {
       children.add(
         MediaItem(
@@ -286,9 +285,7 @@ class AudioAndroidAutoBrowserHandler {
   /// or the upnext section, depending on [upNext]. Each item is marked
   /// as playable so AA can offer the user to jump to a specific track.
   List<MediaItem> _buildQueueSectionChildren({required bool upNext}) {
-    return _audioHandler.currentQueue
-        .where((it) => SonoraAudioHandler.isUpNext(it) == upNext)
-        .toList();
+    return upNext ? _audioHandler.upNextQueue : _audioHandler.userQueue;
   }
 
   Future<List<MediaItem>> _buildLibraryChildren() async {

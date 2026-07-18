@@ -69,4 +69,8 @@ class QueueRepositoryImpl implements QueueRepository {
 
   @override
   Future<void> clearQueue() => _db.delete(_db.queueItems).go();
+
+  @override
+  Future<void> clearUserQueue() =>
+      (_db.delete(_db.queueItems)..where((t) => t.section.equals('user'))).go();
 }
