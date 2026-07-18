@@ -503,6 +503,17 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Future<void> _fetchAutoPlayUpNext() async {
     if (!ref.read(settingsProvider).autoPlayUpNext) return;
     try {
+      // If up-next items already exist in the queue ahead of the current
+      // position, skip directly to the first one instead of re-fetching.
+      final upNextIdx = state.upNextStartIndex;
+      if (upNextIdx != null && upNextIdx > state.currentIndex) {
+        final v = ++_operationVersion;
+        await _handler.skipToQueueItem(upNextIdx);
+        if (_operationVersion != v) return;
+        await _handler.play();
+        return;
+      }
+
       final lastItem = state.currentSong;
       if (lastItem == null) return;
       final v = _operationVersion;
@@ -833,7 +844,19 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (state.isPlaying) {
       await _handler.pause();
     } else {
-      await _handler.play();
+      // When the queue is exhausted and autoplay is enabled, media_kit's
+      // play() would restart from index 0 (the first user track).  Delegate
+      // to _fetchAutoPlayUpNext which either skips to an existing up-next
+      // item or fetches a new one before starting playback.
+      if (state.repeatMode == AudioServiceRepeatMode.none &&
+          state.currentIndex >= state.queue.length - 1 &&
+          state.queue.isNotEmpty &&
+          ref.read(settingsProvider).autoPlayUpNext) {
+        _isFetchingUpNext = true;
+        await _fetchAutoPlayUpNext();
+      } else {
+        await _handler.play();
+      }
     }
   }
 
