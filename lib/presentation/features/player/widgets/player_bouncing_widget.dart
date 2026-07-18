@@ -224,8 +224,16 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     // always rendered (even when the upnext section is empty) so the
     // user sees the autoplay status ("attivo" / "disattivato") and can
     // toggle it inline.
+    final queue = playerState.queue;
+    final currentIndex = playerState.currentIndex;
+    final hasNextInQueue = currentIndex + 1 < queue.length;
+    final nextSongFromQueue = hasNextInQueue ? queue[currentIndex + 1] : null;
+
     final upNextQueue = playerState.upNextQueue;
-    final nextSong = upNextQueue.isNotEmpty ? upNextQueue.first : null;
+    final nextSongFromUpNext =
+        upNextQueue.isNotEmpty ? upNextQueue.first : null;
+
+    final nextSong = nextSongFromQueue ?? nextSongFromUpNext;
     final hasNext = nextSong != null;
 
     final clampedSize = widget.size?.clamp(150.0, 600.0);

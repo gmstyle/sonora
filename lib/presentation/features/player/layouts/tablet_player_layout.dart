@@ -69,21 +69,16 @@ class TabletPlayerLayout extends ConsumerWidget {
                 children: [
                   Expanded(
                     flex: 1,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Artwork(
-                          key: artworkKey,
-                          artUrl: artUrl,
-                          size: min(
-                            availHeight - (tight ? 70 : 100),
-                            availWidth / 2 - 48,
-                          ),
-                          videoId: videoId,
-                          isSwitching: playerState.isSwitching,
-                          isVideo: isVideo,
-                        ),
-                      ],
+                    child: Artwork(
+                      key: artworkKey,
+                      artUrl: artUrl,
+                      size: min(
+                        availHeight - (tight ? 70 : 100),
+                        availWidth / 2 - 48,
+                      ),
+                      videoId: videoId,
+                      isSwitching: playerState.isSwitching,
+                      isVideo: isVideo,
                     ),
                   ),
                   const SizedBox(width: 48),
