@@ -5,6 +5,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/models/queue_track.dart';
 import '../features/player/audio_handler.dart';
 import 'library_notifier.dart';
 import 'play_video_id_use_case_provider.dart';
@@ -695,24 +696,20 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
       final streamUrl = await useCase.resolveStreamUrl(videoId);
-      final extras = <String, dynamic>{
-        'url': streamUrl,
-        'videoId': videoId,
-        'isVideo': isVideo,
-        'isExplicit': isExplicit,
-      };
-      if (artistId != null) extras['artistId'] = artistId;
-      if (albumId != null) extras['albumId'] = albumId;
-      final item = MediaItem(
-        id: videoId,
+      final track = QueueTrack(
+        videoId: videoId,
+        url: streamUrl,
+        isVideo: isVideo,
+        isExplicit: isExplicit,
+        artistId: artistId,
+        albumId: albumId,
         title: title,
         artist: artist,
         album: albumName,
         duration: Duration(seconds: durationSec ?? 0),
         artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
-        extras: extras,
       );
-      await playNext(item);
+      await playNext(track.toFreshMediaItem());
     } catch (e) {
       state = state.copyWith(
         hasError: true,
@@ -740,24 +737,20 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
       final streamUrl = await useCase.resolveStreamUrl(videoId);
-      final extras = <String, dynamic>{
-        'url': streamUrl,
-        'videoId': videoId,
-        'isVideo': isVideo,
-        'isExplicit': isExplicit,
-      };
-      if (artistId != null) extras['artistId'] = artistId;
-      if (albumId != null) extras['albumId'] = albumId;
-      final item = MediaItem(
-        id: videoId,
+      final track = QueueTrack(
+        videoId: videoId,
+        url: streamUrl,
+        isVideo: isVideo,
+        isExplicit: isExplicit,
+        artistId: artistId,
+        albumId: albumId,
         title: title,
         artist: artist,
         album: albumName,
         duration: Duration(seconds: durationSec ?? 0),
         artUri: thumbnailUrl != null ? Uri.parse(thumbnailUrl) : null,
-        extras: extras,
       );
-      await addToQueue(item);
+      await addToQueue(track.toFreshMediaItem());
     } catch (e) {
       state = state.copyWith(
         hasError: true,

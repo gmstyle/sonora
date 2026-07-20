@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../domain/models/queue_track.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -279,7 +280,7 @@ class _QueueItem extends StatelessWidget {
           child: Text.rich(
             TextSpan(
               children: [
-                if (item.extras?['isExplicit'] == true)
+                if (QueueTrack.fromMediaItem(item).isExplicit)
                   const WidgetSpan(
                     alignment: PlaceholderAlignment.middle,
                     child: Padding(

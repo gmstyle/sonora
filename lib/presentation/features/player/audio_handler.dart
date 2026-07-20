@@ -38,6 +38,7 @@ import 'audio_equalizer_handler.dart';
 import 'queue_controller.dart';
 
 import '../../../domain/models/queue_section.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../providers/settings_provider.dart';
 
 /// Represents the lifecycle of the player restore operation.
@@ -647,7 +648,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             _checkCurrentSongLiked(item.id);
             if (_castHandler.castState?.connectionState ==
                 CastConnectionState.connected) {
-              if (item.extras?['needsUrl'] != true) {
+              if (!QueueTrack.fromMediaItem(item).needsUrl) {
                 unawaited(
                   _castHandler
                       .castSong(
@@ -694,15 +695,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (currentIndex + 1 < playlist.medias.length) {
       final media = playlist.medias[currentIndex + 1];
       final item = media.extras?['mediaItem'] as MediaItem?;
-      final url = item?.extras?['url'] as String?;
-      final needsUrl = item?.extras?['needsUrl'] == true;
-      if (item != null &&
-          url != null &&
-          url.isNotEmpty &&
-          !needsUrl &&
-          !url.startsWith('file://') &&
-          !url.startsWith('http://localhost')) {
-        unawaited(MediaCacheService.instance.downloadToCache(item.id, url));
+      if (item != null) {
+        final t = QueueTrack.fromMediaItem(item);
+        if (t.hasUrl &&
+            !t.isLocalFile &&
+            !t.url!.startsWith('http://localhost')) {
+          unawaited(
+            MediaCacheService.instance.downloadToCache(t.videoId, t.url!),
+          );
+        }
       }
     }
 
@@ -714,17 +715,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
         if (currentIndex + 2 < playlist.medias.length) {
           final media2 = playlist.medias[currentIndex + 2];
           final item2 = media2.extras?['mediaItem'] as MediaItem?;
-          final url2 = item2?.extras?['url'] as String?;
-          final needsUrl2 = item2?.extras?['needsUrl'] == true;
-          if (item2 != null &&
-              url2 != null &&
-              url2.isNotEmpty &&
-              !needsUrl2 &&
-              !url2.startsWith('file://') &&
-              !url2.startsWith('http://localhost')) {
-            unawaited(
-              MediaCacheService.instance.downloadToCache(item2.id, url2),
-            );
+          if (item2 != null) {
+            final t2 = QueueTrack.fromMediaItem(item2);
+            if (t2.hasUrl &&
+                !t2.isLocalFile &&
+                !t2.url!.startsWith('http://localhost')) {
+              unawaited(
+                MediaCacheService.instance.downloadToCache(t2.videoId, t2.url!),
+              );
+            }
           }
         }
 
@@ -735,17 +734,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
           if (currentIndex + 3 < playlist.medias.length) {
             final media3 = playlist.medias[currentIndex + 3];
             final item3 = media3.extras?['mediaItem'] as MediaItem?;
-            final url3 = item3?.extras?['url'] as String?;
-            final needsUrl3 = item3?.extras?['needsUrl'] == true;
-            if (item3 != null &&
-                url3 != null &&
-                url3.isNotEmpty &&
-                !needsUrl3 &&
-                !url3.startsWith('file://') &&
-                !url3.startsWith('http://localhost')) {
-              unawaited(
-                MediaCacheService.instance.downloadToCache(item3.id, url3),
-              );
+            if (item3 != null) {
+              final t3 = QueueTrack.fromMediaItem(item3);
+              if (t3.hasUrl &&
+                  !t3.isLocalFile &&
+                  !t3.url!.startsWith('http://localhost')) {
+                unawaited(
+                  MediaCacheService.instance.downloadToCache(
+                    t3.videoId,
+                    t3.url!,
+                  ),
+                );
+              }
             }
           }
         }
@@ -770,10 +770,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final media = playlist.medias[index];
     final item = media.extras?['mediaItem'] as MediaItem?;
     if (item == null) return;
-    if (!forceResolve && item.extras?['needsUrl'] != true) return;
+    final track = QueueTrack.fromMediaItem(item);
+    if (!forceResolve && !track.needsUrl) return;
 
-    final videoId = item.extras?['videoId'] as String?;
-    if (videoId == null) return;
+    final videoId = track.videoId;
 
     if (!_pendingResolutions.add(videoId)) return;
     _queueController.beginResolving();
@@ -800,12 +800,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (index >= playlist2.medias.length) return;
       final currentMedia = playlist2.medias[index];
       final currentItem = currentMedia.extras?['mediaItem'] as MediaItem?;
-      if (currentItem?.extras?['videoId'] != videoId) return;
-      if (!forceResolve && currentItem?.extras?['needsUrl'] != true) return;
+      final currentTrack =
+          currentItem != null ? QueueTrack.fromMediaItem(currentItem) : null;
+      if (currentTrack?.videoId != videoId) return;
+      if (!forceResolve && currentTrack?.needsUrl != true) return;
 
-      final updatedItem = (currentItem ?? item).copyWith(
-        extras: {...?item.extras, 'url': url, 'needsUrl': false},
-      );
+      final updatedItem = track
+          .copyWith(url: url, needsUrl: false)
+          .toMediaItem(currentItem ?? item);
       final updatedMedia = Media(
         url,
         extras: {...?currentMedia.extras, 'mediaItem': updatedItem},
@@ -917,19 +919,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
     int targetIndex = -1;
     for (int i = currentIndex + 1; i < playlist.medias.length; i++) {
       final mediaItem = playlist.medias[i].extras?['mediaItem'] as MediaItem?;
-      final url = mediaItem?.extras?['url'] as String?;
-      final needsUrl = mediaItem?.extras?['needsUrl'] == true;
-      final isLocal = url != null && url.startsWith('file://');
+      if (mediaItem == null) continue;
+      final track = QueueTrack.fromMediaItem(mediaItem);
 
       bool isCached = false;
-      if (mediaItem != null) {
-        final cachedUri = await MediaCacheService.instance.getCachedFileUri(
-          mediaItem.id,
-        );
-        isCached = cachedUri != null;
-      }
+      final cachedUri = await MediaCacheService.instance.getCachedFileUri(
+        track.videoId,
+      );
+      isCached = cachedUri != null;
 
-      if (isLocal || isCached || !needsUrl) {
+      if (track.isLocalFile || isCached || !track.needsUrl) {
         targetIndex = i;
         break;
       }
@@ -1137,9 +1136,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
       final media = playlist.medias[index];
       final item = media.extras?['mediaItem'] as MediaItem?;
-      final needsUrl = item?.extras?['needsUrl'] == true;
+      final track = item != null ? QueueTrack.fromMediaItem(item) : null;
 
-      if (needsUrl) {
+      if (track?.needsUrl == true) {
         await _resolveSinglePendingItem(index, treatAsCurrent: true);
 
         // Verify the resolve actually produced a playable URL before
@@ -1149,15 +1148,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
         // http://localhost dummy placeholder — jumping there would leave
         // playback silently "doing nothing" with zero feedback to the user.
         final refreshed = _player.state.playlist;
-        final stillNeedsUrl =
-            index >= refreshed.medias.length ||
-            (refreshed.medias[index].extras?['mediaItem'] as MediaItem?)
-                    ?.extras?['needsUrl'] ==
-                true;
-        if (stillNeedsUrl) {
+        final refreshedTrack =
+            index < refreshed.medias.length
+                ? QueueTrack.fromMediaItem(
+                  refreshed.medias[index].extras?['mediaItem'] as MediaItem,
+                )
+                : null;
+        if (refreshedTrack?.needsUrl == true) {
           _endTransitionMute();
           _onPlayErrorController.add((
-            item?.extras?['videoId'] as String? ?? item?.id ?? '',
+            track?.videoId ?? item?.id ?? '',
             item?.title ?? '',
           ));
           return;
@@ -1359,14 +1359,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
         if (initialIndex >= 0 && initialIndex < resolvedItems.length) {
           final initialItem = resolvedItems[initialIndex];
-          if (initialItem.extras?['needsUrl'] == true) {
-            final videoId =
-                initialItem.extras?['videoId'] as String? ?? initialItem.id;
+          final track = QueueTrack.fromMediaItem(initialItem);
+          if (track.needsUrl) {
             try {
-              final url = await _playVideoIdUseCase.resolveUrl(videoId);
-              final resolved = initialItem.copyWith(
-                extras: {...?initialItem.extras, 'url': url, 'needsUrl': false},
-              );
+              final url = await _playVideoIdUseCase.resolveUrl(track.videoId);
+              final resolved = track
+                  .copyWith(url: url, needsUrl: false)
+                  .toMediaItem(initialItem);
               resolvedItems = List.from(resolvedItems);
               resolvedItems[initialIndex] = resolved;
               queue.add(resolvedItems);
@@ -1376,7 +1375,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               );
             } catch (e) {
               dev.log(
-                '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
+                '[AudioHandler] Failed to resolve initial item URL for ${track.videoId}: $e',
               );
             }
           }
@@ -1525,8 +1524,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _endTransitionMute();
 
     final currentItem = mediaItem.value;
-    final videoId = currentItem?.extras?['videoId'] as String?;
-    if (videoId == null) return;
+    if (currentItem == null) return;
+    final track = QueueTrack.fromMediaItem(currentItem);
+    final videoId = track.videoId;
 
     // If this is a different track than the last retried one, reset the counter.
     // This ensures a new track always gets its one retry attempt, even when
@@ -1546,9 +1546,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _retryCount++;
     try {
       final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
-      final updatedItem = currentItem!.copyWith(
-        extras: {...?currentItem.extras, 'url': freshUrl},
-      );
+      final updatedItem = track
+          .copyWith(url: freshUrl)
+          .toMediaItem(currentItem);
       final currentIndex = _player.state.playlist.index;
 
       final updatedMedia = Media(freshUrl, extras: {'mediaItem': updatedItem});
@@ -1624,10 +1624,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
       }
     } catch (e) {
-      await _handlePlaybackConnectionFailure(
-        videoId,
-        currentItem?.title ?? videoId,
-      );
+      await _handlePlaybackConnectionFailure(videoId, currentItem.title);
     } finally {
       _isRetrying = false;
     }
@@ -1656,9 +1653,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final idx = playlist.index;
       if (idx >= 0 && idx < playlist.medias.length) {
         final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
-        final url = item?.extras?['url'] as String?;
-        final isDummy = url?.contains('localhost/dummy') == true;
-        if (!isDummy && !UrlStaleness.isStale(url)) {
+        final track = item != null ? QueueTrack.fromMediaItem(item) : null;
+        final isDummy = track?.url?.contains('localhost/dummy') == true;
+        if (track != null && !isDummy && !UrlStaleness.isStale(track.url)) {
           _setRestoreStatus(RestoreStatus.ready);
           return;
         }
@@ -1735,29 +1732,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     // Honor the current autoplay setting: if the user disabled Up Next
     // between sessions, strip the upnext section from the restored queue.
+    // Section info is persisted as a DB column but not on QueueTrack itself,
+    // so we convert to MediaItem first to read the section tag.
     final autoplayEnabled = _prefs.getBool(kAutoPlayUpNextKey) ?? true;
     final filtered =
         autoplayEnabled
             ? rawItems
-            : rawItems
-                .where((it) => sectionOf(it) == QueueSection.user)
-                .toList();
+            : rawItems.where((t) {
+              final mi = t.toFreshMediaItem();
+              return sectionOf(mi) == QueueSection.user;
+            }).toList();
 
     final seenIds = <String>{};
     final items =
-        filtered.map((item) {
-          final url = item.extras?['url'] as String?;
+        filtered.map((track) {
+          final item = track.toFreshMediaItem();
           final isLocalAndValid =
-              url != null &&
-              url.startsWith('file://') &&
-              !UrlStaleness.isStale(url);
+              track.isLocalFile && !UrlStaleness.isStale(track.url!);
           if (isLocalAndValid) {
             return _queueController.ensureQueueId(item, seenIds);
           }
           return _queueController.ensureQueueId(
-            item.copyWith(
-              extras: {...?item.extras, 'needsUrl': true, 'url': null},
-            ),
+            track.copyWith(clearUrl: true, needsUrl: true).toMediaItem(item),
             seenIds,
           );
         }).toList();
@@ -1802,9 +1798,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     var currentItem = items[savedIndex];
     try {
       final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
-      currentItem = currentItem.copyWith(
-        extras: {...?currentItem.extras, 'url': freshUrl, 'needsUrl': false},
-      );
+      final track = QueueTrack.fromMediaItem(
+        currentItem,
+      ).copyWith(url: freshUrl, needsUrl: false);
+      currentItem = track.toMediaItem(currentItem);
       items[savedIndex] = currentItem;
     } catch (e) {
       dev.log(
@@ -1932,6 +1929,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               .where((item) => item.id == mediaItem.value?.id)
               .firstOrNull;
       final videoId = current?.id ?? (mediaItem.value?.id ?? '');
+      final track = current != null ? QueueTrack.fromMediaItem(current) : null;
       await _libraryRepo.toggleLikedSong(
         LikedSongModel(
           videoId: videoId,
@@ -1940,8 +1938,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
           thumbnailUrl: current?.artUri?.toString(),
           addedAt: DateTime.now(),
           duration: current?.duration?.inSeconds,
-          isVideo: current?.extras?['isVideo'] == true,
-          isExplicit: current?.extras?['isExplicit'] == true,
+          isVideo: track?.isVideo ?? false,
+          isExplicit: track?.isExplicit ?? false,
         ),
       );
     } catch (_) {}
@@ -1983,6 +1981,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         if (item == null) return null;
         _isCurrentSongLiked = !_isCurrentSongLiked;
         _rebuildControls();
+        final track = QueueTrack.fromMediaItem(item);
         await _libraryRepo.toggleLikedSong(
           LikedSongModel(
             videoId: item.id,
@@ -1991,8 +1990,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
             thumbnailUrl: item.artUri?.toString(),
             addedAt: DateTime.now(),
             duration: item.duration?.inSeconds,
-            isVideo: item.extras?['isVideo'] == true,
-            isExplicit: item.extras?['isExplicit'] == true,
+            isVideo: track.isVideo,
+            isExplicit: track.isExplicit,
           ),
         );
         break;

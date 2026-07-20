@@ -64,8 +64,12 @@ void main() {
       final restored = await repo.restoreQueue();
 
       expect(restored.length, 2);
-      expect(restored[0].extras?['section'], 'user');
-      expect(restored[1].extras?['section'], 'upnext');
+      // Section is persisted in the DB but not carried on QueueTrack.
+      // Verify directly via the DB rows.
+      final rows = await db.select(db.queueItems).get();
+      rows.sort((a, b) => a.position.compareTo(b.position));
+      expect(rows[0].section, 'user');
+      expect(rows[1].section, 'upnext');
     });
 
     test(
@@ -88,7 +92,8 @@ void main() {
         await repo.persistQueue(items, currentIndex: 0);
         final restored = await repo.restoreQueue();
 
-        expect(restored.single.extras?['section'], 'user');
+        final rows = await db.select(db.queueItems).get();
+        expect(QueueSection.fromTag(rows.single.section), QueueSection.user);
       },
     );
 
@@ -132,10 +137,12 @@ void main() {
       await repo.persistQueue(items, currentIndex: 0);
       final restored = await repo.restoreQueue();
 
-      expect(restored.map((it) => it.id).toList(), ['a', 'b', 'c']);
-      expect(restored[0].extras?['section'], 'user');
-      expect(restored[1].extras?['section'], 'user');
-      expect(restored[2].extras?['section'], 'upnext');
+      expect(restored.map((it) => it.videoId).toList(), ['a', 'b', 'c']);
+      final rows = await db.select(db.queueItems).get();
+      rows.sort((a, b) => a.position.compareTo(b.position));
+      expect(rows[0].section, 'user');
+      expect(rows[1].section, 'user');
+      expect(rows[2].section, 'upnext');
     });
   });
 }

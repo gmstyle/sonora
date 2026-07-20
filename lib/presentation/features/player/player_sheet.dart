@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../../domain/models/queue_track.dart';
 import 'mini_player_content.dart';
 import 'full_player_content.dart';
 
@@ -55,7 +56,7 @@ class PlayerSheet extends ConsumerWidget {
 
     if (currentSong == null) return const SizedBox.shrink();
 
-    final isVideo = currentSong.extras?['isVideo'] == true;
+    final isVideo = QueueTrack.fromMediaItem(currentSong).isVideo;
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
 

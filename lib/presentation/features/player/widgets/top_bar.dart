@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../domain/models/queue_track.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
@@ -26,9 +27,10 @@ class TopBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final pc = PlayerColors.of(context);
-    final videoId = currentSong.extras?['videoId'] as String? ?? currentSong.id;
-    final artistId = currentSong.extras?['artistId'] as String?;
-    final albumId = currentSong.extras?['albumId'] as String?;
+    final track = QueueTrack.fromMediaItem(currentSong);
+    final videoId = track.videoId;
+    final artistId = track.artistId;
+    final albumId = track.albumId;
     final album = albumName;
 
     return Row(
@@ -86,7 +88,7 @@ class TopBar extends ConsumerWidget {
               isVideo: isVideo,
               artistId: artistId,
               albumId: albumId,
-              isExplicit: currentSong.extras?['isExplicit'] == true,
+              isExplicit: track.isExplicit,
               onGoToArtist: (artistId) {
                 Navigator.of(context).pop();
                 router.push('/artist/$artistId');

@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import '../../../domain/models/library_models.dart';
+import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
 
 class PlaySmartMixUseCase {
@@ -34,32 +35,28 @@ class PlaySmartMixUseCase {
   }
 
   MediaItem _toMediaItem(dynamic s, String? url) {
-    final extras = <String, dynamic>{
-      if (url != null) 'url': url,
-      if (url == null) 'needsUrl': true,
-      'videoId': s.videoId,
-      'isVideo': s.isVideo,
-      'isExplicit':
-          s is HistoryModel
-              ? s.isExplicit
-              : s is LikedSongModel
-              ? s.isExplicit
-              : s is DownloadModel
-              ? s.isExplicit
-              : false,
-    };
-    if (s is LikedSongModel) {
-      if (s.artistId != null) extras['artistId'] = s.artistId;
-      if (s.albumId != null) extras['albumId'] = s.albumId;
-    }
+    final isExplicit =
+        s is HistoryModel
+            ? s.isExplicit
+            : s is LikedSongModel
+            ? s.isExplicit
+            : s is DownloadModel
+            ? s.isExplicit
+            : false;
 
-    return MediaItem(
-      id: s.videoId,
+    final track = QueueTrack(
+      videoId: s.videoId,
+      url: url,
+      needsUrl: url == null,
+      isVideo: s.isVideo,
+      isExplicit: isExplicit,
+      artistId: s is LikedSongModel ? s.artistId : null,
+      albumId: s is LikedSongModel ? s.albumId : null,
       title: s.title,
       artist: s.artist,
       duration: s.duration != null ? Duration(seconds: s.duration!) : null,
       artUri: s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
-      extras: extras,
     );
+    return track.toFreshMediaItem();
   }
 }

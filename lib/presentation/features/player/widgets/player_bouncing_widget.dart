@@ -11,6 +11,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../providers/palette_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../../domain/models/queue_track.dart';
 import 'player_shared_widgets.dart';
 
 /// A custom widget that handles a springy scale-down tactile effect when tapped.
@@ -206,7 +207,7 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     final currentSong = playerState.currentSong;
     if (currentSong == null) return const SizedBox.shrink();
 
-    final videoId = currentSong.extras?['videoId'] as String? ?? currentSong.id;
+    final videoId = QueueTrack.fromMediaItem(currentSong).videoId;
     final isPlaying = playerState.isPlaying && !playerState.isLoading;
     final theme = Theme.of(context);
     final pc = PlayerColors.of(context);

@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
 
 /// Builds a [List<MediaItem>] from an album's song list.
@@ -41,40 +42,36 @@ class PlayAlbumUseCase {
   }
 
   MediaItem _toMediaItem(SongDetailed s, String url) {
-    return MediaItem(
-      id: s.videoId,
+    final track = QueueTrack(
+      videoId: s.videoId,
+      url: url,
+      isVideo: false,
+      isExplicit: s.isExplicit,
+      artistId: s.artist.artistId,
+      albumId: s.album?.albumId,
       title: s.name,
       artist: s.artist.name,
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
       artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
-      extras: {
-        'url': url,
-        'videoId': s.videoId,
-        'isVideo': false,
-        'artistId': s.artist.artistId,
-        if (s.album?.albumId != null) 'albumId': s.album!.albumId,
-        'isExplicit': s.isExplicit,
-      },
     );
+    return track.toFreshMediaItem();
   }
 
   MediaItem _toPendingMediaItem(SongDetailed s) {
-    return MediaItem(
-      id: s.videoId,
+    final track = QueueTrack(
+      videoId: s.videoId,
+      needsUrl: true,
+      isVideo: false,
+      isExplicit: s.isExplicit,
+      artistId: s.artist.artistId,
+      albumId: s.album?.albumId,
       title: s.name,
       artist: s.artist.name,
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
       artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
-      extras: {
-        'needsUrl': true,
-        'videoId': s.videoId,
-        'isVideo': false,
-        'artistId': s.artist.artistId,
-        if (s.album?.albumId != null) 'albumId': s.album!.albumId,
-        'isExplicit': s.isExplicit,
-      },
     );
+    return track.toFreshMediaItem();
   }
 }

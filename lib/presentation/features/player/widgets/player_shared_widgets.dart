@@ -10,6 +10,7 @@ import 'package:marquee/marquee.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/player_colors.dart';
+import '../../../../domain/models/queue_track.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
@@ -200,7 +201,8 @@ Widget buildArtwork(
 
 /// Like-button with animated scale+fade transition.
 Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
-  final videoId = song.extras?['videoId'] as String? ?? song.id;
+  final track = QueueTrack.fromMediaItem(song);
+  final videoId = track.videoId;
   final title = song.title;
   final artist = song.artist ?? AppLocalizations.of(context)!.unknownArtist;
   final thumbnailUrl = song.artUri?.toString();
@@ -238,8 +240,8 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                   thumbnailUrl: thumbnailUrl,
                   addedAt: DateTime.now(),
                   duration: song.duration?.inSeconds,
-                  isVideo: song.extras?['isVideo'] == true,
-                  isExplicit: song.extras?['isExplicit'] == true,
+                  isVideo: track.isVideo,
+                  isExplicit: track.isExplicit,
                 ),
               );
         },
@@ -256,8 +258,9 @@ Widget buildTrackInfoAndLikeRow(
   bool isVideo,
 ) {
   final theme = Theme.of(context);
-  final viewCount = song.extras?['viewCount'] as int?;
-  final publishDate = song.extras?['publishDate'] as String?;
+  final track = QueueTrack.fromMediaItem(song);
+  final viewCount = track.viewCount;
+  final publishDate = track.publishDate;
   final statParts = <String>[];
   if (viewCount != null) {
     statParts.add(
@@ -317,7 +320,7 @@ Widget buildTrackInfoAndLikeRow(
                     },
                   ),
                 ),
-                if (song.extras?['isExplicit'] == true) ...[
+                if (track.isExplicit) ...[
                   const SizedBox(width: 8),
                   const ExplicitBadge(),
                 ],
@@ -413,7 +416,9 @@ Widget buildBottomActionsRow(
         onPressed: () {
           final currentSong = ref.read(playerStateProvider).currentSong;
           final vId =
-              currentSong?.extras?['videoId'] as String? ?? currentSong?.id;
+              currentSong != null
+                  ? QueueTrack.fromMediaItem(currentSong).videoId
+                  : null;
           if (vId != null) {
             SharePlus.instance.share(
               ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),

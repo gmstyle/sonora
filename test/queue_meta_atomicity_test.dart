@@ -105,7 +105,7 @@ void main() {
         expect(meta.currentVideoId, 'b');
 
         final restoredItems = await repo.restoreQueue();
-        expect(restoredItems.map((e) => e.id).toList(), ['a', 'b']);
+        expect(restoredItems.map((e) => e.videoId).toList(), ['a', 'b']);
       },
     );
   });

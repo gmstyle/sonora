@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../../../domain/models/queue_section.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 /// Dedicated controller for playback queue management.
@@ -137,12 +138,11 @@ class QueueController {
   /// Assigns queueId if missing and tags as user section.
   Media toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
-    final url = tagged.extras?['url'] as String?;
-    final videoId = tagged.extras?['videoId'] as String? ?? tagged.id;
-    if (url != null && url.isNotEmpty) {
-      return Media(url, extras: {'mediaItem': tagged});
+    final track = QueueTrack.fromMediaItem(tagged);
+    if (track.hasUrl) {
+      return Media(track.url!, extras: {'mediaItem': tagged});
     }
-    final dummy = 'http://localhost/dummy_$videoId.wav';
+    final dummy = 'http://localhost/dummy_${track.videoId}.wav';
     return Media(dummy, extras: {'mediaItem': tagged});
   }
 

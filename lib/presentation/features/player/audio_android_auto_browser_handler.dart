@@ -7,6 +7,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
 import '../../../domain/models/library_models.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/library_repository.dart';
 import '../../../domain/repositories/music_repository.dart';
 import '../../../domain/usecases/player/play_album_use_case.dart';
@@ -552,27 +553,27 @@ class AudioAndroidAutoBrowserHandler {
         final suggestions = await _getDiscoverSuggestionsUseCase.execute();
         if (suggestions.isNotEmpty) {
           final discoverItems =
-              suggestions
-                  .map(
-                    (song) => MediaItem(
-                      id: song.videoId,
-                      title: song.title,
-                      artist: song.artists.name,
-                      artUri:
-                          song.thumbnails.isNotEmpty
-                              ? Uri.tryParse(song.thumbnails.last.url)
-                              : null,
-                      duration: Duration(seconds: song.duration),
-                      extras: {
-                        'needsUrl': true,
-                        'videoId': song.videoId,
-                        'isVideo': song.type == 'VIDEO',
-                        'isExplicit': song.isExplicit,
-                        _kContentStylePlayable: _kStyleList,
-                      },
-                    ),
-                  )
-                  .toList();
+              suggestions.map((song) {
+                final track = QueueTrack(
+                  videoId: song.videoId,
+                  needsUrl: true,
+                  isVideo: song.type == 'VIDEO',
+                  isExplicit: song.isExplicit,
+                  title: song.title,
+                  artist: song.artists.name,
+                  duration: Duration(seconds: song.duration),
+                  artUri:
+                      song.thumbnails.isNotEmpty
+                          ? Uri.tryParse(song.thumbnails.last.url)
+                          : null,
+                );
+                return track.toFreshMediaItem().copyWith(
+                  extras: {
+                    ...track.toFreshMediaItem().extras!,
+                    _kContentStylePlayable: _kStyleList,
+                  },
+                );
+              }).toList();
 
           items.add(
             MediaItem(
@@ -662,40 +663,44 @@ class AudioAndroidAutoBrowserHandler {
 
   List<MediaItem> _contentToMediaItems(dynamic content) {
     if (content is SongDetailed) {
+      final track = QueueTrack(
+        videoId: content.videoId,
+        needsUrl: true,
+        isVideo: content.type == 'VIDEO',
+        title: content.name,
+        artist: content.artist.name,
+        album: content.album?.name,
+        duration: Duration(seconds: content.duration ?? 0),
+        artUri:
+            content.thumbnails.isNotEmpty
+                ? Uri.tryParse(content.thumbnails.last.url)
+                : null,
+      );
       return [
-        MediaItem(
-          id: content.videoId,
-          title: content.name,
-          artist: content.artist.name,
-          album: content.album?.name,
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
-          duration: Duration(seconds: content.duration ?? 0),
+        track.toFreshMediaItem().copyWith(
           extras: {
-            'needsUrl': true,
-            'videoId': content.videoId,
-            'isVideo': content.type == 'VIDEO',
+            ...track.toFreshMediaItem().extras!,
             _kContentStylePlayable: _kStyleList,
           },
         ),
       ];
     } else if (content is VideoDetailed) {
+      final track = QueueTrack(
+        videoId: content.videoId,
+        needsUrl: true,
+        isVideo: true,
+        title: content.name,
+        artist: content.artist.name,
+        duration: Duration(seconds: content.duration ?? 0),
+        artUri:
+            content.thumbnails.isNotEmpty
+                ? Uri.tryParse(content.thumbnails.last.url)
+                : null,
+      );
       return [
-        MediaItem(
-          id: content.videoId,
-          title: content.name,
-          artist: content.artist.name,
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
-          duration: Duration(seconds: content.duration ?? 0),
+        track.toFreshMediaItem().copyWith(
           extras: {
-            'needsUrl': true,
-            'videoId': content.videoId,
-            'isVideo': true,
+            ...track.toFreshMediaItem().extras!,
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -753,46 +758,47 @@ class AudioAndroidAutoBrowserHandler {
 
   Future<List<MediaItem>> _buildRecentChildren() async {
     final history = await _libraryRepo.getRecentHistory(limit: 50);
-    return history
-        .map(
-          (h) => MediaItem(
-            id: h.videoId,
-            title: h.title,
-            artist: h.artist,
-            artUri:
-                h.thumbnailUrl != null ? Uri.tryParse(h.thumbnailUrl!) : null,
-            extras: {
-              'needsUrl': true,
-              'videoId': h.videoId,
-              'isVideo': h.isVideo,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
+    return history.map((h) {
+      final track = QueueTrack(
+        videoId: h.videoId,
+        needsUrl: true,
+        isVideo: h.isVideo,
+        title: h.title,
+        artist: h.artist,
+        artUri: h.thumbnailUrl != null ? Uri.tryParse(h.thumbnailUrl!) : null,
+      );
+      return track.toFreshMediaItem().copyWith(
+        extras: {
+          ...track.toFreshMediaItem().extras!,
+          _kContentStylePlayable: _kStyleList,
+        },
+      );
+    }).toList();
   }
 
   Future<List<MediaItem>> _buildDownloadMediaItems() async {
     final downloads = await _libraryRepo.getAllDownloads();
     return downloads
         .where((d) => d.status == 'completed' && d.localPath != null)
-        .map(
-          (d) => MediaItem(
-            id: d.videoId,
+        .map((d) {
+          final track = QueueTrack(
+            videoId: d.videoId,
+            url: Uri.file(d.localPath!).toString(),
+            isVideo: d.isVideo,
+            isExplicit: d.isExplicit,
             title: d.title,
             artist: d.artist,
             artUri:
                 d.thumbnailUrl != null ? Uri.tryParse(d.thumbnailUrl!) : null,
             duration: Duration.zero,
+          );
+          return track.toFreshMediaItem().copyWith(
             extras: {
-              'url': Uri.file(d.localPath!).toString(),
-              'videoId': d.videoId,
-              'isVideo': d.isVideo,
-              'isExplicit': d.isExplicit,
+              ...track.toFreshMediaItem().extras!,
               _kContentStylePlayable: _kStyleList,
             },
-          ),
-        )
+          );
+        })
         .toList();
   }
 
@@ -820,23 +826,22 @@ class AudioAndroidAutoBrowserHandler {
 
   Future<List<MediaItem>> _buildLikedChildren() async {
     final songs = await _libraryRepo.getAllLikedSongs();
-    return songs
-        .map(
-          (s) => MediaItem(
-            id: s.videoId,
-            title: s.title,
-            artist: s.artist,
-            artUri:
-                s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
-            extras: {
-              'needsUrl': true,
-              'videoId': s.videoId,
-              'isVideo': s.isVideo,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
+    return songs.map((s) {
+      final track = QueueTrack(
+        videoId: s.videoId,
+        needsUrl: true,
+        isVideo: s.isVideo,
+        title: s.title,
+        artist: s.artist,
+        artUri: s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
+      );
+      return track.toFreshMediaItem().copyWith(
+        extras: {
+          ...track.toFreshMediaItem().extras!,
+          _kContentStylePlayable: _kStyleList,
+        },
+      );
+    }).toList();
   }
 
   Future<List<MediaItem>> _buildPlaylistFolders() async {
@@ -894,33 +899,29 @@ class AudioAndroidAutoBrowserHandler {
       for (final s in allLiked) s.videoId: s,
     };
 
-    return [
-      for (final entry in entries)
-        MediaItem(
-          id: entry.videoId,
-          title:
-              likedByVideoId[entry.videoId]?.title ??
-              entry.title ??
-              entry.videoId,
-          artist: likedByVideoId[entry.videoId]?.artist ?? entry.artist ?? '',
-          artUri:
-              (likedByVideoId[entry.videoId]?.thumbnailUrl ??
-                          entry.thumbnailUrl) !=
-                      null
-                  ? Uri.tryParse(
-                    likedByVideoId[entry.videoId]?.thumbnailUrl ??
-                        entry.thumbnailUrl!,
-                  )
-                  : null,
-          duration: Duration.zero,
-          extras: {
-            'needsUrl': true,
-            'videoId': entry.videoId,
-            'isVideo': likedByVideoId[entry.videoId]?.isVideo ?? entry.isVideo,
-            _kContentStylePlayable: _kStyleList,
-          },
-        ),
-    ];
+    return entries.map((entry) {
+      final title =
+          likedByVideoId[entry.videoId]?.title ?? entry.title ?? entry.videoId;
+      final artist =
+          likedByVideoId[entry.videoId]?.artist ?? entry.artist ?? '';
+      final thumbUrl =
+          likedByVideoId[entry.videoId]?.thumbnailUrl ?? entry.thumbnailUrl;
+      final track = QueueTrack(
+        videoId: entry.videoId,
+        needsUrl: true,
+        isVideo: likedByVideoId[entry.videoId]?.isVideo ?? entry.isVideo,
+        title: title,
+        artist: artist,
+        artUri: thumbUrl != null ? Uri.tryParse(thumbUrl) : null,
+        duration: Duration.zero,
+      );
+      return track.toFreshMediaItem().copyWith(
+        extras: {
+          ...track.toFreshMediaItem().extras!,
+          _kContentStylePlayable: _kStyleList,
+        },
+      );
+    }).toList();
   }
 
   Future<List<MediaItem>> _buildMixesChildren() async {
@@ -989,19 +990,21 @@ class AudioAndroidAutoBrowserHandler {
                   : s is LikedSongModel
                   ? s.isExplicit
                   : false;
-          return MediaItem(
-            id: s.videoId,
+          final track = QueueTrack(
+            videoId: s.videoId,
+            needsUrl: true,
+            isVideo: isVideo,
+            isExplicit: isExplicit,
             title: s.title,
             artist: s.artist,
             artUri:
                 s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
             duration:
                 s.duration != null ? Duration(seconds: s.duration!) : null,
+          );
+          return track.toFreshMediaItem().copyWith(
             extras: {
-              'needsUrl': true,
-              'videoId': s.videoId,
-              'isVideo': isVideo,
-              'isExplicit': isExplicit,
+              ...track.toFreshMediaItem().extras!,
               _kContentStylePlayable: _kStyleList,
             },
           );
@@ -1059,27 +1062,27 @@ class AudioAndroidAutoBrowserHandler {
 
   Future<List<MediaItem>> _buildDiscoverChildren() async {
     final suggestions = await _getDiscoverSuggestionsUseCase.execute();
-    return suggestions
-        .map(
-          (song) => MediaItem(
-            id: song.videoId,
-            title: song.title,
-            artist: song.artists.name,
-            artUri:
-                song.thumbnails.isNotEmpty
-                    ? Uri.tryParse(song.thumbnails.last.url)
-                    : null,
-            duration: Duration(seconds: song.duration),
-            extras: {
-              'needsUrl': true,
-              'videoId': song.videoId,
-              'isVideo': song.type == 'VIDEO',
-              'isExplicit': song.isExplicit,
-              _kContentStylePlayable: _kStyleList,
-            },
-          ),
-        )
-        .toList();
+    return suggestions.map((song) {
+      final track = QueueTrack(
+        videoId: song.videoId,
+        needsUrl: true,
+        isVideo: song.type == 'VIDEO',
+        isExplicit: song.isExplicit,
+        title: song.title,
+        artist: song.artists.name,
+        duration: Duration(seconds: song.duration),
+        artUri:
+            song.thumbnails.isNotEmpty
+                ? Uri.tryParse(song.thumbnails.last.url)
+                : null,
+      );
+      return track.toFreshMediaItem().copyWith(
+        extras: {
+          ...track.toFreshMediaItem().extras!,
+          _kContentStylePlayable: _kStyleList,
+        },
+      );
+    }).toList();
   }
 
   Future<List<MediaItem>> _buildSimilarArtistsChildren() async {
@@ -1182,20 +1185,21 @@ class AudioAndroidAutoBrowserHandler {
 
     // 1. Top Songs (Playable)
     for (final song in artistInfo.topSongs) {
+      final track = QueueTrack(
+        videoId: song.videoId,
+        needsUrl: true,
+        title: song.name,
+        artist: song.artist.name,
+        duration: Duration(seconds: song.duration ?? 0),
+        artUri:
+            song.thumbnails.isNotEmpty
+                ? Uri.tryParse(song.thumbnails.last.url)
+                : null,
+      );
       mediaItems.add(
-        MediaItem(
-          id: song.videoId,
-          title: song.name,
-          artist: song.artist.name,
-          artUri:
-              song.thumbnails.isNotEmpty
-                  ? Uri.tryParse(song.thumbnails.last.url)
-                  : null,
-          duration: Duration(seconds: song.duration ?? 0),
-          playable: true,
+        track.toFreshMediaItem().copyWith(
           extras: {
-            'needsUrl': true,
-            'videoId': song.videoId,
+            ...track.toFreshMediaItem().extras!,
             _kContentStylePlayable: _kStyleList,
           },
         ),
@@ -1334,27 +1338,27 @@ class AudioAndroidAutoBrowserHandler {
     ];
 
     items.addAll(
-      album.songs
-          .take(100)
-          .map(
-            (s) => MediaItem(
-              id: s.videoId,
-              title: s.name,
-              artist: s.artist.name,
-              album: album.name,
-              artUri:
-                  album.thumbnails.isNotEmpty
-                      ? Uri.tryParse(album.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: s.duration ?? 0),
-              extras: {
-                'needsUrl': true,
-                'videoId': s.videoId,
-                'isVideo': s.type == 'VIDEO',
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          ),
+      album.songs.take(100).map((s) {
+        final track = QueueTrack(
+          videoId: s.videoId,
+          needsUrl: true,
+          isVideo: s.type == 'VIDEO',
+          title: s.name,
+          artist: s.artist.name,
+          album: album.name,
+          duration: Duration(seconds: s.duration ?? 0),
+          artUri:
+              album.thumbnails.isNotEmpty
+                  ? Uri.tryParse(album.thumbnails.last.url)
+                  : null,
+        );
+        return track.toFreshMediaItem().copyWith(
+          extras: {
+            ...track.toFreshMediaItem().extras!,
+            _kContentStylePlayable: _kStyleList,
+          },
+        );
+      }),
     );
     return items;
   }
@@ -1388,26 +1392,26 @@ class AudioAndroidAutoBrowserHandler {
     ];
 
     items.addAll(
-      videos
-          .take(100)
-          .map(
-            (v) => MediaItem(
-              id: v.videoId,
-              title: v.name,
-              artist: v.artist.name,
-              artUri:
-                  v.thumbnails.isNotEmpty
-                      ? Uri.tryParse(v.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: v.duration ?? 0),
-              extras: {
-                'needsUrl': true,
-                'videoId': v.videoId,
-                'isVideo': true,
-                _kContentStylePlayable: _kStyleList,
-              },
-            ),
-          ),
+      videos.take(100).map((v) {
+        final track = QueueTrack(
+          videoId: v.videoId,
+          needsUrl: true,
+          isVideo: true,
+          title: v.name,
+          artist: v.artist.name,
+          duration: Duration(seconds: v.duration ?? 0),
+          artUri:
+              v.thumbnails.isNotEmpty
+                  ? Uri.tryParse(v.thumbnails.last.url)
+                  : null,
+        );
+        return track.toFreshMediaItem().copyWith(
+          extras: {
+            ...track.toFreshMediaItem().extras!,
+            _kContentStylePlayable: _kStyleList,
+          },
+        );
+      }),
     );
     return items;
   }
@@ -1519,16 +1523,10 @@ class AudioAndroidAutoBrowserHandler {
           if (items.isNotEmpty) {
             try {
               final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-              items = [
-                items.first.copyWith(
-                  extras: {
-                    ...items.first.extras!,
-                    'url': url,
-                    'needsUrl': false,
-                  },
-                ),
-                ...items.skip(1),
-              ];
+              final track = QueueTrack.fromMediaItem(
+                items.first,
+              ).copyWith(url: url, needsUrl: false);
+              items = [track.toMediaItem(items.first), ...items.skip(1)];
             } catch (_) {}
           }
           await _audioHandler.playNow(items);
@@ -1548,9 +1546,10 @@ class AudioAndroidAutoBrowserHandler {
             items = List<MediaItem>.from(items)..shuffle();
             try {
               final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-              items[0] = items.first.copyWith(
-                extras: {...items.first.extras!, 'url': url, 'needsUrl': false},
-              );
+              final track = QueueTrack.fromMediaItem(
+                items.first,
+              ).copyWith(url: url, needsUrl: false);
+              items[0] = track.toMediaItem(items.first);
             } catch (_) {}
           }
           await _audioHandler.playNow(items);
@@ -1685,40 +1684,42 @@ class AudioAndroidAutoBrowserHandler {
       // Mappatura Canzoni (e Video se presenti)
       for (final result in songsData) {
         if (result is SongDetailed) {
+          final track = QueueTrack(
+            videoId: result.videoId,
+            needsUrl: true,
+            title: result.name,
+            artist: result.artist.name,
+            duration: Duration(seconds: result.duration ?? 0),
+            artUri:
+                result.thumbnails.isNotEmpty
+                    ? Uri.tryParse(result.thumbnails.last.url)
+                    : null,
+          );
           songs.add(
-            MediaItem(
-              id: result.videoId,
-              title: result.name,
-              artist: result.artist.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: result.duration ?? 0),
-              playable: true,
+            track.toFreshMediaItem().copyWith(
               extras: {
-                'needsUrl': true,
-                'videoId': result.videoId,
+                ...track.toFreshMediaItem().extras!,
                 _kContentStylePlayable: _kStyleList,
               },
             ),
           );
         } else if (result is VideoDetailed) {
+          final track = QueueTrack(
+            videoId: result.videoId,
+            needsUrl: true,
+            isVideo: true,
+            title: result.name,
+            artist: result.artist.name,
+            duration: Duration(seconds: result.duration ?? 0),
+            artUri:
+                result.thumbnails.isNotEmpty
+                    ? Uri.tryParse(result.thumbnails.last.url)
+                    : null,
+          );
           songs.add(
-            MediaItem(
-              id: result.videoId,
-              title: result.name,
-              artist: result.artist.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
-              duration: Duration(seconds: result.duration ?? 0),
-              playable: true,
+            track.toFreshMediaItem().copyWith(
               extras: {
-                'needsUrl': true,
-                'videoId': result.videoId,
-                'isVideo': true,
+                ...track.toFreshMediaItem().extras!,
                 _kContentStylePlayable: _kStyleList,
               },
             ),

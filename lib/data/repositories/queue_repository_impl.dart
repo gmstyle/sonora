@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../domain/models/queue_playback_meta.dart';
 import '../../domain/models/queue_section.dart';
+import '../../domain/models/queue_track.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../datasources/local/database.dart';
 
@@ -43,6 +44,7 @@ class QueueRepositoryImpl implements QueueRepository {
         batch.deleteAll(_db.queueItems);
         for (int i = 0; i < items.length; i++) {
           final item = items[i];
+          final track = QueueTrack.fromMediaItem(item);
           final section =
               QueueSection.fromTag(item.extras?['section'] as String?).tag;
           batch.insert(
@@ -55,11 +57,11 @@ class QueueRepositoryImpl implements QueueRepository {
               albumTitle: Value(item.album),
               thumbnailUrl: Value(item.artUri?.toString()),
               durationSec: Value(item.duration?.inSeconds),
-              isVideo: item.extras?['isVideo'] == true,
-              streamUrl: Value(item.extras?['url'] as String?),
-              artistId: Value(item.extras?['artistId'] as String?),
-              albumId: Value(item.extras?['albumId'] as String?),
-              isExplicit: Value(item.extras?['isExplicit'] == true),
+              isVideo: track.isVideo,
+              streamUrl: Value(track.url),
+              artistId: Value(track.artistId),
+              albumId: Value(track.albumId),
+              isExplicit: Value(track.isExplicit),
               section: Value(section),
             ),
           );
@@ -92,28 +94,25 @@ class QueueRepositoryImpl implements QueueRepository {
   }
 
   @override
-  Future<List<MediaItem>> restoreQueue() async {
+  Future<List<QueueTrack>> restoreQueue() async {
     final rows = await _db.select(_db.queueItems).get();
     rows.sort((a, b) => a.position.compareTo(b.position));
     return rows.map((row) {
       final hasUrl = row.streamUrl != null && row.streamUrl!.isNotEmpty;
-      return MediaItem(
-        id: row.videoId,
+      return QueueTrack(
+        videoId: row.videoId,
+        url: hasUrl ? row.streamUrl : null,
+        needsUrl: !hasUrl,
+        isVideo: row.isVideo,
+        isExplicit: row.isExplicit,
+        artistId: row.artistId,
+        albumId: row.albumId,
         title: row.title,
         artist: row.artist,
         album: row.albumTitle,
         duration: Duration(seconds: row.durationSec ?? 0),
         artUri:
             row.thumbnailUrl != null ? Uri.tryParse(row.thumbnailUrl!) : null,
-        extras: {
-          if (hasUrl) 'url': row.streamUrl else 'needsUrl': true,
-          'videoId': row.videoId,
-          'isVideo': row.isVideo,
-          'isExplicit': row.isExplicit,
-          'section': QueueSection.fromTag(row.section).tag,
-          if (row.artistId != null) 'artistId': row.artistId,
-          if (row.albumId != null) 'albumId': row.albumId,
-        },
       );
     }).toList();
   }

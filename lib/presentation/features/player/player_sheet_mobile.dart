@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/vinyl_artwork.dart';
@@ -67,7 +68,7 @@ class PlayerSheetMobile extends ConsumerWidget {
     final playerNotifier = ref.read(playerStateProvider.notifier);
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
     final isSwitching = playerState.isBlocked;
-    final isVideo = currentSong.extras?['isVideo'] == true;
+    final isVideo = QueueTrack.fromMediaItem(currentSong).isVideo;
     final artUrl = currentSong.artUri?.toString();
 
     final reduceEffects = ref.watch(

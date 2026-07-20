@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/library_notifier.dart';
@@ -78,6 +79,7 @@ class MiniPlayerContent extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final track = QueueTrack.fromMediaItem(currentSong);
 
     return GestureDetector(
       onTap: isSwitching ? null : onTap,
@@ -114,13 +116,13 @@ class MiniPlayerContent extends ConsumerWidget {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      currentSong.title,
+                                      track.title,
                                       overflow: TextOverflow.ellipsis,
                                       style: theme.textTheme.bodyLarge,
                                       maxLines: 1,
                                     ),
                                   ),
-                                  if (currentSong.extras?['isExplicit'] == true)
+                                  if (track.isExplicit)
                                     const ExplicitBadge(
                                       leading: SizedBox(width: 6),
                                     ),
@@ -131,7 +133,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                 ],
                               ),
                               Text(
-                                currentSong.artist ?? '',
+                                track.artist ?? '',
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: cs.onSurfaceVariant,
@@ -180,6 +182,7 @@ class MiniPlayerContent extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final track = QueueTrack.fromMediaItem(currentSong);
 
     return GestureDetector(
       onTap: isSwitching ? null : onTap,
@@ -216,24 +219,24 @@ class MiniPlayerContent extends ConsumerWidget {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      currentSong.title,
+                                      track.title,
                                       overflow: TextOverflow.ellipsis,
                                       style: theme.textTheme.bodyLarge,
                                       maxLines: 1,
                                     ),
                                   ),
-                                  if (currentSong.extras?['isExplicit'] == true)
+                                  if (track.isExplicit)
                                     const ExplicitBadge(
                                       leading: SizedBox(width: 6),
                                     ),
-                                  if (isVideo)
+                                  if (track.isVideo)
                                     const VideoBadge(
                                       leading: SizedBox(width: 6),
                                     ),
                                 ],
                               ),
                               Text(
-                                currentSong.artist ?? '',
+                                track.artist ?? '',
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: cs.onSurfaceVariant,
@@ -290,6 +293,7 @@ class MiniPlayerContent extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final track = QueueTrack.fromMediaItem(currentSong);
     final activeView = ref.watch(playerSubViewProvider);
     final elapsed = _formatDuration(playerState.position);
     final remaining =
@@ -365,7 +369,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                                 children: [
                                                   Flexible(
                                                     child: Text(
-                                                      currentSong.title,
+                                                      track.title,
                                                       overflow:
                                                           TextOverflow.ellipsis,
                                                       style: theme
@@ -378,9 +382,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                                       maxLines: 1,
                                                     ),
                                                   ),
-                                                  if (currentSong
-                                                          .extras?['isExplicit'] ==
-                                                      true)
+                                                  if (track.isExplicit)
                                                     const ExplicitBadge(
                                                       leading: SizedBox(
                                                         width: 6,
@@ -389,7 +391,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                                 ],
                                               ),
                                               Text(
-                                                currentSong.artist ?? '',
+                                                track.artist ?? '',
                                                 overflow: TextOverflow.ellipsis,
                                                 style: theme.textTheme.bodySmall
                                                     ?.copyWith(
@@ -509,29 +511,21 @@ class MiniPlayerContent extends ConsumerWidget {
                                 icon: LucideIcons.moreVertical,
                                 color: cs.onSurfaceVariant,
                                 onPressed: () {
-                                  final videoId =
-                                      currentSong.extras?['videoId']
-                                          as String? ??
-                                      currentSong.id;
+                                  final track = QueueTrack.fromMediaItem(
+                                    currentSong,
+                                  );
                                   ContextMenuSheet.showForSong(
                                     context,
-                                    videoId: videoId,
-                                    title: currentSong.title,
-                                    artist: currentSong.artist ?? '',
-                                    artistId:
-                                        currentSong.extras?['artistId']
-                                            as String?,
-                                    albumId:
-                                        currentSong.extras?['albumId']
-                                            as String?,
-                                    thumbnailUrl:
-                                        currentSong.artUri?.toString(),
-                                    duration: currentSong.duration?.inSeconds,
-                                    albumName: currentSong.album,
+                                    videoId: track.videoId,
+                                    title: track.title,
+                                    artist: track.artist ?? '',
+                                    artistId: track.artistId,
+                                    albumId: track.albumId,
+                                    thumbnailUrl: track.artUri?.toString(),
+                                    duration: track.duration?.inSeconds,
+                                    albumName: track.album ?? '',
                                     isVideo: isVideo,
-                                    isExplicit:
-                                        currentSong.extras?['isExplicit'] ==
-                                        true,
+                                    isExplicit: track.isExplicit,
                                   );
                                 },
                                 size: 20,
@@ -680,11 +674,11 @@ class MiniPlayerContent extends ConsumerWidget {
   }
 
   Widget _likeButton(BuildContext context, WidgetRef ref, ColorScheme cs) {
-    final videoId = currentSong.extras?['videoId'] as String? ?? currentSong.id;
-    final title = currentSong.title;
-    final artist =
-        currentSong.artist ?? AppLocalizations.of(context)!.unknownArtist;
-    final thumbnailUrl = currentSong.artUri?.toString();
+    final track = QueueTrack.fromMediaItem(currentSong);
+    final videoId = track.videoId;
+    final title = track.title;
+    final artist = track.artist ?? AppLocalizations.of(context)!.unknownArtist;
+    final thumbnailUrl = track.artUri?.toString();
 
     final likedAsync = ref.watch(likedSongProvider(videoId));
     return likedAsync.when(
@@ -732,8 +726,8 @@ class MiniPlayerContent extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                     addedAt: DateTime.now(),
                     duration: currentSong.duration?.inSeconds,
-                    isVideo: currentSong.extras?['isVideo'] == true,
-                    isExplicit: currentSong.extras?['isExplicit'] == true,
+                    isVideo: track.isVideo,
+                    isExplicit: track.isExplicit,
                   ),
                 );
           },

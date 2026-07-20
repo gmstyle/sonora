@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
 
 /// Builds a [List<MediaItem>] from a playlist's video list.
@@ -40,36 +41,32 @@ class PlayPlaylistUseCase {
   }
 
   MediaItem _toMediaItem(VideoDetailed v, String url) {
-    return MediaItem(
-      id: v.videoId,
+    final track = QueueTrack(
+      videoId: v.videoId,
+      url: url,
+      isVideo: true,
+      isExplicit: v.isExplicit,
+      artistId: v.artist.artistId,
       title: v.name,
       artist: v.artist.name,
       duration: Duration(seconds: v.duration ?? 0),
       artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
-      extras: {
-        'url': url,
-        'videoId': v.videoId,
-        'isVideo': true,
-        'artistId': v.artist.artistId,
-        'isExplicit': v.isExplicit,
-      },
     );
+    return track.toFreshMediaItem();
   }
 
   MediaItem _toPendingMediaItem(VideoDetailed v) {
-    return MediaItem(
-      id: v.videoId,
+    final track = QueueTrack(
+      videoId: v.videoId,
+      needsUrl: true,
+      isVideo: true,
+      isExplicit: v.isExplicit,
+      artistId: v.artist.artistId,
       title: v.name,
       artist: v.artist.name,
       duration: Duration(seconds: v.duration ?? 0),
       artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
-      extras: {
-        'needsUrl': true,
-        'videoId': v.videoId,
-        'isVideo': true,
-        'artistId': v.artist.artistId,
-        'isExplicit': v.isExplicit,
-      },
     );
+    return track.toFreshMediaItem();
   }
 }

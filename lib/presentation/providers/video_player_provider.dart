@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide PlayerState;
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../domain/models/queue_track.dart';
 import 'player_provider.dart';
 
 class VideoPlayerState {
@@ -157,7 +158,10 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
     final videoId = currentSong?.id;
     if (videoId != _lastVideoId) {
       _lastVideoId = videoId;
-      final url = currentSong?.extras?['url'] as String?;
+      final url =
+          currentSong != null
+              ? QueueTrack.fromMediaItem(currentSong).url
+              : null;
 
       state = state.copyWith(
         isLoading: next.isLoading,

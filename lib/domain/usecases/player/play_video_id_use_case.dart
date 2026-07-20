@@ -3,6 +3,7 @@ import '../../../data/services/media_cache_service.dart';
 
 import 'package:audio_service/audio_service.dart';
 import '../../../core/utils/connectivity_utils.dart';
+import '../../models/queue_track.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
 
@@ -45,24 +46,20 @@ class PlayVideoIdUseCase {
           final file = File(download.localPath!);
           if (await file.exists()) {
             final url = file.uri.toString();
-            final extras = <String, dynamic>{
-              'url': url,
-              'videoId': videoId,
-              'isVideo': download.isVideo,
-              'isExplicit': download.isExplicit,
-            };
-            return MediaItem(
-              id: videoId,
+            final track = QueueTrack(
+              videoId: videoId,
+              url: url,
+              isVideo: download.isVideo,
+              isExplicit: download.isExplicit,
               title: download.title,
               artist: download.artist,
-              duration: Duration.zero, // Resolved dynamically during playback
               artUri:
                   download.thumbnailUrl != null &&
                           download.thumbnailUrl!.isNotEmpty
                       ? Uri.parse(download.thumbnailUrl!)
                       : null,
-              extras: extras,
             );
+            return track.toFreshMediaItem();
           }
         }
       } catch (_) {}
@@ -84,7 +81,6 @@ class PlayVideoIdUseCase {
     bool isVideo;
     int? viewCount;
     String? publishDate;
-    String? musicVideoType;
     String? artistId;
     String? albumId;
     bool isExplicit = false;
@@ -115,23 +111,11 @@ class PlayVideoIdUseCase {
       isVideo = true;
       viewCount = video.viewCount;
       publishDate = video.publishDate;
-      musicVideoType = video.musicVideoType;
       artistId = video.artist.artistId;
       isExplicit = isExplicitHint ?? video.isExplicit;
     }
 
     final url = await urlFuture;
-    final extras = <String, dynamic>{
-      'url': url,
-      'videoId': videoId,
-      'isVideo': isVideo,
-      'isExplicit': isExplicit,
-    };
-    if (viewCount != null) extras['viewCount'] = viewCount;
-    if (publishDate != null) extras['publishDate'] = publishDate;
-    if (musicVideoType != null) extras['musicVideoType'] = musicVideoType;
-    if (artistId != null) extras['artistId'] = artistId;
-    if (albumId != null) extras['albumId'] = albumId;
 
     if (_libraryRepo != null && durationSec > 0) {
       _libraryRepo
@@ -139,14 +123,21 @@ class PlayVideoIdUseCase {
           .catchError((_) => null);
     }
 
-    return MediaItem(
-      id: videoId,
+    final track = QueueTrack(
+      videoId: videoId,
+      url: url,
+      isVideo: isVideo,
+      isExplicit: isExplicit,
+      artistId: artistId,
+      albumId: albumId,
+      viewCount: viewCount,
+      publishDate: publishDate,
       title: title,
       artist: artist,
       duration: Duration(seconds: durationSec),
       artUri: thumbnailUrl.isNotEmpty ? Uri.parse(thumbnailUrl) : null,
-      extras: extras,
     );
+    return track.toFreshMediaItem();
   }
 
   /// Returns a local file URI if a completed download exists and the file

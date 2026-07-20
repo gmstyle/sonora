@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../providers/palette_provider.dart';
 import 'widgets/player_shared_widgets.dart';
 import 'layouts/mobile_player_layout.dart';
@@ -53,8 +54,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final currentSong = playerState.currentSong;
     if (currentSong == null) return const SizedBox.shrink();
 
-    final isVideo = currentSong.extras?['isVideo'] == true;
-    final videoId = currentSong.extras?['videoId'] as String? ?? currentSong.id;
+    final track = QueueTrack.fromMediaItem(currentSong);
+    final isVideo = track.isVideo;
+    final videoId = track.videoId;
     final artUrl = currentSong.artUri?.toString();
     final albumName = currentSong.album;
     final theme = Theme.of(context);

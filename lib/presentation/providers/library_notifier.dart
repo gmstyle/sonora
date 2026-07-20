@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/library_models.dart';
+import '../../domain/models/queue_track.dart';
 import '../../domain/repositories/library_repository.dart';
 import '../../domain/repositories/music_repository.dart';
 import 'library_repository_provider.dart';
@@ -268,19 +269,16 @@ class LibraryNotifier extends Notifier<void> {
       final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
       final isFirst = i == playIndex;
       items.add(
-        MediaItem(
-          id: entry.videoId,
+        QueueTrack(
+          videoId: entry.videoId,
+          url: isFirst ? firstUrl : null,
+          needsUrl: !isFirst || firstUrl == null,
+          isVideo: liked?.isVideo ?? entry.isVideo,
+          isExplicit: liked?.isExplicit ?? entry.isExplicit,
           title: title,
           artist: artist,
           artUri: thumbnailUrl != null ? Uri.tryParse(thumbnailUrl) : null,
-          extras: {
-            'videoId': entry.videoId,
-            'isVideo': liked?.isVideo ?? entry.isVideo,
-            'isExplicit': liked?.isExplicit ?? entry.isExplicit,
-            if (isFirst && firstUrl != null) 'url': firstUrl,
-            if (!isFirst || firstUrl == null) 'needsUrl': true,
-          },
-        ),
+        ).toFreshMediaItem(),
       );
     }
     return items;

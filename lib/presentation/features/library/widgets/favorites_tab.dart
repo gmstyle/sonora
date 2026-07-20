@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../domain/models/queue_track.dart';
 import '../../../../domain/repositories/music_repository.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../domain/models/library_models.dart';
@@ -150,23 +151,19 @@ class FavoritesTab extends ConsumerWidget {
   }
 
   MediaItem _toMediaItem(LikedSongModel s, String? url) {
-    final extras = <String, dynamic>{
-      if (url != null) 'url': url,
-      if (url == null) 'needsUrl': true,
-      'videoId': s.videoId,
-      'isVideo': s.isVideo,
-      'isExplicit': s.isExplicit,
-    };
-    if (s.artistId != null) extras['artistId'] = s.artistId;
-    if (s.albumId != null) extras['albumId'] = s.albumId;
-
-    return MediaItem(
-      id: s.videoId,
+    final track = QueueTrack(
+      videoId: s.videoId,
+      url: url,
+      needsUrl: url == null,
+      isVideo: s.isVideo,
+      isExplicit: s.isExplicit,
+      artistId: s.artistId,
+      albumId: s.albumId,
       title: s.title,
       artist: s.artist,
       artUri: s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
-      extras: extras,
     );
+    return track.toFreshMediaItem();
   }
 }
 

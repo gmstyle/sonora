@@ -3,6 +3,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_cast/dart_cast.dart';
 import 'audio_handler.dart';
 import '../../../data/services/cast_service.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../providers/cast_provider.dart';
 
 class AudioCastHandler {
@@ -84,10 +85,11 @@ class AudioCastHandler {
     // A newer castSong call has superseded this one — bail out.
     if (_castSongToken != token) return;
 
-    String? url = item.extras?['url'] as String?;
-    if (url == null || url.isEmpty || item.extras?['needsUrl'] == true) {
+    final track = QueueTrack.fromMediaItem(item);
+    String? url = track.hasUrl ? track.url : null;
+    if (url == null || track.needsUrl) {
       try {
-        url = await _audioHandler.playVideoIdUseCase.resolveUrl(item.id);
+        url = await _audioHandler.playVideoIdUseCase.resolveUrl(track.videoId);
       } catch (_) {
         pausedForConnection = false;
         return;

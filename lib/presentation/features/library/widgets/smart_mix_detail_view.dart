@@ -5,6 +5,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:sonora/core/constants/app_constants.dart';
 import '../../../../domain/models/library_models.dart';
+import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
@@ -122,39 +123,39 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     if (data is List<HistoryModel>) {
       return data
           .map(
-            (r) => MediaItem(
-              id: r.videoId,
-              title: r.title,
-              artist: r.artist,
-              artUri:
-                  r.thumbnailUrl != null ? Uri.tryParse(r.thumbnailUrl!) : null,
-              extras: {
-                'videoId': r.videoId,
-                'isVideo': r.isVideo,
-                'needsUrl': true,
-                'isExplicit': r.isExplicit,
-              },
-            ),
+            (r) =>
+                QueueTrack(
+                  videoId: r.videoId,
+                  needsUrl: true,
+                  isVideo: r.isVideo,
+                  isExplicit: r.isExplicit,
+                  title: r.title,
+                  artist: r.artist,
+                  artUri:
+                      r.thumbnailUrl != null
+                          ? Uri.tryParse(r.thumbnailUrl!)
+                          : null,
+                ).toFreshMediaItem(),
           )
           .toList();
     } else if (data is List<LikedSongModel>) {
       return data
           .map(
-            (r) => MediaItem(
-              id: r.videoId,
-              title: r.title,
-              artist: r.artist,
-              artUri:
-                  r.thumbnailUrl != null ? Uri.tryParse(r.thumbnailUrl!) : null,
-              extras: {
-                'videoId': r.videoId,
-                'isVideo': r.isVideo,
-                'needsUrl': true,
-                'artistId': r.artistId,
-                'albumId': r.albumId,
-                'isExplicit': r.isExplicit,
-              },
-            ),
+            (r) =>
+                QueueTrack(
+                  videoId: r.videoId,
+                  needsUrl: true,
+                  isVideo: r.isVideo,
+                  isExplicit: r.isExplicit,
+                  artistId: r.artistId,
+                  albumId: r.albumId,
+                  title: r.title,
+                  artist: r.artist,
+                  artUri:
+                      r.thumbnailUrl != null
+                          ? Uri.tryParse(r.thumbnailUrl!)
+                          : null,
+                ).toFreshMediaItem(),
           )
           .toList();
     }

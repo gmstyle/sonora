@@ -48,16 +48,16 @@ void main() {
       expect(restored.length, 2);
 
       // Verify first item (resolved URL)
-      expect(restored[0].id, 'song_1');
+      expect(restored[0].videoId, 'song_1');
       expect(restored[0].title, 'Song 1');
-      expect(restored[0].extras?['url'], 'https://example.com/stream1.mp3');
-      expect(restored[0].extras?['needsUrl'], isNull);
+      expect(restored[0].url, 'https://example.com/stream1.mp3');
+      expect(restored[0].needsUrl, false);
 
       // Verify second item (pending URL)
-      expect(restored[1].id, 'song_2');
+      expect(restored[1].videoId, 'song_2');
       expect(restored[1].title, 'Song 2');
-      expect(restored[1].extras?['url'], isNull);
-      expect(restored[1].extras?['needsUrl'], true);
+      expect(restored[1].url, isNull);
+      expect(restored[1].needsUrl, true);
     },
   );
 }

@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 
 import '../models/queue_playback_meta.dart';
+import '../models/queue_track.dart';
 
 /// Domain interface for queue persistence.
 /// Decouples [PlayerNotifier]/[SonoraAudioHandler] from the Drift data layer.
@@ -33,10 +34,9 @@ abstract class QueueRepository {
     AudioServiceRepeatMode? repeatMode,
   });
 
-  /// Loads the persisted queue ordered by position.
-  /// Stream URLs stored in [MediaItem.extras] may be stale; callers
-  /// should resolve/refresh them as needed.
-  Future<List<MediaItem>> restoreQueue();
+  /// Loads the persisted queue ordered by position as typed [QueueTrack]s.
+  /// Stream URLs may be stale; callers should resolve/refresh them as needed.
+  Future<List<QueueTrack>> restoreQueue();
 
   /// Loads the persisted "where were we" pointer. Always returns a value —
   /// [QueuePlaybackMeta.empty] when nothing has been persisted yet.

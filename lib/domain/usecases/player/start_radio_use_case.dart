@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
 
 class RadioResult {
@@ -41,8 +42,13 @@ class StartRadioUseCase {
   }
 
   MediaItem _toPendingMediaItem(UpNextsDetails item) {
-    return MediaItem(
-      id: item.videoId,
+    final track = QueueTrack(
+      videoId: item.videoId,
+      needsUrl: true,
+      isVideo: item.type == 'VIDEO',
+      isExplicit: item.isExplicit,
+      artistId: item.artists.artistId,
+      albumId: item.album?.albumId,
       title: item.title,
       artist: item.artists.name,
       album: item.album?.name,
@@ -51,20 +57,18 @@ class StartRadioUseCase {
           item.thumbnails.isNotEmpty
               ? Uri.parse(item.thumbnails.last.url)
               : null,
-      extras: {
-        'needsUrl': true,
-        'videoId': item.videoId,
-        'isVideo': item.type == 'VIDEO',
-        'artistId': item.artists.artistId,
-        if (item.album?.albumId != null) 'albumId': item.album!.albumId,
-        'isExplicit': item.isExplicit,
-      },
     );
+    return track.toFreshMediaItem();
   }
 
   MediaItem _mapToMediaItem(UpNextsDetails item, String url) {
-    return MediaItem(
-      id: item.videoId,
+    final track = QueueTrack(
+      videoId: item.videoId,
+      url: url,
+      isVideo: item.type == 'VIDEO',
+      isExplicit: item.isExplicit,
+      artistId: item.artists.artistId,
+      albumId: item.album?.albumId,
       title: item.title,
       artist: item.artists.name,
       album: item.album?.name,
@@ -73,14 +77,7 @@ class StartRadioUseCase {
           item.thumbnails.isNotEmpty
               ? Uri.parse(item.thumbnails.last.url)
               : null,
-      extras: {
-        'url': url,
-        'videoId': item.videoId,
-        'isVideo': item.type == 'VIDEO',
-        'artistId': item.artists.artistId,
-        if (item.album?.albumId != null) 'albumId': item.album!.albumId,
-        'isExplicit': item.isExplicit,
-      },
     );
+    return track.toFreshMediaItem();
   }
 }
