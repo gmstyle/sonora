@@ -90,7 +90,7 @@ void main() {
         ];
 
         await repo.persistQueue(items, currentIndex: 0);
-        final restored = await repo.restoreQueue();
+        await repo.restoreQueue();
 
         final rows = await db.select(db.queueItems).get();
         expect(QueueSection.fromTag(rows.single.section), QueueSection.user);

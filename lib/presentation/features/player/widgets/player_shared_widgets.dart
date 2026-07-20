@@ -255,7 +255,6 @@ Widget buildTrackInfoAndLikeRow(
   BuildContext context,
   WidgetRef ref,
   MediaItem song,
-  bool isVideo,
 ) {
   final theme = Theme.of(context);
   final track = QueueTrack.fromMediaItem(song);
@@ -324,7 +323,7 @@ Widget buildTrackInfoAndLikeRow(
                   const SizedBox(width: 8),
                   const ExplicitBadge(),
                 ],
-                if (isVideo) ...[
+                if (track.isVideo) ...[
                   const SizedBox(width: 8),
                   buildMvBadge(context),
                 ],
@@ -398,7 +397,6 @@ Widget buildProgressBar(
 Widget buildBottomActionsRow(
   BuildContext context,
   WidgetRef ref,
-  bool isVideo,
   bool hasTimer,
   PlayerNotifier playerNotifier,
   PlayerSubView activeView, {
@@ -406,6 +404,7 @@ Widget buildBottomActionsRow(
 }) {
   final theme = Theme.of(context);
   final double iconSize = isMobile ? 18.0 : 22.0;
+  final isVideo = ref.watch(playerStateProvider).isVideo;
 
   return Row(
     mainAxisAlignment:

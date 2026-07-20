@@ -58,11 +58,7 @@ class TabletPlayerLayout extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            TopBar(
-              currentSong: currentSong,
-              isVideo: isVideo,
-              albumName: albumName,
-            ),
+            TopBar(currentSong: currentSong, albumName: albumName),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -90,12 +86,7 @@ class TabletPlayerLayout extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(height: tight ? 2 : 24),
-                            buildTrackInfoAndLikeRow(
-                              context,
-                              ref,
-                              currentSong,
-                              isVideo,
-                            ),
+                            buildTrackInfoAndLikeRow(context, ref, currentSong),
                             SizedBox(height: tight ? 2 : 16),
                             Expanded(
                               child: AnimatedSwitcher(
@@ -125,7 +116,6 @@ class TabletPlayerLayout extends ConsumerWidget {
                             buildBottomActionsRow(
                               context,
                               ref,
-                              isVideo,
                               hasSleepTimer,
                               playerNotifier,
                               activeView,

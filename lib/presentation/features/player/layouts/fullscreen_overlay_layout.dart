@@ -46,7 +46,6 @@ class FullscreenOverlayLayout extends ConsumerWidget {
           children: [
             TopBar(
               currentSong: currentSong,
-              isVideo: isVideo,
               albumName: albumName,
               onClose: onClose,
             ),
@@ -72,7 +71,6 @@ class FullscreenOverlayLayout extends ConsumerWidget {
             buildBottomActionsRow(
               context,
               ref,
-              isVideo,
               hasSleepTimer,
               playerNotifier,
               activeView,

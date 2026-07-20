@@ -88,7 +88,6 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
               ),
               TopBar(
                 currentSong: widget.currentSong,
-                isVideo: widget.isVideo,
                 albumName: widget.albumName,
               ),
               const SizedBox(height: 24),
@@ -202,12 +201,7 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                 ),
               ),
               const SizedBox(height: 32),
-              buildTrackInfoAndLikeRow(
-                context,
-                ref,
-                widget.currentSong,
-                widget.isVideo,
-              ),
+              buildTrackInfoAndLikeRow(context, ref, widget.currentSong),
               const SizedBox(height: 16),
               buildProgressBar(ref, widget.playerState, widget.videoId),
               const SizedBox(height: 16),
@@ -216,7 +210,6 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
               buildBottomActionsRow(
                 context,
                 ref,
-                widget.isVideo,
                 widget.playerState.sleepTimerRemaining != null,
                 widget.playerNotifier,
                 widget.activeView,

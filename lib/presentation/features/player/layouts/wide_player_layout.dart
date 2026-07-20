@@ -58,11 +58,7 @@ class WidePlayerLayout extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            TopBar(
-              currentSong: currentSong,
-              isVideo: isVideo,
-              albumName: albumName,
-            ),
+            TopBar(currentSong: currentSong, albumName: albumName),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -95,12 +91,7 @@ class WidePlayerLayout extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(height: tight ? 2 : 32),
-                            buildTrackInfoAndLikeRow(
-                              context,
-                              ref,
-                              currentSong,
-                              isVideo,
-                            ),
+                            buildTrackInfoAndLikeRow(context, ref, currentSong),
                             Expanded(
                               child: AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
@@ -129,7 +120,6 @@ class WidePlayerLayout extends ConsumerWidget {
                             buildBottomActionsRow(
                               context,
                               ref,
-                              isVideo,
                               hasSleepTimer,
                               playerNotifier,
                               activeView,

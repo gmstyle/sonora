@@ -26,7 +26,6 @@ import '../../../core/extensions/duration_ext.dart';
 class MiniPlayerContent extends ConsumerWidget {
   final MediaItem currentSong;
   final PlayerState playerState;
-  final bool isVideo;
   final VoidCallback? onTap;
   final VoidCallback? onPlayPause;
   final VoidCallback? onSkipNext;
@@ -38,7 +37,6 @@ class MiniPlayerContent extends ConsumerWidget {
     super.key,
     required this.currentSong,
     required this.playerState,
-    required this.isVideo,
     this.onTap,
     this.onPlayPause,
     this.onSkipNext,
@@ -50,20 +48,15 @@ class MiniPlayerContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSwitching = playerState.isBlocked;
-    final progress =
-        playerState.duration.inMilliseconds > 0
-            ? playerState.position.inMilliseconds /
-                playerState.duration.inMilliseconds
-            : 0.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 600) {
-          return _mobileLayout(context, ref, isSwitching, progress);
+          return _mobileLayout(context, ref, isSwitching);
         } else if (constraints.maxWidth < 1200) {
-          return _tabletLayout(context, ref, isSwitching, progress);
+          return _tabletLayout(context, ref, isSwitching);
         } else {
-          return _desktopLayout(context, ref, isSwitching, progress);
+          return _desktopLayout(context, ref, isSwitching);
         }
       },
     );
@@ -71,12 +64,7 @@ class MiniPlayerContent extends ConsumerWidget {
 
   // ── Mobile Layout (<600px) ──────────────────────────────────────
 
-  Widget _mobileLayout(
-    BuildContext context,
-    WidgetRef ref,
-    bool isSwitching,
-    double progress,
-  ) {
+  Widget _mobileLayout(BuildContext context, WidgetRef ref, bool isSwitching) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
@@ -105,7 +93,13 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         const SizedBox(width: 12),
-                        _artwork(size: 56, radius: 8, cs: cs, ref: ref),
+                        _artwork(
+                          size: 56,
+                          radius: 8,
+                          cs: cs,
+                          ref: ref,
+                          isVideo: track.isVideo,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -126,7 +120,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                     const ExplicitBadge(
                                       leading: SizedBox(width: 6),
                                     ),
-                                  if (isVideo)
+                                  if (track.isVideo)
                                     const VideoBadge(
                                       leading: SizedBox(width: 6),
                                     ),
@@ -174,12 +168,7 @@ class MiniPlayerContent extends ConsumerWidget {
 
   // ── Tablet Layout (600–1199px) ──────────────────────────────────
 
-  Widget _tabletLayout(
-    BuildContext context,
-    WidgetRef ref,
-    bool isSwitching,
-    double progress,
-  ) {
+  Widget _tabletLayout(BuildContext context, WidgetRef ref, bool isSwitching) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
@@ -208,7 +197,13 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         const SizedBox(width: 12),
-                        _artwork(size: 60, radius: 8, cs: cs, ref: ref),
+                        _artwork(
+                          size: 60,
+                          radius: 8,
+                          cs: cs,
+                          ref: ref,
+                          isVideo: track.isVideo,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -285,20 +280,15 @@ class MiniPlayerContent extends ConsumerWidget {
 
   // ── Desktop Layout (≥1200px) ────────────────────────────────────
 
-  Widget _desktopLayout(
-    BuildContext context,
-    WidgetRef ref,
-    bool isSwitching,
-    double progress,
-  ) {
+  Widget _desktopLayout(BuildContext context, WidgetRef ref, bool isSwitching) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
     final activeView = ref.watch(playerSubViewProvider);
-    final elapsed = _formatDuration(playerState.position);
+    final elapsed = playerState.position.format();
     final remaining =
         playerState.duration > playerState.position
-            ? '-${_formatDuration(playerState.duration - playerState.position)}'
+            ? '-${(playerState.duration - playerState.position).format()}'
             : '-0:00';
 
     final width = MediaQuery.of(context).size.width;
@@ -356,6 +346,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                           radius: 8,
                                           cs: cs,
                                           ref: ref,
+                                          isVideo: track.isVideo,
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -511,9 +502,6 @@ class MiniPlayerContent extends ConsumerWidget {
                                 icon: LucideIcons.moreVertical,
                                 color: cs.onSurfaceVariant,
                                 onPressed: () {
-                                  final track = QueueTrack.fromMediaItem(
-                                    currentSong,
-                                  );
                                   ContextMenuSheet.showForSong(
                                     context,
                                     videoId: track.videoId,
@@ -524,7 +512,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                     thumbnailUrl: track.artUri?.toString(),
                                     duration: track.duration?.inSeconds,
                                     albumName: track.album ?? '',
-                                    isVideo: isVideo,
+                                    isVideo: track.isVideo,
                                     isExplicit: track.isExplicit,
                                   );
                                 },
@@ -578,6 +566,7 @@ class MiniPlayerContent extends ConsumerWidget {
     required double radius,
     required ColorScheme cs,
     required WidgetRef ref,
+    required bool isVideo,
   }) {
     final videoState = ref.watch(videoPlayerProvider);
     if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
@@ -737,11 +726,5 @@ class MiniPlayerContent extends ConsumerWidget {
         );
       },
     );
-  }
-
-  // ── Helpers ─────────────────────────────────────────────────────
-
-  String _formatDuration(Duration d) {
-    return d.format();
   }
 }

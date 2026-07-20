@@ -24,8 +24,6 @@ class FullPlayerContent extends ConsumerStatefulWidget {
 }
 
 class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
-  Color _dominantColor = Colors.black87;
-  bool _isDark = true;
   late final PlayerSubViewNotifier _subViewNotifier;
   final GlobalKey _artworkKey = GlobalKey(debugLabel: 'player_artwork');
 
@@ -66,9 +64,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     // ── Palette ───────────────────────────────────────────────────
     final paletteMap = ref.watch(paletteNotifierProvider);
     final paletteData = paletteMap[videoId];
-    _dominantColor =
+    final dominantColor =
         paletteData?.dominantColor ?? theme.colorScheme.primaryContainer;
-    _isDark = paletteData?.isDark ?? true;
+    final isDark = paletteData?.isDark ?? true;
     if (paletteData == null && artUrl != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -97,7 +95,14 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              Positioned.fill(child: _buildPlayerBackground(artUrl, theme)),
+              Positioned.fill(
+                child: _buildPlayerBackground(
+                  artUrl,
+                  theme,
+                  dominantColor,
+                  isDark,
+                ),
+              ),
               if (showFullscreenOverlay)
                 FullscreenOverlayLayout(
                   currentSong: currentSong,
@@ -169,14 +174,19 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
 
   // ─── Background ──────────────────────────────────────────────
 
-  Widget _buildPlayerBackground(String? artUrl, ThemeData theme) {
+  Widget _buildPlayerBackground(
+    String? artUrl,
+    ThemeData theme,
+    Color dominantColor,
+    bool isDark,
+  ) {
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
     return buildPlayerBackground(
       artUrl,
-      _dominantColor,
-      _isDark,
+      dominantColor,
+      isDark,
       theme.colorScheme,
       context: context,
       reduceEffects: reduceEffects,

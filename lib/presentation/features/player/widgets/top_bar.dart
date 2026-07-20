@@ -13,13 +13,11 @@ class TopBar extends ConsumerWidget {
   const TopBar({
     super.key,
     required this.currentSong,
-    required this.isVideo,
     required this.albumName,
     this.onClose,
   });
 
   final MediaItem currentSong;
-  final bool isVideo;
   final String? albumName;
   final VoidCallback? onClose;
 
@@ -31,7 +29,6 @@ class TopBar extends ConsumerWidget {
     final videoId = track.videoId;
     final artistId = track.artistId;
     final albumId = track.albumId;
-    final album = albumName;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -52,9 +49,9 @@ class TopBar extends ConsumerWidget {
                   letterSpacing: 1.2,
                 ),
               ),
-              if (album != null)
+              if (albumName != null)
                 Text(
-                  album,
+                  albumName!,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: pc.titlePrimary,
@@ -85,7 +82,7 @@ class TopBar extends ConsumerWidget {
               thumbnailUrl: currentSong.artUri?.toString(),
               duration: currentSong.duration?.inSeconds,
               albumName: albumName,
-              isVideo: isVideo,
+              isVideo: track.isVideo,
               artistId: artistId,
               albumId: albumId,
               isExplicit: track.isExplicit,
