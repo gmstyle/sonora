@@ -461,6 +461,12 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         state = state.copyWith(
           hasError: true,
           errorMessage: 'Failed to play ${error.$2}',
+          // A play error always ends any in-flight switch attempt. Without
+          // this, a failed skipToQueueItem/skipToNext/skipToPrevious (e.g.
+          // stream URL resolve failed) could leave isSwitching stuck at
+          // true forever, freezing the mini-player's loading shimmer and
+          // blocking further interaction (state.isBlocked).
+          isSwitching: false,
         );
       });
     });

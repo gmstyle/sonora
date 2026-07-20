@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as dev;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide PlayerState;
 import 'package:media_kit_video/media_kit_video.dart';
@@ -58,7 +59,8 @@ class VideoPlayerState {
   }
 }
 
-class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
+class VideoPlayerNotifier extends Notifier<VideoPlayerState>
+    with WidgetsBindingObserver {
   Player get _player => ref.read(audioHandlerProvider).player;
   StreamSubscription<VideoParams>? _videoParamsSub;
   String? _lastVideoId;
@@ -67,11 +69,14 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
 
   @override
   VideoPlayerState build() {
+    WidgetsBinding.instance.addObserver(this);
+
     _playbackSub = ref.listen(playerStateProvider, (prev, next) {
       _onPlayerStateChanged(next);
     });
 
     ref.onDispose(() {
+      WidgetsBinding.instance.removeObserver(this);
       _playbackSub?.close();
       _videoParamsSub?.cancel();
       _controller = null;
@@ -85,6 +90,29 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
     }
 
     return const VideoPlayerState();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      try {
+        _player.setVideoTrack(VideoTrack.no());
+        _setVideoDecoding(false);
+        dev.log(
+          '[VideoPlayerNotifier] App in background: disabled video tracking/decoding',
+        );
+      } catch (e) {
+        dev.log(
+          '[VideoPlayerNotifier] Failed to disable video in background: $e',
+        );
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      dev.log(
+        '[VideoPlayerNotifier] App resumed: restoring video tracking/decoding if needed',
+      );
+      _onPlayerStateChanged(ref.read(playerStateProvider));
+    }
   }
 
   void _ensureInitialized() {

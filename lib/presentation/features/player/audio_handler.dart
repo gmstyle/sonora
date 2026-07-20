@@ -592,7 +592,22 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (!_isResolvingItem) {
       _targetSkipIndex = null;
       _updateState((s) => s.copyWith(queueIndex: index));
-      if (index >= 0) _prefs.setInt('last_playing_index', index);
+      if (index >= 0) {
+        // Persist the raw index alongside the item's stable identity (its
+        // videoId) in the SAME atomic QueueMeta row that the queue itself
+        // is persisted to (see `QueueRepositoryImpl`). Doing this on every
+        // track change — not just when the queue's structure changes (see
+        // `persistQueue` calls below) — means the "where were we" pointer
+        // can never lag behind the actually-playing track, which used to
+        // cause resuming into a stale/wrong index after a process restart.
+        final currentMediaItem =
+            index < playlist.medias.length
+                ? (playlist.medias[index].extras?['mediaItem'] as MediaItem?)
+                : null;
+        unawaited(
+          _queueRepo.persistCurrentIndex(index, videoId: currentMediaItem?.id),
+        );
+      }
     }
 
     if (!_isResolvingItem && index >= 0 && index < playlist.medias.length) {
@@ -664,7 +679,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           !const ListEquality().equals(newIds, currentIds);
       if (queueStructureChanged) {
         queue.add(items);
-        _queueRepo.persistQueue(items);
+        _queueRepo.persistQueue(
+          items,
+          currentIndex: index,
+          shuffleMode: playbackState.value.shuffleMode,
+          repeatMode: playbackState.value.repeatMode,
+        );
       }
     }
 
@@ -696,16 +716,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         unawaited(MediaCacheService.instance.downloadToCache(item.id, url));
       }
     }
-
-    // Clean up older cache files
-    final activeIds =
-        playlist.medias
-            .skip(currentIndex)
-            .take(5)
-            .map((m) => (m.extras?['mediaItem'] as MediaItem?)?.id)
-            .nonNulls
-            .toList();
-    unawaited(MediaCacheService.instance.cleanOldCacheFiles(activeIds));
 
     _lookaheadTimer?.cancel();
     _lookaheadTimer = Timer(const Duration(seconds: 20), () async {
@@ -757,6 +767,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> _resolveSinglePendingItem(
     int index, {
     bool forceResolve = false,
+    // Overrides the auto-detected "is this the active item" check below.
+    // Pass `true` when the caller is about to make [index] the active item
+    // (e.g. [skipToQueueItem] resolving the tapped item *before* jumping to
+    // it, when `_player.state.playlist.index` still points at the old
+    // track) so it gets the long, 429-back-off-tolerant timeout instead of
+    // the short background one.
+    bool? treatAsCurrent,
   }) async {
     if (index < 0) return;
     final playlist = _player.state.playlist;
@@ -772,11 +789,23 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (!_pendingResolutions.add(videoId)) return;
     _resolvingItemCount++;
     try {
-      // Background items timeout in 5 seconds, active item timeouts in 10 seconds.
-      final isCurrent = index == playlist.index;
+      // The active (currently playing/selected) item gets enough headroom
+      // to survive PlayVideoIdUseCase.streamUrlTimeout's full anti-429
+      // back-off cycle — aborting early here would defeat that back-off and
+      // strand playback on a dummy/expired URL for no reason (this is the
+      // #1 cause of "tapping a queue item does nothing" after the app has
+      // been idle for a while). Background (look-ahead) items use a much
+      // shorter bound since they are not blocking playback and will simply
+      // be re-resolved once they actually become current.
+      final isCurrent = treatAsCurrent ?? (index == playlist.index);
       final url = await _playVideoIdUseCase
           .resolveUrl(videoId)
-          .timeout(Duration(seconds: isCurrent ? 10 : 5));
+          .timeout(
+            isCurrent
+                ? PlayVideoIdUseCase.streamUrlTimeout +
+                    const Duration(seconds: 5)
+                : const Duration(seconds: 15),
+          );
 
       final playlist2 = _player.state.playlist;
       if (index >= playlist2.medias.length) return;
@@ -979,12 +1008,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
         CastConnectionState.connected) {
       await _castHandler.castService?.pause();
     }
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
-      'last_playing_position_ms',
-      _player.state.position.inMilliseconds,
+      'last_pause_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
     );
-    await _prefs.setInt('last_pause_timestamp', nowMs);
+    await _queueRepo.persistPosition(_player.state.position);
   }
 
   @override
@@ -997,12 +1025,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
       } catch (_) {}
     }
     _playOnInterruptionEnd = false;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
-      'last_playing_position_ms',
-      _player.state.position.inMilliseconds,
+      'last_pause_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
     );
-    await _prefs.setInt('last_pause_timestamp', nowMs);
+    await _queueRepo.persistPosition(_player.state.position);
     _isStopping = true;
     _lookaheadTimer?.cancel();
     _endTransitionMute();
@@ -1124,7 +1151,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final needsUrl = item?.extras?['needsUrl'] == true;
 
       if (needsUrl) {
-        await _resolveSinglePendingItem(index);
+        await _resolveSinglePendingItem(index, treatAsCurrent: true);
+
+        // Verify the resolve actually produced a playable URL before
+        // jumping. On failure (e.g. a transient network hiccup or a 429
+        // that didn't recover in time), `_resolveSinglePendingItem` leaves
+        // `needsUrl` untouched, and the underlying Media is still the
+        // http://localhost dummy placeholder — jumping there would leave
+        // playback silently "doing nothing" with zero feedback to the user.
+        final refreshed = _player.state.playlist;
+        final stillNeedsUrl =
+            index >= refreshed.medias.length ||
+            (refreshed.medias[index].extras?['mediaItem'] as MediaItem?)
+                    ?.extras?['needsUrl'] ==
+                true;
+        if (stillNeedsUrl) {
+          _endTransitionMute();
+          _onPlayErrorController.add((
+            item?.extras?['videoId'] as String? ?? item?.id ?? '',
+            item?.title ?? '',
+          ));
+          return;
+        }
       }
 
       await _player.jump(index);
@@ -1227,7 +1275,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _shuffledHistory.clear();
     }
     _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
-    unawaited(_prefs.setString('last_shuffle_mode', shuffleMode.name));
+    unawaited(_queueRepo.persistPlaybackModes(shuffleMode: shuffleMode));
   }
 
   @override
@@ -1240,7 +1288,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     };
     await _player.setPlaylistMode(playlistMode);
     _updateState((s) => s.copyWith(repeatMode: repeatMode));
-    unawaited(_prefs.setString('last_repeat_mode', repeatMode.name));
+    unawaited(_queueRepo.persistPlaybackModes(repeatMode: repeatMode));
   }
 
   List<MediaItem> get _currentQueue =>
@@ -1339,7 +1387,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
         final itemsWithKeys =
             items.map((item) => _ensureQueueId(item, seenIds)).toList();
         queue.add(itemsWithKeys);
-        await _queueRepo.persistQueue(itemsWithKeys);
+        // A brand-new playback session starts at position 0 — explicitly
+        // reset the persisted position so a process death right after this
+        // call can't resume with a stale position left over from whatever
+        // was playing before.
+        await _queueRepo.persistQueue(
+          itemsWithKeys,
+          currentIndex: initialIndex,
+          position: Duration.zero,
+        );
         final playlist = Playlist(
           itemsWithKeys.map(_toMedia).toList(),
           index: initialIndex,
@@ -1366,7 +1422,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         var itemsWithKeys =
             items.map((item) => _ensureQueueId(item, seenIds)).toList();
         queue.add(itemsWithKeys);
-        await _queueRepo.persistQueue(itemsWithKeys);
+        // Same reasoning as setQueue: a brand-new session starts at 0.
+        await _queueRepo.persistQueue(
+          itemsWithKeys,
+          currentIndex: initialIndex,
+          position: Duration.zero,
+        );
 
         if (initialIndex >= 0 && initialIndex < itemsWithKeys.length) {
           final initialItem = itemsWithKeys[initialIndex];
@@ -1380,7 +1441,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
               );
               itemsWithKeys[initialIndex] = resolved;
               queue.add(itemsWithKeys);
-              await _queueRepo.persistQueue(itemsWithKeys);
+              await _queueRepo.persistQueue(
+                itemsWithKeys,
+                currentIndex: initialIndex,
+              );
             } catch (e) {
               dev.log(
                 '[AudioHandler] Failed to resolve initial item URL for $videoId: $e',
@@ -1601,12 +1665,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> onTaskRemoved() async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await _prefs.setInt(
-      'last_playing_position_ms',
-      _player.state.position.inMilliseconds,
+      'last_pause_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
     );
-    await _prefs.setInt('last_pause_timestamp', nowMs);
+    await _queueRepo.persistPosition(_player.state.position);
     _isStopping = true;
     await _player.stop();
     await _releaseAudioFocus();
@@ -1737,6 +1800,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     final playlist = _player.state.playlist;
     if (playlist.medias.isNotEmpty) {
+      // Warm resume: the process (and therefore the in-memory playlist) is
+      // still alive — this is the common Android case, since the player
+      // keeps a foreground service/notification running in the background
+      // (androidStopForegroundOnPause: false). The in-memory queue/index
+      // is the ground truth here and must be preserved as-is; it must NOT
+      // be replaced by `_doRestore()`, which reloads a snapshot from disk
+      // that can be behind the live state (e.g. an autoplay Up Next append
+      // or a reorder whose disk write raced with backgrounding). Doing so
+      // is what used to cause "wrong current song after reopening" and
+      // "play stays stuck" on Android after the app sat idle for a while.
       final idx = playlist.index;
       if (idx >= 0 && idx < playlist.medias.length) {
         final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
@@ -1746,9 +1819,38 @@ class SonoraAudioHandler extends BaseAudioHandler {
           _setRestoreStatus(RestoreStatus.ready);
           return;
         }
+
+        // The current item's stream URL simply expired while backgrounded
+        // (YouTube URLs embed an `expire` timestamp valid for a few hours).
+        // Refresh it in place instead of rebuilding the whole playlist.
+        // Freeze the position hint first so the seek bar doesn't jump while
+        // RestoreStatus.restoring is briefly emitted (PlayerNotifier reads
+        // `savedPosition` on that transition).
+        _savedPosition = _player.state.position;
+        _setRestoreStatus(RestoreStatus.restoring);
+        try {
+          await _resolveSinglePendingItem(idx, forceResolve: true);
+        } finally {
+          _setRestoreStatus(RestoreStatus.ready);
+          _lastEmittedProcessingState = null;
+          _lastEmittedPlaying = null;
+          _updatePlaybackState();
+        }
+        // Best-effort prefetch of the next item too; failures here are
+        // non-fatal since it is not the one about to play.
+        unawaited(
+          _resolveSinglePendingItem(idx + 1, forceResolve: true).catchError(
+            (Object e) => dev.log(
+              '[AudioHandler] Warm-resume prefetch of next item failed: $e',
+            ),
+          ),
+        );
+        return;
       }
     }
 
+    // Cold start: the in-memory playlist is empty (fresh process), rebuild
+    // it from the persisted queue.
     _setRestoreStatus(RestoreStatus.restoring);
     try {
       await _doRestore();
@@ -1774,12 +1876,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
         '[AudioHandler] Queue User/UpNext split: clearing legacy queue on '
         'first run after upgrade.',
       );
+      // Clears both the queue rows AND the playback pointer (QueueMeta) in
+      // one atomic transaction, so the player doesn't try to resume a song
+      // from a queue/position that no longer exists.
       await _queueRepo.clearQueue();
       await _prefs.setBool(kPostQueueSplitDoneKey, true);
-      // Reset last-known playback position so the player doesn't try to
-      // resume a song from a queue that no longer exists.
-      await _prefs.remove('last_playing_index');
-      await _prefs.remove('last_playing_position_ms');
       // Fall through to the empty-queue restore path below.
     }
 
@@ -1818,8 +1919,40 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     queue.add(items);
 
-    int savedIndex = _prefs.getInt('last_playing_index') ?? 0;
-    if (savedIndex < 0 || savedIndex >= items.length) savedIndex = 0;
+    // The playback pointer (index/videoId anchor/position/shuffle/repeat) is
+    // read from the SAME atomic record that the queue itself was written
+    // with (see QueueRepositoryImpl.persistQueue) — no more split-brain
+    // between SharedPreferences and the Drift queue table.
+    final meta = await _queueRepo.restoreMeta();
+
+    int savedIndex = meta.currentIndex;
+    final anchorVideoId = meta.currentVideoId;
+    final positionalMatchesAnchor =
+        anchorVideoId != null &&
+        savedIndex >= 0 &&
+        savedIndex < items.length &&
+        items[savedIndex].id == anchorVideoId;
+
+    if (savedIndex < 0 || savedIndex >= items.length) {
+      savedIndex = 0;
+    }
+    if (anchorVideoId != null && !positionalMatchesAnchor) {
+      // The raw index no longer lines up with the last-known track (e.g.
+      // items were removed from the persisted queue by some other flow
+      // between sessions). Fall back to locating the track by its stable
+      // videoId instead of trusting the numeric index, which otherwise
+      // tends to resume into index 0 — a track the user was very likely
+      // not listening to.
+      final byId = items.indexWhere((it) => it.id == anchorVideoId);
+      if (byId != -1) {
+        dev.log(
+          '[AudioHandler] _doRestore: index/anchor mismatch '
+          '(saved index=$savedIndex, resolved by videoId=$byId). '
+          'Using id-based match to avoid resuming the wrong track.',
+        );
+        savedIndex = byId;
+      }
+    }
 
     var currentItem = items[savedIndex];
     try {
@@ -1834,25 +1967,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
       );
     }
 
-    final savedPosMs = _prefs.getInt('last_playing_position_ms') ?? 0;
-    _savedPosition = Duration(milliseconds: savedPosMs);
+    _savedPosition = meta.position;
 
-    final savedShuffleName = _prefs.getString('last_shuffle_mode');
-    if (savedShuffleName != null) {
-      final shuffleMode = AudioServiceShuffleMode.values.firstWhere(
-        (m) => m.name == savedShuffleName,
-        orElse: () => AudioServiceShuffleMode.none,
-      );
+    if (meta.shuffleMode != null) {
+      final shuffleMode = meta.shuffleMode!;
       await _player.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
       _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
     }
 
-    final savedRepeatName = _prefs.getString('last_repeat_mode');
-    if (savedRepeatName != null) {
-      final repeatMode = AudioServiceRepeatMode.values.firstWhere(
-        (m) => m.name == savedRepeatName,
-        orElse: () => AudioServiceRepeatMode.none,
-      );
+    if (meta.repeatMode != null) {
+      final repeatMode = meta.repeatMode!;
       final playlistMode = switch (repeatMode) {
         AudioServiceRepeatMode.none => PlaylistMode.none,
         AudioServiceRepeatMode.one => PlaylistMode.single,
@@ -1871,7 +1995,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _userWantsPlaying = false;
     await _player.open(restoredPlaylist, play: false);
 
-    if (savedPosMs > 0) {
+    if (_savedPosition > Duration.zero) {
       try {
         await _player.stream.duration
             .where((d) => d > Duration.zero)
@@ -1883,7 +2007,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> persistQueue(List<MediaItem> items) async {
-    await _queueRepo.persistQueue(items);
+    await _queueRepo.persistQueue(
+      items,
+      currentIndex: _player.state.playlist.index,
+      shuffleMode: playbackState.value.shuffleMode,
+      repeatMode: playbackState.value.repeatMode,
+    );
   }
 
   Future<void> restoreIfNeeded() => _ensureReady();
@@ -1909,7 +2038,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (queueStructureChanged) {
       queue.add(items);
       if (!_isStopping) {
-        _queueRepo.persistQueue(items);
+        _queueRepo.persistQueue(
+          items,
+          currentIndex: playlist.index,
+          shuffleMode: playbackState.value.shuffleMode,
+          repeatMode: playbackState.value.repeatMode,
+        );
       }
     }
   }

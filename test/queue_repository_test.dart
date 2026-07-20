@@ -40,7 +40,7 @@ void main() {
       ];
 
       // Persist queue
-      await repo.persistQueue(items);
+      await repo.persistQueue(items, currentIndex: 0);
 
       // Restore queue
       final restored = await repo.restoreQueue();

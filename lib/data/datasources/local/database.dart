@@ -10,6 +10,7 @@ import 'tables/downloads_table.dart';
 import 'tables/history_table.dart';
 import 'tables/search_history_table.dart';
 import 'tables/queue_items_table.dart';
+import 'tables/queue_meta_table.dart';
 
 part 'database.g.dart';
 
@@ -25,13 +26,14 @@ part 'database.g.dart';
     History,
     SearchHistory,
     QueueItems,
+    QueueMeta,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -221,6 +223,9 @@ class AppDatabase extends _$AppDatabase {
         // Legacy rows default to 'user' via the column's default value.
         // The queue itself is reset on next startup by
         // [_doRestore] / kPostQueueSplitDone — see [audio_handler.dart].
+      }
+      if (from < 19) {
+        await m.createTable(queueMeta);
       }
     },
   );

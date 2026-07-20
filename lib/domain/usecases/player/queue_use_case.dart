@@ -11,8 +11,11 @@ class QueueUseCase {
 
   QueueUseCase(this._queueRepository);
 
-  Future<void> persistQueue(List<MediaItem> queue) async {
-    await _queueRepository.persistQueue(queue);
+  Future<void> persistQueue(
+    List<MediaItem> queue, {
+    int currentIndex = 0,
+  }) async {
+    await _queueRepository.persistQueue(queue, currentIndex: currentIndex);
   }
 
   Future<void> clearQueue() async {

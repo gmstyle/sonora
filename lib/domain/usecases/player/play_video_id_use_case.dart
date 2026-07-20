@@ -17,6 +17,19 @@ class PlayVideoIdUseCase {
 
   PlayVideoIdUseCase(this._repo, [this._libraryRepo]);
 
+  /// Upper bound for a single stream-URL resolution.
+  ///
+  /// [StreamDatasource.getStreamUrl] retries up to 3 times on a YouTube 429
+  /// (`RequestLimitExceededException`) with a 5s then 15s back-off between
+  /// attempts (~20s of waiting alone, plus the network calls themselves).
+  /// This timeout MUST stay comfortably above that worst case, otherwise the
+  /// caller gives up (and the caller-side code treats it as a hard failure)
+  /// before the datasource's own anti-429 back-off had a chance to succeed —
+  /// which defeats the whole point of the back-off and can even cause a
+  /// pile-up of abandoned-but-still-running requests that make the 429
+  /// situation worse.
+  static const Duration streamUrlTimeout = Duration(seconds: 40);
+
   Future<MediaItem> execute(
     String videoId, {
     bool? isVideoHint,
@@ -64,7 +77,7 @@ class PlayVideoIdUseCase {
     }
 
     // Pre-warm: start stream URL resolution in parallel with metadata fetch
-    final urlFuture = resolveUrl(videoId).timeout(const Duration(seconds: 10));
+    final urlFuture = resolveUrl(videoId).timeout(streamUrlTimeout);
 
     String title, artist, thumbnailUrl;
     int durationSec;
@@ -177,6 +190,6 @@ class PlayVideoIdUseCase {
   /// Resolves only the audio stream URL for [videoId].
   /// Used when metadata (title, artist, etc.) is already available from the UI.
   Future<String> resolveStreamUrl(String videoId) async {
-    return _repo.getStreamUrl(videoId).timeout(const Duration(seconds: 10));
+    return _repo.getStreamUrl(videoId).timeout(streamUrlTimeout);
   }
 }

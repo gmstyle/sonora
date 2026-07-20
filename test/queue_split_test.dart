@@ -60,7 +60,7 @@ void main() {
         ),
       ];
 
-      await repo.persistQueue(items);
+      await repo.persistQueue(items, currentIndex: 0);
       final restored = await repo.restoreQueue();
 
       expect(restored.length, 2);
@@ -85,7 +85,7 @@ void main() {
           ),
         ];
 
-        await repo.persistQueue(items);
+        await repo.persistQueue(items, currentIndex: 0);
         final restored = await repo.restoreQueue();
 
         expect(restored.single.extras?['section'], 'user');
@@ -129,7 +129,7 @@ void main() {
         ),
       ];
 
-      await repo.persistQueue(items);
+      await repo.persistQueue(items, currentIndex: 0);
       final restored = await repo.restoreQueue();
 
       expect(restored.map((it) => it.id).toList(), ['a', 'b', 'c']);
