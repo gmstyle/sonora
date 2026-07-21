@@ -113,6 +113,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isTransitionMuted = false;
   bool _userWantsPlaying = false;
   bool _interruptedByNetworkDrop = false;
+  DateTime? _lastPauseTimestamp;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   Future<void>? _playlistOpenLock;
@@ -326,6 +327,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
         // Prevents mpv from allocating video resources that crash when
         // Android destroys the rendering surface in background.
         await playerPlatform.setProperty('video', 'no');
+
+        // Configure network timeout for remote HTTP streams.
+        // Prevents libmpv from blocking the FFI thread for 60s when a socket dies.
+        await playerPlatform.setProperty('network-timeout', '5');
+        await playerPlatform.setProperty(
+          'demuxer-lavf-o',
+          'timeout=5000000,reconnect=1',
+        );
 
         // Fill audio gaps with silence instead of pausing/clicking on underruns.
         // Prevents crackling when Android throttles network in background.
@@ -973,6 +982,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _userWantsPlaying = true;
     _isStopping = false;
     _playOnInterruptionEnd = false;
+    _lastPauseTimestamp = null;
     await _readyCompleter.future.catchError((_) {});
     if (await _requestAudioFocus()) {
       await _player.play();
@@ -991,6 +1001,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> _pause() async {
     _userWantsPlaying = false;
+    _lastPauseTimestamp = DateTime.now();
     await _player.pause();
     if (_castHandler.castState?.connectionState ==
         CastConnectionState.connected) {
@@ -1006,6 +1017,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> stop() async {
     _userWantsPlaying = false;
+    _lastPauseTimestamp = DateTime.now();
     if (_castHandler.castState?.connectionState ==
         CastConnectionState.connected) {
       try {
@@ -1507,6 +1519,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> onTaskRemoved() async {
+    _lastPauseTimestamp = DateTime.now();
     await _prefs.setInt(
       'last_pause_timestamp',
       DateTime.now().millisecondsSinceEpoch,
@@ -1655,7 +1668,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
         final track = item != null ? QueueTrack.fromMediaItem(item) : null;
         final isDummy = track?.url?.contains('localhost/dummy') == true;
-        if (track != null && !isDummy && !UrlStaleness.isStale(track.url)) {
+        if (track != null &&
+            !isDummy &&
+            !UrlStaleness.isStale(
+              track.url,
+              lastPauseTimestamp: _lastPauseTimestamp,
+            )) {
           _setRestoreStatus(RestoreStatus.ready);
           return;
         }

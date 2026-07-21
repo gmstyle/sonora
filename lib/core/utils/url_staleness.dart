@@ -9,11 +9,20 @@ abstract final class UrlStaleness {
   ///
   /// - `null` or empty → stale
   /// - `file://` → stale if the file no longer exists on disk
-  /// - `http(s)://` → stale if the `expire` query param is absent or in the past
-  static bool isStale(String? url) {
+  /// - `http(s)://` → stale if the `expire` query param is absent or in the past,
+  ///   or if [lastPauseTimestamp] indicates the app was paused for longer than [maxIdleDuration].
+  static bool isStale(
+    String? url, {
+    DateTime? lastPauseTimestamp,
+    Duration maxIdleDuration = const Duration(minutes: 15),
+  }) {
     if (url == null || url.isEmpty) return true;
     if (url.startsWith('file://')) {
       return !File.fromUri(Uri.parse(url)).existsSync();
+    }
+    if (lastPauseTimestamp != null &&
+        DateTime.now().difference(lastPauseTimestamp) > maxIdleDuration) {
+      return true;
     }
     final expireParam = Uri.tryParse(url)?.queryParameters['expire'];
     if (expireParam == null) return true;
