@@ -1,6 +1,6 @@
 name: sonora
 description: A music streaming app.
-version: 1.6.0+40
+version: 1.6.0+41
 publish_to: none
 
 environment:
@@ -95,7 +95,7 @@ dependencies:
   file_picker: ^12.0.0-beta.7
 
   # ── Notifications ────────────────────────────────────────────────
-  flutter_local_notifications: ^22.0.1
+  flutter_local_notifications: ^22.1.0
   flutter_local_notifications_linux: ^8.0.1
   
   # ── Local Synchronization ────────────────────────────────────────
