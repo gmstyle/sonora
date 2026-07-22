@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:collection/collection.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
@@ -31,6 +32,7 @@ class QueueController {
   final AudioServiceShuffleMode Function() _getShuffleMode;
   final AudioServiceRepeatMode Function() _getRepeatMode;
   final void Function(List<MediaItem>) _updateQueueStream;
+  final LocalAudioProxyServer? _proxyServer;
 
   int _queueIdCounter = 0;
   int _resolvingItemCount = 0;
@@ -44,12 +46,14 @@ class QueueController {
     required AudioServiceShuffleMode Function() getShuffleMode,
     required AudioServiceRepeatMode Function() getRepeatMode,
     required void Function(List<MediaItem>) updateQueueStream,
+    LocalAudioProxyServer? proxyServer,
   }) : _player = player,
        _queueRepo = queueRepo,
        _getQueue = getQueue,
        _getShuffleMode = getShuffleMode,
        _getRepeatMode = getRepeatMode,
-       _updateQueueStream = updateQueueStream;
+       _updateQueueStream = updateQueueStream,
+       _proxyServer = proxyServer;
 
   // ── Resolving state ────────────────────────────────────────────────────────
 
@@ -139,6 +143,12 @@ class QueueController {
   Media toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
+    if (_proxyServer != null &&
+        _proxyServer.isRunning &&
+        track.videoId.isNotEmpty) {
+      final proxyUrl = _proxyServer.getStreamUrlForVideo(track.videoId);
+      return Media(proxyUrl, extras: {'mediaItem': tagged});
+    }
     if (track.hasUrl) {
       return Media(track.url!, extras: {'mediaItem': tagged});
     }

@@ -15,6 +15,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/utils/connectivity_utils.dart';
 import '../../../data/services/media_cache_service.dart';
+import '../../../data/services/local_audio_proxy_server.dart';
 
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
@@ -66,6 +67,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
+  final LocalAudioProxyServer? _proxyServer;
   late final PlayAlbumUseCase _playAlbumUseCase;
   late final PlayPlaylistUseCase _playPlaylistUseCase;
   late final PlaySmartMixUseCase _playSmartMixUseCase;
@@ -85,6 +87,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   static final Connectivity _sharedConnectivity = Connectivity();
 
   Player get player => _player;
+  LocalAudioProxyServer? get proxyServer => _proxyServer;
 
   Duration _crossfadeDuration = Duration.zero;
   Duration _lastPosition = Duration.zero;
@@ -190,10 +193,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required PlayVideoIdUseCase playVideoIdUseCase,
     required SharedPreferences prefs,
     required QueueRepository queueRepo,
+    LocalAudioProxyServer? proxyServer,
   }) : _libraryRepo = libraryRepo,
        _playVideoIdUseCase = playVideoIdUseCase,
        _prefs = prefs,
-       _queueRepo = queueRepo {
+       _queueRepo = queueRepo,
+       _proxyServer = proxyServer {
     _playAlbumUseCase = PlayAlbumUseCase(musicRepo);
     _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo);
     _playSmartMixUseCase = PlaySmartMixUseCase(musicRepo);
@@ -232,6 +237,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       getShuffleMode: () => playbackState.value.shuffleMode,
       getRepeatMode: () => playbackState.value.repeatMode,
       updateQueueStream: (items) => queue.add(items),
+      proxyServer: _proxyServer,
     );
 
     _setupAudioSession();

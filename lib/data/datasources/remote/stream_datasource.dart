@@ -64,6 +64,11 @@ class StreamDatasource {
   Future<StreamManifest> getManifest(String videoId) =>
       _scheduler.schedule(() => _yt.videos.streamsClient.getManifest(videoId));
 
+  /// Invalidates in-memory stream URL cache for [videoId].
+  void invalidateCache(String videoId) {
+    _urlCache.remove(videoId);
+  }
+
   void dispose() {
     _yt.close();
   }

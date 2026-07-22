@@ -29,6 +29,7 @@ import 'data/datasources/remote/ytmusic_datasource.dart';
 import 'data/repositories/library_repository_impl.dart';
 import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
+import 'data/services/local_audio_proxy_server.dart';
 import 'data/services/sync_service.dart';
 import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
@@ -77,6 +78,10 @@ Future<void> main() async {
   final db = createAppDatabase();
   final ytmusicDs = YtmusicDatasource();
   final streamDs = StreamDatasource();
+
+  final proxyServer = LocalAudioProxyServer(streamDatasource: streamDs);
+  await proxyServer.start();
+
   final libraryRepo = LibraryRepositoryImpl(
     LibraryDao(db),
     PlaylistsDao(db),
@@ -94,6 +99,7 @@ Future<void> main() async {
     playVideoIdUseCase: playVideoIdUseCase,
     prefs: prefs,
     queueRepo: queueRepo,
+    proxyServer: proxyServer,
   );
 
   if (isAndroid || isLinux) {
