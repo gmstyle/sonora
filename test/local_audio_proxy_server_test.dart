@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
 import 'package:sonora/data/datasources/remote/stream_datasource.dart';
 import 'package:sonora/data/services/local_audio_proxy_server.dart';
 
@@ -23,14 +24,17 @@ void main() {
   group('LocalAudioProxyServer', () {
     late MockStreamDatasource mockStreamDs;
     late LocalAudioProxyServer proxyServer;
+    late HttpClient httpClient;
 
     setUp(() async {
       mockStreamDs = MockStreamDatasource();
       proxyServer = LocalAudioProxyServer(streamDatasource: mockStreamDs);
       await proxyServer.start();
+      httpClient = HttpClient();
     });
 
     tearDown(() async {
+      httpClient.close();
       await proxyServer.stop();
     });
 
@@ -53,11 +57,13 @@ void main() {
     });
 
     test('Missing videoId returns 400 Bad Request', () async {
-      final res = await http.get(
+      final req = await httpClient.getUrl(
         Uri.parse('http://127.0.0.1:${proxyServer.port}/stream'),
       );
+      final res = await req.close();
+      final body = await res.transform(utf8.decoder).join();
       expect(res.statusCode, equals(400));
-      expect(res.body, contains('Missing videoId parameter'));
+      expect(body, contains('Missing videoId parameter'));
     });
   });
 }

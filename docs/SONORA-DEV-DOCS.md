@@ -69,6 +69,8 @@ lib/
 │   │   └── queue_repository_impl.dart
 │   └── services/
 │       ├── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
+│       ├── local_audio_proxy_server.dart # 127.0.0.1 loopback HTTP proxy server (shelf) for stream resilience & 429 retry
+│       ├── media_cache_service.dart    # LRU disk cache service (500MB max limit)
 │       └── sync_service.dart           # P2P local synchronization service
 ├── domain/
 │   ├── models/
@@ -291,8 +293,36 @@ Extends `BaseAudioHandler` from `audio_service`. It coordinates local playback, 
 - `PlayVideoIdUseCase` — for URL resolution + getVideo fallback
 - `Connectivity` — single shared instance to detect connection state without redundant platform channels
 
-**Media Player:**
-Uses `media_kit` for cross-platform audio and video playback. Includes disk caching for network streams configured natively on `NativePlayer` platform backends, writing cache chunks to the temporary directory `sonora_stream_cache` with a maximum limit of `100MB` for buffer and `50MB` for back-buffer.
+**Media Player & Local HTTP Proxy Architecture:**
+
+Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoupled from remote networks via a dedicated loopback HTTP Proxy Server (`LocalAudioProxyServer` built with `shelf`).
+
+```
+┌─────────────────┐       HTTP Loopback       ┌────────────────────────┐
+│    media_kit    │ ────────────────────────> │ LocalAudioProxyServer  │
+│    (libmpv)     │  http://127.0.0.1:PORT/   │     (Shelf / Dart)     │
+└─────────────────┘                           └───────────┬────────────┘
+                                                          │
+                                     ┌────────────────────┴────────────────────┐
+                                     ▼                                         ▼
+                         ┌───────────────────────┐                 ┌───────────────────────┐
+                         │   Local Disk Cache    │                 │    YouTube Music      │
+                         │ (MediaCacheService)   │                 │ (StreamDatasource +   │
+                         └───────────────────────┘                 │ RequestScheduler)     │
+                                                                   └───────────────────────┘
+```
+
+- **`LocalAudioProxyServer` (`local_audio_proxy_server.dart`)**:
+  - Runs locally on `127.0.0.1` using a dynamic ephemeral port assigned by the OS at startup.
+  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>`.
+  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage.
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource` and `YoutubeRequestScheduler`.
+  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache, resolves a fresh YouTube URL, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
+  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit).
+
+- **Dual-Path Playback Architecture:**
+  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
+  - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback. Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs.
 
 **Lazy URL Resolution (Adaptive Lookahead):**
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When `currentIndexStream` changes, `_resolvePendingItems` resolves the URL for the current item (`currentIndex`) and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background `_lookaheadTimer` triggers to pre-resolve `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
@@ -304,7 +334,7 @@ Related Items (up-next/auto-play) are added to the queue as **pending** (`extras
 - **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
 
 **Auto-skip on error:**
-If the stream URL expires or fails, the handler retries with a fresh URL. If the retry also fails, it auto-skips to the next song and notifies via `_onPlayErrorController`.
+If the stream URL expires or fails after 3 proxy retries, the handler auto-skips to the next song and notifies via `_onPlayErrorController`.
 
 **Crossfade:**
 Implemented via volume fade-in/fade-out in the `_handleCrossfade` listener. Duration configurable via `Settings.crossfadeSeconds`.
@@ -751,12 +781,13 @@ Produces:
 |---|---|---|
 | `test/daos_test.dart` | ~65 | All DAOs with upsert, edge cases |
 | `test/library_repository_test.dart` | ~35 | Toggle, mapping, CRUD |
+| `test/local_audio_proxy_server_test.dart` | ~3 | Loopback server startup, port allocation, query validation |
 | `test/player_state_test.dart` | ~8 | PlayerState + Settings base |
 | `test/settings_provider_test.dart` | ~20 | Settings model + all 10 setters |
 | `test/widget_test.dart` | 1 | App bootstrap smoke test |
 | `test/ytmusic_datasource_test.dart` | ~6 | Live network: search, suggestions, reinitialize |
 
-**Total**: 124 tests — all passing.
+**Total**: 149 tests — all passing.
 
 ### 13.2 Commands
 
