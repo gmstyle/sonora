@@ -986,13 +986,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = false;
     _playOnInterruptionEnd = false;
     _lastPauseTimestamp = null;
-    await _readyCompleter.future.catchError((_) {});
+
+    if (!_player.state.playing) {
+      _updateState(
+        (s) => s.copyWith(processingState: AudioProcessingState.buffering),
+      );
+    }
+
+    await _readyCompleter.future
+        .timeout(const Duration(seconds: 3), onTimeout: () {})
+        .catchError((_) {});
+
     if (await _requestAudioFocus()) {
       await _player.play();
       if (_castHandler.castState?.connectionState ==
           CastConnectionState.connected) {
         await _castHandler.castService?.play();
       }
+    } else {
+      _userWantsPlaying = false;
+      _lastEmittedProcessingState = null;
+      _lastEmittedPlaying = null;
+      _updatePlaybackState();
     }
   }
 
@@ -1053,7 +1068,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToNext() async {
-    await _readyCompleter.future.catchError((_) {});
+    await _readyCompleter.future
+        .timeout(const Duration(seconds: 3), onTimeout: () {})
+        .catchError((_) {});
 
     final len = _player.state.playlist.medias.length;
     if (len == 0) return;
@@ -1091,7 +1108,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToPrevious() async {
-    await _readyCompleter.future.catchError((_) {});
+    await _readyCompleter.future
+        .timeout(const Duration(seconds: 3), onTimeout: () {})
+        .catchError((_) {});
 
     final len = _player.state.playlist.medias.length;
     if (len == 0) return;
@@ -1130,7 +1149,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    await _readyCompleter.future.catchError((_) {});
+    _updateState(
+      (s) => s.copyWith(processingState: AudioProcessingState.buffering),
+    );
+
+    await _readyCompleter.future
+        .timeout(const Duration(seconds: 3), onTimeout: () {})
+        .catchError((_) {});
 
     final playlist = _player.state.playlist;
     if (index < 0 || index >= playlist.medias.length) return;
