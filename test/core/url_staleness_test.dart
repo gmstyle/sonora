@@ -16,8 +16,7 @@ void main() {
     });
 
     test('returns true for expired HTTP url', () {
-      final pastExpire =
-          (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 3600;
+      final pastExpire = (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 3600;
       final url = 'https://googlevideo.com/videoplayback?expire=$pastExpire';
       expect(UrlStaleness.isStale(url), isTrue);
     });
@@ -28,10 +27,7 @@ void main() {
       final url = 'https://googlevideo.com/videoplayback?expire=$futureExpire';
       final oldPause = DateTime.now().subtract(const Duration(minutes: 20));
 
-      expect(
-        UrlStaleness.isStale(url, lastPauseTimestamp: oldPause),
-        isTrue,
-      );
+      expect(UrlStaleness.isStale(url, lastPauseTimestamp: oldPause), isTrue);
     });
 
     test('returns false when lastPauseTimestamp is recent', () {
