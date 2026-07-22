@@ -277,7 +277,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
           switch (event.type) {
             case AudioInterruptionType.pause:
             case AudioInterruptionType.unknown:
-              _playOnInterruptionEnd = _player.state.playing;
+              // Only mark for auto-resume if the user actually wants playback active.
+              // If the user explicitly paused (e.g. via earbud tap), _userWantsPlaying is false.
+              _playOnInterruptionEnd =
+                  _userWantsPlaying && _player.state.playing;
               _pause();
               break;
             case AudioInterruptionType.duck:
@@ -288,7 +291,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           switch (event.type) {
             case AudioInterruptionType.pause:
             case AudioInterruptionType.unknown:
-              if (_playOnInterruptionEnd) {
+              if (_playOnInterruptionEnd && _userWantsPlaying) {
                 play();
               }
               _playOnInterruptionEnd = false;
