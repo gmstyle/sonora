@@ -309,6 +309,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
       });
       session.becomingNoisyEventStream.listen((_) {
+        dev.log(
+          '[AudioHandler] Headphones unplugged / Becoming Noisy -> pausing playback',
+        );
+        _playOnInterruptionEnd = false;
         pause();
       });
     } catch (e) {
@@ -822,14 +826,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
           currentItem != null ? QueueTrack.fromMediaItem(currentItem) : null;
       if (currentTrack?.videoId != videoId) return;
       if (!forceResolve && currentTrack?.needsUrl != true) return;
+      // Abort background pre-fetch if the user has skipped past this item.
+      if (!isCurrent && playlist2.index > index) return;
 
       final updatedItem = track
           .copyWith(url: url, needsUrl: false)
           .toMediaItem(currentItem ?? item);
-      final updatedMedia = Media(
-        url,
-        extras: {...?currentMedia.extras, 'mediaItem': updatedItem},
-      );
+      final updatedMedia = _queueController.toMedia(updatedItem);
 
       if (_castHandler.castState?.connectionState ==
           CastConnectionState.connected) {
@@ -1598,7 +1601,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           .toMediaItem(currentItem);
       final currentIndex = _player.state.playlist.index;
 
-      final updatedMedia = Media(freshUrl, extras: {'mediaItem': updatedItem});
+      final updatedMedia = _queueController.toMedia(updatedItem);
 
       final wasPlaying = _player.state.playing || _userWantsPlaying;
       final currentPos = _player.state.position;
