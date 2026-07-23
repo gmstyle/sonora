@@ -108,7 +108,6 @@ Future<void> main() async {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.sonora.music.channel',
         androidNotificationChannelName: 'Sonora',
-        androidNotificationOngoing: false,
         androidStopForegroundOnPause: false,
         artDownscaleWidth: 256,
         artDownscaleHeight: 256,
@@ -117,8 +116,6 @@ Future<void> main() async {
           'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 2,
           'android.media.browse.SEARCH_SUPPORTED': true,
         },
-        fastForwardInterval: Duration(seconds: 10),
-        rewindInterval: Duration(seconds: 10),
       ),
     );
   }
