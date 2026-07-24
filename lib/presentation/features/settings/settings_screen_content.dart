@@ -332,6 +332,14 @@ class _PlaybackSection extends ConsumerWidget {
         ),
         const Divider(height: 1),
         SettingsSwitchTile(
+          title: l10n.enableVideoPlayback,
+          subtitle: l10n.enableVideoPlaybackHint,
+          value: settings.enableVideoPlayback,
+          onChanged: notifier.setEnableVideoPlayback,
+          icon: LucideIcons.video,
+        ),
+        const Divider(height: 1),
+        SettingsSwitchTile(
           title: l10n.autoPlayUpNext,
           subtitle: l10n.autoPlayUpNextHint,
           value: settings.autoPlayUpNext,
@@ -617,6 +625,7 @@ class _BackupSection extends StatelessWidget {
         'crossfadeSeconds': settings.crossfadeSeconds,
         'restoreQueueOnStartup': settings.restoreQueueOnStartup,
         'autoPlayUpNext': settings.autoPlayUpNext,
+        'enableVideoPlayback': settings.enableVideoPlayback,
         'downloadOnlyOnWifi': settings.downloadOnlyOnWifi,
         'trackHistory': settings.trackHistory,
         'checkUpdatesOnStartup': settings.checkUpdatesOnStartup,
@@ -753,6 +762,11 @@ class _BackupSection extends StatelessWidget {
         if (importedSettings.containsKey('autoPlayUpNext')) {
           notifier.setAutoPlayUpNext(
             importedSettings['autoPlayUpNext'] as bool,
+          );
+        }
+        if (importedSettings.containsKey('enableVideoPlayback')) {
+          notifier.setEnableVideoPlayback(
+            importedSettings['enableVideoPlayback'] as bool,
           );
         }
         if (importedSettings.containsKey('downloadOnlyOnWifi')) {

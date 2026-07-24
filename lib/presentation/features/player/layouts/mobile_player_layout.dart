@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/player_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/lyrics_view.dart';
 import '../widgets/queue_sheet.dart';
@@ -58,8 +59,15 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final videoState = ref.watch(videoPlayerProvider);
+    final enableVideoPlayback = ref.watch(
+      settingsProvider.select((s) => s.enableVideoPlayback),
+    );
     final isVideoActive =
-        widget.isVideo && videoState.isVideoVisible && videoState.isInitialized;
+        widget.isVideo &&
+        shouldShowVideoPlayer(
+          enableVideoPlayback: enableVideoPlayback,
+          videoState: videoState,
+        );
 
     return SafeArea(
       child: GestureDetector(

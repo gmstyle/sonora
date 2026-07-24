@@ -926,6 +926,30 @@ abstract class AppLocalizations {
   /// **'Automatically play related content when queue ends'**
   String get autoPlayUpNextHint;
 
+  /// No description provided for @enableVideoPlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Play video'**
+  String get enableVideoPlayback;
+
+  /// No description provided for @enableVideoPlaybackHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Show music videos in the player. When disabled, only audio is played.'**
+  String get enableVideoPlaybackHint;
+
+  /// No description provided for @hideVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide video'**
+  String get hideVideo;
+
+  /// No description provided for @showVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Show video'**
+  String get showVideo;
+
   /// No description provided for @downloadsSettings.
   ///
   /// In en, this message translates to:

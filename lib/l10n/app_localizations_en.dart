@@ -494,6 +494,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically play related content when queue ends';
 
   @override
+  String get enableVideoPlayback => 'Play video';
+
+  @override
+  String get enableVideoPlaybackHint =>
+      'Show music videos in the player. When disabled, only audio is played.';
+
+  @override
+  String get hideVideo => 'Hide video';
+
+  @override
+  String get showVideo => 'Show video';
+
+  @override
   String get downloadsSettings => 'Downloads';
 
   @override

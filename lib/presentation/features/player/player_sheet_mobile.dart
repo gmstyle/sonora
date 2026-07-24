@@ -280,7 +280,14 @@ class _MiniArtwork extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final videoState = ref.watch(videoPlayerProvider);
-    if (isVideo && videoState.isVideoVisible && videoState.isInitialized) {
+    final enableVideoPlayback = ref.watch(
+      settingsProvider.select((s) => s.enableVideoPlayback),
+    );
+    if (isVideo &&
+        shouldShowVideoPlayer(
+          enableVideoPlayback: enableVideoPlayback,
+          videoState: videoState,
+        )) {
       return SonoraVideoPlayer(
         width: size,
         height: size,

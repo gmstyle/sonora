@@ -8,6 +8,15 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../domain/models/queue_track.dart';
 import 'player_provider.dart';
+import 'settings_provider.dart';
+
+bool shouldShowVideoPlayer({
+  required bool enableVideoPlayback,
+  required VideoPlayerState videoState,
+}) =>
+    enableVideoPlayback &&
+    videoState.isVideoVisible &&
+    videoState.isInitialized;
 
 class VideoPlayerState {
   final VideoController? controller;
@@ -22,7 +31,7 @@ class VideoPlayerState {
 
   const VideoPlayerState({
     this.controller,
-    this.isVideoVisible = true,
+    this.isVideoVisible = false,
     this.isInitialized = false,
     this.isLoading = false,
     this.hasError = false,
@@ -71,6 +80,16 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
   VideoPlayerState build() {
     _playbackSub = ref.listen(playerStateProvider, (prev, next) {
       _onPlayerStateChanged(next);
+    });
+
+    ref.listen(settingsProvider.select((s) => s.enableVideoPlayback), (
+      prev,
+      next,
+    ) {
+      if (next && prev == false) {
+        state = state.copyWith(isVideoVisible: true);
+      }
+      _updateVideoTrack();
     });
 
     ref.onDispose(() {
@@ -163,8 +182,11 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
   void _updateVideoTrack({bool forceKick = false}) {
     final currentVideoTrack = _player.state.track.video;
     final isNone = currentVideoTrack.id == 'no';
+    final enableVideoPlayback = ref.read(
+      settingsProvider.select((s) => s.enableVideoPlayback),
+    );
 
-    if (state.isVideoVisible && _lastVideoId != null) {
+    if (enableVideoPlayback && state.isVideoVisible && _lastVideoId != null) {
       if (isNone || (Platform.isLinux && forceKick)) {
         // On Linux, a rapid toggle from no to auto often kicks the VO into
         // correctly attaching the texture when the initial open/restore
@@ -172,7 +194,9 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
         if (Platform.isLinux) {
           _player.setVideoTrack(VideoTrack.no());
           Future.delayed(const Duration(milliseconds: 1000), () {
-            if (state.isVideoVisible && _lastVideoId != null) {
+            if (ref.read(settingsProvider).enableVideoPlayback &&
+                state.isVideoVisible &&
+                _lastVideoId != null) {
               _player.setVideoTrack(VideoTrack.auto());
 
               // Force a redraw if paused by nudging the position with a double-seek.

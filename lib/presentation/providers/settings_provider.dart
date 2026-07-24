@@ -21,6 +21,7 @@ class Settings {
   final int crossfadeSeconds;
   final bool restoreQueueOnStartup;
   final bool autoPlayUpNext;
+  final bool enableVideoPlayback;
   final String? downloadPath;
   final bool downloadOnlyOnWifi;
   final bool trackHistory;
@@ -42,6 +43,7 @@ class Settings {
     this.crossfadeSeconds = 2,
     this.restoreQueueOnStartup = true,
     this.autoPlayUpNext = true,
+    this.enableVideoPlayback = false,
     this.downloadPath,
     this.downloadOnlyOnWifi = false,
     this.trackHistory = true,
@@ -64,6 +66,7 @@ class Settings {
     int? crossfadeSeconds,
     bool? restoreQueueOnStartup,
     bool? autoPlayUpNext,
+    bool? enableVideoPlayback,
     String? downloadPath,
     bool? downloadOnlyOnWifi,
     bool? trackHistory,
@@ -87,6 +90,7 @@ class Settings {
       restoreQueueOnStartup:
           restoreQueueOnStartup ?? this.restoreQueueOnStartup,
       autoPlayUpNext: autoPlayUpNext ?? this.autoPlayUpNext,
+      enableVideoPlayback: enableVideoPlayback ?? this.enableVideoPlayback,
       downloadPath:
           clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
       downloadOnlyOnWifi: downloadOnlyOnWifi ?? this.downloadOnlyOnWifi,
@@ -122,6 +126,7 @@ class SettingsNotifier extends Notifier<Settings> {
       crossfadeSeconds: _prefs.getInt(kCrossfadeSecondsKey) ?? 2,
       restoreQueueOnStartup: _prefs.getBool(kRestoreQueueKey) ?? true,
       autoPlayUpNext: _prefs.getBool(kAutoPlayUpNextKey) ?? true,
+      enableVideoPlayback: _prefs.getBool(kEnableVideoPlaybackKey) ?? false,
       downloadPath: _prefs.getString(kDownloadPathKey),
       downloadOnlyOnWifi: _prefs.getBool(kDownloadWifiKey) ?? false,
       trackHistory: _prefs.getBool(kTrackHistoryKey) ?? true,
@@ -146,6 +151,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setInt(kCrossfadeSecondsKey, state.crossfadeSeconds);
     await _prefs.setBool(kRestoreQueueKey, state.restoreQueueOnStartup);
     await _prefs.setBool(kAutoPlayUpNextKey, state.autoPlayUpNext);
+    await _prefs.setBool(kEnableVideoPlaybackKey, state.enableVideoPlayback);
     if (state.downloadPath != null) {
       await _prefs.setString(kDownloadPathKey, state.downloadPath!);
     } else {
@@ -213,6 +219,11 @@ class SettingsNotifier extends Notifier<Settings> {
 
   Future<void> setAutoPlayUpNext(bool value) async {
     state = state.copyWith(autoPlayUpNext: value);
+    await _save();
+  }
+
+  Future<void> setEnableVideoPlayback(bool value) async {
+    state = state.copyWith(enableVideoPlayback: value);
     await _save();
   }
 
@@ -288,6 +299,7 @@ const kPlaylistConflictStrategyKey = 'playlistConflictStrategy';
 const kCrossfadeSecondsKey = 'crossfadeSeconds';
 const kRestoreQueueKey = 'restoreQueueOnStartup';
 const kAutoPlayUpNextKey = 'autoPlayUpNext';
+const kEnableVideoPlaybackKey = 'enableVideoPlayback';
 const kDownloadPathKey = 'downloadPath';
 const kDownloadWifiKey = 'downloadOnlyOnWifi';
 const kTrackHistoryKey = 'trackHistory';

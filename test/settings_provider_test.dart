@@ -16,6 +16,7 @@ void main() {
       expect(settings.crossfadeSeconds, 2);
       expect(settings.restoreQueueOnStartup, true);
       expect(settings.autoPlayUpNext, true);
+      expect(settings.enableVideoPlayback, false);
       expect(settings.downloadPath, isNull);
       expect(settings.downloadOnlyOnWifi, false);
       expect(settings.trackHistory, true);
@@ -100,6 +101,7 @@ void main() {
       expect(settings.crossfadeSeconds, 2);
       expect(settings.restoreQueueOnStartup, true);
       expect(settings.autoPlayUpNext, true);
+      expect(settings.enableVideoPlayback, false);
       expect(settings.downloadPath, isNull);
       expect(settings.downloadOnlyOnWifi, false);
       expect(settings.trackHistory, true);
@@ -225,6 +227,21 @@ void main() {
       await container.read(settingsProvider.notifier).setAutoPlayUpNext(false);
       expect(container.read(settingsProvider).autoPlayUpNext, false);
       expect(prefs.getBool(kAutoPlayUpNextKey), false);
+    });
+
+    test('setEnableVideoPlayback updates state and persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setEnableVideoPlayback(true);
+      expect(container.read(settingsProvider).enableVideoPlayback, true);
+      expect(prefs.getBool(kEnableVideoPlaybackKey), true);
     });
 
     test('setDownloadPath updates state and persists', () async {

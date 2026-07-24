@@ -16,6 +16,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../providers/video_player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/explicit_badge.dart';
@@ -428,7 +429,8 @@ Widget buildBottomActionsRow(
         color: theme.colorScheme.onSurfaceVariant,
       ),
       CastButton(size: iconSize, color: theme.colorScheme.onSurfaceVariant),
-      if (isVideo) ...[
+      if (isVideo &&
+          ref.watch(settingsProvider.select((s) => s.enableVideoPlayback))) ...[
         Builder(
           builder: (context) {
             final videoState = ref.watch(videoPlayerProvider);
@@ -446,7 +448,10 @@ Widget buildBottomActionsRow(
               onPressed: () {
                 ref.read(videoPlayerProvider.notifier).toggleVisibility();
               },
-              tooltip: videoState.isVideoVisible ? 'Hide video' : 'Show video',
+              tooltip:
+                  videoState.isVideoVisible
+                      ? AppLocalizations.of(context)!.hideVideo
+                      : AppLocalizations.of(context)!.showVideo,
             );
           },
         ),

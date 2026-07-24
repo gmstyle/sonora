@@ -497,6 +497,19 @@ class AppLocalizationsIt extends AppLocalizations {
       'Riproduci automaticamente contenuti correlati quando la coda termina';
 
   @override
+  String get enableVideoPlayback => 'Riproduci video';
+
+  @override
+  String get enableVideoPlaybackHint =>
+      'Mostra i video musicali nel player. Con disattivato, solo audio.';
+
+  @override
+  String get hideVideo => 'Nascondi video';
+
+  @override
+  String get showVideo => 'Mostra video';
+
+  @override
   String get downloadsSettings => 'Download';
 
   @override
