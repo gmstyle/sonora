@@ -1124,6 +1124,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final len = _player.state.playlist.medias.length;
     if (len == 0) return;
 
+    // Standard behavior: if we've played more than 3 seconds of the current track,
+    // "skip previous" just restarts the current track.
+    if (_player.state.position.inSeconds >= 3) {
+      await seek(Duration.zero);
+      return;
+    }
+
     final currentIndex = _player.state.playlist.index;
     int currentTarget = _targetSkipIndex ?? currentIndex;
     if (currentTarget < 0 || currentTarget >= len) {
@@ -1145,6 +1152,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (prevIndex < 0) {
         prevIndex = repeatAll ? len - 1 : 0;
       }
+    }
+
+    // If the calculated previous index is the same as the current one
+    // (e.g. at the start of the queue with repeat-all off), just restart.
+    if (prevIndex == currentIndex) {
+      await seek(Duration.zero);
+      return;
     }
 
     _targetSkipIndex = prevIndex;
