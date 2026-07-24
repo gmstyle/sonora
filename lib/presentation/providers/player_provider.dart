@@ -260,11 +260,23 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       );
     }
 
+    // Seed duration from the player's synchronous state so the seekbar
+    // is correct even if the broadcast duration stream's latest emission
+    // arrived before _durationSub subscribes (broadcast streams do not
+    // replay the last value).
+    final playerDuration = _handler.player.state.duration;
+    if (playerDuration > Duration.zero) {
+      initialState = initialState.copyWith(duration: playerDuration);
+    }
+
+    final playerPosition = _handler.player.state.position;
     if (_handler.currentRestoreStatus == RestoreStatus.restoring) {
       initialState = initialState.copyWith(
         isRestoring: true,
         position: _handler.savedPosition,
       );
+    } else if (playerPosition > Duration.zero) {
+      initialState = initialState.copyWith(position: playerPosition);
     }
 
     var isDisposed = false;
