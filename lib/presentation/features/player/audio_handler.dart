@@ -336,11 +336,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await playerPlatform.setProperty('demuxer-max-bytes', '20971520');
         await playerPlatform.setProperty('demuxer-max-back-bytes', '10485760');
 
-        // Disable video decoding for audio-only playback.
-        // Prevents mpv from allocating video resources that crash when
-        // Android destroys the rendering surface in background.
-        await playerPlatform.setProperty('video', 'no');
-
         // Configure network timeout for remote HTTP streams.
         // Prevents libmpv from blocking the FFI thread for 60s when a socket dies.
         await playerPlatform.setProperty('network-timeout', '5');
@@ -352,6 +347,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
         // Fill audio gaps with silence instead of pausing/clicking on underruns.
         // Prevents crackling when Android throttles network in background.
         await playerPlatform.setProperty('audio-stream-silence', 'yes');
+
+        if (Platform.isLinux) {
+          await playerPlatform.setProperty('hwdec', 'auto-safe');
+          await playerPlatform.setProperty('vo', 'libmpv');
+        }
 
         dev.log(
           '[AudioHandler] Stream caching configured at: ${cacheDir.path}',
@@ -1890,6 +1890,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       index: savedIndex,
     );
     _userWantsPlaying = false;
+
     // Open with play: true to trigger stream decoding (needed for the player
     // to report duration on streaming URLs). We pause right after the seek.
     await _player.open(restoredPlaylist, play: true);

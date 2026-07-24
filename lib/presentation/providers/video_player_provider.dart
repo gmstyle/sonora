@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as dev;
+import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,8 +61,7 @@ class VideoPlayerState {
   }
 }
 
-class VideoPlayerNotifier extends Notifier<VideoPlayerState>
-    with WidgetsBindingObserver {
+class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
   Player get _player => ref.read(audioHandlerProvider).player;
   StreamSubscription<VideoParams>? _videoParamsSub;
   String? _lastVideoId;
@@ -70,14 +70,11 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
 
   @override
   VideoPlayerState build() {
-    WidgetsBinding.instance.addObserver(this);
-
     _playbackSub = ref.listen(playerStateProvider, (prev, next) {
       _onPlayerStateChanged(next);
     });
 
     ref.onDispose(() {
-      WidgetsBinding.instance.removeObserver(this);
       _playbackSub?.close();
       _videoParamsSub?.cancel();
       _controller = null;
@@ -93,29 +90,6 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
     return const VideoPlayerState();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      try {
-        _player.setVideoTrack(VideoTrack.no());
-        _setVideoDecoding(false);
-        dev.log(
-          '[VideoPlayerNotifier] App in background: disabled video tracking/decoding',
-        );
-      } catch (e) {
-        dev.log(
-          '[VideoPlayerNotifier] Failed to disable video in background: $e',
-        );
-      }
-    } else if (state == AppLifecycleState.resumed) {
-      dev.log(
-        '[VideoPlayerNotifier] App resumed: restoring video tracking/decoding if needed',
-      );
-      _onPlayerStateChanged(ref.read(playerStateProvider));
-    }
-  }
-
   void _ensureInitialized() {
     if (_controller != null) {
       if (!state.isInitialized) {
@@ -125,7 +99,7 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
     }
     _controller = VideoController(
       _player,
-      configuration: VideoControllerConfiguration(
+      configuration: const VideoControllerConfiguration(
         androidAttachSurfaceAfterVideoParameters: false,
       ),
     );
@@ -142,7 +116,6 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
         _videoParamsSub?.cancel();
         _videoParamsSub = null;
         _player.setVideoTrack(VideoTrack.no());
-        _setVideoDecoding(false);
         state = state.copyWith(
           isInitialized: false,
           isLoading: false,
@@ -153,10 +126,13 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
     }
 
     _ensureInitialized();
-    _setVideoDecoding(true);
 
     final videoId = currentSong?.id;
-    if (videoId != _lastVideoId) {
+    final videoChanged = videoId != _lastVideoId;
+    final loadingChanged = next.isLoading != state.isLoading;
+    final finishedLoading = !next.isLoading && state.isLoading;
+
+    if (videoChanged || loadingChanged) {
       _lastVideoId = videoId;
       final url =
           currentSong != null
@@ -178,32 +154,54 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
           state = state.copyWith(videoWidth: w, videoHeight: h);
         }
       });
-    } else {
-      state = state.copyWith(isLoading: next.isLoading);
-    }
 
-    _updateVideoTrack();
-  }
-
-  void _updateVideoTrack() {
-    if (state.isVideoVisible && _lastVideoId != null) {
-      _player.setVideoTrack(VideoTrack.auto());
-    } else {
-      _player.setVideoTrack(VideoTrack.no());
-    }
-  }
-
-  /// Toggle mpv video decoding subsystem.
-  /// When disabled (`video=no`), mpv won't allocate video decoding resources,
-  /// preventing crashes when Android destroys the rendering surface in background.
-  void _setVideoDecoding(bool enabled) {
-    try {
-      final platform = _player.platform;
-      if (platform is NativePlayer) {
-        platform.setProperty('video', enabled ? 'auto' : 'no');
+      if (videoId != null && (videoChanged || finishedLoading)) {
+        _updateVideoTrack(forceKick: finishedLoading);
       }
-    } catch (e) {
-      dev.log('[VideoPlayerNotifier] Failed to set video decoding: $e');
+    }
+  }
+
+  void _updateVideoTrack({bool forceKick = false}) {
+    final currentVideoTrack = _player.state.track.video;
+    final isNone = currentVideoTrack.id == 'no';
+
+    if (state.isVideoVisible && _lastVideoId != null) {
+      if (isNone || (Platform.isLinux && forceKick)) {
+        // On Linux, a rapid toggle from no to auto often kicks the VO into
+        // correctly attaching the texture when the initial open/restore
+        // left it black.
+        if (Platform.isLinux) {
+          _player.setVideoTrack(VideoTrack.no());
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (state.isVideoVisible && _lastVideoId != null) {
+              _player.setVideoTrack(VideoTrack.auto());
+
+              // Force a redraw if paused by nudging the position with a double-seek.
+              // This is an aggressive strategy to ensure mpv pushes a frame to the
+              // Flutter texture even when paused.
+              if (!_player.state.playing) {
+                final currentPos = _player.state.position;
+                _player.seek(currentPos + const Duration(milliseconds: 1));
+                Future.delayed(const Duration(milliseconds: 50), () {
+                  _player.seek(currentPos);
+                });
+              }
+
+              dev.log(
+                '[VideoPlayerNotifier] Linux Frame Force: setVideoTrack(auto) (force=$forceKick)',
+              );
+            }
+          });
+        } else {
+          _player.setVideoTrack(VideoTrack.auto());
+          dev.log('[VideoPlayerNotifier] setVideoTrack(auto)');
+        }
+      }
+    } else {
+      if (!isNone) {
+        _player.setVideoTrack(VideoTrack.no());
+        dev.log('[VideoPlayerNotifier] setVideoTrack(no)');
+      }
     }
   }
 
