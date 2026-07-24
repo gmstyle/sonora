@@ -1,6 +1,6 @@
 name: sonora
 description: A music streaming app.
-version: 1.6.0+41
+version: 1.6.0+42
 publish_to: none
 
 environment:
@@ -54,14 +54,14 @@ dependencies:
 
   # ── Download ─────────────────────────────────────────────────
   dio: ^5.9.2
-  connectivity_plus: ^7.3.0
+  connectivity_plus: ^7.3.1
 
   # ── Images ──────────────────────────────────────────────────
   cached_network_image: ^3.4.1
   flutter_svg: ^2.3.0
 
   # ── Sharing ───────────────────────────────────────────────────
-  share_plus: ^13.2.1
+  share_plus: ^13.3.0
 
   # ── App Info & Update Check ───────────────────────────────────
   package_info_plus: ^10.2.1
