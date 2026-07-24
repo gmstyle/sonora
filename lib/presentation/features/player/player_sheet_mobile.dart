@@ -296,7 +296,7 @@ class _MiniArtwork extends ConsumerWidget {
         showControls: false,
       );
     }
-    if (useVinylStyle && !isVideo) {
+    if (useVinylStyle) {
       return VinylArtwork(
         imageUrl: artUrl,
         size: size,

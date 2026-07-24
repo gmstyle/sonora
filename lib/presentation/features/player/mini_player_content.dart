@@ -588,7 +588,7 @@ class MiniPlayerContent extends ConsumerWidget {
     final useVinylStyle = ref.watch(
       settingsProvider.select((s) => s.useVinylStyle),
     );
-    if (useVinylStyle && !isVideo) {
+    if (useVinylStyle) {
       return VinylArtwork(
         imageUrl: currentSong.artUri?.toString(),
         size: size,
