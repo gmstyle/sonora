@@ -31,6 +31,7 @@ import 'audio_session_controller.dart';
 import 'like_controller.dart';
 import 'player_engine_configurator.dart';
 import 'player_media_controls.dart';
+import 'playback_volume_controller.dart';
 import 'queue_controller.dart';
 
 import '../../../domain/models/queue_section.dart';
@@ -71,6 +72,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final AudioSessionController _audioSessionController;
   late final PlayerEngineConfigurator _engineConfigurator;
   late final LikeController _likeController;
+  late final PlaybackVolumeController _volumeController;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -79,10 +81,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Player get player => _player;
   LocalAudioProxyServer? get proxyServer => _proxyServer;
 
-  Duration _crossfadeDuration = Duration.zero;
   Duration _lastPosition = Duration.zero;
-  bool _isFadingIn = false;
-  double _lastSetVolume = 1.0;
   int _retryCount = 0;
   bool _isRetrying = false;
   // Tracks the videoId of the last retried track so we can reset _retryCount
@@ -100,7 +99,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isGoingBackward = false;
   Timer? _lookaheadTimer;
   int? _targetSkipIndex;
-  bool _isTransitionMuted = false;
   bool _userWantsPlaying = false;
   bool _interruptedByNetworkDrop = false;
   DateTime? _lastPauseTimestamp;
@@ -162,12 +160,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _onPlayErrorController.stream;
 
   // Expose internals for delegate handlers
-  double get lastSetVolume => _lastSetVolume;
+  double get lastSetVolume => _volumeController.lastSetVolume;
   bool get userWantsPlaying => _userWantsPlaying;
   PlayVideoIdUseCase get playVideoIdUseCase => _playVideoIdUseCase;
 
   void setLocalVolume(double volume, {bool force = false}) =>
-      _setLocalVolume(volume, force: force);
+      _volumeController.setLocalVolume(volume, force: force);
 
   SonoraAudioHandler({
     required MusicRepository musicRepo,
@@ -209,18 +207,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
 
     _engineConfigurator = PlayerEngineConfigurator(player: _player);
+    _volumeController = PlaybackVolumeController(
+      player: _player,
+      isCastConnected:
+          () =>
+              _castHandler.castState?.connectionState ==
+              CastConnectionState.connected,
+    );
     _audioSessionController = AudioSessionController(
       userWantsPlaying: () => _userWantsPlaying,
       isPlaying: () => _player.state.playing,
       onPauseRequested: _pause,
       onResumeRequested: play,
-      onDuck: (ducking) {
-        if (ducking) {
-          _setLocalVolume(_lastSetVolume * 20.0);
-        } else {
-          _setLocalVolume(_lastSetVolume * 100.0);
-        }
-      },
+      onDuck: _volumeController.setDucking,
     );
 
     unawaited(_audioSessionController.setup());
@@ -301,7 +300,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (playing) {
         _userWantsPlaying = true;
       } else if (_restoreStatus != RestoreStatus.restoring &&
-          !_isTransitionMuted &&
+          !_volumeController.isTransitionMuted &&
           !_castHandler.pausedForConnection) {
         _userWantsPlaying = false;
       }
@@ -326,12 +325,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     });
 
     _player.stream.position.listen((pos) {
-      _handleCrossfade(pos);
+      _volumeController.handleCrossfade(pos);
       _handlePositionTick(pos);
-      if (_isTransitionMuted &&
+      if (_volumeController.isTransitionMuted &&
           _player.state.playing &&
           pos.inMilliseconds > 150) {
-        _endTransitionMute();
+        _volumeController.endTransitionMute();
       }
     });
     _player.stream.buffer.listen(_onBufferedPositionChanged);
@@ -527,11 +526,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _queueController.syncQueue(isStopping: _isStopping);
     }
 
-    if (!_queueController.isResolvingItem &&
-        _crossfadeDuration > Duration.zero &&
-        _player.state.playing) {
-      _isFadingIn = true;
-      _applyVolume(0.0);
+    if (!_queueController.isResolvingItem) {
+      _volumeController.beginFadeIn();
     }
   }
 
@@ -670,7 +666,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             _castHandler.pausedForConnection = true;
             await _player.pause();
           }
-          _setLocalVolume(0.0);
+          _volumeController.setLocalVolume(0.0);
 
           await _castHandler.castService?.castMedia(
             url: url,
@@ -886,7 +882,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _queueRepo.persistPosition(_player.state.position);
     _isStopping = true;
     _lookaheadTimer?.cancel();
-    _endTransitionMute();
+    _volumeController.endTransitionMute();
     await _player.stop();
     await _audioSessionController.releaseFocus();
     await super.stop();
@@ -1010,7 +1006,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final playlist = _player.state.playlist;
     if (index < 0 || index >= playlist.medias.length) return;
 
-    _prepareTransitionMute();
+    _volumeController.prepareTransitionMute();
 
     try {
       final currentIndex = playlist.index;
@@ -1045,7 +1041,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
                 )
                 : null;
         if (refreshedTrack?.needsUrl == true) {
-          _endTransitionMute();
+          _volumeController.endTransitionMute();
           _onPlayErrorController.add((
             track?.videoId ?? item?.id ?? '',
             item?.title ?? '',
@@ -1065,75 +1061,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await play();
       }
     } catch (e) {
-      _endTransitionMute();
+      _volumeController.endTransitionMute();
       rethrow;
     }
   }
 
   void setCrossfadeDuration(Duration duration) {
-    _crossfadeDuration = duration;
-    if (duration == Duration.zero) _applyVolume(1.0);
-  }
-
-  void _prepareTransitionMute() {
-    if (_player.state.playlist.medias.isNotEmpty) {
-      _isTransitionMuted = true;
-      _setLocalVolume(0.0, force: true);
-    }
-  }
-
-  void _endTransitionMute() {
-    if (!_isTransitionMuted) return;
-
-    _setLocalVolume(_lastSetVolume * 100.0);
-    _isTransitionMuted = false;
-  }
-
-  void _setLocalVolume(double volume, {bool force = false}) {
-    if (!force &&
-        _castHandler.castState?.connectionState ==
-            CastConnectionState.connected) {
-      _player.setVolume(0.0);
-    } else {
-      _player.setVolume(volume);
-    }
-  }
-
-  void _applyVolume(double volume) {
-    final v = volume.clamp(0.0, 1.0);
-    if ((v - _lastSetVolume).abs() > 0.005) {
-      _lastSetVolume = v;
-      if (!_isTransitionMuted) {
-        _setLocalVolume(v * 100.0);
-      }
-    }
-  }
-
-  void _handleCrossfade(Duration position) {
-    if (_crossfadeDuration == Duration.zero) return;
-    final duration = _player.state.duration;
-    if (duration == Duration.zero || !_player.state.playing) return;
-
-    if (_isFadingIn) {
-      final fadeMs = _crossfadeDuration.inMilliseconds;
-      final vol = fadeMs > 0 ? position.inMilliseconds / fadeMs : 1.0;
-      if (vol >= 1.0) {
-        _applyVolume(1.0);
-        _isFadingIn = false;
-      } else {
-        _applyVolume(vol);
-      }
-      return;
-    }
-
-    final remaining = duration - position;
-    if (remaining > Duration.zero && remaining <= _crossfadeDuration) {
-      _applyVolume(
-        remaining.inMilliseconds / _crossfadeDuration.inMilliseconds,
-      );
-    } else if (remaining > _crossfadeDuration) {
-      _applyVolume(1.0);
-    }
+    _volumeController.setCrossfadeDuration(duration);
   }
 
   void _handlePositionTick(Duration pos) {
@@ -1198,7 +1132,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     bool Function()? shouldAbort,
   }) async {
     _isStopping = false;
-    _prepareTransitionMute();
+    _volumeController.prepareTransitionMute();
     await _synchronizedOpen(() async {
       try {
         final (itemsWithKeys, medias) = _queueController.preparePlaylist(
@@ -1219,7 +1153,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _userWantsPlaying = false;
         await _player.open(playlist, play: false);
       } catch (e) {
-        _endTransitionMute();
+        _volumeController.endTransitionMute();
         rethrow;
       }
     }, shouldAbort: shouldAbort);
@@ -1231,7 +1165,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     bool Function()? shouldAbort,
   }) async {
     _isStopping = false;
-    _prepareTransitionMute();
+    _volumeController.prepareTransitionMute();
     await _synchronizedOpen(() async {
       try {
         final (itemsWithKeys, medias) = _queueController.preparePlaylist(
@@ -1278,7 +1212,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _userWantsPlaying = hasFocus;
         await _player.open(playlist, play: hasFocus);
       } catch (e) {
-        _endTransitionMute();
+        _volumeController.endTransitionMute();
         rethrow;
       }
     }, shouldAbort: shouldAbort);
@@ -1412,7 +1346,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   void _onPlayerError(String error) async {
     // Always lift any pending transition mute on error so the player does not
     // remain permanently muted (e.g., when a URL resolve fails inside playNow).
-    _endTransitionMute();
+    _volumeController.endTransitionMute();
 
     final currentItem = mediaItem.value;
     if (currentItem == null) return;
@@ -1456,7 +1390,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             _castHandler.pausedForConnection = true;
             await _player.pause();
           }
-          _setLocalVolume(0.0);
+          _volumeController.setLocalVolume(0.0);
 
           await _castHandler.castService?.castMedia(
             url: freshUrl,
