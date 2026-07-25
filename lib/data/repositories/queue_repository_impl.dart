@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../../domain/models/queue_playback_meta.dart';
 import '../../domain/models/queue_section.dart';
 import '../../domain/models/queue_track.dart';
+import '../../domain/models/restored_queue_entry.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../datasources/local/database.dart';
 
@@ -93,28 +94,43 @@ class QueueRepositoryImpl implements QueueRepository {
     });
   }
 
+  QueueTrack _trackFromRow(QueueItem row) {
+    final hasUrl = row.streamUrl != null && row.streamUrl!.isNotEmpty;
+    return QueueTrack(
+      videoId: row.videoId,
+      url: hasUrl ? row.streamUrl : null,
+      needsUrl: !hasUrl,
+      isVideo: row.isVideo,
+      isExplicit: row.isExplicit,
+      artistId: row.artistId,
+      albumId: row.albumId,
+      title: row.title,
+      artist: row.artist,
+      album: row.albumTitle,
+      duration: Duration(seconds: row.durationSec ?? 0),
+      artUri: row.thumbnailUrl != null ? Uri.tryParse(row.thumbnailUrl!) : null,
+    );
+  }
+
   @override
   Future<List<QueueTrack>> restoreQueue() async {
     final rows = await _db.select(_db.queueItems).get();
     rows.sort((a, b) => a.position.compareTo(b.position));
-    return rows.map((row) {
-      final hasUrl = row.streamUrl != null && row.streamUrl!.isNotEmpty;
-      return QueueTrack(
-        videoId: row.videoId,
-        url: hasUrl ? row.streamUrl : null,
-        needsUrl: !hasUrl,
-        isVideo: row.isVideo,
-        isExplicit: row.isExplicit,
-        artistId: row.artistId,
-        albumId: row.albumId,
-        title: row.title,
-        artist: row.artist,
-        album: row.albumTitle,
-        duration: Duration(seconds: row.durationSec ?? 0),
-        artUri:
-            row.thumbnailUrl != null ? Uri.tryParse(row.thumbnailUrl!) : null,
-      );
-    }).toList();
+    return rows.map(_trackFromRow).toList();
+  }
+
+  @override
+  Future<List<RestoredQueueEntry>> restoreQueueWithSections() async {
+    final rows = await _db.select(_db.queueItems).get();
+    rows.sort((a, b) => a.position.compareTo(b.position));
+    return rows
+        .map(
+          (row) => RestoredQueueEntry(
+            track: _trackFromRow(row),
+            section: QueueSection.fromTag(row.section),
+          ),
+        )
+        .toList();
   }
 
   @override

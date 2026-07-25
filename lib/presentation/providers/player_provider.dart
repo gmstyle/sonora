@@ -199,6 +199,22 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Duration? _sleepTimerDuration;
   bool _isReordering = false;
 
+  bool _canPrefetchUpNext({
+    required int currentIndex,
+    required int queueLength,
+    required bool isSwitching,
+    required bool isRestoring,
+    required bool isQueueSynced,
+    required AudioServiceRepeatMode repeatMode,
+  }) {
+    if (repeatMode != AudioServiceRepeatMode.none) return false;
+    if (queueLength == 0) return false;
+    if (isRestoring) return false;
+    if (!isQueueSynced) return false;
+    if (isSwitching) return false;
+    return currentIndex >= queueLength - 1;
+  }
+
   /// Splits [queue] into a (userQueue, upNextQueue, upNextStartIndex)
   /// triple based on `extras['section']`. Returns `([], [], null)` when
   /// the queue is empty.
@@ -358,9 +374,14 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           // On the next event (e.g. position tick) wasSwitching is already false
           // and the prefetch is allowed to run.
           // Up-next is only meaningful when the queue is not set to repeat.
-          if (state.repeatMode == AudioServiceRepeatMode.none &&
-              state.currentIndex >= state.queue.length - 1 &&
-              !wasSwitching &&
+          if (_canPrefetchUpNext(
+                currentIndex: state.currentIndex,
+                queueLength: state.queue.length,
+                isSwitching: wasSwitching,
+                isRestoring: state.isRestoring,
+                isQueueSynced: state.isQueueSynced,
+                repeatMode: state.repeatMode,
+              ) &&
               !_isFetchingUpNext &&
               ref.read(settingsProvider).autoPlayUpNext) {
             _isFetchingUpNext = true;
@@ -455,10 +476,15 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         // queue and state.isPlaying hasn't been updated yet from the pending
         // pause() stream event.
         // Up-next is only meaningful when the queue is not set to repeat.
-        if (state.repeatMode == AudioServiceRepeatMode.none &&
-            state.currentIndex >= items.length - 1 &&
+        if (_canPrefetchUpNext(
+              currentIndex: state.currentIndex,
+              queueLength: items.length,
+              isSwitching: state.isSwitching,
+              isRestoring: state.isRestoring,
+              isQueueSynced: state.isQueueSynced,
+              repeatMode: state.repeatMode,
+            ) &&
             state.isPlaying &&
-            !state.isSwitching &&
             !_isFetchingUpNext &&
             ref.read(settingsProvider).autoPlayUpNext) {
           _isFetchingUpNext = true;
@@ -564,6 +590,13 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> _prefetchAutoPlayUpNext() async {
     if (!ref.read(settingsProvider).autoPlayUpNext) return;
+    if (state.queue.isEmpty || state.isRestoring || !state.isQueueSynced) {
+      return;
+    }
+    final upNextIdx = state.upNextStartIndex;
+    if (upNextIdx != null && upNextIdx > state.currentIndex) {
+      return;
+    }
     try {
       final seedItem = state.currentSong;
       if (seedItem == null) return;

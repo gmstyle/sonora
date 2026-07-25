@@ -1796,33 +1796,37 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
     if (!restoreOnStartup) return;
 
-    final rawItems = await _queueRepo.restoreQueue();
-    if (rawItems.isEmpty) return;
+    final rawEntries = await _queueRepo.restoreQueueWithSections();
+    if (rawEntries.isEmpty) return;
 
     // Honor the current autoplay setting: if the user disabled Up Next
     // between sessions, strip the upnext section from the restored queue.
-    // Section info is persisted as a DB column but not on QueueTrack itself,
-    // so we convert to MediaItem first to read the section tag.
     final autoplayEnabled = _prefs.getBool(kAutoPlayUpNextKey) ?? true;
     final filtered =
         autoplayEnabled
-            ? rawItems
-            : rawItems.where((t) {
-              final mi = t.toFreshMediaItem();
-              return sectionOf(mi) == QueueSection.user;
-            }).toList();
+            ? rawEntries
+            : rawEntries
+                .where((entry) => entry.section == QueueSection.user)
+                .toList();
 
     final seenIds = <String>{};
     final items =
-        filtered.map((track) {
-          final item = track.toFreshMediaItem();
+        filtered.map((entry) {
+          final track = entry.track;
+          final baseItem = track.toFreshMediaItem();
+          final taggedItem =
+              entry.section == QueueSection.upnext
+                  ? QueueController.tagUpNext(baseItem)
+                  : QueueController.tagUser(baseItem);
           final isLocalAndValid =
               track.isLocalFile && !UrlStaleness.isStale(track.url!);
           if (isLocalAndValid) {
-            return _queueController.ensureQueueId(item, seenIds);
+            return _queueController.ensureQueueId(taggedItem, seenIds);
           }
           return _queueController.ensureQueueId(
-            track.copyWith(clearUrl: true, needsUrl: true).toMediaItem(item),
+            track
+                .copyWith(clearUrl: true, needsUrl: true)
+                .toMediaItem(taggedItem),
             seenIds,
           );
         }).toList();
