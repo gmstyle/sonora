@@ -323,7 +323,15 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
             position: _handler.savedPosition,
           );
         } else {
-          state = state.copyWith(isRestoring: false);
+          // Restore finished: re-read queueIndex from the handler in case the
+          // playbackState emission during restore was missed (e.g. provider
+          // subscribed after a transient state). Playlist index is the
+          // fallback when PlaybackState.queueIndex is still null.
+          final qi = _handler.playbackState.valueOrNull?.queueIndex;
+          final playlistIdx = _handler.player.state.playlist.index;
+          final resolved =
+              qi ?? (playlistIdx >= 0 ? playlistIdx : state.currentIndex);
+          state = state.copyWith(isRestoring: false, currentIndex: resolved);
         }
       });
 

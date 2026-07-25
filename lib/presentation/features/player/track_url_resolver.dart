@@ -36,6 +36,7 @@ class TrackUrlResolver {
   final bool Function() _isCastConnected;
   final bool Function() _userWantsPlaying;
   final bool Function() _isStopping;
+  final bool Function() _isRestoring;
   final Future<void> Function() _requestPlay;
   final Future<void> Function(String videoId, String title) _onResolveFailed;
   final void Function(MediaItem item) _emitMediaItem;
@@ -63,6 +64,7 @@ class TrackUrlResolver {
     required bool Function() isCastConnected,
     required bool Function() userWantsPlaying,
     required bool Function() isStopping,
+    required bool Function() isRestoring,
     required Future<void> Function() requestPlay,
     required Future<void> Function(String videoId, String title)
     onResolveFailed,
@@ -86,6 +88,7 @@ class TrackUrlResolver {
        _isCastConnected = isCastConnected,
        _userWantsPlaying = userWantsPlaying,
        _isStopping = isStopping,
+       _isRestoring = isRestoring,
        _requestPlay = requestPlay,
        _onResolveFailed = onResolveFailed,
        _emitMediaItem = emitMediaItem,
@@ -292,7 +295,7 @@ class TrackUrlResolver {
         _statePublisher.updatePlaybackState();
       }
       final actualIndex = _player.state.playlist.index;
-      if (actualIndex >= 0) {
+      if (actualIndex >= 0 && !_isRestoring()) {
         _statePublisher.updateState((s) => s.copyWith(queueIndex: actualIndex));
         final playlist = _player.state.playlist;
         if (actualIndex < playlist.medias.length) {

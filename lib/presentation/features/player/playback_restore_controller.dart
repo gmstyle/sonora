@@ -396,6 +396,13 @@ class PlaybackRestoreController {
           _emitMediaItem(item);
         }
       }
+      // Playlist events were suppressed during open, so queueIndex was never
+      // published — and a concurrent look-ahead URL resolve can even stamp
+      // queueIndex=0 while media_kit briefly reports index 0. Publish the
+      // restored index explicitly so the queue highlight matches mediaItem.
+      if (idx >= 0) {
+        _statePublisher.updateState((s) => s.copyWith(queueIndex: idx));
+      }
       _statePublisher.updatePlaybackState();
     }
   }

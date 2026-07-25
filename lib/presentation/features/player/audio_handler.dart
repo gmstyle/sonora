@@ -191,6 +191,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               CastConnectionState.connected,
       userWantsPlaying: () => _userWantsPlaying,
       isStopping: () => _isStopping,
+      isRestoring: () => _restoreController.isRestoring,
       requestPlay: play,
       onResolveFailed:
           (videoId, title) => _recoveryController

@@ -24,9 +24,24 @@ class QueueSheet extends ConsumerWidget {
     final userQueue = playerState.userQueue;
     final upNextQueue = playerState.upNextQueue;
     final currentIndex = playerState.currentIndex;
+    final currentSongId = playerState.currentSong?.id;
     final autoplayEnabled = ref.watch(
       settingsProvider.select((s) => s.autoPlayUpNext),
     );
+
+    // Prefer index when it already points at currentSong; if index is stale
+    // (e.g. cold-start queueIndex never published), fall back to identity so
+    // the playing tile still matches the mini player.
+    final indexPointsAtSong =
+        currentSongId != null &&
+        currentIndex >= 0 &&
+        currentIndex < playerState.queue.length &&
+        playerState.queue[currentIndex].id == currentSongId;
+    bool isCurrentAt(int globalIndex, MediaItem item) {
+      if (indexPointsAtSong) return globalIndex == currentIndex;
+      if (currentSongId != null) return item.id == currentSongId;
+      return globalIndex == currentIndex;
+    }
 
     if (playerState.isRestoring || !playerState.isQueueSynced) {
       return const ShimmerLoading(variant: ShimmerVariant.queue);
@@ -73,7 +88,7 @@ class QueueSheet extends ConsumerWidget {
                 index: index,
                 child: _QueueItem(
                   item: item,
-                  isCurrent: index == currentIndex,
+                  isCurrent: isCurrentAt(index, item),
                   pc: pc,
                   theme: theme,
                   showDragHandle: true,
@@ -117,7 +132,7 @@ class QueueSheet extends ConsumerWidget {
                   'upnext_${item.extras?['queueId'] ?? item.id}_$index',
                 ),
                 item: item,
-                isCurrent: globalIndex == currentIndex,
+                isCurrent: isCurrentAt(globalIndex, item),
                 pc: pc,
                 theme: theme,
                 // Upnext items are not individually removable; disable
