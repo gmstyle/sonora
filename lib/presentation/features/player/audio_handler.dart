@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/utils/url_staleness.dart';
@@ -34,6 +33,7 @@ import 'player_media_controls.dart';
 import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
 import 'queue_controller.dart';
+import 'skip_navigator.dart';
 
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
@@ -75,6 +75,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final LikeController _likeController;
   late final PlaybackVolumeController _volumeController;
   late final PlaybackStatePublisher _statePublisher;
+  late final SkipNavigator _skipNavigator;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -92,10 +93,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isStopping = false;
   StreamSubscription<String>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
-  final List<int> _shuffledHistory = [];
-  bool _isGoingBackward = false;
   Timer? _lookaheadTimer;
-  int? _targetSkipIndex;
   bool _userWantsPlaying = false;
   bool _interruptedByNetworkDrop = false;
   DateTime? _lastPauseTimestamp;
@@ -220,6 +218,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isLiked: () => _likeController.isCurrentSongLiked,
       onBecameReady: () => _retryCount = 0,
     );
+    _skipNavigator = SkipNavigator();
     _audioSessionController = AudioSessionController(
       userWantsPlaying: () => _userWantsPlaying,
       isPlaying: () => _player.state.playing,
@@ -376,7 +375,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final index = playlist.index;
 
     if (!_queueController.isResolvingItem) {
-      _targetSkipIndex = null;
+      _skipNavigator.clearTarget();
       _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
       if (index >= 0) {
         // Persist the raw index alongside the item's stable identity (its
@@ -823,33 +822,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (len == 0) return;
 
     final currentIndex = _player.state.playlist.index;
-    int currentTarget = _targetSkipIndex ?? currentIndex;
-    if (currentTarget < 0 || currentTarget >= len) {
-      currentTarget = currentIndex >= 0 ? currentIndex : 0;
-    }
+    final currentTarget = _skipNavigator.resolveCurrentTarget(currentIndex, len);
+    final shuffle =
+        playbackState.value.shuffleMode == AudioServiceShuffleMode.all;
+    final repeatAll =
+        playbackState.value.repeatMode == AudioServiceRepeatMode.all ||
+        playbackState.value.repeatMode == AudioServiceRepeatMode.group;
+    final nextIndex = SkipNavigator.computeNextIndex(
+      length: len,
+      currentTarget: currentTarget,
+      shuffle: shuffle,
+      repeatAll: repeatAll,
+    );
 
-    int nextIndex;
-    if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all) {
-      if (len > 1) {
-        final random = Random();
-        nextIndex = currentTarget;
-        while (nextIndex == currentTarget) {
-          nextIndex = random.nextInt(len);
-        }
-      } else {
-        nextIndex = 0;
-      }
-    } else {
-      nextIndex = currentTarget + 1;
-      final repeatAll =
-          playbackState.value.repeatMode == AudioServiceRepeatMode.all ||
-          playbackState.value.repeatMode == AudioServiceRepeatMode.group;
-      if (nextIndex >= len) {
-        nextIndex = repeatAll ? 0 : len - 1;
-      }
-    }
-
-    _targetSkipIndex = nextIndex;
+    _skipNavigator.targetSkipIndex = nextIndex;
     await skipToQueueItem(nextIndex);
   }
 
@@ -870,27 +856,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
 
     final currentIndex = _player.state.playlist.index;
-    int currentTarget = _targetSkipIndex ?? currentIndex;
-    if (currentTarget < 0 || currentTarget >= len) {
-      currentTarget = currentIndex >= 0 ? currentIndex : 0;
-    }
-
-    int prevIndex;
-    if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all) {
-      if (_shuffledHistory.isNotEmpty) {
-        prevIndex = _shuffledHistory.removeLast();
-      } else {
-        prevIndex = currentTarget;
-      }
-    } else {
-      prevIndex = currentTarget - 1;
-      final repeatAll =
-          playbackState.value.repeatMode == AudioServiceRepeatMode.all ||
-          playbackState.value.repeatMode == AudioServiceRepeatMode.group;
-      if (prevIndex < 0) {
-        prevIndex = repeatAll ? len - 1 : 0;
-      }
-    }
+    final currentTarget = _skipNavigator.resolveCurrentTarget(currentIndex, len);
+    final shuffle =
+        playbackState.value.shuffleMode == AudioServiceShuffleMode.all;
+    final repeatAll =
+        playbackState.value.repeatMode == AudioServiceRepeatMode.all ||
+        playbackState.value.repeatMode == AudioServiceRepeatMode.group;
+    final historyIndex = shuffle ? _skipNavigator.popHistory() : null;
+    final prevIndex = SkipNavigator.computePreviousIndex(
+      length: len,
+      currentTarget: currentTarget,
+      shuffle: shuffle,
+      repeatAll: repeatAll,
+      historyIndex: historyIndex,
+    );
 
     // If the calculated previous index is the same as the current one
     // (e.g. at the start of the queue with repeat-all off), just restart.
@@ -899,12 +878,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       return;
     }
 
-    _targetSkipIndex = prevIndex;
-    _isGoingBackward = true;
+    _skipNavigator.targetSkipIndex = prevIndex;
+    _skipNavigator.beginBackward();
     try {
       await skipToQueueItem(prevIndex);
     } finally {
-      _isGoingBackward = false;
+      _skipNavigator.endBackward();
     }
   }
 
@@ -928,11 +907,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (playbackState.value.shuffleMode == AudioServiceShuffleMode.all &&
           currentIndex >= 0 &&
           currentIndex != index &&
-          !_isGoingBackward) {
-        _shuffledHistory.add(currentIndex);
-        if (_shuffledHistory.length > 50) {
-          _shuffledHistory.removeAt(0);
-        }
+          !_skipNavigator.isGoingBackward) {
+        _skipNavigator.recordForwardSkip(currentIndex);
       }
 
       final media = playlist.medias[index];
@@ -990,7 +966,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffle(enabled);
     if (shuffleMode == AudioServiceShuffleMode.none) {
-      _shuffledHistory.clear();
+      _skipNavigator.clearHistory();
     }
     _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
     unawaited(_queueRepo.persistPlaybackModes(shuffleMode: shuffleMode));
@@ -1211,7 +1187,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     // A queue reorder shifts indices; invalidate the pending skip target so
     // the next skipToNext/Prev computes the correct index from scratch.
-    _targetSkipIndex = null;
+    _skipNavigator.clearTarget();
 
     // Guard with resolving state so _onPlaylistChanged suppresses
     // intermediate queue syncs during the move + possible retag.
