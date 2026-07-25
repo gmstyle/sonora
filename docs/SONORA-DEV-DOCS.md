@@ -128,12 +128,26 @@ lib/
         ├── artist/                       # ArtistScreen + stats row + description
         ├── album/                        # AlbumScreen + AlbumProvider
         ├── playlist/                     # PlaylistScreen + PlaylistProvider
-        ├── player/                       # Playback Engine:
-        │   ├── audio_handler.dart        # Core playback, queue manager, lookahead logic
-        │   ├── audio_cast_handler.dart   # Bridge to Chromecast & DLNA casting flow
-        │   ├── audio_android_auto_browser_handler.dart # Android Auto browse tree & voice search
-        │   ├── player_sheet.dart         # Fullscreen player bottom sheet
-        │   └── widgets/                  # player_slider, controls, cast_dialog, equalizer_panel.dart
+        ├── player/                       # Playback Engine (facade + controllers):
+        │   ├── audio_handler.dart        # SonoraAudioHandler — audio_service facade, transport, wiring
+        │   ├── queue_controller.dart     # Queue mutations, section tags, persist/sync
+        │   ├── track_url_resolver.dart   # Lazy URL resolve + lookahead prefetch
+        │   ├── playback_restore_controller.dart  # Cold start / warm resume
+        │   ├── playback_recovery_controller.dart # Error retry, offline fallback, net resume
+        │   ├── playback_volume_controller.dart   # Crossfade, transition mute, cast-aware volume
+        │   ├── playback_state_publisher.dart     # PlaybackState projection + dedupe
+        │   ├── skip_navigator.dart       # Skip next/prev index + shuffle history
+        │   ├── audio_session_controller.dart     # OS audio focus / interruptions
+        │   ├── player_engine_configurator.dart   # mpv cache / network / Linux vo props
+        │   ├── player_media_controls.dart        # Notification MediaControl builder
+        │   ├── like_controller.dart      # Current-track like state
+        │   ├── equalizer_controller.dart # mpv lavfi 5-band EQ
+        │   ├── cast_playback_controller.dart     # Chromecast / DLNA cast session
+        │   ├── android_auto_browser_controller.dart # AA browse tree & voice search
+        │   ├── player_sheet.dart / player_sheet_mobile.dart / mini|full_player_content.dart
+        │   ├── layouts/                  # mobile / tablet / wide / fullscreen overlay
+        │   └── widgets/                  # controls, queue_sheet, cast_dialog, equalizer_panel, …
+
         ├── library/                      # LibraryScreen + 3 layouts + PlaylistDetailView
         │   ├── layouts/                  # library_mobile_layout.dart, library_split_layout.dart
         │   └── widgets/                  # Tab views + stats_tab.dart & sonora_wrapped_view.dart
@@ -279,19 +293,51 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 
 ## 6. Media Engine — Important Details
 
-### 6.1 `SonoraAudioHandler` (audio_handler.dart)
+### 6.1 `SonoraAudioHandler` + controllers
 
-Extends `BaseAudioHandler` from `audio_service`. It coordinates local playback, manages the playlist queue structure, and delegates specialized casting and Android Auto integration to companion helper handlers:
+`SonoraAudioHandler` (`audio_handler.dart`) extends `BaseAudioHandler` from `audio_service`. It is the **facade** registered with `AudioService.init`: it owns the media_kit `Player`, exposes the public playback/queue API to `PlayerNotifier` / tray / notifications, and wires specialized **controllers**. Controllers never hold a back-reference to `SonoraAudioHandler`; they receive `Player`, repositories, and narrow callbacks (`requestPlay`, queue getters, cast predicates, …).
 
-- **`AudioCastHandler`** (`audio_cast_handler.dart`) — Manages the state, session sync, and command redirection when casting to a remote device.
-- **`AudioAndroidAutoBrowserHandler`** (`audio_android_auto_browser_handler.dart`) — Builds the hierarchical content browse tree and handles voice-activated searches for Android Auto.
+```
+                    ┌──────────────────────────────────────┐
+                    │         SonoraAudioHandler           │
+                    │  (facade: transport, setQueue/playNow│
+                    │   skip, AA overrides, cast forward)  │
+                    └───────────────┬──────────────────────┘
+                                    │ constructs / delegates
+          ┌─────────────┬───────────┼───────────┬─────────────┐
+          ▼             ▼           ▼           ▼             ▼
+   QueueController  TrackUrl   Playback*    SkipNavigator  CastPlayback
+                    Resolver   Restore/     PlayerMedia    Controller
+                               Recovery/    Controls       AndroidAuto
+                               Volume/      LikeController BrowserController
+                               StatePub     AudioSession
+                                            EngineConfig
+                                            Equalizer
+```
 
-**Injected dependencies:**
+| Controller | File | Responsibility |
+|---|---|---|
+| `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔Media conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
+| `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); cache warm-up via `MediaCacheService` |
+| `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
+| `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
+| `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume / ducking |
+| `PlaybackStatePublisher` | `playback_state_publisher.dart` | Projects media_kit state → `audio_service` `PlaybackState` with emit dedupe; `invalidate()` after batch resolves |
+| `SkipNavigator` | `skip_navigator.dart` | Next/previous index calculation, shuffle history, rapid-skip target index |
+| `AudioSessionController` | `audio_session_controller.dart` | OS audio focus, interruption pause/resume, becoming-noisy |
+| `PlayerEngineConfigurator` | `player_engine_configurator.dart` | mpv disk cache, network timeout, Linux `hwdec`/`vo` |
+| `PlayerMediaControls` | `player_media_controls.dart` | Pure builder for notification / MPRIS custom actions (shuffle, repeat, like, start radio) |
+| `LikeController` | `like_controller.dart` | Current-track liked flag + library toggle |
+| `EqualizerController` | `equalizer_controller.dart` | Applies mpv lavfi 5-band equalizer filter graph |
+| `CastPlaybackController` | `cast_playback_controller.dart` | Cast connect lifecycle, `castSong` token cancellation, remote play/pause/seek sync |
+| `AndroidAutoBrowserController` | `android_auto_browser_controller.dart` | AA browse tree, search, `playFromMediaId` / `playFromSearch` |
 
-- `MusicRepository` — to resolve song metadata
-- `LibraryRepository` — to check local downloads and like status
-- `PlayVideoIdUseCase` — for URL resolution + getVideo fallback
-- `Connectivity` — single shared instance to detect connection state without redundant platform channels
+**What stays on the facade:** `_synchronizedOpen` (serializes `setQueue` / `playNow`), `_userWantsPlaying`, playlist listeners that orchestrate mediaItem emit → cast → resolve → sync → fade-in, and thin forwards (`updateCastState`, `setEqualizer`, AA overrides).
+
+**Injected at construction (`main.dart`):**
+
+- `MusicRepository`, `LibraryRepository`, `PlayVideoIdUseCase`, `SharedPreferences`, `QueueRepository`, optional `LocalAudioProxyServer`
+- A single shared `Connectivity` instance is used across the player module (resolver / recovery / AA)
 
 **Media Player & Local HTTP Proxy Architecture:**
 
@@ -324,20 +370,23 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
   - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
   - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback. Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs.
 
-**Lazy URL Resolution (Adaptive Lookahead):**
-Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When `currentIndexStream` changes, `_resolvePendingItems` resolves the URL for the current item (`currentIndex`) and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background `_lookaheadTimer` triggers to pre-resolve `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
+**Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
+Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When the playlist index changes, the resolver resolves the URL for the current item and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background timer pre-resolves `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
 
 **Dart-Side Shuffle & Race Condition Protection:**
 
-- **Custom Shuffle**: Because `media_kit`'s native `next()` method jumps to `currentIndex + 1` sequentially (ignoring mpv's internal shuffle state), custom shuffle is implemented on the Dart side. When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` and `PlayerNotifier`'s completed listener select a random index. A `_shuffledHistory` list tracks previously played indices so that `skipToPrevious()` can step backward along the exact shuffled path.
-- **Rapid Skip Protection**: During rapid manual skips, the asynchronous `_player.state.playlist.index` does not update fast enough, causing subsequent taps to calculate target indices using stale player state. We use a synchronous `_targetSkipIndex` to keep track of the target index during transitions, ensuring each rapid tap resolves and jumps to the correct item.
+- **Custom Shuffle** (`SkipNavigator`): Because `media_kit`'s native `next()` jumps to `currentIndex + 1` sequentially, custom shuffle is implemented on the Dart side. When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` selects a random index. A shuffled-history list tracks previously played indices so `skipToPrevious()` can step backward along the exact shuffled path.
+- **Rapid Skip Protection** (`SkipNavigator`): During rapid manual skips, asynchronous playlist index updates lag behind taps. A synchronous target-skip index keeps each rapid tap resolving to the correct item.
 - **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
 
-**Auto-skip on error:**
-If the stream URL expires or fails after 3 proxy retries, the handler auto-skips to the next song and notifies via `_onPlayErrorController`.
+**Auto-skip on error** — owned by `PlaybackRecoveryController`:
+If the stream URL expires or fails after retries, recovery advances to an offline/cached track when possible, otherwise stops and notifies via `onPlayError` (forwarded by the facade).
 
-**Crossfade:**
-Implemented via volume fade-in/fade-out in the `_handleCrossfade` listener. Duration configurable via `Settings.crossfadeSeconds`.
+**Crossfade** — owned by `PlaybackVolumeController`:
+Volume fade-in/fade-out on the position stream. Duration configurable via `Settings.crossfadeSeconds` (pushed from `PlayerNotifier` via `setCrossfadeDuration`).
+
+**Restore** — owned by `PlaybackRestoreController`:
+`PlayerNotifier` observes `restoreStatusStream` / `savedPosition` to block controls and seed the seek bar during cold start and warm resume.
 
 ### 6.2 `PlayerNotifier` (player_provider.dart)
 
@@ -376,7 +425,7 @@ The `extras` field on `MediaItem` carries additional metadata:
 | `musicVideoType` | String? | SongFull/VideoFull.musicVideoType | MV badge |
 | `artistId` | String? | Song resolution | Navigation to artist page |
 | `albumId` | String? | Song resolution | Navigation to album page |
-| `section` | String ("user" / "upnext") | `audio_handler.dart` / queue repository | Tag identifying which conceptual queue section the item belongs to (see §6.3) |
+| `section` | String ("user" / "upnext") | `QueueController` / queue repository | Tag identifying which conceptual queue section the item belongs to (see §6.4) |
 
 ### 6.4 User Queue / Up Next Split (schemaVersion 18)
 
@@ -391,18 +440,18 @@ The playback queue is logically split into two **sections** that share the same 
 - The `queue_items` Drift table carries a `section` column (default `'user'`) added by migration 17 → 18.
 - `QueueRepositoryImpl.persistQueue` writes each item's section; `restoreQueue` reads it back and exposes it via `extras['section']`.
 
-**Lock model (audio_handler.dart):**
+**Lock model (`SonoraAudioHandler`):**
 
-All playlist-rebuilding actions (`setQueue`, `playNow`, `appendUpNext`) are serialized through a single `_synchronizedOpen` lock with an optional `shouldAbort` predicate. When provided, `shouldAbort` is evaluated right after any in-flight action completes; if it returns `true`, the queued action is skipped entirely, so the most recent caller always wins. The lock is reset to `null` only if no newer call replaced it (identity check: `identical(_playlistOpenLock, completer.future)`). `PlayerNotifier` passes `shouldAbort: () => _operationVersion != v` to all handler calls, ensuring that a newer user tap or autoplay trigger discards the stale in-flight action.
+All playlist-rebuilding actions (`setQueue`, `playNow`) are serialized through a single `_synchronizedOpen` lock with an optional `shouldAbort` predicate. When provided, `shouldAbort` is evaluated right after any in-flight action completes; if it returns `true`, the queued action is skipped entirely, so the most recent caller always wins. The lock is reset to `null` only if no newer call replaced it (identity check: `identical(_playlistOpenLock, completer.future)`). `PlayerNotifier` passes `shouldAbort: () => _operationVersion != v` to all handler calls, ensuring that a newer user tap or autoplay trigger discards the stale in-flight action.
 
-**Player side (audio_handler.dart):**
+**Player / queue side (`QueueController` + facade):**
 
-- `SonoraAudioHandler._toMedia` defaults every untagged item to the user section as a safety net for legacy call-sites.
-- `setQueue` and `playNow` accept `shouldAbort` and forward it to `_synchronizedOpen`.
-- `appendUpNext(List<MediaItem>)` tags each item as upnext and forwards it to `_player.add` under a `_resolvingItemCount` guard (so `_onPlaylistChanged` doesn't emit intermediate queue syncs).
+- `QueueController.toMedia` defaults every untagged item to the user section as a safety net for legacy call-sites.
+- `setQueue` and `playNow` on the facade accept `shouldAbort` and forward it to `_synchronizedOpen`; playlist preparation uses `QueueController.preparePlaylist`.
+- `appendUpNext(List<MediaItem>)` tags each item as upnext and adds via `QueueController` under a resolving guard (so playlist listeners don't emit intermediate queue syncs).
 - `setAutoplayEnabled(bool)` purges the upnext section in-place when the user toggles autoplay off. The current track is preserved if it itself is upnext.
 - `purgeUserQueue()` removes every user-queue item, preserving the upnext section (and the currently playing item).
-- `moveQueueItem(int oldIndex, int newIndex)` performs the physical move and then re-tags the moved item via `_retagMovedItem`. The up-next boundary is captured **before** the move; if the item crosses the boundary its section tag is updated (upnext item dragged above boundary → promoted to user; user item dragged below boundary → demoted to upnext). The currently playing item is never re-tagged. All re-tagging logic lives in the handler — `PlayerNotifier` does not perform any re-tagging.
+- `moveQueueItem(int oldIndex, int newIndex)` delegates to `QueueController.move`, which re-tags via the up-next boundary captured **before** the move (upnext item dragged above boundary → promoted to user; user item dragged below → demoted to upnext). The currently playing item is never re-tagged. `PlayerNotifier` does not perform any re-tagging.
 - `MediaItem.extras['section']` is the only authoritative source of truth — there is no second playlist.
 
 **PlayerNotifier side:**
@@ -416,42 +465,43 @@ All playlist-rebuilding actions (`setQueue`, `playNow`, `appendUpNext`) are seri
 
 **Persistence & restore:**
 
-- On the first startup after the upgrade, the persisted queue is cleared (`kPostQueueSplitDoneKey` flag in SharedPreferences) and `last_playing_index` / `last_playing_position_ms` are removed, so playback starts from a clean state.
-- If `autoPlayUpNext` is off at restore time, any upnext items still in the persisted queue are filtered out (handled in `_doRestore`).
+- On the first startup after the upgrade, the persisted queue is cleared (`kPostQueueSplitDoneKey` flag in SharedPreferences) and playback meta is reset, so playback starts from a clean state (handled in `PlaybackRestoreController`).
+- If `autoPlayUpNext` is off at restore time, any upnext items still in the persisted queue are filtered out (also in `PlaybackRestoreController`).
 
 **UI:**
 
 - `QueueSheet` renders two stacked sections with a header for each: "Playing Next" (user) with a `SliverReorderableList`, and "Up Next" with a non-reorderable `SliverList`. Drag reorder uses `ReorderableDelayedDragStartListener` (long-press to initiate). Shows `ShimmerVariant.queue` skeleton while `isQueueSynced` is false.
 - `PlayerDefaultView`'s "Up Next" card always shows the first upnext item, or an "Autoplay off — Enable" inline button if the section is empty and the feature is disabled. Tapping the card jumps to the first upnext item.
-- Android Auto exposes the same split through two browse nodes under the root (`__queue__:user` and `__queue__:upnext`), using `userQueue`/`upNextQueue` getters from `SonoraAudioHandler`.
+- Android Auto exposes the same split through two browse nodes under the root (`__queue__:user` and `__queue__:upnext`), using `userQueue`/`upNextQueue` callbacks injected into `AndroidAutoBrowserController` from `QueueController`.
 
-### 6.5 Casting & Session Synchronization (`audio_cast_handler.dart`)
+### 6.5 Casting & Session Synchronization (`cast_playback_controller.dart`)
 
-Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, Smart TVs) using `dart_cast`. The casting engine is managed by `AudioCastHandler`, which bridges the main audio handler with the remote casting session.
+Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, Smart TVs) using `dart_cast`. The casting engine is managed by `CastPlaybackController`, which bridges the facade with the remote casting session via narrow callbacks (`requestPlay`, volume controller, current media item).
 
 **Discovery:**
-`CastNotifier` manages the discovery lifecycle. When `startDiscovery()` is called (typically when opening the `CastDialog`), `SonoraCastService` starts scanning via mDNS (Chromecast) and SSDP (DLNA).
+`CastNotifier` manages the discovery lifecycle. When `startDiscovery()` is called (typically when opening the `CastDialog`), `SonoraCastService` starts scanning via mDNS (Chromecast) and SSDP (DLNA). `main.dart` listens to `castStateProvider` and calls `SonoraAudioHandler.updateCastState`, which forwards to the controller.
 
 **Session Redirection & Dual-Player State Sync:**
 When a device is connected:
 
-1. Local playback in `SonoraAudioHandler` is paused.
-2. Playback commands (`play`, `pause`, `skip`, `seek`) are intercepted by `SonoraAudioHandler` and delegated to `AudioCastHandler` which forwards them to `SonoraCastService`.
+1. Local playback is paused; local volume is muted via `PlaybackVolumeController`.
+2. Playback commands (`play`, `pause`, `skip`, `seek`) on `SonoraAudioHandler` forward to `SonoraCastService` when connected.
 3. The queue state is synchronized in two ways:
-   - **Cast Media Resolution**: The current media URL is resolved on demand and sent to the remote device via `loadMedia`.
-   - **Queue Synchronization**: Whenever an item is resolved or changed on the cast device, the local player's queue is modified to match the cast state. On cast disconnection, the local player seamlessly resumes from the exact position and queue alignment of the cast session.
+   - **Cast Media Resolution**: The current media URL is resolved on demand and sent to the remote device via `castMedia`.
+   - **Queue Synchronization**: Whenever an item is resolved or changed while casting, the local playlist is updated to match. On cast disconnection, local volume is restored and playback can resume seamlessly.
 
-**Concurreny & Race Mitigation:**
+**Concurrency & Race Mitigation:**
 
 - **Cast Song Token**: Rapid skip/play actions can fire multiple overlapping `castMedia` requests. A token-based cancellation strategy (`_castSongToken`) cancels obsolete cast media loads in-flight.
-- **Error Fallback**: If a URL expires or fails to stream on the Chromecast, `_onPlayerError` refreshes the stream URL and pushes the update directly to the active Chromecast session instead of restarting the local player.
+- **Error Fallback**: If a URL expires or fails while casting, `PlaybackRecoveryController` refreshes the stream URL and pushes the update to the active cast session (via injected cast callbacks) instead of only restarting local playback.
+- **`requestPlay`**: After a successful cast load, the controller must call the facade's `play()` (not `player.play()`) so `castService.play()` stays in sync — same pattern used by `TrackUrlResolver`.
 
 **Alexa Support:**
 Since Echo devices often don't support open casting protocols reliably, Sonora provides a shortcut to **Bluetooth Settings** within the Cast Dialog to facilitate manual pairing for Alexa speakers.
 
-### 6.6 Android Auto Browse Engine (`audio_android_auto_browser_handler.dart`)
+### 6.6 Android Auto Browse Engine (`android_auto_browser_controller.dart`)
 
-The `AudioAndroidAutoBrowserHandler` class handles the integration with Android Auto, implementing the hierarchical music browsing tree and responding to dashboard controls.
+`AndroidAutoBrowserController` owns Android Auto integration: the hierarchical music browsing tree and dashboard / voice actions. It does not depend on `SonoraAudioHandler`; the facade injects `userQueue` / `upNextQueue` getters and a `playNow` callback, and forwards `getChildren` / `playFromMediaId` / `search` / `playFromSearch`.
 
 **Browse Tree Hierarchy:**
 It exposes four primary root sections to the vehicle's dashboard:
@@ -484,15 +534,13 @@ Sonora monitors network state globally using `connectivity_plus` and local user 
 - **Error Interception**:
   - `PlayerErrorListener` and `ErrorRetryWidget` intercept raw socket/timeout exceptions and format them into localized user-friendly messages (`weakConnectionError`).
 
-### 6.8 5-Band Equalizer (FFmpeg lavfi Audio Filters)
+### 6.8 5-Band Equalizer (mpv lavfi Audio Filters)
 
-Sonora features a software-based **5-Band Equalizer** integrated directly into the `media_kit` playback pipeline via custom FFmpeg `superequalizer` audio filters.
+Sonora features a software-based **5-Band Equalizer** applied to the `media_kit` / libmpv pipeline via FFmpeg `lavfi` equalizer filters (`EqualizerController`).
 
-- **Filter Orchestration**: Adjustments to band gains are translated to an FFmpeg filtergraph string:
-  `superequalizer=1b=G1:2b=G2:3b=G3:4b=G4:5b=G5`
-  where `G1` to `G5` represent the decibel gain adjustments (clamped between `-12.0` and `12.0` dB) for the respective frequency ranges (Bass, Mid-Bass, Mid, Mid-High, High).
-- **Native Platform Application**: The filter is applied dynamically to the active `Player` instance via the `_player.setAudioFilter(...)` method.
-- **Equalizer State**: Managed via `EqualizerNotifier` and persisted locally in `Settings` using `SharedPreferences`.
+- **Filter Orchestration**: Band gains are translated to an `af` filtergraph string with center frequencies at 100 / 300 / 1000 / 3000 / 10000 Hz (`width_type=q`, Q=1.0).
+- **Native Platform Application**: The filter is applied dynamically on `NativePlayer` via `setProperty('af', …)`. Non-native platforms log and no-op.
+- **Equalizer State**: Managed via `EqualizerNotifier` and persisted in SharedPreferences; `EqualizerNotifier` calls `SonoraAudioHandler.setEqualizer`, which forwards to `EqualizerController`. The facade also bootstraps EQ from prefs at construction.
 - **Presets**: Offers predefined gain tables for common genres (e.g., Rock, Pop, Classical, Bass Boost, Vocals).
 
 ---
@@ -759,16 +807,16 @@ Produces:
 | `useAmoled` | bool | false | ThemeProvider |
 | `gl` | String | "US" | YTMusic reinitialize + invalidate home |
 | `hl` | String | "en" | YTMusic reinitialize + invalidate home |
-| `crossfadeSeconds` | int | 2 | AudioHandler crossfade |
+| `crossfadeSeconds` | int | 2 | `PlaybackVolumeController` crossfade |
 | `restoreQueueOnStartup` | bool | true | QueueUseCase at boot |
 | `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
 | `downloadPath` | String? | null | StartDownloadUseCase |
 | `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
-| `trackHistory` | bool | true | AudioHandler history insert |
+| `trackHistory` | bool | true | History insert on play |
 | `offlineMode` | bool | false | Overrides network state to restrict online calls |
 | `checkUpdatesOnStartup` | bool | true | UpdateNotifier at boot |
-| `equalizerEnabled` | bool | false | AudioHandler filter application |
-| `equalizerGains` | String | "0,0,0,0,0" | AudioHandler filter gains |
+| `equalizerEnabled` | bool | false | `EqualizerController` filter application |
+| `equalizerGains` | String | "0,0,0,0,0" | `EqualizerController` filter gains |
 | `equalizerPreset` | String | "flat" | Display preset name in Equalizer UI |
 
 ---
