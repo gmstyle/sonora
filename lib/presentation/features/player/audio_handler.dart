@@ -7,12 +7,9 @@ import '../../../core/utils/url_staleness.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:audio_session/audio_session.dart';
 import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'dart:io';
 import 'package:media_kit/media_kit.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../core/utils/connectivity_utils.dart';
 import '../../../data/services/media_cache_service.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
@@ -30,6 +27,8 @@ import '../../../data/services/cast_service.dart';
 import 'audio_cast_handler.dart';
 import 'audio_android_auto_browser_handler.dart';
 import 'audio_equalizer_handler.dart';
+import 'audio_session_controller.dart';
+import 'player_engine_configurator.dart';
 import 'queue_controller.dart';
 
 import '../../../domain/models/queue_section.dart';
@@ -68,6 +67,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final AudioAndroidAutoBrowserHandler _browserHandler;
   late final AudioEqualizerHandler _equalizerHandler;
   late final QueueController _queueController;
+  late final AudioSessionController _audioSessionController;
+  late final PlayerEngineConfigurator _engineConfigurator;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -88,7 +89,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   String? _lastRetriedVideoId;
   bool _isStopping = false;
   bool _isCurrentSongLiked = false;
-  bool _playOnInterruptionEnd = false;
   String? _currentVideoId;
   String? _lastEmittedMediaItemId;
   Duration? _lastEmittedDuration;
@@ -209,13 +209,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
       proxyServer: _proxyServer,
     );
 
-    _setupAudioSession();
+    _engineConfigurator = PlayerEngineConfigurator(player: _player);
+    _audioSessionController = AudioSessionController(
+      userWantsPlaying: () => _userWantsPlaying,
+      isPlaying: () => _player.state.playing,
+      onPauseRequested: _pause,
+      onResumeRequested: play,
+      onDuck: (ducking) {
+        if (ducking) {
+          _setLocalVolume(_lastSetVolume * 20.0);
+        } else {
+          _setLocalVolume(_lastSetVolume * 100.0);
+        }
+      },
+    );
+
+    unawaited(_audioSessionController.setup());
     _setupListeners();
     _playerErrorSub = _player.stream.error.listen(_onPlayerError);
     _connectivitySub = _sharedConnectivity.onConnectivityChanged.listen(
       _onConnectivityChanged,
     );
-    unawaited(_initPlayerCache());
+    unawaited(_engineConfigurator.configure());
     unawaited(_ensureReady());
 
     // Inizializza l'equalizzatore all'avvio in base alle impostazioni persistite
@@ -241,113 +256,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required List<double> gains,
   }) async {
     await _equalizerHandler.setEqualizer(enabled: enabled, gains: gains);
-  }
-
-  Future<void> _setupAudioSession() async {
-    try {
-      final session = await AudioSession.instance;
-      await session.configure(const AudioSessionConfiguration.music());
-      session.interruptionEventStream.listen((event) {
-        if (event.begin) {
-          switch (event.type) {
-            case AudioInterruptionType.pause:
-            case AudioInterruptionType.unknown:
-              // Only mark for auto-resume if the user actually wants playback active.
-              // If the user explicitly paused (e.g. via earbud tap), _userWantsPlaying is false.
-              _playOnInterruptionEnd =
-                  _userWantsPlaying && _player.state.playing;
-              _pause();
-              break;
-            case AudioInterruptionType.duck:
-              _setLocalVolume(_lastSetVolume * 20.0);
-              break;
-          }
-        } else {
-          switch (event.type) {
-            case AudioInterruptionType.pause:
-            case AudioInterruptionType.unknown:
-              if (_playOnInterruptionEnd && _userWantsPlaying) {
-                play();
-              }
-              _playOnInterruptionEnd = false;
-              break;
-            case AudioInterruptionType.duck:
-              _setLocalVolume(_lastSetVolume * 100.0);
-              break;
-          }
-        }
-      });
-      session.becomingNoisyEventStream.listen((_) {
-        dev.log(
-          '[AudioHandler] Headphones unplugged / Becoming Noisy -> pausing playback',
-        );
-        _playOnInterruptionEnd = false;
-        pause();
-      });
-    } catch (e) {
-      dev.log('[AudioHandler] Failed to configure audio session: $e');
-    }
-  }
-
-  Future<void> _initPlayerCache() async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final cacheDir = Directory('${tempDir.path}/sonora_stream_cache');
-      if (!await cacheDir.exists()) {
-        await cacheDir.create(recursive: true);
-      }
-
-      final playerPlatform = _player.platform;
-      if (playerPlatform is NativePlayer) {
-        await playerPlatform.setProperty('cache', 'yes');
-        await playerPlatform.setProperty('cache-on-disk', 'yes');
-        await playerPlatform.setProperty('cache-dir', cacheDir.path);
-        await playerPlatform.setProperty('demuxer-max-bytes', '20971520');
-        await playerPlatform.setProperty('demuxer-max-back-bytes', '10485760');
-
-        // Configure network timeout for remote HTTP streams.
-        // Prevents libmpv from blocking the FFI thread for 60s when a socket dies.
-        await playerPlatform.setProperty('network-timeout', '5');
-        await playerPlatform.setProperty(
-          'demuxer-lavf-o',
-          'timeout=5000000,reconnect=1',
-        );
-
-        // Fill audio gaps with silence instead of pausing/clicking on underruns.
-        // Prevents crackling when Android throttles network in background.
-        await playerPlatform.setProperty('audio-stream-silence', 'yes');
-
-        if (Platform.isLinux) {
-          await playerPlatform.setProperty('hwdec', 'auto-safe');
-          await playerPlatform.setProperty('vo', 'libmpv');
-        }
-
-        dev.log(
-          '[AudioHandler] Stream caching configured at: ${cacheDir.path}',
-        );
-      }
-    } catch (e) {
-      dev.log('[AudioHandler] Failed to configure player caching: $e');
-    }
-  }
-
-  Future<bool> _requestAudioFocus() async {
-    try {
-      final session = await AudioSession.instance;
-      return await session.setActive(true);
-    } catch (e) {
-      dev.log('[AudioHandler] Failed to request audio focus: $e');
-      return false;
-    }
-  }
-
-  Future<void> _releaseAudioFocus() async {
-    try {
-      final session = await AudioSession.instance;
-      await session.setActive(false);
-    } catch (e) {
-      dev.log('[AudioHandler] Failed to release audio focus: $e');
-    }
   }
 
   /// Stream of [RestoreStatus] changes. [PlayerNotifier] subscribes here to
@@ -962,7 +870,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> play() async {
     _userWantsPlaying = true;
     _isStopping = false;
-    _playOnInterruptionEnd = false;
+    _audioSessionController.cancelResumeOnInterruptionEnd();
     _lastPauseTimestamp = null;
 
     if (!_player.state.playing) {
@@ -975,7 +883,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         .timeout(const Duration(seconds: 3), onTimeout: () {})
         .catchError((_) {});
 
-    if (await _requestAudioFocus()) {
+    if (await _audioSessionController.requestFocus()) {
       await _player.play();
       if (_castHandler.castState?.connectionState ==
           CastConnectionState.connected) {
@@ -991,7 +899,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
-    _playOnInterruptionEnd = false;
+    _audioSessionController.cancelResumeOnInterruptionEnd();
     await _pause();
   }
 
@@ -1020,7 +928,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await _castHandler.castService?.disconnect();
       } catch (_) {}
     }
-    _playOnInterruptionEnd = false;
+    _audioSessionController.cancelResumeOnInterruptionEnd();
     await _prefs.setInt(
       'last_pause_timestamp',
       DateTime.now().millisecondsSinceEpoch,
@@ -1030,7 +938,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _lookaheadTimer?.cancel();
     _endTransitionMute();
     await _player.stop();
-    await _releaseAudioFocus();
+    await _audioSessionController.releaseFocus();
     await super.stop();
   }
 
@@ -1416,7 +1324,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         final finalMedias =
             resolvedItems.map(_queueController.toMedia).toList();
         final playlist = Playlist(finalMedias, index: initialIndex);
-        final hasFocus = await _requestAudioFocus();
+        final hasFocus = await _audioSessionController.requestFocus();
         _userWantsPlaying = hasFocus;
         await _player.open(playlist, play: hasFocus);
       } catch (e) {
@@ -1547,7 +1455,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _queueRepo.persistPosition(_player.state.position);
     _isStopping = true;
     await _player.stop();
-    await _releaseAudioFocus();
+    await _audioSessionController.releaseFocus();
     await super.onTaskRemoved();
   }
 
@@ -1935,6 +1843,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _lookaheadTimer?.cancel();
     _playerErrorSub?.cancel();
     _connectivitySub?.cancel();
+    _audioSessionController.dispose();
     _onPlayErrorController.close();
     _restoreStatusController.close();
     _player.dispose();
