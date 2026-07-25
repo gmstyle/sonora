@@ -9,8 +9,6 @@ import 'package:audio_service/audio_service.dart';
 import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:media_kit/media_kit.dart';
-import '../../../core/utils/connectivity_utils.dart';
-import '../../../data/services/media_cache_service.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
 
 import '../../../domain/models/library_models.dart';
@@ -30,6 +28,7 @@ import 'audio_session_controller.dart';
 import 'like_controller.dart';
 import 'player_engine_configurator.dart';
 import 'player_media_controls.dart';
+import 'playback_recovery_controller.dart';
 import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
 import 'queue_controller.dart';
@@ -78,6 +77,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlaybackStatePublisher _statePublisher;
   late final SkipNavigator _skipNavigator;
   late final TrackUrlResolver _urlResolver;
+  late final PlaybackRecoveryController _recoveryController;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -86,18 +86,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Player get player => _player;
   LocalAudioProxyServer? get proxyServer => _proxyServer;
 
-  int _retryCount = 0;
-  bool _isRetrying = false;
-  // Tracks the videoId of the last retried track so we can reset _retryCount
-  // when a new track errors, even if _onPlaylistChanged's reset was suppressed
-  // by _queueController.isResolvingItem being true during a concurrent URL resolution.
-  String? _lastRetriedVideoId;
   bool _isStopping = false;
-  StreamSubscription<String>? _playerErrorSub;
   bool _userWantsPlaying = false;
-  bool _interruptedByNetworkDrop = false;
   DateTime? _lastPauseTimestamp;
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   Future<void>? _playlistOpenLock;
 
@@ -147,12 +138,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// before the player has actually seeked.
   Duration _savedPosition = Duration.zero;
 
-  final StreamController<(String videoId, String title)>
-  _onPlayErrorController =
-      StreamController<(String videoId, String title)>.broadcast();
-
   Stream<(String videoId, String title)> get onPlayError =>
-      _onPlayErrorController.stream;
+      _recoveryController.onPlayError;
 
   // Expose internals for delegate handlers
   double get lastSetVolume => _volumeController.lastSetVolume;
@@ -216,7 +203,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isRestoring: () => _restoreStatus == RestoreStatus.restoring,
       savedPosition: () => _savedPosition,
       isLiked: () => _likeController.isCurrentSongLiked,
-      onBecameReady: () => _retryCount = 0,
+      onBecameReady: () => _recoveryController.resetRetryCount(),
     );
     _skipNavigator = SkipNavigator();
     _urlResolver = TrackUrlResolver(
@@ -232,8 +219,50 @@ class SonoraAudioHandler extends BaseAudioHandler {
       userWantsPlaying: () => _userWantsPlaying,
       isStopping: () => _isStopping,
       requestPlay: play,
-      onResolveFailed: _handlePlaybackConnectionFailure,
+      onResolveFailed: (videoId, title) =>
+          _recoveryController.handlePlaybackConnectionFailure(videoId, title),
       emitMediaItem: (item) => mediaItem.add(item),
+      setPausedForConnection: (v) => _castHandler.pausedForConnection = v,
+      castMedia: ({
+        required String url,
+        required String title,
+        String? artist,
+        String? album,
+        String? artworkUrl,
+      }) async {
+        await _castHandler.castService?.castMedia(
+          url: url,
+          title: title,
+          artist: artist,
+          album: album,
+          artworkUrl: artworkUrl,
+        );
+      },
+      waitForCastPlaying: () => _castHandler.waitForCastSessionState(
+        _castHandler.castService!,
+        SessionState.playing,
+      ),
+      castPause: () async {
+        await _castHandler.castService?.pause();
+      },
+    );
+    _recoveryController = PlaybackRecoveryController(
+      player: _player,
+      playVideoIdUseCase: _playVideoIdUseCase,
+      queueController: _queueController,
+      volumeController: _volumeController,
+      statePublisher: _statePublisher,
+      urlResolver: _urlResolver,
+      connectivity: _sharedConnectivity,
+      userWantsPlaying: () => _userWantsPlaying,
+      isStopping: () => _isStopping,
+      currentMediaItem: () => mediaItem.value,
+      requestPlay: play,
+      skipToQueueItem: skipToQueueItem,
+      isCastConnected:
+          () =>
+              _castHandler.castState?.connectionState ==
+              CastConnectionState.connected,
       setPausedForConnection: (v) => _castHandler.pausedForConnection = v,
       castMedia: ({
         required String url,
@@ -268,10 +297,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     unawaited(_audioSessionController.setup());
     _setupListeners();
-    _playerErrorSub = _player.stream.error.listen(_onPlayerError);
-    _connectivitySub = _sharedConnectivity.onConnectivityChanged.listen(
-      _onConnectivityChanged,
-    );
+    _recoveryController.startListening();
     unawaited(_engineConfigurator.configure());
     unawaited(_ensureReady());
 
@@ -456,7 +482,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           _statePublisher.noteEmittedMediaItem(item);
           mediaItem.add(item);
           if (trackChanged) {
-            _retryCount = 0;
+            _recoveryController.resetRetryCount();
             _likeController.checkCurrentSongLiked(item.id);
             if (_castHandler.castState?.connectionState ==
                 CastConnectionState.connected) {
@@ -492,68 +518,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     if (!_queueController.isResolvingItem) {
       _volumeController.beginFadeIn();
-    }
-  }
-
-  Future<void> _handlePlaybackConnectionFailure(
-    String videoId,
-    String title,
-  ) async {
-    _interruptedByNetworkDrop = true;
-    final playlist = _player.state.playlist;
-    final currentIndex = playlist.index;
-    if (currentIndex < 0) return;
-
-    // Scan remaining queue for a playable offline/cached track
-    int targetIndex = -1;
-    for (int i = currentIndex + 1; i < playlist.medias.length; i++) {
-      final mediaItem = playlist.medias[i].extras?['mediaItem'] as MediaItem?;
-      if (mediaItem == null) continue;
-      final track = QueueTrack.fromMediaItem(mediaItem);
-
-      bool isCached = false;
-      final cachedUri = await MediaCacheService.instance.getCachedFileUri(
-        track.videoId,
-      );
-      isCached = cachedUri != null;
-
-      if (track.isLocalFile || isCached || !track.needsUrl) {
-        targetIndex = i;
-        break;
-      }
-    }
-
-    if (targetIndex != -1) {
-      dev.log(
-        '[AudioHandler] Connection failed. Advancing queue index to offline track at $targetIndex.',
-      );
-      await skipToQueueItem(targetIndex);
-    } else {
-      dev.log(
-        '[AudioHandler] Connection failed and no offline tracks found. Stopping playback.',
-      );
-      await _player.stop();
-      _onPlayErrorController.add((videoId, title));
-    }
-  }
-
-  void _onConnectivityChanged(List<ConnectivityResult> results) async {
-    if (!_interruptedByNetworkDrop) return;
-    if (results.isEmpty ||
-        (results.length == 1 && results.contains(ConnectivityResult.none))) {
-      return;
-    }
-
-    final isOnline = await ConnectivityUtils.isOnline();
-    if (isOnline && _interruptedByNetworkDrop) {
-      dev.log('[AudioHandler] Network connection restored. Auto-resuming...');
-      _interruptedByNetworkDrop = false;
-      final currentIndex = _player.state.playlist.index;
-      if (currentIndex >= 0 &&
-          currentIndex < _player.state.playlist.medias.length) {
-        await _urlResolver.resolveSinglePendingItem(currentIndex, forceResolve: true);
-        await play();
-      }
     }
   }
 
@@ -763,10 +727,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
                 : null;
         if (refreshedTrack?.needsUrl == true) {
           _volumeController.endTransitionMute();
-          _onPlayErrorController.add((
+          _recoveryController.reportPlayError(
             track?.videoId ?? item?.id ?? '',
             item?.title ?? '',
-          ));
+          );
           return;
         }
       }
@@ -1042,111 +1006,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await super.onTaskRemoved();
   }
 
-  void _onPlayerError(String error) async {
-    // Always lift any pending transition mute on error so the player does not
-    // remain permanently muted (e.g., when a URL resolve fails inside playNow).
-    _volumeController.endTransitionMute();
-
-    final currentItem = mediaItem.value;
-    if (currentItem == null) return;
-    final track = QueueTrack.fromMediaItem(currentItem);
-    final videoId = track.videoId;
-
-    // If this is a different track than the last retried one, reset the counter.
-    // This ensures a new track always gets its one retry attempt, even when
-    // _onPlaylistChanged's trackChanged reset was suppressed by _queueController.isResolvingItem.
-    if (_lastRetriedVideoId != videoId) {
-      _retryCount = 0;
-    }
-
-    if (_isRetrying ||
-        _retryCount >= 1 ||
-        _urlResolver.isPending(videoId)) {
-      return;
-    }
-
-    _isRetrying = true;
-    _lastRetriedVideoId = videoId;
-    _retryCount++;
-    try {
-      final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
-      final updatedItem = track
-          .copyWith(url: freshUrl)
-          .toMediaItem(currentItem);
-      final currentIndex = _player.state.playlist.index;
-
-      final updatedMedia = _queueController.toMedia(updatedItem);
-
-      final wasPlaying = _player.state.playing || _userWantsPlaying;
-      final currentPos = _player.state.position;
-
-      try {
-        await _queueController.runBatch(
-          () async {
-            if (_castHandler.castState?.connectionState ==
-                CastConnectionState.connected) {
-              // Cast is active: send the refreshed URL to the cast device too.
-              if (wasPlaying) {
-                _castHandler.pausedForConnection = true;
-                await _player.pause();
-              }
-              _volumeController.setLocalVolume(0.0);
-
-              await _castHandler.castService?.castMedia(
-                url: freshUrl,
-                title: updatedItem.title,
-                artist: updatedItem.artist,
-                album: updatedItem.album,
-                artworkUrl: updatedItem.artUri?.toString(),
-              );
-
-              // Update the local playlist with the refreshed URL.
-              await _queueController.replaceAt(currentIndex, updatedMedia);
-              await _player.jump(currentIndex);
-              if (currentPos > Duration.zero) await _player.seek(currentPos);
-
-              if (wasPlaying) {
-                await _castHandler.waitForCastSessionState(
-                  _castHandler.castService!,
-                  SessionState.playing,
-                );
-                _castHandler.pausedForConnection = false;
-                await play();
-              } else {
-                await _castHandler.castService?.pause();
-              }
-            } else {
-              if (wasPlaying) await _player.pause();
-              await _queueController.replaceAt(currentIndex, updatedMedia);
-              await _player.jump(currentIndex);
-
-              if (currentPos > Duration.zero) {
-                await _player.seek(currentPos);
-              }
-              if (wasPlaying) await _player.play();
-            }
-          },
-          isStopping: _isStopping,
-          onSettled: () {
-            _statePublisher.invalidate();
-            _statePublisher.updatePlaybackState();
-          },
-        );
-      } finally {
-        final actualIndex = _player.state.playlist.index;
-        if (actualIndex >= 0) {
-          _statePublisher.updateState(
-            (s) => s.copyWith(queueIndex: actualIndex),
-          );
-        }
-      }
-    } catch (e) {
-      await _handlePlaybackConnectionFailure(videoId, currentItem.title);
-    } finally {
-      _isRetrying = false;
-    }
-  }
-
   Future<void> _ensureReady() async {
     if (_restoreStatus == RestoreStatus.restoring) return;
 
@@ -1415,11 +1274,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   void dispose() {
     _isStopping = true;
     _urlResolver.cancelLookahead();
-    _playerErrorSub?.cancel();
-    _connectivitySub?.cancel();
     _urlResolver.dispose();
+    _recoveryController.dispose();
     _audioSessionController.dispose();
-    _onPlayErrorController.close();
     _restoreStatusController.close();
     _player.dispose();
   }
