@@ -17,11 +17,12 @@ import '../../../domain/usecases/player/play_smart_mix_use_case.dart';
 import '../../../domain/usecases/home/get_discover_suggestions_use_case.dart';
 import '../../../domain/usecases/home/get_new_releases_use_case.dart';
 import '../../../domain/usecases/home/get_similar_artists_suggestions_use_case.dart';
-import 'audio_handler.dart';
 
-class AudioAndroidAutoBrowserHandler {
-  final SonoraAudioHandler _audioHandler;
-
+/// Owns the Android Auto browse tree, search, and play-from-media-id flows.
+///
+/// Does not hold a back-reference to [SonoraAudioHandler]; queue reads and
+/// playback start are injected as narrow callbacks.
+class AndroidAutoBrowserController {
   final MusicRepository _musicRepo;
   final LibraryRepository _libraryRepo;
   final PlayVideoIdUseCase _playVideoIdUseCase;
@@ -34,6 +35,9 @@ class AudioAndroidAutoBrowserHandler {
   _getSimilarArtistsSuggestionsUseCase;
   // Injected by the caller so no extra Connectivity instance is created.
   final Connectivity _connectivity;
+  final List<MediaItem> Function() _userQueue;
+  final List<MediaItem> Function() _upNextQueue;
+  final Future<void> Function(List<MediaItem> items) _playNow;
 
   // ── Android Auto extras ──────────────────────────────────────────────────────
   static const String _kContentStyleBrowsable =
@@ -84,14 +88,15 @@ class AudioAndroidAutoBrowserHandler {
   static const String _actionPlayDownloads = '__action__:play_downloads:';
   static const String _actionShuffleDownloads = '__action__:shuffle_downloads:';
 
-  AudioAndroidAutoBrowserHandler({
-    required SonoraAudioHandler audioHandler,
+  AndroidAutoBrowserController({
     required MusicRepository musicRepo,
     required LibraryRepository libraryRepo,
     required PlayVideoIdUseCase playVideoIdUseCase,
     required Connectivity connectivity,
-  }) : _audioHandler = audioHandler,
-       _musicRepo = musicRepo,
+    required List<MediaItem> Function() userQueue,
+    required List<MediaItem> Function() upNextQueue,
+    required Future<void> Function(List<MediaItem> items) playNow,
+  }) : _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
        _playVideoIdUseCase = playVideoIdUseCase,
        _playAlbumUseCase = PlayAlbumUseCase(musicRepo),
@@ -104,7 +109,10 @@ class AudioAndroidAutoBrowserHandler {
        ),
        _getSimilarArtistsSuggestionsUseCase =
            GetSimilarArtistsSuggestionsUseCase(musicRepo, libraryRepo),
-       _connectivity = connectivity;
+       _connectivity = connectivity,
+       _userQueue = userQueue,
+       _upNextQueue = upNextQueue,
+       _playNow = playNow;
 
   // ═══════════════════════════════════════════════════════════════
   //  Android Auto — getChildren (AA browse tree)
@@ -232,8 +240,8 @@ class AudioAndroidAutoBrowserHandler {
     // mirrors the User Queue / Up Next split used in the in-app queue
     // sheet. The containers are only shown when the queue has at least
     // one item in the corresponding section.
-    final hasUser = _audioHandler.userQueue.isNotEmpty;
-    final hasUpNext = _audioHandler.upNextQueue.isNotEmpty;
+    final hasUser = _userQueue().isNotEmpty;
+    final hasUpNext = _upNextQueue().isNotEmpty;
     if (hasUser) {
       children.add(
         MediaItem(
@@ -282,7 +290,7 @@ class AudioAndroidAutoBrowserHandler {
   /// or the upnext section, depending on [upNext]. Each item is marked
   /// as playable so AA can offer the user to jump to a specific track.
   List<MediaItem> _buildQueueSectionChildren({required bool upNext}) {
-    return upNext ? _audioHandler.upNextQueue : _audioHandler.userQueue;
+    return upNext ? _upNextQueue() : _userQueue();
   }
 
   Future<List<MediaItem>> _buildLibraryChildren() async {
@@ -1426,7 +1434,7 @@ class AudioAndroidAutoBrowserHandler {
         final albumId = mediaId.substring(_actionPlayAlbum.length);
         final album = await _musicRepo.getAlbum(albumId);
         final items = await _playAlbumUseCase.execute(album.songs);
-        await _audioHandler.playNow(items);
+        await _playNow(items);
         return;
       }
       if (mediaId.startsWith(_actionShuffleAlbum)) {
@@ -1434,7 +1442,7 @@ class AudioAndroidAutoBrowserHandler {
         final album = await _musicRepo.getAlbum(albumId);
         final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
         final items = await _playAlbumUseCase.execute(shuffled);
-        await _audioHandler.playNow(items);
+        await _playNow(items);
         return;
       }
       if (mediaId.startsWith(_actionLikeAlbum)) {
@@ -1472,7 +1480,7 @@ class AudioAndroidAutoBrowserHandler {
         final artistId = mediaId.substring(_actionPlayArtist.length);
         final artist = await _musicRepo.getArtist(artistId);
         final items = await _playAlbumUseCase.execute(artist.topSongs);
-        await _audioHandler.playNow(items);
+        await _playNow(items);
         return;
       }
       if (mediaId.startsWith(_actionShuffleArtist)) {
@@ -1480,7 +1488,7 @@ class AudioAndroidAutoBrowserHandler {
         final artist = await _musicRepo.getArtist(artistId);
         final shuffled = List<SongDetailed>.from(artist.topSongs)..shuffle();
         final items = await _playAlbumUseCase.execute(shuffled);
-        await _audioHandler.playNow(items);
+        await _playNow(items);
         return;
       }
       if (mediaId.startsWith(_actionFollowArtist)) {
@@ -1525,11 +1533,11 @@ class AudioAndroidAutoBrowserHandler {
               items = [track.toMediaItem(items.first), ...items.skip(1)];
             } catch (_) {}
           }
-          await _audioHandler.playNow(items);
+          await _playNow(items);
         } else {
           final videos = await _musicRepo.getPlaylistVideos(playlistId);
           final items = await _playPlaylistUseCase.execute(videos);
-          await _audioHandler.playNow(items);
+          await _playNow(items);
         }
         return;
       }
@@ -1548,12 +1556,12 @@ class AudioAndroidAutoBrowserHandler {
               items[0] = track.toMediaItem(items.first);
             } catch (_) {}
           }
-          await _audioHandler.playNow(items);
+          await _playNow(items);
         } else {
           final videos = await _musicRepo.getPlaylistVideos(playlistId);
           final shuffled = List<VideoDetailed>.from(videos)..shuffle();
           final items = await _playPlaylistUseCase.execute(shuffled);
-          await _audioHandler.playNow(items);
+          await _playNow(items);
         }
         return;
       }
@@ -1590,7 +1598,7 @@ class AudioAndroidAutoBrowserHandler {
         final mixTypeStr = mediaId.substring(_actionPlayMix.length);
         final songs = await _fetchMixSongs(mixTypeStr);
         final items = await _playSmartMixUseCase.execute(songs: songs);
-        await _audioHandler.playNow(items);
+        await _playNow(items);
         return;
       }
       if (mediaId.startsWith(_actionShuffleMix)) {
@@ -1598,7 +1606,7 @@ class AudioAndroidAutoBrowserHandler {
         final songs = await _fetchMixSongs(mixTypeStr);
         final shuffled = List<dynamic>.from(songs)..shuffle();
         final items = await _playSmartMixUseCase.execute(songs: shuffled);
-        await _audioHandler.playNow(items);
+        await _playNow(items);
         return;
       }
 
@@ -1606,7 +1614,7 @@ class AudioAndroidAutoBrowserHandler {
       if (mediaId.startsWith(_actionPlayDownloads)) {
         final items = await _buildDownloadMediaItems();
         if (items.isNotEmpty) {
-          await _audioHandler.playNow(items);
+          await _playNow(items);
         }
         return;
       }
@@ -1614,14 +1622,14 @@ class AudioAndroidAutoBrowserHandler {
         final items = await _buildDownloadMediaItems();
         if (items.isNotEmpty) {
           final shuffled = List<MediaItem>.from(items)..shuffle();
-          await _audioHandler.playNow(shuffled);
+          await _playNow(shuffled);
         }
         return;
       }
 
       // ── Default: single song play ───────────────────────────
       final item = await _playVideoIdUseCase.execute(mediaId);
-      await _audioHandler.playNow([item]);
+      await _playNow([item]);
     } catch (_) {}
   }
 
@@ -1791,7 +1799,7 @@ class AudioAndroidAutoBrowserHandler {
         results.first.videoId,
       );
       final remaining = results.skip(1).expand(_contentToMediaItems).toList();
-      await _audioHandler.playNow([firstItem, ...remaining]);
+      await _playNow([firstItem, ...remaining]);
     } catch (e, st) {
       dev.log('[AA] playFromSearch error for "$query": $e\n$st');
     }

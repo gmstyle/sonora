@@ -20,8 +20,8 @@ import 'package:dart_cast/dart_cast.dart';
 import '../../providers/cast_provider.dart';
 import '../../../data/services/cast_service.dart';
 
+import 'android_auto_browser_controller.dart';
 import 'cast_playback_controller.dart';
-import 'audio_android_auto_browser_handler.dart';
 import 'equalizer_controller.dart';
 import 'audio_session_controller.dart';
 import 'like_controller.dart';
@@ -51,7 +51,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final StartRadioUseCase _startRadioUseCase;
 
   late final CastPlaybackController _castController;
-  late final AudioAndroidAutoBrowserHandler _browserHandler;
+  late final AndroidAutoBrowserController _browserController;
   late final EqualizerController _equalizerController;
   late final QueueController _queueController;
   late final AudioSessionController _audioSessionController;
@@ -128,14 +128,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onLikeChanged: () => _rebuildControls(),
     );
 
-    _browserHandler = AudioAndroidAutoBrowserHandler(
-      audioHandler: this,
-      musicRepo: musicRepo,
-      libraryRepo: libraryRepo,
-      playVideoIdUseCase: playVideoIdUseCase,
-      connectivity: _sharedConnectivity,
-    );
-
     _equalizerController = EqualizerController(player: _player);
 
     _queueController = QueueController(
@@ -146,6 +138,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
       getRepeatMode: () => playbackState.value.repeatMode,
       updateQueueStream: (items) => queue.add(items),
       proxyServer: _proxyServer,
+    );
+
+    // After QueueController so userQueue/upNextQueue callbacks are valid.
+    _browserController = AndroidAutoBrowserController(
+      musicRepo: musicRepo,
+      libraryRepo: libraryRepo,
+      playVideoIdUseCase: playVideoIdUseCase,
+      connectivity: _sharedConnectivity,
+      userQueue: () => _queueController.userQueue,
+      upNextQueue: () => _queueController.upNextQueue,
+      playNow: (items) => playNow(items),
     );
 
     _engineConfigurator = PlayerEngineConfigurator(player: _player);
@@ -1011,7 +1014,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     String parentMediaId, [
     Map<String, dynamic>? options,
   ]) {
-    return _browserHandler.getChildren(parentMediaId, options);
+    return _browserController.getChildren(parentMediaId, options);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1020,7 +1023,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> playFromMediaId(String mediaId, [Map<String, dynamic>? extras]) {
-    return _browserHandler.playFromMediaId(mediaId, extras);
+    return _browserController.playFromMediaId(mediaId, extras);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1029,7 +1032,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<List<MediaItem>> search(String query, [Map<String, dynamic>? extras]) {
-    return _browserHandler.search(query, extras);
+    return _browserController.search(query, extras);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -1038,7 +1041,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> playFromSearch(String query, [Map<String, dynamic>? extras]) {
-    return _browserHandler.playFromSearch(query, extras);
+    return _browserController.playFromSearch(query, extras);
   }
 
   // ═══════════════════════════════════════════════════════════════
