@@ -1911,20 +1911,43 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     // Open with play: true to trigger stream decoding (needed for the player
     // to report duration on streaming URLs). We pause right after the seek.
-    await _player.open(restoredPlaylist, play: true);
+    // Suppress intermediate playlist events: media_kit briefly reports an
+    // empty playlist during open, which would otherwise sync/persist [].
+    _queueController.beginResolving();
+    try {
+      await _player.open(restoredPlaylist, play: true);
 
-    if (_savedPosition > Duration.zero) {
-      try {
-        await _player.stream.duration
-            .where((d) => d > Duration.zero)
-            .first
-            .timeout(const Duration(seconds: 8));
-      } catch (_) {}
-      await _player.seek(_savedPosition);
-    }
-    // Pause after restore — the user didn't ask for playback.
-    if (_player.state.playing) {
-      await _player.pause();
+      if (_savedPosition > Duration.zero) {
+        try {
+          await _player.stream.duration
+              .where((d) => d > Duration.zero)
+              .first
+              .timeout(const Duration(seconds: 8));
+        } catch (_) {}
+        await _player.seek(_savedPosition);
+      }
+      // Pause after restore — the user didn't ask for playback.
+      if (_player.state.playing) {
+        await _player.pause();
+      }
+    } finally {
+      _queueController.endResolving();
+      // Publish the final playlist to the queue stream before restore is
+      // marked ready, so the full-player queue is populated immediately.
+      _queueController.syncQueue(isStopping: _isStopping);
+      // Seed mediaItem if playlist events were suppressed during open.
+      final playlist = _player.state.playlist;
+      final idx = playlist.index;
+      if (idx >= 0 &&
+          idx < playlist.medias.length &&
+          mediaItem.valueOrNull == null) {
+        final item =
+            playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
+        if (item != null) {
+          mediaItem.add(item);
+        }
+      }
+      _updatePlaybackState();
     }
   }
 

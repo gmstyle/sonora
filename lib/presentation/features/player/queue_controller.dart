@@ -304,6 +304,13 @@ class QueueController {
         newIds.length != currentIds.length ||
         !const ListEquality().equals(newIds, currentIds);
 
+    // media_kit emits an empty playlist while `_player.open` is swapping in
+    // a new list. Publishing that transient [] would wipe the audio_service
+    // queue stream (empty full-player UI) and persist an empty DB snapshot.
+    if (items.isEmpty && currentIds.isNotEmpty && !isStopping) {
+      return;
+    }
+
     if (queueStructureChanged) {
       _updateQueueStream(items);
       if (!isStopping) {
