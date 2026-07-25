@@ -1598,6 +1598,42 @@ abstract class AppLocalizations {
   /// **'Additional battery saving features from your device manufacturer'**
   String get manufacturerBatteryOptimizationHint;
 
+  /// No description provided for @backgroundPlaybackPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background playback'**
+  String get backgroundPlaybackPromptTitle;
+
+  /// No description provided for @backgroundPlaybackPromptMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Android may interrupt music when Sonora is in the background. Disable battery optimization to keep playback running smoothly.'**
+  String get backgroundPlaybackPromptMessage;
+
+  /// No description provided for @disableNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable now'**
+  String get disableNow;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
+  /// No description provided for @dontShowAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t show again'**
+  String get dontShowAgain;
+
+  /// No description provided for @batteryPromptDismissedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can still disable battery optimization anytime in Settings → Background Playback if background playback gets interrupted.'**
+  String get batteryPromptDismissedHint;
+
   /// No description provided for @playingFrom.
   ///
   /// In en, this message translates to:

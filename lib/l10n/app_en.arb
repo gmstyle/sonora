@@ -459,6 +459,12 @@
   "disableBatteryOptimizationHint": "Prevents Android from stopping playback when the app is in the background",
   "manufacturerBatteryOptimization": "Manufacturer battery optimization",
   "manufacturerBatteryOptimizationHint": "Additional battery saving features from your device manufacturer",
+  "backgroundPlaybackPromptTitle": "Background playback",
+  "backgroundPlaybackPromptMessage": "Android may interrupt music when Sonora is in the background. Disable battery optimization to keep playback running smoothly.",
+  "disableNow": "Disable now",
+  "notNow": "Not now",
+  "dontShowAgain": "Don't show again",
+  "batteryPromptDismissedHint": "You can still disable battery optimization anytime in Settings → Background Playback if background playback gets interrupted.",
  
   "@@sectionMeta": {
     "player": "Player"

@@ -910,6 +910,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Additional battery saving features from your device manufacturer';
 
   @override
+  String get backgroundPlaybackPromptTitle => 'Background playback';
+
+  @override
+  String get backgroundPlaybackPromptMessage =>
+      'Android may interrupt music when Sonora is in the background. Disable battery optimization to keep playback running smoothly.';
+
+  @override
+  String get disableNow => 'Disable now';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get dontShowAgain => 'Don\'t show again';
+
+  @override
+  String get batteryPromptDismissedHint =>
+      'You can still disable battery optimization anytime in Settings → Background Playback if background playback gets interrupted.';
+
+  @override
   String get playingFrom => 'PLAYING FROM';
 
   @override

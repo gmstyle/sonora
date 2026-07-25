@@ -316,6 +316,9 @@ const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 /// so the new section-aware playback starts from a clean state.
 const kPostQueueSplitDoneKey = 'postQueueSplitDone';
 
+/// When `true`, the proactive battery-optimization startup prompt is never shown again.
+const kBatteryPromptDismissedKey = 'batteryPromptDismissed';
+
 // ── Battery Optimization (Android only) ───────────────────────────
 
 final batteryOptimizationProvider = FutureProvider<bool>((ref) async {
@@ -345,6 +348,10 @@ extension BatteryOptimizationNotifier on SettingsNotifier {
       'Battery Optimization',
       'Follow the steps to disable manufacturer battery optimization.',
     );
+  }
+
+  Future<void> dismissBatteryPromptForever() async {
+    await _prefs.setBool(kBatteryPromptDismissedKey, true);
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
+import '../widgets/battery_prompt_gate.dart';
 import '../widgets/offline_banner.dart';
 import 'mobile_shell.dart';
 import 'tablet_shell.dart';
@@ -28,6 +29,7 @@ class AppShell extends ConsumerWidget {
           },
         ),
         const OfflineBanner(),
+        const BatteryPromptGate(),
       ],
     );
   }

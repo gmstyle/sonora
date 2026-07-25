@@ -916,6 +916,26 @@ class AppLocalizationsIt extends AppLocalizations {
       'Funzioni aggiuntive di risparmio energetico del produttore del dispositivo';
 
   @override
+  String get backgroundPlaybackPromptTitle => 'Riproduzione in background';
+
+  @override
+  String get backgroundPlaybackPromptMessage =>
+      'Android potrebbe interrompere la musica quando Sonora è in background. Disabilita l\'ottimizzazione batteria per mantenere la riproduzione fluida.';
+
+  @override
+  String get disableNow => 'Disabilita ora';
+
+  @override
+  String get notNow => 'Non ora';
+
+  @override
+  String get dontShowAgain => 'Non mostrare più';
+
+  @override
+  String get batteryPromptDismissedHint =>
+      'Puoi comunque disabilitare l\'ottimizzazione batteria in Impostazioni → Riproduzione in background se la musica in background viene interrotta.';
+
+  @override
   String get playingFrom => 'RIPRODOTTO DA';
 
   @override
