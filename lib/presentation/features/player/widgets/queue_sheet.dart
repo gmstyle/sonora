@@ -106,7 +106,10 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
       final byId = playerState.queue.indexWhere((e) => e.id == currentSongId);
       if (byId >= 0) return byId;
     }
-    return currentIndex.clamp(0, (playerState.queue.length - 1).clamp(0, 1 << 30));
+    return currentIndex.clamp(
+      0,
+      (playerState.queue.length - 1).clamp(0, 1 << 30),
+    );
   }
 
   Future<void> _centerOnCurrent({required bool force}) async {
@@ -149,9 +152,7 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
       return;
     }
 
-    final target = _centeredOffsetForTileTop(
-      tileTop,
-    ).clamp(0.0, maxExtent);
+    final target = _centeredOffsetForTileTop(tileTop).clamp(0.0, maxExtent);
 
     _isProgrammaticScroll = true;
     _centerRetries = 0;
@@ -376,8 +377,6 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                     item: item,
                     isCurrent: isCurrent,
                     pc: pc,
-                    // Upnext items are not individually removable; disable
-                    // autoplay to clear the section.
                     onRemove: null,
                     onTap: () => notifier.skipToIndex(globalIndex),
                   );
@@ -614,25 +613,9 @@ class _QueueItem extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (isCurrent)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Icon(
-                        LucideIcons.play,
-                        size: 20,
-                        color: pc.iconPrimary,
-                      ),
-                    )
-                  else if (onRemove == null)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Icon(
-                        LucideIcons.infinity,
-                        size: 16,
-                        color: pc.iconSecondary.withValues(alpha: 0.6),
-                      ),
-                    )
-                  else
+                  // Remove only on user-queue items; up-next is section-scoped
+                  // (header ∞ + opacity) so per-tile infinity icons are omitted.
+                  if (!isCurrent && onRemove != null)
                     IconButton(
                       icon: Icon(
                         LucideIcons.x,
