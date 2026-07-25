@@ -31,6 +31,7 @@ import 'audio_session_controller.dart';
 import 'like_controller.dart';
 import 'player_engine_configurator.dart';
 import 'player_media_controls.dart';
+import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
 import 'queue_controller.dart';
 
@@ -73,6 +74,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlayerEngineConfigurator _engineConfigurator;
   late final LikeController _likeController;
   late final PlaybackVolumeController _volumeController;
+  late final PlaybackStatePublisher _statePublisher;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -81,7 +83,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Player get player => _player;
   LocalAudioProxyServer? get proxyServer => _proxyServer;
 
-  Duration _lastPosition = Duration.zero;
   int _retryCount = 0;
   bool _isRetrying = false;
   // Tracks the videoId of the last retried track so we can reset _retryCount
@@ -89,10 +90,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   // by _queueController.isResolvingItem being true during a concurrent URL resolution.
   String? _lastRetriedVideoId;
   bool _isStopping = false;
-  String? _lastEmittedMediaItemId;
-  Duration? _lastEmittedDuration;
-  AudioProcessingState? _lastEmittedProcessingState;
-  bool? _lastEmittedPlaying;
   StreamSubscription<String>? _playerErrorSub;
   final Set<String> _pendingResolutions = {};
   final List<int> _shuffledHistory = [];
@@ -214,6 +211,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
               _castHandler.castState?.connectionState ==
               CastConnectionState.connected,
     );
+    _statePublisher = PlaybackStatePublisher(
+      player: _player,
+      getPlaybackState: () => playbackState.value,
+      setPlaybackState: (state) => playbackState.add(state),
+      isRestoring: () => _restoreStatus == RestoreStatus.restoring,
+      savedPosition: () => _savedPosition,
+      isLiked: () => _likeController.isCurrentSongLiked,
+      onBecameReady: () => _retryCount = 0,
+    );
     _audioSessionController = AudioSessionController(
       userWantsPlaying: () => _userWantsPlaying,
       isPlaying: () => _player.state.playing,
@@ -304,13 +310,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
           !_castHandler.pausedForConnection) {
         _userWantsPlaying = false;
       }
-      _updatePlaybackState();
+      _statePublisher.updatePlaybackState();
     });
-    _player.stream.buffering.listen((_) => _updatePlaybackState());
-    _player.stream.completed.listen((_) => _updatePlaybackState());
+    _player.stream.buffering.listen((_) => _statePublisher.updatePlaybackState());
+    _player.stream.completed.listen((_) => _statePublisher.updatePlaybackState());
 
     _player.stream.playlist.listen((playlist) {
-      if (!_queueController.isResolvingItem) _updatePlaybackState();
+      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
       _onPlaylistChanged(playlist);
     });
 
@@ -320,25 +326,25 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (current == null) return;
       if (current.duration != null && current.duration != Duration.zero) return;
       final updated = current.copyWith(duration: duration);
-      _lastEmittedDuration = duration;
+      _statePublisher.lastEmittedDuration = duration;
       mediaItem.add(updated);
     });
 
     _player.stream.position.listen((pos) {
       _volumeController.handleCrossfade(pos);
-      _handlePositionTick(pos);
+      _statePublisher.handlePositionTick(pos);
       if (_volumeController.isTransitionMuted &&
           _player.state.playing &&
           pos.inMilliseconds > 150) {
         _volumeController.endTransitionMute();
       }
     });
-    _player.stream.buffer.listen(_onBufferedPositionChanged);
+    _player.stream.buffer.listen(_statePublisher.onBufferedPositionChanged);
 
     _player.stream.shuffle.listen((shuffled) {
       final shuffleMode =
           shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
-      _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
+      _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
       _rebuildControls();
     });
 
@@ -348,85 +354,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
         PlaylistMode.single => AudioServiceRepeatMode.one,
         PlaylistMode.loop => AudioServiceRepeatMode.all,
       };
-      _updateState((s) => s.copyWith(repeatMode: repeatMode));
+      _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
       _rebuildControls();
     });
   }
 
-  AudioProcessingState _getProcessingState() {
-    if (_player.state.buffering) {
-      return AudioProcessingState.buffering;
-    }
-    if (_player.state.completed) {
-      return AudioProcessingState.completed;
-    }
-    if (_player.state.playlist.medias.isEmpty) {
-      return AudioProcessingState.idle;
-    }
-    return AudioProcessingState.ready;
-  }
-
-  void _updatePlaybackState() {
-    if (_restoreStatus == RestoreStatus.restoring) return;
-
-    final processing = _getProcessingState();
-    final playing = _player.state.playing;
-
-    if (processing == AudioProcessingState.ready) {
-      _retryCount = 0;
-    }
-
-    final stateUnchanged =
-        processing == _lastEmittedProcessingState &&
-        playing == _lastEmittedPlaying;
-    if (stateUnchanged) return;
-
-    _lastEmittedProcessingState = processing;
-    _lastEmittedPlaying = playing;
-
-    final current = playbackState.value;
-    final updatedState = current.copyWith(
-      processingState: processing,
-      playing: playing,
-      updatePosition: _player.state.position,
-      speed: _player.state.rate,
-      systemActions: const {
-        MediaAction.seek,
-        MediaAction.seekForward,
-        MediaAction.seekBackward,
-        MediaAction.setRating,
-      },
-      androidCompactActionIndices: const [0, 1, 2],
-    );
-
-    playbackState.add(
-      updatedState.copyWith(
-        controls: PlayerMediaControls.build(
-          updatedState,
-          isLiked: _likeController.isCurrentSongLiked,
-        ),
-      ),
-    );
-  }
-
-  void _updateState(
-    PlaybackState Function(PlaybackState) update, {
-    Duration? forcePosition,
-  }) {
-    final current = playbackState.value;
-    final updated = update(current);
-    final position =
-        forcePosition ??
-        (_restoreStatus == RestoreStatus.restoring
-            ? _savedPosition
-            : _player.state.position);
-    playbackState.add(
-      updated.copyWith(updatePosition: position, speed: _player.state.rate),
-    );
-  }
-
   void _rebuildControls() {
-    _updateState(
+    _statePublisher.updateState(
       (s) => s.copyWith(
         controls: PlayerMediaControls.build(
           s,
@@ -436,13 +370,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
   }
 
-  void _onBufferedPositionChanged(Duration position) {
-    final prev = playbackState.value.bufferedPosition;
-    if ((position - prev).abs() >= const Duration(seconds: 2)) {
-      _updateState((s) => s.copyWith(bufferedPosition: position));
-    }
-  }
-
   void _onPlaylistChanged(Playlist playlist) {
     if (_isStopping) return;
 
@@ -450,7 +377,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     if (!_queueController.isResolvingItem) {
       _targetSkipIndex = null;
-      _updateState((s) => s.copyWith(queueIndex: index));
+      _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
       if (index >= 0) {
         // Persist the raw index alongside the item's stable identity (its
         // videoId) in the SAME atomic QueueMeta row that the queue itself
@@ -481,15 +408,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
           item = item.copyWith(duration: playerDuration);
         }
 
-        final trackChanged = item.id != _lastEmittedMediaItemId;
+        final trackChanged = item.id != _statePublisher.lastEmittedMediaItemId;
         final durationResolved =
             !trackChanged &&
-            (_lastEmittedDuration == null ||
-                _lastEmittedDuration == Duration.zero) &&
+            (_statePublisher.lastEmittedDuration == null ||
+                _statePublisher.lastEmittedDuration == Duration.zero) &&
             (item.duration != null && item.duration != Duration.zero);
         if (trackChanged || durationResolved) {
-          _lastEmittedMediaItemId = item.id;
-          _lastEmittedDuration = item.duration;
+          _statePublisher.noteEmittedMediaItem(item);
           mediaItem.add(item);
           if (trackChanged) {
             _retryCount = 0;
@@ -729,20 +655,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _pendingResolutions.remove(videoId);
       _queueController.syncQueue(isStopping: _isStopping);
       if (!_queueController.isResolvingItem) {
-        _lastEmittedProcessingState = null;
-        _lastEmittedPlaying = null;
-        _updatePlaybackState();
+        _statePublisher.invalidate();
+        _statePublisher.updatePlaybackState();
       }
       final actualIndex = _player.state.playlist.index;
       if (actualIndex >= 0) {
-        _updateState((s) => s.copyWith(queueIndex: actualIndex));
+        _statePublisher.updateState((s) => s.copyWith(queueIndex: actualIndex));
         final playlist = _player.state.playlist;
         if (actualIndex < playlist.medias.length) {
           final media = playlist.medias[actualIndex];
           final item = media.extras?['mediaItem'] as MediaItem?;
           if (item != null) {
-            _lastEmittedMediaItemId = item.id;
-            _lastEmittedDuration = item.duration;
+            _statePublisher.noteEmittedMediaItem(item);
             mediaItem.add(item);
           }
         }
@@ -820,7 +744,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _lastPauseTimestamp = null;
 
     if (!_player.state.playing) {
-      _updateState(
+      _statePublisher.updateState(
         (s) => s.copyWith(processingState: AudioProcessingState.buffering),
       );
     }
@@ -837,9 +761,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
     } else {
       _userWantsPlaying = false;
-      _lastEmittedProcessingState = null;
-      _lastEmittedPlaying = null;
-      _updatePlaybackState();
+      _statePublisher.invalidate();
+      _statePublisher.updatePlaybackState();
     }
   }
 
@@ -891,7 +814,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> seek(Duration position) async {
     await _player.seek(position);
-    _updateState((s) => s, forcePosition: position);
+    _statePublisher.updateState((s) => s, forcePosition: position);
     if (_castHandler.castState?.connectionState ==
         CastConnectionState.connected) {
       await _castHandler.castService?.seek(position);
@@ -995,7 +918,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    _updateState(
+    _statePublisher.updateState(
       (s) => s.copyWith(processingState: AudioProcessingState.buffering),
     );
 
@@ -1070,16 +993,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _volumeController.setCrossfadeDuration(duration);
   }
 
-  void _handlePositionTick(Duration pos) {
-    final jumpedBackward =
-        pos < _lastPosition - const Duration(milliseconds: 500);
-    final advancedEnough = pos >= _lastPosition + const Duration(seconds: 1);
-    if (jumpedBackward || advancedEnough) {
-      _updateState((s) => s);
-    }
-    _lastPosition = pos;
-  }
-
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
@@ -1087,7 +1000,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (shuffleMode == AudioServiceShuffleMode.none) {
       _shuffledHistory.clear();
     }
-    _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
+    _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
     unawaited(_queueRepo.persistPlaybackModes(shuffleMode: shuffleMode));
   }
 
@@ -1100,7 +1013,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       AudioServiceRepeatMode.group => PlaylistMode.loop,
     };
     await _player.setPlaylistMode(playlistMode);
-    _updateState((s) => s.copyWith(repeatMode: repeatMode));
+    _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
     unawaited(_queueRepo.persistPlaybackModes(repeatMode: repeatMode));
   }
 
@@ -1225,7 +1138,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } finally {
       _queueController.endResolving();
       _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _updatePlaybackState();
+      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
     }
   }
 
@@ -1246,7 +1159,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } finally {
       _queueController.endResolving();
       _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _updatePlaybackState();
+      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
     }
   }
 
@@ -1258,7 +1171,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } finally {
       _queueController.endResolving();
       _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _updatePlaybackState();
+      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
     }
   }
 
@@ -1325,7 +1238,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     } finally {
       _queueController.endResolving();
       _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _updatePlaybackState();
+      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
     }
   }
 
@@ -1439,13 +1352,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _queueController.endResolving();
         _queueController.syncQueue(isStopping: _isStopping);
         if (!_queueController.isResolvingItem) {
-          _lastEmittedProcessingState = null;
-          _lastEmittedPlaying = null;
-          _updatePlaybackState();
+          _statePublisher.invalidate();
+          _statePublisher.updatePlaybackState();
         }
         final actualIndex = _player.state.playlist.index;
         if (actualIndex >= 0) {
-          _updateState((s) => s.copyWith(queueIndex: actualIndex));
+          _statePublisher.updateState((s) => s.copyWith(queueIndex: actualIndex));
         }
       }
     } catch (e) {
@@ -1502,9 +1414,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
           await _resolveSinglePendingItem(idx, forceResolve: true);
         } finally {
           _setRestoreStatus(RestoreStatus.ready);
-          _lastEmittedProcessingState = null;
-          _lastEmittedPlaying = null;
-          _updatePlaybackState();
+          _statePublisher.invalidate();
+          _statePublisher.updatePlaybackState();
         }
         // Best-effort prefetch of the next item too; failures here are
         // non-fatal since it is not the one about to play.
@@ -1528,9 +1439,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       dev.log('[AudioHandler] Error in _ensureReady/_doRestore: $e\n$stack');
     } finally {
       _setRestoreStatus(RestoreStatus.ready);
-      _lastEmittedProcessingState = null;
-      _lastEmittedPlaying = null;
-      _updatePlaybackState();
+      _statePublisher.invalidate();
+      _statePublisher.updatePlaybackState();
     }
   }
 
@@ -1648,7 +1558,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (meta.shuffleMode != null) {
       final shuffleMode = meta.shuffleMode!;
       await _player.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
-      _updateState((s) => s.copyWith(shuffleMode: shuffleMode));
+      _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
     }
 
     if (meta.repeatMode != null) {
@@ -1660,7 +1570,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         AudioServiceRepeatMode.group => PlaylistMode.loop,
       };
       await _player.setPlaylistMode(playlistMode);
-      _updateState((s) => s.copyWith(repeatMode: repeatMode));
+      _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
     }
 
     _isStopping = false;
@@ -1707,7 +1617,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           mediaItem.add(item);
         }
       }
-      _updatePlaybackState();
+      _statePublisher.updatePlaybackState();
     }
   }
 
