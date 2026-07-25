@@ -374,8 +374,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
 
     _player.stream.playlist.listen((playlist) {
-      if (!_queueController.isResolvingItem)
+      if (!_queueController.isResolvingItem) {
         _statePublisher.updatePlaybackState();
+      }
       _onPlaylistChanged(playlist);
     });
 
