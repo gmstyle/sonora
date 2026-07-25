@@ -25,12 +25,12 @@ class AudioAndroidAutoBrowserHandler {
   final MusicRepository _musicRepo;
   final LibraryRepository _libraryRepo;
   final PlayVideoIdUseCase _playVideoIdUseCase;
-  final PlayAlbumUseCase _playAlbumUseCase;
-  final PlayPlaylistUseCase _playPlaylistUseCase;
-  final PlaySmartMixUseCase _playSmartMixUseCase;
-  final GetNewReleasesUseCase _getNewReleasesUseCase;
-  final GetDiscoverSuggestionsUseCase _getDiscoverSuggestionsUseCase;
-  final GetSimilarArtistsSuggestionsUseCase
+  late final PlayAlbumUseCase _playAlbumUseCase;
+  late final PlayPlaylistUseCase _playPlaylistUseCase;
+  late final PlaySmartMixUseCase _playSmartMixUseCase;
+  late final GetNewReleasesUseCase _getNewReleasesUseCase;
+  late final GetDiscoverSuggestionsUseCase _getDiscoverSuggestionsUseCase;
+  late final GetSimilarArtistsSuggestionsUseCase
   _getSimilarArtistsSuggestionsUseCase;
   // Injected by the caller so no extra Connectivity instance is created.
   final Connectivity _connectivity;
@@ -89,25 +89,21 @@ class AudioAndroidAutoBrowserHandler {
     required MusicRepository musicRepo,
     required LibraryRepository libraryRepo,
     required PlayVideoIdUseCase playVideoIdUseCase,
-    required PlayAlbumUseCase playAlbumUseCase,
-    required PlayPlaylistUseCase playPlaylistUseCase,
-    required PlaySmartMixUseCase playSmartMixUseCase,
-    required GetNewReleasesUseCase getNewReleasesUseCase,
-    required GetDiscoverSuggestionsUseCase getDiscoverSuggestionsUseCase,
-    required GetSimilarArtistsSuggestionsUseCase
-    getSimilarArtistsSuggestionsUseCase,
     required Connectivity connectivity,
   }) : _audioHandler = audioHandler,
        _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
        _playVideoIdUseCase = playVideoIdUseCase,
-       _playAlbumUseCase = playAlbumUseCase,
-       _playPlaylistUseCase = playPlaylistUseCase,
-       _playSmartMixUseCase = playSmartMixUseCase,
-       _getNewReleasesUseCase = getNewReleasesUseCase,
-       _getDiscoverSuggestionsUseCase = getDiscoverSuggestionsUseCase,
+       _playAlbumUseCase = PlayAlbumUseCase(musicRepo),
+       _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo),
+       _playSmartMixUseCase = PlaySmartMixUseCase(musicRepo),
+       _getNewReleasesUseCase = GetNewReleasesUseCase(musicRepo, libraryRepo),
+       _getDiscoverSuggestionsUseCase = GetDiscoverSuggestionsUseCase(
+         musicRepo,
+         libraryRepo,
+       ),
        _getSimilarArtistsSuggestionsUseCase =
-           getSimilarArtistsSuggestionsUseCase,
+           GetSimilarArtistsSuggestionsUseCase(musicRepo, libraryRepo),
        _connectivity = connectivity;
 
   // ═══════════════════════════════════════════════════════════════

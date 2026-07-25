@@ -20,14 +20,8 @@ import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
 import '../../../domain/repositories/music_repository.dart';
-import '../../../domain/usecases/player/play_album_use_case.dart';
-import '../../../domain/usecases/player/play_playlist_use_case.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
-import '../../../domain/usecases/player/play_smart_mix_use_case.dart';
 import '../../../domain/usecases/player/start_radio_use_case.dart';
-import '../../../domain/usecases/home/get_discover_suggestions_use_case.dart';
-import '../../../domain/usecases/home/get_new_releases_use_case.dart';
-import '../../../domain/usecases/home/get_similar_artists_suggestions_use_case.dart';
 
 import 'package:dart_cast/dart_cast.dart';
 import '../../providers/cast_provider.dart';
@@ -68,13 +62,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
   final LocalAudioProxyServer? _proxyServer;
-  late final PlayAlbumUseCase _playAlbumUseCase;
-  late final PlayPlaylistUseCase _playPlaylistUseCase;
-  late final PlaySmartMixUseCase _playSmartMixUseCase;
-  late final GetNewReleasesUseCase _getNewReleasesUseCase;
-  late final GetDiscoverSuggestionsUseCase _getDiscoverSuggestionsUseCase;
-  late final GetSimilarArtistsSuggestionsUseCase
-  _getSimilarArtistsSuggestionsUseCase;
   late final StartRadioUseCase _startRadioUseCase;
 
   late final AudioCastHandler _castHandler;
@@ -199,18 +186,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
-    _playAlbumUseCase = PlayAlbumUseCase(musicRepo);
-    _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo);
-    _playSmartMixUseCase = PlaySmartMixUseCase(musicRepo);
-    _getNewReleasesUseCase = GetNewReleasesUseCase(musicRepo, libraryRepo);
-    _getDiscoverSuggestionsUseCase = GetDiscoverSuggestionsUseCase(
-      musicRepo,
-      libraryRepo,
-    );
-    _getSimilarArtistsSuggestionsUseCase = GetSimilarArtistsSuggestionsUseCase(
-      musicRepo,
-      libraryRepo,
-    );
     _startRadioUseCase = StartRadioUseCase(musicRepo);
 
     _castHandler = AudioCastHandler(this);
@@ -219,12 +194,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       musicRepo: musicRepo,
       libraryRepo: libraryRepo,
       playVideoIdUseCase: playVideoIdUseCase,
-      playAlbumUseCase: _playAlbumUseCase,
-      playPlaylistUseCase: _playPlaylistUseCase,
-      playSmartMixUseCase: _playSmartMixUseCase,
-      getNewReleasesUseCase: _getNewReleasesUseCase,
-      getDiscoverSuggestionsUseCase: _getDiscoverSuggestionsUseCase,
-      getSimilarArtistsSuggestionsUseCase: _getSimilarArtistsSuggestionsUseCase,
       connectivity: _sharedConnectivity,
     );
 
