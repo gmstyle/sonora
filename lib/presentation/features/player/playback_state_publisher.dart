@@ -101,10 +101,7 @@ class PlaybackStatePublisher {
 
     _setPlaybackState(
       updatedState.copyWith(
-        controls: PlayerMediaControls.build(
-          updatedState,
-          isLiked: _isLiked(),
-        ),
+        controls: PlayerMediaControls.build(updatedState, isLiked: _isLiked()),
       ),
     );
   }

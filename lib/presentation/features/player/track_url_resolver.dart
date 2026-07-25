@@ -64,7 +64,8 @@ class TrackUrlResolver {
     required bool Function() userWantsPlaying,
     required bool Function() isStopping,
     required Future<void> Function() requestPlay,
-    required Future<void> Function(String videoId, String title) onResolveFailed,
+    required Future<void> Function(String videoId, String title)
+    onResolveFailed,
     required void Function(MediaItem item) emitMediaItem,
     required void Function(bool) setPausedForConnection,
     required Future<void> Function({

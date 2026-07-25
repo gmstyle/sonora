@@ -192,8 +192,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       userWantsPlaying: () => _userWantsPlaying,
       isStopping: () => _isStopping,
       requestPlay: play,
-      onResolveFailed: (videoId, title) =>
-          _recoveryController.handlePlaybackConnectionFailure(videoId, title),
+      onResolveFailed:
+          (videoId, title) => _recoveryController
+              .handlePlaybackConnectionFailure(videoId, title),
       emitMediaItem: (item) => mediaItem.add(item),
       setPausedForConnection: (v) => _castController.pausedForConnection = v,
       castMedia: ({
@@ -211,10 +212,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying: () => _castController.waitForCastSessionState(
-        _castController.castService!,
-        SessionState.playing,
-      ),
+      waitForCastPlaying:
+          () => _castController.waitForCastSessionState(
+            _castController.castService!,
+            SessionState.playing,
+          ),
       castPause: () async {
         await _castController.castService?.pause();
       },
@@ -252,10 +254,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying: () => _castController.waitForCastSessionState(
-        _castController.castService!,
-        SessionState.playing,
-      ),
+      waitForCastPlaying:
+          () => _castController.waitForCastSessionState(
+            _castController.castService!,
+            SessionState.playing,
+          ),
       castPause: () async {
         await _castController.castService?.pause();
       },
@@ -362,11 +365,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
       _statePublisher.updatePlaybackState();
     });
-    _player.stream.buffering.listen((_) => _statePublisher.updatePlaybackState());
-    _player.stream.completed.listen((_) => _statePublisher.updatePlaybackState());
+    _player.stream.buffering.listen(
+      (_) => _statePublisher.updatePlaybackState(),
+    );
+    _player.stream.completed.listen(
+      (_) => _statePublisher.updatePlaybackState(),
+    );
 
     _player.stream.playlist.listen((playlist) {
-      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
+      if (!_queueController.isResolvingItem)
+        _statePublisher.updatePlaybackState();
       _onPlaylistChanged(playlist);
     });
 
@@ -493,9 +501,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
 
     unawaited(
-      _urlResolver.resolvePendingItems(index).catchError(
-        (Object e) => dev.log('[AudioHandler] _resolvePendingItems error: $e'),
-      ),
+      _urlResolver
+          .resolvePendingItems(index)
+          .catchError(
+            (Object e) =>
+                dev.log('[AudioHandler] _resolvePendingItems error: $e'),
+          ),
     );
 
     if (!_queueController.isResolvingItem) {
@@ -598,7 +609,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (len == 0) return;
 
     final currentIndex = _player.state.playlist.index;
-    final currentTarget = _skipNavigator.resolveCurrentTarget(currentIndex, len);
+    final currentTarget = _skipNavigator.resolveCurrentTarget(
+      currentIndex,
+      len,
+    );
     final shuffle =
         playbackState.value.shuffleMode == AudioServiceShuffleMode.all;
     final repeatAll =
@@ -630,7 +644,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
 
     final currentIndex = _player.state.playlist.index;
-    final currentTarget = _skipNavigator.resolveCurrentTarget(currentIndex, len);
+    final currentTarget = _skipNavigator.resolveCurrentTarget(
+      currentIndex,
+      len,
+    );
     final shuffle =
         playbackState.value.shuffleMode == AudioServiceShuffleMode.all;
     final repeatAll =
@@ -688,7 +705,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final track = item != null ? QueueTrack.fromMediaItem(item) : null;
 
       if (track?.needsUrl == true) {
-        await _urlResolver.resolveSinglePendingItem(index, treatAsCurrent: true);
+        await _urlResolver.resolveSinglePendingItem(
+          index,
+          treatAsCurrent: true,
+        );
 
         // Verify the resolve actually produced a playable URL before
         // jumping. On failure (e.g. a transient network hiccup or a 429

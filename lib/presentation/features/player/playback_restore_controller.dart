@@ -207,11 +207,13 @@ class PlaybackRestoreController {
         // Best-effort prefetch of the next item too; failures here are
         // non-fatal since it is not the one about to play.
         unawaited(
-          _urlResolver.resolveSinglePendingItem(idx + 1, forceResolve: true).catchError(
-            (Object e) => dev.log(
-              '[AudioHandler] Warm-resume prefetch of next item failed: $e',
-            ),
-          ),
+          _urlResolver
+              .resolveSinglePendingItem(idx + 1, forceResolve: true)
+              .catchError(
+                (Object e) => dev.log(
+                  '[AudioHandler] Warm-resume prefetch of next item failed: $e',
+                ),
+              ),
         );
         return;
       }

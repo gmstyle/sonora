@@ -185,7 +185,10 @@ class PlaybackRecoveryController {
       final currentIndex = _player.state.playlist.index;
       if (currentIndex >= 0 &&
           currentIndex < _player.state.playlist.medias.length) {
-        await _urlResolver.resolveSinglePendingItem(currentIndex, forceResolve: true);
+        await _urlResolver.resolveSinglePendingItem(
+          currentIndex,
+          forceResolve: true,
+        );
         await _requestPlay();
       }
     }
@@ -208,9 +211,7 @@ class PlaybackRecoveryController {
       _retryCount = 0;
     }
 
-    if (_isRetrying ||
-        _retryCount >= 1 ||
-        _urlResolver.isPending(videoId)) {
+    if (_isRetrying || _retryCount >= 1 || _urlResolver.isPending(videoId)) {
       return;
     }
 
