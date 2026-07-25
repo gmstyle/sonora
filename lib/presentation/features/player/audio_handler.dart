@@ -1941,8 +1941,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (idx >= 0 &&
           idx < playlist.medias.length &&
           mediaItem.valueOrNull == null) {
-        final item =
-            playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
+        final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
         if (item != null) {
           mediaItem.add(item);
         }
