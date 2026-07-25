@@ -26,7 +26,6 @@ class QueueSheet extends ConsumerStatefulWidget {
 
 class _QueueSheetState extends ConsumerState<QueueSheet> {
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _currentItemKey = GlobalKey();
 
   bool _userHasScrolled = false;
   bool _isProgrammaticScroll = false;
@@ -157,24 +156,10 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     _isProgrammaticScroll = true;
     _centerRetries = 0;
     try {
-      // Jump first so lazy slivers build the current tile near the viewport
-      // (and so reopen never flashes the top of the list).
+      // Offset estimate is enough: no GlobalKey/ensureVisible (those conflict
+      // with SliverReorderableList's drag proxy — Duplicate GlobalKey).
       _scrollController.jumpTo(target);
-
-      await Future<void>.delayed(Duration.zero);
-      if (!mounted) return;
-
-      final ctx = _currentItemKey.currentContext;
-      if (ctx != null && ctx.mounted) {
-        await Scrollable.ensureVisible(
-          ctx,
-          alignment: 0.5,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-        );
-      }
     } finally {
-      await Future<void>.delayed(const Duration(milliseconds: 40));
       if (mounted) {
         _isProgrammaticScroll = false;
         if (!_revealList) setState(() => _revealList = true);
@@ -316,13 +301,15 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                 itemBuilder: (context, index) {
                   final item = userQueue[index];
                   final isCurrent = isCurrentAt(index, item);
+                  final queueId = item.extras?['queueId'] as String? ?? item.id;
                   return ReorderableDelayedDragStartListener(
-                    key: ValueKey(
-                      'user_${item.extras?['queueId'] ?? item.id}_$index',
-                    ),
+                    key: ValueKey('user_$queueId'),
                     index: index,
+                    // Dragging the playing item used to clone a GlobalKey into
+                    // the reorder proxy (Duplicate GlobalKey / layout crash).
+                    // Keep the current row fixed; reorder only non-current.
+                    enabled: !isCurrent,
                     child: _QueueItem(
-                      key: isCurrent ? _currentItemKey : null,
                       item: item,
                       isCurrent: isCurrent,
                       pc: pc,
@@ -368,12 +355,9 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                       (playerState.upNextStartIndex ?? 0) + index;
                   final isCurrent = isCurrentAt(globalIndex, item);
                   return _QueueItem(
-                    key:
-                        isCurrent
-                            ? _currentItemKey
-                            : ValueKey(
-                              'upnext_${item.extras?['queueId'] ?? item.id}_$index',
-                            ),
+                    key: ValueKey(
+                      'upnext_${item.extras?['queueId'] ?? item.id}',
+                    ),
                     item: item,
                     isCurrent: isCurrent,
                     pc: pc,
