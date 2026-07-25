@@ -28,7 +28,9 @@ import 'audio_cast_handler.dart';
 import 'audio_android_auto_browser_handler.dart';
 import 'audio_equalizer_handler.dart';
 import 'audio_session_controller.dart';
+import 'like_controller.dart';
 import 'player_engine_configurator.dart';
+import 'player_media_controls.dart';
 import 'queue_controller.dart';
 
 import '../../../domain/models/queue_section.dart';
@@ -56,7 +58,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final Player _player = Player(
     configuration: const PlayerConfiguration(pitch: true),
   );
-  final LibraryRepository _libraryRepo;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
@@ -69,6 +70,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final QueueController _queueController;
   late final AudioSessionController _audioSessionController;
   late final PlayerEngineConfigurator _engineConfigurator;
+  late final LikeController _likeController;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -88,8 +90,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   // by _queueController.isResolvingItem being true during a concurrent URL resolution.
   String? _lastRetriedVideoId;
   bool _isStopping = false;
-  bool _isCurrentSongLiked = false;
-  String? _currentVideoId;
   String? _lastEmittedMediaItemId;
   Duration? _lastEmittedDuration;
   AudioProcessingState? _lastEmittedProcessingState;
@@ -161,11 +161,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Stream<(String videoId, String title)> get onPlayError =>
       _onPlayErrorController.stream;
 
-  static const String _actionShuffle = 'shuffle';
-  static const String _actionRepeat = 'repeat';
-  static const String _actionLike = 'like';
-  static const String _actionStartRadio = 'start_radio';
-
   // Expose internals for delegate handlers
   double get lastSetVolume => _lastSetVolume;
   bool get userWantsPlaying => _userWantsPlaying;
@@ -181,12 +176,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required SharedPreferences prefs,
     required QueueRepository queueRepo,
     LocalAudioProxyServer? proxyServer,
-  }) : _libraryRepo = libraryRepo,
-       _playVideoIdUseCase = playVideoIdUseCase,
+  }) : _playVideoIdUseCase = playVideoIdUseCase,
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
     _startRadioUseCase = StartRadioUseCase(musicRepo);
+
+    _likeController = LikeController(
+      libraryRepo: libraryRepo,
+      onLikeChanged: () => _rebuildControls(),
+    );
 
     _castHandler = AudioCastHandler(this);
     _browserHandler = AudioAndroidAutoBrowserHandler(
@@ -402,7 +401,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
 
     playbackState.add(
-      updatedState.copyWith(controls: _buildControls(updatedState)),
+      updatedState.copyWith(
+        controls: PlayerMediaControls.build(
+          updatedState,
+          isLiked: _likeController.isCurrentSongLiked,
+        ),
+      ),
     );
   }
 
@@ -422,69 +426,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
   }
 
-  List<MediaControl> _buildControls(PlaybackState current) {
-    final shuffleIcon =
-        current.shuffleMode == AudioServiceShuffleMode.all
-            ? 'drawable/ic_shuffle'
-            : 'drawable/ic_shuffle_off';
-
-    final repeatIcon = switch (current.repeatMode) {
-      AudioServiceRepeatMode.one => 'drawable/ic_repeat_one',
-      AudioServiceRepeatMode.all ||
-      AudioServiceRepeatMode.group => 'drawable/ic_repeat',
-      _ => 'drawable/ic_repeat_off',
-    };
-
-    return [
-      MediaControl.skipToPrevious,
-      if (current.playing) MediaControl.pause else MediaControl.play,
-      MediaControl.skipToNext,
-      MediaControl.custom(
-        androidIcon: shuffleIcon,
-        label:
-            current.shuffleMode == AudioServiceShuffleMode.all
-                ? 'Shuffle On'
-                : 'Shuffle',
-        name: _actionShuffle,
-      ),
-      MediaControl.custom(
-        androidIcon: repeatIcon,
-        label: switch (current.repeatMode) {
-          AudioServiceRepeatMode.one => 'Repeat One',
-          AudioServiceRepeatMode.all => 'Repeat All',
-          _ => 'Repeat',
-        },
-        name: _actionRepeat,
-      ),
-      MediaControl.custom(
-        androidIcon:
-            _isCurrentSongLiked
-                ? 'drawable/ic_favorite'
-                : 'drawable/ic_favorite_border',
-        label: _isCurrentSongLiked ? 'Unlike' : 'Like',
-        name: _actionLike,
-      ),
-      MediaControl.custom(
-        androidIcon: 'drawable/ic_radio',
-        label: 'Start Radio',
-        name: _actionStartRadio,
-      ),
-    ];
-  }
-
   void _rebuildControls() {
-    _updateState((s) => s.copyWith(controls: _buildControls(s)));
-  }
-
-  Future<void> _checkCurrentSongLiked(String videoId) async {
-    _currentVideoId = videoId;
-    try {
-      final liked = await _libraryRepo.getLikedSong(videoId);
-      if (_currentVideoId == videoId) {
-        _isCurrentSongLiked = liked != null;
-        _rebuildControls();
-      }
-    } catch (_) {}
+    _updateState(
+      (s) => s.copyWith(
+        controls: PlayerMediaControls.build(
+          s,
+          isLiked: _likeController.isCurrentSongLiked,
+        ),
+      ),
+    );
   }
 
   void _onBufferedPositionChanged(Duration position) {
@@ -544,7 +494,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           mediaItem.add(item);
           if (trackChanged) {
             _retryCount = 0;
-            _checkCurrentSongLiked(item.id);
+            _likeController.checkCurrentSongLiked(item.id);
             if (_castHandler.castState?.connectionState ==
                 CastConnectionState.connected) {
               if (!QueueTrack.fromMediaItem(item).needsUrl) {
@@ -1895,8 +1845,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> setRating(Rating rating, [Map<String, dynamic>? extras]) async {
     if (!rating.hasHeart()) return;
-    _isCurrentSongLiked = !_isCurrentSongLiked;
-    _rebuildControls();
+    _likeController.toggleOptimistic();
     try {
       final current =
           _queueController.currentQueue
@@ -1904,7 +1853,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
               .firstOrNull;
       final videoId = current?.id ?? (mediaItem.value?.id ?? '');
       final track = current != null ? QueueTrack.fromMediaItem(current) : null;
-      await _libraryRepo.toggleLikedSong(
+      await _likeController.toggleLikedSong(
         LikedSongModel(
           videoId: videoId,
           title: current?.title ?? 'Unknown',
@@ -1929,7 +1878,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     Map<String, dynamic>? extras,
   ]) async {
     switch (name) {
-      case _actionShuffle:
+      case PlayerMediaControls.actionShuffle:
         final current = playbackState.value.shuffleMode;
         final next =
             current == AudioServiceShuffleMode.none
@@ -1938,7 +1887,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await setShuffleMode(next);
         break;
 
-      case _actionRepeat:
+      case PlayerMediaControls.actionRepeat:
         const modes = [
           AudioServiceRepeatMode.none,
           AudioServiceRepeatMode.all,
@@ -1950,13 +1899,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await setRepeatMode(next);
         break;
 
-      case _actionLike:
+      case PlayerMediaControls.actionLike:
         final item = mediaItem.value;
         if (item == null) return null;
-        _isCurrentSongLiked = !_isCurrentSongLiked;
-        _rebuildControls();
+        _likeController.toggleOptimistic();
         final track = QueueTrack.fromMediaItem(item);
-        await _libraryRepo.toggleLikedSong(
+        await _likeController.toggleLikedSong(
           LikedSongModel(
             videoId: item.id,
             title: item.title,
@@ -1970,7 +1918,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         );
         break;
 
-      case _actionStartRadio:
+      case PlayerMediaControls.actionStartRadio:
         final item = mediaItem.value;
         if (item != null) {
           await startRadio(item.id);
