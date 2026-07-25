@@ -34,6 +34,7 @@ import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
 import 'queue_controller.dart';
 import 'skip_navigator.dart';
+import 'track_url_resolver.dart';
 
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
@@ -76,6 +77,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlaybackVolumeController _volumeController;
   late final PlaybackStatePublisher _statePublisher;
   late final SkipNavigator _skipNavigator;
+  late final TrackUrlResolver _urlResolver;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -92,8 +94,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   String? _lastRetriedVideoId;
   bool _isStopping = false;
   StreamSubscription<String>? _playerErrorSub;
-  final Set<String> _pendingResolutions = {};
-  Timer? _lookaheadTimer;
   bool _userWantsPlaying = false;
   bool _interruptedByNetworkDrop = false;
   DateTime? _lastPauseTimestamp;
@@ -219,6 +219,45 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onBecameReady: () => _retryCount = 0,
     );
     _skipNavigator = SkipNavigator();
+    _urlResolver = TrackUrlResolver(
+      player: _player,
+      playVideoIdUseCase: _playVideoIdUseCase,
+      queueController: _queueController,
+      volumeController: _volumeController,
+      statePublisher: _statePublisher,
+      isCastConnected:
+          () =>
+              _castHandler.castState?.connectionState ==
+              CastConnectionState.connected,
+      userWantsPlaying: () => _userWantsPlaying,
+      isStopping: () => _isStopping,
+      requestPlay: play,
+      onResolveFailed: _handlePlaybackConnectionFailure,
+      emitMediaItem: (item) => mediaItem.add(item),
+      setPausedForConnection: (v) => _castHandler.pausedForConnection = v,
+      castMedia: ({
+        required String url,
+        required String title,
+        String? artist,
+        String? album,
+        String? artworkUrl,
+      }) async {
+        await _castHandler.castService?.castMedia(
+          url: url,
+          title: title,
+          artist: artist,
+          album: album,
+          artworkUrl: artworkUrl,
+        );
+      },
+      waitForCastPlaying: () => _castHandler.waitForCastSessionState(
+        _castHandler.castService!,
+        SessionState.playing,
+      ),
+      castPause: () async {
+        await _castHandler.castService?.pause();
+      },
+    );
     _audioSessionController = AudioSessionController(
       userWantsPlaying: () => _userWantsPlaying,
       isPlaying: () => _player.state.playing,
@@ -442,7 +481,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
 
     unawaited(
-      _resolvePendingItems(index).catchError(
+      _urlResolver.resolvePendingItems(index).catchError(
         (Object e) => dev.log('[AudioHandler] _resolvePendingItems error: $e'),
       ),
     );
@@ -453,215 +492,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     if (!_queueController.isResolvingItem) {
       _volumeController.beginFadeIn();
-    }
-  }
-
-  Future<void> _resolvePendingItems(int currentIndex) async {
-    await _resolveSinglePendingItem(currentIndex);
-    await _resolveSinglePendingItem(currentIndex + 1);
-
-    // Trigger pre-caching for the resolved upcoming track
-    final playlist = _player.state.playlist;
-    if (currentIndex + 1 < playlist.medias.length) {
-      final media = playlist.medias[currentIndex + 1];
-      final item = media.extras?['mediaItem'] as MediaItem?;
-      if (item != null) {
-        final t = QueueTrack.fromMediaItem(item);
-        if (t.hasUrl &&
-            !t.isLocalFile &&
-            !t.url!.startsWith('http://localhost')) {
-          unawaited(
-            MediaCacheService.instance.downloadToCache(t.videoId, t.url!),
-          );
-        }
-      }
-    }
-
-    _lookaheadTimer?.cancel();
-    _lookaheadTimer = Timer(const Duration(seconds: 20), () async {
-      final actualIndex = _player.state.playlist.index;
-      if (actualIndex == currentIndex && _player.state.playing) {
-        await _resolveSinglePendingItem(currentIndex + 2);
-        if (currentIndex + 2 < playlist.medias.length) {
-          final media2 = playlist.medias[currentIndex + 2];
-          final item2 = media2.extras?['mediaItem'] as MediaItem?;
-          if (item2 != null) {
-            final t2 = QueueTrack.fromMediaItem(item2);
-            if (t2.hasUrl &&
-                !t2.isLocalFile &&
-                !t2.url!.startsWith('http://localhost')) {
-              unawaited(
-                MediaCacheService.instance.downloadToCache(t2.videoId, t2.url!),
-              );
-            }
-          }
-        }
-
-        await Future.delayed(const Duration(seconds: 3));
-        final finalIndex = _player.state.playlist.index;
-        if (finalIndex == currentIndex && _player.state.playing) {
-          await _resolveSinglePendingItem(currentIndex + 3);
-          if (currentIndex + 3 < playlist.medias.length) {
-            final media3 = playlist.medias[currentIndex + 3];
-            final item3 = media3.extras?['mediaItem'] as MediaItem?;
-            if (item3 != null) {
-              final t3 = QueueTrack.fromMediaItem(item3);
-              if (t3.hasUrl &&
-                  !t3.isLocalFile &&
-                  !t3.url!.startsWith('http://localhost')) {
-                unawaited(
-                  MediaCacheService.instance.downloadToCache(
-                    t3.videoId,
-                    t3.url!,
-                  ),
-                );
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-
-  Future<void> _resolveSinglePendingItem(
-    int index, {
-    bool forceResolve = false,
-    // Overrides the auto-detected "is this the active item" check below.
-    // Pass `true` when the caller is about to make [index] the active item
-    // (e.g. [skipToQueueItem] resolving the tapped item *before* jumping to
-    // it, when `_player.state.playlist.index` still points at the old
-    // track) so it gets the long, 429-back-off-tolerant timeout instead of
-    // the short background one.
-    bool? treatAsCurrent,
-  }) async {
-    if (index < 0) return;
-    final playlist = _player.state.playlist;
-    if (index >= playlist.medias.length) return;
-    final media = playlist.medias[index];
-    final item = media.extras?['mediaItem'] as MediaItem?;
-    if (item == null) return;
-    final track = QueueTrack.fromMediaItem(item);
-    if (!forceResolve && !track.needsUrl) return;
-
-    final videoId = track.videoId;
-
-    if (!_pendingResolutions.add(videoId)) return;
-    _queueController.beginResolving();
-    try {
-      // The active (currently playing/selected) item gets enough headroom
-      // to survive PlayVideoIdUseCase.streamUrlTimeout's full anti-429
-      // back-off cycle — aborting early here would defeat that back-off and
-      // strand playback on a dummy/expired URL for no reason (this is the
-      // #1 cause of "tapping a queue item does nothing" after the app has
-      // been idle for a while). Background (look-ahead) items use a much
-      // shorter bound since they are not blocking playback and will simply
-      // be re-resolved once they actually become current.
-      final isCurrent = treatAsCurrent ?? (index == playlist.index);
-      final url = await _playVideoIdUseCase
-          .resolveUrl(videoId)
-          .timeout(
-            isCurrent
-                ? PlayVideoIdUseCase.streamUrlTimeout +
-                    const Duration(seconds: 5)
-                : const Duration(seconds: 15),
-          );
-
-      final playlist2 = _player.state.playlist;
-      if (index >= playlist2.medias.length) return;
-      final currentMedia = playlist2.medias[index];
-      final currentItem = currentMedia.extras?['mediaItem'] as MediaItem?;
-      final currentTrack =
-          currentItem != null ? QueueTrack.fromMediaItem(currentItem) : null;
-      if (currentTrack?.videoId != videoId) return;
-      if (!forceResolve && currentTrack?.needsUrl != true) return;
-      // Abort background pre-fetch if the user has skipped past this item.
-      if (!isCurrent && playlist2.index > index) return;
-
-      final updatedItem = track
-          .copyWith(url: url, needsUrl: false)
-          .toMediaItem(currentItem ?? item);
-      final updatedMedia = _queueController.toMedia(updatedItem);
-
-      if (_castHandler.castState?.connectionState ==
-          CastConnectionState.connected) {
-        if (index == _player.state.playlist.index) {
-          final wasPlaying = _player.state.playing || _userWantsPlaying;
-          final currentPos = _player.state.position;
-          if (wasPlaying) {
-            _castHandler.pausedForConnection = true;
-            await _player.pause();
-          }
-          _volumeController.setLocalVolume(0.0);
-
-          await _castHandler.castService?.castMedia(
-            url: url,
-            title: updatedItem.title,
-            artist: updatedItem.artist,
-            album: updatedItem.album,
-            artworkUrl: updatedItem.artUri?.toString(),
-          );
-
-          // Update the local playlist with the resolved URL so local playback
-          // can resume correctly if the cast session is disconnected later.
-          await _queueController.replaceAt(index, updatedMedia);
-          await _player.jump(index);
-          if (currentPos > Duration.zero) await _player.seek(currentPos);
-
-          if (wasPlaying) {
-            await _castHandler.waitForCastSessionState(
-              _castHandler.castService!,
-              SessionState.playing,
-            );
-            _castHandler.pausedForConnection = false;
-            // Use play() (not _player.play()) so castService?.play() is also
-            // sent to the cast device, keeping local player and cast in sync.
-            await play();
-          } else {
-            await _castHandler.castService?.pause();
-          }
-        } else {
-          await _queueController.replaceAt(index, updatedMedia);
-        }
-      } else {
-        if (index == _player.state.playlist.index) {
-          final wasPlaying = _player.state.playing;
-          final currentPos = _player.state.position;
-          if (wasPlaying) await _player.pause();
-          await _queueController.replaceAt(index, updatedMedia);
-          await _player.jump(index);
-          if (currentPos > Duration.zero) await _player.seek(currentPos);
-          if (wasPlaying) await _player.play();
-        } else {
-          await _queueController.replaceAt(index, updatedMedia);
-        }
-      }
-    } catch (e) {
-      dev.log('[AudioHandler] Failed to resolve URL for item at $index: $e');
-      final playlist3 = _player.state.playlist;
-      if (index == playlist3.index) {
-        await _handlePlaybackConnectionFailure(videoId, item.title);
-      }
-    } finally {
-      _queueController.endResolving();
-      _pendingResolutions.remove(videoId);
-      _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) {
-        _statePublisher.invalidate();
-        _statePublisher.updatePlaybackState();
-      }
-      final actualIndex = _player.state.playlist.index;
-      if (actualIndex >= 0) {
-        _statePublisher.updateState((s) => s.copyWith(queueIndex: actualIndex));
-        final playlist = _player.state.playlist;
-        if (actualIndex < playlist.medias.length) {
-          final media = playlist.medias[actualIndex];
-          final item = media.extras?['mediaItem'] as MediaItem?;
-          if (item != null) {
-            _statePublisher.noteEmittedMediaItem(item);
-            mediaItem.add(item);
-          }
-        }
-      }
     }
   }
 
@@ -721,7 +551,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final currentIndex = _player.state.playlist.index;
       if (currentIndex >= 0 &&
           currentIndex < _player.state.playlist.medias.length) {
-        await _resolveSinglePendingItem(currentIndex, forceResolve: true);
+        await _urlResolver.resolveSinglePendingItem(currentIndex, forceResolve: true);
         await play();
       }
     }
@@ -795,7 +625,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
     await _queueRepo.persistPosition(_player.state.position);
     _isStopping = true;
-    _lookaheadTimer?.cancel();
+    _urlResolver.cancelLookahead();
     _volumeController.endTransitionMute();
     await _player.stop();
     await _audioSessionController.releaseFocus();
@@ -916,7 +746,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final track = item != null ? QueueTrack.fromMediaItem(item) : null;
 
       if (track?.needsUrl == true) {
-        await _resolveSinglePendingItem(index, treatAsCurrent: true);
+        await _urlResolver.resolveSinglePendingItem(index, treatAsCurrent: true);
 
         // Verify the resolve actually produced a playable URL before
         // jumping. On failure (e.g. a transient network hiccup or a 429
@@ -1163,7 +993,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> clearQueue() async {
     _userWantsPlaying = false;
-    _lookaheadTimer?.cancel();
+    _urlResolver.cancelLookahead();
     await _queueController.clear();
     queue.add([]);
   }
@@ -1231,7 +1061,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     if (_isRetrying ||
         _retryCount >= 1 ||
-        _pendingResolutions.contains(videoId)) {
+        _urlResolver.isPending(videoId)) {
       return;
     }
 
@@ -1361,7 +1191,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _savedPosition = _player.state.position;
         _setRestoreStatus(RestoreStatus.restoring);
         try {
-          await _resolveSinglePendingItem(idx, forceResolve: true);
+          await _urlResolver.resolveSinglePendingItem(idx, forceResolve: true);
         } finally {
           _setRestoreStatus(RestoreStatus.ready);
           _statePublisher.invalidate();
@@ -1370,7 +1200,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         // Best-effort prefetch of the next item too; failures here are
         // non-fatal since it is not the one about to play.
         unawaited(
-          _resolveSinglePendingItem(idx + 1, forceResolve: true).catchError(
+          _urlResolver.resolveSinglePendingItem(idx + 1, forceResolve: true).catchError(
             (Object e) => dev.log(
               '[AudioHandler] Warm-resume prefetch of next item failed: $e',
             ),
@@ -1584,9 +1414,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void dispose() {
     _isStopping = true;
-    _lookaheadTimer?.cancel();
+    _urlResolver.cancelLookahead();
     _playerErrorSub?.cancel();
     _connectivitySub?.cancel();
+    _urlResolver.dispose();
     _audioSessionController.dispose();
     _onPlayErrorController.close();
     _restoreStatusController.close();
