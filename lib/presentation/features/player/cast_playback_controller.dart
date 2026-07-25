@@ -1,20 +1,44 @@
 import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_cast/dart_cast.dart';
-import 'audio_handler.dart';
+import 'package:media_kit/media_kit.dart';
 import '../../../data/services/cast_service.dart';
 import '../../../domain/models/queue_track.dart';
+import '../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../providers/cast_provider.dart';
+import 'playback_volume_controller.dart';
 
-class AudioCastHandler {
-  final SonoraAudioHandler _audioHandler;
+/// Owns Chromecast / remote-playback connection lifecycle and media casting.
+///
+/// Does not hold a back-reference to [SonoraAudioHandler]; playback intent is
+/// injected via [requestPlay] (must call the handler's `play()`, not
+/// `player.play()`, so the cast device stays in sync).
+class CastPlaybackController {
+  final Player _player;
+  final PlaybackVolumeController _volumeController;
+  final PlayVideoIdUseCase _playVideoIdUseCase;
+  final bool Function() _userWantsPlaying;
+  final MediaItem? Function() _currentMediaItem;
+  final Future<void> Function() _requestPlay;
 
   CastState? _castState;
   SonoraCastService? _castService;
   bool pausedForConnection = false;
   int _castSongToken = 0;
 
-  AudioCastHandler(this._audioHandler);
+  CastPlaybackController({
+    required Player player,
+    required PlaybackVolumeController volumeController,
+    required PlayVideoIdUseCase playVideoIdUseCase,
+    required bool Function() userWantsPlaying,
+    required MediaItem? Function() currentMediaItem,
+    required Future<void> Function() requestPlay,
+  }) : _player = player,
+       _volumeController = volumeController,
+       _playVideoIdUseCase = playVideoIdUseCase,
+       _userWantsPlaying = userWantsPlaying,
+       _currentMediaItem = currentMediaItem,
+       _requestPlay = requestPlay;
 
   CastState? get castState => _castState;
   SonoraCastService? get castService => _castService;
@@ -26,26 +50,26 @@ class AudioCastHandler {
     _castService = service;
 
     if (state.connectionState == CastConnectionState.connecting) {
-      if (_audioHandler.player.state.playing) {
+      if (_player.state.playing) {
         pausedForConnection = true;
-        await _audioHandler.player.pause();
+        await _player.pause();
       }
     } else if (state.connectionState == CastConnectionState.connected) {
       if (_castState?.connectionState != CastConnectionState.connected) {
-        _audioHandler.setLocalVolume(0.0);
+        _volumeController.setLocalVolume(0.0);
         await castCurrentSong(state, service);
         pausedForConnection = false;
       }
     } else if (state.connectionState == CastConnectionState.disconnected ||
         state.connectionState == CastConnectionState.error) {
       if (_castState?.connectionState == CastConnectionState.connected) {
-        _audioHandler.setLocalVolume(
-          _audioHandler.lastSetVolume * 100.0,
+        _volumeController.setLocalVolume(
+          _volumeController.lastSetVolume * 100.0,
           force: true,
         );
       }
       if (pausedForConnection) {
-        await _audioHandler.player.play();
+        await _player.play();
         pausedForConnection = false;
       }
     }
@@ -57,9 +81,9 @@ class AudioCastHandler {
     CastState state,
     SonoraCastService service,
   ) async {
-    final item = _audioHandler.mediaItem.value;
+    final item = _currentMediaItem();
     if (item == null) return;
-    final currentPos = _audioHandler.player.state.position;
+    final currentPos = _player.state.position;
     await castSong(item, state, service, startPosition: currentPos);
   }
 
@@ -73,14 +97,12 @@ class AudioCastHandler {
     final token = ++_castSongToken;
 
     final wasPlaying =
-        _audioHandler.player.state.playing ||
-        pausedForConnection ||
-        _audioHandler.userWantsPlaying;
+        _player.state.playing || pausedForConnection || _userWantsPlaying();
     if (wasPlaying) {
       pausedForConnection = true;
-      await _audioHandler.player.pause();
+      await _player.pause();
     }
-    _audioHandler.setLocalVolume(0.0);
+    _volumeController.setLocalVolume(0.0);
 
     // A newer castSong call has superseded this one — bail out.
     if (_castSongToken != token) return;
@@ -89,7 +111,7 @@ class AudioCastHandler {
     String? url = track.hasUrl ? track.url : null;
     if (url == null || track.needsUrl) {
       try {
-        url = await _audioHandler.playVideoIdUseCase.resolveUrl(track.videoId);
+        url = await _playVideoIdUseCase.resolveUrl(track.videoId);
       } catch (_) {
         pausedForConnection = false;
         return;
@@ -113,9 +135,9 @@ class AudioCastHandler {
       // Check after the wait — another skip could have fired during it.
       if (_castSongToken != token) return;
       pausedForConnection = false;
-      // Use _audioHandler.play() (not _audioHandler.player.play()) so that
-      // castService?.play() is also sent to the cast device.
-      await _audioHandler.play();
+      // Use requestPlay (handler.play) so that castService?.play() is also
+      // sent to the cast device.
+      await _requestPlay();
     } else {
       await service.pause();
     }

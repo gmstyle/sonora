@@ -26,7 +26,7 @@ class PlaybackVolumeController {
   bool get isTransitionMuted => _isTransitionMuted;
 
   /// The last logical volume applied by the crossfade envelope, in the 0..1
-  /// range. Read by [AudioCastHandler] to restore volume on disconnect.
+  /// range. Read by [CastPlaybackController] to restore volume on disconnect.
   double get lastSetVolume => _lastSetVolume;
 
   void setCrossfadeDuration(Duration duration) {

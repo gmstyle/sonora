@@ -20,7 +20,7 @@ import 'package:dart_cast/dart_cast.dart';
 import '../../providers/cast_provider.dart';
 import '../../../data/services/cast_service.dart';
 
-import 'audio_cast_handler.dart';
+import 'cast_playback_controller.dart';
 import 'audio_android_auto_browser_handler.dart';
 import 'equalizer_controller.dart';
 import 'audio_session_controller.dart';
@@ -50,7 +50,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final LocalAudioProxyServer? _proxyServer;
   late final StartRadioUseCase _startRadioUseCase;
 
-  late final AudioCastHandler _castHandler;
+  late final CastPlaybackController _castController;
   late final AudioAndroidAutoBrowserHandler _browserHandler;
   late final EqualizerController _equalizerController;
   late final QueueController _queueController;
@@ -110,14 +110,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Stream<(String videoId, String title)> get onPlayError =>
       _recoveryController.onPlayError;
 
-  // Expose internals for delegate handlers
-  double get lastSetVolume => _volumeController.lastSetVolume;
-  bool get userWantsPlaying => _userWantsPlaying;
-  PlayVideoIdUseCase get playVideoIdUseCase => _playVideoIdUseCase;
-
-  void setLocalVolume(double volume, {bool force = false}) =>
-      _volumeController.setLocalVolume(volume, force: force);
-
   SonoraAudioHandler({
     required MusicRepository musicRepo,
     required LibraryRepository libraryRepo,
@@ -136,7 +128,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onLikeChanged: () => _rebuildControls(),
     );
 
-    _castHandler = AudioCastHandler(this);
     _browserHandler = AudioAndroidAutoBrowserHandler(
       audioHandler: this,
       musicRepo: musicRepo,
@@ -158,12 +149,22 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
 
     _engineConfigurator = PlayerEngineConfigurator(player: _player);
+    // Volume must be constructed before cast so CastPlaybackController can
+    // receive it; isCastConnected is late-bound and safe once cast is assigned.
     _volumeController = PlaybackVolumeController(
       player: _player,
       isCastConnected:
           () =>
-              _castHandler.castState?.connectionState ==
+              _castController.castState?.connectionState ==
               CastConnectionState.connected,
+    );
+    _castController = CastPlaybackController(
+      player: _player,
+      volumeController: _volumeController,
+      playVideoIdUseCase: _playVideoIdUseCase,
+      userWantsPlaying: () => _userWantsPlaying,
+      currentMediaItem: () => mediaItem.value,
+      requestPlay: play,
     );
     _statePublisher = PlaybackStatePublisher(
       player: _player,
@@ -183,7 +184,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       statePublisher: _statePublisher,
       isCastConnected:
           () =>
-              _castHandler.castState?.connectionState ==
+              _castController.castState?.connectionState ==
               CastConnectionState.connected,
       userWantsPlaying: () => _userWantsPlaying,
       isStopping: () => _isStopping,
@@ -191,7 +192,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onResolveFailed: (videoId, title) =>
           _recoveryController.handlePlaybackConnectionFailure(videoId, title),
       emitMediaItem: (item) => mediaItem.add(item),
-      setPausedForConnection: (v) => _castHandler.pausedForConnection = v,
+      setPausedForConnection: (v) => _castController.pausedForConnection = v,
       castMedia: ({
         required String url,
         required String title,
@@ -199,7 +200,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         String? album,
         String? artworkUrl,
       }) async {
-        await _castHandler.castService?.castMedia(
+        await _castController.castService?.castMedia(
           url: url,
           title: title,
           artist: artist,
@@ -207,12 +208,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying: () => _castHandler.waitForCastSessionState(
-        _castHandler.castService!,
+      waitForCastPlaying: () => _castController.waitForCastSessionState(
+        _castController.castService!,
         SessionState.playing,
       ),
       castPause: () async {
-        await _castHandler.castService?.pause();
+        await _castController.castService?.pause();
       },
     );
     _recoveryController = PlaybackRecoveryController(
@@ -230,9 +231,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       skipToQueueItem: skipToQueueItem,
       isCastConnected:
           () =>
-              _castHandler.castState?.connectionState ==
+              _castController.castState?.connectionState ==
               CastConnectionState.connected,
-      setPausedForConnection: (v) => _castHandler.pausedForConnection = v,
+      setPausedForConnection: (v) => _castController.pausedForConnection = v,
       castMedia: ({
         required String url,
         required String title,
@@ -240,7 +241,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         String? album,
         String? artworkUrl,
       }) async {
-        await _castHandler.castService?.castMedia(
+        await _castController.castService?.castMedia(
           url: url,
           title: title,
           artist: artist,
@@ -248,12 +249,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying: () => _castHandler.waitForCastSessionState(
-        _castHandler.castService!,
+      waitForCastPlaying: () => _castController.waitForCastSessionState(
+        _castController.castService!,
         SessionState.playing,
       ),
       castPause: () async {
-        await _castHandler.castService?.pause();
+        await _castController.castService?.pause();
       },
     );
     _restoreController = PlaybackRestoreController(
@@ -315,7 +316,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     CastState state,
     SonoraCastService service,
   ) async {
-    await _castHandler.updateCastState(state, service);
+    await _castController.updateCastState(state, service);
   }
 
   Future<void> setEqualizer({
@@ -353,7 +354,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _userWantsPlaying = true;
       } else if (!_restoreController.isRestoring &&
           !_volumeController.isTransitionMuted &&
-          !_castHandler.pausedForConnection) {
+          !_castController.pausedForConnection) {
         _userWantsPlaying = false;
       }
       _statePublisher.updatePlaybackState();
@@ -466,15 +467,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
           if (trackChanged) {
             _recoveryController.resetRetryCount();
             _likeController.checkCurrentSongLiked(item.id);
-            if (_castHandler.castState?.connectionState ==
+            if (_castController.castState?.connectionState ==
                 CastConnectionState.connected) {
               if (!QueueTrack.fromMediaItem(item).needsUrl) {
                 unawaited(
-                  _castHandler
+                  _castController
                       .castSong(
                         item,
-                        _castHandler.castState!,
-                        _castHandler.castService!,
+                        _castController.castState!,
+                        _castController.castService!,
                       )
                       .catchError(
                         (Object e) =>
@@ -520,9 +521,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     if (await _audioSessionController.requestFocus()) {
       await _player.play();
-      if (_castHandler.castState?.connectionState ==
+      if (_castController.castState?.connectionState ==
           CastConnectionState.connected) {
-        await _castHandler.castService?.play();
+        await _castController.castService?.play();
       }
     } else {
       _userWantsPlaying = false;
@@ -541,9 +542,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _userWantsPlaying = false;
     _restoreController.markPaused();
     await _player.pause();
-    if (_castHandler.castState?.connectionState ==
+    if (_castController.castState?.connectionState ==
         CastConnectionState.connected) {
-      await _castHandler.castService?.pause();
+      await _castController.castService?.pause();
     }
     await _prefs.setInt(
       'last_pause_timestamp',
@@ -556,10 +557,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> stop() async {
     _userWantsPlaying = false;
     _restoreController.markPaused();
-    if (_castHandler.castState?.connectionState ==
+    if (_castController.castState?.connectionState ==
         CastConnectionState.connected) {
       try {
-        await _castHandler.castService?.disconnect();
+        await _castController.castService?.disconnect();
       } catch (_) {}
     }
     _audioSessionController.cancelResumeOnInterruptionEnd();
@@ -580,9 +581,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> seek(Duration position) async {
     await _player.seek(position);
     _statePublisher.updateState((s) => s, forcePosition: position);
-    if (_castHandler.castState?.connectionState ==
+    if (_castController.castState?.connectionState ==
         CastConnectionState.connected) {
-      await _castHandler.castService?.seek(position);
+      await _castController.castService?.seek(position);
     }
   }
 
@@ -715,7 +716,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       // cast mode, since castSong (fired from _onPlaylistChanged) owns resumption.
       if (_userWantsPlaying &&
           !_player.state.playing &&
-          _castHandler.castState?.connectionState !=
+          _castController.castState?.connectionState !=
               CastConnectionState.connected) {
         await play();
       }
