@@ -74,6 +74,35 @@ class QueueController {
     _resolvingItemCount--;
   }
 
+  /// Runs [action] under [beginResolving]/[endResolving], then syncs the queue
+  /// stream. [onSettled] is invoked when no nested batch remains (same guard
+  /// the call sites previously used for `_updatePlaybackState`).
+  Future<void> runBatch(
+    Future<void> Function() action, {
+    required bool isStopping,
+    void Function()? onSettled,
+  }) async {
+    beginResolving();
+    try {
+      await action();
+    } finally {
+      endResolving();
+      syncQueue(isStopping: isStopping);
+      if (!isResolvingItem) {
+        onSettled?.call();
+      }
+    }
+  }
+
+  /// Replaces the media at [index] while preserving playlist length/order
+  /// (remove → add → move-last-to-index). Callers that need to keep playback
+  /// continuous should follow with jump/seek themselves.
+  Future<void> replaceAt(int index, Media media) async {
+    await _player.remove(index);
+    await _player.add(media);
+    await _player.move(_player.state.playlist.medias.length - 1, index);
+  }
+
   // ── Queue getters ──────────────────────────────────────────────────────────
 
   List<MediaItem> get _currentQueue =>
@@ -240,9 +269,7 @@ class QueueController {
       media.uri,
       extras: {...?media.extras, 'mediaItem': retagged},
     );
-    await _player.remove(newIndex);
-    await _player.add(newMedia);
-    await _player.move(_player.state.playlist.medias.length - 1, newIndex);
+    await replaceAt(newIndex, newMedia);
   }
 
   /// Clears the entire queue.

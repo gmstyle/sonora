@@ -604,9 +604,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
           // Update the local playlist with the resolved URL so local playback
           // can resume correctly if the cast session is disconnected later.
-          await _player.remove(index);
-          await _player.add(updatedMedia);
-          await _player.move(_player.state.playlist.medias.length - 1, index);
+          await _queueController.replaceAt(index, updatedMedia);
           await _player.jump(index);
           if (currentPos > Duration.zero) await _player.seek(currentPos);
 
@@ -623,25 +621,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
             await _castHandler.castService?.pause();
           }
         } else {
-          await _player.remove(index);
-          await _player.add(updatedMedia);
-          await _player.move(_player.state.playlist.medias.length - 1, index);
+          await _queueController.replaceAt(index, updatedMedia);
         }
       } else {
         if (index == _player.state.playlist.index) {
           final wasPlaying = _player.state.playing;
           final currentPos = _player.state.position;
           if (wasPlaying) await _player.pause();
-          await _player.remove(index);
-          await _player.add(updatedMedia);
-          await _player.move(_player.state.playlist.medias.length - 1, index);
+          await _queueController.replaceAt(index, updatedMedia);
           await _player.jump(index);
           if (currentPos > Duration.zero) await _player.seek(currentPos);
           if (wasPlaying) await _player.play();
         } else {
-          await _player.remove(index);
-          await _player.add(updatedMedia);
-          await _player.move(_player.state.playlist.medias.length - 1, index);
+          await _queueController.replaceAt(index, updatedMedia);
         }
       }
     } catch (e) {
@@ -1132,14 +1124,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> playNext(MediaItem item) async {
-    _queueController.beginResolving();
-    try {
-      await _queueController.playNext(item);
-    } finally {
-      _queueController.endResolving();
-      _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
-    }
+    await _queueController.runBatch(
+      () => _queueController.playNext(item),
+      isStopping: _isStopping,
+      onSettled: () => _statePublisher.updatePlaybackState(),
+    );
   }
 
   @override
@@ -1153,26 +1142,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Future<void> addAllToQueue(List<MediaItem> items) async {
     if (items.isEmpty) return;
-    _queueController.beginResolving();
-    try {
-      await _queueController.addAllToQueue(items);
-    } finally {
-      _queueController.endResolving();
-      _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
-    }
+    await _queueController.runBatch(
+      () => _queueController.addAllToQueue(items),
+      isStopping: _isStopping,
+      onSettled: () => _statePublisher.updatePlaybackState(),
+    );
   }
 
   Future<void> appendUpNext(List<MediaItem> items) async {
     if (items.isEmpty) return;
-    _queueController.beginResolving();
-    try {
-      await _queueController.appendUpNext(items);
-    } finally {
-      _queueController.endResolving();
-      _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
-    }
+    await _queueController.runBatch(
+      () => _queueController.appendUpNext(items),
+      isStopping: _isStopping,
+      onSettled: () => _statePublisher.updatePlaybackState(),
+    );
   }
 
   /// Removes every item currently tagged as [QueueSection.upnext] from the
@@ -1232,14 +1215,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     // Guard with resolving state so _onPlaylistChanged suppresses
     // intermediate queue syncs during the move + possible retag.
-    _queueController.beginResolving();
-    try {
-      await _queueController.move(oldIndex, newIndex);
-    } finally {
-      _queueController.endResolving();
-      _queueController.syncQueue(isStopping: _isStopping);
-      if (!_queueController.isResolvingItem) _statePublisher.updatePlaybackState();
-    }
+    await _queueController.runBatch(
+      () => _queueController.move(oldIndex, newIndex),
+      isStopping: _isStopping,
+      onSettled: () => _statePublisher.updatePlaybackState(),
+    );
   }
 
   @override
@@ -1294,70 +1274,64 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final wasPlaying = _player.state.playing || _userWantsPlaying;
       final currentPos = _player.state.position;
 
-      _queueController.beginResolving();
       try {
-        if (_castHandler.castState?.connectionState ==
-            CastConnectionState.connected) {
-          // Cast is active: send the refreshed URL to the cast device too.
-          if (wasPlaying) {
-            _castHandler.pausedForConnection = true;
-            await _player.pause();
-          }
-          _volumeController.setLocalVolume(0.0);
+        await _queueController.runBatch(
+          () async {
+            if (_castHandler.castState?.connectionState ==
+                CastConnectionState.connected) {
+              // Cast is active: send the refreshed URL to the cast device too.
+              if (wasPlaying) {
+                _castHandler.pausedForConnection = true;
+                await _player.pause();
+              }
+              _volumeController.setLocalVolume(0.0);
 
-          await _castHandler.castService?.castMedia(
-            url: freshUrl,
-            title: updatedItem.title,
-            artist: updatedItem.artist,
-            album: updatedItem.album,
-            artworkUrl: updatedItem.artUri?.toString(),
-          );
+              await _castHandler.castService?.castMedia(
+                url: freshUrl,
+                title: updatedItem.title,
+                artist: updatedItem.artist,
+                album: updatedItem.album,
+                artworkUrl: updatedItem.artUri?.toString(),
+              );
 
-          // Update the local playlist with the refreshed URL.
-          await _player.remove(currentIndex);
-          await _player.add(updatedMedia);
-          await _player.move(
-            _player.state.playlist.medias.length - 1,
-            currentIndex,
-          );
-          await _player.jump(currentIndex);
-          if (currentPos > Duration.zero) await _player.seek(currentPos);
+              // Update the local playlist with the refreshed URL.
+              await _queueController.replaceAt(currentIndex, updatedMedia);
+              await _player.jump(currentIndex);
+              if (currentPos > Duration.zero) await _player.seek(currentPos);
 
-          if (wasPlaying) {
-            await _castHandler.waitForCastSessionState(
-              _castHandler.castService!,
-              SessionState.playing,
-            );
-            _castHandler.pausedForConnection = false;
-            await play();
-          } else {
-            await _castHandler.castService?.pause();
-          }
-        } else {
-          if (wasPlaying) await _player.pause();
-          await _player.remove(currentIndex);
-          await _player.add(updatedMedia);
-          await _player.move(
-            _player.state.playlist.medias.length - 1,
-            currentIndex,
-          );
-          await _player.jump(currentIndex);
+              if (wasPlaying) {
+                await _castHandler.waitForCastSessionState(
+                  _castHandler.castService!,
+                  SessionState.playing,
+                );
+                _castHandler.pausedForConnection = false;
+                await play();
+              } else {
+                await _castHandler.castService?.pause();
+              }
+            } else {
+              if (wasPlaying) await _player.pause();
+              await _queueController.replaceAt(currentIndex, updatedMedia);
+              await _player.jump(currentIndex);
 
-          if (currentPos > Duration.zero) {
-            await _player.seek(currentPos);
-          }
-          if (wasPlaying) await _player.play();
-        }
+              if (currentPos > Duration.zero) {
+                await _player.seek(currentPos);
+              }
+              if (wasPlaying) await _player.play();
+            }
+          },
+          isStopping: _isStopping,
+          onSettled: () {
+            _statePublisher.invalidate();
+            _statePublisher.updatePlaybackState();
+          },
+        );
       } finally {
-        _queueController.endResolving();
-        _queueController.syncQueue(isStopping: _isStopping);
-        if (!_queueController.isResolvingItem) {
-          _statePublisher.invalidate();
-          _statePublisher.updatePlaybackState();
-        }
         final actualIndex = _player.state.playlist.index;
         if (actualIndex >= 0) {
-          _statePublisher.updateState((s) => s.copyWith(queueIndex: actualIndex));
+          _statePublisher.updateState(
+            (s) => s.copyWith(queueIndex: actualIndex),
+          );
         }
       }
     } catch (e) {
