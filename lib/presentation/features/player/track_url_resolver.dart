@@ -300,8 +300,16 @@ class TrackUrlResolver {
         final playlist = _player.state.playlist;
         if (actualIndex < playlist.medias.length) {
           final media = playlist.medias[actualIndex];
-          final item = media.extras?['mediaItem'] as MediaItem?;
+          var item = media.extras?['mediaItem'] as MediaItem?;
           if (item != null) {
+            // Look-ahead resolves re-emit the *current* MediaItem from playlist
+            // extras. If metadata had duration 0/null, that would wipe a
+            // player-derived duration already published to Android Auto.
+            final playerDuration = _player.state.duration;
+            if ((item.duration == null || item.duration == Duration.zero) &&
+                playerDuration > Duration.zero) {
+              item = item.copyWith(duration: playerDuration);
+            }
             _statePublisher.noteEmittedMediaItem(item);
             _emitMediaItem(item);
           }

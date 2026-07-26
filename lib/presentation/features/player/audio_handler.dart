@@ -381,7 +381,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     });
 
     _player.stream.duration.listen((duration) {
-      if (duration == Duration.zero || _queueController.isResolvingItem) return;
+      // Duration is independent of URL resolve; do not drop updates while
+      // isResolvingItem (look-ahead) or AA seekbar stays at 0 forever when
+      // media_kit emits duration only once during that window.
+      if (duration == Duration.zero) return;
       final current = mediaItem.value;
       if (current == null) return;
       if (current.duration != null && current.duration != Duration.zero) return;
@@ -463,12 +466,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
       var item = media.extras?['mediaItem'] as MediaItem?;
       if (item != null) {
         final playerDuration = _player.state.duration;
-        if ((item.duration == null || item.duration == Duration.zero) &&
+        final trackChanged = item.id != _statePublisher.lastEmittedMediaItemId;
+        // On track change, player.state.duration is often still the *previous*
+        // track's length — copying it here stamps a stale duration and then
+        // blocks the real player duration patch (skipAlreadySet).
+        if (!trackChanged &&
+            (item.duration == null || item.duration == Duration.zero) &&
             playerDuration != Duration.zero) {
           item = item.copyWith(duration: playerDuration);
         }
 
-        final trackChanged = item.id != _statePublisher.lastEmittedMediaItemId;
         final durationResolved =
             !trackChanged &&
             (_statePublisher.lastEmittedDuration == null ||
