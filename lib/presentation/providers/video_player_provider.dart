@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' hide PlayerState;
 import 'package:media_kit_video/media_kit_video.dart';
@@ -17,6 +18,19 @@ bool shouldShowVideoPlayer({
     enableVideoPlayback &&
     videoState.isVideoVisible &&
     videoState.isInitialized;
+
+/// Whether a [VideoController] (and Android texture) should be allocated.
+bool shouldAttachVideoController({
+  required bool enableVideoPlayback,
+  required bool isVideoTrack,
+}) => enableVideoPlayback && isVideoTrack;
+
+/// Whether the soft background detach (`setVideoTrack(no)`) should run.
+bool shouldDetachVideoOnBackground({
+  required bool isAndroid,
+  required bool enableVideoPlayback,
+  required bool hasActiveVideoSession,
+}) => isAndroid && enableVideoPlayback && hasActiveVideoSession;
 
 class VideoPlayerState {
   final VideoController? controller;
@@ -54,22 +68,28 @@ class VideoPlayerState {
     String? currentVideoUrl,
     int? videoWidth,
     int? videoHeight,
+    bool clearController = false,
+    bool clearCurrentVideoUrl = false,
   }) {
     return VideoPlayerState(
-      controller: controller ?? this.controller,
+      controller: clearController ? null : (controller ?? this.controller),
       isVideoVisible: isVideoVisible ?? this.isVideoVisible,
       isInitialized: isInitialized ?? this.isInitialized,
       isLoading: isLoading ?? this.isLoading,
       hasError: hasError ?? this.hasError,
       errorMessage: errorMessage ?? this.errorMessage,
-      currentVideoUrl: currentVideoUrl ?? this.currentVideoUrl,
+      currentVideoUrl:
+          clearCurrentVideoUrl
+              ? null
+              : (currentVideoUrl ?? this.currentVideoUrl),
       videoWidth: videoWidth ?? this.videoWidth,
       videoHeight: videoHeight ?? this.videoHeight,
     );
   }
 }
 
-class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
+class VideoPlayerNotifier extends Notifier<VideoPlayerState>
+    with WidgetsBindingObserver {
   Player get _player => ref.read(audioHandlerProvider).player;
   StreamSubscription<VideoParams>? _videoParamsSub;
   String? _lastVideoId;
@@ -78,6 +98,8 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
 
   @override
   VideoPlayerState build() {
+    WidgetsBinding.instance.addObserver(this);
+
     _playbackSub = ref.listen(playerStateProvider, (prev, next) {
       _onPlayerStateChanged(next);
     });
@@ -88,11 +110,19 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
     ) {
       if (next && prev == false) {
         state = state.copyWith(isVideoVisible: true);
+        _onPlayerStateChanged(ref.read(playerStateProvider));
+      } else if (!next) {
+        try {
+          _player.setVideoTrack(VideoTrack.no());
+        } catch (_) {}
+        _disposeController();
+      } else {
+        _updateVideoTrack();
       }
-      _updateVideoTrack();
     });
 
     ref.onDispose(() {
+      WidgetsBinding.instance.removeObserver(this);
       _playbackSub?.close();
       _videoParamsSub?.cancel();
       _controller = null;
@@ -106,6 +136,42 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
     }
 
     return const VideoPlayerState();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!Platform.isAndroid) return;
+
+    final enableVideoPlayback = ref.read(settingsProvider).enableVideoPlayback;
+    final hasActiveVideoSession = _lastVideoId != null;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (!shouldDetachVideoOnBackground(
+        isAndroid: true,
+        enableVideoPlayback: enableVideoPlayback,
+        hasActiveVideoSession: hasActiveVideoSession,
+      )) {
+        return;
+      }
+      try {
+        _player.setVideoTrack(VideoTrack.no());
+        dev.log(
+          '[VideoPlayerNotifier] App in background: soft-detached video track',
+        );
+      } catch (e) {
+        dev.log(
+          '[VideoPlayerNotifier] Failed to soft-detach video in background: $e',
+        );
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (enableVideoPlayback && hasActiveVideoSession) {
+        dev.log(
+          '[VideoPlayerNotifier] App resumed: restoring video track if needed',
+        );
+        _updateVideoTrack();
+      }
+    }
   }
 
   void _ensureInitialized() {
@@ -124,21 +190,44 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState> {
     state = state.copyWith(controller: _controller, isInitialized: true);
   }
 
+  /// Releases the [VideoController] so Android can drop the texture / ImageReader.
+  void _disposeController() {
+    _videoParamsSub?.cancel();
+    _videoParamsSub = null;
+    _lastVideoId = null;
+    _controller = null;
+    state = state.copyWith(
+      clearController: true,
+      isInitialized: false,
+      isLoading: false,
+      clearCurrentVideoUrl: true,
+    );
+  }
+
   void _onPlayerStateChanged(PlayerState next) {
     final isVideo = next.isVideo;
     final currentSong = next.currentSong;
+    final enableVideoPlayback = ref.read(settingsProvider).enableVideoPlayback;
 
     if (!isVideo) {
-      if (_lastVideoId != null) {
-        _lastVideoId = null;
-        _videoParamsSub?.cancel();
-        _videoParamsSub = null;
+      if (_lastVideoId != null || _controller != null) {
+        try {
+          _player.setVideoTrack(VideoTrack.no());
+        } catch (_) {}
+        _disposeController();
+      }
+      return;
+    }
+
+    if (!shouldAttachVideoController(
+      enableVideoPlayback: enableVideoPlayback,
+      isVideoTrack: true,
+    )) {
+      try {
         _player.setVideoTrack(VideoTrack.no());
-        state = state.copyWith(
-          isInitialized: false,
-          isLoading: false,
-          currentVideoUrl: null,
-        );
+      } catch (_) {}
+      if (_controller != null) {
+        _disposeController();
       }
       return;
     }
