@@ -26,8 +26,8 @@ class ArtistTile extends ConsumerWidget {
     final subtitle =
         monthlyListeners != null && monthlyListeners!.isNotEmpty
             ? stripYtLabel(monthlyListeners) ??
-                AppLocalizations.of(context)!.unknownArtist
-            : AppLocalizations.of(context)!.unknownArtist;
+                AppLocalizations.of(context)!.artists
+            : AppLocalizations.of(context)!.artists;
     return ListTile(
       leading: ThumbnailWidget(
         imageUrl: thumbnailUrl,
