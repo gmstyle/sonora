@@ -144,53 +144,102 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
         },
         child: SizedBox(
           width: widget.cardWidth,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  Hero(
-                    tag: tag,
-                    child:
-                        isLocal
-                            ? _LocalPlaylistCoverBuilder(
-                              playlistId: widget.localPlaylistId!,
-                              size: widget.cardWidth,
-                            )
-                            : ThumbnailWidget(
-                              imageUrl: widget.thumbnailUrl,
-                              size: widget.cardWidth,
-                              shape: ThumbnailShape.rounded,
-                            ),
-                  ),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                widget.name,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-              ),
-              if (widget.artist != null && widget.artist!.isNotEmpty) ...[
-                const SizedBox(height: 2),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              Widget cover(double size) {
+                return Stack(
+                  children: [
+                    Hero(
+                      tag: tag,
+                      child:
+                          isLocal
+                              ? _LocalPlaylistCoverBuilder(
+                                playlistId: widget.localPlaylistId!,
+                                size: size,
+                              )
+                              : ThumbnailWidget(
+                                imageUrl: widget.thumbnailUrl,
+                                size: size,
+                                shape: ThumbnailShape.rounded,
+                              ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: HoverPlayButton(
+                        isVisible: _isHovered,
+                        onTap: _play,
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              final textBlock = <Widget>[
+                const SizedBox(height: 8),
                 Text(
-                  widget.artist!,
+                  widget.name,
                   overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  maxLines: 2,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ],
-            ],
+                if (widget.artist != null && widget.artist!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.artist!,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ];
+
+              // Grid / carousel cells pass a max height; shrink the square
+              // cover so title + artist still fit without overflowing.
+              // AspectRatio sizes to the fitted square (not the flex max), so
+              // Flexible(loose) does not leave a gap above the title.
+              if (constraints.hasBoundedHeight) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: widget.cardWidth,
+                          maxHeight: widget.cardWidth,
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: LayoutBuilder(
+                            builder: (context, coverConstraints) {
+                              return cover(coverConstraints.maxWidth);
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    ...textBlock,
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: widget.cardWidth,
+                    height: widget.cardWidth,
+                    child: cover(widget.cardWidth),
+                  ),
+                  ...textBlock,
+                ],
+              );
+            },
           ),
         ),
       ),

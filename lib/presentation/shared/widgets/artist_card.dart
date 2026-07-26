@@ -52,39 +52,84 @@ class ArtistCard extends ConsumerWidget {
           ),
       child: SizedBox(
         width: cardWidth,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Hero(
-              tag: tag,
-              child: ThumbnailWidget(
-                imageUrl: thumbnailUrl,
-                size: thumbSize,
-                shape: ThumbnailShape.circle,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final textBlock = <Widget>[
+              const SizedBox(height: 10),
+              Text(
+                name,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle ?? '',
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w400,
+              const SizedBox(height: 2),
+              Text(
+                subtitle ?? '',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-            ),
-          ],
+            ];
+
+            // Grid / carousel cells pass a max height; shrink the avatar
+            // so name + subtitle still fit without overflowing.
+            // AspectRatio sizes to the fitted square (not the flex max), so
+            // Flexible(loose) does not leave a gap above the title.
+            if (constraints.hasBoundedHeight) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: thumbSize,
+                        maxHeight: thumbSize,
+                      ),
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: LayoutBuilder(
+                          builder: (context, coverConstraints) {
+                            return Hero(
+                              tag: tag,
+                              child: ThumbnailWidget(
+                                imageUrl: thumbnailUrl,
+                                size: coverConstraints.maxWidth,
+                                shape: ThumbnailShape.circle,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  ...textBlock,
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Hero(
+                  tag: tag,
+                  child: ThumbnailWidget(
+                    imageUrl: thumbnailUrl,
+                    size: thumbSize,
+                    shape: ThumbnailShape.circle,
+                  ),
+                ),
+                ...textBlock,
+              ],
+            );
+          },
         ),
       ),
     );
