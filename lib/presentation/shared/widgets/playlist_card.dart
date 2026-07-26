@@ -181,9 +181,9 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
                   widget.name,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                 ),
                 if (widget.artist != null && widget.artist!.isNotEmpty) ...[
                   const SizedBox(height: 2),
