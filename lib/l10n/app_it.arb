@@ -29,6 +29,7 @@
   "playTopSongs": "Riproduci Brani Popolari",
   "shuffle": "Riproduzione casuale",
   "share": "Condividi",
+  "more": "Altro",
   "playingArtist": "Riproduzione di {artistName}…",
   "failedToPlay": "Impossibile riprodurre: {error}",
   "shufflingArtist": "Riproduzione casuale di {artistName}…",
@@ -65,6 +66,7 @@
   "unlikePlaylist": "Non Mi Piace Playlist",
   "downloadedCount": "Scaricati {downloaded}/{total}",
   "downloadPlaylist": "Scarica Playlist",
+  "downloadAlbum": "Scarica Album",
   "playlistEmpty": "Questa playlist è vuota",
 
   "@@sectionMeta": {
@@ -393,6 +395,7 @@
   "continueAction": "Continua",
   "downloadStarted": "Download avviato",
   "like": "Mi Piace",
+  "liked": "Preferito",
   "unlike": "Non Mi Piace",
   "createNewPlaylist": "Crea Nuova Playlist",
   "addedTo": "Aggiunto a \"{name}\"",

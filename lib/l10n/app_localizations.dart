@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get share;
 
+  /// No description provided for @more.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get more;
+
   /// No description provided for @playingArtist.
   ///
   /// In en, this message translates to:
@@ -409,6 +415,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download Playlist'**
   String get downloadPlaylist;
+
+  /// No description provided for @downloadAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Album'**
+  String get downloadAlbum;
 
   /// No description provided for @playlistEmpty.
   ///
@@ -1873,6 +1885,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Like'**
   String get like;
+
+  /// No description provided for @liked.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked'**
+  String get liked;
 
   /// No description provided for @unlike.
   ///

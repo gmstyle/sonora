@@ -34,6 +34,7 @@
   "playTopSongs": "Play Top Songs",
   "shuffle": "Shuffle",
   "share": "Share",
+  "more": "More",
   "playingArtist": "Playing {artistName}…",
   "@playingArtist": {
     "placeholders": {
@@ -138,6 +139,7 @@
     }
   },
   "downloadPlaylist": "Download Playlist",
+  "downloadAlbum": "Download Album",
   "playlistEmpty": "This playlist is empty",
   "failedToPlay": "Failed to play: {error}",
   "@failedToPlay": {
@@ -528,6 +530,7 @@
   "continueAction": "Continue",
   "downloadStarted": "Download started",
   "like": "Like",
+  "liked": "Liked",
   "unlike": "Unlike",
   "createNewPlaylist": "Create New Playlist",
   "addedTo": "Added to \"{name}\"",

@@ -709,6 +709,8 @@ class _AlbumActions extends ConsumerWidget {
     final isMobile = width < kCompactBreakpoint;
 
     if (isMobile) {
+      final hasSongs = album.songs.isNotEmpty;
+      final l10n = AppLocalizations.of(context)!;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
@@ -720,17 +722,21 @@ class _AlbumActions extends ConsumerWidget {
                 _LikeAlbumButton(album: album, iconOnly: true),
                 _DownloadAlbumButton(
                   album: album,
-                  onDownload: () => _downloadAlbum(context, ref, album),
+                  onDownload:
+                      hasSongs
+                          ? () => _downloadAlbum(context, ref, album)
+                          : null,
                   iconOnly: true,
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.shuffle),
-                  onPressed: () => _shufflePlay(context, ref, album),
-                  tooltip: AppLocalizations.of(context)!.shuffle,
+                  onPressed:
+                      hasSongs ? () => _shufflePlay(context, ref, album) : null,
+                  tooltip: l10n.shuffle,
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.share2),
-                  tooltip: 'Share',
+                  tooltip: l10n.share,
                   onPressed: () {
                     SharePlus.instance.share(
                       ShareParams(
@@ -742,6 +748,7 @@ class _AlbumActions extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.moreVertical),
+                  tooltip: l10n.more,
                   onPressed: () {
                     ContextMenuSheet.showForAlbum(
                       context,
@@ -763,7 +770,10 @@ class _AlbumActions extends ConsumerWidget {
               width: 56,
               height: 56,
               child: FilledButton(
-                onPressed: () => _playSequential(context, ref, album),
+                onPressed:
+                    hasSongs
+                        ? () => _playSequential(context, ref, album)
+                        : null,
                 style: FilledButton.styleFrom(
                   shape: const CircleBorder(),
                   padding: EdgeInsets.zero,
@@ -776,33 +786,37 @@ class _AlbumActions extends ConsumerWidget {
       );
     }
 
+    final hasSongs = album.songs.isNotEmpty;
+
     return Wrap(
       spacing: 12,
       runSpacing: 8,
       children: [
         FilledButton.icon(
-          onPressed: () => _playSequential(context, ref, album),
+          onPressed:
+              hasSongs ? () => _playSequential(context, ref, album) : null,
           icon: const Icon(LucideIcons.play),
-          label: const Text('Play All'),
-        ),
-        FilledButton.icon(
-          onPressed: () => _shufflePlay(context, ref, album),
-          icon: const Icon(LucideIcons.shuffle),
-          label: const Text('Shuffle Play'),
+          label: Text(AppLocalizations.of(context)!.playAll),
         ),
         FilledButton.tonalIcon(
-          onPressed: () => _addToQueue(context, ref, album),
+          onPressed: hasSongs ? () => _shufflePlay(context, ref, album) : null,
+          icon: const Icon(LucideIcons.shuffle),
+          label: Text(AppLocalizations.of(context)!.shufflePlay),
+        ),
+        FilledButton.tonalIcon(
+          onPressed: hasSongs ? () => _addToQueue(context, ref, album) : null,
           icon: const Icon(LucideIcons.listMusic),
-          label: const Text('Add to Queue'),
+          label: Text(AppLocalizations.of(context)!.addToQueue),
         ),
         _DownloadAlbumButton(
           album: album,
-          onDownload: () => _downloadAlbum(context, ref, album),
+          onDownload:
+              hasSongs ? () => _downloadAlbum(context, ref, album) : null,
         ),
         _LikeAlbumButton(album: album),
         IconButton(
           icon: const Icon(LucideIcons.share2),
-          tooltip: 'Share',
+          tooltip: AppLocalizations.of(context)!.share,
           onPressed: () {
             SharePlus.instance.share(
               ShareParams(
@@ -977,6 +991,7 @@ class _LikeAlbumButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final likedAsync = ref.watch(likedAlbumProvider(album.albumId));
     return likedAsync.when(
       loading:
@@ -989,7 +1004,7 @@ class _LikeAlbumButton extends ConsumerWidget {
                   : FilledButton.tonalIcon(
                     onPressed: null,
                     icon: const Icon(LucideIcons.heart),
-                    label: const Text('Like Album'),
+                    label: Text(l10n.like),
                   ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
@@ -1013,9 +1028,9 @@ class _LikeAlbumButton extends ConsumerWidget {
                 ),
               );
             },
-            icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart),
+            icon: const Icon(LucideIcons.heart),
             color: isLiked ? Theme.of(context).colorScheme.primary : null,
-            tooltip: isLiked ? 'Unlike Album' : 'Like Album',
+            tooltip: isLiked ? l10n.liked : l10n.like,
           );
         }
         return FilledButton.tonalIcon(
@@ -1036,8 +1051,14 @@ class _LikeAlbumButton extends ConsumerWidget {
               ),
             );
           },
-          icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart),
-          label: Text(isLiked ? 'Unlike Album' : 'Like Album'),
+          icon: const Icon(LucideIcons.heart),
+          label: Text(isLiked ? l10n.liked : l10n.like),
+          style:
+              isLiked
+                  ? FilledButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                  )
+                  : null,
         );
       },
     );
@@ -1046,7 +1067,7 @@ class _LikeAlbumButton extends ConsumerWidget {
 
 class _DownloadAlbumButton extends ConsumerWidget {
   final AlbumFull album;
-  final VoidCallback onDownload;
+  final VoidCallback? onDownload;
   final bool iconOnly;
 
   const _DownloadAlbumButton({
@@ -1057,11 +1078,12 @@ class _DownloadAlbumButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final downloadedCount =
         album.songs.where((s) => downloadedIds.contains(s.videoId)).length;
     final totalCount = album.songs.length;
-    final allDownloaded = downloadedCount == totalCount;
+    final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
 
     if (iconOnly) {
       return IconButton(
@@ -1073,8 +1095,8 @@ class _DownloadAlbumButton extends ConsumerWidget {
             downloadedCount > 0 ? Theme.of(context).colorScheme.primary : null,
         tooltip:
             downloadedCount > 0
-                ? 'Downloaded $downloadedCount/$totalCount'
-                : 'Download Album',
+                ? l10n.downloadedCount(downloadedCount, totalCount)
+                : l10n.downloadAlbum,
       );
     }
 
@@ -1085,8 +1107,8 @@ class _DownloadAlbumButton extends ConsumerWidget {
       ),
       label: Text(
         downloadedCount > 0
-            ? 'Downloaded $downloadedCount/$totalCount'
-            : 'Download Album',
+            ? l10n.downloadedCount(downloadedCount, totalCount)
+            : l10n.downloadAlbum,
       ),
     );
   }

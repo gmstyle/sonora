@@ -684,6 +684,7 @@ class _PlaylistActions extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.moreVertical),
+                  tooltip: AppLocalizations.of(context)!.more,
                   onPressed: () {
                     ContextMenuSheet.showForPlaylist(
                       context,
@@ -729,7 +730,7 @@ class _PlaylistActions extends ConsumerWidget {
           icon: const Icon(LucideIcons.play),
           label: Text(AppLocalizations.of(context)!.playAll),
         ),
-        FilledButton.icon(
+        FilledButton.tonalIcon(
           onPressed:
               hasVideos ? () => _shufflePlay(context, ref, videos) : null,
           icon: const Icon(LucideIcons.shuffle),
@@ -953,6 +954,7 @@ class _LikePlaylistButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final likedAsync = ref.watch(likedPlaylistProvider(playlist.playlistId));
     return likedAsync.when(
       loading:
@@ -965,7 +967,7 @@ class _LikePlaylistButton extends ConsumerWidget {
                   : FilledButton.tonalIcon(
                     onPressed: null,
                     icon: const Icon(LucideIcons.heart),
-                    label: Text(AppLocalizations.of(context)!.likePlaylist),
+                    label: Text(l10n.like),
                   ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
@@ -987,12 +989,9 @@ class _LikePlaylistButton extends ConsumerWidget {
                 ),
               );
             },
-            icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart),
+            icon: const Icon(LucideIcons.heart),
             color: isLiked ? Theme.of(context).colorScheme.primary : null,
-            tooltip:
-                isLiked
-                    ? AppLocalizations.of(context)!.unlikePlaylist
-                    : AppLocalizations.of(context)!.likePlaylist,
+            tooltip: isLiked ? l10n.liked : l10n.like,
           );
         }
         return FilledButton.tonalIcon(
@@ -1011,12 +1010,14 @@ class _LikePlaylistButton extends ConsumerWidget {
               ),
             );
           },
-          icon: Icon(isLiked ? LucideIcons.heart : LucideIcons.heart),
-          label: Text(
-            isLiked
-                ? AppLocalizations.of(context)!.unlikePlaylist
-                : AppLocalizations.of(context)!.likePlaylist,
-          ),
+          icon: const Icon(LucideIcons.heart),
+          label: Text(isLiked ? l10n.liked : l10n.like),
+          style:
+              isLiked
+                  ? FilledButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                  )
+                  : null,
         );
       },
     );

@@ -922,6 +922,7 @@ class _ArtistActions extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.moreVertical),
+                  tooltip: AppLocalizations.of(context)!.more,
                   onPressed: () {
                     ContextMenuSheet.showForArtist(
                       context,
@@ -967,7 +968,7 @@ class _ArtistActions extends ConsumerWidget {
           icon: const Icon(LucideIcons.play),
           label: Text(AppLocalizations.of(context)!.playTopSongs),
         ),
-        FilledButton.icon(
+        FilledButton.tonalIcon(
           onPressed: hasSongs ? () => _shufflePlay(context, ref, artist) : null,
           icon: const Icon(LucideIcons.shuffle),
           label: Text(AppLocalizations.of(context)!.shuffle),
@@ -1056,9 +1057,10 @@ class _FollowButton extends ConsumerWidget {
                     onPressed: null,
                     icon: Icon(LucideIcons.userPlus),
                   )
-                  : FilledButton.tonal(
+                  : FilledButton.tonalIcon(
                     onPressed: null,
-                    child: Text(AppLocalizations.of(context)!.follow),
+                    icon: const Icon(LucideIcons.userPlus),
+                    label: Text(AppLocalizations.of(context)!.follow),
                   ),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
@@ -1090,7 +1092,7 @@ class _FollowButton extends ConsumerWidget {
                     : AppLocalizations.of(context)!.follow,
           );
         }
-        return FilledButton.tonal(
+        return FilledButton.tonalIcon(
           onPressed: () async {
             await ref
                 .read(libraryNotifierProvider.notifier)
@@ -1106,11 +1108,20 @@ class _FollowButton extends ConsumerWidget {
                   ),
                 );
           },
-          child: Text(
+          icon: Icon(
+            isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
+          ),
+          label: Text(
             isFollowing
                 ? AppLocalizations.of(context)!.following
                 : AppLocalizations.of(context)!.follow,
           ),
+          style:
+              isFollowing
+                  ? FilledButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                  )
+                  : null,
         );
       },
     );
@@ -1126,7 +1137,7 @@ class _ArtistRadioButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final hasSongs = artist.topSongs.isNotEmpty;
 
-    return FilledButton.icon(
+    return FilledButton.tonalIcon(
       onPressed:
           hasSongs
               ? () =>

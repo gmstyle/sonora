@@ -71,6 +71,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get share => 'Share';
 
   @override
+  String get more => 'More';
+
+  @override
   String playingArtist(String artistName) {
     return 'Playing $artistName…';
   }
@@ -221,6 +224,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadPlaylist => 'Download Playlist';
+
+  @override
+  String get downloadAlbum => 'Download Album';
 
   @override
   String get playlistEmpty => 'This playlist is empty';
@@ -1068,6 +1074,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get like => 'Like';
+
+  @override
+  String get liked => 'Liked';
 
   @override
   String get unlike => 'Unlike';
