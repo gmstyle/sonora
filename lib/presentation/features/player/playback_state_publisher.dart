@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../../../domain/models/queue_track.dart';
 import 'player_media_controls.dart';
 
 /// Projects media_kit player state into audio_service [PlaybackState], with
@@ -48,9 +49,10 @@ class PlaybackStatePublisher {
     _lastEmittedPlaying = null;
   }
 
-  void noteEmittedMediaItem(MediaItem item) {
-    _lastEmittedMediaItemId = item.id;
-    lastEmittedDuration = item.duration;
+  void noteEmittedMediaItem(MediaItem item, {QueueTrack? track}) {
+    final t = track ?? QueueTrack.fromMediaItem(item);
+    _lastEmittedMediaItemId = t.videoId;
+    lastEmittedDuration = t.duration;
   }
 
   AudioProcessingState getProcessingState() {

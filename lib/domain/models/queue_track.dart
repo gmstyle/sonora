@@ -121,10 +121,10 @@ class QueueTrack {
 
   /// Converts this [QueueTrack] back to a [MediaItem].
   ///
-  /// Preserves the base [MediaItem] fields (`id`, `title`, `artist`, `album`,
-  /// `duration`, `artUri`) and replaces the extras map with typed values.
+  /// Writes typed track fields onto [base] (display metadata + extras).
   /// Queue-management keys (`section`, `queueId`) from the original extras
-  /// are preserved if present.
+  /// are preserved if present. [base.id] is kept so queue identity stays
+  /// stable across updates.
   MediaItem toMediaItem(MediaItem base) {
     final existingExtras = base.extras ?? {};
     final extras = _buildExtras();
@@ -137,7 +137,14 @@ class QueueTrack {
       extras['queueId'] = existingExtras['queueId'];
     }
 
-    return base.copyWith(extras: extras);
+    return base.copyWith(
+      title: title,
+      artist: artist,
+      album: album,
+      duration: duration,
+      artUri: artUri,
+      extras: extras,
+    );
   }
 
   /// Creates a fresh [MediaItem] from this [QueueTrack] with no base item.
@@ -145,7 +152,14 @@ class QueueTrack {
   /// Uses the display fields stored on this [QueueTrack] to populate the
   /// [MediaItem]. Use when constructing a brand-new [MediaItem] (e.g. from
   /// use cases or DB restore) where there is no pre-existing [MediaItem].
-  MediaItem toFreshMediaItem() {
+  ///
+  /// [additionalExtras] are merged after track extras (e.g. Android Auto
+  /// content-style keys) without a second [toFreshMediaItem] call.
+  MediaItem toFreshMediaItem({Map<String, dynamic>? additionalExtras}) {
+    final extras = _buildExtras();
+    if (additionalExtras != null) {
+      extras.addAll(additionalExtras);
+    }
     return MediaItem(
       id: videoId,
       title: title,
@@ -153,7 +167,7 @@ class QueueTrack {
       album: album,
       duration: duration,
       artUri: artUri,
-      extras: _buildExtras(),
+      extras: extras,
     );
   }
 

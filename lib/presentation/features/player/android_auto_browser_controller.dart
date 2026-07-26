@@ -571,11 +571,8 @@ class AndroidAutoBrowserController {
                           ? Uri.tryParse(song.thumbnails.last.url)
                           : null,
                 );
-                return track.toFreshMediaItem().copyWith(
-                  extras: {
-                    ...track.toFreshMediaItem().extras!,
-                    _kContentStylePlayable: _kStyleList,
-                  },
+                return track.toFreshMediaItem(
+                  additionalExtras: {_kContentStylePlayable: _kStyleList},
                 );
               }).toList();
 
@@ -681,11 +678,8 @@ class AndroidAutoBrowserController {
                 : null,
       );
       return [
-        track.toFreshMediaItem().copyWith(
-          extras: {
-            ...track.toFreshMediaItem().extras!,
-            _kContentStylePlayable: _kStyleList,
-          },
+        track.toFreshMediaItem(
+          additionalExtras: {_kContentStylePlayable: _kStyleList},
         ),
       ];
     } else if (content is VideoDetailed) {
@@ -702,11 +696,8 @@ class AndroidAutoBrowserController {
                 : null,
       );
       return [
-        track.toFreshMediaItem().copyWith(
-          extras: {
-            ...track.toFreshMediaItem().extras!,
-            _kContentStylePlayable: _kStyleList,
-          },
+        track.toFreshMediaItem(
+          additionalExtras: {_kContentStylePlayable: _kStyleList},
         ),
       ];
     } else if (content is AlbumDetailed) {
@@ -771,11 +762,8 @@ class AndroidAutoBrowserController {
         artist: h.artist,
         artUri: h.thumbnailUrl != null ? Uri.tryParse(h.thumbnailUrl!) : null,
       );
-      return track.toFreshMediaItem().copyWith(
-        extras: {
-          ...track.toFreshMediaItem().extras!,
-          _kContentStylePlayable: _kStyleList,
-        },
+      return track.toFreshMediaItem(
+        additionalExtras: {_kContentStylePlayable: _kStyleList},
       );
     }).toList();
   }
@@ -796,11 +784,8 @@ class AndroidAutoBrowserController {
                 d.thumbnailUrl != null ? Uri.tryParse(d.thumbnailUrl!) : null,
             duration: Duration.zero,
           );
-          return track.toFreshMediaItem().copyWith(
-            extras: {
-              ...track.toFreshMediaItem().extras!,
-              _kContentStylePlayable: _kStyleList,
-            },
+          return track.toFreshMediaItem(
+            additionalExtras: {_kContentStylePlayable: _kStyleList},
           );
         })
         .toList();
@@ -839,11 +824,8 @@ class AndroidAutoBrowserController {
         artist: s.artist,
         artUri: s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
       );
-      return track.toFreshMediaItem().copyWith(
-        extras: {
-          ...track.toFreshMediaItem().extras!,
-          _kContentStylePlayable: _kStyleList,
-        },
+      return track.toFreshMediaItem(
+        additionalExtras: {_kContentStylePlayable: _kStyleList},
       );
     }).toList();
   }
@@ -919,11 +901,8 @@ class AndroidAutoBrowserController {
         artUri: thumbUrl != null ? Uri.tryParse(thumbUrl) : null,
         duration: Duration.zero,
       );
-      return track.toFreshMediaItem().copyWith(
-        extras: {
-          ...track.toFreshMediaItem().extras!,
-          _kContentStylePlayable: _kStyleList,
-        },
+      return track.toFreshMediaItem(
+        additionalExtras: {_kContentStylePlayable: _kStyleList},
       );
     }).toList();
   }
@@ -1006,11 +985,8 @@ class AndroidAutoBrowserController {
             duration:
                 s.duration != null ? Duration(seconds: s.duration!) : null,
           );
-          return track.toFreshMediaItem().copyWith(
-            extras: {
-              ...track.toFreshMediaItem().extras!,
-              _kContentStylePlayable: _kStyleList,
-            },
+          return track.toFreshMediaItem(
+            additionalExtras: {_kContentStylePlayable: _kStyleList},
           );
         }).toList();
 
@@ -1080,11 +1056,8 @@ class AndroidAutoBrowserController {
                 ? Uri.tryParse(song.thumbnails.last.url)
                 : null,
       );
-      return track.toFreshMediaItem().copyWith(
-        extras: {
-          ...track.toFreshMediaItem().extras!,
-          _kContentStylePlayable: _kStyleList,
-        },
+      return track.toFreshMediaItem(
+        additionalExtras: {_kContentStylePlayable: _kStyleList},
       );
     }).toList();
   }
@@ -1201,11 +1174,8 @@ class AndroidAutoBrowserController {
                 : null,
       );
       mediaItems.add(
-        track.toFreshMediaItem().copyWith(
-          extras: {
-            ...track.toFreshMediaItem().extras!,
-            _kContentStylePlayable: _kStyleList,
-          },
+        track.toFreshMediaItem(
+          additionalExtras: {_kContentStylePlayable: _kStyleList},
         ),
       );
     }
@@ -1356,11 +1326,8 @@ class AndroidAutoBrowserController {
                   ? Uri.tryParse(album.thumbnails.last.url)
                   : null,
         );
-        return track.toFreshMediaItem().copyWith(
-          extras: {
-            ...track.toFreshMediaItem().extras!,
-            _kContentStylePlayable: _kStyleList,
-          },
+        return track.toFreshMediaItem(
+          additionalExtras: {_kContentStylePlayable: _kStyleList},
         );
       }),
     );
@@ -1409,11 +1376,8 @@ class AndroidAutoBrowserController {
                   ? Uri.tryParse(v.thumbnails.last.url)
                   : null,
         );
-        return track.toFreshMediaItem().copyWith(
-          extras: {
-            ...track.toFreshMediaItem().extras!,
-            _kContentStylePlayable: _kStyleList,
-          },
+        return track.toFreshMediaItem(
+          additionalExtras: {_kContentStylePlayable: _kStyleList},
         );
       }),
     );
@@ -1700,11 +1664,8 @@ class AndroidAutoBrowserController {
                     : null,
           );
           songs.add(
-            track.toFreshMediaItem().copyWith(
-              extras: {
-                ...track.toFreshMediaItem().extras!,
-                _kContentStylePlayable: _kStyleList,
-              },
+            track.toFreshMediaItem(
+              additionalExtras: {_kContentStylePlayable: _kStyleList},
             ),
           );
         } else if (result is VideoDetailed) {
@@ -1721,11 +1682,8 @@ class AndroidAutoBrowserController {
                     : null,
           );
           songs.add(
-            track.toFreshMediaItem().copyWith(
-              extras: {
-                ...track.toFreshMediaItem().extras!,
-                _kContentStylePlayable: _kStyleList,
-              },
+            track.toFreshMediaItem(
+              additionalExtras: {_kContentStylePlayable: _kStyleList},
             ),
           );
         }

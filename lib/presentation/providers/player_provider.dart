@@ -111,7 +111,8 @@ class PlayerState {
     this.upNextStartIndex,
   });
 
-  bool get isVideo => currentSong?.extras?['isVideo'] == true;
+  bool get isVideo =>
+      currentSong != null && QueueTrack.fromMediaItem(currentSong!).isVideo;
 
   /// True when the player is blocked for any reason: active restore, or a
   /// user-initiated song switch in progress.  Use this in the UI to gate all
@@ -430,16 +431,17 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _mediaItemSub = _handler.mediaItem.listen((item) {
         state = state.copyWith(currentSong: item);
         if (item != null && ref.read(settingsProvider).trackHistory) {
+          final track = QueueTrack.fromMediaItem(item);
           ref
               .read(libraryNotifierProvider.notifier)
               .recordPlay(
-                item.id,
-                item.title,
-                item.artist ?? 'Unknown Artist',
-                thumbnailUrl: item.artUri?.toString(),
-                duration: item.duration?.inSeconds,
-                isVideo: item.extras?['isVideo'] == true,
-                isExplicit: item.extras?['isExplicit'] == true,
+                track.videoId,
+                track.title,
+                track.artist ?? 'Unknown Artist',
+                thumbnailUrl: track.artUri?.toString(),
+                duration: track.duration?.inSeconds,
+                isVideo: track.isVideo,
+                isExplicit: track.isExplicit,
               );
         }
       });

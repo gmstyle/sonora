@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:sonora/data/datasources/local/database.dart';
 import 'package:sonora/data/repositories/queue_repository_impl.dart';
+import 'package:sonora/domain/models/queue_track.dart';
 
 void main() {
   late AppDatabase db;
@@ -21,22 +22,18 @@ void main() {
     'persistQueue and restoreQueue saves and restores entire queue correctly',
     () async {
       final items = [
-        MediaItem(
-          id: 'song_1',
+        QueueTrack(
+          videoId: 'song_1',
           title: 'Song 1',
           artist: 'Artist 1',
-          extras: {
-            'url': 'https://example.com/stream1.mp3',
-            'videoId': 'song_1',
-            'isVideo': false,
-          },
-        ),
-        MediaItem(
-          id: 'song_2',
+          url: 'https://example.com/stream1.mp3',
+        ).toFreshMediaItem(),
+        QueueTrack(
+          videoId: 'song_2',
           title: 'Song 2',
           artist: 'Artist 2',
-          extras: {'needsUrl': true, 'videoId': 'song_2', 'isVideo': false},
-        ),
+          needsUrl: true,
+        ).toFreshMediaItem(),
       ];
 
       // Persist queue

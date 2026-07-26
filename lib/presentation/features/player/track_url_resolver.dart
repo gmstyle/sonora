@@ -305,12 +305,21 @@ class TrackUrlResolver {
             // Look-ahead resolves re-emit the *current* MediaItem from playlist
             // extras. If metadata had duration 0/null, that would wipe a
             // player-derived duration already published to Android Auto.
+            // Only copy player duration when this is still the same track —
+            // after a skip, player.state.duration is often still the previous
+            // track's length and would stick forever (duration listener skips
+            // once MediaItem.duration is non-zero).
+            var track = QueueTrack.fromMediaItem(item);
+            final trackChanged =
+                track.videoId != _statePublisher.lastEmittedMediaItemId;
             final playerDuration = _player.state.duration;
-            if ((item.duration == null || item.duration == Duration.zero) &&
+            if (!trackChanged &&
+                (track.duration == null || track.duration == Duration.zero) &&
                 playerDuration > Duration.zero) {
-              item = item.copyWith(duration: playerDuration);
+              track = track.copyWith(duration: playerDuration);
+              item = track.toMediaItem(item);
             }
-            _statePublisher.noteEmittedMediaItem(item);
+            _statePublisher.noteEmittedMediaItem(item, track: track);
             _emitMediaItem(item);
           }
         }

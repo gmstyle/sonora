@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:sonora/data/datasources/local/database.dart';
 import 'package:sonora/data/repositories/queue_repository_impl.dart';
+import 'package:sonora/domain/models/queue_track.dart';
 
 /// Covers the atomic queue+meta persistence introduced to fix Android's
 /// "resumes into the wrong track" bug: the current index/videoId/position/
@@ -22,12 +23,13 @@ void main() {
     await db.close();
   });
 
-  MediaItem song(String id) => MediaItem(
-    id: id,
-    title: id,
-    artist: 'Artist',
-    extras: {'url': 'https://example.com/$id.mp3', 'videoId': id},
-  );
+  MediaItem song(String id) =>
+      QueueTrack(
+        videoId: id,
+        title: id,
+        artist: 'Artist',
+        url: 'https://example.com/$id.mp3',
+      ).toFreshMediaItem();
 
   group('restoreMeta', () {
     test('returns empty defaults when nothing has been persisted', () async {

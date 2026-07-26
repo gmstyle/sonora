@@ -4,6 +4,11 @@ import 'package:audio_service/audio_service.dart';
 import 'package:sonora/data/datasources/local/database.dart';
 import 'package:sonora/data/repositories/queue_repository_impl.dart';
 import 'package:sonora/domain/models/queue_section.dart';
+import 'package:sonora/domain/models/queue_track.dart';
+
+MediaItem _withSection(QueueTrack track, QueueSection section) {
+  return track.toFreshMediaItem(additionalExtras: {'section': section.tag});
+}
 
 void main() {
   late AppDatabase db;
@@ -36,27 +41,23 @@ void main() {
   group('QueueRepository section persistence', () {
     test('persistQueue preserves the section tag for each item', () async {
       final items = [
-        MediaItem(
-          id: 'user_song',
-          title: 'User song',
-          artist: 'Artist',
-          extras: {
-            'url': 'https://example.com/a.mp3',
-            'videoId': 'user_song',
-            'isVideo': false,
-            'section': 'user',
-          },
+        _withSection(
+          QueueTrack(
+            videoId: 'user_song',
+            title: 'User song',
+            artist: 'Artist',
+            url: 'https://example.com/a.mp3',
+          ),
+          QueueSection.user,
         ),
-        MediaItem(
-          id: 'upnext_song',
-          title: 'Upnext song',
-          artist: 'Artist',
-          extras: {
-            'needsUrl': true,
-            'videoId': 'upnext_song',
-            'isVideo': false,
-            'section': 'upnext',
-          },
+        _withSection(
+          QueueTrack(
+            videoId: 'upnext_song',
+            title: 'Upnext song',
+            artist: 'Artist',
+            needsUrl: true,
+          ),
+          QueueSection.upnext,
         ),
       ];
 
@@ -76,17 +77,12 @@ void main() {
       'restoreQueue defaults missing section to user (legacy rows)',
       () async {
         final items = [
-          MediaItem(
-            id: 'legacy',
+          QueueTrack(
+            videoId: 'legacy',
             title: 'Legacy song',
             artist: 'Artist',
-            extras: {
-              'url': 'https://example.com/legacy.mp3',
-              'videoId': 'legacy',
-              'isVideo': false,
-              // No 'section' key — simulates a row written before schema 18.
-            },
-          ),
+            url: 'https://example.com/legacy.mp3',
+          ).toFreshMediaItem(),
         ];
 
         await repo.persistQueue(items, currentIndex: 0);
@@ -99,38 +95,32 @@ void main() {
 
     test('persisted positions are restored in order across sections', () async {
       final items = [
-        MediaItem(
-          id: 'a',
-          title: 'A',
-          artist: 'X',
-          extras: {
-            'url': 'https://e/a.mp3',
-            'videoId': 'a',
-            'isVideo': false,
-            'section': 'user',
-          },
+        _withSection(
+          QueueTrack(
+            videoId: 'a',
+            title: 'A',
+            artist: 'X',
+            url: 'https://e/a.mp3',
+          ),
+          QueueSection.user,
         ),
-        MediaItem(
-          id: 'b',
-          title: 'B',
-          artist: 'X',
-          extras: {
-            'url': 'https://e/b.mp3',
-            'videoId': 'b',
-            'isVideo': false,
-            'section': 'user',
-          },
+        _withSection(
+          QueueTrack(
+            videoId: 'b',
+            title: 'B',
+            artist: 'X',
+            url: 'https://e/b.mp3',
+          ),
+          QueueSection.user,
         ),
-        MediaItem(
-          id: 'c',
-          title: 'C',
-          artist: 'X',
-          extras: {
-            'url': 'https://e/c.mp3',
-            'videoId': 'c',
-            'isVideo': false,
-            'section': 'upnext',
-          },
+        _withSection(
+          QueueTrack(
+            videoId: 'c',
+            title: 'C',
+            artist: 'X',
+            url: 'https://e/c.mp3',
+          ),
+          QueueSection.upnext,
         ),
       ];
 

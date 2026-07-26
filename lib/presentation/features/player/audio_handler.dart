@@ -385,11 +385,46 @@ class SonoraAudioHandler extends BaseAudioHandler {
       // isResolvingItem (look-ahead) or AA seekbar stays at 0 forever when
       // media_kit emits duration only once during that window.
       if (duration == Duration.zero) return;
+
+      // Resolve can suppress _onPlaylistChanged mediaItem updates across a
+      // skip, so mediaItem.value may still be the previous track while the
+      // player has already moved on. Bind duration to the playlist identity.
+      final playlist = _player.state.playlist;
+      final index = playlist.index;
+      MediaItem? playingItem;
+      if (index >= 0 && index < playlist.medias.length) {
+        playingItem = playlist.medias[index].extras?['mediaItem'] as MediaItem?;
+      }
+
       final current = mediaItem.value;
-      if (current == null) return;
-      if (current.duration != null && current.duration != Duration.zero) return;
-      final updated = current.copyWith(duration: duration);
-      _statePublisher.lastEmittedDuration = duration;
+      final playingTrack =
+          playingItem != null ? QueueTrack.fromMediaItem(playingItem) : null;
+      final currentTrack =
+          current != null ? QueueTrack.fromMediaItem(current) : null;
+
+      if (playingTrack != null &&
+          playingItem != null &&
+          (currentTrack == null ||
+              currentTrack.videoId != playingTrack.videoId)) {
+        final updatedTrack =
+            (playingTrack.duration != null &&
+                    playingTrack.duration != Duration.zero)
+                ? playingTrack
+                : playingTrack.copyWith(duration: duration);
+        final updated = updatedTrack.toMediaItem(playingItem);
+        _statePublisher.noteEmittedMediaItem(updated, track: updatedTrack);
+        mediaItem.add(updated);
+        return;
+      }
+
+      if (current == null || currentTrack == null) return;
+      if (currentTrack.duration != null &&
+          currentTrack.duration != Duration.zero) {
+        return;
+      }
+      final updatedTrack = currentTrack.copyWith(duration: duration);
+      final updated = updatedTrack.toMediaItem(current);
+      _statePublisher.noteEmittedMediaItem(updated, track: updatedTrack);
       mediaItem.add(updated);
     });
 
@@ -453,9 +488,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
             index < playlist.medias.length
                 ? (playlist.medias[index].extras?['mediaItem'] as MediaItem?)
                 : null;
-        unawaited(
-          _queueRepo.persistCurrentIndex(index, videoId: currentMediaItem?.id),
-        );
+        final videoId =
+            currentMediaItem != null
+                ? QueueTrack.fromMediaItem(currentMediaItem).videoId
+                : null;
+        unawaited(_queueRepo.persistCurrentIndex(index, videoId: videoId));
       }
     }
 
@@ -465,31 +502,34 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final media = playlist.medias[index];
       var item = media.extras?['mediaItem'] as MediaItem?;
       if (item != null) {
+        var track = QueueTrack.fromMediaItem(item);
         final playerDuration = _player.state.duration;
-        final trackChanged = item.id != _statePublisher.lastEmittedMediaItemId;
+        final trackChanged =
+            track.videoId != _statePublisher.lastEmittedMediaItemId;
         // On track change, player.state.duration is often still the *previous*
         // track's length — copying it here stamps a stale duration and then
         // blocks the real player duration patch (skipAlreadySet).
         if (!trackChanged &&
-            (item.duration == null || item.duration == Duration.zero) &&
+            (track.duration == null || track.duration == Duration.zero) &&
             playerDuration != Duration.zero) {
-          item = item.copyWith(duration: playerDuration);
+          track = track.copyWith(duration: playerDuration);
+          item = track.toMediaItem(item);
         }
 
         final durationResolved =
             !trackChanged &&
             (_statePublisher.lastEmittedDuration == null ||
                 _statePublisher.lastEmittedDuration == Duration.zero) &&
-            (item.duration != null && item.duration != Duration.zero);
+            (track.duration != null && track.duration != Duration.zero);
         if (trackChanged || durationResolved) {
-          _statePublisher.noteEmittedMediaItem(item);
+          _statePublisher.noteEmittedMediaItem(item, track: track);
           mediaItem.add(item);
           if (trackChanged) {
             _recoveryController.resetRetryCount();
-            _likeController.checkCurrentSongLiked(item.id);
+            _likeController.checkCurrentSongLiked(track.videoId);
             if (_castController.castState?.connectionState ==
                 CastConnectionState.connected) {
-              if (!QueueTrack.fromMediaItem(item).needsUrl) {
+              if (!track.needsUrl) {
                 unawaited(
                   _castController
                       .castSong(
