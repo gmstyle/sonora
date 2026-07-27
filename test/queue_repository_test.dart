@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
-import 'package:audio_service/audio_service.dart';
 import 'package:sonora/data/datasources/local/database.dart';
 import 'package:sonora/data/repositories/queue_repository_impl.dart';
 import 'package:sonora/domain/models/queue_track.dart';
