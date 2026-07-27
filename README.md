@@ -171,3 +171,8 @@ flutter gen-l10n                                         # Regenerate localizati
 ## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+
+## Disclaimer
+
+Sonora is a independent project and is not endorsed by YouTube or Google.
+Sonora does not collect any personal data or information, it does not host, distribute or sell any copyrighted material. All content is the property of the respective content owners. Sonora is for educational purposes only. The developer not encourage any illegal activity and not responsible for any illegal use of the software.
