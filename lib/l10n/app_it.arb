@@ -95,6 +95,8 @@
   "noLocalPlaylistsYet": "Nessuna playlist locale ancora.",
   "deletePlaylist": "Elimina playlist",
   "deletePlaylistConfirm": "Sei sicuro di voler eliminare \"{name}\"?",
+  "deleteDownload": "Elimina download",
+  "deleteDownloadConfirm": "Sei sicuro di voler eliminare \"{name}\"?",
   "delete": "Elimina",
   "likedPlaylists": "Playlist con Mi Piace",
   "likePlaylistHint": "Metti 'Mi piace' a una playlist dalla sua pagina per vederla qui.",

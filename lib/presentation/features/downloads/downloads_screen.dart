@@ -407,10 +407,34 @@ class _CompletedDownloadTile extends StatelessWidget {
               LucideIcons.trash2,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-            onPressed:
-                () => ref
+            onPressed: () async {
+              final l10n = AppLocalizations.of(context)!;
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder:
+                    (ctx) => AlertDialog(
+                      title: Text(l10n.deleteDownload),
+                      content: Text(
+                        l10n.deleteDownloadConfirm(download.title as String),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text(l10n.cancel),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Text(l10n.delete),
+                        ),
+                      ],
+                    ),
+              );
+              if (confirm == true) {
+                await ref
                     .read(activeDownloadsProvider.notifier)
-                    .deleteDownload(download.videoId as String),
+                    .deleteDownload(download.videoId as String);
+              }
+            },
           ),
           onTap: () {
             ref

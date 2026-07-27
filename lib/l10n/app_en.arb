@@ -179,6 +179,13 @@
       "name": {"type": "String"}
     }
   },
+  "deleteDownload": "Delete download",
+  "deleteDownloadConfirm": "Are you sure you want to delete \"{name}\"?",
+  "@deleteDownloadConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "delete": "Delete",
   "likedPlaylists": "Liked Playlists",
   "likePlaylistHint": "Like a playlist from its page to see it here.",

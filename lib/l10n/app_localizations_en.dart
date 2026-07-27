@@ -302,6 +302,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get deleteDownload => 'Delete download';
+
+  @override
+  String deleteDownloadConfirm(String name) {
+    return 'Are you sure you want to delete \"$name\"?';
+  }
+
+  @override
   String get delete => 'Delete';
 
   @override

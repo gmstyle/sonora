@@ -560,6 +560,18 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete \"{name}\"?'**
   String deletePlaylistConfirm(String name);
 
+  /// No description provided for @deleteDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete download'**
+  String get deleteDownload;
+
+  /// No description provided for @deleteDownloadConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{name}\"?'**
+  String deleteDownloadConfirm(String name);
+
   /// No description provided for @delete.
   ///
   /// In en, this message translates to:
