@@ -139,7 +139,7 @@ class SongTile extends ConsumerWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                LucideIcons.checkCircle,
+                LucideIcons.download,
                 size: 10,
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
