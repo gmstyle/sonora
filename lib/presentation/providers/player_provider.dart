@@ -17,7 +17,8 @@ import 'settings_provider.dart';
 import 'start_radio_use_case_provider.dart';
 
 // Re-export for convenience so UI layers don't need to import audio_handler.
-export '../features/player/audio_handler.dart' show RestoreStatus;
+export '../features/player/audio_handler.dart'
+    show RestoreStatus, PlayErrorEvent, PlayErrorKind;
 
 final audioHandlerProvider = Provider<SonoraAudioHandler>((ref) {
   throw UnimplementedError('Must be overridden in main()');
@@ -65,6 +66,14 @@ class PlayerState {
   final bool isPaused;
   final bool hasError;
   final String? errorMessage;
+
+  /// Last typed play failure (for l10n toast). Cleared with [clearError].
+  final PlayErrorEvent? lastPlayError;
+
+  /// Session-scoped videoIds that failed as permanently unplayable.
+  /// Used by the queue sheet to mute tiles; cleared on a new [playNow].
+  final Set<String> unplayableVideoIds;
+
   final MediaItem? currentSong;
   final List<MediaItem> queue;
   final int currentIndex;
@@ -98,6 +107,8 @@ class PlayerState {
     this.isPaused = false,
     this.hasError = false,
     this.errorMessage,
+    this.lastPlayError,
+    this.unplayableVideoIds = const {},
     this.currentSong,
     this.queue = const [],
     this.currentIndex = 0,
@@ -140,6 +151,8 @@ class PlayerState {
     bool? isPaused,
     bool? hasError,
     String? errorMessage,
+    PlayErrorEvent? lastPlayError,
+    Set<String>? unplayableVideoIds,
     MediaItem? currentSong,
     List<MediaItem>? queue,
     int? currentIndex,
@@ -153,6 +166,7 @@ class PlayerState {
     int? upNextStartIndex,
     bool clearError = false,
     bool clearSleepTimer = false,
+    bool clearUnplayable = false,
   }) {
     return PlayerState(
       isPlaying: isPlaying ?? this.isPlaying,
@@ -163,6 +177,11 @@ class PlayerState {
       isPaused: isPaused ?? this.isPaused,
       hasError: hasError ?? this.hasError,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      lastPlayError: clearError ? null : (lastPlayError ?? this.lastPlayError),
+      unplayableVideoIds:
+          clearUnplayable
+              ? const {}
+              : (unplayableVideoIds ?? this.unplayableVideoIds),
       currentSong: currentSong ?? this.currentSong,
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
@@ -507,9 +526,17 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       });
 
       _playErrorSub = _handler.onPlayError.listen((error) {
+        final ids = Set<String>.from(state.unplayableVideoIds);
+        if (error.kind == PlayErrorKind.unplayable &&
+            error.videoId.isNotEmpty) {
+          ids.add(error.videoId);
+        }
         state = state.copyWith(
           hasError: true,
-          errorMessage: 'Failed to play ${error.$2}',
+          lastPlayError: error,
+          // Keep a plain fallback for any code still reading errorMessage.
+          errorMessage: error.title,
+          unplayableVideoIds: ids,
           // A play error always ends any in-flight switch attempt. Without
           // this, a failed skipToQueueItem/skipToNext/skipToPrevious (e.g.
           // stream URL resolve failed) could leave isSwitching stuck at
@@ -639,7 +666,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     final v = ++_operationVersion;
     await _handler.pause();
-    state = state.copyWith(isSwitching: true);
+    state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       await _handler.playNow(
         items,
@@ -660,7 +687,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Future<void> playAlbum(List<SongDetailed> songs, {int startIndex = 0}) async {
     final v = ++_operationVersion;
     await _handler.pause();
-    state = state.copyWith(isSwitching: true);
+    state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       final useCase = ref.read(playAlbumUseCaseProvider);
       final items = await useCase.execute(songs, playIndex: startIndex);
@@ -687,7 +714,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }) async {
     final v = ++_operationVersion;
     await _handler.pause();
-    state = state.copyWith(isSwitching: true);
+    state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       final useCase = ref.read(playPlaylistUseCaseProvider);
       final items = await useCase.execute(videos, playIndex: startIndex);
@@ -711,7 +738,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Future<void> playSmartMix(List<dynamic> songs, {int startIndex = 0}) async {
     final v = ++_operationVersion;
     await _handler.pause();
-    state = state.copyWith(isSwitching: true);
+    state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       final useCase = ref.read(playSmartMixUseCaseProvider);
       final items = await useCase.execute(songs: songs, playIndex: startIndex);

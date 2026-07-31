@@ -17,28 +17,47 @@ class _PlayerErrorListenerState extends ConsumerState<PlayerErrorListener> {
   @override
   Widget build(BuildContext context) {
     ref.listen(playerStateProvider, (prev, next) {
-      if (next.hasError &&
+      if (!next.hasError) return;
+
+      final playError = next.lastPlayError;
+      final typedChanged =
+          playError != null && prev?.lastPlayError != playError;
+      final legacyChanged =
+          playError == null &&
           next.errorMessage != null &&
-          prev?.errorMessage != next.errorMessage) {
-        String displayMessage = next.errorMessage!;
+          prev?.errorMessage != next.errorMessage;
+
+      if (!typedChanged && !legacyChanged) return;
+
+      final l10n = AppLocalizations.of(context);
+      String displayMessage;
+
+      if (playError != null && l10n != null) {
+        displayMessage = switch (playError.kind) {
+          PlayErrorKind.network => l10n.weakConnectionError,
+          PlayErrorKind.unplayable || PlayErrorKind.unknown =>
+            playError.skippedToNext
+                ? l10n.trackUnplayableSkipped(playError.title)
+                : l10n.trackUnplayable(playError.title),
+        };
+      } else {
+        displayMessage = next.errorMessage ?? '';
+        if (displayMessage.isEmpty) return;
         final lower = displayMessage.toLowerCase();
-
-        if (lower.contains('offline') ||
-            lower.contains('socketexception') ||
-            lower.contains('timeout') ||
-            lower.contains('network') ||
-            lower.contains('connection failed') ||
-            lower.contains('handshakeexception') ||
-            lower.contains('failed to host') ||
-            lower.contains('connection timed out')) {
-          final l10n = AppLocalizations.of(context);
-          if (l10n != null) {
-            displayMessage = l10n.weakConnectionError;
-          }
+        if (l10n != null &&
+            (lower.contains('offline') ||
+                lower.contains('socketexception') ||
+                lower.contains('timeout') ||
+                lower.contains('network') ||
+                lower.contains('connection failed') ||
+                lower.contains('handshakeexception') ||
+                lower.contains('failed to host') ||
+                lower.contains('connection timed out'))) {
+          displayMessage = l10n.weakConnectionError;
         }
-
-        FeedbackToast.show(context, displayMessage);
       }
+
+      FeedbackToast.show(context, displayMessage);
     });
     return const SizedBox.shrink();
   }

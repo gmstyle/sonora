@@ -1203,6 +1203,16 @@ class AppLocalizationsIt extends AppLocalizations {
       'La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati.';
 
   @override
+  String trackUnplayable(String title) {
+    return 'Impossibile riprodurre \"$title\".';
+  }
+
+  @override
+  String trackUnplayableSkipped(String title) {
+    return 'Impossibile riprodurre \"$title\". Passo al successivo.';
+  }
+
+  @override
   String get connection => 'Connessione';
 
   @override

@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/explicit_badge.dart';
+import '../../../shared/widgets/feedback_toast.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 
 const double _kQueueTileHeight = 68;
@@ -278,6 +279,7 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     final upNextQueue = playerState.upNextQueue;
     final currentIndex = playerState.currentIndex;
     final currentSongId = playerState.currentSong?.id;
+    final unplayableIds = playerState.unplayableVideoIds;
     final autoplayEnabled = ref.watch(
       settingsProvider.select((s) => s.autoPlayUpNext),
     );
@@ -392,6 +394,7 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                     itemBuilder: (context, index) {
                       final item = userQueue[index];
                       final isCurrent = isCurrentAt(index, item);
+                      final isUnplayable = unplayableIds.contains(item.id);
                       final queueId =
                           item.extras?['queueId'] as String? ?? item.id;
                       return ReorderableDelayedDragStartListener(
@@ -400,13 +403,25 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                         // Dragging the playing item used to clone a GlobalKey into
                         // the reorder proxy (Duplicate GlobalKey / layout crash).
                         // Keep the current row fixed; reorder only non-current.
-                        enabled: !isCurrent,
+                        enabled: !isCurrent && !isUnplayable,
                         child: _QueueItem(
                           item: item,
-                          isCurrent: isCurrent,
+                          isCurrent: isCurrent && !isUnplayable,
+                          isUnplayable: isUnplayable,
                           pc: pc,
                           onRemove: () => notifier.removeAt(index),
-                          onTap: () => notifier.skipToIndex(index),
+                          onTap:
+                              isUnplayable
+                                  ? () {
+                                    final l10n = AppLocalizations.of(context);
+                                    if (l10n != null) {
+                                      FeedbackToast.show(
+                                        context,
+                                        l10n.trackUnplayable(item.title),
+                                      );
+                                    }
+                                  }
+                                  : () => notifier.skipToIndex(index),
                         ),
                       );
                     },
@@ -446,15 +461,28 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                       final globalIndex =
                           (playerState.upNextStartIndex ?? 0) + index;
                       final isCurrent = isCurrentAt(globalIndex, item);
+                      final isUnplayable = unplayableIds.contains(item.id);
                       return _QueueItem(
                         key: ValueKey(
                           'upnext_${item.extras?['queueId'] ?? item.id}',
                         ),
                         item: item,
-                        isCurrent: isCurrent,
+                        isCurrent: isCurrent && !isUnplayable,
+                        isUnplayable: isUnplayable,
                         pc: pc,
                         onRemove: null,
-                        onTap: () => notifier.skipToIndex(globalIndex),
+                        onTap:
+                            isUnplayable
+                                ? () {
+                                  final l10n = AppLocalizations.of(context);
+                                  if (l10n != null) {
+                                    FeedbackToast.show(
+                                      context,
+                                      l10n.trackUnplayable(item.title),
+                                    );
+                                  }
+                                }
+                                : () => notifier.skipToIndex(globalIndex),
                       );
                     }, childCount: upNextQueue.length),
                   )
@@ -659,6 +687,7 @@ class _SectionHeader extends StatelessWidget {
 class _QueueItem extends StatelessWidget {
   final MediaItem item;
   final bool isCurrent;
+  final bool isUnplayable;
   final PlayerColors pc;
   final VoidCallback? onRemove;
   final VoidCallback? onTap;
@@ -667,6 +696,7 @@ class _QueueItem extends StatelessWidget {
     super.key,
     required this.item,
     required this.isCurrent,
+    this.isUnplayable = false,
     required this.pc,
     this.onRemove,
     this.onTap,
@@ -676,7 +706,9 @@ class _QueueItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUpNext = item.extras?['section'] == 'upnext';
     final opacity =
-        isCurrent
+        isUnplayable
+            ? 0.5
+            : isCurrent
             ? 1.0
             : isUpNext
             ? 0.7
@@ -783,6 +815,15 @@ class _QueueItem extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (isUnplayable)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        LucideIcons.ban,
+                        size: 18,
+                        color: pc.iconSecondary,
+                      ),
+                    ),
                   // Remove only on user-queue items; up-next is section-scoped
                   // (header ∞ + opacity) so per-tile infinity icons are omitted.
                   if (!isCurrent && onRemove != null)

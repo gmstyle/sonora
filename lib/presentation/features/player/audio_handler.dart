@@ -25,6 +25,7 @@ import 'cast_playback_controller.dart';
 import 'equalizer_controller.dart';
 import 'audio_session_controller.dart';
 import 'like_controller.dart';
+import 'play_error.dart';
 import 'player_engine_configurator.dart';
 import 'player_media_controls.dart';
 import 'playback_recovery_controller.dart';
@@ -36,6 +37,7 @@ import 'skip_navigator.dart';
 import 'track_url_resolver.dart';
 
 export 'playback_restore_controller.dart' show RestoreStatus;
+export 'play_error.dart' show PlayErrorEvent, PlayErrorKind;
 
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
@@ -91,8 +93,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     });
   }
 
-  Stream<(String videoId, String title)> get onPlayError =>
-      _recoveryController.onPlayError;
+  Stream<PlayErrorEvent> get onPlayError => _recoveryController.onPlayError;
 
   SonoraAudioHandler({
     required MusicRepository musicRepo,
@@ -178,8 +179,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isRestoring: () => _restoreController.isRestoring,
       requestPlay: play,
       onResolveFailed:
-          (videoId, title) => _recoveryController
-              .handlePlaybackConnectionFailure(videoId, title),
+          (videoId, title, kind) => _recoveryController
+              .handlePlaybackConnectionFailure(videoId, title, kind: kind),
       emitMediaItem: (item) => mediaItem.add(item),
       setPausedForConnection: (v) => _castController.pausedForConnection = v,
       castMedia: ({
@@ -757,14 +758,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
                 : null;
         if (refreshedTrack?.needsUrl == true) {
           _volumeController.endTransitionMute();
-          _recoveryController.reportPlayError(
-            track?.videoId ?? item?.id ?? '',
-            item?.title ?? '',
-          );
           // Resolve failed while playlist.index may still be the previous
           // track (treatAsCurrent resolve before jump), so the resolver's
-          // onResolveFailed path may not run. Advance past this index.
-          await _recoveryController.advancePastUnplayable(index);
+          // onResolveFailed path may not run. Advance past this index and
+          // emit a single PlayErrorEvent from advancePastUnplayable.
+          await _recoveryController.advancePastUnplayable(
+            index,
+            videoId: track?.videoId ?? item?.id ?? '',
+            title: item?.title ?? '',
+            kind: _urlResolver.lastResolveFailureKind ?? PlayErrorKind.unknown,
+          );
           return;
         }
       }

@@ -1196,6 +1196,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Internet connection is weak or absent. Please check your network or play downloaded tracks.';
 
   @override
+  String trackUnplayable(String title) {
+    return 'Can\'t play \"$title\".';
+  }
+
+  @override
+  String trackUnplayableSkipped(String title) {
+    return 'Can\'t play \"$title\". Playing next.';
+  }
+
+  @override
   String get connection => 'Connection';
 
   @override

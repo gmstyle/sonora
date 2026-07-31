@@ -445,6 +445,8 @@
   "offlineNotification": "Sei offline. Puoi riprodurre solo i brani scaricati",
   "connectionRestored": "Connessione ripristinata",
   "weakConnectionError": "La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati.",
+  "trackUnplayable": "Impossibile riprodurre \"{title}\".",
+  "trackUnplayableSkipped": "Impossibile riprodurre \"{title}\". Passo al successivo.",
   "connection": "Connessione",
   "offlineMode": "Modalità offline",
   "offlineModeHint": "Mostra solo i contenuti scaricati e le playlist locali",

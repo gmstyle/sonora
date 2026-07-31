@@ -36,6 +36,7 @@ class QueueController {
 
   int _queueIdCounter = 0;
   int _resolvingItemCount = 0;
+
   /// FIFO lock so concurrent [runBatch]/[addToQueue] callers cannot interleave
   /// `_player.add` awaits (which previously mixed albums added in parallel).
   Future<void>? _mutationLock;
@@ -131,12 +132,7 @@ class QueueController {
     int index,
     Media media, {
     String? expectedVideoId,
-  }) =>
-      _replaceAtUnlocked(
-        index,
-        media,
-        expectedVideoId: expectedVideoId,
-      );
+  }) => _replaceAtUnlocked(index, media, expectedVideoId: expectedVideoId);
 
   /// Index of the first Up Next item, or null if none.
   int? get upNextStartIndex {
@@ -163,11 +159,7 @@ class QueueController {
     String? expectedVideoId,
   }) async {
     return runExclusive(
-      () => _replaceAtUnlocked(
-        index,
-        media,
-        expectedVideoId: expectedVideoId,
-      ),
+      () => _replaceAtUnlocked(index, media, expectedVideoId: expectedVideoId),
     );
   }
 

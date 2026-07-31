@@ -9,6 +9,7 @@ import '../../../domain/models/queue_track.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
+import 'play_error.dart';
 import 'queue_controller.dart';
 
 /// Resolves pending stream URLs for queue tracks and manages look-ahead
@@ -38,7 +39,8 @@ class TrackUrlResolver {
   final bool Function() _isStopping;
   final bool Function() _isRestoring;
   final Future<void> Function() _requestPlay;
-  final Future<void> Function(String videoId, String title) _onResolveFailed;
+  final Future<void> Function(String videoId, String title, PlayErrorKind kind)
+  _onResolveFailed;
   final void Function(MediaItem item) _emitMediaItem;
   final void Function(bool) _setPausedForConnection;
   final Future<void> Function({
@@ -54,6 +56,10 @@ class TrackUrlResolver {
 
   final Set<String> _pendingResolutions = {};
   Timer? _lookaheadTimer;
+  PlayErrorKind? _lastResolveFailureKind;
+
+  /// Kind of the most recent [resolveSinglePendingItem] failure, if any.
+  PlayErrorKind? get lastResolveFailureKind => _lastResolveFailureKind;
 
   TrackUrlResolver({
     required Player player,
@@ -66,7 +72,11 @@ class TrackUrlResolver {
     required bool Function() isStopping,
     required bool Function() isRestoring,
     required Future<void> Function() requestPlay,
-    required Future<void> Function(String videoId, String title)
+    required Future<void> Function(
+      String videoId,
+      String title,
+      PlayErrorKind kind,
+    )
     onResolveFailed,
     required void Function(MediaItem item) emitMediaItem,
     required void Function(bool) setPausedForConnection,
@@ -195,6 +205,7 @@ class TrackUrlResolver {
     final videoId = track.videoId;
 
     if (!_pendingResolutions.add(videoId)) return;
+    _lastResolveFailureKind = null;
     _queueController.beginResolving();
     try {
       // The active (currently playing/selected) item gets enough headroom
@@ -300,9 +311,11 @@ class TrackUrlResolver {
       }
     } catch (e) {
       dev.log('[AudioHandler] Failed to resolve URL for item at $index: $e');
+      final kind = PlayErrorKind.classify(e);
+      _lastResolveFailureKind = kind;
       final playlist3 = _player.state.playlist;
       if (index == playlist3.index) {
-        await _onResolveFailed(videoId, item.title);
+        await _onResolveFailed(videoId, item.title, kind);
       }
     } finally {
       _queueController.endResolving();

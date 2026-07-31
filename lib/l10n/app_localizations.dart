@@ -2108,6 +2108,18 @@ abstract class AppLocalizations {
   /// **'Internet connection is weak or absent. Please check your network or play downloaded tracks.'**
   String get weakConnectionError;
 
+  /// No description provided for @trackUnplayable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t play \"{title}\".'**
+  String trackUnplayable(String title);
+
+  /// No description provided for @trackUnplayableSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t play \"{title}\". Playing next.'**
+  String trackUnplayableSkipped(String title);
+
   /// No description provided for @connection.
   ///
   /// In en, this message translates to:

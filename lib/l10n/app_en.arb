@@ -595,6 +595,18 @@
   "offlineNotification": "You are offline. Downloaded tracks only",
   "connectionRestored": "Connection restored",
   "weakConnectionError": "Internet connection is weak or absent. Please check your network or play downloaded tracks.",
+  "trackUnplayable": "Can't play \"{title}\".",
+  "@trackUnplayable": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "trackUnplayableSkipped": "Can't play \"{title}\". Playing next.",
+  "@trackUnplayableSkipped": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
   "connection": "Connection",
   "offlineMode": "Offline Mode",
   "offlineModeHint": "Only show downloaded content and local playlists",

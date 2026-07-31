@@ -9,6 +9,7 @@ import '../../../core/utils/connectivity_utils.dart';
 import '../../../data/services/media_cache_service.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
+import 'play_error.dart';
 import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
 import 'queue_controller.dart';
@@ -63,15 +64,25 @@ class PlaybackRecoveryController {
   bool _interruptedByNetworkDrop = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
-  final StreamController<(String videoId, String title)>
-  _onPlayErrorController =
-      StreamController<(String videoId, String title)>.broadcast();
+  final StreamController<PlayErrorEvent> _onPlayErrorController =
+      StreamController<PlayErrorEvent>.broadcast();
 
-  Stream<(String videoId, String title)> get onPlayError =>
-      _onPlayErrorController.stream;
+  Stream<PlayErrorEvent> get onPlayError => _onPlayErrorController.stream;
 
-  void reportPlayError(String videoId, String title) {
-    _onPlayErrorController.add((videoId, title));
+  void reportPlayError(
+    String videoId,
+    String title, {
+    PlayErrorKind kind = PlayErrorKind.unknown,
+    bool skippedToNext = false,
+  }) {
+    _onPlayErrorController.add(
+      PlayErrorEvent(
+        videoId: videoId,
+        title: title,
+        kind: kind,
+        skippedToNext: skippedToNext,
+      ),
+    );
   }
 
   PlaybackRecoveryController({
@@ -128,23 +139,35 @@ class PlaybackRecoveryController {
 
   Future<void> handlePlaybackConnectionFailure(
     String videoId,
-    String title,
-  ) async {
-    _interruptedByNetworkDrop = true;
+    String title, {
+    PlayErrorKind kind = PlayErrorKind.network,
+  }) async {
+    if (kind == PlayErrorKind.network) {
+      _interruptedByNetworkDrop = true;
+    }
     final playlist = _player.state.playlist;
     final currentIndex = playlist.index;
     if (currentIndex < 0) return;
 
-    await advancePastUnplayable(currentIndex, stopIfNone: true, videoId: videoId, title: title);
+    await advancePastUnplayable(
+      currentIndex,
+      stopIfNone: true,
+      videoId: videoId,
+      title: title,
+      kind: kind,
+    );
   }
 
   /// Skips forward from [failedIndex] to the next already-playable queue item
   /// (has URL / cached / local). Does not mark a network interruption.
+  ///
+  /// Always emits a [PlayErrorEvent] when [videoId] and [title] are provided.
   Future<void> advancePastUnplayable(
     int failedIndex, {
     bool stopIfNone = true,
     String? videoId,
     String? title,
+    PlayErrorKind kind = PlayErrorKind.unknown,
   }) async {
     final playlist = _player.state.playlist;
     if (failedIndex < 0) return;
@@ -167,7 +190,8 @@ class PlaybackRecoveryController {
       }
     }
 
-    if (targetIndex != -1) {
+    final skippedToNext = targetIndex != -1;
+    if (skippedToNext) {
       dev.log(
         '[AudioHandler] Advancing queue index past unplayable to $targetIndex.',
       );
@@ -177,9 +201,10 @@ class PlaybackRecoveryController {
         '[AudioHandler] No playable tracks after $failedIndex. Stopping playback.',
       );
       await _player.stop();
-      if (videoId != null && title != null) {
-        _onPlayErrorController.add((videoId, title));
-      }
+    }
+
+    if (videoId != null && title != null) {
+      reportPlayError(videoId, title, kind: kind, skippedToNext: skippedToNext);
     }
   }
 
@@ -331,7 +356,11 @@ class PlaybackRecoveryController {
         }
       }
     } catch (e) {
-      await handlePlaybackConnectionFailure(videoId, currentItem.title);
+      await handlePlaybackConnectionFailure(
+        videoId,
+        currentItem.title,
+        kind: PlayErrorKind.classify(e),
+      );
     } finally {
       _isRetrying = false;
     }
