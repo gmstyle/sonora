@@ -36,6 +36,9 @@ class QueueController {
 
   int _queueIdCounter = 0;
   int _resolvingItemCount = 0;
+  /// FIFO lock so concurrent [runBatch]/[addToQueue] callers cannot interleave
+  /// `_player.add` awaits (which previously mixed albums added in parallel).
+  Future<void>? _mutationLock;
 
   static const String _kSectionKey = 'section';
 
@@ -74,24 +77,50 @@ class QueueController {
     _resolvingItemCount--;
   }
 
+  /// Runs [action] exclusively (FIFO) so overlapping callers never interleave
+  /// playlist mutations. Mirrors [SonoraAudioHandler]'s `_synchronizedOpen`.
+  Future<T> runExclusive<T>(Future<T> Function() action) async {
+    final previous = _mutationLock;
+    final completer = Completer<void>();
+    _mutationLock = completer.future;
+    if (previous != null) {
+      try {
+        await previous;
+      } catch (_) {}
+    }
+    try {
+      return await action();
+    } finally {
+      completer.complete();
+      if (identical(_mutationLock, completer.future)) {
+        _mutationLock = null;
+      }
+    }
+  }
+
   /// Runs [action] under [beginResolving]/[endResolving], then syncs the queue
   /// stream. [onSettled] is invoked when no nested batch remains (same guard
   /// the call sites previously used for `_updatePlaybackState`).
+  ///
+  /// Batches are serialized via [runExclusive] so concurrent `addAllToQueue`
+  /// calls append albums as contiguous blocks in call order.
   Future<void> runBatch(
     Future<void> Function() action, {
     required bool isStopping,
     void Function()? onSettled,
   }) async {
-    beginResolving();
-    try {
-      await action();
-    } finally {
-      endResolving();
-      syncQueue(isStopping: isStopping);
-      if (!isResolvingItem) {
-        onSettled?.call();
+    await runExclusive(() async {
+      beginResolving();
+      try {
+        await action();
+      } finally {
+        endResolving();
+        syncQueue(isStopping: isStopping);
+        if (!isResolvingItem) {
+          onSettled?.call();
+        }
       }
-    }
+    });
   }
 
   /// Replaces the media at [index] while preserving playlist length/order
@@ -198,7 +227,7 @@ class QueueController {
 
   /// Adds a single item to the end of the queue.
   Future<void> addToQueue(MediaItem item) async {
-    await _player.add(toMedia(item));
+    await runExclusive(() => _player.add(toMedia(item)));
   }
 
   /// Adds all [items] to the end of the queue.
