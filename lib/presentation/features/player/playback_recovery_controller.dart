@@ -38,7 +38,6 @@ class PlaybackRecoveryController {
   final Connectivity _connectivity;
   final bool Function() _userWantsPlaying;
   final bool Function() _isStopping;
-  final MediaItem? Function() _currentMediaItem;
   final Future<void> Function() _requestPlay;
   final Future<void> Function(int index) _skipToQueueItem;
   final bool Function() _isCastConnected;
@@ -85,7 +84,6 @@ class PlaybackRecoveryController {
     required Connectivity connectivity,
     required bool Function() userWantsPlaying,
     required bool Function() isStopping,
-    required MediaItem? Function() currentMediaItem,
     required Future<void> Function() requestPlay,
     required Future<void> Function(int index) skipToQueueItem,
     required bool Function() isCastConnected,
@@ -109,7 +107,6 @@ class PlaybackRecoveryController {
        _connectivity = connectivity,
        _userWantsPlaying = userWantsPlaying,
        _isStopping = isStopping,
-       _currentMediaItem = currentMediaItem,
        _requestPlay = requestPlay,
        _skipToQueueItem = skipToQueueItem,
        _isCastConnected = isCastConnected,
@@ -138,9 +135,22 @@ class PlaybackRecoveryController {
     final currentIndex = playlist.index;
     if (currentIndex < 0) return;
 
-    // Scan remaining queue for a playable offline/cached track
+    await advancePastUnplayable(currentIndex, stopIfNone: true, videoId: videoId, title: title);
+  }
+
+  /// Skips forward from [failedIndex] to the next already-playable queue item
+  /// (has URL / cached / local). Does not mark a network interruption.
+  Future<void> advancePastUnplayable(
+    int failedIndex, {
+    bool stopIfNone = true,
+    String? videoId,
+    String? title,
+  }) async {
+    final playlist = _player.state.playlist;
+    if (failedIndex < 0) return;
+
     int targetIndex = -1;
-    for (int i = currentIndex + 1; i < playlist.medias.length; i++) {
+    for (int i = failedIndex + 1; i < playlist.medias.length; i++) {
       final mediaItem = playlist.medias[i].extras?['mediaItem'] as MediaItem?;
       if (mediaItem == null) continue;
       final track = QueueTrack.fromMediaItem(mediaItem);
@@ -159,15 +169,17 @@ class PlaybackRecoveryController {
 
     if (targetIndex != -1) {
       dev.log(
-        '[AudioHandler] Connection failed. Advancing queue index to offline track at $targetIndex.',
+        '[AudioHandler] Advancing queue index past unplayable to $targetIndex.',
       );
       await _skipToQueueItem(targetIndex);
-    } else {
+    } else if (stopIfNone) {
       dev.log(
-        '[AudioHandler] Connection failed and no offline tracks found. Stopping playback.',
+        '[AudioHandler] No playable tracks after $failedIndex. Stopping playback.',
       );
       await _player.stop();
-      _onPlayErrorController.add((videoId, title));
+      if (videoId != null && title != null) {
+        _onPlayErrorController.add((videoId, title));
+      }
     }
   }
 
@@ -199,7 +211,16 @@ class PlaybackRecoveryController {
     // remain permanently muted (e.g., when a URL resolve fails inside playNow).
     _volumeController.endTransitionMute();
 
-    final currentItem = _currentMediaItem();
+    // Source of truth is the playlist slot at the engine index — NOT
+    // mediaItem.value, which can lag across a track change (especially while
+    // isResolvingItem suppresses _onPlaylistChanged). Using the stale
+    // MediaItem with the new index caused replaceAt to overwrite the next
+    // track with a duplicate of the previous one.
+    final playlistIndex = _player.state.playlist.index;
+    final medias = _player.state.playlist.medias;
+    if (playlistIndex < 0 || playlistIndex >= medias.length) return;
+    final currentItem =
+        medias[playlistIndex].extras?['mediaItem'] as MediaItem?;
     if (currentItem == null) return;
     final track = QueueTrack.fromMediaItem(currentItem);
     final videoId = track.videoId;
@@ -220,11 +241,24 @@ class PlaybackRecoveryController {
     _retryCount++;
     try {
       final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
+
+      // Re-read index after the await — user may have skipped meanwhile.
+      final currentIndex = _player.state.playlist.index;
+      final mediasAfter = _player.state.playlist.medias;
+      if (currentIndex < 0 || currentIndex >= mediasAfter.length) return;
+      final itemAtIndex =
+          mediasAfter[currentIndex].extras?['mediaItem'] as MediaItem?;
+      final idAtIndex =
+          itemAtIndex != null
+              ? QueueTrack.fromMediaItem(itemAtIndex).videoId
+              : null;
+      if (idAtIndex != videoId) {
+        return;
+      }
+
       final updatedItem = track
           .copyWith(url: freshUrl)
           .toMediaItem(currentItem);
-      final currentIndex = _player.state.playlist.index;
-
       final updatedMedia = _queueController.toMedia(updatedItem);
 
       final wasPlaying = _player.state.playing || _userWantsPlaying();
@@ -250,11 +284,13 @@ class PlaybackRecoveryController {
               );
 
               // Update the local playlist with the refreshed URL.
-              await _queueController.replaceAtUnlocked(
+              final replacedAt = await _queueController.replaceAtUnlocked(
                 currentIndex,
                 updatedMedia,
+                expectedVideoId: videoId,
               );
-              await _player.jump(currentIndex);
+              if (replacedAt < 0) return;
+              await _player.jump(replacedAt);
               if (currentPos > Duration.zero) await _player.seek(currentPos);
 
               if (wasPlaying) {
@@ -266,11 +302,13 @@ class PlaybackRecoveryController {
               }
             } else {
               if (wasPlaying) await _player.pause();
-              await _queueController.replaceAtUnlocked(
+              final replacedAt = await _queueController.replaceAtUnlocked(
                 currentIndex,
                 updatedMedia,
+                expectedVideoId: videoId,
               );
-              await _player.jump(currentIndex);
+              if (replacedAt < 0) return;
+              await _player.jump(replacedAt);
 
               if (currentPos > Duration.zero) {
                 await _player.seek(currentPos);

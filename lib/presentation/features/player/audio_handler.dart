@@ -216,7 +216,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       connectivity: _sharedConnectivity,
       userWantsPlaying: () => _userWantsPlaying,
       isStopping: () => _isStopping,
-      currentMediaItem: () => mediaItem.value,
       requestPlay: play,
       skipToQueueItem: skipToQueueItem,
       isCastConnected:
@@ -762,6 +761,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
             track?.videoId ?? item?.id ?? '',
             item?.title ?? '',
           );
+          // Resolve failed while playlist.index may still be the previous
+          // track (treatAsCurrent resolve before jump), so the resolver's
+          // onResolveFailed path may not run. Advance past this index.
+          await _recoveryController.advancePastUnplayable(index);
           return;
         }
       }
