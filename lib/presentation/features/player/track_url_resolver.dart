@@ -251,8 +251,13 @@ class TrackUrlResolver {
 
           // Update the local playlist with the resolved URL so local playback
           // can resume correctly if the cast session is disconnected later.
-          await _queueController.replaceAt(index, updatedMedia);
-          await _player.jump(index);
+          final replacedAt = await _queueController.replaceAt(
+            index,
+            updatedMedia,
+            expectedVideoId: videoId,
+          );
+          if (replacedAt < 0) return;
+          await _player.jump(replacedAt);
           if (currentPos > Duration.zero) await _player.seek(currentPos);
 
           if (wasPlaying) {
@@ -265,19 +270,32 @@ class TrackUrlResolver {
             await _castPause();
           }
         } else {
-          await _queueController.replaceAt(index, updatedMedia);
+          await _queueController.replaceAt(
+            index,
+            updatedMedia,
+            expectedVideoId: videoId,
+          );
         }
       } else {
         if (index == _player.state.playlist.index) {
           final wasPlaying = _player.state.playing;
           final currentPos = _player.state.position;
           if (wasPlaying) await _player.pause();
-          await _queueController.replaceAt(index, updatedMedia);
-          await _player.jump(index);
+          final replacedAt = await _queueController.replaceAt(
+            index,
+            updatedMedia,
+            expectedVideoId: videoId,
+          );
+          if (replacedAt < 0) return;
+          await _player.jump(replacedAt);
           if (currentPos > Duration.zero) await _player.seek(currentPos);
           if (wasPlaying) await _player.play();
         } else {
-          await _queueController.replaceAt(index, updatedMedia);
+          await _queueController.replaceAt(
+            index,
+            updatedMedia,
+            expectedVideoId: videoId,
+          );
         }
       }
     } catch (e) {

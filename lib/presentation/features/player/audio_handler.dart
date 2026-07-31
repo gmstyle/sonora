@@ -74,10 +74,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isStopping = false;
   bool _userWantsPlaying = false;
 
-  Future<void>? _playlistOpenLock;
-
-  /// Serializes calls that rebuild the underlying media_kit playlist
-  /// (setQueue / playNow). Actions run one at a time, in call order.
+  /// Serializes playlist rebuilds (setQueue / playNow) through the same FIFO
+  /// lock as queue mutations, so Add to Queue cannot race Play All / URL swaps.
   ///
   /// When [shouldAbort] is provided it is evaluated right before the
   /// action runs (i.e. after any in-flight action completes); if it
@@ -87,24 +85,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     Future<void> Function() action, {
     bool Function()? shouldAbort,
   }) async {
-    final previous = _playlistOpenLock;
-    final completer = Completer<void>();
-    _playlistOpenLock = completer.future;
-    if (previous != null) {
-      try {
-        await previous;
-      } catch (_) {}
-    }
-    try {
+    await _queueController.runExclusive(() async {
       if (shouldAbort?.call() ?? false) return;
       await action();
-    } finally {
-      completer.complete();
-      // Only clear the lock if no newer call already replaced it.
-      if (identical(_playlistOpenLock, completer.future)) {
-        _playlistOpenLock = null;
-      }
-    }
+    });
   }
 
   Stream<(String videoId, String title)> get onPlayError =>

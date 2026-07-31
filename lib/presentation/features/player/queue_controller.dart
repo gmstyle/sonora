@@ -78,7 +78,9 @@ class QueueController {
   }
 
   /// Runs [action] exclusively (FIFO) so overlapping callers never interleave
-  /// playlist mutations. Mirrors [SonoraAudioHandler]'s `_synchronizedOpen`.
+  /// playlist mutations. Used by batch adds, single adds, replaceAt, and
+  /// playNow/setQueue (via the audio handler) so Play All + Add to Queue
+  /// cannot race with look-ahead URL swaps.
   Future<T> runExclusive<T>(Future<T> Function() action) async {
     final previous = _mutationLock;
     final completer = Completer<void>();
@@ -123,13 +125,91 @@ class QueueController {
     });
   }
 
+  /// Like [replaceAt] but must already be running inside [runExclusive] /
+  /// [runBatch]. Calling the locked [replaceAt] from a batch deadlocks.
+  Future<int> replaceAtUnlocked(
+    int index,
+    Media media, {
+    String? expectedVideoId,
+  }) =>
+      _replaceAtUnlocked(
+        index,
+        media,
+        expectedVideoId: expectedVideoId,
+      );
+
+  /// Index of the first Up Next item, or null if none.
+  int? get upNextStartIndex {
+    final medias = _player.state.playlist.medias;
+    for (var i = 0; i < medias.length; i++) {
+      final it = medias[i].extras?['mediaItem'] as MediaItem?;
+      if (it != null && isUpNext(it)) return i;
+    }
+    return null;
+  }
+
   /// Replaces the media at [index] while preserving playlist length/order
-  /// (remove → add → move-last-to-index). Callers that need to keep playback
-  /// continuous should follow with jump/seek themselves.
-  Future<void> replaceAt(int index, Media media) async {
-    await _player.remove(index);
+  /// (remove → add → move-last-to-index). Serialized with other mutations.
+  ///
+  /// When [expectedVideoId] is set, re-locates that track if [index] no longer
+  /// points at it (concurrent inserts can shift indices between resolve and
+  /// swap). Returns the index written, or -1 if the target was not found.
+  ///
+  /// Must not be called from inside [runExclusive] / [runBatch] — use
+  /// [replaceAtUnlocked] instead to avoid deadlock.
+  Future<int> replaceAt(
+    int index,
+    Media media, {
+    String? expectedVideoId,
+  }) async {
+    return runExclusive(
+      () => _replaceAtUnlocked(
+        index,
+        media,
+        expectedVideoId: expectedVideoId,
+      ),
+    );
+  }
+
+  Future<int> _replaceAtUnlocked(
+    int index,
+    Media media, {
+    String? expectedVideoId,
+  }) async {
+    var target = index;
+    if (expectedVideoId != null) {
+      final atTarget = _videoIdAt(target);
+      if (atTarget != expectedVideoId) {
+        target = _indexOfVideoId(expectedVideoId);
+        if (target < 0) return -1;
+      }
+    }
+    final len = _player.state.playlist.medias.length;
+    if (target < 0 || target >= len) return -1;
+
+    await _player.remove(target);
     await _player.add(media);
-    await _player.move(_player.state.playlist.medias.length - 1, index);
+    await _player.move(_player.state.playlist.medias.length - 1, target);
+    return target;
+  }
+
+  String? _videoIdAt(int index) {
+    final medias = _player.state.playlist.medias;
+    if (index < 0 || index >= medias.length) return null;
+    final it = medias[index].extras?['mediaItem'] as MediaItem?;
+    if (it == null) return null;
+    return QueueTrack.fromMediaItem(it).videoId;
+  }
+
+  int _indexOfVideoId(String videoId) {
+    final medias = _player.state.playlist.medias;
+    for (var i = 0; i < medias.length; i++) {
+      final it = medias[i].extras?['mediaItem'] as MediaItem?;
+      if (it != null && QueueTrack.fromMediaItem(it).videoId == videoId) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   // ── Queue getters ──────────────────────────────────────────────────────────
@@ -225,16 +305,31 @@ class QueueController {
     await _player.move(_player.state.playlist.medias.length - 1, insertAt);
   }
 
-  /// Adds a single item to the end of the queue.
+  /// Adds a single item at the end of the user queue (before Up Next).
   Future<void> addToQueue(MediaItem item) async {
-    await runExclusive(() => _player.add(toMedia(item)));
+    await runExclusive(() => _appendUserItem(item));
   }
 
-  /// Adds all [items] to the end of the queue.
+  /// Adds all [items] at the end of the user queue (before Up Next), preserving
+  /// call order. Must be invoked under [runBatch]/[runExclusive].
   Future<void> addAllToQueue(List<MediaItem> items) async {
     if (items.isEmpty) return;
+    var insertAt = upNextStartIndex;
     for (final item in items) {
       await _player.add(toMedia(item));
+      if (insertAt != null) {
+        await _player.move(_player.state.playlist.medias.length - 1, insertAt);
+        insertAt++;
+      }
+    }
+  }
+
+  /// Appends a user-tagged item before the Up Next boundary (or at end).
+  Future<void> _appendUserItem(MediaItem item) async {
+    final insertAt = upNextStartIndex;
+    await _player.add(toMedia(item));
+    if (insertAt != null) {
+      await _player.move(_player.state.playlist.medias.length - 1, insertAt);
     }
   }
 
@@ -298,7 +393,7 @@ class QueueController {
       media.uri,
       extras: {...?media.extras, 'mediaItem': retagged},
     );
-    await replaceAt(newIndex, newMedia);
+    await replaceAtUnlocked(newIndex, newMedia);
   }
 
   /// Clears the entire queue.

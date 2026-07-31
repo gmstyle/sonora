@@ -250,7 +250,10 @@ class PlaybackRecoveryController {
               );
 
               // Update the local playlist with the refreshed URL.
-              await _queueController.replaceAt(currentIndex, updatedMedia);
+              await _queueController.replaceAtUnlocked(
+                currentIndex,
+                updatedMedia,
+              );
               await _player.jump(currentIndex);
               if (currentPos > Duration.zero) await _player.seek(currentPos);
 
@@ -263,7 +266,10 @@ class PlaybackRecoveryController {
               }
             } else {
               if (wasPlaying) await _player.pause();
-              await _queueController.replaceAt(currentIndex, updatedMedia);
+              await _queueController.replaceAtUnlocked(
+                currentIndex,
+                updatedMedia,
+              );
               await _player.jump(currentIndex);
 
               if (currentPos > Duration.zero) {
