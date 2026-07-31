@@ -517,6 +517,7 @@
   "autoplayDisabled": "Autoplay is off. Enable it to get related tracks when the queue ends.",
   "autoplayEnable": "Enable",
   "autoplayDisable": "Disable autoplay",
+  "queueNowPlayingChip": "Now playing",
 
   "@@sectionMeta": {
     "contextMenu": "Context Menu"

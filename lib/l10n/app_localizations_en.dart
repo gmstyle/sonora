@@ -1044,6 +1044,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get autoplayDisable => 'Disable autoplay';
 
   @override
+  String get queueNowPlayingChip => 'Now playing';
+
+  @override
   String get playNow => 'Play Now';
 
   @override

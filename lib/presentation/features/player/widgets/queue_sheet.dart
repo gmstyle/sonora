@@ -31,6 +31,8 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
   bool _isProgrammaticScroll = false;
   bool _didInitialCenter = false;
   bool _revealList = false;
+  bool _showNowPlayingChip = false;
+  bool _currentIsAbove = false;
   int _centerRetries = 0;
   String? _lastTrackId;
   int? _lastTrackIndex;
@@ -51,12 +53,24 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
   void _onScroll() {
     if (_isProgrammaticScroll) return;
     _userHasScrolled = true;
+    _updateCurrentVisibility();
+  }
+
+  void _markBrowsing() {
+    _userHasScrolled = true;
   }
 
   void _scheduleCenterOnCurrent({required bool force}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _centerOnCurrent(force: force);
+    });
+  }
+
+  void _scheduleUpdateCurrentVisibility() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _updateCurrentVisibility();
     });
   }
 
@@ -111,8 +125,53 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     );
   }
 
+  void _updateCurrentVisibility() {
+    if (!_scrollController.hasClients || !_revealList) {
+      if (_showNowPlayingChip) {
+        setState(() => _showNowPlayingChip = false);
+      }
+      return;
+    }
+
+    final playerState = ref.read(playerStateProvider);
+    if (playerState.queue.isEmpty) {
+      if (_showNowPlayingChip) {
+        setState(() => _showNowPlayingChip = false);
+      }
+      return;
+    }
+
+    final index = _resolveCurrentIndex(playerState);
+    final tileTop = _estimateCurrentTileTop(
+      currentIndex: index,
+      userCount: playerState.userQueue.length,
+      upNextStartIndex: playerState.upNextStartIndex,
+      userEmpty: playerState.userQueue.isEmpty,
+    );
+    final tileBottom = tileTop + _kQueueTileHeight;
+    final scrollOffset = _scrollController.offset;
+    final viewport = _scrollController.position.viewportDimension;
+    final margin = _kQueueTileHeight / 2;
+    final visibleTop = scrollOffset + margin;
+    final visibleBottom = scrollOffset + viewport - margin;
+
+    final offscreen = tileBottom < visibleTop || tileTop > visibleBottom;
+    final above = tileBottom < visibleTop;
+
+    if (offscreen != _showNowPlayingChip ||
+        (offscreen && above != _currentIsAbove)) {
+      setState(() {
+        _showNowPlayingChip = offscreen;
+        _currentIsAbove = above;
+      });
+    }
+  }
+
   Future<void> _centerOnCurrent({required bool force}) async {
-    if (!force && _userHasScrolled) return;
+    if (!force && _userHasScrolled) {
+      _updateCurrentVisibility();
+      return;
+    }
 
     if (!_scrollController.hasClients) {
       if (_centerRetries < 12) {
@@ -127,7 +186,12 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
 
     final playerState = ref.read(playerStateProvider);
     if (playerState.queue.isEmpty) {
-      if (!_revealList) setState(() => _revealList = true);
+      if (!_revealList || _showNowPlayingChip) {
+        setState(() {
+          _revealList = true;
+          _showNowPlayingChip = false;
+        });
+      }
       return;
     }
 
@@ -162,20 +226,45 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     } finally {
       if (mounted) {
         _isProgrammaticScroll = false;
-        if (!_revealList) setState(() => _revealList = true);
+        setState(() {
+          _revealList = true;
+          _showNowPlayingChip = false;
+        });
       }
     }
   }
 
+  /// Open / reopen / chip tap: re-enable follow and force-center.
+  void _resetAndCenterForOpen() {
+    _userHasScrolled = false;
+    _didInitialCenter = true;
+    _centerRetries = 0;
+    _showNowPlayingChip = false;
+    _scheduleCenterOnCurrent(force: true);
+  }
+
+  void _onNowPlayingChipTap() {
+    _resetAndCenterForOpen();
+  }
+
+  /// Track change while the queue is open: follow only if user is not browsing.
   void _onCurrentTrackChanged(String? songId, int index) {
     final changed = songId != _lastTrackId || index != _lastTrackIndex;
     if (!changed && _didInitialCenter) return;
 
     _lastTrackId = songId;
     _lastTrackIndex = index;
-    _userHasScrolled = false;
-    _didInitialCenter = true;
-    _scheduleCenterOnCurrent(force: true);
+
+    if (!_didInitialCenter) {
+      _resetAndCenterForOpen();
+      return;
+    }
+
+    if (_userHasScrolled) {
+      _scheduleUpdateCurrentVisibility();
+    } else {
+      _scheduleCenterOnCurrent(force: false);
+    }
   }
 
   @override
@@ -227,18 +316,16 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     // cases where state is preserved across toggles).
     ref.listen(playerSubViewProvider, (prev, next) {
       if (next == PlayerSubView.queue && prev != PlayerSubView.queue) {
-        _userHasScrolled = false;
-        _didInitialCenter = false;
         _revealList = false;
-        _centerRetries = 0;
-        _scheduleCenterOnCurrent(force: true);
-        _didInitialCenter = true;
+        _didInitialCenter = false;
+        _resetAndCenterForOpen();
       }
     });
 
     if (playerState.isRestoring || !playerState.isQueueSynced) {
       _didInitialCenter = false;
       _revealList = false;
+      _showNowPlayingChip = false;
       return const ShimmerLoading(variant: ShimmerVariant.queue);
     }
     if (userQueue.isEmpty && upNextQueue.isEmpty) {
@@ -261,127 +348,226 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
         if (notification is UserScrollNotification ||
             (notification is ScrollUpdateNotification &&
                 notification.dragDetails != null)) {
-          _userHasScrolled = true;
+          _markBrowsing();
         }
         return false;
       },
-      child: Opacity(
-        opacity: _revealList ? 1 : 0,
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            // ── Header "In coda" (user queue) ──────────────────────────
-            SliverToBoxAdapter(
-              child: _SectionHeader(
-                icon: LucideIcons.listMusic,
-                title: AppLocalizations.of(context)!.playingNext,
-                count: userQueue.length,
-                pc: pc,
-                theme: theme,
-              ),
+      child: Stack(
+        children: [
+          Opacity(
+            opacity: _revealList ? 1 : 0,
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                // ── Header "In coda" (user queue) ──────────────────────────
+                SliverToBoxAdapter(
+                  child: _SectionHeader(
+                    icon: LucideIcons.listMusic,
+                    title: AppLocalizations.of(context)!.playingNext,
+                    count: userQueue.length,
+                    pc: pc,
+                    theme: theme,
+                  ),
+                ),
+                if (userQueue.isNotEmpty)
+                  SliverReorderableList(
+                    itemCount: userQueue.length,
+                    itemExtent: _kQueueTileHeight,
+                    proxyDecorator:
+                        (child, index, animation) =>
+                            Material(color: Colors.transparent, child: child),
+                    onReorderItem: (oldIndex, newIndex) {
+                      // Items in userQueue live at the head of the global queue
+                      // (indices 0 .. upNextStartIndex-1, or the whole queue
+                      // when upnext is empty).
+                      final start =
+                          playerState.upNextStartIndex ??
+                          playerState.queue.length;
+                      if (oldIndex < 0 || oldIndex >= start) return;
+                      if (newIndex < 0 || newIndex > start) return;
+                      if (oldIndex == newIndex) return;
+                      _markBrowsing();
+                      notifier.moveQueueItem(oldIndex, newIndex);
+                    },
+                    itemBuilder: (context, index) {
+                      final item = userQueue[index];
+                      final isCurrent = isCurrentAt(index, item);
+                      final queueId =
+                          item.extras?['queueId'] as String? ?? item.id;
+                      return ReorderableDelayedDragStartListener(
+                        key: ValueKey('user_$queueId'),
+                        index: index,
+                        // Dragging the playing item used to clone a GlobalKey into
+                        // the reorder proxy (Duplicate GlobalKey / layout crash).
+                        // Keep the current row fixed; reorder only non-current.
+                        enabled: !isCurrent,
+                        child: _QueueItem(
+                          item: item,
+                          isCurrent: isCurrent,
+                          pc: pc,
+                          onRemove: () => notifier.removeAt(index),
+                          onTap: () => notifier.skipToIndex(index),
+                        ),
+                      );
+                    },
+                  )
+                else
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: _kHintExtent,
+                      child: _Hint(
+                        text: AppLocalizations.of(context)!.userQueueEmpty,
+                        pc: pc,
+                      ),
+                    ),
+                  ),
+
+                // ── Header "Up Next" (autoplay) ────────────────────────────
+                SliverToBoxAdapter(
+                  child: _SectionHeader(
+                    icon: LucideIcons.infinity,
+                    title: AppLocalizations.of(context)!.upNext,
+                    count: upNextQueue.length,
+                    pc: pc,
+                    theme: theme,
+                    autoplayEnabled: autoplayEnabled,
+                    onAutoplayToggle: () {
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setAutoPlayUpNext(!autoplayEnabled);
+                    },
+                  ),
+                ),
+                if (upNextQueue.isNotEmpty)
+                  SliverFixedExtentList(
+                    itemExtent: _kQueueTileHeight,
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final item = upNextQueue[index];
+                      final globalIndex =
+                          (playerState.upNextStartIndex ?? 0) + index;
+                      final isCurrent = isCurrentAt(globalIndex, item);
+                      return _QueueItem(
+                        key: ValueKey(
+                          'upnext_${item.extras?['queueId'] ?? item.id}',
+                        ),
+                        item: item,
+                        isCurrent: isCurrent,
+                        pc: pc,
+                        onRemove: null,
+                        onTap: () => notifier.skipToIndex(globalIndex),
+                      );
+                    }, childCount: upNextQueue.length),
+                  )
+                else
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: _kHintExtent,
+                      child: _Hint(
+                        text:
+                            autoplayEnabled
+                                ? AppLocalizations.of(
+                                  context,
+                                )!.upNextWillPopulate
+                                : AppLocalizations.of(
+                                  context,
+                                )!.autoplayDisabled,
+                        pc: pc,
+                      ),
+                    ),
+                  ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              ],
             ),
-            if (userQueue.isNotEmpty)
-              SliverReorderableList(
-                itemCount: userQueue.length,
-                itemExtent: _kQueueTileHeight,
-                proxyDecorator:
-                    (child, index, animation) =>
-                        Material(color: Colors.transparent, child: child),
-                onReorderItem: (oldIndex, newIndex) {
-                  // Items in userQueue live at the head of the global queue
-                  // (indices 0 .. upNextStartIndex-1, or the whole queue
-                  // when upnext is empty).
-                  final start =
-                      playerState.upNextStartIndex ?? playerState.queue.length;
-                  if (oldIndex < 0 || oldIndex >= start) return;
-                  if (newIndex < 0 || newIndex > start) return;
-                  if (oldIndex == newIndex) return;
-                  notifier.moveQueueItem(oldIndex, newIndex);
-                },
-                itemBuilder: (context, index) {
-                  final item = userQueue[index];
-                  final isCurrent = isCurrentAt(index, item);
-                  final queueId = item.extras?['queueId'] as String? ?? item.id;
-                  return ReorderableDelayedDragStartListener(
-                    key: ValueKey('user_$queueId'),
-                    index: index,
-                    // Dragging the playing item used to clone a GlobalKey into
-                    // the reorder proxy (Duplicate GlobalKey / layout crash).
-                    // Keep the current row fixed; reorder only non-current.
-                    enabled: !isCurrent,
-                    child: _QueueItem(
-                      item: item,
-                      isCurrent: isCurrent,
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 24,
+            child: IgnorePointer(
+              ignoring: !_showNowPlayingChip,
+              child: Center(
+                child: AnimatedSlide(
+                  offset:
+                      _showNowPlayingChip ? Offset.zero : const Offset(0, 0.35),
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  child: AnimatedOpacity(
+                    opacity: _showNowPlayingChip ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    child: _NowPlayingChip(
                       pc: pc,
-                      onRemove: () => notifier.removeAt(index),
-                      onTap: () => notifier.skipToIndex(index),
+                      label: AppLocalizations.of(context)!.queueNowPlayingChip,
+                      currentIsAbove: _currentIsAbove,
+                      onTap: _onNowPlayingChipTap,
                     ),
-                  );
-                },
-              )
-            else
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: _kHintExtent,
-                  child: _Hint(
-                    text: AppLocalizations.of(context)!.userQueueEmpty,
-                    pc: pc,
                   ),
                 ),
-              ),
-
-            // ── Header "Up Next" (autoplay) ────────────────────────────
-            SliverToBoxAdapter(
-              child: _SectionHeader(
-                icon: LucideIcons.infinity,
-                title: AppLocalizations.of(context)!.upNext,
-                count: upNextQueue.length,
-                pc: pc,
-                theme: theme,
-                autoplayEnabled: autoplayEnabled,
-                onAutoplayToggle: () {
-                  ref
-                      .read(settingsProvider.notifier)
-                      .setAutoPlayUpNext(!autoplayEnabled);
-                },
               ),
             ),
-            if (upNextQueue.isNotEmpty)
-              SliverFixedExtentList(
-                itemExtent: _kQueueTileHeight,
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final item = upNextQueue[index];
-                  final globalIndex =
-                      (playerState.upNextStartIndex ?? 0) + index;
-                  final isCurrent = isCurrentAt(globalIndex, item);
-                  return _QueueItem(
-                    key: ValueKey(
-                      'upnext_${item.extras?['queueId'] ?? item.id}',
-                    ),
-                    item: item,
-                    isCurrent: isCurrent,
-                    pc: pc,
-                    onRemove: null,
-                    onTap: () => notifier.skipToIndex(globalIndex),
-                  );
-                }, childCount: upNextQueue.length),
-              )
-            else
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: _kHintExtent,
-                  child: _Hint(
-                    text:
-                        autoplayEnabled
-                            ? AppLocalizations.of(context)!.upNextWillPopulate
-                            : AppLocalizations.of(context)!.autoplayDisabled,
-                    pc: pc,
-                  ),
-                ),
-              ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
-          ],
+// ── Now playing chip ────────────────────────────────────────────────────────
+
+class _NowPlayingChip extends StatelessWidget {
+  final PlayerColors pc;
+  final String label;
+  final bool currentIsAbove;
+  final VoidCallback onTap;
+
+  const _NowPlayingChip({
+    required this.pc,
+    required this.label,
+    required this.currentIsAbove,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: const Color(0xB3000000),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 40),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    currentIsAbove
+                        ? LucideIcons.arrowUpToLine
+                        : LucideIcons.arrowDownToLine,
+                    size: 16,
+                    color: pc.iconPrimary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: pc.titlePrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

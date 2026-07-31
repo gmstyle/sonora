@@ -1050,6 +1050,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get autoplayDisable => 'Disattiva autoplay';
 
   @override
+  String get queueNowPlayingChip => 'In riproduzione';
+
+  @override
   String get playNow => 'Riproduci Ora';
 
   @override

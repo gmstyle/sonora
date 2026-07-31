@@ -377,6 +377,7 @@
   "autoplayDisabled": "Autoplay disattivato. Attivalo per avere brani simili quando la coda finisce.",
   "autoplayEnable": "Attiva",
   "autoplayDisable": "Disattiva autoplay",
+  "queueNowPlayingChip": "In riproduzione",
 
   "@@sectionMeta": {
     "contextMenu": "Menu Contestuale"

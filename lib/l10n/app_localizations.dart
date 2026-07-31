@@ -1820,6 +1820,12 @@ abstract class AppLocalizations {
   /// **'Disable autoplay'**
   String get autoplayDisable;
 
+  /// No description provided for @queueNowPlayingChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Now playing'**
+  String get queueNowPlayingChip;
+
   /// No description provided for @playNow.
   ///
   /// In en, this message translates to:
