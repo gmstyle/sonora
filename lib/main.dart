@@ -108,6 +108,7 @@ Future<void> main() async {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.sonora.music.channel',
         androidNotificationChannelName: 'Sonora',
+        androidNotificationIcon: 'drawable/ic_notification',
         androidStopForegroundOnPause: false,
         artDownscaleWidth: 256,
         artDownscaleHeight: 256,
