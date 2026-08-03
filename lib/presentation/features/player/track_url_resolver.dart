@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:developer' as dev;
+import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../../../data/services/media_cache_service.dart';
@@ -55,6 +57,7 @@ class TrackUrlResolver {
   final Future<void> Function() _castPause;
 
   final Set<String> _pendingResolutions = {};
+  final Set<String> _prefetchInFlight = {};
   Timer? _lookaheadTimer;
   PlayErrorKind? _lastResolveFailureKind;
 
@@ -113,73 +116,113 @@ class TrackUrlResolver {
   /// Cancels the look-ahead resolution timer without disposing the resolver.
   void cancelLookahead() => _lookaheadTimer?.cancel();
 
-  void dispose() => _lookaheadTimer?.cancel();
+  void dispose() {
+    _lookaheadTimer?.cancel();
+    // Teardown: stop every disk pre-cache download this resolver started.
+    for (final videoId in _prefetchInFlight) {
+      MediaCacheService.instance.cancelDownload(videoId);
+    }
+    _prefetchInFlight.clear();
+  }
 
   Future<void> resolvePendingItems(int currentIndex) async {
+    // Prune disk pre-cache downloads the user has moved past (skipped ahead,
+    // replaced queue, auto-advanced) before starting any new lookahead work.
+    final stale = _stalePrefetchVideoIds(currentIndex);
+    for (final videoId in stale) {
+      _prefetchInFlight.remove(videoId);
+      MediaCacheService.instance.cancelDownload(videoId);
+    }
+
     await resolveSinglePendingItem(currentIndex);
     await resolveSinglePendingItem(currentIndex + 1);
 
-    // Trigger pre-caching for the resolved upcoming track
-    final playlist = _player.state.playlist;
-    if (currentIndex + 1 < playlist.medias.length) {
-      final media = playlist.medias[currentIndex + 1];
-      final item = media.extras?['mediaItem'] as MediaItem?;
-      if (item != null) {
-        final t = QueueTrack.fromMediaItem(item);
-        if (t.hasUrl &&
-            !t.isLocalFile &&
-            !t.url!.startsWith('http://localhost')) {
-          unawaited(
-            MediaCacheService.instance.downloadToCache(t.videoId, t.url!),
-          );
-        }
-      }
-    }
+    // Always re-read playlist after resolve — a captured snapshot would still
+    // have needsUrl / dummy URL and skip the disk pre-cache.
+    _prefetchDiskCacheAt(currentIndex + 1);
 
     _lookaheadTimer?.cancel();
     _lookaheadTimer = Timer(const Duration(seconds: 20), () async {
       final actualIndex = _player.state.playlist.index;
       if (actualIndex == currentIndex && _player.state.playing) {
         await resolveSinglePendingItem(currentIndex + 2);
-        if (currentIndex + 2 < playlist.medias.length) {
-          final media2 = playlist.medias[currentIndex + 2];
-          final item2 = media2.extras?['mediaItem'] as MediaItem?;
-          if (item2 != null) {
-            final t2 = QueueTrack.fromMediaItem(item2);
-            if (t2.hasUrl &&
-                !t2.isLocalFile &&
-                !t2.url!.startsWith('http://localhost')) {
-              unawaited(
-                MediaCacheService.instance.downloadToCache(t2.videoId, t2.url!),
-              );
-            }
-          }
-        }
+        _prefetchDiskCacheAt(currentIndex + 2);
 
         await Future.delayed(const Duration(seconds: 3));
         final finalIndex = _player.state.playlist.index;
         if (finalIndex == currentIndex && _player.state.playing) {
           await resolveSinglePendingItem(currentIndex + 3);
-          if (currentIndex + 3 < playlist.medias.length) {
-            final media3 = playlist.medias[currentIndex + 3];
-            final item3 = media3.extras?['mediaItem'] as MediaItem?;
-            if (item3 != null) {
-              final t3 = QueueTrack.fromMediaItem(item3);
-              if (t3.hasUrl &&
-                  !t3.isLocalFile &&
-                  !t3.url!.startsWith('http://localhost')) {
-                unawaited(
-                  MediaCacheService.instance.downloadToCache(
-                    t3.videoId,
-                    t3.url!,
-                  ),
-                );
-              }
-            }
-          }
+          _prefetchDiskCacheAt(currentIndex + 3);
         }
       }
     });
+  }
+
+  /// Kicks off a disk cache download for [index] using a fresh playlist read.
+  void _prefetchDiskCacheAt(int index) {
+    final playlist = _player.state.playlist;
+    if (index < 0 || index >= playlist.medias.length) return;
+    final media = playlist.medias[index];
+    final item = media.extras?['mediaItem'] as MediaItem?;
+    final url = diskPrefetchUrlFor(item);
+    if (url == null || item == null) return;
+    final videoId = QueueTrack.fromMediaItem(item).videoId;
+    if (!_prefetchInFlight.add(videoId)) return;
+    // Drop from the set when the download settles (ok or fail) so a later
+    // resolvePendingItems can retry after a transient failure. While the
+    // download is active, MediaCacheService._activeDownloads still dedupes.
+    unawaited(
+      MediaCacheService.instance.downloadToCache(videoId, url).whenComplete(() {
+        _prefetchInFlight.remove(videoId);
+      }),
+    );
+  }
+
+  /// videoIds of disk pre-cache downloads that are no longer relevant for
+  /// [currentIndex]: every in-flight id outside the `currentIndex..+3`
+  /// lookahead window of [queueVideoIds].
+  @visibleForTesting
+  static Set<String> stalePrefetchIds({
+    required Set<String> inFlight,
+    required List<String?> queueVideoIds,
+    required int currentIndex,
+  }) {
+    if (queueVideoIds.isEmpty) return inFlight;
+    final keep = <String>{};
+    final last = math.min(currentIndex + 3, queueVideoIds.length - 1);
+    for (var i = math.max(currentIndex, 0); i <= last; i++) {
+      final id = queueVideoIds[i];
+      if (id != null && id.isNotEmpty) keep.add(id);
+    }
+    return inFlight.difference(keep);
+  }
+
+  Set<String> _stalePrefetchVideoIds(int currentIndex) {
+    final playlist = _player.state.playlist;
+    return stalePrefetchIds(
+      inFlight: _prefetchInFlight,
+      queueVideoIds: [
+        for (final media in playlist.medias)
+          () {
+            final item = media.extras?['mediaItem'] as MediaItem?;
+            if (item == null) return null;
+            return QueueTrack.fromMediaItem(item).videoId;
+          }(),
+      ],
+      currentIndex: currentIndex,
+    );
+  }
+
+  /// URL eligible for disk look-ahead pre-cache, or null if the item must not
+  /// be downloaded (unresolved, local file, or dummy placeholder).
+  @visibleForTesting
+  static String? diskPrefetchUrlFor(MediaItem? item) {
+    if (item == null) return null;
+    final t = QueueTrack.fromMediaItem(item);
+    if (t.hasUrl && !t.isLocalFile && !t.url!.startsWith('http://localhost')) {
+      return t.url;
+    }
+    return null;
   }
 
   Future<void> resolveSinglePendingItem(

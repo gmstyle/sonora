@@ -365,13 +365,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final song = widget.album.songs[startIndex];
     try {
-      await player.playVideoId(
-        song.videoId,
-        isVideo: false,
-        isExplicit: song.isExplicit,
-      );
+      await player.playAlbum(widget.album.songs, startIndex: startIndex);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(

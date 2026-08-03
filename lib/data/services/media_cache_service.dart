@@ -25,6 +25,9 @@ class MediaCacheService {
   /// When exceeded, the least recently modified files are deleted.
   final int maxCacheSizeBytes = 500 * 1024 * 1024;
 
+  /// videoIds of downloads currently in flight (snapshot copy).
+  Set<String> get inFlightDownloads => _activeDownloads.keys.toSet();
+
   Future<Directory> _getCacheDir() async {
     final tempDir = await getTemporaryDirectory();
     final cacheDir = Directory('${tempDir.path}/sonora_media_cache');
@@ -137,7 +140,12 @@ class MediaCacheService {
   }
 
   void cancelDownload(String videoId) {
-    final token = _activeDownloads.remove(videoId);
+    // Deliberately do NOT remove the entry from `_activeDownloads` here: the
+    // download's own `finally` removes it after the cancellation settles, so
+    // a fresh download for the same videoId cannot start while the old one is
+    // still tearing down (the `containsKey` guard in `downloadToCache` keeps
+    // protecting against duplicates in that window).
+    final token = _activeDownloads[videoId];
     if (token != null) {
       token.cancel();
       debugPrint('[MediaCacheService] Cancelled download for $videoId');

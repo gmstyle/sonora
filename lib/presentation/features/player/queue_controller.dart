@@ -270,9 +270,16 @@ class QueueController {
 
   /// Converts a MediaItem to a Media object for media_kit.
   /// Assigns queueId if missing and tags as user section.
+  ///
+  /// Local `file://` URLs (library downloads / MediaCache) bypass the proxy so
+  /// offline playback works and we do not re-hit YouTube for an already-local
+  /// file. Cast still uses [MediaItem] extras, not the media_kit source.
   Media toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
+    if (track.isLocalFile) {
+      return Media(track.url!, extras: {'mediaItem': tagged});
+    }
     if (_proxyServer != null &&
         _proxyServer.isRunning &&
         track.videoId.isNotEmpty) {

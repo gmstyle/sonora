@@ -1126,13 +1126,8 @@ class _VideoTracklist extends ConsumerWidget {
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
-    final video = videos[startIndex];
     try {
-      await player.playVideoId(
-        video.videoId,
-        isVideo: true,
-        isExplicit: video.isExplicit,
-      );
+      await player.playPlaylist(videos, startIndex: startIndex);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
