@@ -619,16 +619,31 @@ class _SortMenu extends StatelessWidget {
                 ),
               ),
               const Divider(height: 1),
-              for (final entry in options.entries)
-                _SortOptionTile(
-                  value: entry.key,
-                  label: entry.value,
-                  activeSort: currentSort,
-                  onSelected: (value) {
-                    ref.read(downloadsSortProvider.notifier).update(value);
-                    Navigator.pop(sheetContext);
-                  },
+              RadioGroup<DownloadsSort>(
+                groupValue: currentSort,
+                onChanged: (value) {
+                  if (value == null) return;
+                  ref.read(downloadsSortProvider.notifier).update(value);
+                  Navigator.pop(sheetContext);
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final entry in options.entries)
+                      _SortOptionTile(
+                        value: entry.key,
+                        label: entry.value,
+                        activeSort: currentSort,
+                        onSelected: (value) {
+                          ref
+                              .read(downloadsSortProvider.notifier)
+                              .update(value);
+                          Navigator.pop(sheetContext);
+                        },
+                      ),
+                  ],
                 ),
+              ),
               const SizedBox(height: 8),
             ],
           ),
@@ -667,13 +682,7 @@ class _SortOptionTile extends StatelessWidget {
           color: isSelected ? theme.colorScheme.primary : null,
         ),
       ),
-      trailing: Radio<DownloadsSort>(
-        value: value,
-        groupValue: activeSort,
-        onChanged: (newValue) {
-          if (newValue != null) onSelected(newValue);
-        },
-      ),
+      trailing: Radio<DownloadsSort>(value: value),
       onTap: () => onSelected(value),
     );
   }
