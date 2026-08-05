@@ -19,21 +19,19 @@ class _FakeQueueRepository implements QueueRepository {
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+/// [QueueController.toMedia] does not touch the player; avoid requiring libmpv
+/// (missing on GitHub Actions `ubuntu-latest` validate runners).
+class _FakePlayer extends Fake implements Player {}
+
 void main() {
-  late Player player;
   late LocalAudioProxyServer proxy;
   late QueueController controller;
 
-  setUpAll(() {
-    MediaKit.ensureInitialized();
-  });
-
   setUp(() async {
-    player = Player();
     proxy = LocalAudioProxyServer(streamDatasource: _FakeStreamDatasource());
     await proxy.start();
     controller = QueueController(
-      player: player,
+      player: _FakePlayer(),
       queueRepo: _FakeQueueRepository(),
       getQueue: () => <MediaItem>[],
       getShuffleMode: () => AudioServiceShuffleMode.none,
@@ -45,7 +43,6 @@ void main() {
 
   tearDown(() async {
     await proxy.stop();
-    await player.dispose();
   });
 
   test('toMedia prefers file:// over proxy when proxy is running', () {
