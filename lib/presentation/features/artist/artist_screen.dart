@@ -999,7 +999,8 @@ class _ArtistActions extends ConsumerWidget {
     ref.read(actionFeedbackProvider.notifier).report('Playing ${artist.name}…');
     final player = ref.read(playerStateProvider.notifier);
     try {
-      await player.playAlbum(artist.topSongs, startIndex: 0);
+      final songs = await _resolveAllTopSongs(ref, artist);
+      await player.playAlbum(songs, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1023,8 +1024,9 @@ class _ArtistActions extends ConsumerWidget {
         .read(actionFeedbackProvider.notifier)
         .report('Shuffling ${artist.name}…');
     final player = ref.read(playerStateProvider.notifier);
-    final shuffled = List<SongDetailed>.from(artist.topSongs)..shuffle();
     try {
+      final songs = await _resolveAllTopSongs(ref, artist);
+      final shuffled = List<SongDetailed>.from(songs)..shuffle();
       await player.playAlbum(shuffled, startIndex: 0);
     } catch (e) {
       if (context.mounted) {
@@ -1037,6 +1039,21 @@ class _ArtistActions extends ConsumerWidget {
         );
       }
     }
+  }
+
+  /// Loads the full artist songs list (same source as "Show more"), falling
+  /// back to the preview [ArtistFull.topSongs] if the fetch fails.
+  Future<List<SongDetailed>> _resolveAllTopSongs(
+    WidgetRef ref,
+    ArtistFull artist,
+  ) async {
+    try {
+      final songs = await ref
+          .read(musicRepositoryProvider)
+          .getArtistSongs(artist.artistId);
+      if (songs.isNotEmpty) return songs;
+    } catch (_) {}
+    return artist.topSongs;
   }
 }
 

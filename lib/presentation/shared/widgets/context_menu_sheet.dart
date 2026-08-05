@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/extensions/stat_format.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
+import '../../../domain/repositories/music_repository.dart';
 import '../../../domain/usecases/player/play_album_use_case.dart';
 import '../../../domain/usecases/player/play_playlist_use_case.dart';
 import '../../../domain/usecases/player/start_radio_use_case.dart';
@@ -1118,13 +1119,20 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                       final artistFuture = ref.read(
                         artistProvider(artistId).future,
                       );
+                      final repo = ref.read(musicRepositoryProvider);
                       final player = ref.read(playerStateProvider.notifier);
                       final useCase = ref.read(playAlbumUseCaseProvider);
                       final feedback = ref.read(
                         actionFeedbackProvider.notifier,
                       );
                       Navigator.pop(context);
-                      _playTopSongs(artistFuture, useCase, player, feedback);
+                      _playTopSongs(
+                        artistFuture,
+                        repo,
+                        useCase,
+                        player,
+                        feedback,
+                      );
                     },
                   ),
                   _ActionTile(
@@ -1134,13 +1142,20 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                       final artistFuture = ref.read(
                         artistProvider(artistId).future,
                       );
+                      final repo = ref.read(musicRepositoryProvider);
                       final player = ref.read(playerStateProvider.notifier);
                       final useCase = ref.read(playAlbumUseCaseProvider);
                       final feedback = ref.read(
                         actionFeedbackProvider.notifier,
                       );
                       Navigator.pop(context);
-                      _shufflePlay(artistFuture, useCase, player, feedback);
+                      _shufflePlay(
+                        artistFuture,
+                        repo,
+                        useCase,
+                        player,
+                        feedback,
+                      );
                     },
                   ),
                   _ActionTile(
@@ -1201,14 +1216,27 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
     return artist.topSongs;
   }
 
+  Future<List<SongDetailed>> _fetchAllTopSongs(
+    Future<ArtistFull> artistFuture,
+    MusicRepository repo,
+  ) async {
+    final artist = await artistFuture;
+    try {
+      final songs = await repo.getArtistSongs(artistId);
+      if (songs.isNotEmpty) return songs;
+    } catch (_) {}
+    return artist.topSongs;
+  }
+
   Future<void> _playTopSongs(
     Future<ArtistFull> artistFuture,
+    MusicRepository repo,
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
-      final songs = await _fetchSongs(artistFuture);
+      final songs = await _fetchAllTopSongs(artistFuture, repo);
       if (songs.isEmpty) return;
       feedback.report('Playing $name…');
       await player.playAlbum(songs, startIndex: 0);
@@ -1219,12 +1247,13 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
 
   Future<void> _shufflePlay(
     Future<ArtistFull> artistFuture,
+    MusicRepository repo,
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
-      final songs = await _fetchSongs(artistFuture);
+      final songs = await _fetchAllTopSongs(artistFuture, repo);
       if (songs.isEmpty) return;
       feedback.report('Shuffling $name…');
       final shuffled = List<SongDetailed>.from(songs)..shuffle();

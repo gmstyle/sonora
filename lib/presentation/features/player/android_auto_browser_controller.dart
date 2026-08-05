@@ -1442,15 +1442,22 @@ class AndroidAutoBrowserController {
       // ── Artist actions ───────────────────────────────────────────
       if (mediaId.startsWith(_actionPlayArtist)) {
         final artistId = mediaId.substring(_actionPlayArtist.length);
-        final artist = await _musicRepo.getArtist(artistId);
-        final items = await _playAlbumUseCase.execute(artist.topSongs);
+        final songs = await _musicRepo.getArtistSongs(artistId);
+        final items = await _playAlbumUseCase.execute(
+          songs.isNotEmpty
+              ? songs
+              : (await _musicRepo.getArtist(artistId)).topSongs,
+        );
         await _playNow(items);
         return;
       }
       if (mediaId.startsWith(_actionShuffleArtist)) {
         final artistId = mediaId.substring(_actionShuffleArtist.length);
-        final artist = await _musicRepo.getArtist(artistId);
-        final shuffled = List<SongDetailed>.from(artist.topSongs)..shuffle();
+        var songs = await _musicRepo.getArtistSongs(artistId);
+        if (songs.isEmpty) {
+          songs = (await _musicRepo.getArtist(artistId)).topSongs;
+        }
+        final shuffled = List<SongDetailed>.from(songs)..shuffle();
         final items = await _playAlbumUseCase.execute(shuffled);
         await _playNow(items);
         return;
