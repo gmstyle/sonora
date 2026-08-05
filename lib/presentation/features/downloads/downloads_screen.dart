@@ -544,37 +544,137 @@ class _SortMenu extends StatelessWidget {
 
   const _SortMenu({required this.currentSort, required this.ref});
 
+  Map<DownloadsSort, String> _options(AppLocalizations l10n) => {
+    DownloadsSort.newest: l10n.sortNewest,
+    DownloadsSort.title: l10n.sortByTitle,
+    DownloadsSort.largest: l10n.sortBySize,
+  };
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final options = {
-      DownloadsSort.newest: l10n.sortNewest,
-      DownloadsSort.title: l10n.sortByTitle,
-      DownloadsSort.largest: l10n.sortBySize,
-    };
+    final label = _options(l10n)[currentSort]!;
+    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      fontWeight: FontWeight.w600,
+    );
+
+    if (isMobile) {
+      return TextButton.icon(
+        onPressed: () => _showSortBottomSheet(context),
+        icon: const Icon(LucideIcons.arrowUpDown, size: 16),
+        label: Text(label, style: labelStyle),
+      );
+    }
 
     return PopupMenuButton<DownloadsSort>(
       tooltip: l10n.sortDownloads,
-      icon: const Icon(LucideIcons.arrowUpDown, size: 18),
+      initialValue: currentSort,
       onSelected:
           (value) => ref.read(downloadsSortProvider.notifier).update(value),
       itemBuilder:
           (context) => [
-            for (final entry in options.entries)
+            for (final entry in _options(l10n).entries)
               PopupMenuItem<DownloadsSort>(
                 value: entry.key,
-                child: Row(
-                  children: [
-                    Icon(
-                      currentSort == entry.key ? LucideIcons.check : null,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(entry.value),
-                  ],
-                ),
+                child: Text(entry.value),
               ),
           ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(LucideIcons.arrowUpDown, size: 16),
+            const SizedBox(width: 8),
+            Text(label, style: labelStyle),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSortBottomSheet(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final options = _options(l10n);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  l10n.sortBy,
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              for (final entry in options.entries)
+                _SortOptionTile(
+                  value: entry.key,
+                  label: entry.value,
+                  activeSort: currentSort,
+                  onSelected: (value) {
+                    ref.read(downloadsSortProvider.notifier).update(value);
+                    Navigator.pop(sheetContext);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SortOptionTile extends StatelessWidget {
+  final DownloadsSort value;
+  final String label;
+  final DownloadsSort activeSort;
+  final ValueChanged<DownloadsSort> onSelected;
+
+  const _SortOptionTile({
+    required this.value,
+    required this.label,
+    required this.activeSort,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = value == activeSort;
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: Icon(
+        isSelected ? LucideIcons.check : null,
+        color: theme.colorScheme.primary,
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? theme.colorScheme.primary : null,
+        ),
+      ),
+      trailing: Radio<DownloadsSort>(
+        value: value,
+        groupValue: activeSort,
+        onChanged: (newValue) {
+          if (newValue != null) onSelected(newValue);
+        },
+      ),
+      onTap: () => onSelected(value),
     );
   }
 }
