@@ -410,6 +410,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unknownSize => 'unknown size';
 
   @override
+  String get downloadQueued => 'Queued';
+
+  @override
+  String get cancelDownload => 'Cancel download';
+
+  @override
+  String get downloadErrorWifi => 'Wi-Fi required to download';
+
+  @override
+  String get downloadErrorNetwork => 'Network error. Check your connection.';
+
+  @override
+  String get downloadErrorStorage => 'Storage error during download';
+
+  @override
+  String downloadsStats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get goToSearch => 'Go to Search';
+
+  @override
+  String get sortDownloads => 'Sort by';
+
+  @override
+  String get sortNewest => 'Newest first';
+
+  @override
+  String get sortByTitle => 'Title';
+
+  @override
+  String get sortBySize => 'Largest first';
+
+  @override
+  String downloadTimeLeft(String time) {
+    return '$time left';
+  }
+
+  @override
   String get searchHint => 'Search songs, artists, albums...';
 
   @override

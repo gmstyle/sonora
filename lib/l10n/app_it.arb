@@ -138,6 +138,28 @@
   "downloadFailed": "Download fallito",
   "downloadedSongs": "Brani Scaricati",
   "unknownSize": "dimensione sconosciuta",
+  "downloadQueued": "In coda",
+  "cancelDownload": "Annulla download",
+  "downloadErrorWifi": "Download consentito solo su Wi-Fi",
+  "downloadErrorNetwork": "Errore di rete. Controlla la connessione.",
+  "downloadErrorStorage": "Errore di archiviazione durante il download",
+  "downloadsStats": "{count, plural, =1{1 brano} other{{count} brani}}",
+  "@downloadsStats": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "goToSearch": "Vai alla ricerca",
+  "sortDownloads": "Ordina per",
+  "sortNewest": "Più recenti",
+  "sortByTitle": "Titolo",
+  "sortBySize": "Più grandi",
+  "downloadTimeLeft": "{time} rimanenti",
+  "@downloadTimeLeft": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
 
   "@@sectionMeta": {
     "search": "Schermata Ricerca"

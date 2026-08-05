@@ -431,10 +431,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   // ── Downloads ─────────────────────────────────────────────────
 
-  @override
-  Future<DownloadModel?> getDownload(String videoId) async {
-    final row = await _downloadsDao.getDownload(videoId);
-    if (row == null) return null;
+  DownloadModel _mapDownload(Download row) {
     return DownloadModel(
       videoId: row.videoId,
       title: row.title ?? '',
@@ -451,26 +448,34 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
+  Future<DownloadModel?> getDownload(String videoId) async {
+    final row = await _downloadsDao.getDownload(videoId);
+    if (row == null) return null;
+    return _mapDownload(row);
+  }
+
+  @override
   Future<List<DownloadModel>> getAllDownloads() async {
     final rows = await _downloadsDao.getAllDownloads();
-    return rows
-        .map(
-          (r) => DownloadModel(
-            videoId: r.videoId,
-            title: r.title ?? '',
-            artist: r.artist ?? '',
-            thumbnailUrl: r.thumbnailUrl,
-            localPath: r.localPath,
-            format: r.format,
-            fileSize: r.fileSize,
-            downloadedAt: r.downloadedAt,
-            status: r.status,
-            isVideo: r.isVideo,
-            isExplicit: r.isExplicit,
-          ),
-        )
-        .toList();
+    return rows.map(_mapDownload).toList();
   }
+
+  @override
+  Stream<List<DownloadModel>> watchCompletedDownloads() {
+    return _downloadsDao.watchCompletedDownloads().map(
+      (rows) => rows.map(_mapDownload).toList(),
+    );
+  }
+
+  @override
+  Future<List<DownloadModel>> getIncompleteDownloads() async {
+    final rows = await _downloadsDao.getIncompleteDownloads();
+    return rows.map(_mapDownload).toList();
+  }
+
+  @override
+  Future<int> deleteIncompleteDownloads() =>
+      _downloadsDao.deleteIncompleteDownloads();
 
   @override
   Future<void> insertDownload({

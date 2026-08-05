@@ -233,6 +233,28 @@
   "downloadFailed": "Download failed",
   "downloadedSongs": "Downloaded Songs",
   "unknownSize": "unknown size",
+  "downloadQueued": "Queued",
+  "cancelDownload": "Cancel download",
+  "downloadErrorWifi": "Wi-Fi required to download",
+  "downloadErrorNetwork": "Network error. Check your connection.",
+  "downloadErrorStorage": "Storage error during download",
+  "downloadsStats": "{count, plural, =1{1 song} other{{count} songs}}",
+  "@downloadsStats": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "goToSearch": "Go to Search",
+  "sortDownloads": "Sort by",
+  "sortNewest": "Newest first",
+  "sortByTitle": "Title",
+  "sortBySize": "Largest first",
+  "downloadTimeLeft": "{time} left",
+  "@downloadTimeLeft": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
 
   "@@sectionMeta": {
     "search": "Search Screen"

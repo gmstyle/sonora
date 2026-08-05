@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/extensions/duration_ext.dart';
+import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../shared/widgets/context_menu_sheet.dart';
+import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_retry_widget.dart';
+import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
-import '../../shared/widgets/explicit_badge.dart';
 
 class DownloadsScreen extends ConsumerWidget {
   const DownloadsScreen({super.key});
@@ -26,7 +31,7 @@ class DownloadsScreen extends ConsumerWidget {
         final isTablet = screenWidth >= kCompactBreakpoint;
         final isCompact = screenWidth < kCompactBreakpoint;
 
-        Widget contentWidget(bool inCard) {
+        Widget contentWidget() {
           return allDownloadsAsync.when(
             loading:
                 () => ListView.builder(
@@ -46,24 +51,41 @@ class DownloadsScreen extends ConsumerWidget {
               final hasCompleted = completed.isNotEmpty;
 
               if (!hasActive && !hasCompleted) {
-                return _EmptyState(isTablet: isTablet);
+                final l10n = AppLocalizations.of(context)!;
+                return EmptyStateWidget(
+                  icon: LucideIcons.download,
+                  title: l10n.noDownloadsYet,
+                  body: l10n.noDownloadsHint,
+                  buttonLabel: l10n.goToSearch,
+                  onButtonPressed: () => context.go('/search'),
+                );
               }
 
-              final crossAxisCount =
-                  inCard ? 1 : (isWide ? 3 : (isTablet ? 2 : 1));
+              final activeItems = [
+                for (final d in activeDownloads.values)
+                  if (d.status == DownloadStatus.downloading) d,
+                for (final d in activeDownloads.values)
+                  if (d.status == DownloadStatus.pending) d,
+                for (final d in activeDownloads.values)
+                  if (d.status == DownloadStatus.completed ||
+                      d.status == DownloadStatus.error)
+                    d,
+              ];
+              final sort = ref.watch(downloadsSortProvider);
+              final sortedCompleted = _sortCompleted(completed, sort);
 
               return CustomScrollView(
                 slivers: [
                   if (hasActive)
                     _ActiveDownloadsSection(
-                      activeDownloads: activeDownloads,
+                      activeDownloads: activeItems,
                       isTablet: isTablet,
                       ref: ref,
                     ),
                   if (hasCompleted)
                     _CompletedDownloadsSection(
-                      completed: completed,
-                      crossAxisCount: crossAxisCount,
+                      completed: sortedCompleted,
+                      sort: sort,
                       ref: ref,
                     ),
                 ],
@@ -77,7 +99,7 @@ class DownloadsScreen extends ConsumerWidget {
             appBar: AppBar(
               title: Text(AppLocalizations.of(context)!.downloads),
             ),
-            body: contentWidget(false),
+            body: contentWidget(),
           );
         }
 
@@ -117,7 +139,7 @@ class DownloadsScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        Expanded(child: contentWidget(true)),
+                        Expanded(child: contentWidget()),
                       ],
                     ),
                   ),
@@ -129,47 +151,42 @@ class DownloadsScreen extends ConsumerWidget {
       },
     );
   }
-}
 
-class _EmptyState extends StatelessWidget {
-  final bool isTablet;
-  const _EmptyState({required this.isTablet});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: isTablet ? 64 : 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              LucideIcons.download,
-              size: 72,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              AppLocalizations.of(context)!.noDownloadsYet,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(context)!.noDownloadsHint,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  List<DownloadModel> _sortCompleted(
+    List<DownloadModel> items,
+    DownloadsSort sort,
+  ) {
+    final sorted = List<DownloadModel>.of(items);
+    switch (sort) {
+      case DownloadsSort.newest:
+        sorted.sort(
+          (a, b) => (b.downloadedAt ?? DateTime(0)).compareTo(
+            a.downloadedAt ?? DateTime(0),
+          ),
+        );
+      case DownloadsSort.title:
+        sorted.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        );
+      case DownloadsSort.largest:
+        sorted.sort((a, b) => (b.fileSize ?? 0).compareTo(a.fileSize ?? 0));
+    }
+    return sorted;
   }
 }
 
+String _formatBytes(int? bytes) {
+  if (bytes == null || bytes <= 0) return '';
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+}
+
 class _ActiveDownloadsSection extends StatelessWidget {
-  final Map<String, ActiveDownload> activeDownloads;
+  final List<ActiveDownload> activeDownloads;
   final bool isTablet;
   final WidgetRef ref;
 
@@ -181,7 +198,6 @@ class _ActiveDownloadsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = activeDownloads.values.toList();
     return SliverMainAxisGroup(
       slivers: [
         SliverPadding(
@@ -197,9 +213,9 @@ class _ActiveDownloadsSection extends StatelessWidget {
         ),
         SliverList(
           delegate: SliverChildBuilderDelegate((context, index) {
-            final d = items[index];
+            final d = activeDownloads[index];
             return _ActiveDownloadTile(download: d, ref: ref);
-          }, childCount: items.length),
+          }, childCount: activeDownloads.length),
         ),
       ],
     );
@@ -215,6 +231,7 @@ class _ActiveDownloadTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -223,15 +240,7 @@ class _ActiveDownloadTile extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: const Icon(LucideIcons.music, size: 24),
-                ),
-              ),
+              _buildThumbnail(context),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -255,56 +264,200 @@ class _ActiveDownloadTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
-                    if (download.status == DownloadStatus.downloading)
-                      LinearProgressIndicator(value: download.progress)
-                    else if (download.status == DownloadStatus.error)
-                      Text(
-                        download.errorMessage ??
-                            AppLocalizations.of(context)!.downloadFailed,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    _buildStatusBlock(context, l10n, theme),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              if (download.status == DownloadStatus.downloading)
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    value: download.progress > 0 ? download.progress : null,
-                    strokeWidth: 2.5,
-                  ),
-                )
-              else if (download.status == DownloadStatus.completed)
-                Icon(
-                  LucideIcons.checkCircle,
-                  color: theme.colorScheme.primary,
-                  size: 24,
-                )
-              else if (download.status == DownloadStatus.error)
-                IconButton(
-                  icon: Icon(
-                    LucideIcons.refreshCw,
-                    color: theme.colorScheme.error,
-                  ),
-                  onPressed:
-                      () => ref
-                          .read(activeDownloadsProvider.notifier)
-                          .retry(
-                            videoId: download.videoId,
-                            title: download.title,
-                            artist: download.artist,
-                            thumbnailUrl: download.thumbnailUrl,
-                          ),
-                  visualDensity: VisualDensity.compact,
-                ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _buildTrailing(context, l10n, theme),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(BuildContext context) {
+    final theme = Theme.of(context);
+    return Stack(
+      children: [
+        ThumbnailWidget(
+          imageUrl: download.thumbnailUrl,
+          size: 48,
+          shape: ThumbnailShape.rounded,
+        ),
+        if (download.status == DownloadStatus.pending)
+          _ThumbnailOverlay(
+            icon: LucideIcons.clock,
+            iconColor: theme.colorScheme.onInverseSurface,
+          )
+        else if (download.status == DownloadStatus.error)
+          _ThumbnailOverlay(
+            icon: LucideIcons.alertCircle,
+            iconColor: theme.colorScheme.onError,
+            scrim: theme.colorScheme.error.withValues(alpha: 0.75),
+          )
+        else if (download.status == DownloadStatus.completed)
+          _ThumbnailOverlay(
+            icon: LucideIcons.check,
+            iconColor: theme.colorScheme.onPrimary,
+            scrim: theme.colorScheme.primary.withValues(alpha: 0.75),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStatusBlock(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    switch (download.status) {
+      case DownloadStatus.downloading:
+        final remaining = download.remaining;
+        final speed = download.speedBytesPerSec;
+        final metaParts = [
+          if (speed != null && speed > 0) '${_formatBytes(speed.round())}/s',
+          if (remaining != null) l10n.downloadTimeLeft(remaining.format()),
+        ];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: download.progress),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                    builder:
+                        (context, value, _) =>
+                            LinearProgressIndicator(value: value),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${(download.progress * 100).round()}%',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            if (metaParts.isNotEmpty || download.totalBytes > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                [
+                  ...metaParts,
+                  if (download.totalBytes > 0)
+                    '${_formatBytes(download.receivedBytes)}/${_formatBytes(download.totalBytes)}',
+                ].join(' · '),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        );
+      case DownloadStatus.pending:
+        return Text(
+          l10n.downloadQueued,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        );
+      case DownloadStatus.completed:
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 300),
+          builder: (context, value, _) => LinearProgressIndicator(value: value),
+        );
+      case DownloadStatus.error:
+        return Text(
+          _errorMessage(context, download.error),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+    }
+  }
+
+  Widget _buildTrailing(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    switch (download.status) {
+      case DownloadStatus.downloading:
+      case DownloadStatus.pending:
+        return IconButton(
+          key: const ValueKey('cancel'),
+          tooltip: l10n.cancelDownload,
+          icon: Icon(LucideIcons.x, color: theme.colorScheme.onSurfaceVariant),
+          onPressed:
+              () => ref
+                  .read(activeDownloadsProvider.notifier)
+                  .cancelDownload(download.videoId),
+          visualDensity: VisualDensity.compact,
+        );
+      case DownloadStatus.completed:
+        return Icon(
+          LucideIcons.checkCircle,
+          key: const ValueKey('completed'),
+          color: theme.colorScheme.primary,
+          size: 24,
+        );
+      case DownloadStatus.error:
+        return IconButton(
+          key: const ValueKey('retry'),
+          icon: Icon(LucideIcons.refreshCw, color: theme.colorScheme.error),
+          onPressed:
+              () => ref
+                  .read(activeDownloadsProvider.notifier)
+                  .retry(download.videoId),
+          visualDensity: VisualDensity.compact,
+        );
+    }
+  }
+
+  String _errorMessage(BuildContext context, DownloadError? error) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (error) {
+      DownloadError.wifiRestricted => l10n.downloadErrorWifi,
+      DownloadError.network => l10n.downloadErrorNetwork,
+      DownloadError.storage => l10n.downloadErrorStorage,
+      DownloadError.unknown || null => l10n.downloadFailed,
+    };
+  }
+}
+
+class _ThumbnailOverlay extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final Color? scrim;
+
+  const _ThumbnailOverlay({
+    required this.icon,
+    required this.iconColor,
+    this.scrim,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ColoredBox(
+          color: scrim ?? Colors.black.withValues(alpha: 0.55),
+          child: Icon(icon, size: 20, color: iconColor),
         ),
       ),
     );
@@ -312,28 +465,57 @@ class _ActiveDownloadTile extends StatelessWidget {
 }
 
 class _CompletedDownloadsSection extends StatelessWidget {
-  final List completed;
-  final int crossAxisCount;
+  final List<DownloadModel> completed;
+  final DownloadsSort sort;
   final WidgetRef ref;
 
   const _CompletedDownloadsSection({
     required this.completed,
-    required this.crossAxisCount,
+    required this.sort,
     required this.ref,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final totalBytes = completed.fold<int>(
+      0,
+      (sum, d) => sum + (d.fileSize ?? 0),
+    );
+
     return SliverMainAxisGroup(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
           sliver: SliverToBoxAdapter(
-            child: Text(
-              AppLocalizations.of(context)!.downloadedSongs,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.downloadedSongs,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        [
+                          l10n.downloadsStats(completed.length),
+                          if (totalBytes > 0) _formatBytes(totalBytes),
+                        ].join(' · '),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _SortMenu(currentSort: sort, ref: ref),
+              ],
             ),
           ),
         ),
@@ -356,8 +538,49 @@ class _CompletedDownloadsSection extends StatelessWidget {
   }
 }
 
+class _SortMenu extends StatelessWidget {
+  final DownloadsSort currentSort;
+  final WidgetRef ref;
+
+  const _SortMenu({required this.currentSort, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final options = {
+      DownloadsSort.newest: l10n.sortNewest,
+      DownloadsSort.title: l10n.sortByTitle,
+      DownloadsSort.largest: l10n.sortBySize,
+    };
+
+    return PopupMenuButton<DownloadsSort>(
+      tooltip: l10n.sortDownloads,
+      icon: const Icon(LucideIcons.arrowUpDown, size: 18),
+      onSelected:
+          (value) => ref.read(downloadsSortProvider.notifier).update(value),
+      itemBuilder:
+          (context) => [
+            for (final entry in options.entries)
+              PopupMenuItem<DownloadsSort>(
+                value: entry.key,
+                child: Row(
+                  children: [
+                    Icon(
+                      currentSort == entry.key ? LucideIcons.check : null,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(entry.value),
+                  ],
+                ),
+              ),
+          ],
+    );
+  }
+}
+
 class _CompletedDownloadTile extends StatelessWidget {
-  final dynamic download;
+  final DownloadModel download;
   final WidgetRef ref;
 
   const _CompletedDownloadTile({required this.download, required this.ref});
@@ -365,13 +588,23 @@ class _CompletedDownloadTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    final subtitleParts = [
+      download.artist,
+      if (download.fileSize != null) _formatBytes(download.fileSize),
+      if (download.downloadedAt != null)
+        MaterialLocalizations.of(
+          context,
+        ).formatMediumDate(download.downloadedAt!),
+    ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Card(
         child: ListTile(
           leading: ThumbnailWidget(
-            imageUrl: download.thumbnailUrl as String?,
+            imageUrl: download.thumbnailUrl,
             size: 48,
             shape: ThumbnailShape.rounded,
           ),
@@ -397,10 +630,12 @@ class _CompletedDownloadTile extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            '${download.artist} · ${_formatSize(download.fileSize)}',
+            subtitleParts.join(' · '),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: IconButton(
             icon: Icon(
@@ -408,15 +643,12 @@ class _CompletedDownloadTile extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             onPressed: () async {
-              final l10n = AppLocalizations.of(context)!;
               final confirm = await showDialog<bool>(
                 context: context,
                 builder:
                     (ctx) => AlertDialog(
                       title: Text(l10n.deleteDownload),
-                      content: Text(
-                        l10n.deleteDownloadConfirm(download.title as String),
-                      ),
+                      content: Text(l10n.deleteDownloadConfirm(download.title)),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
@@ -432,7 +664,7 @@ class _CompletedDownloadTile extends StatelessWidget {
               if (confirm == true) {
                 await ref
                     .read(activeDownloadsProvider.notifier)
-                    .deleteDownload(download.videoId as String);
+                    .deleteDownload(download.videoId);
               }
             },
           ),
@@ -440,21 +672,23 @@ class _CompletedDownloadTile extends StatelessWidget {
             ref
                 .read(playerStateProvider.notifier)
                 .playVideoId(
-                  download.videoId as String,
-                  isVideo: download.isVideo ?? false,
+                  download.videoId,
+                  isVideo: download.isVideo,
                   isExplicit: download.isExplicit,
                 );
           },
+          onLongPress:
+              () => ContextMenuSheet.showForSong(
+                context,
+                videoId: download.videoId,
+                title: download.title,
+                artist: download.artist,
+                thumbnailUrl: download.thumbnailUrl,
+                isVideo: download.isVideo,
+                isExplicit: download.isExplicit,
+              ),
         ),
       ),
     );
-  }
-
-  String _formatSize(dynamic bytes) {
-    if (bytes == null) return 'unknown size';
-    final b = bytes as int;
-    if (b < 1024) return '$b B';
-    if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(1)} KB';
-    return '${(b / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }

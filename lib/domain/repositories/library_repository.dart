@@ -71,7 +71,10 @@ abstract class LibraryRepository {
   Future<void> reorderEntries(int playlistId, List<String> videoIds);
 
   Future<List<DownloadModel>> getAllDownloads();
+  Stream<List<DownloadModel>> watchCompletedDownloads();
   Future<DownloadModel?> getDownload(String videoId);
+  Future<List<DownloadModel>> getIncompleteDownloads();
+  Future<int> deleteIncompleteDownloads();
   Future<void> insertDownload({
     required String videoId,
     required String title,

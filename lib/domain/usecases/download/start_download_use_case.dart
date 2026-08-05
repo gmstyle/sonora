@@ -7,6 +7,7 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../../repositories/library_repository.dart';
 import '../../../data/datasources/remote/stream_datasource.dart';
+import 'download_exceptions.dart';
 
 class StartDownloadUseCase {
   final StreamDatasource _streamDatasource;
@@ -29,27 +30,16 @@ class StartDownloadUseCase {
     String? subdirectory,
     bool isVideo = false,
     bool isExplicit = false,
-    required void Function(double progress) onProgress,
+    CancelToken? cancelToken,
+    required void Function(int received, int total) onProgress,
   }) async {
     if (downloadOnlyOnWifi) {
       final results = await Connectivity().checkConnectivity();
       final onWifi = results.any(
         (r) => r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet,
       );
-      if (!onWifi) {
-        throw Exception('Downloads are restricted to WiFi only.');
-      }
+      if (!onWifi) throw const DownloadWifiRestrictionException();
     }
-
-    await _libraryRepository.insertDownload(
-      videoId: videoId,
-      title: title,
-      artist: artist,
-      thumbnailUrl: thumbnailUrl,
-      status: 'downloading',
-      isVideo: isVideo,
-      isExplicit: isExplicit,
-    );
 
     final manifest = await _streamDatasource.getManifest(videoId);
     final audio = manifest.muxed.withHighestBitrate();
@@ -62,15 +52,35 @@ class StartDownloadUseCase {
     final safeName = _sanitizeFilename(title);
     final filePath = '${downloadDir.path}/$safeName-$videoId.$ext';
 
-    await _dio.download(
-      audio.url.toString(),
-      filePath,
-      onReceiveProgress: (received, total) {
-        if (total > 0) {
-          onProgress(received / total);
-        }
-      },
+    await _libraryRepository.insertDownload(
+      videoId: videoId,
+      title: title,
+      artist: artist,
+      thumbnailUrl: thumbnailUrl,
+      status: 'downloading',
+      localPath: filePath,
+      format: ext,
+      isVideo: isVideo,
+      isExplicit: isExplicit,
     );
+
+    try {
+      await _dio.download(
+        audio.url.toString(),
+        filePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (total > 0) onProgress(received, total);
+        },
+      );
+    } on DioException catch (e) {
+      await _cleanupOnFailure(videoId, filePath);
+      if (CancelToken.isCancel(e)) throw const DownloadCancelledException();
+      rethrow;
+    } catch (_) {
+      await _cleanupOnFailure(videoId, filePath);
+      rethrow;
+    }
 
     final file = File(filePath);
     await _libraryRepository.insertDownload(
@@ -88,6 +98,16 @@ class StartDownloadUseCase {
     );
 
     return filePath;
+  }
+
+  Future<void> _cleanupOnFailure(String videoId, String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) await file.delete();
+    } catch (_) {}
+    try {
+      await _libraryRepository.deleteDownload(videoId);
+    } catch (_) {}
   }
 
   Future<Directory> _resolveDownloadDir(

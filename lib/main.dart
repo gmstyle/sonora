@@ -31,6 +31,7 @@ import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
 import 'data/services/local_audio_proxy_server.dart';
 import 'data/services/sync_service.dart';
+import 'domain/usecases/download/cleanup_incomplete_downloads_use_case.dart';
 import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
@@ -88,6 +89,11 @@ Future<void> main() async {
     DownloadsDao(db),
     HistoryDao(db),
   );
+
+  // Remove downloads interrupted by a previous session (kill/crash) together
+  // with their partial files, before any screen can display them.
+  await CleanupIncompleteDownloadsUseCase(libraryRepo).execute();
+
   final musicRepo = MusicRepositoryImpl(ytmusicDs, streamDs);
   final playVideoIdUseCase = PlayVideoIdUseCase(musicRepo, libraryRepo);
 

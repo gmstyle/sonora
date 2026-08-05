@@ -629,6 +629,96 @@ void main() {
       final download = await downloadsDao.getDownload('video_1');
       expect(download!.status, 'completed');
     });
+
+    test(
+      'watchCompletedDownloads emits only completed, newest first',
+      () async {
+        final older = DateTime.now().subtract(const Duration(hours: 2));
+        final newer = DateTime.now();
+
+        await downloadsDao.insertDownload(
+          DownloadsCompanion(
+            videoId: Value('video_1'),
+            title: Value('Song 1'),
+            artist: Value('Artist 1'),
+            status: Value('completed'),
+            downloadedAt: Value(older),
+          ),
+        );
+        await downloadsDao.insertDownload(
+          DownloadsCompanion(
+            videoId: Value('video_2'),
+            title: Value('Song 2'),
+            artist: Value('Artist 2'),
+            status: Value('completed'),
+            downloadedAt: Value(newer),
+          ),
+        );
+        await downloadsDao.insertDownload(
+          DownloadsCompanion(
+            videoId: Value('video_3'),
+            title: Value('Song 3'),
+            artist: Value('Artist 3'),
+            status: Value('downloading'),
+          ),
+        );
+
+        final rows = await downloadsDao.watchCompletedDownloads().first;
+        expect(rows.length, 2);
+        expect(rows.map((r) => r.videoId), ['video_2', 'video_1']);
+      },
+    );
+
+    test('getIncompleteDownloads returns only non-completed rows', () async {
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Song 1'),
+          artist: Value('Artist 1'),
+          status: Value('completed'),
+        ),
+      );
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_2'),
+          title: Value('Song 2'),
+          artist: Value('Artist 2'),
+          status: Value('downloading'),
+          localPath: Value('/tmp/partial.mp4'),
+        ),
+      );
+
+      final incomplete = await downloadsDao.getIncompleteDownloads();
+      expect(incomplete.length, 1);
+      expect(incomplete.first.videoId, 'video_2');
+      expect(incomplete.first.localPath, '/tmp/partial.mp4');
+    });
+
+    test('deleteIncompleteDownloads removes only non-completed rows', () async {
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Song 1'),
+          artist: Value('Artist 1'),
+          status: Value('completed'),
+        ),
+      );
+      await downloadsDao.insertDownload(
+        DownloadsCompanion(
+          videoId: Value('video_2'),
+          title: Value('Song 2'),
+          artist: Value('Artist 2'),
+          status: Value('downloading'),
+        ),
+      );
+
+      final deleted = await downloadsDao.deleteIncompleteDownloads();
+      expect(deleted, 1);
+
+      final remaining = await downloadsDao.getAllDownloads();
+      expect(remaining.length, 1);
+      expect(remaining.first.videoId, 'video_1');
+    });
   });
 
   group('HistoryDao', () {

@@ -413,6 +413,54 @@ class AppLocalizationsIt extends AppLocalizations {
   String get unknownSize => 'dimensione sconosciuta';
 
   @override
+  String get downloadQueued => 'In coda';
+
+  @override
+  String get cancelDownload => 'Annulla download';
+
+  @override
+  String get downloadErrorWifi => 'Download consentito solo su Wi-Fi';
+
+  @override
+  String get downloadErrorNetwork =>
+      'Errore di rete. Controlla la connessione.';
+
+  @override
+  String get downloadErrorStorage =>
+      'Errore di archiviazione durante il download';
+
+  @override
+  String downloadsStats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brani',
+      one: '1 brano',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get goToSearch => 'Vai alla ricerca';
+
+  @override
+  String get sortDownloads => 'Ordina per';
+
+  @override
+  String get sortNewest => 'Più recenti';
+
+  @override
+  String get sortByTitle => 'Titolo';
+
+  @override
+  String get sortBySize => 'Più grandi';
+
+  @override
+  String downloadTimeLeft(String time) {
+    return '$time rimanenti';
+  }
+
+  @override
   String get searchHint => 'Cerca brani, artisti, album...';
 
   @override

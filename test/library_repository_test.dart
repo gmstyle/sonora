@@ -424,6 +424,55 @@ void main() {
       final downloads = await repo.getAllDownloads();
       expect(downloads, isEmpty);
     });
+
+    test('watchCompletedDownloads maps only completed models', () async {
+      await repo.insertDownload(
+        videoId: 'v1',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        status: 'completed',
+        downloadedAt: DateTime.now(),
+        fileSize: 1024,
+      );
+      await repo.insertDownload(
+        videoId: 'v2',
+        title: 'Song 2',
+        artist: 'Artist 2',
+        status: 'downloading',
+      );
+
+      final models = await repo.watchCompletedDownloads().first;
+      expect(models.length, 1);
+      expect(models.single, isA<DownloadModel>());
+      expect(models.single.videoId, 'v1');
+      expect(models.single.fileSize, 1024);
+    });
+
+    test('deleteIncompleteDownloads keeps only completed downloads', () async {
+      await repo.insertDownload(
+        videoId: 'v1',
+        title: 'Song 1',
+        artist: 'Artist 1',
+        status: 'completed',
+      );
+      await repo.insertDownload(
+        videoId: 'v2',
+        title: 'Song 2',
+        artist: 'Artist 2',
+        status: 'downloading',
+      );
+
+      final incomplete = await repo.getIncompleteDownloads();
+      expect(incomplete.length, 1);
+      expect(incomplete.single.videoId, 'v2');
+
+      final deleted = await repo.deleteIncompleteDownloads();
+      expect(deleted, 1);
+
+      final remaining = await repo.getAllDownloads();
+      expect(remaining.length, 1);
+      expect(remaining.single.videoId, 'v1');
+    });
   });
 
   group('History', () {

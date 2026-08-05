@@ -758,6 +758,78 @@ abstract class AppLocalizations {
   /// **'unknown size'**
   String get unknownSize;
 
+  /// No description provided for @downloadQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get downloadQueued;
+
+  /// No description provided for @cancelDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel download'**
+  String get cancelDownload;
+
+  /// No description provided for @downloadErrorWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi required to download'**
+  String get downloadErrorWifi;
+
+  /// No description provided for @downloadErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Check your connection.'**
+  String get downloadErrorNetwork;
+
+  /// No description provided for @downloadErrorStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage error during download'**
+  String get downloadErrorStorage;
+
+  /// No description provided for @downloadsStats.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 song} other{{count} songs}}'**
+  String downloadsStats(int count);
+
+  /// No description provided for @goToSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Search'**
+  String get goToSearch;
+
+  /// No description provided for @sortDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get sortDownloads;
+
+  /// No description provided for @sortNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest first'**
+  String get sortNewest;
+
+  /// No description provided for @sortByTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get sortByTitle;
+
+  /// No description provided for @sortBySize.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest first'**
+  String get sortBySize;
+
+  /// No description provided for @downloadTimeLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} left'**
+  String downloadTimeLeft(String time);
+
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
