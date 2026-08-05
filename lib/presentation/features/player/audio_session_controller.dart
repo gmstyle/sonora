@@ -59,7 +59,10 @@ class AudioSessionController {
           switch (event.type) {
             case AudioInterruptionType.pause:
             case AudioInterruptionType.unknown:
-              if (_playOnInterruptionEnd && _userWantsPlaying()) {
+              // Resume solely from the interruption flag. `_pause()` (and the
+              // playing stream) clear `_userWantsPlaying`, so gating on it
+              // here permanently blocked auto-resume after Gemini/Assistant.
+              if (_playOnInterruptionEnd) {
                 _onResumeRequested();
               }
               _playOnInterruptionEnd = false;
