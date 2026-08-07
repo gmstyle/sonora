@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/platform_utils.dart';
+import '../../../domain/models/media_quality.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
@@ -339,6 +340,21 @@ class _PlaybackSection extends ConsumerWidget {
           icon: LucideIcons.video,
         ),
         const Divider(height: 1),
+        SettingsDropdownTile(
+          title: l10n.streamQuality,
+          value: settings.streamQuality.storageValue,
+          options: {
+            MediaQuality.high.storageValue: l10n.qualityHigh,
+            MediaQuality.mid.storageValue: l10n.qualityMid,
+            MediaQuality.low.storageValue: l10n.qualityLow,
+          },
+          onChanged: (v) {
+            if (v != null) {
+              notifier.setStreamQuality(MediaQuality.fromStorage(v));
+            }
+          },
+        ),
+        const Divider(height: 1),
         SettingsSwitchTile(
           title: l10n.autoPlayUpNext,
           subtitle: l10n.autoPlayUpNextHint,
@@ -391,6 +407,24 @@ class _DownloadSection extends StatelessWidget {
           value: settings.downloadOnlyOnWifi,
           onChanged: notifier.setDownloadOnlyOnWifi,
           icon: LucideIcons.wifi,
+        ),
+        const Divider(height: 1),
+        SettingsDropdownTile(
+          title: AppLocalizations.of(context)!.downloadQuality,
+          value: settings.downloadQuality.storageValue,
+          options: {
+            MediaQuality.high.storageValue:
+                AppLocalizations.of(context)!.qualityHigh,
+            MediaQuality.mid.storageValue:
+                AppLocalizations.of(context)!.qualityMid,
+            MediaQuality.low.storageValue:
+                AppLocalizations.of(context)!.qualityLow,
+          },
+          onChanged: (v) {
+            if (v != null) {
+              notifier.setDownloadQuality(MediaQuality.fromStorage(v));
+            }
+          },
         ),
       ],
     );
@@ -626,6 +660,8 @@ class _BackupSection extends StatelessWidget {
         'restoreQueueOnStartup': settings.restoreQueueOnStartup,
         'autoPlayUpNext': settings.autoPlayUpNext,
         'enableVideoPlayback': settings.enableVideoPlayback,
+        'streamQuality': settings.streamQuality.storageValue,
+        'downloadQuality': settings.downloadQuality.storageValue,
         'downloadOnlyOnWifi': settings.downloadOnlyOnWifi,
         'trackHistory': settings.trackHistory,
         'checkUpdatesOnStartup': settings.checkUpdatesOnStartup,
@@ -767,6 +803,20 @@ class _BackupSection extends StatelessWidget {
         if (importedSettings.containsKey('enableVideoPlayback')) {
           notifier.setEnableVideoPlayback(
             importedSettings['enableVideoPlayback'] as bool,
+          );
+        }
+        if (importedSettings.containsKey('streamQuality')) {
+          notifier.setStreamQuality(
+            MediaQuality.fromStorage(
+              importedSettings['streamQuality'] as String?,
+            ),
+          );
+        }
+        if (importedSettings.containsKey('downloadQuality')) {
+          notifier.setDownloadQuality(
+            MediaQuality.fromStorage(
+              importedSettings['downloadQuality'] as String?,
+            ),
           );
         }
         if (importedSettings.containsKey('downloadOnlyOnWifi')) {

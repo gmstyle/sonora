@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../../../data/services/local_audio_proxy_server.dart';
+import '../../../domain/models/media_quality.dart';
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
@@ -34,6 +35,12 @@ class QueueController {
   final void Function(List<MediaItem>) _updateQueueStream;
   final LocalAudioProxyServer? _proxyServer;
 
+  /// Current stream quality preference (updated from settings).
+  MediaQuality streamQuality;
+
+  /// Whether video playback is enabled (updated from settings).
+  bool enableVideoPlayback;
+
   int _queueIdCounter = 0;
   int _resolvingItemCount = 0;
 
@@ -51,6 +58,8 @@ class QueueController {
     required AudioServiceRepeatMode Function() getRepeatMode,
     required void Function(List<MediaItem>) updateQueueStream,
     LocalAudioProxyServer? proxyServer,
+    this.streamQuality = MediaQuality.high,
+    this.enableVideoPlayback = false,
   }) : _player = player,
        _queueRepo = queueRepo,
        _getQueue = getQueue,
@@ -58,6 +67,17 @@ class QueueController {
        _getRepeatMode = getRepeatMode,
        _updateQueueStream = updateQueueStream,
        _proxyServer = proxyServer;
+
+  /// Syncs stream-related prefs from settings without restarting playback.
+  void updateStreamPrefs({
+    MediaQuality? streamQuality,
+    bool? enableVideoPlayback,
+  }) {
+    if (streamQuality != null) this.streamQuality = streamQuality;
+    if (enableVideoPlayback != null) {
+      this.enableVideoPlayback = enableVideoPlayback;
+    }
+  }
 
   // ── Resolving state ────────────────────────────────────────────────────────
 
@@ -283,7 +303,12 @@ class QueueController {
     if (_proxyServer != null &&
         _proxyServer.isRunning &&
         track.videoId.isNotEmpty) {
-      final proxyUrl = _proxyServer.getStreamUrlForVideo(track.videoId);
+      final preferVideo = enableVideoPlayback && track.isVideo;
+      final proxyUrl = _proxyServer.getStreamUrlForVideo(
+        track.videoId,
+        quality: streamQuality,
+        preferVideo: preferVideo,
+      );
       return Media(proxyUrl, extras: {'mediaItem': tagged});
     }
     if (track.hasUrl) {

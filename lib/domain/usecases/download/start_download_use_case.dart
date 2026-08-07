@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+import '../../media/stream_quality_selector.dart';
+import '../../models/media_quality.dart';
 import '../../repositories/library_repository.dart';
 import '../../../data/datasources/remote/stream_datasource.dart';
 import 'download_exceptions.dart';
@@ -13,12 +14,14 @@ class StartDownloadUseCase {
   final StreamDatasource _streamDatasource;
   final Dio _dio;
   final LibraryRepository _libraryRepository;
+  final StreamQualitySelector _selector;
 
   StartDownloadUseCase(
     this._streamDatasource,
     this._dio,
-    this._libraryRepository,
-  );
+    this._libraryRepository, {
+    StreamQualitySelector? selector,
+  }) : _selector = selector ?? const StreamQualitySelector();
 
   Future<String> execute({
     required String videoId,
@@ -30,6 +33,7 @@ class StartDownloadUseCase {
     String? subdirectory,
     bool isVideo = false,
     bool isExplicit = false,
+    MediaQuality quality = MediaQuality.high,
     CancelToken? cancelToken,
     required void Function(int received, int total) onProgress,
   }) async {
@@ -42,13 +46,17 @@ class StartDownloadUseCase {
     }
 
     final manifest = await _streamDatasource.getManifest(videoId);
-    final audio = manifest.muxed.withHighestBitrate();
+    final stream = _selector.select(
+      manifest,
+      quality: quality,
+      preferVideo: isVideo,
+    );
 
     final downloadDir = await _resolveDownloadDir(
       downloadPath,
       subdirectory: subdirectory,
     );
-    final ext = audio.container.name;
+    final ext = stream.container.name;
     final safeName = _sanitizeFilename(title);
     final filePath = '${downloadDir.path}/$safeName-$videoId.$ext';
 
@@ -66,7 +74,7 @@ class StartDownloadUseCase {
 
     try {
       await _dio.download(
-        audio.url.toString(),
+        stream.url.toString(),
         filePath,
         cancelToken: cancelToken,
         onReceiveProgress: (received, total) {

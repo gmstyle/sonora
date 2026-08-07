@@ -22,7 +22,10 @@ dependencies:
   dart_ytmusic_api:
     git:
       url: https://github.com/gmstyle/dart_ytmusic_api.git
-  youtube_explode_dart: ^3.1.0
+  #youtube_explode_dart: ^3.1.0
+  youtube_explode_dart:
+    git:
+      url: https://github.com/gmstyle/youtube_explode_dart.git
 
   # ── Audio Playback ────────────────────────────────────────────
   audio_session: ^0.2.3

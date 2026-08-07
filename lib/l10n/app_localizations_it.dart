@@ -566,6 +566,21 @@ class AppLocalizationsIt extends AppLocalizations {
       'Mostra i video musicali nel player. Con disattivato, solo audio.';
 
   @override
+  String get streamQuality => 'Qualità streaming';
+
+  @override
+  String get downloadQuality => 'Qualità download';
+
+  @override
+  String get qualityHigh => 'Alta';
+
+  @override
+  String get qualityMid => 'Media';
+
+  @override
+  String get qualityLow => 'Bassa';
+
+  @override
   String get hideVideo => 'Nascondi video';
 
   @override

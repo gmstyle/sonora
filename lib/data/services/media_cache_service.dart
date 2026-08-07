@@ -151,6 +151,31 @@ class MediaCacheService {
       debugPrint('[MediaCacheService] Cancelled download for $videoId');
     }
   }
+
+  /// Deletes all cached media files and cancels in-flight downloads.
+  /// Used when stream quality changes so stale quality files are not reused.
+  Future<void> clearCache() async {
+    for (final token in _activeDownloads.values) {
+      token.cancel();
+    }
+    _activeDownloads.clear();
+    try {
+      final cacheDir = await _getCacheDir();
+      if (await cacheDir.exists()) {
+        await for (final entity in cacheDir.list()) {
+          try {
+            await entity.delete(recursive: true);
+          } catch (e) {
+            debugPrint(
+              '[MediaCacheService] Failed to delete ${entity.path}: $e',
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[MediaCacheService] clearCache error: $e');
+    }
+  }
 }
 
 class _FileInfo {

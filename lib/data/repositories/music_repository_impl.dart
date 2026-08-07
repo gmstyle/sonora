@@ -1,5 +1,6 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
+import '../../domain/models/media_quality.dart';
 import '../../domain/repositories/music_repository.dart';
 import '../datasources/remote/ytmusic_datasource.dart';
 import '../datasources/remote/stream_datasource.dart';
@@ -85,5 +86,10 @@ class MusicRepositoryImpl implements MusicRepository {
       _ytmusic.getPlaylistVideos(playlistId);
 
   @override
-  Future<String> getStreamUrl(String videoId) => _stream.getStreamUrl(videoId);
+  Future<String> getStreamUrl(
+    String videoId, {
+    MediaQuality? quality,
+    bool preferVideo = false,
+  }) =>
+      _stream.getStreamUrl(videoId, quality: quality, preferVideo: preferVideo);
 }

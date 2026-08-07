@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 
 void main() {
@@ -17,6 +18,8 @@ void main() {
       expect(settings.restoreQueueOnStartup, true);
       expect(settings.autoPlayUpNext, true);
       expect(settings.enableVideoPlayback, false);
+      expect(settings.streamQuality, MediaQuality.high);
+      expect(settings.downloadQuality, MediaQuality.high);
       expect(settings.downloadPath, isNull);
       expect(settings.downloadOnlyOnWifi, false);
       expect(settings.trackHistory, true);
@@ -102,6 +105,8 @@ void main() {
       expect(settings.restoreQueueOnStartup, true);
       expect(settings.autoPlayUpNext, true);
       expect(settings.enableVideoPlayback, false);
+      expect(settings.streamQuality, MediaQuality.high);
+      expect(settings.downloadQuality, MediaQuality.high);
       expect(settings.downloadPath, isNull);
       expect(settings.downloadOnlyOnWifi, false);
       expect(settings.trackHistory, true);
@@ -118,6 +123,8 @@ void main() {
         kCrossfadeSecondsKey: 5,
         kRestoreQueueKey: false,
         kAutoPlayUpNextKey: false,
+        kStreamQualityKey: 'mid',
+        kDownloadQualityKey: 'low',
         kDownloadPathKey: '/music',
         kDownloadWifiKey: true,
         kTrackHistoryKey: false,
@@ -138,6 +145,8 @@ void main() {
       expect(settings.crossfadeSeconds, 5);
       expect(settings.restoreQueueOnStartup, false);
       expect(settings.autoPlayUpNext, false);
+      expect(settings.streamQuality, MediaQuality.mid);
+      expect(settings.downloadQuality, MediaQuality.low);
       expect(settings.downloadPath, '/music');
       expect(settings.downloadOnlyOnWifi, true);
       expect(settings.trackHistory, false);
@@ -242,6 +251,39 @@ void main() {
           .setEnableVideoPlayback(true);
       expect(container.read(settingsProvider).enableVideoPlayback, true);
       expect(prefs.getBool(kEnableVideoPlaybackKey), true);
+    });
+
+    test('setStreamQuality updates state and persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setStreamQuality(MediaQuality.low);
+      expect(container.read(settingsProvider).streamQuality, MediaQuality.low);
+      expect(prefs.getString(kStreamQualityKey), 'low');
+    });
+
+    test('setDownloadQuality updates state and persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setDownloadQuality(MediaQuality.mid);
+      expect(
+        container.read(settingsProvider).downloadQuality,
+        MediaQuality.mid,
+      );
+      expect(prefs.getString(kDownloadQualityKey), 'mid');
     });
 
     test('setDownloadPath updates state and persists', () async {

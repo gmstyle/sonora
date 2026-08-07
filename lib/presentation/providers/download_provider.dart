@@ -118,6 +118,7 @@ class _DownloadRequest {
   final String? thumbnailUrl;
   final String? subdirectory;
   final bool isExplicit;
+  final bool isVideo;
 
   const _DownloadRequest({
     required this.videoId,
@@ -126,6 +127,7 @@ class _DownloadRequest {
     this.thumbnailUrl,
     this.subdirectory,
     this.isExplicit = false,
+    this.isVideo = false,
   });
 }
 
@@ -184,6 +186,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     String? thumbnailUrl,
     String? subdirectory,
     bool isExplicit = false,
+    bool isVideo = false,
   }) {
     final existingCompleter = _completers[videoId];
     if (existingCompleter != null) return existingCompleter.future;
@@ -195,6 +198,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       thumbnailUrl: thumbnailUrl,
       subdirectory: subdirectory,
       isExplicit: isExplicit,
+      isVideo: isVideo,
     );
     _requests[videoId] = request;
 
@@ -259,6 +263,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       thumbnailUrl: request.thumbnailUrl,
       subdirectory: request.subdirectory,
       isExplicit: request.isExplicit,
+      isVideo: request.isVideo,
     );
   }
 
@@ -304,6 +309,8 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         downloadPath: settings.downloadPath,
         subdirectory: request.subdirectory,
         isExplicit: request.isExplicit,
+        isVideo: request.isVideo,
+        quality: settings.downloadQuality,
         cancelToken: cancelToken,
         onProgress: (received, total) {
           final speed = _samplers[videoId]?.sample(received);

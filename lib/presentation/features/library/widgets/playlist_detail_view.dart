@@ -553,6 +553,7 @@ class _PlaylistDetailContentState
         thumbnailUrl: thumbnailUrl,
         subdirectory: widget.playlist.name,
         isExplicit: isExplicit,
+        isVideo: liked?.isVideo ?? entry.isVideo,
       );
     }
   }

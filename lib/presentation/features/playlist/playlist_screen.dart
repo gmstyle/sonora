@@ -934,6 +934,7 @@ class _PlaylistActions extends ConsumerWidget {
                 video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
             subdirectory: playlist.name,
             isExplicit: video.isExplicit,
+            isVideo: true,
           );
         }),
       );

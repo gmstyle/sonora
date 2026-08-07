@@ -13,8 +13,8 @@ Sonora is a cross-platform Flutter music and video streaming app that uses **You
 | Navigation | `go_router` | ^17.2.3 |
 | Local Database | `drift` + `drift_flutter` | ^2.33.0 / ^0.3.0 |
 | Media Playback | `media_kit` + `audio_service` | ^1.2.6 / ^0.18.18 |
-| YTM Data | `dart_ytmusic_api` | git (dev branch) |
-| Stream URL | `youtube_explode_dart` | ^3.1.0 |
+| YTM Data | `dart_ytmusic_api` | git (`gmstyle/dart_ytmusic_api`) |
+| Stream URL | `youtube_explode_dart` | git (`gmstyle/youtube_explode_dart`, fork with `androidVr` adaptive fix) |
 | Casting | `dart_cast` | ^0.6.0 |
 
 **Architecture**: Clean Architecture with 3 layers — `data/`, `domain/`, `presentation/`. Types from `dart_ytmusic_api` (`SongDetailed`, `ArtistFull`, etc.) are used directly without mapping. Local entities (liked songs, playlists, etc.) are PODO in `domain/models/library_models.dart`.
@@ -62,7 +62,7 @@ lib/
 │   │   │   └── daos/                   # 4 DAOs (library, playlists, downloads, history)
 │   │   └── remote/
 │   │       ├── ytmusic_datasource.dart # Wrapper for dart_ytmusic_api
-│   │       └── stream_datasource.dart  # youtube_explode_dart → stream URL
+│   │       └── stream_datasource.dart  # youtube_explode_dart → stream URL (quality-aware)
 │   ├── repositories/
 │   │   ├── music_repository_impl.dart
 │   │   ├── library_repository_impl.dart
@@ -73,8 +73,11 @@ lib/
 │       ├── media_cache_service.dart    # LRU disk cache service (500MB max limit)
 │       └── sync_service.dart           # P2P local synchronization service
 ├── domain/
+│   ├── media/
+│   │   └── stream_quality_selector.dart # audioOnly / muxed pick by MediaQuality
 │   ├── models/
-│   │   └── library_models.dart         # 10 PODO (LikedSong, FollowedArtist, ...History, SearchHistory)
+│   │   ├── library_models.dart         # 10 PODO (LikedSong, FollowedArtist, ...History, SearchHistory)
+│   │   └── media_quality.dart          # MediaQuality { high, mid, low }
 │   ├── repositories/
 │   │   ├── music_repository.dart
 │   │   ├── library_repository.dart
@@ -360,14 +363,23 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
 
 - **`LocalAudioProxyServer` (`local_audio_proxy_server.dart`)**:
   - Runs locally on `127.0.0.1` using a dynamic ephemeral port assigned by the OS at startup.
-  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>`.
+  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&q=<high|mid|low>[&v=1]`.
+    - `q` — streaming quality from `Settings.streamQuality` (built by `QueueController.toMedia`).
+    - `v=1` — prefer muxed A/V when `Settings.enableVideoPlayback && track.isVideo`.
   - **Fast Disk Cache Serving**: Checks `MediaCacheService` first. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage.
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource` and `YoutubeRequestScheduler`.
-  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache, resolves a fresh YouTube URL, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit).
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, quality:, preferVideo:)` and `YoutubeRequestScheduler`.
+  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same quality / preferVideo, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
+  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit). Changing `streamQuality` clears this cache so a different tier is not reused.
+
+- **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
+  - Shared enum `MediaQuality { high, mid, low }` for both streaming (`Settings.streamQuality`) and downloads (`Settings.downloadQuality`).
+  - `preferVideo == false` (audio listening): pick from `manifest.audioOnly` via `sortByBitrate()` — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
+  - `preferVideo == true` (show / download video): pick from `manifest.muxed` — high = highest bitrate, mid ≈ `medium360`, low ≈ `low240`/`low144`. Fallback to audio-only if muxed is empty.
+  - **Muxed ceiling ~360p**: media_kit opens a single URL; true HD would need adaptive `videoOnly` + `audioOnly` (out of scope). The fork of `youtube_explode_dart` defaults to the `androidVr` client so adaptive/audio-only URLs work again (no longer forced to muxed-only for the #332 CDN 403 bug).
+  - `StreamDatasource` caches by `videoId|quality|preferVideo` and exposes `clearUrlCache()` when stream quality or video playback settings change.
 
 - **Dual-Path Playback Architecture:**
-  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
+  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects stream via `StreamQualitySelector` using `downloadQuality` and `isVideo`. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
   - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback. Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs.
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
@@ -810,6 +822,9 @@ Produces:
 | `crossfadeSeconds` | int | 2 | `PlaybackVolumeController` crossfade |
 | `restoreQueueOnStartup` | bool | true | QueueUseCase at boot |
 | `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
+| `enableVideoPlayback` | bool | false | Video track attach + `preferVideo` on proxy URLs; clears stream URL cache |
+| `streamQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / `StreamDatasource` selection; clears URL + media cache |
+| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` stream pick |
 | `downloadPath` | String? | null | StartDownloadUseCase |
 | `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
 | `trackHistory` | bool | true | History insert on play |
@@ -829,13 +844,14 @@ Produces:
 |---|---|---|
 | `test/daos_test.dart` | ~65 | All DAOs with upsert, edge cases |
 | `test/library_repository_test.dart` | ~35 | Toggle, mapping, CRUD |
-| `test/local_audio_proxy_server_test.dart` | ~3 | Loopback server startup, port allocation, query validation |
+| `test/local_audio_proxy_server_test.dart` | ~5 | Loopback server, quality query params, validation |
+| `test/stream_quality_selector_test.dart` | ~9 | audioOnly / muxed tiers + fallback |
 | `test/player_state_test.dart` | ~8 | PlayerState + Settings base |
-| `test/settings_provider_test.dart` | ~20 | Settings model + all 10 setters |
+| `test/settings_provider_test.dart` | ~22 | Settings model + setters (incl. stream/download quality) |
 | `test/widget_test.dart` | 1 | App bootstrap smoke test |
 | `test/ytmusic_datasource_test.dart` | ~6 | Live network: search, suggestions, reinitialize |
 
-**Total**: 149 tests — all passing.
+**Total**: see `flutter test` — suite includes DAO, repository, settings, stream quality, proxy, and downloads notifier coverage.
 
 ### 13.2 Commands
 

@@ -3,13 +3,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sonora/data/datasources/remote/stream_datasource.dart';
 import 'package:sonora/data/services/local_audio_proxy_server.dart';
+import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/models/queue_track.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
 import 'package:sonora/presentation/features/player/queue_controller.dart';
 
 class _FakeStreamDatasource extends StreamDatasource {
   @override
-  Future<String> getStreamUrl(String videoId, {int attempt = 1}) async {
+  Future<String> getStreamUrl(
+    String videoId, {
+    MediaQuality? quality,
+    bool preferVideo = false,
+    int attempt = 1,
+  }) async {
     return 'http://example.com/$videoId.mp3';
   }
 }
@@ -79,7 +85,33 @@ void main() {
 
     final media = controller.toMedia(item);
 
-    expect(media.uri, proxy.getStreamUrlForVideo('vid2'));
+    expect(
+      media.uri,
+      proxy.getStreamUrlForVideo('vid2', quality: MediaQuality.high),
+    );
+  });
+
+  test('toMedia passes preferVideo when video playback enabled', () {
+    controller.updateStreamPrefs(enableVideoPlayback: true);
+    final item =
+        const QueueTrack(
+          videoId: 'vidVideo',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: 'https://example.com/v.mp4',
+        ).toFreshMediaItem();
+
+    final media = controller.toMedia(item);
+
+    expect(
+      media.uri,
+      proxy.getStreamUrlForVideo(
+        'vidVideo',
+        quality: MediaQuality.high,
+        preferVideo: true,
+      ),
+    );
   });
 
   test('toMedia uses dummy URL when unresolved and proxy is off', () async {

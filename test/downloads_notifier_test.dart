@@ -13,6 +13,7 @@ import 'package:sonora/data/datasources/local/daos/library_dao.dart';
 import 'package:sonora/data/datasources/local/daos/playlists_dao.dart';
 import 'package:sonora/data/datasources/remote/stream_datasource.dart';
 import 'package:sonora/data/repositories/library_repository_impl.dart';
+import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/repositories/library_repository.dart';
 import 'package:sonora/domain/usecases/download/download_exceptions.dart';
 import 'package:sonora/domain/usecases/download/start_download_use_case.dart';
@@ -43,6 +44,7 @@ class _FakeStartDownloadUseCase extends StartDownloadUseCase {
     String? subdirectory,
     bool isVideo = false,
     bool isExplicit = false,
+    MediaQuality quality = MediaQuality.high,
     CancelToken? cancelToken,
     required void Function(int received, int total) onProgress,
   }) async {

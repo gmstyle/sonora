@@ -41,6 +41,8 @@ export 'play_error.dart' show PlayErrorEvent, PlayErrorKind;
 
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
+import '../../../domain/models/media_quality.dart';
+import '../../providers/settings_provider.dart';
 
 class SonoraAudioHandler extends BaseAudioHandler {
   final Player _player = Player(
@@ -72,6 +74,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Player get player => _player;
   LocalAudioProxyServer? get proxyServer => _proxyServer;
+
+  /// Syncs stream quality / video playback prefs used when building proxy URLs.
+  void updateStreamPrefs({
+    MediaQuality? streamQuality,
+    bool? enableVideoPlayback,
+  }) {
+    _queueController.updateStreamPrefs(
+      streamQuality: streamQuality,
+      enableVideoPlayback: enableVideoPlayback,
+    );
+  }
 
   bool _isStopping = false;
   bool _userWantsPlaying = false;
@@ -123,6 +136,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
       getRepeatMode: () => playbackState.value.repeatMode,
       updateQueueStream: (items) => queue.add(items),
       proxyServer: _proxyServer,
+      streamQuality: MediaQuality.fromStorage(
+        _prefs.getString(kStreamQualityKey),
+      ),
+      enableVideoPlayback: _prefs.getBool(kEnableVideoPlaybackKey) ?? false,
     );
 
     // After QueueController so userQueue/upNextQueue callbacks are valid.

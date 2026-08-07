@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/services/media_cache_service.dart';
+import '../../domain/models/media_quality.dart';
 import '../features/home/providers/home_provider.dart';
+import 'stream_datasource_provider.dart';
 import 'ytmusic_provider.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
@@ -22,6 +25,8 @@ class Settings {
   final bool restoreQueueOnStartup;
   final bool autoPlayUpNext;
   final bool enableVideoPlayback;
+  final MediaQuality streamQuality;
+  final MediaQuality downloadQuality;
   final String? downloadPath;
   final bool downloadOnlyOnWifi;
   final bool trackHistory;
@@ -44,6 +49,8 @@ class Settings {
     this.restoreQueueOnStartup = true,
     this.autoPlayUpNext = true,
     this.enableVideoPlayback = false,
+    this.streamQuality = MediaQuality.high,
+    this.downloadQuality = MediaQuality.high,
     this.downloadPath,
     this.downloadOnlyOnWifi = false,
     this.trackHistory = true,
@@ -67,6 +74,8 @@ class Settings {
     bool? restoreQueueOnStartup,
     bool? autoPlayUpNext,
     bool? enableVideoPlayback,
+    MediaQuality? streamQuality,
+    MediaQuality? downloadQuality,
     String? downloadPath,
     bool? downloadOnlyOnWifi,
     bool? trackHistory,
@@ -91,6 +100,8 @@ class Settings {
           restoreQueueOnStartup ?? this.restoreQueueOnStartup,
       autoPlayUpNext: autoPlayUpNext ?? this.autoPlayUpNext,
       enableVideoPlayback: enableVideoPlayback ?? this.enableVideoPlayback,
+      streamQuality: streamQuality ?? this.streamQuality,
+      downloadQuality: downloadQuality ?? this.downloadQuality,
       downloadPath:
           clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
       downloadOnlyOnWifi: downloadOnlyOnWifi ?? this.downloadOnlyOnWifi,
@@ -127,6 +138,12 @@ class SettingsNotifier extends Notifier<Settings> {
       restoreQueueOnStartup: _prefs.getBool(kRestoreQueueKey) ?? true,
       autoPlayUpNext: _prefs.getBool(kAutoPlayUpNextKey) ?? true,
       enableVideoPlayback: _prefs.getBool(kEnableVideoPlaybackKey) ?? false,
+      streamQuality: MediaQuality.fromStorage(
+        _prefs.getString(kStreamQualityKey),
+      ),
+      downloadQuality: MediaQuality.fromStorage(
+        _prefs.getString(kDownloadQualityKey),
+      ),
       downloadPath: _prefs.getString(kDownloadPathKey),
       downloadOnlyOnWifi: _prefs.getBool(kDownloadWifiKey) ?? false,
       trackHistory: _prefs.getBool(kTrackHistoryKey) ?? true,
@@ -152,6 +169,11 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kRestoreQueueKey, state.restoreQueueOnStartup);
     await _prefs.setBool(kAutoPlayUpNextKey, state.autoPlayUpNext);
     await _prefs.setBool(kEnableVideoPlaybackKey, state.enableVideoPlayback);
+    await _prefs.setString(kStreamQualityKey, state.streamQuality.storageValue);
+    await _prefs.setString(
+      kDownloadQualityKey,
+      state.downloadQuality.storageValue,
+    );
     if (state.downloadPath != null) {
       await _prefs.setString(kDownloadPathKey, state.downloadPath!);
     } else {
@@ -223,7 +245,23 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> setEnableVideoPlayback(bool value) async {
+    if (state.enableVideoPlayback == value) return;
     state = state.copyWith(enableVideoPlayback: value);
+    await _save();
+    ref.read(streamDatasourceProvider).clearUrlCache();
+  }
+
+  Future<void> setStreamQuality(MediaQuality value) async {
+    if (state.streamQuality == value) return;
+    state = state.copyWith(streamQuality: value);
+    await _save();
+    ref.read(streamDatasourceProvider).clearUrlCache();
+    await MediaCacheService.instance.clearCache();
+  }
+
+  Future<void> setDownloadQuality(MediaQuality value) async {
+    if (state.downloadQuality == value) return;
+    state = state.copyWith(downloadQuality: value);
     await _save();
   }
 
@@ -300,6 +338,8 @@ const kCrossfadeSecondsKey = 'crossfadeSeconds';
 const kRestoreQueueKey = 'restoreQueueOnStartup';
 const kAutoPlayUpNextKey = 'autoPlayUpNext';
 const kEnableVideoPlaybackKey = 'enableVideoPlayback';
+const kStreamQualityKey = 'streamQuality';
+const kDownloadQualityKey = 'downloadQuality';
 const kDownloadPathKey = 'downloadPath';
 const kDownloadWifiKey = 'downloadOnlyOnWifi';
 const kTrackHistoryKey = 'trackHistory';

@@ -31,6 +31,7 @@ import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
 import 'data/services/local_audio_proxy_server.dart';
 import 'data/services/sync_service.dart';
+import 'domain/models/media_quality.dart';
 import 'domain/usecases/download/cleanup_incomplete_downloads_use_case.dart';
 import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
@@ -78,7 +79,10 @@ Future<void> main() async {
   // tree is rendered.
   final db = createAppDatabase();
   final ytmusicDs = YtmusicDatasource();
-  final streamDs = StreamDatasource();
+  final streamDs = StreamDatasource(
+    getDefaultQuality:
+        () => MediaQuality.fromStorage(prefs.getString(kStreamQualityKey)),
+  );
 
   final proxyServer = LocalAudioProxyServer(streamDatasource: streamDs);
   await proxyServer.start();
@@ -312,6 +316,19 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
         }
       }
     });
+
+    // Keep queue proxy URLs in sync with stream quality / video playback prefs.
+    ref.listen(
+      settingsProvider.select((s) => (s.streamQuality, s.enableVideoPlayback)),
+      (previous, next) {
+        ref
+            .read(audioHandlerProvider)
+            .updateStreamPrefs(
+              streamQuality: next.$1,
+              enableVideoPlayback: next.$2,
+            );
+      },
+    );
 
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);

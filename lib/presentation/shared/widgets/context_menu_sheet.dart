@@ -575,6 +575,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                                   artist: artist,
                                   thumbnailUrl: thumbnailUrl,
                                   isExplicit: isExplicit,
+                                  isVideo: isVideo,
                                 );
                           }
                         });
@@ -587,6 +588,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                               artist: artist,
                               thumbnailUrl: thumbnailUrl,
                               isExplicit: isExplicit,
+                              isVideo: isVideo,
                             );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -977,6 +979,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                                   artist: artist,
                                   thumbnailUrl: thumbnailUrl,
                                   isExplicit: isExplicit,
+                                  isVideo: isVideo,
                                 );
                           }
                         });
@@ -989,6 +992,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                               artist: artist,
                               thumbnailUrl: thumbnailUrl,
                               isExplicit: isExplicit,
+                              isVideo: isVideo,
                             );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

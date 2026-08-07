@@ -6,6 +6,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
+import '../../domain/models/media_quality.dart';
 import '../datasources/remote/stream_datasource.dart';
 import 'media_cache_service.dart';
 
@@ -68,22 +69,38 @@ class LocalAudioProxyServer {
   }
 
   /// Constructs a local proxy stream URL for a given [videoId].
-  String getStreamUrlForVideo(String videoId) {
+  ///
+  /// [quality] and [preferVideo] are forwarded as query params so the handler
+  /// can resolve the correct YouTube stream when media_kit requests the URL.
+  String getStreamUrlForVideo(
+    String videoId, {
+    MediaQuality quality = MediaQuality.high,
+    bool preferVideo = false,
+  }) {
     if (!isRunning) {
       dev.log(
         '[LocalAudioProxyServer] WARNING: Server requested before start() was called!',
       );
     }
-    return '$streamBaseUrl/stream?videoId=$videoId';
+    final params = <String, String>{
+      'videoId': videoId,
+      'q': quality.storageValue,
+      if (preferVideo) 'v': '1',
+    };
+    return Uri.parse(
+      '$streamBaseUrl/stream',
+    ).replace(queryParameters: params).toString();
   }
 
-  /// Route handler for `/stream?videoId=...`
+  /// Route handler for `/stream?videoId=...&q=...&v=...`
   Future<Response> _handleStream(Request request) async {
     final videoId = request.url.queryParameters['videoId'];
     if (videoId == null || videoId.isEmpty) {
       return Response.badRequest(body: 'Missing videoId parameter');
     }
 
+    final quality = MediaQuality.fromStorage(request.url.queryParameters['q']);
+    final preferVideo = request.url.queryParameters['v'] == '1';
     final rangeHeaderStr = request.headers['range'];
 
     // 1. Check if the audio file is cached locally on disk
@@ -106,7 +123,11 @@ class LocalAudioProxyServer {
     // 2. Resolve remote YouTube stream URL
     String? streamUrl;
     try {
-      streamUrl = await _streamDatasource.getStreamUrl(videoId);
+      streamUrl = await _streamDatasource.getStreamUrl(
+        videoId,
+        quality: quality,
+        preferVideo: preferVideo,
+      );
     } catch (e) {
       dev.log(
         '[LocalAudioProxyServer] Failed to resolve stream URL for $videoId: $e',
@@ -117,7 +138,13 @@ class LocalAudioProxyServer {
     }
 
     // 3. Proxy remote stream to media_kit with anti-429 & auto-retry
-    return await _proxyRemoteStream(videoId, streamUrl, rangeHeaderStr);
+    return await _proxyRemoteStream(
+      videoId,
+      streamUrl,
+      rangeHeaderStr,
+      quality: quality,
+      preferVideo: preferVideo,
+    );
   }
 
   /// Serves a local disk file with full HTTP Range request support.
@@ -170,8 +197,10 @@ class LocalAudioProxyServer {
   Future<Response> _proxyRemoteStream(
     String videoId,
     String initialUrl,
-    String? rangeHeaderStr,
-  ) async {
+    String? rangeHeaderStr, {
+    required MediaQuality quality,
+    required bool preferVideo,
+  }) async {
     int attempts = 0;
     String currentUrl = initialUrl;
 
@@ -198,7 +227,11 @@ class LocalAudioProxyServer {
           );
           client.close();
           _streamDatasource.invalidateCache(videoId);
-          currentUrl = await _streamDatasource.getStreamUrl(videoId);
+          currentUrl = await _streamDatasource.getStreamUrl(
+            videoId,
+            quality: quality,
+            preferVideo: preferVideo,
+          );
           continue;
         }
 
@@ -233,7 +266,11 @@ class LocalAudioProxyServer {
         await Future.delayed(const Duration(milliseconds: 500));
         try {
           _streamDatasource.invalidateCache(videoId);
-          currentUrl = await _streamDatasource.getStreamUrl(videoId);
+          currentUrl = await _streamDatasource.getStreamUrl(
+            videoId,
+            quality: quality,
+            preferVideo: preferVideo,
+          );
         } catch (_) {}
       }
     }

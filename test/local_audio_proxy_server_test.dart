@@ -4,12 +4,22 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/data/datasources/remote/stream_datasource.dart';
 import 'package:sonora/data/services/local_audio_proxy_server.dart';
+import 'package:sonora/domain/models/media_quality.dart';
 
 class MockStreamDatasource extends StreamDatasource {
   bool invalidateCalled = false;
+  MediaQuality? lastQuality;
+  bool? lastPreferVideo;
 
   @override
-  Future<String> getStreamUrl(String videoId, {int attempt = 1}) async {
+  Future<String> getStreamUrl(
+    String videoId, {
+    MediaQuality? quality,
+    bool preferVideo = false,
+    int attempt = 1,
+  }) async {
+    lastQuality = quality;
+    lastPreferVideo = preferVideo;
     return 'http://example.com/test_stream.mp3';
   }
 
@@ -52,7 +62,23 @@ void main() {
       final url = proxyServer.getStreamUrlForVideo(videoId);
       expect(
         url,
-        equals('http://127.0.0.1:${proxyServer.port}/stream?videoId=$videoId'),
+        equals(
+          'http://127.0.0.1:${proxyServer.port}/stream?videoId=$videoId&q=high',
+        ),
+      );
+    });
+
+    test('getStreamUrlForVideo includes quality and preferVideo', () {
+      final url = proxyServer.getStreamUrlForVideo(
+        'vid',
+        quality: MediaQuality.mid,
+        preferVideo: true,
+      );
+      expect(
+        url,
+        equals(
+          'http://127.0.0.1:${proxyServer.port}/stream?videoId=vid&q=mid&v=1',
+        ),
       );
     });
 

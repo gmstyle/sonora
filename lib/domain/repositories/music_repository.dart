@@ -1,5 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
+import '../models/media_quality.dart';
+
 abstract class MusicRepository {
   Future<BrowseHomeResult> getHome({String? params, String? browseId});
   Future<List<SongDetailed>> searchSongs(String query);
@@ -21,5 +23,9 @@ abstract class MusicRepository {
   Future<AlbumFull> getAlbum(String albumId);
   Future<PlaylistFull> getPlaylist(String playlistId);
   Future<List<VideoDetailed>> getPlaylistVideos(String playlistId);
-  Future<String> getStreamUrl(String videoId);
+  Future<String> getStreamUrl(
+    String videoId, {
+    MediaQuality? quality,
+    bool preferVideo = false,
+  });
 }
