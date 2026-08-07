@@ -41,7 +41,13 @@ endif()
 # of modifying this function.
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_14)
-  target_compile_options(${TARGET} PRIVATE -Wall -Werror -Wno-error=deprecated-declarations)
+  # -Wno-error=incompatible-pointer-types: package:jni (AttachCurrentThread)
+  # fails on Clang 16+ where that warning is an error under -Werror.
+  target_compile_options(${TARGET} PRIVATE
+    -Wall -Werror
+    -Wno-error=deprecated-declarations
+    -Wno-error=incompatible-pointer-types
+  )
   target_compile_options(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:-O3>")
   target_compile_definitions(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
 endfunction()
@@ -72,6 +78,12 @@ set_target_properties(${BINARY_NAME}
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+#
+# Clang 16+ / GCC 14 treat -Wincompatible-pointer-types as an error by default
+# in C. package:jni still passes JNIEnv** where AttachCurrentThread expects
+# void**, and its CMakeLists does not call APPLY_STANDARD_SETTINGS — so set
+# the flag globally for C before plugins are added.
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=incompatible-pointer-types")
 include(flutter/generated_plugins.cmake)
 
 
