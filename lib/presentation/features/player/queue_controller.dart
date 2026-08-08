@@ -79,10 +79,12 @@ class QueueController {
     MediaQuality? streamVideoQuality,
     bool? enableVideoPlayback,
   }) {
-    if (streamAudioQuality != null)
+    if (streamAudioQuality != null) {
       this.streamAudioQuality = streamAudioQuality;
-    if (streamVideoQuality != null)
+    }
+    if (streamVideoQuality != null) {
       this.streamVideoQuality = streamVideoQuality;
+    }
     if (enableVideoPlayback != null) {
       this.enableVideoPlayback = enableVideoPlayback;
     }
