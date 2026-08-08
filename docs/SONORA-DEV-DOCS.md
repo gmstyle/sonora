@@ -74,10 +74,12 @@ lib/
 │       └── sync_service.dart           # P2P local synchronization service
 ├── domain/
 │   ├── media/
-│   │   └── stream_quality_selector.dart # audioOnly / muxed pick by MediaQuality
+│   │   └── stream_quality_selector.dart # audioOnly / muxed / adaptive videoOnly+audioOnly
 │   ├── models/
 │   │   ├── library_models.dart         # 10 PODO (LikedSong, FollowedArtist, ...History, SearchHistory)
-│   │   └── media_quality.dart          # MediaQuality { high, mid, low }
+│   │   ├── media_quality.dart          # MediaQuality { high, mid, low }
+│   │   ├── playback_selection.dart     # PlaybackSelection (primary + optional externalAudio)
+│   │   └── stream_role.dart            # StreamRole { primary, video, audio }
 │   ├── repositories/
 │   │   ├── music_repository.dart
 │   │   ├── library_repository.dart
@@ -363,20 +365,22 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
 
 - **`LocalAudioProxyServer` (`local_audio_proxy_server.dart`)**:
   - Runs locally on `127.0.0.1` using a dynamic ephemeral port assigned by the OS at startup.
-  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&q=<high|mid|low>[&v=1]`.
-    - `q` — streaming quality from `Settings.streamQuality` (built by `QueueController.toMedia`).
-    - `v=1` — prefer muxed A/V when `Settings.enableVideoPlayback && track.isVideo`.
-  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage.
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, quality:, preferVideo:)` and `YoutubeRequestScheduler`.
-  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same quality / preferVideo, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit). Changing `streamQuality` clears this cache so a different tier is not reused.
+  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&qa=<high|mid|low>&qv=<high|mid|low>[&v=1][&kind=video|audio]` (legacy `q` still accepted as fallback for both).
+    - `qa` / `qv` — streaming audio / video quality from `Settings.streamAudioQuality` / `Settings.streamVideoQuality` (built by `QueueController.toMedia`).
+    - `v=1` — video playback path when `Settings.enableVideoPlayback && track.isVideo`.
+    - `kind=video|audio` — adaptive HD pair (primary video-only URI + external audio URI).
+  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first (skipped for adaptive `preferVideo`, including `kind=video`). If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage.
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, videoQuality:, preferVideo:, role:)` and `YoutubeRequestScheduler`.
+  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio/video quality / preferVideo / role, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
+  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit), except adaptive video playback (`preferVideo`) so an audio-only file is not stored under the same `videoId`. Changing either streaming quality clears this cache so a different tier is not reused.
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
-  - Shared enum `MediaQuality { high, mid, low }` for both streaming (`Settings.streamQuality`) and downloads (`Settings.downloadQuality`).
-  - `preferVideo == false` (audio listening): pick from `manifest.audioOnly` via `sortByBitrate()` — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
-  - `preferVideo == true` (show / download video): pick from `manifest.muxed` — high = highest bitrate, mid ≈ `medium360`, low ≈ `low240`/`low144`. Fallback to audio-only if muxed is empty.
-  - **Muxed ceiling ~360p**: media_kit opens a single URL; true HD would need adaptive `videoOnly` + `audioOnly` (out of scope). The fork of `youtube_explode_dart` defaults to the `androidVr` client so adaptive/audio-only URLs work again (no longer forced to muxed-only for the #332 CDN 403 bug).
-  - `StreamDatasource` caches by `videoId|quality|preferVideo` and exposes `clearUrlCache()` when stream quality or video playback settings change.
+  - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`), streaming video (`Settings.streamVideoQuality`), and downloads (`Settings.downloadQuality`).
+  - `preferVideo == false` (audio listening): pick from `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
+  - **Local video HD (adaptive)**: when `preferVideo`, `selectPlayback` pairs `videoOnly` at **video** quality (high ≤1080p, mid ≈720p, low ≈360p) with `audioOnly` at **audio** quality. `QueueController.toMedia` builds a video proxy URI plus `extras.audioProxyUrl`; `AdaptiveAudioBinder` calls `player.setAudioTrack(AudioTrack.uri(...))` after confirming the plan is adaptive. If `videoOnly`/`audioOnly` are missing → muxed fallback (~360p, video quality) and no external audio (avoids double audio).
+  - **Downloads / cast**: still single-URL (`select` / `resolveUrl`) — muxed when video, audio-only otherwise, using `downloadQuality` / resolve quality. Cast stays non-adaptive.
+  - The fork of `youtube_explode_dart` defaults to the `androidVr` client so adaptive URLs work (no longer forced to muxed-only for the #332 CDN 403 bug).
+  - `StreamDatasource` caches playback plans by `videoId|audioQ|videoQ|preferVideo` and exposes `clearUrlCache()` when stream audio/video quality or video playback settings change.
 
 - **Dual-Path Playback Architecture:**
   - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects stream via `StreamQualitySelector` using `downloadQuality` and `isVideo`. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
@@ -823,7 +827,8 @@ Produces:
 | `restoreQueueOnStartup` | bool | true | QueueUseCase at boot |
 | `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
 | `enableVideoPlayback` | bool | false | Video track attach + `preferVideo` on proxy URLs; clears stream URL cache |
-| `streamQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / `StreamDatasource` selection; clears URL + media cache |
+| `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / audio stream pick; clears URL + media cache (legacy `streamQuality` migrates here) |
+| `streamVideoQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / adaptive video pick; clears URL + media cache (legacy `streamQuality` migrates here) |
 | `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` stream pick |
 | `downloadPath` | String? | null | StartDownloadUseCase |
 | `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
