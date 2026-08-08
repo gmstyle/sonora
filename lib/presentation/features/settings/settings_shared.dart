@@ -71,29 +71,39 @@ class SettingsSwitchTile extends StatelessWidget {
 
 class SettingsDropdownTile extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final String value;
   final Map<String, String> options;
   final ValueChanged<String?> onChanged;
+  final IconData? icon;
 
   const SettingsDropdownTile({
     super.key,
     required this.title,
+    this.subtitle,
     required this.value,
     required this.options,
     required this.onChanged,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ListTile(
+      leading: icon != null ? Icon(icon) : null,
       title: Text(title),
-      subtitle: Text(options[value] ?? value),
-      trailing: SizedBox(
-        width: 150,
+      subtitle: subtitle != null ? Text(subtitle!) : null,
+      trailing: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          isExpanded: true,
-          underline: const SizedBox(),
+          // Intrinsic width keeps the control compact like a Switch,
+          // aligned to the trailing edge of the tile.
+          alignment: AlignmentDirectional.centerEnd,
+          borderRadius: BorderRadius.circular(8),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurface,
+          ),
           items:
               options.entries
                   .map(
@@ -103,6 +113,23 @@ class SettingsDropdownTile extends StatelessWidget {
                     ),
                   )
                   .toList(),
+          selectedItemBuilder: (context) {
+            return options.entries
+                .map(
+                  (e) => Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 140),
+                      child: Text(
+                        e.value,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ),
+                )
+                .toList();
+          },
           onChanged: onChanged,
         ),
       ),

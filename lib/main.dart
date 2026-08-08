@@ -80,8 +80,16 @@ Future<void> main() async {
   final db = createAppDatabase();
   final ytmusicDs = YtmusicDatasource();
   final streamDs = StreamDatasource(
-    getDefaultQuality:
-        () => MediaQuality.fromStorage(prefs.getString(kStreamQualityKey)),
+    getDefaultAudioQuality:
+        () => MediaQuality.fromStorage(
+          prefs.getString(kStreamAudioQualityKey) ??
+              prefs.getString(kStreamQualityKey),
+        ),
+    getDefaultVideoQuality:
+        () => MediaQuality.fromStorage(
+          prefs.getString(kStreamVideoQualityKey) ??
+              prefs.getString(kStreamQualityKey),
+        ),
   );
 
   final proxyServer = LocalAudioProxyServer(streamDatasource: streamDs);
@@ -110,6 +118,7 @@ Future<void> main() async {
     prefs: prefs,
     queueRepo: queueRepo,
     proxyServer: proxyServer,
+    streamDatasource: streamDs,
   );
 
   if (isAndroid || isLinux) {
@@ -319,13 +328,20 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
 
     // Keep queue proxy URLs in sync with stream quality / video playback prefs.
     ref.listen(
-      settingsProvider.select((s) => (s.streamQuality, s.enableVideoPlayback)),
+      settingsProvider.select(
+        (s) => (
+          s.streamAudioQuality,
+          s.streamVideoQuality,
+          s.enableVideoPlayback,
+        ),
+      ),
       (previous, next) {
         ref
             .read(audioHandlerProvider)
             .updateStreamPrefs(
-              streamQuality: next.$1,
-              enableVideoPlayback: next.$2,
+              streamAudioQuality: next.$1,
+              streamVideoQuality: next.$2,
+              enableVideoPlayback: next.$3,
             );
       },
     );

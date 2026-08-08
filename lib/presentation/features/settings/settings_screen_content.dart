@@ -260,6 +260,7 @@ class _ContentSection extends StatelessWidget {
           title: AppLocalizations.of(context)!.countryGl,
           value: settings.gl,
           options: kCountryCodes,
+          icon: LucideIcons.globe,
           onChanged: (v) {
             if (v != null) notifier.setGl(v);
           },
@@ -269,6 +270,7 @@ class _ContentSection extends StatelessWidget {
           title: AppLocalizations.of(context)!.languageHl,
           value: settings.hl,
           options: kLanguageCodes,
+          icon: LucideIcons.languages,
           onChanged: (v) {
             if (v != null) notifier.setHl(v);
           },
@@ -341,8 +343,9 @@ class _PlaybackSection extends ConsumerWidget {
         ),
         const Divider(height: 1),
         SettingsDropdownTile(
-          title: l10n.streamQuality,
-          value: settings.streamQuality.storageValue,
+          title: l10n.streamAudioQuality,
+          value: settings.streamAudioQuality.storageValue,
+          icon: LucideIcons.audioLines,
           options: {
             MediaQuality.high.storageValue: l10n.qualityHigh,
             MediaQuality.mid.storageValue: l10n.qualityMid,
@@ -350,7 +353,23 @@ class _PlaybackSection extends ConsumerWidget {
           },
           onChanged: (v) {
             if (v != null) {
-              notifier.setStreamQuality(MediaQuality.fromStorage(v));
+              notifier.setStreamAudioQuality(MediaQuality.fromStorage(v));
+            }
+          },
+        ),
+        const Divider(height: 1),
+        SettingsDropdownTile(
+          title: l10n.streamVideoQuality,
+          value: settings.streamVideoQuality.storageValue,
+          icon: LucideIcons.monitorPlay,
+          options: {
+            MediaQuality.high.storageValue: l10n.qualityHigh,
+            MediaQuality.mid.storageValue: l10n.qualityMid,
+            MediaQuality.low.storageValue: l10n.qualityLow,
+          },
+          onChanged: (v) {
+            if (v != null) {
+              notifier.setStreamVideoQuality(MediaQuality.fromStorage(v));
             }
           },
         ),
@@ -412,6 +431,7 @@ class _DownloadSection extends StatelessWidget {
         SettingsDropdownTile(
           title: AppLocalizations.of(context)!.downloadQuality,
           value: settings.downloadQuality.storageValue,
+          icon: LucideIcons.gauge,
           options: {
             MediaQuality.high.storageValue:
                 AppLocalizations.of(context)!.qualityHigh,
@@ -660,7 +680,8 @@ class _BackupSection extends StatelessWidget {
         'restoreQueueOnStartup': settings.restoreQueueOnStartup,
         'autoPlayUpNext': settings.autoPlayUpNext,
         'enableVideoPlayback': settings.enableVideoPlayback,
-        'streamQuality': settings.streamQuality.storageValue,
+        'streamAudioQuality': settings.streamAudioQuality.storageValue,
+        'streamVideoQuality': settings.streamVideoQuality.storageValue,
         'downloadQuality': settings.downloadQuality.storageValue,
         'downloadOnlyOnWifi': settings.downloadOnlyOnWifi,
         'trackHistory': settings.trackHistory,
@@ -805,12 +826,20 @@ class _BackupSection extends StatelessWidget {
             importedSettings['enableVideoPlayback'] as bool,
           );
         }
-        if (importedSettings.containsKey('streamQuality')) {
-          notifier.setStreamQuality(
-            MediaQuality.fromStorage(
-              importedSettings['streamQuality'] as String?,
-            ),
-          );
+        if (importedSettings.containsKey('streamAudioQuality') ||
+            importedSettings.containsKey('streamVideoQuality') ||
+            importedSettings.containsKey('streamQuality')) {
+          final legacy = importedSettings['streamQuality'] as String?;
+          final audioRaw =
+              importedSettings['streamAudioQuality'] as String? ?? legacy;
+          final videoRaw =
+              importedSettings['streamVideoQuality'] as String? ?? legacy;
+          if (audioRaw != null) {
+            notifier.setStreamAudioQuality(MediaQuality.fromStorage(audioRaw));
+          }
+          if (videoRaw != null) {
+            notifier.setStreamVideoQuality(MediaQuality.fromStorage(videoRaw));
+          }
         }
         if (importedSettings.containsKey('downloadQuality')) {
           notifier.setDownloadQuality(
@@ -925,6 +954,7 @@ class _LocalSyncSection extends StatelessWidget {
           SettingsDropdownTile(
             title: l10n.playlistConflictStrategy,
             value: settings.playlistConflictStrategy,
+            icon: LucideIcons.gitMerge,
             options: {
               'merge': l10n.conflictStrategyMerge,
               'keepBoth': l10n.conflictStrategyKeepBoth,

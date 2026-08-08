@@ -90,6 +90,10 @@ class MusicRepositoryImpl implements MusicRepository {
     String videoId, {
     MediaQuality? quality,
     bool preferVideo = false,
-  }) =>
-      _stream.getStreamUrl(videoId, quality: quality, preferVideo: preferVideo);
+  }) => _stream.getStreamUrl(
+    videoId,
+    audioQuality: quality,
+    videoQuality: quality,
+    preferVideo: preferVideo,
+  );
 }

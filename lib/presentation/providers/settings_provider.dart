@@ -25,7 +25,8 @@ class Settings {
   final bool restoreQueueOnStartup;
   final bool autoPlayUpNext;
   final bool enableVideoPlayback;
-  final MediaQuality streamQuality;
+  final MediaQuality streamAudioQuality;
+  final MediaQuality streamVideoQuality;
   final MediaQuality downloadQuality;
   final String? downloadPath;
   final bool downloadOnlyOnWifi;
@@ -49,7 +50,8 @@ class Settings {
     this.restoreQueueOnStartup = true,
     this.autoPlayUpNext = true,
     this.enableVideoPlayback = false,
-    this.streamQuality = MediaQuality.high,
+    this.streamAudioQuality = MediaQuality.high,
+    this.streamVideoQuality = MediaQuality.high,
     this.downloadQuality = MediaQuality.high,
     this.downloadPath,
     this.downloadOnlyOnWifi = false,
@@ -74,7 +76,8 @@ class Settings {
     bool? restoreQueueOnStartup,
     bool? autoPlayUpNext,
     bool? enableVideoPlayback,
-    MediaQuality? streamQuality,
+    MediaQuality? streamAudioQuality,
+    MediaQuality? streamVideoQuality,
     MediaQuality? downloadQuality,
     String? downloadPath,
     bool? downloadOnlyOnWifi,
@@ -100,7 +103,8 @@ class Settings {
           restoreQueueOnStartup ?? this.restoreQueueOnStartup,
       autoPlayUpNext: autoPlayUpNext ?? this.autoPlayUpNext,
       enableVideoPlayback: enableVideoPlayback ?? this.enableVideoPlayback,
-      streamQuality: streamQuality ?? this.streamQuality,
+      streamAudioQuality: streamAudioQuality ?? this.streamAudioQuality,
+      streamVideoQuality: streamVideoQuality ?? this.streamVideoQuality,
       downloadQuality: downloadQuality ?? this.downloadQuality,
       downloadPath:
           clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
@@ -138,8 +142,13 @@ class SettingsNotifier extends Notifier<Settings> {
       restoreQueueOnStartup: _prefs.getBool(kRestoreQueueKey) ?? true,
       autoPlayUpNext: _prefs.getBool(kAutoPlayUpNextKey) ?? true,
       enableVideoPlayback: _prefs.getBool(kEnableVideoPlaybackKey) ?? false,
-      streamQuality: MediaQuality.fromStorage(
-        _prefs.getString(kStreamQualityKey),
+      streamAudioQuality: MediaQuality.fromStorage(
+        _prefs.getString(kStreamAudioQualityKey) ??
+            _prefs.getString(kStreamQualityKey),
+      ),
+      streamVideoQuality: MediaQuality.fromStorage(
+        _prefs.getString(kStreamVideoQualityKey) ??
+            _prefs.getString(kStreamQualityKey),
       ),
       downloadQuality: MediaQuality.fromStorage(
         _prefs.getString(kDownloadQualityKey),
@@ -169,7 +178,14 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kRestoreQueueKey, state.restoreQueueOnStartup);
     await _prefs.setBool(kAutoPlayUpNextKey, state.autoPlayUpNext);
     await _prefs.setBool(kEnableVideoPlaybackKey, state.enableVideoPlayback);
-    await _prefs.setString(kStreamQualityKey, state.streamQuality.storageValue);
+    await _prefs.setString(
+      kStreamAudioQualityKey,
+      state.streamAudioQuality.storageValue,
+    );
+    await _prefs.setString(
+      kStreamVideoQualityKey,
+      state.streamVideoQuality.storageValue,
+    );
     await _prefs.setString(
       kDownloadQualityKey,
       state.downloadQuality.storageValue,
@@ -251,9 +267,17 @@ class SettingsNotifier extends Notifier<Settings> {
     ref.read(streamDatasourceProvider).clearUrlCache();
   }
 
-  Future<void> setStreamQuality(MediaQuality value) async {
-    if (state.streamQuality == value) return;
-    state = state.copyWith(streamQuality: value);
+  Future<void> setStreamAudioQuality(MediaQuality value) async {
+    if (state.streamAudioQuality == value) return;
+    state = state.copyWith(streamAudioQuality: value);
+    await _save();
+    ref.read(streamDatasourceProvider).clearUrlCache();
+    await MediaCacheService.instance.clearCache();
+  }
+
+  Future<void> setStreamVideoQuality(MediaQuality value) async {
+    if (state.streamVideoQuality == value) return;
+    state = state.copyWith(streamVideoQuality: value);
     await _save();
     ref.read(streamDatasourceProvider).clearUrlCache();
     await MediaCacheService.instance.clearCache();
@@ -338,7 +362,11 @@ const kCrossfadeSecondsKey = 'crossfadeSeconds';
 const kRestoreQueueKey = 'restoreQueueOnStartup';
 const kAutoPlayUpNextKey = 'autoPlayUpNext';
 const kEnableVideoPlaybackKey = 'enableVideoPlayback';
+
+/// Legacy single stream-quality key; still read as migration fallback.
 const kStreamQualityKey = 'streamQuality';
+const kStreamAudioQualityKey = 'streamAudioQuality';
+const kStreamVideoQualityKey = 'streamVideoQuality';
 const kDownloadQualityKey = 'downloadQuality';
 const kDownloadPathKey = 'downloadPath';
 const kDownloadWifiKey = 'downloadOnlyOnWifi';

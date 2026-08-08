@@ -5,6 +5,7 @@ import 'package:sonora/data/datasources/remote/stream_datasource.dart';
 import 'package:sonora/data/services/local_audio_proxy_server.dart';
 import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/models/queue_track.dart';
+import 'package:sonora/domain/models/stream_role.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
 import 'package:sonora/presentation/features/player/queue_controller.dart';
 
@@ -12,8 +13,10 @@ class _FakeStreamDatasource extends StreamDatasource {
   @override
   Future<String> getStreamUrl(
     String videoId, {
-    MediaQuality? quality,
+    MediaQuality? audioQuality,
+    MediaQuality? videoQuality,
     bool preferVideo = false,
+    StreamRole role = StreamRole.primary,
     int attempt = 1,
   }) async {
     return 'http://example.com/$videoId.mp3';
@@ -87,12 +90,21 @@ void main() {
 
     expect(
       media.uri,
-      proxy.getStreamUrlForVideo('vid2', quality: MediaQuality.high),
+      proxy.getStreamUrlForVideo(
+        'vid2',
+        audioQuality: MediaQuality.high,
+        videoQuality: MediaQuality.high,
+      ),
     );
+    expect(media.extras?['adaptiveCandidate'], isNot(true));
   });
 
-  test('toMedia passes preferVideo when video playback enabled', () {
-    controller.updateStreamPrefs(enableVideoPlayback: true);
+  test('toMedia builds adaptive pair when video playback enabled', () {
+    controller.updateStreamPrefs(
+      enableVideoPlayback: true,
+      streamAudioQuality: MediaQuality.high,
+      streamVideoQuality: MediaQuality.mid,
+    );
     final item =
         const QueueTrack(
           videoId: 'vidVideo',
@@ -108,10 +120,25 @@ void main() {
       media.uri,
       proxy.getStreamUrlForVideo(
         'vidVideo',
-        quality: MediaQuality.high,
+        audioQuality: MediaQuality.high,
+        videoQuality: MediaQuality.mid,
         preferVideo: true,
+        role: StreamRole.video,
       ),
     );
+    expect(media.extras?['adaptiveCandidate'], isTrue);
+    expect(
+      media.extras?['audioProxyUrl'],
+      proxy.getStreamUrlForVideo(
+        'vidVideo',
+        audioQuality: MediaQuality.high,
+        videoQuality: MediaQuality.mid,
+        preferVideo: true,
+        role: StreamRole.audio,
+      ),
+    );
+    expect(media.uri, contains('qa=high'));
+    expect(media.uri, contains('qv=mid'));
   });
 
   test('toMedia uses dummy URL when unresolved and proxy is off', () async {

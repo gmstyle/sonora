@@ -561,7 +561,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show music videos in the player. When disabled, only audio is played.';
 
   @override
-  String get streamQuality => 'Streaming quality';
+  String get streamAudioQuality => 'Streaming audio quality';
+
+  @override
+  String get streamVideoQuality => 'Streaming video quality';
 
   @override
   String get downloadQuality => 'Download quality';

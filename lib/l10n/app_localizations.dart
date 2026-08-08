@@ -1034,11 +1034,17 @@ abstract class AppLocalizations {
   /// **'Show music videos in the player. When disabled, only audio is played.'**
   String get enableVideoPlaybackHint;
 
-  /// No description provided for @streamQuality.
+  /// No description provided for @streamAudioQuality.
   ///
   /// In en, this message translates to:
-  /// **'Streaming quality'**
-  String get streamQuality;
+  /// **'Streaming audio quality'**
+  String get streamAudioQuality;
+
+  /// No description provided for @streamVideoQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaming video quality'**
+  String get streamVideoQuality;
 
   /// No description provided for @downloadQuality.
   ///

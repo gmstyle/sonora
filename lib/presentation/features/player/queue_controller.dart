@@ -8,6 +8,7 @@ import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
+import '../../../domain/models/stream_role.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 /// Dedicated controller for playback queue management.
@@ -35,8 +36,11 @@ class QueueController {
   final void Function(List<MediaItem>) _updateQueueStream;
   final LocalAudioProxyServer? _proxyServer;
 
-  /// Current stream quality preference (updated from settings).
-  MediaQuality streamQuality;
+  /// Current stream audio quality preference (updated from settings).
+  MediaQuality streamAudioQuality;
+
+  /// Current stream video quality preference (updated from settings).
+  MediaQuality streamVideoQuality;
 
   /// Whether video playback is enabled (updated from settings).
   bool enableVideoPlayback;
@@ -58,7 +62,8 @@ class QueueController {
     required AudioServiceRepeatMode Function() getRepeatMode,
     required void Function(List<MediaItem>) updateQueueStream,
     LocalAudioProxyServer? proxyServer,
-    this.streamQuality = MediaQuality.high,
+    this.streamAudioQuality = MediaQuality.high,
+    this.streamVideoQuality = MediaQuality.high,
     this.enableVideoPlayback = false,
   }) : _player = player,
        _queueRepo = queueRepo,
@@ -70,10 +75,14 @@ class QueueController {
 
   /// Syncs stream-related prefs from settings without restarting playback.
   void updateStreamPrefs({
-    MediaQuality? streamQuality,
+    MediaQuality? streamAudioQuality,
+    MediaQuality? streamVideoQuality,
     bool? enableVideoPlayback,
   }) {
-    if (streamQuality != null) this.streamQuality = streamQuality;
+    if (streamAudioQuality != null)
+      this.streamAudioQuality = streamAudioQuality;
+    if (streamVideoQuality != null)
+      this.streamVideoQuality = streamVideoQuality;
     if (enableVideoPlayback != null) {
       this.enableVideoPlayback = enableVideoPlayback;
     }
@@ -304,10 +313,35 @@ class QueueController {
         _proxyServer.isRunning &&
         track.videoId.isNotEmpty) {
       final preferVideo = enableVideoPlayback && track.isVideo;
+      if (preferVideo) {
+        final videoUrl = _proxyServer.getStreamUrlForVideo(
+          track.videoId,
+          audioQuality: streamAudioQuality,
+          videoQuality: streamVideoQuality,
+          preferVideo: true,
+          role: StreamRole.video,
+        );
+        final audioUrl = _proxyServer.getStreamUrlForVideo(
+          track.videoId,
+          audioQuality: streamAudioQuality,
+          videoQuality: streamVideoQuality,
+          preferVideo: true,
+          role: StreamRole.audio,
+        );
+        return Media(
+          videoUrl,
+          extras: {
+            'mediaItem': tagged,
+            'audioProxyUrl': audioUrl,
+            'adaptiveCandidate': true,
+          },
+        );
+      }
       final proxyUrl = _proxyServer.getStreamUrlForVideo(
         track.videoId,
-        quality: streamQuality,
-        preferVideo: preferVideo,
+        audioQuality: streamAudioQuality,
+        videoQuality: streamVideoQuality,
+        preferVideo: false,
       );
       return Media(proxyUrl, extras: {'mediaItem': tagged});
     }
