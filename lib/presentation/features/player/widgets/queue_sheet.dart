@@ -12,6 +12,7 @@ import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/explicit_badge.dart';
 import '../../../shared/widgets/feedback_toast.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/video_badge.dart';
 
 const double _kQueueTileHeight = 68;
 const double _kAccentRailWidth = 3;
@@ -704,6 +705,7 @@ class _QueueItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final track = QueueTrack.fromMediaItem(item);
     final isUpNext = item.extras?['section'] == 'upnext';
     final opacity =
         isUnplayable
@@ -754,7 +756,9 @@ class _QueueItem extends StatelessWidget {
                     child: SizedBox(
                       width: 48,
                       height: 48,
-                      child:
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
                           item.artUri != null
                               ? CachedNetworkImage(
                                 imageUrl: item.artUri!.toString(),
@@ -769,6 +773,20 @@ class _QueueItem extends StatelessWidget {
                                 LucideIcons.music,
                                 color: pc.iconSecondary,
                               ),
+                          if (track.isVideo)
+                            const Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: VideoBadge(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                  vertical: 1,
+                                ),
+                                borderRadius: 3,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -788,7 +806,7 @@ class _QueueItem extends StatelessWidget {
                           child: Text.rich(
                             TextSpan(
                               children: [
-                                if (QueueTrack.fromMediaItem(item).isExplicit)
+                                if (track.isExplicit)
                                   const WidgetSpan(
                                     alignment: PlaceholderAlignment.middle,
                                     child: Padding(
