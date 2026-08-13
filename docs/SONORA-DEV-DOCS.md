@@ -324,7 +324,7 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 |---|---|---|
 | `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔Media conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
 | `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` is skipped for `isVideo` when video playback is on |
-| `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
+| `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady`; media-cache `file://` is not treated as local for adaptive video |
 | `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
 | `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume / ducking |
 | `PlaybackStatePublisher` | `playback_state_publisher.dart` | Projects media_kit state → `audio_service` `PlaybackState` with emit dedupe; `invalidate()` after batch resolves |
@@ -373,7 +373,7 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
   - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, videoQuality:, preferVideo:, role:)` and `YoutubeRequestScheduler`.
   - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio/video quality / preferVideo / role, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
   - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit), except adaptive video playback (`preferVideo`) so an audio-only file is not stored under the same `videoId`. Lookahead prefetch (`TrackUrlResolver`) also skips disk cache for `isVideo` when video playback is enabled. `PlayVideoIdUseCase.resolveUrl(allowMediaCache: false)` is used on that path so a leftover cache file is not reused as the media_kit source. Changing stream quality **or** toggling `enableVideoPlayback` clears this cache.
-  - After URL resolve / retry, `QueueController.endResolving` fires `onResolvingIdle` so `AdaptiveAudioBinder` can attach the external audio track (playlist events during resolving are ignored).
+  - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` so `AdaptiveAudioBinder` can attach the external audio track (playlist events during resolving are ignored). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
   - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`), streaming video (`Settings.streamVideoQuality`), and downloads (`Settings.downloadQuality`).
@@ -403,7 +403,7 @@ If the stream URL expires or fails after retries, recovery advances to an offlin
 Volume fade-in/fade-out on the position stream. Duration configurable via `Settings.crossfadeSeconds` (pushed from `PlayerNotifier` via `setCrossfadeDuration`).
 
 **Restore** — owned by `PlaybackRestoreController`:
-`PlayerNotifier` observes `restoreStatusStream` / `savedPosition` to block controls and seed the seek bar during cold start and warm resume.
+`PlayerNotifier` observes `restoreStatusStream` / `savedPosition` to block controls and seed the seek bar during cold start and warm resume. Persisted `sonora_media_cache` URIs are not kept as local sources when restoring a video track with video playback enabled (they are audio-only). After restore, `onResolvingIdle` binds adaptive audio and `VideoPlayerNotifier` force-kicks `setVideoTrack` so the texture is not left black.
 
 ### 6.2 `PlayerNotifier` (player_provider.dart)
 
@@ -484,6 +484,8 @@ All playlist-rebuilding actions (`setQueue`, `playNow`) are serialized through a
 
 - On the first startup after the upgrade, the persisted queue is cleared (`kPostQueueSplitDoneKey` flag in SharedPreferences) and playback meta is reset, so playback starts from a clean state (handled in `PlaybackRestoreController`).
 - If `autoPlayUpNext` is off at restore time, any upnext items still in the persisted queue are filtered out (also in `PlaybackRestoreController`).
+- Pause/stop write index + `videoId` + position atomically via `persistPlaybackPointer`, so a track change that happened while URL resolve had `isResolvingItem` set still lands on disk. `onResolvingIdle` also flushes the pointer.
+- Media-cache `file://` URLs are not persisted for `isVideo` tracks (audio-only files must not restore as the video source).
 
 **UI:**
 

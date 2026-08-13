@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:developer' as dev;
 
+import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/url_staleness.dart';
+import '../../../data/services/media_cache_service.dart';
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
@@ -85,6 +87,24 @@ class PlaybackRestoreController {
   DateTime? get lastPauseTimestamp => _lastPauseTimestamp;
 
   bool get isRestoring => _restoreStatus == RestoreStatus.restoring;
+
+  /// Whether a persisted URL should be kept as a local file on restore.
+  /// Media-cache files are not kept for video tracks in video mode — they
+  /// are audio-only and would open as a black frame.
+  @visibleForTesting
+  static bool keepLocalUrlOnRestore({
+    required QueueTrack track,
+    required bool enableVideoPlayback,
+  }) {
+    if (!track.isLocalFile) return false;
+    if (enableVideoPlayback &&
+        track.isVideo &&
+        MediaCacheService.isMediaCacheUri(track.url)) {
+      return false;
+    }
+    if (UrlStaleness.isStale(track.url)) return false;
+    return true;
+  }
 
   void markPaused() {
     _lastPauseTimestamp = DateTime.now();
@@ -279,7 +299,10 @@ class PlaybackRestoreController {
                   ? QueueController.tagUpNext(baseItem)
                   : QueueController.tagUser(baseItem);
           final isLocalAndValid =
-              track.isLocalFile && !UrlStaleness.isStale(track.url!);
+              PlaybackRestoreController.keepLocalUrlOnRestore(
+                track: track,
+                enableVideoPlayback: _queueController.enableVideoPlayback,
+              );
           if (isLocalAndValid) {
             return _queueController.ensureQueueId(taggedItem, seenIds);
           }
@@ -330,7 +353,11 @@ class PlaybackRestoreController {
 
     var currentItem = items[savedIndex];
     try {
-      final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
+      final currentTrack = QueueTrack.fromMediaItem(currentItem);
+      final freshUrl = await _playVideoIdUseCase.resolveUrl(
+        currentItem.id,
+        allowMediaCache: !_queueController.prefersAdaptiveVideo(currentTrack),
+      );
       final track = QueueTrack.fromMediaItem(
         currentItem,
       ).copyWith(url: freshUrl, needsUrl: false);

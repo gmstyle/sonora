@@ -60,6 +60,15 @@ abstract class QueueRepository {
   /// queue item list.
   Future<void> persistPosition(Duration position);
 
+  /// Atomically writes index, videoId anchor, and position together so a
+  /// pause/stop cannot leave a stale index with a newer position (or vice
+  /// versa). Does not rewrite the queue item list.
+  Future<void> persistPlaybackPointer({
+    required int currentIndex,
+    String? videoId,
+    required Duration position,
+  });
+
   /// Lightweight update of shuffle/repeat mode only, without touching the
   /// queue table.
   Future<void> persistPlaybackModes({

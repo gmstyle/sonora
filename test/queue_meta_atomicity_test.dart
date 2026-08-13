@@ -129,6 +129,57 @@ void main() {
     });
   });
 
+  group('persistPlaybackPointer', () {
+    test('writes index, videoId and position together', () async {
+      await repo.persistQueue([song('a'), song('b')], currentIndex: 0);
+
+      await repo.persistPlaybackPointer(
+        currentIndex: 1,
+        videoId: 'b',
+        position: const Duration(seconds: 42),
+      );
+
+      final meta = await repo.restoreMeta();
+      expect(meta.currentIndex, 1);
+      expect(meta.currentVideoId, 'b');
+      expect(meta.position, const Duration(seconds: 42));
+    });
+  });
+
+  group('persistQueue streamUrl', () {
+    test('does not persist media-cache URLs for video tracks', () async {
+      final item =
+          const QueueTrack(
+            videoId: 'vid',
+            title: 'Video',
+            artist: 'A',
+            isVideo: true,
+            url: 'file:///tmp/sonora_media_cache/vid.webm',
+          ).toFreshMediaItem();
+      await repo.persistQueue([item], currentIndex: 0);
+
+      final restored = await repo.restoreQueue();
+      expect(restored.single.url, isNull);
+      expect(restored.single.needsUrl, isTrue);
+    });
+
+    test('still persists media-cache URLs for audio tracks', () async {
+      const cacheUrl = 'file:///tmp/sonora_media_cache/song.webm';
+      final item =
+          const QueueTrack(
+            videoId: 'song',
+            title: 'Song',
+            artist: 'A',
+            url: cacheUrl,
+          ).toFreshMediaItem();
+      await repo.persistQueue([item], currentIndex: 0);
+
+      final restored = await repo.restoreQueue();
+      expect(restored.single.url, cacheUrl);
+      expect(restored.single.needsUrl, isFalse);
+    });
+  });
+
   group('persistPlaybackModes', () {
     test(
       'setting shuffle alone does not clobber a previously set repeat mode',

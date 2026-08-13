@@ -79,22 +79,81 @@ class SonoraAudioHandler extends BaseAudioHandler {
   LocalAudioProxyServer? get proxyServer => _proxyServer;
 
   /// Syncs stream quality / video playback prefs used when building proxy URLs.
+  /// Rebuilds in-memory [Media] sources when the playback mode or quality
+  /// actually changes so the current playlist picks up new proxy URLs.
   void updateStreamPrefs({
     MediaQuality? streamAudioQuality,
     MediaQuality? streamVideoQuality,
     bool? enableVideoPlayback,
   }) {
+    final audioChanged =
+        streamAudioQuality != null &&
+        streamAudioQuality != _queueController.streamAudioQuality;
+    final videoChanged =
+        streamVideoQuality != null &&
+        streamVideoQuality != _queueController.streamVideoQuality;
+    final enableChanged =
+        enableVideoPlayback != null &&
+        enableVideoPlayback != _queueController.enableVideoPlayback;
     _queueController.updateStreamPrefs(
       streamAudioQuality: streamAudioQuality,
       streamVideoQuality: streamVideoQuality,
       enableVideoPlayback: enableVideoPlayback,
     );
+    if (audioChanged || videoChanged || enableChanged) {
+      unawaited(_rebuildPlaylistMedia());
+    }
   }
 
   void _syncAdaptiveAudio() {
     final binder = _adaptiveAudioBinder;
     if (binder == null) return;
     unawaited(binder.onPlaylistChanged(_player.state.playlist));
+  }
+
+  Future<void> _persistPlaybackPointer() async {
+    final playlist = _player.state.playlist;
+    final index = playlist.index;
+    if (index < 0) return;
+    String? videoId;
+    if (index < playlist.medias.length) {
+      final item = playlist.medias[index].extras?['mediaItem'] as MediaItem?;
+      if (item != null) {
+        videoId = QueueTrack.fromMediaItem(item).videoId;
+      }
+    }
+    await _queueRepo.persistPlaybackPointer(
+      currentIndex: index,
+      videoId: videoId,
+      position: _player.state.position,
+    );
+  }
+
+  Future<void> _rebuildPlaylistMedia() async {
+    final playlist = _player.state.playlist;
+    if (playlist.medias.isEmpty) return;
+    final items = [
+      for (final media in playlist.medias)
+        media.extras?['mediaItem'] as MediaItem?,
+    ];
+    final index = playlist.index;
+    final pos = _player.state.position;
+    final wasPlaying = _player.state.playing;
+    await _queueController.runBatch(() async {
+      for (var i = 0; i < items.length; i++) {
+        final item = items[i];
+        if (item == null) continue;
+        await _queueController.replaceAtUnlocked(
+          i,
+          _queueController.toMedia(item),
+        );
+      }
+      if (index >= 0 && index < _player.state.playlist.medias.length) {
+        await _player.jump(index);
+        if (pos > Duration.zero) await _player.seek(pos);
+        if (wasPlaying) await _player.play();
+      }
+    }, isStopping: _isStopping);
   }
 
   bool _isStopping = false;
@@ -171,7 +230,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
             )
             : null;
 
-    _queueController.onResolvingIdle = _syncAdaptiveAudio;
+    _queueController.onResolvingIdle = () {
+      _syncAdaptiveAudio();
+      unawaited(_persistPlaybackPointer());
+    };
 
     // After QueueController so userQueue/upNextQueue callbacks are valid.
     _browserController = AndroidAutoBrowserController(
@@ -649,7 +711,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       'last_pause_timestamp',
       DateTime.now().millisecondsSinceEpoch,
     );
-    await _queueRepo.persistPosition(_player.state.position);
+    await _persistPlaybackPointer();
   }
 
   @override
@@ -667,7 +729,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       'last_pause_timestamp',
       DateTime.now().millisecondsSinceEpoch,
     );
-    await _queueRepo.persistPosition(_player.state.position);
+    await _persistPlaybackPointer();
     _isStopping = true;
     _urlResolver.cancelLookahead();
     _volumeController.endTransitionMute();
@@ -1091,7 +1153,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       'last_pause_timestamp',
       DateTime.now().millisecondsSinceEpoch,
     );
-    await _queueRepo.persistPosition(_player.state.position);
+    await _persistPlaybackPointer();
     _isStopping = true;
     await _player.stop();
     await _audioSessionController.releaseFocus();
