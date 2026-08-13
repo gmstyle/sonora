@@ -19,6 +19,7 @@ class AdaptiveAudioBinder {
   final MediaQuality Function() _getStreamVideoQuality;
 
   int _bindGeneration = 0;
+  String? _boundKey;
 
   AdaptiveAudioBinder({
     required Player player,
@@ -57,6 +58,9 @@ class AdaptiveAudioBinder {
       return;
     }
 
+    final bindKey = '$videoId|$audioProxyUrl';
+    if (_boundKey == bindKey) return;
+
     final generation = ++_bindGeneration;
     try {
       final plan = await _streamDatasource.ensurePlaybackSelection(
@@ -77,6 +81,9 @@ class AdaptiveAudioBinder {
       await _player.setAudioTrack(
         AudioTrack.uri(audioProxyUrl, title: 'sonora-yt-audio'),
       );
+      if (generation == _bindGeneration) {
+        _boundKey = bindKey;
+      }
       dev.log('[AdaptiveAudioBinder] Bound external audio for $videoId');
     } catch (e) {
       dev.log('[AdaptiveAudioBinder] Failed to bind audio for $videoId: $e');
@@ -89,6 +96,7 @@ class AdaptiveAudioBinder {
   }
 
   Future<void> _clearExternalAudio() async {
+    _boundKey = null;
     try {
       await _player.setAudioTrack(AudioTrack.auto());
     } catch (e) {

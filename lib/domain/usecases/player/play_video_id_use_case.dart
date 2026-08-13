@@ -73,8 +73,13 @@ class PlayVideoIdUseCase {
       );
     }
 
-    // Pre-warm: start stream URL resolution in parallel with metadata fetch
-    final urlFuture = resolveUrl(videoId).timeout(streamUrlTimeout);
+    // Pre-warm: start stream URL resolution in parallel with metadata fetch.
+    // Video hints skip the audio-only disk cache so adaptive playback is not
+    // poisoned by a previously prefetched audio file under the same videoId.
+    final urlFuture = resolveUrl(
+      videoId,
+      allowMediaCache: isVideoHint != true,
+    ).timeout(streamUrlTimeout);
 
     String title, artist, thumbnailUrl;
     int durationSec;
@@ -143,7 +148,13 @@ class PlayVideoIdUseCase {
   /// Returns a local file URI if a completed download exists and the file
   /// is still on disk (cleans up stale downloads), otherwise resolves the
   /// stream URL from [MusicRepository].
-  Future<String> resolveUrl(String videoId) async {
+  ///
+  /// [allowMediaCache] is false for adaptive video playback so an audio-only
+  /// lookahead file is not reused as the primary source.
+  Future<String> resolveUrl(
+    String videoId, {
+    bool allowMediaCache = true,
+  }) async {
     if (_libraryRepo != null) {
       try {
         final download = await _libraryRepo.getDownload(videoId);
@@ -159,15 +170,16 @@ class PlayVideoIdUseCase {
       } catch (_) {}
     }
 
-    // Check temporary media cache
-    try {
-      final cachedUri = await MediaCacheService.instance.getCachedFileUri(
-        videoId,
-      );
-      if (cachedUri != null) {
-        return cachedUri;
-      }
-    } catch (_) {}
+    if (allowMediaCache) {
+      try {
+        final cachedUri = await MediaCacheService.instance.getCachedFileUri(
+          videoId,
+        );
+        if (cachedUri != null) {
+          return cachedUri;
+        }
+      } catch (_) {}
+    }
 
     // Fail fast if offline
     final offline = await ConnectivityUtils.isOffline();

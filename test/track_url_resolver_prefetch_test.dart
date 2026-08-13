@@ -53,6 +53,36 @@ void main() {
     test('returns null for null item', () {
       expect(TrackUrlResolver.diskPrefetchUrlFor(null), isNull);
     });
+
+    test('returns null for video tracks when video playback is enabled', () {
+      final item = _item(
+        const QueueTrack(
+          videoId: 'vid',
+          title: 'Video',
+          isVideo: true,
+          url: 'https://googlevideo.com/audio.mp3',
+        ),
+      );
+      expect(
+        TrackUrlResolver.diskPrefetchUrlFor(item, enableVideoPlayback: true),
+        isNull,
+      );
+    });
+
+    test('still prefetches video tracks when video playback is off', () {
+      final item = _item(
+        const QueueTrack(
+          videoId: 'vid',
+          title: 'Video',
+          isVideo: true,
+          url: 'https://googlevideo.com/audio.mp3',
+        ),
+      );
+      expect(
+        TrackUrlResolver.diskPrefetchUrlFor(item, enableVideoPlayback: false),
+        'https://googlevideo.com/audio.mp3',
+      );
+    });
   });
 
   group('TrackUrlResolver.stalePrefetchIds', () {

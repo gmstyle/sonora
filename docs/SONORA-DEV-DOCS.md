@@ -323,7 +323,7 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 | Controller | File | Responsibility |
 |---|---|---|
 | `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔Media conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
-| `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); cache warm-up via `MediaCacheService` |
+| `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` is skipped for `isVideo` when video playback is on |
 | `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
 | `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
 | `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume / ducking |
@@ -372,7 +372,8 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
   - **Fast Disk Cache Serving**: Checks `MediaCacheService` first (skipped for adaptive `preferVideo`, including `kind=video`). If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage.
   - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, videoQuality:, preferVideo:, role:)` and `YoutubeRequestScheduler`.
   - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio/video quality / preferVideo / role, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit), except adaptive video playback (`preferVideo`) so an audio-only file is not stored under the same `videoId`. Changing either streaming quality clears this cache so a different tier is not reused.
+  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit), except adaptive video playback (`preferVideo`) so an audio-only file is not stored under the same `videoId`. Lookahead prefetch (`TrackUrlResolver`) also skips disk cache for `isVideo` when video playback is enabled. `PlayVideoIdUseCase.resolveUrl(allowMediaCache: false)` is used on that path so a leftover cache file is not reused as the media_kit source. Changing stream quality **or** toggling `enableVideoPlayback` clears this cache.
+  - After URL resolve / retry, `QueueController.endResolving` fires `onResolvingIdle` so `AdaptiveAudioBinder` can attach the external audio track (playlist events during resolving are ignored).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
   - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`), streaming video (`Settings.streamVideoQuality`), and downloads (`Settings.downloadQuality`).
@@ -384,7 +385,7 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
 
 - **Dual-Path Playback Architecture:**
   - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects stream via `StreamQualitySelector` using `downloadQuality` and `isVideo`. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
-  - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback. Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs.
+  - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during **audio-only** online playback. Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs. **Never used as the primary source for adaptive video** (`QueueController.toMedia` rebuilds the proxy pair if a cache URI is seen on an `isVideo` track).
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When the playlist index changes, the resolver resolves the URL for the current item and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background timer pre-resolves `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
@@ -826,7 +827,7 @@ Produces:
 | `crossfadeSeconds` | int | 2 | `PlaybackVolumeController` crossfade |
 | `restoreQueueOnStartup` | bool | true | QueueUseCase at boot |
 | `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
-| `enableVideoPlayback` | bool | false | Video track attach + `preferVideo` on proxy URLs; clears stream URL cache |
+| `enableVideoPlayback` | bool | false | Video track attach + `preferVideo` on proxy URLs; clears stream URL cache **and** media disk cache |
 | `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / audio stream pick; clears URL + media cache (legacy `streamQuality` migrates here) |
 | `streamVideoQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / adaptive video pick; clears URL + media cache (legacy `streamQuality` migrates here) |
 | `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` stream pick |

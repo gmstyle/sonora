@@ -104,6 +104,15 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
       _onPlayerStateChanged(next);
     });
 
+    ref.listen(playerStateProvider.select((s) => s.isRestoring), (prev, next) {
+      if (prev == true && next == false) {
+        final playerState = ref.read(playerStateProvider);
+        if (playerState.isVideo) {
+          _updateVideoTrack(forceKick: true);
+        }
+      }
+    });
+
     ref.listen(settingsProvider.select((s) => s.enableVideoPlayback), (
       prev,
       next,
@@ -169,7 +178,7 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
         dev.log(
           '[VideoPlayerNotifier] App resumed: restoring video track if needed',
         );
-        _updateVideoTrack();
+        _updateVideoTrack(forceKick: true);
       }
     }
   }
@@ -263,7 +272,7 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
       });
 
       if (videoId != null && (videoChanged || finishedLoading)) {
-        _updateVideoTrack(forceKick: finishedLoading);
+        _updateVideoTrack(forceKick: videoChanged || finishedLoading);
       }
     }
   }
@@ -276,38 +285,35 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
     );
 
     if (enableVideoPlayback && state.isVideoVisible && _lastVideoId != null) {
-      if (isNone || (Platform.isLinux && forceKick)) {
-        // On Linux, a rapid toggle from no to auto often kicks the VO into
-        // correctly attaching the texture when the initial open/restore
-        // left it black.
-        if (Platform.isLinux) {
-          _player.setVideoTrack(VideoTrack.no());
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            if (ref.read(settingsProvider).enableVideoPlayback &&
-                state.isVideoVisible &&
-                _lastVideoId != null) {
-              _player.setVideoTrack(VideoTrack.auto());
+      if (isNone || forceKick) {
+        // Toggle no → auto so the VO re-attaches a frame on track change /
+        // restore. Linux needs a longer delay; other platforms kick faster.
+        _player.setVideoTrack(VideoTrack.no());
+        final delay =
+            Platform.isLinux
+                ? const Duration(milliseconds: 1000)
+                : const Duration(milliseconds: 50);
+        Future.delayed(delay, () {
+          if (ref.read(settingsProvider).enableVideoPlayback &&
+              state.isVideoVisible &&
+              _lastVideoId != null) {
+            _player.setVideoTrack(VideoTrack.auto());
 
-              // Force a redraw if paused by nudging the position with a double-seek.
-              // This is an aggressive strategy to ensure mpv pushes a frame to the
-              // Flutter texture even when paused.
-              if (!_player.state.playing) {
-                final currentPos = _player.state.position;
-                _player.seek(currentPos + const Duration(milliseconds: 1));
-                Future.delayed(const Duration(milliseconds: 50), () {
-                  _player.seek(currentPos);
-                });
-              }
-
-              dev.log(
-                '[VideoPlayerNotifier] Linux Frame Force: setVideoTrack(auto) (force=$forceKick)',
-              );
+            // Force a redraw if paused by nudging the position with a double-seek
+            // so mpv pushes a frame to the Flutter texture.
+            if (!_player.state.playing) {
+              final currentPos = _player.state.position;
+              _player.seek(currentPos + const Duration(milliseconds: 1));
+              Future.delayed(const Duration(milliseconds: 50), () {
+                _player.seek(currentPos);
+              });
             }
-          });
-        } else {
-          _player.setVideoTrack(VideoTrack.auto());
-          dev.log('[VideoPlayerNotifier] setVideoTrack(auto)');
-        }
+
+            dev.log(
+              '[VideoPlayerNotifier] setVideoTrack(auto) (force=$forceKick)',
+            );
+          }
+        });
       }
     } else {
       if (!isNone) {

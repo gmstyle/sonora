@@ -80,6 +80,31 @@ void main() {
     expect(player.tracks.single.title, 'sonora-yt-audio');
   });
 
+  test('does not rebind the same adaptive URI twice', () async {
+    final player = _RecordingPlayer();
+    const audioUrl = 'http://127.0.0.1/stream?videoId=vid1&kind=audio';
+    final binder = AdaptiveAudioBinder(
+      player: player,
+      streamDatasource: _FakeStreamDatasource(
+        const PlaybackUrlPlan(
+          primaryUrl: 'http://cdn/video.mp4',
+          externalAudioUrl: 'http://cdn/audio.m4a',
+        ),
+      ),
+      getStreamAudioQuality: () => MediaQuality.high,
+      getStreamVideoQuality: () => MediaQuality.mid,
+    );
+    final playlist = _playlist(
+      adaptiveCandidate: true,
+      audioProxyUrl: audioUrl,
+    );
+
+    await binder.onPlaylistChanged(playlist);
+    await binder.onPlaylistChanged(playlist);
+
+    expect(player.tracks, hasLength(1));
+  });
+
   test('muxed-only plan clears to AudioTrack.auto', () async {
     final player = _RecordingPlayer();
     final binder = AdaptiveAudioBinder(

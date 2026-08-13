@@ -14,9 +14,23 @@ import 'package:flutter/foundation.dart';
 /// The cache uses LRU (Least Recently Used) eviction with a configurable
 /// size limit (default: 500MB). When the limit is exceeded, the oldest
 /// files (by modification time) are automatically deleted.
+///
+/// This cache is **audio-only**. Adaptive video playback must never treat a
+/// file here as the media_kit source (same `videoId` would otherwise play
+/// as black video + audio).
 class MediaCacheService {
   static final MediaCacheService instance = MediaCacheService._internal();
   MediaCacheService._internal();
+
+  /// Directory name under the temp dir. Also used to detect cache URIs.
+  static const cacheDirName = 'sonora_media_cache';
+
+  /// Whether [url] points at a file in this service's temp cache (not a
+  /// library download).
+  static bool isMediaCacheUri(String? url) {
+    if (url == null || url.isEmpty) return false;
+    return url.contains('/$cacheDirName/') || url.contains('\\$cacheDirName\\');
+  }
 
   final Dio _dio = Dio();
   final Map<String, CancelToken> _activeDownloads = {};
@@ -30,7 +44,7 @@ class MediaCacheService {
 
   Future<Directory> _getCacheDir() async {
     final tempDir = await getTemporaryDirectory();
-    final cacheDir = Directory('${tempDir.path}/sonora_media_cache');
+    final cacheDir = Directory('${tempDir.path}/$cacheDirName');
     if (!await cacheDir.exists()) {
       await cacheDir.create(recursive: true);
     }

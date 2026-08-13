@@ -265,6 +265,7 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(enableVideoPlayback: value);
     await _save();
     ref.read(streamDatasourceProvider).clearUrlCache();
+    await MediaCacheService.instance.clearCache();
   }
 
   Future<void> setStreamAudioQuality(MediaQuality value) async {

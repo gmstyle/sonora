@@ -178,13 +178,20 @@ class PlaybackRecoveryController {
       if (mediaItem == null) continue;
       final track = QueueTrack.fromMediaItem(mediaItem);
 
+      final preferVideo = _queueController.prefersAdaptiveVideo(track);
       bool isCached = false;
-      final cachedUri = await MediaCacheService.instance.getCachedFileUri(
-        track.videoId,
-      );
-      isCached = cachedUri != null;
+      if (!preferVideo) {
+        final cachedUri = await MediaCacheService.instance.getCachedFileUri(
+          track.videoId,
+        );
+        isCached = cachedUri != null;
+      }
 
-      if (track.isLocalFile || isCached || !track.needsUrl) {
+      final isUsableLocal =
+          track.isLocalFile &&
+          !(preferVideo && MediaCacheService.isMediaCacheUri(track.url));
+
+      if (isUsableLocal || isCached || !track.needsUrl) {
         targetIndex = i;
         break;
       }
@@ -265,7 +272,10 @@ class PlaybackRecoveryController {
     _lastRetriedVideoId = videoId;
     _retryCount++;
     try {
-      final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
+      final freshUrl = await _playVideoIdUseCase.resolveUrl(
+        videoId,
+        allowMediaCache: !_queueController.prefersAdaptiveVideo(track),
+      );
 
       // Re-read index after the await — user may have skipped meanwhile.
       final currentIndex = _player.state.playlist.index;

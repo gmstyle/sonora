@@ -141,6 +141,63 @@ void main() {
     expect(media.uri, contains('qv=mid'));
   });
 
+  test('toMedia does not use sonora_media_cache file for adaptive video', () {
+    controller.updateStreamPrefs(enableVideoPlayback: true);
+    const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.webm';
+    final item =
+        const QueueTrack(
+          videoId: 'vidVideo',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: cacheUrl,
+        ).toFreshMediaItem();
+
+    final media = controller.toMedia(item);
+
+    expect(media.uri.contains('sonora_media_cache'), isFalse);
+    expect(media.uri, contains('/stream?videoId=vidVideo'));
+    expect(media.extras?['adaptiveCandidate'], isTrue);
+  });
+
+  test('toMedia still uses media-cache file for audio-only', () {
+    const cacheUrl = 'file:///tmp/sonora_media_cache/vid1.webm';
+    final item =
+        const QueueTrack(
+          videoId: 'vid1',
+          title: 'Song',
+          artist: 'A',
+          url: cacheUrl,
+        ).toFreshMediaItem();
+
+    final media = controller.toMedia(item);
+
+    expect(media.uri.contains('/stream?videoId='), isFalse);
+  });
+
+  test(
+    'endResolving invokes onResolvingIdle only when nested count hits 0',
+    () {
+      var idleCalls = 0;
+      final idleController = QueueController(
+        player: _FakePlayer(),
+        queueRepo: _FakeQueueRepository(),
+        getQueue: () => <MediaItem>[],
+        getShuffleMode: () => AudioServiceShuffleMode.none,
+        getRepeatMode: () => AudioServiceRepeatMode.none,
+        updateQueueStream: (_) {},
+        onResolvingIdle: () => idleCalls++,
+      );
+
+      idleController.beginResolving();
+      idleController.beginResolving();
+      idleController.endResolving();
+      expect(idleCalls, 0);
+      idleController.endResolving();
+      expect(idleCalls, 1);
+    },
+  );
+
   test('toMedia uses dummy URL when unresolved and proxy is off', () async {
     await proxy.stop();
     final item =

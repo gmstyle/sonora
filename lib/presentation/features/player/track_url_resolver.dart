@@ -164,7 +164,10 @@ class TrackUrlResolver {
     if (index < 0 || index >= playlist.medias.length) return;
     final media = playlist.medias[index];
     final item = media.extras?['mediaItem'] as MediaItem?;
-    final url = diskPrefetchUrlFor(item);
+    final url = diskPrefetchUrlFor(
+      item,
+      enableVideoPlayback: _queueController.enableVideoPlayback,
+    );
     if (url == null || item == null) return;
     final videoId = QueueTrack.fromMediaItem(item).videoId;
     if (!_prefetchInFlight.add(videoId)) return;
@@ -214,11 +217,17 @@ class TrackUrlResolver {
   }
 
   /// URL eligible for disk look-ahead pre-cache, or null if the item must not
-  /// be downloaded (unresolved, local file, or dummy placeholder).
+  /// be downloaded (unresolved, local file, dummy placeholder, or a video
+  /// track while video playback is enabled — that cache is audio-only and
+  /// would poison adaptive playback).
   @visibleForTesting
-  static String? diskPrefetchUrlFor(MediaItem? item) {
+  static String? diskPrefetchUrlFor(
+    MediaItem? item, {
+    bool enableVideoPlayback = false,
+  }) {
     if (item == null) return null;
     final t = QueueTrack.fromMediaItem(item);
+    if (t.isVideo && enableVideoPlayback) return null;
     if (t.hasUrl && !t.isLocalFile && !t.url!.startsWith('http://localhost')) {
       return t.url;
     }
@@ -261,7 +270,10 @@ class TrackUrlResolver {
       // be re-resolved once they actually become current.
       final isCurrent = treatAsCurrent ?? (index == playlist.index);
       final url = await _playVideoIdUseCase
-          .resolveUrl(videoId)
+          .resolveUrl(
+            videoId,
+            allowMediaCache: !_queueController.prefersAdaptiveVideo(track),
+          )
           .timeout(
             isCurrent
                 ? PlayVideoIdUseCase.streamUrlTimeout +

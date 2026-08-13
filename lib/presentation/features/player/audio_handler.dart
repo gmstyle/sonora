@@ -91,6 +91,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
   }
 
+  void _syncAdaptiveAudio() {
+    final binder = _adaptiveAudioBinder;
+    if (binder == null) return;
+    unawaited(binder.onPlaylistChanged(_player.state.playlist));
+  }
+
   bool _isStopping = false;
   bool _userWantsPlaying = false;
 
@@ -164,6 +170,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
               getStreamVideoQuality: () => _queueController.streamVideoQuality,
             )
             : null;
+
+    _queueController.onResolvingIdle = _syncAdaptiveAudio;
 
     // After QueueController so userQueue/upNextQueue callbacks are valid.
     _browserController = AndroidAutoBrowserController(
@@ -942,7 +950,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
           final track = QueueTrack.fromMediaItem(initialItem);
           if (track.needsUrl) {
             try {
-              final url = await _playVideoIdUseCase.resolveUrl(track.videoId);
+              final url = await _playVideoIdUseCase.resolveUrl(
+                track.videoId,
+                allowMediaCache: !_queueController.prefersAdaptiveVideo(track),
+              );
               final resolved = track
                   .copyWith(url: url, needsUrl: false)
                   .toMediaItem(initialItem);
