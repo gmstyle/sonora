@@ -5,7 +5,6 @@ import 'package:sonora/data/datasources/remote/stream_datasource.dart';
 import 'package:sonora/data/services/local_audio_proxy_server.dart';
 import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/models/queue_track.dart';
-import 'package:sonora/domain/models/stream_role.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
 import 'package:sonora/presentation/features/player/queue_controller.dart';
 
@@ -14,9 +13,7 @@ class _FakeStreamDatasource extends StreamDatasource {
   Future<String> getStreamUrl(
     String videoId, {
     MediaQuality? audioQuality,
-    MediaQuality? videoQuality,
     bool preferVideo = false,
-    StreamRole role = StreamRole.primary,
     int attempt = 1,
   }) async {
     return 'http://example.com/$videoId.mp3';
@@ -90,20 +87,15 @@ void main() {
 
     expect(
       media.uri,
-      proxy.getStreamUrlForVideo(
-        'vid2',
-        audioQuality: MediaQuality.high,
-        videoQuality: MediaQuality.high,
-      ),
+      proxy.getStreamUrlForVideo('vid2', audioQuality: MediaQuality.high),
     );
-    expect(media.extras?['adaptiveCandidate'], isNot(true));
+    expect(media.extras?['adaptiveCandidate'], isNull);
   });
 
-  test('toMedia builds adaptive pair when video playback enabled', () {
+  test('toMedia builds single muxed proxy URL when video playback enabled', () {
     controller.updateStreamPrefs(
       enableVideoPlayback: true,
       streamAudioQuality: MediaQuality.high,
-      streamVideoQuality: MediaQuality.mid,
     );
     final item =
         const QueueTrack(
@@ -121,27 +113,39 @@ void main() {
       proxy.getStreamUrlForVideo(
         'vidVideo',
         audioQuality: MediaQuality.high,
-        videoQuality: MediaQuality.mid,
         preferVideo: true,
-        role: StreamRole.video,
       ),
     );
-    expect(media.extras?['adaptiveCandidate'], isTrue);
-    expect(
-      media.extras?['audioProxyUrl'],
-      proxy.getStreamUrlForVideo(
-        'vidVideo',
-        audioQuality: MediaQuality.high,
-        videoQuality: MediaQuality.mid,
-        preferVideo: true,
-        role: StreamRole.audio,
-      ),
-    );
+    expect(media.extras?['adaptiveCandidate'], isNull);
+    expect(media.extras?['audioProxyUrl'], isNull);
     expect(media.uri, contains('qa=high'));
-    expect(media.uri, contains('qv=mid'));
+    expect(media.uri, contains('v=1'));
+    expect(media.uri, isNot(contains('qv=')));
+    expect(media.uri, isNot(contains('kind=')));
   });
 
-  test('toMedia does not use sonora_media_cache file for adaptive video', () {
+  test('toMedia uses sonora_media_cache mp4 for video tracks', () {
+    controller.updateStreamPrefs(enableVideoPlayback: true);
+    const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.mp4';
+    final item =
+        const QueueTrack(
+          videoId: 'vidVideo',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: cacheUrl,
+        ).toFreshMediaItem();
+
+    final media = controller.toMedia(item);
+
+    expect(media.uri.contains('/stream?videoId='), isFalse);
+    expect(
+      media.uri == cacheUrl || media.uri.contains('sonora_media_cache'),
+      isTrue,
+    );
+  });
+
+  test('toMedia rejects audio webm media-cache for video tracks', () {
     controller.updateStreamPrefs(enableVideoPlayback: true);
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.webm';
     final item =
@@ -155,9 +159,8 @@ void main() {
 
     final media = controller.toMedia(item);
 
-    expect(media.uri.contains('sonora_media_cache'), isFalse);
     expect(media.uri, contains('/stream?videoId=vidVideo'));
-    expect(media.extras?['adaptiveCandidate'], isTrue);
+    expect(media.uri, contains('v=1'));
   });
 
   test('toMedia still uses media-cache file for audio-only', () {

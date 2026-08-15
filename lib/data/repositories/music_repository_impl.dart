@@ -93,7 +93,6 @@ class MusicRepositoryImpl implements MusicRepository {
   }) => _stream.getStreamUrl(
     videoId,
     audioQuality: quality,
-    videoQuality: quality,
     preferVideo: preferVideo,
   );
 }

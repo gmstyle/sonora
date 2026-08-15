@@ -203,7 +203,6 @@
   "enableVideoPlayback": "Riproduci video",
   "enableVideoPlaybackHint": "Mostra i video musicali nel player. Con disattivato, solo audio.",
   "streamAudioQuality": "Qualità audio streaming",
-  "streamVideoQuality": "Qualità video streaming",
   "downloadQuality": "Qualità download",
   "qualityHigh": "Alta",
   "qualityMid": "Media",

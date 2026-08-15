@@ -3,21 +3,15 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import '../../../core/utils/url_staleness.dart';
 import '../../../domain/media/stream_quality_selector.dart';
 import '../../../domain/models/media_quality.dart';
-import '../../../domain/models/stream_role.dart';
 import 'youtube_request_scheduler.dart';
 
-/// Cached URLs for one videoId + audio/video quality + preferVideo combination.
+/// Cached URL for one videoId + audio quality + preferVideo combination.
 class PlaybackUrlPlan {
   final String primaryUrl;
-  final String? externalAudioUrl;
 
-  const PlaybackUrlPlan({required this.primaryUrl, this.externalAudioUrl});
+  const PlaybackUrlPlan({required this.primaryUrl});
 
-  bool get isAdaptive => externalAudioUrl != null;
-
-  bool get isStale =>
-      UrlStaleness.isStale(primaryUrl) ||
-      (externalAudioUrl != null && UrlStaleness.isStale(externalAudioUrl!));
+  bool get isStale => UrlStaleness.isStale(primaryUrl);
 }
 
 class StreamDatasource {
@@ -35,14 +29,10 @@ class StreamDatasource {
   /// Default audio tier when callers omit [audioQuality].
   MediaQuality Function() getDefaultAudioQuality;
 
-  /// Default video tier when callers omit [videoQuality].
-  MediaQuality Function() getDefaultVideoQuality;
-
   StreamDatasource({
     YoutubeRequestScheduler? scheduler,
     StreamQualitySelector? selector,
     MediaQuality Function()? getDefaultAudioQuality,
-    MediaQuality Function()? getDefaultVideoQuality,
     @Deprecated('Use getDefaultAudioQuality')
     MediaQuality Function()? getDefaultQuality,
   }) : _scheduler = scheduler ?? YoutubeRequestScheduler.shared,
@@ -50,38 +40,28 @@ class StreamDatasource {
        getDefaultAudioQuality =
            getDefaultAudioQuality ??
            getDefaultQuality ??
-           (() => MediaQuality.high),
-       getDefaultVideoQuality =
-           getDefaultVideoQuality ??
-           getDefaultQuality ??
            (() => MediaQuality.high);
 
-  /// In-memory playback plans: `videoId|audioQ|videoQ|preferVideo` → URLs.
+  /// In-memory playback plans: `videoId|audioQ|preferVideo` → URL.
   final Map<String, PlaybackUrlPlan> _playbackCache = {};
 
   static String playbackKey(
     String videoId, {
     required MediaQuality audioQuality,
-    required MediaQuality videoQuality,
     required bool preferVideo,
-  }) => '$videoId|${audioQuality.name}|${videoQuality.name}|$preferVideo';
+  }) => '$videoId|${audioQuality.name}|$preferVideo';
 
-  /// Ensures stream URLs are resolved and cached for [videoId].
-  ///
-  /// One manifest fetch populates primary (+ external audio when adaptive).
+  /// Ensures a stream URL is resolved and cached for [videoId].
   Future<PlaybackUrlPlan> ensurePlaybackSelection(
     String videoId, {
     MediaQuality? audioQuality,
-    MediaQuality? videoQuality,
     bool preferVideo = false,
     int attempt = 1,
   }) async {
     final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
-    final resolvedVideo = videoQuality ?? getDefaultVideoQuality();
     final key = playbackKey(
       videoId,
       audioQuality: resolvedAudio,
-      videoQuality: resolvedVideo,
       preferVideo: preferVideo,
     );
 
@@ -94,22 +74,14 @@ class StreamDatasource {
       final manifest = await _scheduler.schedule(
         () => _yt.videos.streamsClient.getManifest(videoId),
       );
-      final selection = _selector.selectPlayback(
+      final selection = _selector.select(
         manifest,
-        audioQuality: resolvedAudio,
-        videoQuality: resolvedVideo,
+        quality: resolvedAudio,
         preferVideo: preferVideo,
       );
-      final primaryUrl = selection.primary.url.toString();
-      final externalAudioUrl = selection.externalAudio?.url.toString();
+      final primaryUrl = selection.url.toString();
       _assertAbsoluteHttpUrl(primaryUrl, 'primary');
-      if (externalAudioUrl != null) {
-        _assertAbsoluteHttpUrl(externalAudioUrl, 'externalAudio');
-      }
-      final plan = PlaybackUrlPlan(
-        primaryUrl: primaryUrl,
-        externalAudioUrl: externalAudioUrl,
-      );
+      final plan = PlaybackUrlPlan(primaryUrl: primaryUrl);
       _playbackCache[key] = plan;
       return plan;
     } on RequestLimitExceededException {
@@ -119,7 +91,6 @@ class StreamDatasource {
       return ensurePlaybackSelection(
         videoId,
         audioQuality: resolvedAudio,
-        videoQuality: resolvedVideo,
         preferVideo: preferVideo,
         attempt: attempt + 1,
       );
@@ -131,7 +102,6 @@ class StreamDatasource {
       return ensurePlaybackSelection(
         videoId,
         audioQuality: resolvedAudio,
-        videoQuality: resolvedVideo,
         preferVideo: preferVideo,
         attempt: attempt + 1,
       );
@@ -155,40 +125,18 @@ class StreamDatasource {
   Future<String> getStreamUrl(
     String videoId, {
     MediaQuality? audioQuality,
-    MediaQuality? videoQuality,
     bool preferVideo = false,
-    StreamRole role = StreamRole.primary,
     int attempt = 1,
   }) async {
     final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
-    final resolvedVideo = videoQuality ?? getDefaultVideoQuality();
 
     try {
       final plan = await ensurePlaybackSelection(
         videoId,
         audioQuality: resolvedAudio,
-        videoQuality: resolvedVideo,
         preferVideo: preferVideo,
       );
-
-      switch (role) {
-        case StreamRole.primary:
-        case StreamRole.video:
-          return plan.primaryUrl;
-        case StreamRole.audio:
-          if (plan.externalAudioUrl != null) {
-            return plan.externalAudioUrl!;
-          }
-          // Non-adaptive preferVideo still may request kind=audio; serve
-          // a dedicated audio-only URL without attaching it in the binder.
-          final audioPlan = await ensurePlaybackSelection(
-            videoId,
-            audioQuality: resolvedAudio,
-            videoQuality: resolvedVideo,
-            preferVideo: false,
-          );
-          return audioPlan.primaryUrl;
-      }
+      return plan.primaryUrl;
     } on RequestLimitExceededException {
       if (attempt >= 3) rethrow;
       final delaySeconds = attempt == 1 ? 5 : 15;
@@ -196,9 +144,7 @@ class StreamDatasource {
       return getStreamUrl(
         videoId,
         audioQuality: resolvedAudio,
-        videoQuality: resolvedVideo,
         preferVideo: preferVideo,
-        role: role,
         attempt: attempt + 1,
       );
     }

@@ -26,7 +26,6 @@ class Settings {
   final bool autoPlayUpNext;
   final bool enableVideoPlayback;
   final MediaQuality streamAudioQuality;
-  final MediaQuality streamVideoQuality;
   final MediaQuality downloadQuality;
   final String? downloadPath;
   final bool downloadOnlyOnWifi;
@@ -51,7 +50,6 @@ class Settings {
     this.autoPlayUpNext = true,
     this.enableVideoPlayback = false,
     this.streamAudioQuality = MediaQuality.high,
-    this.streamVideoQuality = MediaQuality.high,
     this.downloadQuality = MediaQuality.high,
     this.downloadPath,
     this.downloadOnlyOnWifi = false,
@@ -77,7 +75,6 @@ class Settings {
     bool? autoPlayUpNext,
     bool? enableVideoPlayback,
     MediaQuality? streamAudioQuality,
-    MediaQuality? streamVideoQuality,
     MediaQuality? downloadQuality,
     String? downloadPath,
     bool? downloadOnlyOnWifi,
@@ -104,7 +101,6 @@ class Settings {
       autoPlayUpNext: autoPlayUpNext ?? this.autoPlayUpNext,
       enableVideoPlayback: enableVideoPlayback ?? this.enableVideoPlayback,
       streamAudioQuality: streamAudioQuality ?? this.streamAudioQuality,
-      streamVideoQuality: streamVideoQuality ?? this.streamVideoQuality,
       downloadQuality: downloadQuality ?? this.downloadQuality,
       downloadPath:
           clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
@@ -146,10 +142,6 @@ class SettingsNotifier extends Notifier<Settings> {
         _prefs.getString(kStreamAudioQualityKey) ??
             _prefs.getString(kStreamQualityKey),
       ),
-      streamVideoQuality: MediaQuality.fromStorage(
-        _prefs.getString(kStreamVideoQualityKey) ??
-            _prefs.getString(kStreamQualityKey),
-      ),
       downloadQuality: MediaQuality.fromStorage(
         _prefs.getString(kDownloadQualityKey),
       ),
@@ -181,10 +173,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setString(
       kStreamAudioQualityKey,
       state.streamAudioQuality.storageValue,
-    );
-    await _prefs.setString(
-      kStreamVideoQualityKey,
-      state.streamVideoQuality.storageValue,
     );
     await _prefs.setString(
       kDownloadQualityKey,
@@ -276,14 +264,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await MediaCacheService.instance.clearCache();
   }
 
-  Future<void> setStreamVideoQuality(MediaQuality value) async {
-    if (state.streamVideoQuality == value) return;
-    state = state.copyWith(streamVideoQuality: value);
-    await _save();
-    ref.read(streamDatasourceProvider).clearUrlCache();
-    await MediaCacheService.instance.clearCache();
-  }
-
   Future<void> setDownloadQuality(MediaQuality value) async {
     if (state.downloadQuality == value) return;
     state = state.copyWith(downloadQuality: value);
@@ -367,7 +347,6 @@ const kEnableVideoPlaybackKey = 'enableVideoPlayback';
 /// Legacy single stream-quality key; still read as migration fallback.
 const kStreamQualityKey = 'streamQuality';
 const kStreamAudioQualityKey = 'streamAudioQuality';
-const kStreamVideoQualityKey = 'streamVideoQuality';
 const kDownloadQualityKey = 'downloadQuality';
 const kDownloadPathKey = 'downloadPath';
 const kDownloadWifiKey = 'downloadOnlyOnWifi';

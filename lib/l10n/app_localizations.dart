@@ -1040,12 +1040,6 @@ abstract class AppLocalizations {
   /// **'Streaming audio quality'**
   String get streamAudioQuality;
 
-  /// No description provided for @streamVideoQuality.
-  ///
-  /// In en, this message translates to:
-  /// **'Streaming video quality'**
-  String get streamVideoQuality;
-
   /// No description provided for @downloadQuality.
   ///
   /// In en, this message translates to:

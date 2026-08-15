@@ -85,11 +85,6 @@ Future<void> main() async {
           prefs.getString(kStreamAudioQualityKey) ??
               prefs.getString(kStreamQualityKey),
         ),
-    getDefaultVideoQuality:
-        () => MediaQuality.fromStorage(
-          prefs.getString(kStreamVideoQualityKey) ??
-              prefs.getString(kStreamQualityKey),
-        ),
   );
 
   final proxyServer = LocalAudioProxyServer(streamDatasource: streamDs);
@@ -118,7 +113,6 @@ Future<void> main() async {
     prefs: prefs,
     queueRepo: queueRepo,
     proxyServer: proxyServer,
-    streamDatasource: streamDs,
   );
 
   if (isAndroid || isLinux) {
@@ -329,19 +323,14 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     // Keep queue proxy URLs in sync with stream quality / video playback prefs.
     ref.listen(
       settingsProvider.select(
-        (s) => (
-          s.streamAudioQuality,
-          s.streamVideoQuality,
-          s.enableVideoPlayback,
-        ),
+        (s) => (s.streamAudioQuality, s.enableVideoPlayback),
       ),
       (previous, next) {
         ref
             .read(audioHandlerProvider)
             .updateStreamPrefs(
               streamAudioQuality: next.$1,
-              streamVideoQuality: next.$2,
-              enableVideoPlayback: next.$3,
+              enableVideoPlayback: next.$2,
             );
       },
     );

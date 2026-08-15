@@ -74,11 +74,9 @@ class PlayVideoIdUseCase {
     }
 
     // Pre-warm: start stream URL resolution in parallel with metadata fetch.
-    // Video hints skip the audio-only disk cache so adaptive playback is not
-    // poisoned by a previously prefetched audio file under the same videoId.
     final urlFuture = resolveUrl(
       videoId,
-      allowMediaCache: isVideoHint != true,
+      preferVideo: isVideoHint == true,
     ).timeout(streamUrlTimeout);
 
     String title, artist, thumbnailUrl;
@@ -149,12 +147,9 @@ class PlayVideoIdUseCase {
   /// is still on disk (cleans up stale downloads), otherwise resolves the
   /// stream URL from [MusicRepository].
   ///
-  /// [allowMediaCache] is false for adaptive video playback so an audio-only
-  /// lookahead file is not reused as the primary source.
-  Future<String> resolveUrl(
-    String videoId, {
-    bool allowMediaCache = true,
-  }) async {
+  /// When [preferVideo] is true, only muxed media-cache files (`.mp4`) are
+  /// reused — leftover audio-only `.webm` entries are ignored.
+  Future<String> resolveUrl(String videoId, {bool preferVideo = false}) async {
     if (_libraryRepo != null) {
       try {
         final download = await _libraryRepo.getDownload(videoId);
@@ -170,16 +165,15 @@ class PlayVideoIdUseCase {
       } catch (_) {}
     }
 
-    if (allowMediaCache) {
-      try {
-        final cachedUri = await MediaCacheService.instance.getCachedFileUri(
-          videoId,
-        );
-        if (cachedUri != null) {
-          return cachedUri;
-        }
-      } catch (_) {}
-    }
+    try {
+      final cachedUri = await MediaCacheService.instance.getCachedFileUri(
+        videoId,
+        preferVideo: preferVideo,
+      );
+      if (cachedUri != null) {
+        return cachedUri;
+      }
+    } catch (_) {}
 
     // Fail fast if offline
     final offline = await ConnectivityUtils.isOffline();
@@ -187,12 +181,17 @@ class PlayVideoIdUseCase {
       throw const SocketException('Offline: cannot resolve stream URL.');
     }
 
-    return await resolveStreamUrl(videoId);
+    return await resolveStreamUrl(videoId, preferVideo: preferVideo);
   }
 
-  /// Resolves only the audio stream URL for [videoId].
+  /// Resolves the stream URL for [videoId].
   /// Used when metadata (title, artist, etc.) is already available from the UI.
-  Future<String> resolveStreamUrl(String videoId) async {
-    return _repo.getStreamUrl(videoId).timeout(streamUrlTimeout);
+  Future<String> resolveStreamUrl(
+    String videoId, {
+    bool preferVideo = false,
+  }) async {
+    return _repo
+        .getStreamUrl(videoId, preferVideo: preferVideo)
+        .timeout(streamUrlTimeout);
   }
 }

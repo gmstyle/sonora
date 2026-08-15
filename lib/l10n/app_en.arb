@@ -298,7 +298,6 @@
   "enableVideoPlayback": "Play video",
   "enableVideoPlaybackHint": "Show music videos in the player. When disabled, only audio is played.",
   "streamAudioQuality": "Streaming audio quality",
-  "streamVideoQuality": "Streaming video quality",
   "downloadQuality": "Download quality",
   "qualityHigh": "High",
   "qualityMid": "Medium",

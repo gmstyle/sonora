@@ -569,9 +569,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get streamAudioQuality => 'Qualità audio streaming';
 
   @override
-  String get streamVideoQuality => 'Qualità video streaming';
-
-  @override
   String get downloadQuality => 'Qualità download';
 
   @override

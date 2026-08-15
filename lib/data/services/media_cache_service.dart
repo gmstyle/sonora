@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 
-/// Service for caching audio files to disk for offline fallback and lookahead.
+/// Service for caching media files to disk for offline fallback and lookahead.
 ///
 /// This cache is separate from the mpv native cache (configured in
 /// `_initPlayerCache()`), which handles buffering of the currently playing
@@ -15,9 +15,10 @@ import 'package:flutter/foundation.dart';
 /// size limit (default: 500MB). When the limit is exceeded, the oldest
 /// files (by modification time) are automatically deleted.
 ///
-/// This cache is **audio-only**. Adaptive video playback must never treat a
-/// file here as the media_kit source (same `videoId` would otherwise play
-/// as black video + audio).
+/// Files may be audio-only (webm/mp3) or muxed video (mp4), depending on
+/// whether video playback was preferred when the download started. Toggling
+/// `enableVideoPlayback` clears this cache so a leftover audio file is not
+/// reused as a video source (and vice versa).
 class MediaCacheService {
   static final MediaCacheService instance = MediaCacheService._internal();
   MediaCacheService._internal();
@@ -30,6 +31,19 @@ class MediaCacheService {
   static bool isMediaCacheUri(String? url) {
     if (url == null || url.isEmpty) return false;
     return url.contains('/$cacheDirName/') || url.contains('\\$cacheDirName\\');
+  }
+
+  /// Muxed video cache files use `.mp4`; audio-only uses `.webm` / `.mp3`.
+  static bool isMuxedCacheUri(String? url) {
+    if (!isMediaCacheUri(url)) return false;
+    final lower = url!.toLowerCase();
+    return lower.endsWith('.mp4');
+  }
+
+  /// Whether a media-cache URI is compatible with [preferVideo] playback.
+  static bool isCacheCompatibleWithPreferVideo(String? url, bool preferVideo) {
+    if (!isMediaCacheUri(url)) return false;
+    return preferVideo ? isMuxedCacheUri(url) : !isMuxedCacheUri(url);
   }
 
   final Dio _dio = Dio();
@@ -51,20 +65,40 @@ class MediaCacheService {
     return cacheDir;
   }
 
-  Future<String?> getCachedFileUri(String videoId) async {
+  /// Returns a cached file URI for [videoId], or null.
+  ///
+  /// When [preferVideo] is true, only muxed `.mp4` files are returned so an
+  /// leftover audio-only `.webm` cannot poison video playback. When false,
+  /// prefers audio-only extensions (falls back to any match).
+  Future<String?> getCachedFileUri(String videoId, {bool? preferVideo}) async {
     try {
       final cacheDir = await _getCacheDir();
-      final files = cacheDir.listSync();
+      final files = cacheDir.listSync().whereType<File>().toList();
+      File? audioHit;
+      File? muxedHit;
+      File? anyHit;
       for (final entity in files) {
-        if (entity is File) {
-          final name = entity.path.split('/').last;
-          if (name.startsWith('$videoId.') && !name.endsWith('.tmp')) {
-            // Touch the file to update its mtime (LRU tracking)
-            await entity.setLastModified(DateTime.now());
-            return entity.uri.toString();
-          }
+        final name = entity.path.split(Platform.pathSeparator).last;
+        if (!name.startsWith('$videoId.') || name.endsWith('.tmp')) continue;
+        anyHit ??= entity;
+        final lower = name.toLowerCase();
+        if (lower.endsWith('.mp4')) {
+          muxedHit = entity;
+        } else if (lower.endsWith('.webm') || lower.endsWith('.mp3')) {
+          audioHit = entity;
         }
       }
+      final File? chosen;
+      if (preferVideo == true) {
+        chosen = muxedHit;
+      } else if (preferVideo == false) {
+        chosen = audioHit ?? anyHit;
+      } else {
+        chosen = anyHit;
+      }
+      if (chosen == null) return null;
+      await chosen.setLastModified(DateTime.now());
+      return chosen.uri.toString();
     } catch (e) {
       debugPrint('[MediaCacheService] getCachedFileUri error: $e');
     }
@@ -73,7 +107,11 @@ class MediaCacheService {
 
   Future<void> downloadToCache(String videoId, String streamUrl) async {
     if (_activeDownloads.containsKey(videoId)) return;
-    final existing = await getCachedFileUri(videoId);
+    final wantMuxed = _extensionForStreamUrl(streamUrl) == 'mp4';
+    final existing = await getCachedFileUri(
+      videoId,
+      preferVideo: wantMuxed ? true : false,
+    );
     if (existing != null) return;
 
     final cancelToken = CancelToken();
@@ -81,7 +119,7 @@ class MediaCacheService {
 
     try {
       final cacheDir = await _getCacheDir();
-      final ext = streamUrl.contains('mime=audio%2Fwebm') ? 'webm' : 'mp3';
+      final ext = _extensionForStreamUrl(streamUrl);
       final tempFilePath = '${cacheDir.path}/$videoId.tmp';
       final finalFilePath = '${cacheDir.path}/$videoId.$ext';
 
@@ -151,6 +189,17 @@ class MediaCacheService {
     } catch (e) {
       debugPrint('[MediaCacheService] _enforceSizeLimit error: $e');
     }
+  }
+
+  /// Infers a file extension from common YouTube stream MIME hints in [url].
+  static String _extensionForStreamUrl(String url) {
+    if (url.contains('mime=video%2Fmp4') || url.contains('mime=video/mp4')) {
+      return 'mp4';
+    }
+    if (url.contains('mime=audio%2Fwebm') || url.contains('mime=audio/webm')) {
+      return 'webm';
+    }
+    return 'mp3';
   }
 
   void cancelDownload(String videoId) {

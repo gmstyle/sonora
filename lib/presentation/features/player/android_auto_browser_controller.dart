@@ -135,33 +135,33 @@ class AndroidAutoBrowserController {
       switch (parentMediaId) {
         // Top-level tabs
         case _homeId:
-          return _buildHomeChildren();
+          return await _buildHomeChildren();
         case _mixesId:
-          return _buildMixesChildren();
+          return await _buildMixesChildren();
         case _libraryId:
-          return _buildLibraryChildren();
+          return await _buildLibraryChildren();
         case _exploreId:
-          return _buildExploreChildren();
+          return await _buildExploreChildren();
 
         // Library sub-nodes
         case _likedId:
-          return _buildLikedChildren();
+          return await _buildLikedChildren();
         case _playlistsId:
-          return _buildPlaylistFolders();
+          return await _buildPlaylistFolders();
         case _artistsId:
-          return _buildArtistFolders();
+          return await _buildArtistFolders();
         case _albumsId:
-          return _buildLikedAlbumFolders();
+          return await _buildLikedAlbumFolders();
         case _historyId:
-          return _buildRecentChildren();
+          return await _buildRecentChildren();
         case _downloadsId:
-          return _buildDownloadChildren();
+          return await _buildDownloadChildren();
         case _newReleasesId:
-          return _buildNewReleasesChildren();
+          return await _buildNewReleasesChildren();
         case _discoverId:
-          return _buildDiscoverChildren();
+          return await _buildDiscoverChildren();
         case _similarArtistsId:
-          return _buildSimilarArtistsChildren();
+          return await _buildSimilarArtistsChildren();
 
         // Live queue sections (User Queue / Up Next)
         case _userQueueId:
@@ -172,22 +172,22 @@ class AndroidAutoBrowserController {
         // Dynamic prefixes
         default:
           if (parentMediaId.startsWith(_mixPrefix)) {
-            return _buildMixSongChildren(parentMediaId);
+            return await _buildMixSongChildren(parentMediaId);
           }
           if (parentMediaId.startsWith(_homeSectionPrefix)) {
-            return _buildHomeSectionChildren(parentMediaId);
+            return await _buildHomeSectionChildren(parentMediaId);
           }
           if (parentMediaId.startsWith(_playlistPrefix)) {
-            return _buildPlaylistEntryChildren(parentMediaId);
+            return await _buildPlaylistEntryChildren(parentMediaId);
           }
           if (parentMediaId.startsWith(_artistPrefix)) {
-            return _buildArtistChildren(parentMediaId);
+            return await _buildArtistChildren(parentMediaId);
           }
           if (parentMediaId.startsWith(_homeAlbumPrefix)) {
-            return _buildHomeAlbumSongChildren(parentMediaId);
+            return await _buildHomeAlbumSongChildren(parentMediaId);
           }
           if (parentMediaId.startsWith(_homePlaylistPrefix)) {
-            return _buildHomePlaylistVideoChildren(parentMediaId);
+            return await _buildHomePlaylistVideoChildren(parentMediaId);
           }
           return [];
       }

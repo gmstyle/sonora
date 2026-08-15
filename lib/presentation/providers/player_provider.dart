@@ -448,7 +448,13 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       });
 
       _mediaItemSub = _handler.mediaItem.listen((item) {
-        state = state.copyWith(currentSong: item);
+        if (item != null && state.unplayableVideoIds.contains(item.id)) {
+          final ids = Set<String>.from(state.unplayableVideoIds)
+            ..remove(item.id);
+          state = state.copyWith(currentSong: item, unplayableVideoIds: ids);
+        } else {
+          state = state.copyWith(currentSong: item);
+        }
         if (item != null && ref.read(settingsProvider).trackHistory) {
           final track = QueueTrack.fromMediaItem(item);
           ref

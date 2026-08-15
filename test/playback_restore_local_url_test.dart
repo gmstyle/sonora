@@ -6,28 +6,12 @@ import 'package:sonora/presentation/features/player/playback_restore_controller.
 
 void main() {
   group('PlaybackRestoreController.keepLocalUrlOnRestore', () {
-    test('rejects media-cache files for video tracks in video mode', () {
-      const track = QueueTrack(
-        videoId: 'vid',
-        title: 'Video',
-        isVideo: true,
-        url: 'file:///tmp/sonora_media_cache/vid.webm',
-      );
-      expect(
-        PlaybackRestoreController.keepLocalUrlOnRestore(
-          track: track,
-          enableVideoPlayback: true,
-        ),
-        isFalse,
-      );
-    });
-
-    test('keeps media-cache files when video playback is off', () async {
+    test('keeps muxed media-cache files for video tracks', () async {
       final cacheDir = Directory(
         '${Directory.systemTemp.path}/sonora_media_cache',
       );
       await cacheDir.create(recursive: true);
-      final file = File('${cacheDir.path}/vid_restore_test.webm');
+      final file = File('${cacheDir.path}/vid_restore_test.mp4');
       await file.writeAsBytes(const [1, 2, 3]);
       addTearDown(() async {
         if (await file.exists()) await file.delete();
@@ -41,7 +25,48 @@ void main() {
       );
       expect(
         PlaybackRestoreController.keepLocalUrlOnRestore(
-          track: track,
+          track,
+          enableVideoPlayback: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('rejects audio webm media-cache for video tracks in video mode', () {
+      const track = QueueTrack(
+        videoId: 'vid',
+        title: 'Video',
+        isVideo: true,
+        url: 'file:///tmp/sonora_media_cache/vid.webm',
+      );
+      expect(
+        PlaybackRestoreController.keepLocalUrlOnRestore(
+          track,
+          enableVideoPlayback: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('keeps media-cache files for audio tracks', () async {
+      final cacheDir = Directory(
+        '${Directory.systemTemp.path}/sonora_media_cache',
+      );
+      await cacheDir.create(recursive: true);
+      final file = File('${cacheDir.path}/song_restore_test.webm');
+      await file.writeAsBytes(const [1, 2, 3]);
+      addTearDown(() async {
+        if (await file.exists()) await file.delete();
+      });
+
+      final track = QueueTrack(
+        videoId: 'song',
+        title: 'Song',
+        url: file.uri.toString(),
+      );
+      expect(
+        PlaybackRestoreController.keepLocalUrlOnRestore(
+          track,
           enableVideoPlayback: false,
         ),
         isTrue,
@@ -56,7 +81,7 @@ void main() {
       );
       expect(
         PlaybackRestoreController.keepLocalUrlOnRestore(
-          track: track,
+          track,
           enableVideoPlayback: false,
         ),
         isFalse,

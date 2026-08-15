@@ -9,7 +9,6 @@ import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:media_kit/media_kit.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
-import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
 import '../../../domain/repositories/music_repository.dart';
@@ -20,7 +19,6 @@ import 'package:dart_cast/dart_cast.dart';
 import '../../providers/cast_provider.dart';
 import '../../../data/services/cast_service.dart';
 
-import 'adaptive_audio_binder.dart';
 import 'android_auto_browser_controller.dart';
 import 'cast_playback_controller.dart';
 import 'equalizer_controller.dart';
@@ -53,14 +51,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
   final LocalAudioProxyServer? _proxyServer;
-  final StreamDatasource? _streamDatasource;
   late final StartRadioUseCase _startRadioUseCase;
 
   late final CastPlaybackController _castController;
   late final AndroidAutoBrowserController _browserController;
   late final EqualizerController _equalizerController;
   late final QueueController _queueController;
-  late final AdaptiveAudioBinder? _adaptiveAudioBinder;
   late final AudioSessionController _audioSessionController;
   late final PlayerEngineConfigurator _engineConfigurator;
   late final LikeController _likeController;
@@ -83,32 +79,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// actually changes so the current playlist picks up new proxy URLs.
   void updateStreamPrefs({
     MediaQuality? streamAudioQuality,
-    MediaQuality? streamVideoQuality,
     bool? enableVideoPlayback,
   }) {
     final audioChanged =
         streamAudioQuality != null &&
         streamAudioQuality != _queueController.streamAudioQuality;
-    final videoChanged =
-        streamVideoQuality != null &&
-        streamVideoQuality != _queueController.streamVideoQuality;
     final enableChanged =
         enableVideoPlayback != null &&
         enableVideoPlayback != _queueController.enableVideoPlayback;
     _queueController.updateStreamPrefs(
       streamAudioQuality: streamAudioQuality,
-      streamVideoQuality: streamVideoQuality,
       enableVideoPlayback: enableVideoPlayback,
     );
-    if (audioChanged || videoChanged || enableChanged) {
+    if (audioChanged || enableChanged) {
       unawaited(_rebuildPlaylistMedia());
     }
-  }
-
-  void _syncAdaptiveAudio() {
-    final binder = _adaptiveAudioBinder;
-    if (binder == null) return;
-    unawaited(binder.onPlaylistChanged(_player.state.playlist));
   }
 
   Future<void> _persistPlaybackPointer() async {
@@ -185,12 +170,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required SharedPreferences prefs,
     required QueueRepository queueRepo,
     LocalAudioProxyServer? proxyServer,
-    StreamDatasource? streamDatasource,
   }) : _playVideoIdUseCase = playVideoIdUseCase,
        _prefs = prefs,
        _queueRepo = queueRepo,
-       _proxyServer = proxyServer,
-       _streamDatasource = streamDatasource ?? proxyServer?.streamDatasource {
+       _proxyServer = proxyServer {
     _startRadioUseCase = StartRadioUseCase(musicRepo);
 
     _likeController = LikeController(
@@ -212,26 +195,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _prefs.getString(kStreamAudioQualityKey) ??
             _prefs.getString(kStreamQualityKey),
       ),
-      streamVideoQuality: MediaQuality.fromStorage(
-        _prefs.getString(kStreamVideoQualityKey) ??
-            _prefs.getString(kStreamQualityKey),
-      ),
       enableVideoPlayback: _prefs.getBool(kEnableVideoPlaybackKey) ?? false,
     );
 
-    final ds = _streamDatasource;
-    _adaptiveAudioBinder =
-        ds != null
-            ? AdaptiveAudioBinder(
-              player: _player,
-              streamDatasource: ds,
-              getStreamAudioQuality: () => _queueController.streamAudioQuality,
-              getStreamVideoQuality: () => _queueController.streamVideoQuality,
-            )
-            : null;
-
     _queueController.onResolvingIdle = () {
-      _syncAdaptiveAudio();
       unawaited(_persistPlaybackPointer());
     };
 
@@ -472,10 +439,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _statePublisher.updatePlaybackState();
       }
       _onPlaylistChanged(playlist);
-      final binder = _adaptiveAudioBinder;
-      if (binder != null && !_queueController.isResolvingItem) {
-        unawaited(binder.onPlaylistChanged(playlist));
-      }
     });
 
     _player.stream.duration.listen((duration) {
@@ -1014,7 +977,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             try {
               final url = await _playVideoIdUseCase.resolveUrl(
                 track.videoId,
-                allowMediaCache: !_queueController.prefersAdaptiveVideo(track),
+                preferVideo: _queueController.prefersVideo(track),
               );
               final resolved = track
                   .copyWith(url: url, needsUrl: false)

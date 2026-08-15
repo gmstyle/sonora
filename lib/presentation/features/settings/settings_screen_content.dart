@@ -358,22 +358,6 @@ class _PlaybackSection extends ConsumerWidget {
           },
         ),
         const Divider(height: 1),
-        SettingsDropdownTile(
-          title: l10n.streamVideoQuality,
-          value: settings.streamVideoQuality.storageValue,
-          icon: LucideIcons.monitorPlay,
-          options: {
-            MediaQuality.high.storageValue: l10n.qualityHigh,
-            MediaQuality.mid.storageValue: l10n.qualityMid,
-            MediaQuality.low.storageValue: l10n.qualityLow,
-          },
-          onChanged: (v) {
-            if (v != null) {
-              notifier.setStreamVideoQuality(MediaQuality.fromStorage(v));
-            }
-          },
-        ),
-        const Divider(height: 1),
         SettingsSwitchTile(
           title: l10n.autoPlayUpNext,
           subtitle: l10n.autoPlayUpNextHint,
@@ -681,7 +665,6 @@ class _BackupSection extends StatelessWidget {
         'autoPlayUpNext': settings.autoPlayUpNext,
         'enableVideoPlayback': settings.enableVideoPlayback,
         'streamAudioQuality': settings.streamAudioQuality.storageValue,
-        'streamVideoQuality': settings.streamVideoQuality.storageValue,
         'downloadQuality': settings.downloadQuality.storageValue,
         'downloadOnlyOnWifi': settings.downloadOnlyOnWifi,
         'trackHistory': settings.trackHistory,
@@ -827,18 +810,12 @@ class _BackupSection extends StatelessWidget {
           );
         }
         if (importedSettings.containsKey('streamAudioQuality') ||
-            importedSettings.containsKey('streamVideoQuality') ||
             importedSettings.containsKey('streamQuality')) {
-          final legacy = importedSettings['streamQuality'] as String?;
           final audioRaw =
-              importedSettings['streamAudioQuality'] as String? ?? legacy;
-          final videoRaw =
-              importedSettings['streamVideoQuality'] as String? ?? legacy;
+              importedSettings['streamAudioQuality'] as String? ??
+              importedSettings['streamQuality'] as String?;
           if (audioRaw != null) {
             notifier.setStreamAudioQuality(MediaQuality.fromStorage(audioRaw));
-          }
-          if (videoRaw != null) {
-            notifier.setStreamVideoQuality(MediaQuality.fromStorage(videoRaw));
           }
         }
         if (importedSettings.containsKey('downloadQuality')) {

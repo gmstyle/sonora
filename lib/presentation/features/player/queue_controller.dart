@@ -9,7 +9,6 @@ import '../../../data/services/media_cache_service.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
-import '../../../domain/models/stream_role.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 /// Dedicated controller for playback queue management.
@@ -40,14 +39,11 @@ class QueueController {
   /// Current stream audio quality preference (updated from settings).
   MediaQuality streamAudioQuality;
 
-  /// Current stream video quality preference (updated from settings).
-  MediaQuality streamVideoQuality;
-
   /// Whether video playback is enabled (updated from settings).
   bool enableVideoPlayback;
 
   /// Invoked when the last nested [beginResolving] is matched by
-  /// [endResolving]. Used to bind adaptive audio after URL resolve / retry.
+  /// [endResolving]. Used to re-sync playback after URL resolve / retry.
   void Function()? onResolvingIdle;
 
   int _queueIdCounter = 0;
@@ -68,7 +64,6 @@ class QueueController {
     required void Function(List<MediaItem>) updateQueueStream,
     LocalAudioProxyServer? proxyServer,
     this.streamAudioQuality = MediaQuality.high,
-    this.streamVideoQuality = MediaQuality.high,
     this.enableVideoPlayback = false,
     this.onResolvingIdle,
   }) : _player = player,
@@ -82,14 +77,10 @@ class QueueController {
   /// Syncs stream-related prefs from settings without restarting playback.
   void updateStreamPrefs({
     MediaQuality? streamAudioQuality,
-    MediaQuality? streamVideoQuality,
     bool? enableVideoPlayback,
   }) {
     if (streamAudioQuality != null) {
       this.streamAudioQuality = streamAudioQuality;
-    }
-    if (streamVideoQuality != null) {
-      this.streamVideoQuality = streamVideoQuality;
     }
     if (enableVideoPlayback != null) {
       this.enableVideoPlayback = enableVideoPlayback;
@@ -119,9 +110,8 @@ class QueueController {
     }
   }
 
-  /// Whether [track] should play as adaptive video (proxy video+audio pair).
-  bool prefersAdaptiveVideo(QueueTrack track) =>
-      enableVideoPlayback && track.isVideo;
+  /// Whether [track] should play as video (muxed proxy with `v=1`).
+  bool prefersVideo(QueueTrack track) => enableVideoPlayback && track.isVideo;
 
   /// Runs [action] exclusively (FIFO) so overlapping callers never interleave
   /// playlist mutations. Used by batch adds, single adds, replaceAt, and
@@ -316,50 +306,28 @@ class QueueController {
   /// Converts a MediaItem to a Media object for media_kit.
   /// Assigns queueId if missing and tags as user section.
   ///
-  /// Local `file://` URLs (library downloads) bypass the proxy so offline
-  /// playback works. Audio-only `sonora_media_cache` files also bypass the
-  /// proxy — except for video tracks in video mode, where that cache would
-  /// play as black video + audio. Cast still uses [MediaItem] extras, not
-  /// the media_kit source.
+  /// Local `file://` URLs (library downloads and media-cache files) bypass
+  /// the proxy so offline playback works. Cast still uses [MediaItem] extras,
+  /// not the media_kit source.
   Media toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
-    if (_useLocalFileSource(track)) {
+    final preferVideo = prefersVideo(track);
+    final useLocal =
+        track.isLocalFile &&
+        !(preferVideo &&
+            MediaCacheService.isMediaCacheUri(track.url) &&
+            !MediaCacheService.isMuxedCacheUri(track.url));
+    if (useLocal) {
       return Media(track.url!, extras: {'mediaItem': tagged});
     }
     if (_proxyServer != null &&
         _proxyServer.isRunning &&
         track.videoId.isNotEmpty) {
-      final preferVideo = prefersAdaptiveVideo(track);
-      if (preferVideo) {
-        final videoUrl = _proxyServer.getStreamUrlForVideo(
-          track.videoId,
-          audioQuality: streamAudioQuality,
-          videoQuality: streamVideoQuality,
-          preferVideo: true,
-          role: StreamRole.video,
-        );
-        final audioUrl = _proxyServer.getStreamUrlForVideo(
-          track.videoId,
-          audioQuality: streamAudioQuality,
-          videoQuality: streamVideoQuality,
-          preferVideo: true,
-          role: StreamRole.audio,
-        );
-        return Media(
-          videoUrl,
-          extras: {
-            'mediaItem': tagged,
-            'audioProxyUrl': audioUrl,
-            'adaptiveCandidate': true,
-          },
-        );
-      }
       final proxyUrl = _proxyServer.getStreamUrlForVideo(
         track.videoId,
         audioQuality: streamAudioQuality,
-        videoQuality: streamVideoQuality,
-        preferVideo: false,
+        preferVideo: preferVideo,
       );
       return Media(proxyUrl, extras: {'mediaItem': tagged});
     }
@@ -368,17 +336,6 @@ class QueueController {
     }
     final dummy = 'http://localhost/dummy_${track.videoId}.wav';
     return Media(dummy, extras: {'mediaItem': tagged});
-  }
-
-  /// Library downloads always count as local. Media-cache files are local
-  /// only for audio-only playback — never for adaptive video.
-  bool _useLocalFileSource(QueueTrack track) {
-    if (!track.isLocalFile) return false;
-    if (prefersAdaptiveVideo(track) &&
-        MediaCacheService.isMediaCacheUri(track.url)) {
-      return false;
-    }
-    return true;
   }
 
   // ── Queue mutations ────────────────────────────────────────────────────────

@@ -164,21 +164,30 @@ class TrackUrlResolver {
     if (index < 0 || index >= playlist.medias.length) return;
     final media = playlist.medias[index];
     final item = media.extras?['mediaItem'] as MediaItem?;
-    final url = diskPrefetchUrlFor(
-      item,
-      enableVideoPlayback: _queueController.enableVideoPlayback,
-    );
-    if (url == null || item == null) return;
-    final videoId = QueueTrack.fromMediaItem(item).videoId;
+    if (item == null) return;
+    final track = QueueTrack.fromMediaItem(item);
+    final preferVideo = _queueController.prefersVideo(track);
+    final url = diskPrefetchUrlFor(item);
+    final videoId = track.videoId;
     if (!_prefetchInFlight.add(videoId)) return;
-    // Drop from the set when the download settles (ok or fail) so a later
-    // resolvePendingItems can retry after a transient failure. While the
-    // download is active, MediaCacheService._activeDownloads still dedupes.
-    unawaited(
-      MediaCacheService.instance.downloadToCache(videoId, url).whenComplete(() {
+    unawaited(() async {
+      try {
+        // Video mode must prefetch the muxed stream — MediaItem.url is often
+        // an audio-only resolve and would poison the cache as .webm.
+        final streamUrl =
+            preferVideo
+                ? await _playVideoIdUseCase.resolveStreamUrl(
+                  videoId,
+                  preferVideo: true,
+                )
+                : url;
+        if (streamUrl == null) return;
+        await MediaCacheService.instance.downloadToCache(videoId, streamUrl);
+      } catch (_) {
+      } finally {
         _prefetchInFlight.remove(videoId);
-      }),
-    );
+      }
+    }());
   }
 
   /// videoIds of disk pre-cache downloads that are no longer relevant for
@@ -217,17 +226,11 @@ class TrackUrlResolver {
   }
 
   /// URL eligible for disk look-ahead pre-cache, or null if the item must not
-  /// be downloaded (unresolved, local file, dummy placeholder, or a video
-  /// track while video playback is enabled — that cache is audio-only and
-  /// would poison adaptive playback).
+  /// be downloaded (unresolved, local file, or dummy placeholder).
   @visibleForTesting
-  static String? diskPrefetchUrlFor(
-    MediaItem? item, {
-    bool enableVideoPlayback = false,
-  }) {
+  static String? diskPrefetchUrlFor(MediaItem? item) {
     if (item == null) return null;
     final t = QueueTrack.fromMediaItem(item);
-    if (t.isVideo && enableVideoPlayback) return null;
     if (t.hasUrl && !t.isLocalFile && !t.url!.startsWith('http://localhost')) {
       return t.url;
     }
@@ -272,7 +275,7 @@ class TrackUrlResolver {
       final url = await _playVideoIdUseCase
           .resolveUrl(
             videoId,
-            allowMediaCache: !_queueController.prefersAdaptiveVideo(track),
+            preferVideo: _queueController.prefersVideo(track),
           )
           .timeout(
             isCurrent

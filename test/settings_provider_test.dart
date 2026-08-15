@@ -19,7 +19,6 @@ void main() {
       expect(settings.autoPlayUpNext, true);
       expect(settings.enableVideoPlayback, false);
       expect(settings.streamAudioQuality, MediaQuality.high);
-      expect(settings.streamVideoQuality, MediaQuality.high);
       expect(settings.downloadQuality, MediaQuality.high);
       expect(settings.downloadPath, isNull);
       expect(settings.downloadOnlyOnWifi, false);
@@ -107,7 +106,6 @@ void main() {
       expect(settings.autoPlayUpNext, true);
       expect(settings.enableVideoPlayback, false);
       expect(settings.streamAudioQuality, MediaQuality.high);
-      expect(settings.streamVideoQuality, MediaQuality.high);
       expect(settings.downloadQuality, MediaQuality.high);
       expect(settings.downloadPath, isNull);
       expect(settings.downloadOnlyOnWifi, false);
@@ -148,7 +146,6 @@ void main() {
       expect(settings.restoreQueueOnStartup, false);
       expect(settings.autoPlayUpNext, false);
       expect(settings.streamAudioQuality, MediaQuality.mid);
-      expect(settings.streamVideoQuality, MediaQuality.mid);
       expect(settings.downloadQuality, MediaQuality.low);
       expect(settings.downloadPath, '/music');
       expect(settings.downloadOnlyOnWifi, true);
@@ -256,7 +253,7 @@ void main() {
       expect(prefs.getBool(kEnableVideoPlaybackKey), true);
     });
 
-    test('migrates legacy streamQuality to audio and video', () async {
+    test('migrates legacy streamQuality to audio quality', () async {
       SharedPreferences.setMockInitialValues({kStreamQualityKey: 'low'});
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
@@ -266,14 +263,12 @@ void main() {
 
       final settings = container.read(settingsProvider);
       expect(settings.streamAudioQuality, MediaQuality.low);
-      expect(settings.streamVideoQuality, MediaQuality.low);
     });
 
-    test('prefers dedicated audio/video keys over legacy', () async {
+    test('prefers dedicated audio key over legacy', () async {
       SharedPreferences.setMockInitialValues({
         kStreamQualityKey: 'low',
         kStreamAudioQualityKey: 'high',
-        kStreamVideoQualityKey: 'mid',
       });
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
@@ -283,7 +278,6 @@ void main() {
 
       final settings = container.read(settingsProvider);
       expect(settings.streamAudioQuality, MediaQuality.high);
-      expect(settings.streamVideoQuality, MediaQuality.mid);
     });
 
     test('setStreamAudioQuality updates state and persists', () async {
@@ -302,24 +296,6 @@ void main() {
         MediaQuality.low,
       );
       expect(prefs.getString(kStreamAudioQualityKey), 'low');
-    });
-
-    test('setStreamVideoQuality updates state and persists', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(container.dispose);
-
-      await container
-          .read(settingsProvider.notifier)
-          .setStreamVideoQuality(MediaQuality.mid);
-      expect(
-        container.read(settingsProvider).streamVideoQuality,
-        MediaQuality.mid,
-      );
-      expect(prefs.getString(kStreamVideoQualityKey), 'mid');
     });
 
     test('setDownloadQuality updates state and persists', () async {

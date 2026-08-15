@@ -74,12 +74,10 @@ lib/
 │       └── sync_service.dart           # P2P local synchronization service
 ├── domain/
 │   ├── media/
-│   │   └── stream_quality_selector.dart # audioOnly / muxed / adaptive videoOnly+audioOnly
+│   │   └── stream_quality_selector.dart # audioOnly (tiered) / muxed (best bitrate)
 │   ├── models/
 │   │   ├── library_models.dart         # 10 PODO (LikedSong, FollowedArtist, ...History, SearchHistory)
-│   │   ├── media_quality.dart          # MediaQuality { high, mid, low }
-│   │   ├── playback_selection.dart     # PlaybackSelection (primary + optional externalAudio)
-│   │   └── stream_role.dart            # StreamRole { primary, video, audio }
+│   │   └── media_quality.dart          # MediaQuality { high, mid, low }
 │   ├── repositories/
 │   │   ├── music_repository.dart
 │   │   ├── library_repository.dart
@@ -323,8 +321,8 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 | Controller | File | Responsibility |
 |---|---|---|
 | `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔Media conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
-| `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` is skipped for `isVideo` when video playback is on |
-| `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady`; media-cache `file://` is not treated as local for adaptive video |
+| `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` for audio and video alike |
+| `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
 | `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
 | `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume / ducking |
 | `PlaybackStatePublisher` | `playback_state_publisher.dart` | Projects media_kit state → `audio_service` `PlaybackState` with emit dedupe; `invalidate()` after batch resolves |
@@ -365,27 +363,25 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
 
 - **`LocalAudioProxyServer` (`local_audio_proxy_server.dart`)**:
   - Runs locally on `127.0.0.1` using a dynamic ephemeral port assigned by the OS at startup.
-  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&qa=<high|mid|low>&qv=<high|mid|low>[&v=1][&kind=video|audio]` (legacy `q` still accepted as fallback for both).
-    - `qa` / `qv` — streaming audio / video quality from `Settings.streamAudioQuality` / `Settings.streamVideoQuality` (built by `QueueController.toMedia`).
-    - `v=1` — video playback path when `Settings.enableVideoPlayback && track.isVideo`.
-    - `kind=video|audio` — adaptive HD pair (primary video-only URI + external audio URI).
-  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first (skipped for adaptive `preferVideo`, including `kind=video`). If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage.
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, videoQuality:, preferVideo:, role:)` and `YoutubeRequestScheduler`.
-  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio/video quality / preferVideo / role, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit), except adaptive video playback (`preferVideo`) so an audio-only file is not stored under the same `videoId`. Lookahead prefetch (`TrackUrlResolver`) also skips disk cache for `isVideo` when video playback is enabled. `PlayVideoIdUseCase.resolveUrl(allowMediaCache: false)` is used on that path so a leftover cache file is not reused as the media_kit source. Changing stream quality **or** toggling `enableVideoPlayback` clears this cache.
-  - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` so `AdaptiveAudioBinder` can attach the external audio track (playlist events during resolving are ignored). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
+  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&qa=<high|mid|low>[&v=1]` (legacy `q` still accepted as fallback for audio quality).
+    - `qa` — streaming audio quality from `Settings.streamAudioQuality` (built by `QueueController.toMedia`; used for audio-only picks and as cache-key component).
+    - `v=1` — video playback path when `Settings.enableVideoPlayback && track.isVideo` (best-bitrate muxed URL).
+  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3 or muxed mp4).
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, preferVideo:)` and `YoutubeRequestScheduler`.
+  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio quality / preferVideo, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
+  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit) for both audio and muxed video. Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality **or** toggling `enableVideoPlayback` clears this cache so leftover files from the other mode are not reused.
+  - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` (e.g. persist playback pointer). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
-  - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`), streaming video (`Settings.streamVideoQuality`), and downloads (`Settings.downloadQuality`).
+  - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`) and downloads (`Settings.downloadQuality`). Video streaming has no quality setting.
   - `preferVideo == false` (audio listening): pick from `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
-  - **Local video HD (adaptive)**: when `preferVideo`, `selectPlayback` pairs `videoOnly` at **video** quality (high ≤1080p, mid ≈720p, low ≈360p) with `audioOnly` at **audio** quality. `QueueController.toMedia` builds a video proxy URI plus `extras.audioProxyUrl`; `AdaptiveAudioBinder` calls `player.setAudioTrack(AudioTrack.uri(...))` after confirming the plan is adaptive. If `videoOnly`/`audioOnly` are missing → muxed fallback (~360p, video quality) and no external audio (avoids double audio).
-  - **Downloads / cast**: still single-URL (`select` / `resolveUrl`) — muxed when video, audio-only otherwise, using `downloadQuality` / resolve quality. Cast stays non-adaptive.
-  - The fork of `youtube_explode_dart` defaults to the `androidVr` client so adaptive URLs work (no longer forced to muxed-only for the #332 CDN 403 bug).
-  - `StreamDatasource` caches playback plans by `videoId|audioQ|videoQ|preferVideo` and exposes `clearUrlCache()` when stream audio/video quality or video playback settings change.
+  - **Local video (muxed-only)**: when `preferVideo`, always pick the highest-bitrate muxed stream (`withHighestBitrate()`). `QueueController.toMedia` builds a single proxy URI with `v=1`. Typical YouTube muxed ceiling is ≤720p (often 360p).
+  - **Downloads / cast**: same `select` path — muxed when video, audio-only otherwise. Download video ignores `downloadQuality` tiers (best muxed); audio downloads still use `downloadQuality`.
+  - `StreamDatasource` caches playback plans by `videoId|audioQ|preferVideo` and exposes `clearUrlCache()` when stream audio quality or video playback settings change.
 
 - **Dual-Path Playback Architecture:**
   - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects stream via `StreamQualitySelector` using `downloadQuality` and `isVideo`. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
-  - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during **audio-only** online playback. Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs. **Never used as the primary source for adaptive video** (`QueueController.toMedia` rebuilds the proxy pair if a cache URI is seen on an `isVideo` track).
+  - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback (audio-only or muxed video). Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs; `file://` cache hits also bypass the proxy in `QueueController.toMedia`.
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When the playlist index changes, the resolver resolves the URL for the current item and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background timer pre-resolves `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
@@ -403,7 +399,7 @@ If the stream URL expires or fails after retries, recovery advances to an offlin
 Volume fade-in/fade-out on the position stream. Duration configurable via `Settings.crossfadeSeconds` (pushed from `PlayerNotifier` via `setCrossfadeDuration`).
 
 **Restore** — owned by `PlaybackRestoreController`:
-`PlayerNotifier` observes `restoreStatusStream` / `savedPosition` to block controls and seed the seek bar during cold start and warm resume. Persisted `sonora_media_cache` URIs are not kept as local sources when restoring a video track with video playback enabled (they are audio-only). After restore, `onResolvingIdle` binds adaptive audio and `VideoPlayerNotifier` force-kicks `setVideoTrack` so the texture is not left black.
+`PlayerNotifier` observes `restoreStatusStream` / `savedPosition` to block controls and seed the seek bar during cold start and warm resume. After restore, `VideoPlayerNotifier` force-kicks `setVideoTrack` so the texture is not left black.
 
 ### 6.2 `PlayerNotifier` (player_provider.dart)
 
@@ -831,8 +827,7 @@ Produces:
 | `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
 | `enableVideoPlayback` | bool | false | Video track attach + `preferVideo` on proxy URLs; clears stream URL cache **and** media disk cache |
 | `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / audio stream pick; clears URL + media cache (legacy `streamQuality` migrates here) |
-| `streamVideoQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / adaptive video pick; clears URL + media cache (legacy `streamQuality` migrates here) |
-| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` stream pick |
+| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` stream pick (audio tiers; video uses best muxed) |
 | `downloadPath` | String? | null | StartDownloadUseCase |
 | `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
 | `trackHistory` | bool | true | History insert on play |

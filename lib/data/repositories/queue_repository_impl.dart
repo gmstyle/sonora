@@ -8,7 +8,6 @@ import '../../domain/models/queue_track.dart';
 import '../../domain/models/restored_queue_entry.dart';
 import '../../domain/repositories/queue_repository.dart';
 import '../datasources/local/database.dart';
-import '../services/media_cache_service.dart';
 
 class QueueRepositoryImpl implements QueueRepository {
   final AppDatabase _db;
@@ -47,10 +46,6 @@ class QueueRepositoryImpl implements QueueRepository {
         for (int i = 0; i < items.length; i++) {
           final item = items[i];
           final track = QueueTrack.fromMediaItem(item);
-          final persistUrl =
-              track.isVideo && MediaCacheService.isMediaCacheUri(track.url)
-                  ? null
-                  : track.url;
           final section =
               QueueSection.fromTag(item.extras?['section'] as String?).tag;
           batch.insert(
@@ -64,7 +59,7 @@ class QueueRepositoryImpl implements QueueRepository {
               thumbnailUrl: Value(item.artUri?.toString()),
               durationSec: Value(item.duration?.inSeconds),
               isVideo: track.isVideo,
-              streamUrl: Value(persistUrl),
+              streamUrl: Value(track.url),
               artistId: Value(track.artistId),
               albumId: Value(track.albumId),
               isExplicit: Value(track.isExplicit),

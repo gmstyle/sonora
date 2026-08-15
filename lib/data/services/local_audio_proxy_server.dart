@@ -7,7 +7,6 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
 import '../../domain/models/media_quality.dart';
-import '../../domain/models/stream_role.dart';
 import '../datasources/remote/stream_datasource.dart';
 import 'media_cache_service.dart';
 
@@ -15,7 +14,7 @@ import 'media_cache_service.dart';
 ///
 /// Acts as a resilient buffer between `media_kit` (libmpv) and YouTube Music
 /// remote streams. Responsibilities:
-/// - Serves locally cached audio files directly from disk if available
+/// - Serves locally cached media files directly from disk if available
 /// - Supports HTTP Range requests for instant seek/scrubbing
 /// - Transparently fetches remote stream URLs via [StreamDatasource]
 /// - Retries and auto-refreshes expired/rate-limited YouTube URLs (HTTP 403/429)
@@ -73,15 +72,13 @@ class LocalAudioProxyServer {
 
   /// Constructs a local proxy stream URL for a given [videoId].
   ///
-  /// [audioQuality], [videoQuality], [preferVideo], and [role] are forwarded
-  /// as query params (`qa`/`qv`/`v`/`kind`) so the handler can resolve the
-  /// correct YouTube stream when media_kit requests it.
+  /// [audioQuality] and [preferVideo] are forwarded as query params (`qa`/`v`)
+  /// so the handler can resolve the correct YouTube stream when media_kit
+  /// requests it.
   String getStreamUrlForVideo(
     String videoId, {
     MediaQuality audioQuality = MediaQuality.high,
-    MediaQuality videoQuality = MediaQuality.high,
     bool preferVideo = false,
-    StreamRole role = StreamRole.primary,
   }) {
     if (!isRunning) {
       dev.log(
@@ -91,68 +88,46 @@ class LocalAudioProxyServer {
     final params = <String, String>{
       'videoId': videoId,
       'qa': audioQuality.storageValue,
-      'qv': videoQuality.storageValue,
       if (preferVideo) 'v': '1',
-      if (role != StreamRole.primary) 'kind': role.name,
     };
     return Uri.parse(
       '$streamBaseUrl/stream',
     ).replace(queryParameters: params).toString();
   }
 
-  static StreamRole _roleFromQuery(String? kind) {
-    return switch (kind) {
-      'video' => StreamRole.video,
-      'audio' => StreamRole.audio,
-      _ => StreamRole.primary,
-    };
+  /// Resolves audio quality from `qa`, falling back to legacy `q`.
+  static MediaQuality _audioQualityFromQuery(Map<String, String> params) {
+    return MediaQuality.fromStorage(params['qa'] ?? params['q']);
   }
 
-  /// Resolves audio/video quality from `qa`/`qv`, falling back to legacy `q`.
-  static (MediaQuality audio, MediaQuality video) _qualitiesFromQuery(
-    Map<String, String> params,
-  ) {
-    final legacy = params['q'];
-    final audio = MediaQuality.fromStorage(params['qa'] ?? legacy);
-    final video = MediaQuality.fromStorage(params['qv'] ?? legacy);
-    return (audio, video);
-  }
-
-  /// Route handler for `/stream?videoId=...&qa=...&qv=...&v=...&kind=...`
+  /// Route handler for `/stream?videoId=...&qa=...&v=...`
   Future<Response> _handleStream(Request request) async {
     final videoId = request.url.queryParameters['videoId'];
     if (videoId == null || videoId.isEmpty) {
       return Response.badRequest(body: 'Missing videoId parameter');
     }
 
-    final (audioQuality, videoQuality) = _qualitiesFromQuery(
-      request.url.queryParameters,
-    );
+    final audioQuality = _audioQualityFromQuery(request.url.queryParameters);
     final preferVideo = request.url.queryParameters['v'] == '1';
-    final role = _roleFromQuery(request.url.queryParameters['kind']);
     final rangeHeaderStr = request.headers['range'];
 
-    // Skip disk cache for adaptive video playback (video-only is large / wrong
-    // MIME; adaptive audio must not be stored under bare videoId or it poisons
-    // PlayVideoIdUseCase / toMedia into treating an audio file as the source).
-    final allowDiskCache = role != StreamRole.video && !preferVideo;
-
-    if (allowDiskCache) {
-      try {
-        final cachedUri = await _mediaCacheService.getCachedFileUri(videoId);
-        if (cachedUri != null) {
-          final filePath = Uri.parse(cachedUri).toFilePath();
-          final file = File(filePath);
-          if (await file.exists()) {
-            dev.log('[LocalAudioProxyServer] Serving $videoId from disk cache');
-            return await _serveLocalFile(file, rangeHeaderStr);
-          }
+    try {
+      final cachedUri = await _mediaCacheService.getCachedFileUri(
+        videoId,
+        preferVideo: preferVideo,
+      );
+      if (cachedUri != null) {
+        final filePath = Uri.parse(cachedUri).toFilePath();
+        final file = File(filePath);
+        if (await file.exists()) {
+          dev.log('[LocalAudioProxyServer] Serving $videoId from disk cache');
+          return await _serveLocalFile(file, rangeHeaderStr);
         }
-      } catch (e) {
-        dev.log(
-          '[LocalAudioProxyServer] Error checking local cache for $videoId: $e',
-        );
       }
+    } catch (e) {
+      dev.log(
+        '[LocalAudioProxyServer] Error checking local cache for $videoId: $e',
+      );
     }
 
     String? streamUrl;
@@ -160,15 +135,12 @@ class LocalAudioProxyServer {
       streamUrl = await _streamDatasource.getStreamUrl(
         videoId,
         audioQuality: audioQuality,
-        videoQuality: videoQuality,
         preferVideo: preferVideo,
-        role: role,
       );
     } catch (e) {
       dev.log(
         '[LocalAudioProxyServer] Failed to resolve stream URL for $videoId '
-        '(qa=${audioQuality.storageValue}, qv=${videoQuality.storageValue}, '
-        'v=$preferVideo, role=${role.name}): $e',
+        '(qa=${audioQuality.storageValue}, v=$preferVideo): $e',
       );
       return Response.internalServerError(
         body: 'Failed to resolve stream URL: $e',
@@ -180,10 +152,7 @@ class LocalAudioProxyServer {
       streamUrl,
       rangeHeaderStr,
       audioQuality: audioQuality,
-      videoQuality: videoQuality,
       preferVideo: preferVideo,
-      role: role,
-      allowDiskCache: allowDiskCache,
     );
   }
 
@@ -191,7 +160,11 @@ class LocalAudioProxyServer {
   Future<Response> _serveLocalFile(File file, String? rangeHeaderStr) async {
     final fileLength = await file.length();
     final ext = file.path.split('.').last.toLowerCase();
-    final contentType = ext == 'webm' ? 'audio/webm' : 'audio/mpeg';
+    final contentType = switch (ext) {
+      'mp4' => 'video/mp4',
+      'webm' => 'audio/webm',
+      _ => 'audio/mpeg',
+    };
 
     if (rangeHeaderStr != null && rangeHeaderStr.startsWith('bytes=')) {
       final rangeValue = rangeHeaderStr.substring(6).trim();
@@ -239,10 +212,7 @@ class LocalAudioProxyServer {
     String initialUrl,
     String? rangeHeaderStr, {
     required MediaQuality audioQuality,
-    required MediaQuality videoQuality,
     required bool preferVideo,
-    required StreamRole role,
-    required bool allowDiskCache,
   }) async {
     int attempts = 0;
     String currentUrl = initialUrl;
@@ -272,9 +242,7 @@ class LocalAudioProxyServer {
           currentUrl = await _streamDatasource.getStreamUrl(
             videoId,
             audioQuality: audioQuality,
-            videoQuality: videoQuality,
             preferVideo: preferVideo,
-            role: role,
           );
           continue;
         }
@@ -290,8 +258,7 @@ class LocalAudioProxyServer {
         final cRange = response.headers.value(HttpHeaders.contentRangeHeader);
         if (cRange != null) headers['Content-Range'] = cRange;
 
-        if (allowDiskCache &&
-            (rangeHeaderStr == null || rangeHeaderStr.startsWith('bytes=0-'))) {
+        if (rangeHeaderStr == null || rangeHeaderStr.startsWith('bytes=0-')) {
           unawaited(_mediaCacheService.downloadToCache(videoId, currentUrl));
         }
 
@@ -312,9 +279,7 @@ class LocalAudioProxyServer {
           currentUrl = await _streamDatasource.getStreamUrl(
             videoId,
             audioQuality: audioQuality,
-            videoQuality: videoQuality,
             preferVideo: preferVideo,
-            role: role,
           );
         } catch (_) {}
       }

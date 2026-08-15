@@ -147,20 +147,21 @@ void main() {
   });
 
   group('persistQueue streamUrl', () {
-    test('does not persist media-cache URLs for video tracks', () async {
+    test('persists media-cache URLs for video tracks', () async {
+      const cacheUrl = 'file:///tmp/sonora_media_cache/vid.mp4';
       final item =
           const QueueTrack(
             videoId: 'vid',
             title: 'Video',
             artist: 'A',
             isVideo: true,
-            url: 'file:///tmp/sonora_media_cache/vid.webm',
+            url: cacheUrl,
           ).toFreshMediaItem();
       await repo.persistQueue([item], currentIndex: 0);
 
       final restored = await repo.restoreQueue();
-      expect(restored.single.url, isNull);
-      expect(restored.single.needsUrl, isTrue);
+      expect(restored.single.url, cacheUrl);
+      expect(restored.single.needsUrl, isFalse);
     });
 
     test('still persists media-cache URLs for audio tracks', () async {

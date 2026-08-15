@@ -89,20 +89,20 @@ class PlaybackRestoreController {
   bool get isRestoring => _restoreStatus == RestoreStatus.restoring;
 
   /// Whether a persisted URL should be kept as a local file on restore.
-  /// Media-cache files are not kept for video tracks in video mode — they
-  /// are audio-only and would open as a black frame.
+  /// Audio-only media-cache files are not kept for video tracks in video mode.
   @visibleForTesting
-  static bool keepLocalUrlOnRestore({
-    required QueueTrack track,
+  static bool keepLocalUrlOnRestore(
+    QueueTrack track, {
     required bool enableVideoPlayback,
   }) {
     if (!track.isLocalFile) return false;
+    if (UrlStaleness.isStale(track.url)) return false;
     if (enableVideoPlayback &&
         track.isVideo &&
-        MediaCacheService.isMediaCacheUri(track.url)) {
+        MediaCacheService.isMediaCacheUri(track.url) &&
+        !MediaCacheService.isMuxedCacheUri(track.url)) {
       return false;
     }
-    if (UrlStaleness.isStale(track.url)) return false;
     return true;
   }
 
@@ -300,7 +300,7 @@ class PlaybackRestoreController {
                   : QueueController.tagUser(baseItem);
           final isLocalAndValid =
               PlaybackRestoreController.keepLocalUrlOnRestore(
-                track: track,
+                track,
                 enableVideoPlayback: _queueController.enableVideoPlayback,
               );
           if (isLocalAndValid) {
@@ -356,7 +356,7 @@ class PlaybackRestoreController {
       final currentTrack = QueueTrack.fromMediaItem(currentItem);
       final freshUrl = await _playVideoIdUseCase.resolveUrl(
         currentItem.id,
-        allowMediaCache: !_queueController.prefersAdaptiveVideo(currentTrack),
+        preferVideo: _queueController.prefersVideo(currentTrack),
       );
       final track = QueueTrack.fromMediaItem(
         currentItem,
