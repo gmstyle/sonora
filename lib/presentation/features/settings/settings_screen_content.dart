@@ -730,11 +730,12 @@ class _BackupSection extends StatelessWidget {
 
   Future<void> _importData(BuildContext context) async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['zip'],
       );
-      if (result == null || result.files.single.path == null) return;
+      final path = file?.path;
+      if (path == null) return;
       if (!context.mounted) return;
 
       final confirmed = await showDialog<bool>(
@@ -758,7 +759,7 @@ class _BackupSection extends StatelessWidget {
       if (confirmed != true) return;
 
       final useCase = ref.read(importBackupUseCaseProvider);
-      final importedSettings = await useCase.execute(result.files.single.path!);
+      final importedSettings = await useCase.execute(path);
 
       ref.invalidate(libraryNotifierProvider);
       ref.invalidate(likedSongsProvider);
