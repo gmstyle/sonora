@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../dart_ytmusic_api"
+		},
+		{
+			"path": "../youtube_explode_dart"
 		}
 	],
 	"settings": {}
