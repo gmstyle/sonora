@@ -394,6 +394,22 @@ class PlaybackRestoreController {
     try {
       await _player.open(restoredPlaylist, play: true);
 
+      // media_kit may briefly report index 0 while opening a non-zero playlist
+      // index (especially with video/HLS). Wait for the intended item before
+      // seeking so the seek is not applied to the wrong track.
+      if (savedIndex > 0 && _player.state.playlist.index != savedIndex) {
+        try {
+          await _player.stream.playlist
+              .where((p) => p.index == savedIndex)
+              .first
+              .timeout(const Duration(seconds: 5));
+        } catch (_) {
+          if (_player.state.playlist.index != savedIndex) {
+            await _player.jump(savedIndex);
+          }
+        }
+      }
+
       if (_savedPosition > Duration.zero) {
         try {
           await _player.stream.duration
@@ -402,6 +418,27 @@ class PlaybackRestoreController {
               .timeout(const Duration(seconds: 8));
         } catch (_) {}
         await _player.seek(_savedPosition);
+        // Video/HLS seeks complete asynchronously: await returns while
+        // position is still 0. Wait until the demuxer reports a position near
+        // the target before pausing / ending restore (otherwise UI + persist
+        // race to 0 and wipe the restored pointer).
+        const tolerance = Duration(seconds: 2);
+        try {
+          await _player.stream.position
+              .where((p) => (p - _savedPosition).abs() <= tolerance)
+              .first
+              .timeout(const Duration(seconds: 8));
+        } catch (_) {
+          // One retry — first seek can be ignored if the stream was not
+          // fully ready yet despite duration > 0.
+          await _player.seek(_savedPosition);
+          try {
+            await _player.stream.position
+                .where((p) => (p - _savedPosition).abs() <= tolerance)
+                .first
+                .timeout(const Duration(seconds: 5));
+          } catch (_) {}
+        }
       }
       // Pause after restore — the user didn't ask for playback.
       if (_player.state.playing) {

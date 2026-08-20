@@ -97,6 +97,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _persistPlaybackPointer() async {
+    // During cold restore, media_kit seek is async: endResolving used to
+    // persist position 0 and wipe the just-restored pointer before seek landed.
+    if (_restoreController.isRestoring) return;
+
     final playlist = _player.state.playlist;
     final index = playlist.index;
     if (index < 0) return;
