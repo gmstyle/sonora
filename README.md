@@ -28,21 +28,25 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 ## Features
 
-- **YouTube Music streaming** — search, browse, and play songs, albums, artists, playlists, and music videos directly from YouTube Music
+- **YouTube Music streaming** — search, browse, and play songs, albums, artists, playlists, music videos, podcasts, and episodes directly from YouTube Music
+- **Explore** — Charts, Moods & Genres, and New Releases with dedicated browse screens
+- **Podcasts & episodes** — podcast detail pages, episode detail pages, subscribe/unsubscribe, save episodes, play/shuffle episode queues, and download support
+- **User / channel pages** — browse non-artist YouTube Music user channels, their videos, and playlists
+- **Related content** — in-player Related panel with similar songs and sections from YouTube Music
 - **Background playback** — keep listening/watching while using other apps, with a persistent notification on Android
 - **Audio & Video support** — switch between audio-only and video playback seamlessly
-- **Android Auto** — full driving support with playback controls, browse, and sleep timer
+- **Android Auto** — driving support with playback controls, Home / Library / Mixes / Explore browse, Charts & Moods, subscribed podcasts, queue split (Playing Next / Up Next), and sleep timer
 - **Casting** — stream audio to Chromecast and DLNA devices (WiFi speakers, Smart TVs)
-- **Offline downloads & playback** — save songs locally for offline listening with zero-network local playback support
+- **Offline downloads & playback** — save songs and podcast episodes locally for offline listening with zero-network local playback support
 - **Explicit Offline Mode** — manual switch to override device network status and browse/play locally cached tracks only
 - **Connectivity awareness** — global warning banner when offline, automatic connection restoration cues, and friendly network error handling
-- **Local library** — save favorite songs, albums, artists, and playlists; create custom playlists
+- **Local library** — save favorite songs, albums, artists, playlists, subscribed podcasts, and saved episodes; create custom playlists
 - **YouTube Playlist Syncing** — import and synchronize remote YouTube Music playlists into local database
 - **Smart Playlists (Auto-mixes)** — dynamic automatically generated playlists based on listening history (Most Played, Recently Played, Forgotten Favorites)
-- **Listening history** — track your listened songs
-- **Search** — search songs, albums, artists, playlists, and music videos
+- **Listening history** — track songs, videos, and podcast episodes (typed history with podcast linkage)
+- **Search** — search songs, albums, artists, playlists, music videos, podcasts, episodes, and users
 - **5-Band Equalizer** — customize audio gain (-12dB to +12dB) across 5 bands (Bass, Mid-Bass, Mid, Mid-High, High) with pre-built presets managed natively through `media_kit` FFmpeg audio filters
-- **Listening Stats & Sonora Wrapped** — offline-first dashboard summarizing total listening time, Top Songs, Top Artists, hourly/weekly listening charts, and a timed Instagram/Spotify-style stories view for sharing your Sonora Wrapped
+- **Listening Stats & Sonora Wrapped** — offline-first dashboard summarizing total listening time, Top Songs, Top Artists, Top Podcasts, Top Episodes, hourly/weekly listening charts, and a timed Instagram/Spotify-style stories view for sharing your Sonora Wrapped
 - **Adaptive UI & Overlays** — optimized layouts for mobile, tablet, and wide screens (NavigationBar / NavigationRail / NavigationDrawer). Temporary panels (Equalizer, Casting, Sleep Timer, Sync Panel) adaptively display as centered dialogs on wide desktops and modal bottom sheets on mobile.
 - **Themes** — light, dark, and AMOLED themes, with Dynamic Color support on Android 12+
 - **Crossfade** — smooth transitions between songs (configurable duration)
@@ -50,8 +54,8 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 - **Linux desktop** — system tray, MPRIS global controls (D-Bus), resizable window
 - **Auto-update** — automatic update check via GitHub Releases
 - **Headless CLI** — control Sonora from the terminal: search, play, download, and manage library without the GUI
-- **Backup & restore** — export and import your local library
-- **P2P Local Synchronization** — synchronize your music library (likes, playlists, history) peer-to-peer over Wi-Fi between multiple Sonora instances (Android & Linux) without cloud dependencies
+- **Backup & restore** — export and import your local library (backup format v3 includes subscribed podcasts and saved episodes)
+- **P2P Local Synchronization** — synchronize your music library (likes, playlists, podcasts, episodes, history) peer-to-peer over Wi-Fi between multiple Sonora instances (Android & Linux) without cloud dependencies
 - **Localization** — Italian and English
 
 ---

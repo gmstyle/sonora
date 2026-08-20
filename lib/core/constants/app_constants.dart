@@ -7,7 +7,7 @@ const double kExpandedBreakpoint = 1200.0;
 /// size already used by album/playlist bulk download loops.
 const int kMaxConcurrentDownloads = 3;
 
-const String kAppVersion = '1.0.0+1';
+const String kAppVersion = '1.7.0+55';
 const String kGitHubRepoOwner = 'gmstyle';
 const String kGitHubRepoName = 'sonora';
 const String kGitHubRepoUrl = 'https://github.com/gmstyle/sonora';
