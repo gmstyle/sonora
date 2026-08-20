@@ -24,10 +24,22 @@ abstract final class UrlStaleness {
         DateTime.now().difference(lastPauseTimestamp) > maxIdleDuration) {
       return true;
     }
-    final expireParam = Uri.tryParse(url)?.queryParameters['expire'];
+    final uri = Uri.tryParse(url);
+    final expireParam =
+        uri?.queryParameters['expire'] ?? _expireFromPathSegment(uri);
     if (expireParam == null) return true;
     final expireTs = int.tryParse(expireParam);
     if (expireTs == null) return true;
     return DateTime.now().millisecondsSinceEpoch ~/ 1000 > expireTs;
+  }
+
+  /// HLS master playlists carry the expiry as an `/expire/<ts>/` path segment
+  /// instead of a query parameter.
+  static String? _expireFromPathSegment(Uri? uri) {
+    if (uri == null) return null;
+    final segments = uri.pathSegments;
+    final index = segments.indexOf('expire');
+    if (index < 0 || index + 1 >= segments.length) return null;
+    return segments[index + 1];
   }
 }

@@ -248,7 +248,11 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
     final loadingChanged = next.isLoading != state.isLoading;
     final finishedLoading = !next.isLoading && state.isLoading;
 
-    if (videoChanged || loadingChanged) {
+    // HLS (and progressive streams) toggle buffering often. Only reset
+    // geometry / force-kick the video track when the video id actually
+    // changes — otherwise every buffer event blanked the Linux surface
+    // for ~1s via setVideoTrack(no)→auto.
+    if (videoChanged) {
       _lastVideoId = videoId;
       final url =
           currentSong != null
@@ -271,8 +275,18 @@ class VideoPlayerNotifier extends Notifier<VideoPlayerState>
         }
       });
 
-      if (videoId != null && (videoChanged || finishedLoading)) {
-        _updateVideoTrack(forceKick: videoChanged || finishedLoading);
+      if (videoId != null) {
+        _updateVideoTrack(forceKick: true);
+      }
+      return;
+    }
+
+    if (loadingChanged) {
+      state = state.copyWith(isLoading: next.isLoading);
+      // Soft restore only: if the track is stuck on "no", turn it back on.
+      // Never forceKick on buffering end — that caused the stutter loop.
+      if (finishedLoading && videoId != null) {
+        _updateVideoTrack(forceKick: false);
       }
     }
   }

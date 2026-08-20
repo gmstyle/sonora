@@ -3,6 +3,7 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import '../../../core/utils/url_staleness.dart';
 import '../../../domain/media/stream_quality_selector.dart';
 import '../../../domain/models/media_quality.dart';
+import '../../services/media_cache_service.dart';
 import 'youtube_request_scheduler.dart';
 
 /// Cached URL for one videoId + audio quality + preferVideo combination.
@@ -74,12 +75,25 @@ class StreamDatasource {
       final manifest = await _scheduler.schedule(
         () => _yt.videos.streamsClient.getManifest(videoId),
       );
-      final selection = _selector.select(
-        manifest,
-        quality: resolvedAudio,
-        preferVideo: preferVideo,
-      );
-      final primaryUrl = selection.url.toString();
+      // YouTube no longer serves progressive muxed streams for many videos to
+      // anonymous clients (androidVr is bot-gated, visionos is adaptive-only).
+      // In that case fall back to the HLS master playlist exposed by the
+      // manifest: media_kit/mpv plays it natively with audio+video.
+      final hlsFallbackUrl =
+          (preferVideo &&
+                  manifest.muxed.isEmpty &&
+                  manifest.hlsManifestUrl != null)
+              ? manifest.hlsManifestUrl!
+              : null;
+      final selection =
+          hlsFallbackUrl == null
+              ? _selector.select(
+                manifest,
+                quality: resolvedAudio,
+                preferVideo: preferVideo,
+              )
+              : null;
+      final primaryUrl = hlsFallbackUrl ?? selection!.url.toString();
       _assertAbsoluteHttpUrl(primaryUrl, 'primary');
       final plan = PlaybackUrlPlan(primaryUrl: primaryUrl);
       _playbackCache[key] = plan;
@@ -152,6 +166,45 @@ class StreamDatasource {
 
   Future<StreamManifest> getManifest(String videoId) =>
       _scheduler.schedule(() => _yt.videos.streamsClient.getManifest(videoId));
+
+  /// Disk-caches a playable muxed `.mp4` for [videoId] (lookahead / offline).
+  ///
+  /// Live video playback may use HLS; this path downloads progressive muxed
+  /// when available, otherwise adaptive videoOnly+audioOnly remuxed via ffmpeg.
+  Future<void> ensureVideoDiskCache(
+    String videoId, {
+    MediaQuality? audioQuality,
+  }) async {
+    final cache = MediaCacheService.instance;
+    final existing = await cache.getCachedFileUri(videoId, preferVideo: true);
+    if (existing != null) return;
+
+    final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
+    final manifest = await getManifest(videoId);
+
+    final muxed =
+        manifest.muxed.isEmpty
+            ? null
+            : manifest.muxed.toList().withHighestBitrate();
+    if (muxed != null) {
+      await cache.downloadToCache(videoId, muxed.url.toString());
+      return;
+    }
+
+    final pair = _selector.selectAdaptiveCachePair(
+      manifest,
+      audioQuality: resolvedAudio,
+    );
+    if (pair == null) return;
+
+    await cache.downloadAdaptiveRemux(
+      videoId: videoId,
+      videoUrl: pair.video.url.toString(),
+      audioUrl: pair.audio.url.toString(),
+      videoExt: pair.video.container.name,
+      audioExt: pair.audio.container.name,
+    );
+  }
 
   /// Invalidates in-memory stream URL cache entries for [videoId]
   /// (all quality / preferVideo variants).

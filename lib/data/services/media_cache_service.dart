@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -79,7 +81,11 @@ class MediaCacheService {
       File? anyHit;
       for (final entity in files) {
         final name = entity.path.split(Platform.pathSeparator).last;
-        if (!name.startsWith('$videoId.') || name.endsWith('.tmp')) continue;
+        if (!name.startsWith('$videoId.') ||
+            name.endsWith('.tmp') ||
+            name.contains('.tmp.')) {
+          continue;
+        }
         anyHit ??= entity;
         final lower = name.toLowerCase();
         if (lower.endsWith('.mp4')) {
@@ -97,6 +103,14 @@ class MediaCacheService {
         chosen = anyHit;
       }
       if (chosen == null) return null;
+      // Evict playlist-as-media poison from earlier HLS downloads that were
+      // mistakenly saved as .mp3 (tiny #EXTM3U text files).
+      if (await _isPoisonedPlaylistFile(chosen)) {
+        try {
+          await chosen.delete();
+        } catch (_) {}
+        return null;
+      }
       await chosen.setLastModified(DateTime.now());
       return chosen.uri.toString();
     } catch (e) {
@@ -107,6 +121,10 @@ class MediaCacheService {
 
   Future<void> downloadToCache(String videoId, String streamUrl) async {
     if (_activeDownloads.containsKey(videoId)) return;
+    // HLS master/media playlists are tiny text manifests with expiring
+    // segment URLs — caching them poisons the media cache and breaks
+    // subsequent "offline" / cache-hit playback.
+    if (_isHlsPlaylistUrl(streamUrl)) return;
     final wantMuxed = _extensionForStreamUrl(streamUrl) == 'mp4';
     final existing = await getCachedFileUri(
       videoId,
@@ -143,6 +161,84 @@ class MediaCacheService {
         }
       } catch (_) {}
     } finally {
+      _activeDownloads.remove(videoId);
+    }
+  }
+
+  /// Downloads progressive video-only + audio-only URLs and remuxes them into
+  /// a single `{videoId}.mp4` via ffmpeg so the existing muxed-cache path works.
+  Future<void> downloadAdaptiveRemux({
+    required String videoId,
+    required String videoUrl,
+    required String audioUrl,
+    required String videoExt,
+    required String audioExt,
+  }) async {
+    if (_activeDownloads.containsKey(videoId)) return;
+    final existing = await getCachedFileUri(videoId, preferVideo: true);
+    if (existing != null) return;
+
+    final cancelToken = CancelToken();
+    _activeDownloads[videoId] = cancelToken;
+
+    final cacheDir = await _getCacheDir();
+    final videoTmp = File('${cacheDir.path}/$videoId.v.tmp.$videoExt');
+    final audioTmp = File('${cacheDir.path}/$videoId.a.tmp.$audioExt');
+    final outTmp = File('${cacheDir.path}/$videoId.mux.tmp.mp4');
+    final outFinal = File('${cacheDir.path}/$videoId.mp4');
+
+    try {
+      debugPrint(
+        '[MediaCacheService] Starting adaptive video cache for $videoId...',
+      );
+      await Future.wait([
+        _dio.download(videoUrl, videoTmp.path, cancelToken: cancelToken),
+        _dio.download(audioUrl, audioTmp.path, cancelToken: cancelToken),
+      ]);
+
+      final ffmpeg = await Process.run('ffmpeg', [
+        '-y',
+        '-i',
+        videoTmp.path,
+        '-i',
+        audioTmp.path,
+        '-c',
+        'copy',
+        '-map',
+        '0:v:0',
+        '-map',
+        '1:a:0',
+        '-shortest',
+        outTmp.path,
+      ]);
+      if (ffmpeg.exitCode != 0) {
+        throw StateError(
+          'ffmpeg remux failed (exit ${ffmpeg.exitCode}): ${ffmpeg.stderr}',
+        );
+      }
+      if (await outFinal.exists()) await outFinal.delete();
+      await outTmp.rename(outFinal.path);
+      debugPrint(
+        '[MediaCacheService] Cache download complete for $videoId (adaptive remux)',
+      );
+      await _enforceSizeLimit();
+    } catch (e) {
+      debugPrint(
+        '[MediaCacheService] Adaptive video cache failed for $videoId: $e',
+      );
+      for (final f in [outTmp, outFinal]) {
+        try {
+          if (await f.exists() && f.path.endsWith('.mux.tmp.mp4')) {
+            await f.delete();
+          }
+        } catch (_) {}
+      }
+    } finally {
+      for (final f in [videoTmp, audioTmp, outTmp]) {
+        try {
+          if (await f.exists()) await f.delete();
+        } catch (_) {}
+      }
       _activeDownloads.remove(videoId);
     }
   }
@@ -200,6 +296,29 @@ class MediaCacheService {
       return 'webm';
     }
     return 'mp3';
+  }
+
+  /// YouTube HLS master/media playlist URLs (not progressive media).
+  static bool isHlsPlaylistUrl(String url) {
+    final lower = url.toLowerCase();
+    return lower.contains('/api/manifest/hls') ||
+        lower.contains('.m3u8') ||
+        lower.contains('mpegurl');
+  }
+
+  /// YouTube HLS master/media playlist URLs (not progressive media).
+  static bool _isHlsPlaylistUrl(String url) => isHlsPlaylistUrl(url);
+
+  static Future<bool> _isPoisonedPlaylistFile(File file) async {
+    try {
+      final length = await file.length();
+      if (length == 0 || length > 256 * 1024) return false;
+      final header = await file.openRead(0, math.min(16, length)).first;
+      final text = String.fromCharCodes(header);
+      return text.startsWith('#EXTM3U') || text.startsWith('#EXT-X-');
+    } catch (_) {
+      return false;
+    }
   }
 
   void cancelDownload(String videoId) {

@@ -34,6 +34,42 @@ class StreamQualitySelector {
     throw StateError('No streams available in manifest');
   }
 
+  /// Progressive adaptive pair for disk-caching video when no muxed stream
+  /// exists (common after visionos-only manifests). Caps video at 720p to
+  /// keep the lookahead cache bounded.
+  ({VideoOnlyStreamInfo video, AudioOnlyStreamInfo audio})?
+  selectAdaptiveCachePair(
+    StreamManifest manifest, {
+    required MediaQuality audioQuality,
+  }) {
+    final video = _pickVideoForCache(manifest.videoOnly);
+    final audio = _pickByBitrate(manifest.audioOnly, audioQuality);
+    if (video == null || audio == null) return null;
+    return (video: video, audio: audio);
+  }
+
+  /// Progressive video-only, preferring mp4 ≤720p.
+  static VideoOnlyStreamInfo? _pickVideoForCache(
+    Iterable<VideoOnlyStreamInfo> streams,
+  ) {
+    final pool = streams.toList();
+    if (pool.isEmpty) return null;
+
+    final mp4 =
+        pool.where((s) => s.container.name.toLowerCase() == 'mp4').toList();
+    final preferred = mp4.isNotEmpty ? mp4 : pool;
+    final capped =
+        preferred
+            .where(
+              (s) =>
+                  s.videoResolution.height > 0 &&
+                  s.videoResolution.height <= 720,
+            )
+            .toList();
+    final use = capped.isNotEmpty ? capped : preferred;
+    return use.withHighestBitrate();
+  }
+
   /// Picks from a bitrate-sorted list (highest first).
   static T? _pickByBitrate<T extends StreamInfo>(
     Iterable<T> streams,

@@ -247,6 +247,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       queueController: _queueController,
       volumeController: _volumeController,
       statePublisher: _statePublisher,
+      streamDatasource: _proxyServer?.streamDatasource,
       isCastConnected:
           () =>
               _castController.castState?.connectionState ==

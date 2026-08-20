@@ -258,7 +258,23 @@ class LocalAudioProxyServer {
         final cRange = response.headers.value(HttpHeaders.contentRangeHeader);
         if (cRange != null) headers['Content-Range'] = cRange;
 
-        if (rangeHeaderStr == null || rangeHeaderStr.startsWith('bytes=0-')) {
+        // Never disk-cache HLS playlists: they are tiny text manifests whose
+        // segment URLs expire, and caching them would poison the media cache.
+        // Instead, background-remux progressive adaptive A/V into a muxed mp4.
+        final isHlsPlaylist =
+            (cType?.contains('mpegurl') ?? false) ||
+            currentUrl.contains('/api/manifest/');
+        if (isHlsPlaylist) {
+          if (preferVideo) {
+            unawaited(
+              _streamDatasource.ensureVideoDiskCache(
+                videoId,
+                audioQuality: audioQuality,
+              ),
+            );
+          }
+        } else if (rangeHeaderStr == null ||
+            rangeHeaderStr.startsWith('bytes=0-')) {
           unawaited(_mediaCacheService.downloadToCache(videoId, currentUrl));
         }
 
