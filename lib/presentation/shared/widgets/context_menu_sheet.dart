@@ -8,9 +8,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/extensions/stat_format.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../domain/models/library_models.dart';
+import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/music_repository.dart';
 import '../../../domain/usecases/player/play_album_use_case.dart';
 import '../../../domain/usecases/player/play_playlist_use_case.dart';
+import '../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../../domain/usecases/player/start_radio_use_case.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../features/artist/providers/artist_provider.dart';
@@ -22,6 +24,7 @@ import '../../providers/library_notifier.dart';
 import '../../providers/music_repository_provider.dart';
 import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
+import '../../providers/play_video_id_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import 'thumbnail_widget.dart';
@@ -206,6 +209,96 @@ class ContextMenuSheet {
             artistId: artistId,
             thumbnailUrl: thumbnailUrl,
             year: year,
+          ),
+    );
+  }
+
+  static Future<void> showForPodcast(
+    BuildContext context, {
+    required String browseId,
+    required String name,
+    String? author,
+    String? thumbnailUrl,
+  }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _PodcastContextMenuSheet(
+                    browseId: browseId,
+                    name: name,
+                    author: author,
+                    thumbnailUrl: thumbnailUrl,
+                  ),
+                ),
+              ),
+            ),
+      );
+    }
+    return showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder:
+          (_) => _PodcastContextMenuSheet(
+            browseId: browseId,
+            name: name,
+            author: author,
+            thumbnailUrl: thumbnailUrl,
+          ),
+    );
+  }
+
+  static Future<void> showForEpisode(
+    BuildContext context, {
+    required String videoId,
+    required String name,
+    String? podcastName,
+    String? podcastBrowseId,
+    String? thumbnailUrl,
+    String? date,
+  }) {
+    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+      return showDialog(
+        context: context,
+        useRootNavigator: true,
+        builder:
+            (_) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: _EpisodeContextMenuSheet(
+                    videoId: videoId,
+                    name: name,
+                    podcastName: podcastName,
+                    podcastBrowseId: podcastBrowseId,
+                    thumbnailUrl: thumbnailUrl,
+                    date: date,
+                  ),
+                ),
+              ),
+            ),
+      );
+    }
+    return showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      builder:
+          (_) => _EpisodeContextMenuSheet(
+            videoId: videoId,
+            name: name,
+            podcastName: podcastName,
+            podcastBrowseId: podcastBrowseId,
+            thumbnailUrl: thumbnailUrl,
+            date: date,
           ),
     );
   }
@@ -1518,6 +1611,431 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
     } catch (e) {
       feedback.report('Failed to add to queue: $e');
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Podcast context menu
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PodcastContextMenuSheet extends ConsumerWidget {
+  final String browseId;
+  final String name;
+  final String? author;
+  final String? thumbnailUrl;
+
+  const _PodcastContextMenuSheet({
+    required this.browseId,
+    required this.name,
+    this.author,
+    this.thumbnailUrl,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                ThumbnailWidget(
+                  imageUrl: thumbnailUrl,
+                  size: 48,
+                  shape: ThumbnailShape.rounded,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (author != null && author!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          author!,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ActionTile(
+                    icon: LucideIcons.play,
+                    label: AppLocalizations.of(context)!.playAll,
+                    onTap: () {
+                      final repo = ref.read(musicRepositoryProvider);
+                      final player = ref.read(playerStateProvider.notifier);
+                      final feedback = ref.read(
+                        actionFeedbackProvider.notifier,
+                      );
+                      Navigator.pop(context);
+                      _playPodcast(repo, player, feedback);
+                    },
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.micVocal,
+                    label: 'Go to podcast',
+                    onTap: () {
+                      context.push('/podcast/$browseId');
+                      Navigator.pop(context);
+                    },
+                  ),
+                  _LikePodcastActionTile(
+                    browseId: browseId,
+                    name: name,
+                    authorName: author,
+                    thumbnailUrl: thumbnailUrl,
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.share2,
+                    label: AppLocalizations.of(context)!.share,
+                    onTap: () {
+                      Navigator.pop(context);
+                      SharePlus.instance.share(
+                        ShareParams(
+                          text: 'https://music.youtube.com/browse/$browseId',
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _playPodcast(
+    MusicRepository repo,
+    PlayerNotifier player,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      feedback.report('Playing $name…');
+      final podcast = await repo.getPodcast(browseId);
+      if (podcast.episodes.isEmpty) return;
+      await player.playPodcast(
+        podcast.episodes,
+        podcastBrowseId: browseId,
+        podcastName: name,
+        authorName: author ?? podcast.author?.name,
+        authorId: podcast.author?.artistId,
+      );
+    } catch (e) {
+      feedback.report('Failed to play: $e');
+    }
+  }
+}
+
+class _LikePodcastActionTile extends ConsumerWidget {
+  final String browseId;
+  final String name;
+  final String? authorName;
+  final String? thumbnailUrl;
+
+  const _LikePodcastActionTile({
+    required this.browseId,
+    required this.name,
+    this.authorName,
+    this.thumbnailUrl,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final likedAsync = ref.watch(likedPodcastProvider(browseId));
+    return likedAsync.when(
+      loading:
+          () => ListTile(
+            leading: const Icon(LucideIcons.bookmark),
+            title: Text(AppLocalizations.of(context)!.follow),
+            enabled: false,
+            dense: true,
+          ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (liked) {
+        final isSubscribed = liked != null;
+        return ListTile(
+          leading: Icon(
+            isSubscribed ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
+            color: isSubscribed ? Theme.of(context).colorScheme.primary : null,
+          ),
+          title: Text(
+            isSubscribed
+                ? AppLocalizations.of(context)!.following
+                : AppLocalizations.of(context)!.follow,
+          ),
+          onTap: () async {
+            if (isSubscribed) {
+              await ref
+                  .read(libraryNotifierProvider.notifier)
+                  .deleteLikedPodcast(browseId);
+            } else {
+              await ref
+                  .read(libraryNotifierProvider.notifier)
+                  .toggleLikedPodcast(
+                    LikedPodcastModel(
+                      browseId: browseId,
+                      name: name,
+                      authorName: authorName,
+                      thumbnailUrl: thumbnailUrl,
+                      addedAt: DateTime.now(),
+                    ),
+                  );
+            }
+          },
+          dense: true,
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Episode context menu
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EpisodeContextMenuSheet extends ConsumerWidget {
+  final String videoId;
+  final String name;
+  final String? podcastName;
+  final String? podcastBrowseId;
+  final String? thumbnailUrl;
+  final String? date;
+
+  const _EpisodeContextMenuSheet({
+    required this.videoId,
+    required this.name,
+    this.podcastName,
+    this.podcastBrowseId,
+    this.thumbnailUrl,
+    this.date,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                ThumbnailWidget(
+                  imageUrl: thumbnailUrl,
+                  size: 48,
+                  shape: ThumbnailShape.rounded,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (podcastName != null && podcastName!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          podcastName!,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ActionTile(
+                    icon: LucideIcons.play,
+                    label: AppLocalizations.of(context)!.playNow,
+                    onTap: () {
+                      final useCase = ref.read(playVideoIdUseCaseProvider);
+                      final player = ref.read(playerStateProvider.notifier);
+                      final feedback = ref.read(
+                        actionFeedbackProvider.notifier,
+                      );
+                      Navigator.pop(context);
+                      _playEpisode(useCase, player, feedback);
+                    },
+                  ),
+                  if (podcastBrowseId != null)
+                    _ActionTile(
+                      icon: LucideIcons.micVocal,
+                      label: 'Go to podcast',
+                      onTap: () {
+                        context.push('/podcast/$podcastBrowseId');
+                        Navigator.pop(context);
+                      },
+                    ),
+                  _LikeEpisodeActionTile(
+                    videoId: videoId,
+                    name: name,
+                    podcastName: podcastName,
+                    podcastBrowseId: podcastBrowseId,
+                    thumbnailUrl: thumbnailUrl,
+                    date: date,
+                  ),
+                  _ActionTile(
+                    icon: LucideIcons.share2,
+                    label: AppLocalizations.of(context)!.share,
+                    onTap: () {
+                      Navigator.pop(context);
+                      SharePlus.instance.share(
+                        ShareParams(
+                          text: 'https://music.youtube.com/watch?v=$videoId',
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _playEpisode(
+    PlayVideoIdUseCase useCase,
+    PlayerNotifier player,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      final url = await useCase.resolveStreamUrl(videoId);
+      final track = QueueTrack(
+        videoId: videoId,
+        url: url,
+        isVideo: false,
+        contentType: 'episode',
+        podcastBrowseId: podcastBrowseId,
+        title: name,
+        artist: podcastName,
+        artUri: thumbnailUrl != null ? Uri.tryParse(thumbnailUrl!) : null,
+      );
+      await player.playNow([track.toFreshMediaItem()]);
+    } catch (e) {
+      feedback.report('Failed to play: $e');
+    }
+  }
+}
+
+class _LikeEpisodeActionTile extends ConsumerWidget {
+  final String videoId;
+  final String name;
+  final String? podcastName;
+  final String? podcastBrowseId;
+  final String? thumbnailUrl;
+  final String? date;
+
+  const _LikeEpisodeActionTile({
+    required this.videoId,
+    required this.name,
+    this.podcastName,
+    this.podcastBrowseId,
+    this.thumbnailUrl,
+    this.date,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final likedAsync = ref.watch(likedEpisodeProvider(videoId));
+    return likedAsync.when(
+      loading:
+          () => ListTile(
+            leading: const Icon(LucideIcons.bookmark),
+            title: Text(AppLocalizations.of(context)!.like),
+            enabled: false,
+            dense: true,
+          ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (liked) {
+        final isSaved = liked != null;
+        return ListTile(
+          leading: Icon(
+            isSaved ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
+            color: isSaved ? Theme.of(context).colorScheme.primary : null,
+          ),
+          title: Text(
+            isSaved
+                ? AppLocalizations.of(context)!.unlike
+                : AppLocalizations.of(context)!.like,
+          ),
+          onTap: () async {
+            if (isSaved) {
+              await ref
+                  .read(libraryNotifierProvider.notifier)
+                  .deleteLikedEpisode(videoId);
+            } else {
+              await ref
+                  .read(libraryNotifierProvider.notifier)
+                  .toggleLikedEpisode(
+                    LikedEpisodeModel(
+                      videoId: videoId,
+                      name: name,
+                      podcastName: podcastName,
+                      podcastBrowseId: podcastBrowseId,
+                      thumbnailUrl: thumbnailUrl,
+                      date: date,
+                      addedAt: DateTime.now(),
+                    ),
+                  );
+            }
+          },
+          dense: true,
+        );
+      },
+    );
   }
 }
 

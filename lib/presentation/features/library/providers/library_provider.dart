@@ -53,7 +53,15 @@ final librarySortTypeProvider =
       LibrarySortTypeNotifier.new,
     );
 
-enum LibrarySearchFilter { all, songs, artists, playlists, albums, history }
+enum LibrarySearchFilter {
+  all,
+  songs,
+  artists,
+  playlists,
+  albums,
+  podcasts,
+  history,
+}
 
 class LibrarySearchFilterNotifier extends Notifier<LibrarySearchFilter> {
   @override
@@ -297,6 +305,48 @@ final sortedLikedPlaylistsProvider =
         if (query.isNotEmpty) {
           list =
               list.where((p) => p.name.toLowerCase().contains(query)).toList();
+        }
+
+        switch (sortType) {
+          case LibrarySortType.alphabetical:
+            list.sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            );
+          case LibrarySortType.alphabeticalReverse:
+            list.sort(
+              (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+            );
+          case LibrarySortType.recentlyAdded:
+            list.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+          case LibrarySortType.leastRecentlyAdded:
+            list.sort((a, b) => a.addedAt.compareTo(b.addedAt));
+        }
+        return list;
+      });
+    });
+
+final likedPodcastsProvider = StreamProvider<List<LikedPodcastModel>>((ref) {
+  final repo = ref.watch(libraryRepositoryProvider);
+  return repo.watchAllLikedPodcasts();
+});
+
+final sortedLikedPodcastsProvider =
+    Provider<AsyncValue<List<LikedPodcastModel>>>((ref) {
+      final podcastsAsync = ref.watch(likedPodcastsProvider);
+      final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
+      final sortType = ref.watch(librarySortTypeProvider);
+
+      return podcastsAsync.whenData((podcasts) {
+        var list = List<LikedPodcastModel>.from(podcasts);
+        if (query.isNotEmpty) {
+          list =
+              list
+                  .where(
+                    (p) =>
+                        p.name.toLowerCase().contains(query) ||
+                        (p.authorName?.toLowerCase().contains(query) ?? false),
+                  )
+                  .toList();
         }
 
         switch (sortType) {

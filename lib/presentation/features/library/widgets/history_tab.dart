@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
@@ -14,20 +15,21 @@ class HistoryTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(sortedHistoryProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return async.when(
       loading: () => const _ShimmerSongList(),
       error:
           (e, _) => ErrorRetryWidget(
-            message: AppLocalizations.of(context)!.failedToLoadHistory,
+            message: l10n.failedToLoadHistory,
             onRetry: () => ref.invalidate(libraryHistoryProvider),
           ),
       data: (history) {
         if (history.isEmpty) {
           return EmptyStateWidget(
             icon: LucideIcons.history,
-            title: AppLocalizations.of(context)!.noListeningHistory,
-            body: AppLocalizations.of(context)!.noListeningHistoryHint,
+            title: l10n.noListeningHistory,
+            body: l10n.noListeningHistoryHint,
           );
         }
         return RefreshIndicator(
@@ -39,14 +41,19 @@ class HistoryTab extends ConsumerWidget {
             itemCount: history.length,
             itemBuilder: (_, i) {
               final h = history[i];
+              final isEpisode = h.contentType == 'episode';
               return SongTile(
                 videoId: h.videoId,
                 title: h.title,
-                artist: h.artist,
+                artist: isEpisode ? '${l10n.episode} · ${h.artist}' : h.artist,
                 thumbnailUrl: h.thumbnailUrl,
                 duration: h.duration,
                 isVideo: h.isVideo,
                 isExplicit: h.isExplicit,
+                onTap:
+                    isEpisode
+                        ? () => context.push('/episode/${h.videoId}')
+                        : null,
               );
             },
           ),

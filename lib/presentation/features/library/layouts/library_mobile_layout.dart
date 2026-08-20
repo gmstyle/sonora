@@ -6,6 +6,7 @@ import '../widgets/favorites_tab.dart';
 import '../widgets/artists_tab.dart';
 import '../widgets/playlists_tab.dart';
 import '../widgets/albums_tab.dart';
+import '../widgets/podcasts_tab.dart';
 import '../widgets/history_tab.dart';
 import '../widgets/smart_mixes_tab.dart';
 import '../widgets/stats_tab.dart';
@@ -21,6 +22,7 @@ class LibraryMobileLayout extends ConsumerWidget {
     AppLocalizations.of(context)!.artists,
     AppLocalizations.of(context)!.playlists,
     AppLocalizations.of(context)!.albums,
+    AppLocalizations.of(context)!.podcasts,
     AppLocalizations.of(context)!.history,
     AppLocalizations.of(context)!.mixes,
     AppLocalizations.of(context)!.stats,
@@ -35,7 +37,8 @@ class LibraryMobileLayout extends ConsumerWidget {
         selectedIndex == 1 ||
         selectedIndex == 2 ||
         selectedIndex == 3 ||
-        selectedIndex == 5;
+        selectedIndex == 4 ||
+        selectedIndex == 6;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -75,7 +78,7 @@ class LibraryMobileLayout extends ConsumerWidget {
                 },
               ),
             ),
-          if (selectedIndex != 6) ...[
+          if (selectedIndex != 7) ...[
             LibraryHeaderControls(
               showViewSwitcher: !isSearchActive && isListOrGridTab,
             ),
@@ -92,6 +95,7 @@ class LibraryMobileLayout extends ConsumerWidget {
                         ArtistsTab(),
                         PlaylistsTab(),
                         AlbumsTab(),
+                        PodcastsTab(),
                         HistoryTab(),
                         SmartMixesTab(),
                         StatsTab(),

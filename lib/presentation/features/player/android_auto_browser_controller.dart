@@ -12,6 +12,7 @@ import '../../../domain/repositories/library_repository.dart';
 import '../../../domain/repositories/music_repository.dart';
 import '../../../domain/usecases/player/play_album_use_case.dart';
 import '../../../domain/usecases/player/play_playlist_use_case.dart';
+import '../../../domain/usecases/player/play_podcast_use_case.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../../domain/usecases/player/play_smart_mix_use_case.dart';
 import '../../../domain/usecases/home/get_discover_suggestions_use_case.dart';
@@ -28,6 +29,7 @@ class AndroidAutoBrowserController {
   final PlayVideoIdUseCase _playVideoIdUseCase;
   late final PlayAlbumUseCase _playAlbumUseCase;
   late final PlayPlaylistUseCase _playPlaylistUseCase;
+  late final PlayPodcastUseCase _playPodcastUseCase;
   late final PlaySmartMixUseCase _playSmartMixUseCase;
   late final GetNewReleasesUseCase _getNewReleasesUseCase;
   late final GetDiscoverSuggestionsUseCase _getDiscoverSuggestionsUseCase;
@@ -71,6 +73,8 @@ class AndroidAutoBrowserController {
   static const String _playlistsId = '__playlists__';
   static const String _artistsId = '__artists__';
   static const String _albumsId = '__albums__';
+  static const String _podcastsId = '__podcasts__';
+  static const String _podcastPrefix = '__podcast__:';
   static const String _historyId = '__history__';
   static const String _homeSectionPrefix = '__home_section__:';
   static const String _playlistPrefix = '__playlist__:';
@@ -91,6 +95,9 @@ class AndroidAutoBrowserController {
   static const String _actionShuffleMix = '__action__:shuffle_mix:';
   static const String _actionPlayDownloads = '__action__:play_downloads:';
   static const String _actionShuffleDownloads = '__action__:shuffle_downloads:';
+  static const String _actionPlayPodcast = '__action__:play_podcast:';
+  static const String _actionShufflePodcast = '__action__:shuffle_podcast:';
+  static const String _actionSubscribePodcast = '__action__:subscribe_podcast:';
 
   AndroidAutoBrowserController({
     required MusicRepository musicRepo,
@@ -105,6 +112,7 @@ class AndroidAutoBrowserController {
        _playVideoIdUseCase = playVideoIdUseCase,
        _playAlbumUseCase = PlayAlbumUseCase(musicRepo),
        _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo),
+       _playPodcastUseCase = PlayPodcastUseCase(musicRepo),
        _playSmartMixUseCase = PlaySmartMixUseCase(musicRepo),
        _getNewReleasesUseCase = GetNewReleasesUseCase(musicRepo),
        _getDiscoverSuggestionsUseCase = GetDiscoverSuggestionsUseCase(
@@ -156,6 +164,8 @@ class AndroidAutoBrowserController {
           return await _buildArtistFolders();
         case _albumsId:
           return await _buildLikedAlbumFolders();
+        case _podcastsId:
+          return await _buildLikedPodcastFolders();
         case _historyId:
           return await _buildRecentChildren();
         case _downloadsId:
@@ -202,6 +212,9 @@ class AndroidAutoBrowserController {
           }
           if (parentMediaId.startsWith(_moodCatPrefix)) {
             return await _buildMoodPlaylistsChildren(parentMediaId);
+          }
+          if (parentMediaId.startsWith(_podcastPrefix)) {
+            return await _buildPodcastEpisodeChildren(parentMediaId);
           }
           return [];
       }
@@ -356,6 +369,16 @@ class AndroidAutoBrowserController {
         artUri: Uri.parse(
           'android.resource://com.gmstyle.sonora/drawable/cover_albums',
         ),
+        extras: {
+          _kContentStyleBrowsable: _kStyleGrid,
+          _kContentStylePlayable: _kStyleList,
+        },
+      ),
+      MediaItem(
+        id: _podcastsId,
+        title: 'Podcasts',
+        displaySubtitle: 'Subscribed podcasts',
+        playable: false,
         extras: {
           _kContentStyleBrowsable: _kStyleGrid,
           _kContentStylePlayable: _kStyleList,
@@ -1507,6 +1530,82 @@ class AndroidAutoBrowserController {
         .toList();
   }
 
+  Future<List<MediaItem>> _buildLikedPodcastFolders() async {
+    final podcasts = await _libraryRepo.getAllLikedPodcasts();
+    return podcasts
+        .map(
+          (p) => MediaItem(
+            id: '$_podcastPrefix${p.browseId}',
+            title: p.name,
+            artist: p.authorName,
+            artUri:
+                p.thumbnailUrl != null ? Uri.tryParse(p.thumbnailUrl!) : null,
+            playable: false,
+            extras: {
+              _kContentStyleBrowsable: _kStyleList,
+              _kContentStylePlayable: _kStyleList,
+            },
+          ),
+        )
+        .toList();
+  }
+
+  Future<List<MediaItem>> _buildPodcastEpisodeChildren(
+    String parentMediaId,
+  ) async {
+    final browseId = parentMediaId.substring(_podcastPrefix.length);
+    final podcast = await _musicRepo.getPodcast(browseId, limit: 100);
+    final liked = await _libraryRepo.getLikedPodcast(browseId);
+
+    final items = <MediaItem>[
+      MediaItem(
+        id: '$_actionPlayPodcast$browseId',
+        title: 'Play All',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionShufflePodcast$browseId',
+        title: 'Shuffle',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+      MediaItem(
+        id: '$_actionSubscribePodcast$browseId',
+        title: liked != null ? 'Unsubscribe' : 'Subscribe',
+        playable: true,
+        extras: {_kContentStylePlayable: _kStyleList},
+      ),
+    ];
+
+    final authorName = podcast.author?.name ?? podcast.name;
+    items.addAll(
+      podcast.episodes.where((e) => e.videoId.isNotEmpty).take(100).map((e) {
+        final seconds = Parser.parseDuration(e.duration);
+        final track = QueueTrack(
+          videoId: e.videoId,
+          needsUrl: true,
+          isVideo: false,
+          contentType: 'episode',
+          podcastBrowseId: browseId,
+          title: e.name,
+          artist: authorName,
+          album: podcast.name,
+          duration: seconds != null ? Duration(seconds: seconds) : null,
+          artUri:
+              e.thumbnails.isNotEmpty
+                  ? Uri.tryParse(e.thumbnails.last.url)
+                  : null,
+          publishDate: e.date,
+        );
+        return track.toFreshMediaItem(
+          additionalExtras: {_kContentStylePlayable: _kStyleList},
+        );
+      }),
+    );
+    return items;
+  }
+
   Future<List<MediaItem>> _buildHomeAlbumSongChildren(
     String parentMediaId,
   ) async {
@@ -1712,6 +1811,66 @@ class AndroidAutoBrowserController {
         AudioServicePlatform.instance.notifyChildrenChanged(
           NotifyChildrenChangedRequest(
             parentMediaId: '$_artistPrefix$artistId',
+          ),
+        );
+        return;
+      }
+
+      // ── Podcast actions ──────────────────────────────────────────
+      if (mediaId.startsWith(_actionPlayPodcast)) {
+        final browseId = mediaId.substring(_actionPlayPodcast.length);
+        final podcast = await _musicRepo.getPodcast(browseId, limit: 100);
+        final items = await _playPodcastUseCase.execute(
+          podcast.episodes,
+          podcastBrowseId: browseId,
+          podcastName: podcast.name,
+          authorName: podcast.author?.name,
+          authorId: podcast.author?.artistId,
+        );
+        await _playNow(items);
+        return;
+      }
+      if (mediaId.startsWith(_actionShufflePodcast)) {
+        final browseId = mediaId.substring(_actionShufflePodcast.length);
+        final podcast = await _musicRepo.getPodcast(browseId, limit: 100);
+        final shuffled = List<PodcastEpisode>.from(
+          podcast.episodes.where((e) => e.videoId.isNotEmpty),
+        )..shuffle();
+        final items = await _playPodcastUseCase.execute(
+          shuffled,
+          podcastBrowseId: browseId,
+          podcastName: podcast.name,
+          authorName: podcast.author?.name,
+          authorId: podcast.author?.artistId,
+        );
+        await _playNow(items);
+        return;
+      }
+      if (mediaId.startsWith(_actionSubscribePodcast)) {
+        final browseId = mediaId.substring(_actionSubscribePodcast.length);
+        final existing = await _libraryRepo.getLikedPodcast(browseId);
+        if (existing != null) {
+          await _libraryRepo.deleteLikedPodcast(browseId);
+        } else {
+          final podcast = await _musicRepo.getPodcast(browseId, limit: 1);
+          await _libraryRepo.toggleLikedPodcast(
+            LikedPodcastModel(
+              browseId: browseId,
+              name: podcast.name,
+              authorName: podcast.author?.name,
+              authorId: podcast.author?.artistId,
+              thumbnailUrl:
+                  podcast.thumbnails.isNotEmpty
+                      ? podcast.thumbnails.last.url
+                      : null,
+              episodeCount: podcast.episodes.length,
+              addedAt: DateTime.now(),
+            ),
+          );
+        }
+        AudioServicePlatform.instance.notifyChildrenChanged(
+          NotifyChildrenChangedRequest(
+            parentMediaId: '$_podcastPrefix$browseId',
           ),
         );
         return;

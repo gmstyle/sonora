@@ -544,5 +544,25 @@
   "wrappedTopArtistSubtitle": "Il tuo artista preferito in assoluto!",
   "wrappedTopSongsSubtitle": "La colonna sonora dei tuoi giorni",
   "wrappedSummary": "Il tuo profilo musicale",
-  "plays": "riproduzioni"
+  "plays": "riproduzioni",
+
+  "@@sectionMeta": {
+    "podcasts": "Podcast ed Episodi"
+  },
+  "noLikedPodcasts": "Nessun podcast seguito",
+  "noLikedPodcastsHint": "Iscriviti a un podcast dalla sua pagina per vederlo qui.",
+  "subscribe": "Iscriviti",
+  "subscribed": "Iscritto",
+  "unsubscribe": "Annulla iscrizione",
+  "saveEpisode": "Salva episodio",
+  "episodeSaved": "Salvato",
+  "unsaveEpisode": "Rimuovi episodio",
+  "downloadPodcast": "Scarica Podcast",
+  "topPodcasts": "Podcast più ascoltati",
+  "topEpisodes": "Episodi più ascoltati",
+  "episode": "Episodio",
+  "goToPodcast": "Vai al Podcast",
+  "loadMoreEpisodes": "Carica altri episodi",
+  "failedToLoadEpisode": "Impossibile caricare l'episodio",
+  "podcastListeningTime": "Tempo di ascolto podcast"
 }

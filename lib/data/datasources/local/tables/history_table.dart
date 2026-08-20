@@ -11,4 +11,8 @@ class History extends Table {
   BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
   IntColumn get duration => integer().nullable()();
   BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
+
+  /// `song` | `video` | `episode`
+  TextColumn get contentType => text().withDefault(const Constant('song'))();
+  TextColumn get podcastBrowseId => text().nullable()();
 }

@@ -704,5 +704,25 @@
   "wrappedTopArtistSubtitle": "Your number one artist!",
   "wrappedTopSongsSubtitle": "The soundtrack of your days",
   "wrappedSummary": "Your music profile",
-  "plays": "plays"
+  "plays": "plays",
+
+  "@@sectionMeta": {
+    "podcasts": "Podcasts & Episodes"
+  },
+  "noLikedPodcasts": "No subscribed podcasts",
+  "noLikedPodcastsHint": "Subscribe to a podcast from its page to see it here.",
+  "subscribe": "Subscribe",
+  "subscribed": "Subscribed",
+  "unsubscribe": "Unsubscribe",
+  "saveEpisode": "Save Episode",
+  "episodeSaved": "Saved",
+  "unsaveEpisode": "Unsave Episode",
+  "downloadPodcast": "Download Podcast",
+  "topPodcasts": "Top Podcasts",
+  "topEpisodes": "Top Episodes",
+  "episode": "Episode",
+  "goToPodcast": "Go to Podcast",
+  "loadMoreEpisodes": "Load more episodes",
+  "failedToLoadEpisode": "Failed to load episode",
+  "podcastListeningTime": "Podcast Listening Time"
 }

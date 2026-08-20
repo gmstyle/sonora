@@ -676,6 +676,66 @@ class MiniPlayerContent extends ConsumerWidget {
     final artist = track.artist ?? AppLocalizations.of(context)!.unknownArtist;
     final thumbnailUrl = track.artUri?.toString();
 
+    if (track.isEpisode) {
+      final likedAsync = ref.watch(likedEpisodeProvider(videoId));
+      return likedAsync.when(
+        loading:
+            () => _iconButton(
+              icon: LucideIcons.heart,
+              color: cs.onSurfaceVariant,
+              onPressed: null,
+              size: 20,
+            ),
+        error:
+            (_, _) => _iconButton(
+              icon: LucideIcons.heart,
+              color: cs.onSurfaceVariant,
+              onPressed: null,
+              size: 20,
+            ),
+        data: (liked) {
+          final isLiked = liked != null;
+          return IconButton(
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder:
+                  (child, anim) => ScaleTransition(
+                    scale: anim,
+                    child: FadeTransition(opacity: anim, child: child),
+                  ),
+              child: Icon(
+                LucideIcons.heart,
+                key: ValueKey(isLiked),
+                color: isLiked ? cs.error : cs.onSurfaceVariant,
+                size: 20,
+              ),
+            ),
+            color: isLiked ? cs.error : cs.onSurfaceVariant,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              ref
+                  .read(libraryNotifierProvider.notifier)
+                  .toggleLikedEpisode(
+                    LikedEpisodeModel(
+                      videoId: videoId,
+                      name: title,
+                      podcastName: artist,
+                      podcastBrowseId: track.podcastBrowseId,
+                      thumbnailUrl: thumbnailUrl,
+                      durationSec: currentSong.duration?.inSeconds,
+                      date: track.publishDate,
+                      addedAt: DateTime.now(),
+                    ),
+                  );
+            },
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: EdgeInsets.zero,
+            splashRadius: 18,
+          );
+        },
+      );
+    }
+
     final likedAsync = ref.watch(likedSongProvider(videoId));
     return likedAsync.when(
       loading:

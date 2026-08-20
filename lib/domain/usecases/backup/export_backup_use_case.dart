@@ -17,6 +17,8 @@ class ExportBackupUseCase {
     final followedArtists = await libraryRepository.getAllFollowedArtists();
     final likedAlbums = await libraryRepository.getAllLikedAlbums();
     final likedPlaylists = await libraryRepository.getAllLikedPlaylists();
+    final likedPodcasts = await libraryRepository.getAllLikedPodcasts();
+    final likedEpisodes = await libraryRepository.getAllLikedEpisodes();
     final playlists = await libraryRepository.getAllPlaylists();
     final history = await libraryRepository.getRecentHistory(limit: 500);
     final searchHistory = await libraryRepository.getRecentSearches(limit: 100);
@@ -43,7 +45,7 @@ class ExportBackupUseCase {
     }
 
     return <String, dynamic>{
-      'version': 2,
+      'version': 3,
       'exportedAt': DateTime.now().toIso8601String(),
       'likedSongs':
           likedSongs
@@ -99,6 +101,36 @@ class ExportBackupUseCase {
                 },
               )
               .toList(),
+      'likedPodcasts':
+          likedPodcasts
+              .map(
+                (p) => {
+                  'browseId': p.browseId,
+                  'name': p.name,
+                  'authorName': p.authorName,
+                  'authorId': p.authorId,
+                  'thumbnailUrl': p.thumbnailUrl,
+                  'episodeCount': p.episodeCount,
+                  'addedAt': p.addedAt.toIso8601String(),
+                },
+              )
+              .toList(),
+      'likedEpisodes':
+          likedEpisodes
+              .map(
+                (e) => {
+                  'videoId': e.videoId,
+                  'browseId': e.browseId,
+                  'name': e.name,
+                  'podcastName': e.podcastName,
+                  'podcastBrowseId': e.podcastBrowseId,
+                  'thumbnailUrl': e.thumbnailUrl,
+                  'durationSec': e.durationSec,
+                  'date': e.date,
+                  'addedAt': e.addedAt.toIso8601String(),
+                },
+              )
+              .toList(),
       'playlists':
           playlists
               .map(
@@ -124,6 +156,8 @@ class ExportBackupUseCase {
                   'duration': h.duration,
                   'isVideo': h.isVideo,
                   'isExplicit': h.isExplicit,
+                  'contentType': h.contentType,
+                  'podcastBrowseId': h.podcastBrowseId,
                 },
               )
               .toList(),

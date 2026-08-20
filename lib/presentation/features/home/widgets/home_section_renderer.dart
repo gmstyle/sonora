@@ -19,6 +19,7 @@ import '../../../shared/widgets/artist_card.dart';
 import '../../../shared/widgets/playlist_card.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_card.dart';
+import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/scale_button.dart';
@@ -651,7 +652,100 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         heroTag: 'home_section_playlist_${item.playlistId}',
       );
     }
+    if (item is PodcastDetailed) {
+      return _PodcastHomeCard(
+        browseId: item.browseId,
+        name: item.name,
+        author: item.author,
+        thumbnailUrl:
+            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        cardWidth: widget.cardWidth,
+      );
+    }
+    if (item is EpisodeDetailed) {
+      return SizedBox(
+        width: widget.cardWidth * 2,
+        child: Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: SongTile(
+            videoId: item.videoId,
+            title: item.name,
+            artist: item.podcastName ?? '',
+            thumbnailUrl:
+                item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+            playCount: item.date,
+            isVideo: false,
+            onTap: () => context.push('/episode/${item.videoId}'),
+          ),
+        ),
+      );
+    }
     return const SizedBox.shrink();
+  }
+}
+
+class _PodcastHomeCard extends StatelessWidget {
+  final String browseId;
+  final String name;
+  final String? author;
+  final String? thumbnailUrl;
+  final double cardWidth;
+
+  const _PodcastHomeCard({
+    required this.browseId,
+    required this.name,
+    this.author,
+    this.thumbnailUrl,
+    required this.cardWidth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleButton(
+      onTap: () => context.push('/podcast/$browseId'),
+      onLongPress:
+          () => ContextMenuSheet.showForPodcast(
+            context,
+            browseId: browseId,
+            name: name,
+            author: author,
+            thumbnailUrl: thumbnailUrl,
+          ),
+      child: SizedBox(
+        width: cardWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ThumbnailWidget(
+              imageUrl: thumbnailUrl,
+              size: cardWidth,
+              shape: ThumbnailShape.rounded,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            ),
+            if (author != null && author!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                author!,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1170,20 +1264,16 @@ class HomeChipsBar extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
       data: (data) {
-        final filteredChips =
-            data.chips.where((chip) {
-              final titleLower = chip.title.toLowerCase();
-              return titleLower != 'podcasts' && titleLower != 'podcast';
-            }).toList();
+        final chips = data.chips;
 
-        if (filteredChips.isEmpty) return const SizedBox.shrink();
+        if (chips.isEmpty) return const SizedBox.shrink();
 
         return SizedBox(
           height: 52,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: filteredChips.length + 1,
+            itemCount: chips.length + 1,
             separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -1202,7 +1292,7 @@ class HomeChipsBar extends ConsumerWidget {
                 );
               }
 
-              final chip = filteredChips[index - 1];
+              final chip = chips[index - 1];
               final isSelected =
                   ref.watch(homeSelectedChipParamsProvider) == chip.params;
 

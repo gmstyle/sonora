@@ -44,6 +44,22 @@ abstract class LibraryRepository {
     String thumbnailUrl,
   );
 
+  Future<List<LikedPodcastModel>> getAllLikedPodcasts();
+  Stream<List<LikedPodcastModel>> watchAllLikedPodcasts();
+  Future<LikedPodcastModel?> getLikedPodcast(String browseId);
+  Stream<LikedPodcastModel?> watchLikedPodcast(String browseId);
+  Future<void> toggleLikedPodcast(LikedPodcastModel podcast);
+  Future<void> ensureLikedPodcast(LikedPodcastModel podcast);
+  Future<void> deleteLikedPodcast(String browseId);
+
+  Future<List<LikedEpisodeModel>> getAllLikedEpisodes();
+  Stream<List<LikedEpisodeModel>> watchAllLikedEpisodes();
+  Future<LikedEpisodeModel?> getLikedEpisode(String videoId);
+  Stream<LikedEpisodeModel?> watchLikedEpisode(String videoId);
+  Future<void> toggleLikedEpisode(LikedEpisodeModel episode);
+  Future<void> ensureLikedEpisode(LikedEpisodeModel episode);
+  Future<void> deleteLikedEpisode(String videoId);
+
   Future<List<LocalPlaylistModel>> getAllPlaylists();
   Stream<List<LocalPlaylistModel>> watchAllPlaylists();
   Future<int> createPlaylist(String name, {String? description});
@@ -102,6 +118,8 @@ abstract class LibraryRepository {
     int? duration,
     bool isVideo = false,
     bool isExplicit = false,
+    String contentType = 'song',
+    String? podcastBrowseId,
   });
   Future<void> insertHistoryEntry(
     String videoId,
@@ -113,6 +131,8 @@ abstract class LibraryRepository {
     int playCount = 1,
     bool isVideo = false,
     bool isExplicit = false,
+    String contentType = 'song',
+    String? podcastBrowseId,
   });
   Future<void> clearHistory();
 

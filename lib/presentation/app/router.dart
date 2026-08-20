@@ -15,6 +15,7 @@ import '../features/explore/charts_screen.dart';
 import '../features/explore/moods_screen.dart';
 import '../features/explore/new_releases_screen.dart';
 import '../features/podcast/podcast_screen.dart';
+import '../features/podcast/episode_screen.dart';
 import '../features/user/user_screen.dart';
 import '../features/user/user_videos_screen.dart';
 import '../features/user/user_playlists_screen.dart';
@@ -191,6 +192,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                         ),
                   ),
                   GoRoute(
+                    path: 'episode/:videoId',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: EpisodeScreen(
+                            videoId: state.pathParameters['videoId']!,
+                          ),
+                        ),
+                  ),
+                  GoRoute(
                     path: 'user/:channelId',
                     pageBuilder:
                         (context, state) => _slideUpPage(
@@ -249,6 +260,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                           key: state.pageKey,
                           child: PodcastScreen(
                             browseId: state.pathParameters['browseId']!,
+                          ),
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'episode/:videoId',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: EpisodeScreen(
+                            videoId: state.pathParameters['videoId']!,
                           ),
                         ),
                   ),

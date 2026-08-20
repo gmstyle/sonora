@@ -16,6 +16,8 @@ class MergeLibraryUseCase {
     int followedArtistsCount = 0;
     int likedAlbumsCount = 0;
     int likedPlaylistsCount = 0;
+    int likedPodcastsCount = 0;
+    int likedEpisodesCount = 0;
     int playlistsCount = 0;
     int playlistEntriesCount = 0;
     int historyCount = 0;
@@ -130,6 +132,64 @@ class MergeLibraryUseCase {
             ),
           );
           likedPlaylistsCount++;
+        }
+      }
+    }
+
+    // 4b. Synchronize Liked Podcasts
+    final likedPodcasts =
+        (data['likedPodcasts'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
+    if (likedPodcasts.isNotEmpty) {
+      final localPodcasts = await libraryRepository.getAllLikedPodcasts();
+      final localPodcastIds = localPodcasts.map((p) => p.browseId).toSet();
+
+      for (final p in likedPodcasts) {
+        final browseId = p['browseId'] as String;
+        if (!localPodcastIds.contains(browseId)) {
+          await libraryRepository.ensureLikedPodcast(
+            LikedPodcastModel(
+              browseId: browseId,
+              name: p['name'] as String,
+              authorName: p['authorName'] as String?,
+              authorId: p['authorId'] as String?,
+              thumbnailUrl: p['thumbnailUrl'] as String?,
+              episodeCount: p['episodeCount'] as int?,
+              addedAt: DateTime.parse(p['addedAt'] as String),
+            ),
+          );
+          likedPodcastsCount++;
+        }
+      }
+    }
+
+    // 4c. Synchronize Liked Episodes
+    final likedEpisodes =
+        (data['likedEpisodes'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
+    if (likedEpisodes.isNotEmpty) {
+      final localEpisodes = await libraryRepository.getAllLikedEpisodes();
+      final localEpisodeIds = localEpisodes.map((e) => e.videoId).toSet();
+
+      for (final e in likedEpisodes) {
+        final videoId = e['videoId'] as String;
+        if (!localEpisodeIds.contains(videoId)) {
+          await libraryRepository.ensureLikedEpisode(
+            LikedEpisodeModel(
+              videoId: videoId,
+              browseId: e['browseId'] as String?,
+              name: e['name'] as String,
+              podcastName: e['podcastName'] as String?,
+              podcastBrowseId: e['podcastBrowseId'] as String?,
+              thumbnailUrl: e['thumbnailUrl'] as String?,
+              durationSec: e['durationSec'] as int?,
+              date: e['date'] as String?,
+              addedAt: DateTime.parse(e['addedAt'] as String),
+            ),
+          );
+          likedEpisodesCount++;
         }
       }
     }
@@ -263,6 +323,8 @@ class MergeLibraryUseCase {
             playCount: h['playCount'] as int? ?? 1,
             isVideo: h['isVideo'] as bool? ?? false,
             isExplicit: h['isExplicit'] as bool? ?? false,
+            contentType: h['contentType'] as String? ?? 'song',
+            podcastBrowseId: h['podcastBrowseId'] as String?,
           );
           historyCount++;
         }
@@ -306,6 +368,8 @@ class MergeLibraryUseCase {
       'followedArtists': followedArtistsCount,
       'likedAlbums': likedAlbumsCount,
       'likedPlaylists': likedPlaylistsCount,
+      'likedPodcasts': likedPodcastsCount,
+      'likedEpisodes': likedEpisodesCount,
       'playlists': playlistsCount,
       'playlistEntries': playlistEntriesCount,
       'history': historyCount,

@@ -371,10 +371,7 @@ class _SearchResults extends ConsumerWidget {
       type = AppLocalizations.of(context)!.episodes;
       imageUrl =
           result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
-      onTap =
-          () => ref
-              .read(playerStateProvider.notifier)
-              .playVideoId(result.videoId, isVideo: false);
+      onTap = () => context.push('/episode/${result.videoId}');
     } else if (result is ProfileDetailed) {
       title = result.name;
       subtitle = result.handle ?? '';
@@ -844,10 +841,7 @@ class _SearchResults extends ConsumerWidget {
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
         playCount: result.date,
         isVideo: false,
-        onTap:
-            () => ref
-                .read(playerStateProvider.notifier)
-                .playVideoId(result.videoId, isVideo: false),
+        onTap: () => context.push('/episode/${result.videoId}'),
       );
     }
     if (result is ProfileDetailed) {

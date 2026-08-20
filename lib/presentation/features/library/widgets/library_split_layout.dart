@@ -9,6 +9,7 @@ import 'favorites_tab.dart';
 import 'artists_tab.dart';
 import 'playlists_tab.dart';
 import 'albums_tab.dart';
+import 'podcasts_tab.dart';
 import 'history_tab.dart';
 import 'smart_mixes_tab.dart';
 import 'stats_tab.dart';
@@ -36,6 +37,10 @@ final _tabs = [
     LucideIcons.listMusic,
   ),
   _TabItem((context) => AppLocalizations.of(context)!.albums, LucideIcons.disc),
+  _TabItem(
+    (context) => AppLocalizations.of(context)!.podcasts,
+    LucideIcons.mic,
+  ),
   _TabItem(
     (context) => AppLocalizations.of(context)!.history,
     LucideIcons.history,
@@ -66,7 +71,8 @@ class LibrarySplitLayout extends ConsumerWidget {
         selectedIndex == 1 ||
         selectedIndex == 2 ||
         selectedIndex == 3 ||
-        selectedIndex == 5;
+        selectedIndex == 4 ||
+        selectedIndex == 6;
 
     Widget mainRow = Row(
       children: [
@@ -163,7 +169,7 @@ class LibrarySplitLayout extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (selectedIndex != 6) ...[
+              if (selectedIndex != 7) ...[
                 LibraryHeaderControls(
                   showViewSwitcher: !isSearchActive && isListOrGridTab,
                 ),
@@ -183,6 +189,7 @@ class LibrarySplitLayout extends ConsumerWidget {
                               ArtistsTab(),
                               PlaylistsTab(),
                               AlbumsTab(),
+                              PodcastsTab(),
                               HistoryTab(),
                               SmartMixesTab(),
                               StatsTab(),

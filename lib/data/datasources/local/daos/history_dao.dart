@@ -35,6 +35,8 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     int? duration,
     bool isVideo = false,
     bool isExplicit = false,
+    String contentType = 'song',
+    String? podcastBrowseId,
   }) async {
     // Fetch ALL rows for this videoId (oldest bug may have produced duplicates).
     final all =
@@ -57,6 +59,8 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
           duration: duration != null ? Value(duration) : Value(latest.duration),
           isVideo: Value(isVideo),
           isExplicit: Value(isExplicit),
+          contentType: Value(contentType),
+          podcastBrowseId: Value(podcastBrowseId ?? latest.podcastBrowseId),
         ),
       );
     } else {
@@ -71,6 +75,8 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
           duration: Value(duration),
           isVideo: Value(isVideo),
           isExplicit: Value(isExplicit),
+          contentType: Value(contentType),
+          podcastBrowseId: Value(podcastBrowseId),
         ),
       );
     }
@@ -106,6 +112,8 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     int playCount = 1,
     bool isVideo = false,
     bool isExplicit = false,
+    String contentType = 'song',
+    String? podcastBrowseId,
   }) => into(db.history).insert(
     HistoryCompanion(
       videoId: Value(videoId),
@@ -117,6 +125,8 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
       duration: Value(duration),
       isVideo: Value(isVideo),
       isExplicit: Value(isExplicit),
+      contentType: Value(contentType),
+      podcastBrowseId: Value(podcastBrowseId),
     ),
   );
 

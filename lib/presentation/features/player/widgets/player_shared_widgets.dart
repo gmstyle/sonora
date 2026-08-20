@@ -211,6 +211,50 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
   final artist = song.artist ?? AppLocalizations.of(context)!.unknownArtist;
   final thumbnailUrl = song.artUri?.toString();
 
+  if (track.isEpisode) {
+    final likedAsync = ref.watch(likedEpisodeProvider(videoId));
+    return likedAsync.when(
+      loading: () => const Icon(LucideIcons.heart, size: 28),
+      error: (_, _) => const Icon(LucideIcons.heart, size: 28),
+      data: (liked) {
+        final isLiked = liked != null;
+        return IconButton(
+          icon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder:
+                (child, anim) => ScaleTransition(
+                  scale: anim,
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+            child: Icon(
+              LucideIcons.heart,
+              key: ValueKey(isLiked),
+              size: 28,
+              color: isLiked ? Theme.of(context).colorScheme.error : null,
+            ),
+          ),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedEpisode(
+                  LikedEpisodeModel(
+                    videoId: videoId,
+                    name: title,
+                    podcastName: artist,
+                    podcastBrowseId: track.podcastBrowseId,
+                    thumbnailUrl: thumbnailUrl,
+                    durationSec: song.duration?.inSeconds,
+                    date: track.publishDate,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+          },
+        );
+      },
+    );
+  }
+
   final likedAsync = ref.watch(likedSongProvider(videoId));
   return likedAsync.when(
     loading: () => const Icon(LucideIcons.heart, size: 28),
@@ -430,6 +474,9 @@ Widget buildBottomActionsRow(
   final theme = Theme.of(context);
   final double iconSize = isMobile ? 18.0 : 22.0;
   final isVideo = ref.watch(playerStateProvider).isVideo;
+  final current = ref.watch(playerStateProvider).currentSong;
+  final isEpisode =
+      current != null && QueueTrack.fromMediaItem(current).isEpisode;
   // Mi A1 (~312px content) cannot fit 7×48 IconButtons; shrink tap targets.
   final ButtonStyle? actionStyle =
       isMobile
@@ -496,7 +543,7 @@ Widget buildBottomActionsRow(
           },
         ),
       ],
-      if (!isVideo)
+      if (!isVideo && !isEpisode)
         IconButton(
           style: actionStyle,
           icon: Icon(

@@ -11,6 +11,7 @@ import 'library_notifier.dart';
 import 'play_video_id_use_case_provider.dart';
 import 'play_album_use_case_provider.dart';
 import 'play_playlist_use_case_provider.dart';
+import 'play_podcast_use_case_provider.dart';
 import 'play_smart_mix_use_case_provider.dart';
 import 'queue_use_case_provider.dart';
 import 'settings_provider.dart';
@@ -467,6 +468,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
                 duration: track.duration?.inSeconds,
                 isVideo: track.isVideo,
                 isExplicit: track.isExplicit,
+                contentType: track.contentType,
+                podcastBrowseId: track.podcastBrowseId,
               );
         }
       });
@@ -736,6 +739,49 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           isSwitching: false,
           hasError: true,
           errorMessage: 'Failed to play playlist: $e',
+        );
+      }
+    }
+  }
+
+  Future<void> playPodcast(
+    List<PodcastEpisode> episodes, {
+    required String podcastBrowseId,
+    String? podcastName,
+    String? authorName,
+    String? authorId,
+    int startIndex = 0,
+  }) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true, clearUnplayable: true);
+    try {
+      final useCase = ref.read(playPodcastUseCaseProvider);
+      final items = await useCase.execute(
+        episodes,
+        podcastBrowseId: podcastBrowseId,
+        podcastName: podcastName,
+        authorName: authorName,
+        authorId: authorId,
+        playIndex: startIndex,
+      );
+      if (_operationVersion != v) return;
+      final playable = episodes
+          .where((e) => e.videoId.isNotEmpty)
+          .toList(growable: false);
+      final initialIndex =
+          startIndex >= 0 && startIndex < playable.length ? startIndex : 0;
+      await _handler.playNow(
+        items,
+        initialIndex: initialIndex,
+        shouldAbort: () => _operationVersion != v,
+      );
+    } catch (e) {
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to play podcast: $e',
         );
       }
     }

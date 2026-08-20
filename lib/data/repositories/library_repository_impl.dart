@@ -317,6 +317,144 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String thumbnailUrl,
   ) => _libraryDao.updateLikedPlaylistThumbnail(playlistId, thumbnailUrl);
 
+  // ── Liked Podcasts ────────────────────────────────────────────
+
+  @override
+  Future<List<LikedPodcastModel>> getAllLikedPodcasts() async {
+    final rows = await _libraryDao.getAllLikedPodcasts();
+    return rows.map(_mapLikedPodcast).toList();
+  }
+
+  @override
+  Stream<List<LikedPodcastModel>> watchAllLikedPodcasts() {
+    return _libraryDao.watchAllLikedPodcasts().map(
+      (rows) => rows.map(_mapLikedPodcast).toList(),
+    );
+  }
+
+  @override
+  Future<LikedPodcastModel?> getLikedPodcast(String browseId) async {
+    final row = await _libraryDao.getLikedPodcast(browseId);
+    return row != null ? _mapLikedPodcast(row) : null;
+  }
+
+  @override
+  Stream<LikedPodcastModel?> watchLikedPodcast(String browseId) {
+    return _libraryDao
+        .watchLikedPodcast(browseId)
+        .map((row) => row != null ? _mapLikedPodcast(row) : null);
+  }
+
+  @override
+  Future<void> toggleLikedPodcast(LikedPodcastModel podcast) async {
+    final existing = await _libraryDao.getLikedPodcast(podcast.browseId);
+    if (existing != null) {
+      await _libraryDao.deleteLikedPodcast(podcast.browseId);
+    } else {
+      await _libraryDao.insertLikedPodcast(
+        LikedPodcastsCompanion.insert(
+          browseId: podcast.browseId,
+          name: podcast.name,
+          authorName: Value(podcast.authorName),
+          authorId: Value(podcast.authorId),
+          thumbnailUrl: Value(podcast.thumbnailUrl),
+          episodeCount: Value(podcast.episodeCount),
+          addedAt: podcast.addedAt,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> ensureLikedPodcast(LikedPodcastModel podcast) async {
+    await _libraryDao.insertLikedPodcast(
+      LikedPodcastsCompanion.insert(
+        browseId: podcast.browseId,
+        name: podcast.name,
+        authorName: Value(podcast.authorName),
+        authorId: Value(podcast.authorId),
+        thumbnailUrl: Value(podcast.thumbnailUrl),
+        episodeCount: Value(podcast.episodeCount),
+        addedAt: podcast.addedAt,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteLikedPodcast(String browseId) =>
+      _libraryDao.deleteLikedPodcast(browseId);
+
+  // ── Liked Episodes ────────────────────────────────────────────
+
+  @override
+  Future<List<LikedEpisodeModel>> getAllLikedEpisodes() async {
+    final rows = await _libraryDao.getAllLikedEpisodes();
+    return rows.map(_mapLikedEpisode).toList();
+  }
+
+  @override
+  Stream<List<LikedEpisodeModel>> watchAllLikedEpisodes() {
+    return _libraryDao.watchAllLikedEpisodes().map(
+      (rows) => rows.map(_mapLikedEpisode).toList(),
+    );
+  }
+
+  @override
+  Future<LikedEpisodeModel?> getLikedEpisode(String videoId) async {
+    final row = await _libraryDao.getLikedEpisode(videoId);
+    return row != null ? _mapLikedEpisode(row) : null;
+  }
+
+  @override
+  Stream<LikedEpisodeModel?> watchLikedEpisode(String videoId) {
+    return _libraryDao
+        .watchLikedEpisode(videoId)
+        .map((row) => row != null ? _mapLikedEpisode(row) : null);
+  }
+
+  @override
+  Future<void> toggleLikedEpisode(LikedEpisodeModel episode) async {
+    final existing = await _libraryDao.getLikedEpisode(episode.videoId);
+    if (existing != null) {
+      await _libraryDao.deleteLikedEpisode(episode.videoId);
+    } else {
+      await _libraryDao.insertLikedEpisode(
+        LikedEpisodesCompanion.insert(
+          videoId: episode.videoId,
+          name: episode.name,
+          browseId: Value(episode.browseId),
+          podcastName: Value(episode.podcastName),
+          podcastBrowseId: Value(episode.podcastBrowseId),
+          thumbnailUrl: Value(episode.thumbnailUrl),
+          durationSec: Value(episode.durationSec),
+          date: Value(episode.date),
+          addedAt: episode.addedAt,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> ensureLikedEpisode(LikedEpisodeModel episode) async {
+    await _libraryDao.insertLikedEpisode(
+      LikedEpisodesCompanion.insert(
+        videoId: episode.videoId,
+        name: episode.name,
+        browseId: Value(episode.browseId),
+        podcastName: Value(episode.podcastName),
+        podcastBrowseId: Value(episode.podcastBrowseId),
+        thumbnailUrl: Value(episode.thumbnailUrl),
+        durationSec: Value(episode.durationSec),
+        date: Value(episode.date),
+        addedAt: episode.addedAt,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteLikedEpisode(String videoId) =>
+      _libraryDao.deleteLikedEpisode(videoId);
+
   // ── Playlists ─────────────────────────────────────────────────
 
   @override
@@ -512,96 +650,45 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   // ── History ───────────────────────────────────────────────────
 
+  HistoryModel _mapHistory(HistoryData r) => HistoryModel(
+    id: r.id,
+    videoId: r.videoId,
+    title: r.title,
+    artist: r.artist,
+    thumbnailUrl: r.thumbnailUrl,
+    playedAt: r.playedAt,
+    playCount: r.playCount,
+    isVideo: r.isVideo,
+    duration: r.duration,
+    isExplicit: r.isExplicit,
+    contentType: r.contentType,
+    podcastBrowseId: r.podcastBrowseId,
+  );
+
   @override
   Future<List<HistoryModel>> getRecentHistory({int limit = 50}) async {
     final rows = await _historyDao.getRecentHistory(limit: limit);
-    return rows
-        .map(
-          (r) => HistoryModel(
-            id: r.id,
-            videoId: r.videoId,
-            title: r.title,
-            artist: r.artist,
-            thumbnailUrl: r.thumbnailUrl,
-            playedAt: r.playedAt,
-            playCount: r.playCount,
-            isVideo: r.isVideo,
-            duration: r.duration,
-            isExplicit: r.isExplicit,
-          ),
-        )
-        .toList();
+    return rows.map(_mapHistory).toList();
   }
 
   @override
   Stream<List<HistoryModel>> watchRecentHistory({int limit = 50}) {
     return _historyDao
         .watchRecentHistory(limit: limit)
-        .map(
-          (rows) =>
-              rows
-                  .map(
-                    (r) => HistoryModel(
-                      id: r.id,
-                      videoId: r.videoId,
-                      title: r.title,
-                      artist: r.artist,
-                      thumbnailUrl: r.thumbnailUrl,
-                      playedAt: r.playedAt,
-                      playCount: r.playCount,
-                      isVideo: r.isVideo,
-                      duration: r.duration,
-                      isExplicit: r.isExplicit,
-                    ),
-                  )
-                  .toList(),
-        );
+        .map((rows) => rows.map(_mapHistory).toList());
   }
 
   @override
   Future<List<HistoryModel>> getMostPlayedSongs({int limit = 50}) async {
     final rows = await _historyDao.getMostPlayedSongs(limit: limit);
-    return rows
-        .map(
-          (r) => HistoryModel(
-            id: r.id,
-            videoId: r.videoId,
-            title: r.title,
-            artist: r.artist,
-            thumbnailUrl: r.thumbnailUrl,
-            playedAt: r.playedAt,
-            playCount: r.playCount,
-            isVideo: r.isVideo,
-            duration: r.duration,
-            isExplicit: r.isExplicit,
-          ),
-        )
-        .toList();
+    return rows.map(_mapHistory).toList();
   }
 
   @override
   Stream<List<HistoryModel>> watchMostPlayedSongs({int limit = 50}) {
     return _historyDao
         .watchMostPlayedSongs(limit: limit)
-        .map(
-          (rows) =>
-              rows
-                  .map(
-                    (r) => HistoryModel(
-                      id: r.id,
-                      videoId: r.videoId,
-                      title: r.title,
-                      artist: r.artist,
-                      thumbnailUrl: r.thumbnailUrl,
-                      playedAt: r.playedAt,
-                      playCount: r.playCount,
-                      isVideo: r.isVideo,
-                      duration: r.duration,
-                      isExplicit: r.isExplicit,
-                    ),
-                  )
-                  .toList(),
-        );
+        .map((rows) => rows.map(_mapHistory).toList());
   }
 
   @override
@@ -613,6 +700,8 @@ class LibraryRepositoryImpl implements LibraryRepository {
     int? duration,
     bool isVideo = false,
     bool isExplicit = false,
+    String contentType = 'song',
+    String? podcastBrowseId,
   }) => _historyDao.recordPlay(
     videoId,
     title,
@@ -621,6 +710,8 @@ class LibraryRepositoryImpl implements LibraryRepository {
     duration: duration,
     isVideo: isVideo,
     isExplicit: isExplicit,
+    contentType: contentType,
+    podcastBrowseId: podcastBrowseId,
   );
 
   @override
@@ -637,6 +728,8 @@ class LibraryRepositoryImpl implements LibraryRepository {
     int playCount = 1,
     bool isVideo = false,
     bool isExplicit = false,
+    String contentType = 'song',
+    String? podcastBrowseId,
   }) => _historyDao.insertHistoryRaw(
     videoId,
     title,
@@ -647,6 +740,8 @@ class LibraryRepositoryImpl implements LibraryRepository {
     playCount: playCount,
     isVideo: isVideo,
     isExplicit: isExplicit,
+    contentType: contentType,
+    podcastBrowseId: podcastBrowseId,
   );
 
   // ── Search History ────────────────────────────────────────────
@@ -727,6 +822,28 @@ class LibraryRepositoryImpl implements LibraryRepository {
     name: r.name,
     thumbnailUrl: r.thumbnailUrl,
     videoCount: r.videoCount,
+    addedAt: r.addedAt,
+  );
+
+  LikedPodcastModel _mapLikedPodcast(LikedPodcast r) => LikedPodcastModel(
+    browseId: r.browseId,
+    name: r.name,
+    authorName: r.authorName,
+    authorId: r.authorId,
+    thumbnailUrl: r.thumbnailUrl,
+    episodeCount: r.episodeCount,
+    addedAt: r.addedAt,
+  );
+
+  LikedEpisodeModel _mapLikedEpisode(LikedEpisode r) => LikedEpisodeModel(
+    videoId: r.videoId,
+    browseId: r.browseId,
+    name: r.name,
+    podcastName: r.podcastName,
+    podcastBrowseId: r.podcastBrowseId,
+    thumbnailUrl: r.thumbnailUrl,
+    durationSec: r.durationSec,
+    date: r.date,
     addedAt: r.addedAt,
   );
 

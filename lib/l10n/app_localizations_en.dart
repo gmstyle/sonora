@@ -1476,4 +1476,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get plays => 'plays';
+
+  @override
+  String get noLikedPodcasts => 'No subscribed podcasts';
+
+  @override
+  String get noLikedPodcastsHint =>
+      'Subscribe to a podcast from its page to see it here.';
+
+  @override
+  String get subscribe => 'Subscribe';
+
+  @override
+  String get subscribed => 'Subscribed';
+
+  @override
+  String get unsubscribe => 'Unsubscribe';
+
+  @override
+  String get saveEpisode => 'Save Episode';
+
+  @override
+  String get episodeSaved => 'Saved';
+
+  @override
+  String get unsaveEpisode => 'Unsave Episode';
+
+  @override
+  String get downloadPodcast => 'Download Podcast';
+
+  @override
+  String get topPodcasts => 'Top Podcasts';
+
+  @override
+  String get topEpisodes => 'Top Episodes';
+
+  @override
+  String get episode => 'Episode';
+
+  @override
+  String get goToPodcast => 'Go to Podcast';
+
+  @override
+  String get loadMoreEpisodes => 'Load more episodes';
+
+  @override
+  String get failedToLoadEpisode => 'Failed to load episode';
+
+  @override
+  String get podcastListeningTime => 'Podcast Listening Time';
 }

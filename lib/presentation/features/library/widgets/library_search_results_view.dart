@@ -21,6 +21,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
     final playlistsAsync = ref.watch(sortedPlaylistsProvider);
     final likedPlaylistsAsync = ref.watch(sortedLikedPlaylistsProvider);
     final albumsAsync = ref.watch(sortedLikedAlbumsProvider);
+    final podcastsAsync = ref.watch(sortedLikedPodcastsProvider);
     final historyAsync = ref.watch(sortedHistoryProvider);
     final activeFilter = ref.watch(librarySearchFilterProvider);
 
@@ -33,6 +34,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
         playlistsAsync.isLoading ||
         likedPlaylistsAsync.isLoading ||
         albumsAsync.isLoading ||
+        podcastsAsync.isLoading ||
         historyAsync.isLoading;
 
     if (isLoading) {
@@ -44,6 +46,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
     final playlists = playlistsAsync.value ?? [];
     final likedPlaylists = likedPlaylistsAsync.value ?? [];
     final albums = albumsAsync.value ?? [];
+    final podcasts = podcastsAsync.value ?? [];
     final history = historyAsync.value ?? [];
 
     final showSongs =
@@ -66,6 +69,10 @@ class LibrarySearchResultsView extends ConsumerWidget {
         albums.isNotEmpty &&
         (activeFilter == LibrarySearchFilter.all ||
             activeFilter == LibrarySearchFilter.albums);
+    final showPodcasts =
+        podcasts.isNotEmpty &&
+        (activeFilter == LibrarySearchFilter.all ||
+            activeFilter == LibrarySearchFilter.podcasts);
     final showHistory =
         history.isNotEmpty &&
         (activeFilter == LibrarySearchFilter.all ||
@@ -77,6 +84,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
         (showLocalPlaylists ? playlists.length : 0) +
         (showLikedPlaylists ? likedPlaylists.length : 0) +
         (showAlbums ? albums.length : 0) +
+        (showPodcasts ? podcasts.length : 0) +
         (showHistory ? history.length : 0);
 
     if (totalDisplayedResults == 0) {
@@ -209,7 +217,29 @@ class LibrarySearchResultsView extends ConsumerWidget {
                 ),
               ],
 
-              // 6. History Section
+              // 6. Podcasts Section
+              if (showPodcasts) ...[
+                _buildSliverHeader(context, l10n.podcasts.toUpperCase()),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((_, i) {
+                    final p = podcasts[i];
+                    return ListTile(
+                      leading: ThumbnailWidget(
+                        imageUrl: p.thumbnailUrl,
+                        size: 48,
+                        shape: ThumbnailShape.rounded,
+                      ),
+                      title: Text(p.name),
+                      subtitle:
+                          p.authorName != null ? Text(p.authorName!) : null,
+                      trailing: const Icon(LucideIcons.chevronRight),
+                      onTap: () => context.push('/podcast/${p.browseId}'),
+                    );
+                  }, childCount: podcasts.length),
+                ),
+              ],
+
+              // 7. History Section
               if (showHistory) ...[
                 _buildSliverHeader(context, l10n.history.toUpperCase()),
                 SliverList(
@@ -249,6 +279,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
       (LibrarySearchFilter.artists, l10n.artists),
       (LibrarySearchFilter.playlists, l10n.playlists),
       (LibrarySearchFilter.albums, l10n.albums),
+      (LibrarySearchFilter.podcasts, l10n.podcasts),
       (LibrarySearchFilter.history, l10n.history),
     ];
 

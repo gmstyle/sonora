@@ -20,6 +20,10 @@ class QueueTrack {
   final int? viewCount;
   final String? publishDate;
 
+  /// `song` | `video` | `episode`
+  final String contentType;
+  final String? podcastBrowseId;
+
   // Display fields (populated from DB on restore, from extras on live items).
   final String title;
   final String? artist;
@@ -37,12 +41,16 @@ class QueueTrack {
     this.albumId,
     this.viewCount,
     this.publishDate,
+    this.contentType = 'song',
+    this.podcastBrowseId,
     this.title = '',
     this.artist,
     this.album,
     this.duration,
     this.artUri,
   });
+
+  bool get isEpisode => contentType == 'episode';
 
   QueueTrack copyWith({
     String? videoId,
@@ -54,6 +62,8 @@ class QueueTrack {
     String? albumId,
     int? viewCount,
     String? publishDate,
+    String? contentType,
+    String? podcastBrowseId,
     String? title,
     String? artist,
     String? album,
@@ -64,6 +74,7 @@ class QueueTrack {
     bool clearAlbumId = false,
     bool clearViewCount = false,
     bool clearPublishDate = false,
+    bool clearPodcastBrowseId = false,
     bool clearArtist = false,
     bool clearAlbumField = false,
     bool clearDuration = false,
@@ -79,6 +90,11 @@ class QueueTrack {
       albumId: clearAlbumId ? null : (albumId ?? this.albumId),
       viewCount: clearViewCount ? null : (viewCount ?? this.viewCount),
       publishDate: clearPublishDate ? null : (publishDate ?? this.publishDate),
+      contentType: contentType ?? this.contentType,
+      podcastBrowseId:
+          clearPodcastBrowseId
+              ? null
+              : (podcastBrowseId ?? this.podcastBrowseId),
       title: title ?? this.title,
       artist: clearArtist ? null : (artist ?? this.artist),
       album: clearAlbumField ? null : (album ?? this.album),
@@ -111,6 +127,8 @@ class QueueTrack {
       albumId: extras['albumId'] as String?,
       viewCount: extras['viewCount'] as int?,
       publishDate: extras['publishDate'] as String?,
+      contentType: extras['contentType'] as String? ?? 'song',
+      podcastBrowseId: extras['podcastBrowseId'] as String?,
       title: item.title,
       artist: item.artist,
       album: item.album,
@@ -176,6 +194,7 @@ class QueueTrack {
       'videoId': videoId,
       'isVideo': isVideo,
       'isExplicit': isExplicit,
+      'contentType': contentType,
     };
 
     if (url != null) {
@@ -188,6 +207,7 @@ class QueueTrack {
     if (albumId != null) extras['albumId'] = albumId;
     if (viewCount != null) extras['viewCount'] = viewCount;
     if (publishDate != null) extras['publishDate'] = publishDate;
+    if (podcastBrowseId != null) extras['podcastBrowseId'] = podcastBrowseId;
 
     return extras;
   }
@@ -205,7 +225,9 @@ class QueueTrack {
           artistId == other.artistId &&
           albumId == other.albumId &&
           viewCount == other.viewCount &&
-          publishDate == other.publishDate;
+          publishDate == other.publishDate &&
+          contentType == other.contentType &&
+          podcastBrowseId == other.podcastBrowseId;
 
   @override
   int get hashCode => Object.hash(
@@ -218,10 +240,12 @@ class QueueTrack {
     albumId,
     viewCount,
     publishDate,
+    contentType,
+    podcastBrowseId,
   );
 
   @override
   String toString() =>
-      'QueueTrack(videoId: $videoId, isVideo: $isVideo, '
-      'needsUrl: $needsUrl, hasUrl: ${url != null})';
+      'QueueTrack(videoId: $videoId, contentType: $contentType, '
+      'isVideo: $isVideo, needsUrl: $needsUrl, hasUrl: ${url != null})';
 }

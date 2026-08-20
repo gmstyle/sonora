@@ -1487,4 +1487,53 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get plays => 'riproduzioni';
+
+  @override
+  String get noLikedPodcasts => 'Nessun podcast seguito';
+
+  @override
+  String get noLikedPodcastsHint =>
+      'Iscriviti a un podcast dalla sua pagina per vederlo qui.';
+
+  @override
+  String get subscribe => 'Iscriviti';
+
+  @override
+  String get subscribed => 'Iscritto';
+
+  @override
+  String get unsubscribe => 'Annulla iscrizione';
+
+  @override
+  String get saveEpisode => 'Salva episodio';
+
+  @override
+  String get episodeSaved => 'Salvato';
+
+  @override
+  String get unsaveEpisode => 'Rimuovi episodio';
+
+  @override
+  String get downloadPodcast => 'Scarica Podcast';
+
+  @override
+  String get topPodcasts => 'Podcast più ascoltati';
+
+  @override
+  String get topEpisodes => 'Episodi più ascoltati';
+
+  @override
+  String get episode => 'Episodio';
+
+  @override
+  String get goToPodcast => 'Vai al Podcast';
+
+  @override
+  String get loadMoreEpisodes => 'Carica altri episodi';
+
+  @override
+  String get failedToLoadEpisode => 'Impossibile caricare l\'episodio';
+
+  @override
+  String get podcastListeningTime => 'Tempo di ascolto podcast';
 }

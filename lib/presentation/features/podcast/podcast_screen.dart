@@ -9,8 +9,11 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
+import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/download_provider.dart';
+import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/expandable_text.dart';
@@ -18,29 +21,14 @@ import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/song_tile.dart';
 import 'providers/podcast_provider.dart';
 
-List<VideoDetailed> podcastEpisodesToVideos(PodcastFull podcast) {
-  final authorName = podcast.author?.name ?? podcast.name;
-  final authorId = podcast.author?.artistId;
-
-  return podcast.episodes
-      .where((e) => e.videoId.isNotEmpty)
-      .map(
-        (e) => VideoDetailed(
-          type: 'VIDEO',
-          videoId: e.videoId,
-          name: e.name,
-          artist: ArtistBasic(name: authorName, artistId: authorId),
-          duration: null,
-          thumbnails: e.thumbnails,
-        ),
-      )
-      .toList();
-}
-
+/// Index of [episodeIndex] within the subset of episodes that have a
+/// playable [PodcastEpisode.videoId] (matches the filtering performed by
+/// [PlayerNotifier.playPodcast] / [PlayPodcastUseCase]).
 int playableIndexForEpisode(PodcastFull podcast, int episodeIndex) {
   final episode = podcast.episodes[episodeIndex];
-  final videos = podcastEpisodesToVideos(podcast);
-  return videos.indexWhere((v) => v.videoId == episode.videoId);
+  if (episode.videoId.isEmpty) return -1;
+  final playable = podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+  return playable.indexWhere((e) => e.videoId == episode.videoId);
 }
 
 class PodcastScreen extends ConsumerWidget {
@@ -572,8 +560,7 @@ class _PodcastActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < kCompactBreakpoint;
-    final videos = podcastEpisodesToVideos(podcast);
-    final hasEpisodes = videos.isNotEmpty;
+    final hasEpisodes = podcast.episodes.any((e) => e.videoId.isNotEmpty);
 
     if (isMobile) {
       return Padding(
@@ -584,12 +571,19 @@ class _PodcastActions extends ConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _SubscribePodcastButton(podcast: podcast, iconOnly: true),
+                _DownloadPodcastButton(
+                  podcast: podcast,
+                  onDownload:
+                      hasEpisodes
+                          ? () => _downloadPodcast(context, ref, podcast)
+                          : null,
+                  iconOnly: true,
+                ),
                 IconButton(
                   icon: const Icon(LucideIcons.shuffle),
                   onPressed:
-                      hasEpisodes
-                          ? () => _shufflePlay(context, ref, videos)
-                          : null,
+                      hasEpisodes ? () => _shufflePlay(context, ref) : null,
                   tooltip: AppLocalizations.of(context)!.shuffle,
                 ),
                 IconButton(
@@ -611,9 +605,7 @@ class _PodcastActions extends ConsumerWidget {
               height: 56,
               child: FilledButton(
                 onPressed:
-                    hasEpisodes
-                        ? () => _playSequential(context, ref, videos)
-                        : null,
+                    hasEpisodes ? () => _playSequential(context, ref) : null,
                 style: FilledButton.styleFrom(
                   shape: const CircleBorder(),
                   padding: EdgeInsets.zero,
@@ -631,17 +623,23 @@ class _PodcastActions extends ConsumerWidget {
       runSpacing: 8,
       children: [
         FilledButton.icon(
-          onPressed:
-              hasEpisodes ? () => _playSequential(context, ref, videos) : null,
+          onPressed: hasEpisodes ? () => _playSequential(context, ref) : null,
           icon: const Icon(LucideIcons.play),
           label: Text(AppLocalizations.of(context)!.playAll),
         ),
         FilledButton.tonalIcon(
-          onPressed:
-              hasEpisodes ? () => _shufflePlay(context, ref, videos) : null,
+          onPressed: hasEpisodes ? () => _shufflePlay(context, ref) : null,
           icon: const Icon(LucideIcons.shuffle),
           label: Text(AppLocalizations.of(context)!.shufflePlay),
         ),
+        _DownloadPodcastButton(
+          podcast: podcast,
+          onDownload:
+              hasEpisodes
+                  ? () => _downloadPodcast(context, ref, podcast)
+                  : null,
+        ),
+        _SubscribePodcastButton(podcast: podcast),
         IconButton(
           icon: const Icon(LucideIcons.share2),
           tooltip: AppLocalizations.of(context)!.share,
@@ -657,17 +655,20 @@ class _PodcastActions extends ConsumerWidget {
     );
   }
 
-  Future<void> _playSequential(
-    BuildContext context,
-    WidgetRef ref,
-    List<VideoDetailed> videos,
-  ) async {
+  Future<void> _playSequential(BuildContext context, WidgetRef ref) async {
     ref
         .read(actionFeedbackProvider.notifier)
         .report(AppLocalizations.of(context)!.playingPlaylist(podcast.name));
     final player = ref.read(playerStateProvider.notifier);
     try {
-      await player.playPlaylist(videos, startIndex: 0);
+      await player.playPodcast(
+        podcast.episodes,
+        podcastBrowseId: podcast.browseId,
+        podcastName: podcast.name,
+        authorName: podcast.author?.name,
+        authorId: podcast.author?.artistId,
+        startIndex: 0,
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -681,18 +682,21 @@ class _PodcastActions extends ConsumerWidget {
     }
   }
 
-  Future<void> _shufflePlay(
-    BuildContext context,
-    WidgetRef ref,
-    List<VideoDetailed> videos,
-  ) async {
+  Future<void> _shufflePlay(BuildContext context, WidgetRef ref) async {
     ref
         .read(actionFeedbackProvider.notifier)
         .report(AppLocalizations.of(context)!.shufflingPlaylist(podcast.name));
     final player = ref.read(playerStateProvider.notifier);
-    final shuffled = List<VideoDetailed>.from(videos)..shuffle();
+    final shuffled = List<PodcastEpisode>.from(podcast.episodes)..shuffle();
     try {
-      await player.playPlaylist(shuffled, startIndex: 0);
+      await player.playPodcast(
+        shuffled,
+        podcastBrowseId: podcast.browseId,
+        podcastName: podcast.name,
+        authorName: podcast.author?.name,
+        authorId: podcast.author?.artistId,
+        startIndex: 0,
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -704,6 +708,220 @@ class _PodcastActions extends ConsumerWidget {
         );
       }
     }
+  }
+
+  Future<void> _downloadPodcast(
+    BuildContext context,
+    WidgetRef ref,
+    PodcastFull podcast,
+  ) async {
+    const batchSize = 3;
+    final notifier = ref.read(activeDownloadsProvider.notifier);
+    final episodes = podcast.episodes.where((e) => e.videoId.isNotEmpty);
+    final toDownload =
+        episodes.where((e) => !notifier.isDownloading(e.videoId)).toList();
+    if (toDownload.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.allSongsAlreadyDownloading,
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    final alreadyDownloaded =
+        ref
+            .read(allDownloadsProvider)
+            .asData
+            ?.value
+            .where((d) => toDownload.any((e) => e.videoId == d.videoId))
+            .toList() ??
+        [];
+    if (alreadyDownloaded.isNotEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(l10n.alreadyDownloaded),
+              content: Text(
+                l10n.alreadyDownloadedSongs(
+                  alreadyDownloaded.length,
+                  podcast.name,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n.continueAction),
+                ),
+              ],
+            ),
+      );
+      if (proceed != true || !context.mounted) return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(
+            context,
+          )!.downloadingSongs(toDownload.length, podcast.name),
+        ),
+      ),
+    );
+
+    final alreadyDownloadedIds =
+        alreadyDownloaded.map((d) => d.videoId).toSet();
+
+    for (var i = 0; i < toDownload.length; i += batchSize) {
+      final batch = toDownload.skip(i).take(batchSize);
+      await Future.wait(
+        batch.map((episode) async {
+          if (alreadyDownloadedIds.contains(episode.videoId)) {
+            await notifier.deleteDownload(episode.videoId);
+          }
+          await notifier.startDownload(
+            videoId: episode.videoId,
+            title: episode.name,
+            artist: podcast.author?.name ?? podcast.name,
+            thumbnailUrl:
+                episode.thumbnails.isNotEmpty
+                    ? episode.thumbnails.last.url
+                    : null,
+            subdirectory: podcast.name,
+            isVideo: false,
+          );
+        }),
+      );
+    }
+  }
+}
+
+class _SubscribePodcastButton extends ConsumerWidget {
+  final PodcastFull podcast;
+  final bool iconOnly;
+
+  const _SubscribePodcastButton({required this.podcast, this.iconOnly = false});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final likedAsync = ref.watch(likedPodcastProvider(podcast.browseId));
+    return likedAsync.when(
+      loading:
+          () =>
+              iconOnly
+                  ? const IconButton(
+                    onPressed: null,
+                    icon: Icon(LucideIcons.heart),
+                  )
+                  : FilledButton.tonalIcon(
+                    onPressed: null,
+                    icon: const Icon(LucideIcons.heart),
+                    label: Text(l10n.subscribe),
+                  ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (liked) {
+        final isSubscribed = liked != null;
+        Future<void> toggle() async {
+          final notifier = ref.read(libraryNotifierProvider.notifier);
+          await notifier.toggleLikedPodcast(
+            LikedPodcastModel(
+              browseId: podcast.browseId,
+              name: podcast.name,
+              authorName: podcast.author?.name,
+              authorId: podcast.author?.artistId,
+              thumbnailUrl:
+                  podcast.thumbnails.isNotEmpty
+                      ? podcast.thumbnails.last.url
+                      : null,
+              episodeCount: podcast.episodes.length,
+              addedAt: DateTime.now(),
+            ),
+          );
+        }
+
+        if (iconOnly) {
+          return IconButton(
+            onPressed: toggle,
+            icon: const Icon(LucideIcons.heart),
+            color: isSubscribed ? Theme.of(context).colorScheme.primary : null,
+            tooltip: isSubscribed ? l10n.subscribed : l10n.subscribe,
+          );
+        }
+        return FilledButton.tonalIcon(
+          onPressed: toggle,
+          icon: const Icon(LucideIcons.heart),
+          label: Text(isSubscribed ? l10n.subscribed : l10n.subscribe),
+          style:
+              isSubscribed
+                  ? FilledButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                  )
+                  : null,
+        );
+      },
+    );
+  }
+}
+
+class _DownloadPodcastButton extends ConsumerWidget {
+  final PodcastFull podcast;
+  final VoidCallback? onDownload;
+  final bool iconOnly;
+
+  const _DownloadPodcastButton({
+    required this.podcast,
+    required this.onDownload,
+    this.iconOnly = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final playableEpisodes =
+        podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+    final downloadedCount =
+        playableEpisodes.where((e) => downloadedIds.contains(e.videoId)).length;
+    final totalCount = playableEpisodes.length;
+    final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
+
+    if (iconOnly) {
+      return IconButton(
+        onPressed: onDownload,
+        icon: Icon(
+          allDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
+        ),
+        color:
+            downloadedCount > 0 ? Theme.of(context).colorScheme.primary : null,
+        tooltip:
+            downloadedCount > 0
+                ? l10n.downloadedCount(downloadedCount, totalCount)
+                : l10n.downloadPodcast,
+      );
+    }
+
+    return FilledButton.tonalIcon(
+      onPressed: onDownload,
+      icon: Icon(
+        allDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
+      ),
+      label: Text(
+        downloadedCount > 0
+            ? l10n.downloadedCount(downloadedCount, totalCount)
+            : l10n.downloadPodcast,
+      ),
+    );
   }
 }
 
@@ -716,7 +934,6 @@ class _EpisodeTracklist extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final authorName = podcast.author?.name ?? podcast.name;
-    final playableVideos = podcastEpisodesToVideos(podcast);
 
     if (podcast.episodes.isEmpty) {
       return Padding(
@@ -744,6 +961,7 @@ class _EpisodeTracklist extends ConsumerWidget {
                 podcast.episodes[i].thumbnails.isNotEmpty
                     ? podcast.episodes[i].thumbnails.last.url
                     : null,
+            duration: Parser.parseDuration(podcast.episodes[i].duration),
             playCount: podcast.episodes[i].date,
             isVideo: false,
             onTap:
@@ -751,7 +969,6 @@ class _EpisodeTracklist extends ConsumerWidget {
                     ? () => _playFromIndex(
                       context,
                       ref,
-                      playableVideos,
                       playableIndexForEpisode(podcast, i),
                     )
                     : null,
@@ -763,12 +980,18 @@ class _EpisodeTracklist extends ConsumerWidget {
   Future<void> _playFromIndex(
     BuildContext context,
     WidgetRef ref,
-    List<VideoDetailed> videos,
     int startIndex,
   ) async {
     final player = ref.read(playerStateProvider.notifier);
     try {
-      await player.playPlaylist(videos, startIndex: startIndex);
+      await player.playPodcast(
+        podcast.episodes,
+        podcastBrowseId: podcast.browseId,
+        podcastName: podcast.name,
+        authorName: podcast.author?.name,
+        authorId: podcast.author?.artistId,
+        startIndex: startIndex,
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

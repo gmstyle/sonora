@@ -28,10 +28,26 @@ class SonoraWrappedView extends StatefulWidget {
 class _SonoraWrappedViewState extends State<SonoraWrappedView>
     with SingleTickerProviderStateMixin {
   int _currentSlide = 0;
-  final int _totalSlides = 5;
   double _progress = 0.0;
   Timer? _timer;
   late AnimationController _vinylController;
+
+  /// Slide kinds: 0 intro, 1 time, 2 artist, 3 songs, 4 podcast, 5 episode,
+  /// 6 podcast minutes, 7 summary.
+  List<int> get _slideKinds {
+    final kinds = <int>[0, 1];
+    if (widget.stats.topArtists.isNotEmpty) kinds.add(2);
+    if (widget.stats.topSongs.isNotEmpty) kinds.add(3);
+    if (widget.stats.topPodcasts.isNotEmpty) kinds.add(4);
+    if (widget.stats.topEpisodes.isNotEmpty) kinds.add(5);
+    if (widget.stats.podcastDurationMinutes > 0) kinds.add(6);
+    kinds.add(7);
+    return kinds;
+  }
+
+  int get _totalSlides => _slideKinds.length;
+  int get _currentKind =>
+      _currentSlide < _slideKinds.length ? _slideKinds[_currentSlide] : 7;
 
   @override
   void initState() {
@@ -193,7 +209,7 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
 
   Widget _buildBackgroundGradient() {
     final List<Color> colors;
-    switch (_currentSlide) {
+    switch (_currentKind) {
       case 0:
         colors = [Colors.deepPurple.shade900, Colors.black];
         break;
@@ -207,6 +223,11 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
         colors = [Colors.indigo.shade900, Colors.black];
         break;
       case 4:
+      case 5:
+      case 6:
+        colors = [Colors.cyan.shade900, Colors.black];
+        break;
+      case 7:
       default:
         colors = [Colors.amber.shade900, Colors.black];
         break;
@@ -225,7 +246,7 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
   }
 
   Widget _buildSlideContent(AppLocalizations l10n) {
-    switch (_currentSlide) {
+    switch (_currentKind) {
       case 0:
         return _buildIntroSlide(l10n);
       case 1:
@@ -235,6 +256,12 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
       case 3:
         return _buildTopSongsSlide(l10n);
       case 4:
+        return _buildTopPodcastSlide(l10n);
+      case 5:
+        return _buildTopEpisodeSlide(l10n);
+      case 6:
+        return _buildPodcastTimeSlide(l10n);
+      case 7:
       default:
         return _buildSummarySlide(l10n);
     }
@@ -559,9 +586,152 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
     );
   }
 
+  Widget _buildTopPodcastSlide(AppLocalizations l10n) {
+    final podcast = widget.stats.topPodcasts.first;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          l10n.topPodcasts,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 24),
+        if (podcast.thumbnailUrl != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              podcast.thumbnailUrl!,
+              width: 180,
+              height: 180,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (_, _, _) => const Icon(
+                    LucideIcons.mic,
+                    size: 80,
+                    color: Colors.white54,
+                  ),
+            ),
+          )
+        else
+          const Icon(LucideIcons.mic, size: 80, color: Colors.white54),
+        const SizedBox(height: 24),
+        Text(
+          podcast.name,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${podcast.playCount} ${l10n.plays}',
+          style: const TextStyle(color: Colors.white70, fontSize: 16),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopEpisodeSlide(AppLocalizations l10n) {
+    final episode = widget.stats.topEpisodes.first;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          l10n.topEpisodes,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 24),
+        if (episode.thumbnailUrl != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              episode.thumbnailUrl!,
+              width: 180,
+              height: 180,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (_, _, _) => const Icon(
+                    LucideIcons.micVocal,
+                    size: 80,
+                    color: Colors.white54,
+                  ),
+            ),
+          )
+        else
+          const Icon(LucideIcons.micVocal, size: 80, color: Colors.white54),
+        const SizedBox(height: 24),
+        Text(
+          episode.title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          episode.artist,
+          style: const TextStyle(color: Colors.white70, fontSize: 16),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPodcastTimeSlide(AppLocalizations l10n) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          l10n.podcastListeningTime,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          '${widget.stats.podcastDurationMinutes}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 72,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          l10n.minutesLabel,
+          style: const TextStyle(color: Colors.white70, fontSize: 22),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSummarySlide(AppLocalizations l10n) {
-    final topArtist = widget.stats.topArtists.first;
-    final topSong = widget.stats.topSongs.first;
+    final topArtist =
+        widget.stats.topArtists.isNotEmpty
+            ? widget.stats.topArtists.first
+            : null;
+    final topSong =
+        widget.stats.topSongs.isNotEmpty ? widget.stats.topSongs.first : null;
+    final topPodcast =
+        widget.stats.topPodcasts.isNotEmpty
+            ? widget.stats.topPodcasts.first
+            : null;
     final theme = Theme.of(context);
 
     return Column(
@@ -632,18 +802,30 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
                 '${widget.stats.totalDurationMinutes} ${l10n.minutesLabel}',
                 Colors.tealAccent,
               ),
-              const SizedBox(height: 20),
-              _buildSummaryRow(
-                l10n.topArtists,
-                topArtist.name,
-                Colors.pinkAccent,
-              ),
-              const SizedBox(height: 20),
-              _buildSummaryRow(
-                l10n.topSongs,
-                topSong.title,
-                Colors.indigoAccent,
-              ),
+              if (topArtist != null) ...[
+                const SizedBox(height: 20),
+                _buildSummaryRow(
+                  l10n.topArtists,
+                  topArtist.name,
+                  Colors.pinkAccent,
+                ),
+              ],
+              if (topSong != null) ...[
+                const SizedBox(height: 20),
+                _buildSummaryRow(
+                  l10n.topSongs,
+                  topSong.title,
+                  Colors.indigoAccent,
+                ),
+              ],
+              if (topPodcast != null) ...[
+                const SizedBox(height: 20),
+                _buildSummaryRow(
+                  l10n.topPodcasts,
+                  topPodcast.name,
+                  Colors.cyanAccent,
+                ),
+              ],
               const SizedBox(height: 12),
             ],
           ),
@@ -691,13 +873,23 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
                 ),
               ),
               onPressed: () async {
-                final message =
-                    'Il mio profilo musicale su Sonora!\n'
-                    'Tempo ascolto: ${widget.stats.totalDurationMinutes} minuti\n'
-                    'Top Artista: ${topArtist.name}\n'
-                    'Top Brano: ${topSong.title}\n'
-                    'Ascoltato tramite Sonora Player 🎧';
-                await SharePlus.instance.share(ShareParams(text: message));
+                final buffer = StringBuffer(
+                  'Il mio profilo musicale su Sonora!\n'
+                  'Tempo ascolto: ${widget.stats.totalDurationMinutes} minuti\n',
+                );
+                if (topArtist != null) {
+                  buffer.writeln('Top Artista: ${topArtist.name}');
+                }
+                if (topSong != null) {
+                  buffer.writeln('Top Brano: ${topSong.title}');
+                }
+                if (topPodcast != null) {
+                  buffer.writeln('Top Podcast: ${topPodcast.name}');
+                }
+                buffer.writeln('Ascoltato tramite Sonora Player 🎧');
+                await SharePlus.instance.share(
+                  ShareParams(text: buffer.toString()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,

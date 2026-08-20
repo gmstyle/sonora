@@ -766,6 +766,7 @@ class _BackupSection extends StatelessWidget {
       ref.invalidate(followedArtistsProvider);
       ref.invalidate(likedAlbumsProvider);
       ref.invalidate(likedPlaylistsProvider);
+      ref.invalidate(likedPodcastsProvider);
       ref.invalidate(playlistsProvider);
       ref.invalidate(libraryHistoryProvider);
 

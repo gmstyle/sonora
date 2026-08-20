@@ -79,6 +79,50 @@ class LikedPlaylistModel {
   });
 }
 
+class LikedPodcastModel {
+  final String browseId;
+  final String name;
+  final String? authorName;
+  final String? authorId;
+  final String? thumbnailUrl;
+  final int? episodeCount;
+  final DateTime addedAt;
+
+  const LikedPodcastModel({
+    required this.browseId,
+    required this.name,
+    this.authorName,
+    this.authorId,
+    this.thumbnailUrl,
+    this.episodeCount,
+    required this.addedAt,
+  });
+}
+
+class LikedEpisodeModel {
+  final String videoId;
+  final String? browseId;
+  final String name;
+  final String? podcastName;
+  final String? podcastBrowseId;
+  final String? thumbnailUrl;
+  final int? durationSec;
+  final String? date;
+  final DateTime addedAt;
+
+  const LikedEpisodeModel({
+    required this.videoId,
+    this.browseId,
+    required this.name,
+    this.podcastName,
+    this.podcastBrowseId,
+    this.thumbnailUrl,
+    this.durationSec,
+    this.date,
+    required this.addedAt,
+  });
+}
+
 class LocalPlaylistModel {
   final int id;
   final String name;
@@ -157,6 +201,10 @@ class HistoryModel {
   final int? duration;
   final bool isExplicit;
 
+  /// `song` | `video` | `episode`
+  final String contentType;
+  final String? podcastBrowseId;
+
   const HistoryModel({
     required this.id,
     required this.videoId,
@@ -168,6 +216,8 @@ class HistoryModel {
     this.isVideo = false,
     this.duration,
     this.isExplicit = false,
+    this.contentType = 'song',
+    this.podcastBrowseId,
   });
 }
 

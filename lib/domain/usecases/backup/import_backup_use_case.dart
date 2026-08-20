@@ -29,6 +29,14 @@ class ImportBackupUseCase {
         (data['likedPlaylists'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
         [];
+    final likedPodcasts =
+        (data['likedPodcasts'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
+    final likedEpisodes =
+        (data['likedEpisodes'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
     final playlistsRaw =
         (data['playlists'] as List<dynamic>).cast<Map<String, dynamic>>();
     final playlistEntriesRaw =
@@ -98,6 +106,36 @@ class ImportBackupUseCase {
       );
     }
 
+    for (final p in likedPodcasts) {
+      await libraryRepository.ensureLikedPodcast(
+        LikedPodcastModel(
+          browseId: p['browseId'] as String,
+          name: p['name'] as String,
+          authorName: p['authorName'] as String?,
+          authorId: p['authorId'] as String?,
+          thumbnailUrl: p['thumbnailUrl'] as String?,
+          episodeCount: p['episodeCount'] as int?,
+          addedAt: DateTime.parse(p['addedAt'] as String),
+        ),
+      );
+    }
+
+    for (final e in likedEpisodes) {
+      await libraryRepository.ensureLikedEpisode(
+        LikedEpisodeModel(
+          videoId: e['videoId'] as String,
+          browseId: e['browseId'] as String?,
+          name: e['name'] as String,
+          podcastName: e['podcastName'] as String?,
+          podcastBrowseId: e['podcastBrowseId'] as String?,
+          thumbnailUrl: e['thumbnailUrl'] as String?,
+          durationSec: e['durationSec'] as int?,
+          date: e['date'] as String?,
+          addedAt: DateTime.parse(e['addedAt'] as String),
+        ),
+      );
+    }
+
     final oldToNewId = <int, int>{};
     for (final p in playlistsRaw) {
       final oldId = p['id'] as int;
@@ -146,6 +184,8 @@ class ImportBackupUseCase {
         playCount: h['playCount'] as int? ?? 1,
         isVideo: h['isVideo'] as bool? ?? false,
         isExplicit: h['isExplicit'] as bool? ?? false,
+        contentType: h['contentType'] as String? ?? 'song',
+        podcastBrowseId: h['podcastBrowseId'] as String?,
       );
     }
 

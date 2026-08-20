@@ -4,6 +4,8 @@ import 'tables/liked_songs_table.dart';
 import 'tables/followed_artists_table.dart';
 import 'tables/liked_albums_table.dart';
 import 'tables/liked_playlists_table.dart';
+import 'tables/liked_podcasts_table.dart';
+import 'tables/liked_episodes_table.dart';
 import 'tables/local_playlists_table.dart';
 import 'tables/playlist_entries_table.dart';
 import 'tables/downloads_table.dart';
@@ -20,6 +22,8 @@ part 'database.g.dart';
     FollowedArtists,
     LikedAlbums,
     LikedPlaylists,
+    LikedPodcasts,
+    LikedEpisodes,
     LocalPlaylists,
     PlaylistEntries,
     Downloads,
@@ -33,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -226,6 +230,22 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 19) {
         await m.createTable(queueMeta);
+      }
+      if (from < 20) {
+        await m.createTable(likedPodcasts);
+        await m.createTable(likedEpisodes);
+        final historyInfo =
+            await customSelect('PRAGMA table_info(history)').get();
+        if (!historyInfo.any(
+          (row) => row.read<String>('name') == 'content_type',
+        )) {
+          await m.addColumn(history, history.contentType);
+        }
+        if (!historyInfo.any(
+          (row) => row.read<String>('name') == 'podcast_browse_id',
+        )) {
+          await m.addColumn(history, history.podcastBrowseId);
+        }
       }
     },
   );

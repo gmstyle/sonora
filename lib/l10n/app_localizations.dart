@@ -2629,6 +2629,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'plays'**
   String get plays;
+
+  /// No description provided for @noLikedPodcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'No subscribed podcasts'**
+  String get noLikedPodcasts;
+
+  /// No description provided for @noLikedPodcastsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe to a podcast from its page to see it here.'**
+  String get noLikedPodcastsHint;
+
+  /// No description provided for @subscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe'**
+  String get subscribe;
+
+  /// No description provided for @subscribed.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribed'**
+  String get subscribed;
+
+  /// No description provided for @unsubscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsubscribe'**
+  String get unsubscribe;
+
+  /// No description provided for @saveEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Episode'**
+  String get saveEpisode;
+
+  /// No description provided for @episodeSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get episodeSaved;
+
+  /// No description provided for @unsaveEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave Episode'**
+  String get unsaveEpisode;
+
+  /// No description provided for @downloadPodcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Podcast'**
+  String get downloadPodcast;
+
+  /// No description provided for @topPodcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Podcasts'**
+  String get topPodcasts;
+
+  /// No description provided for @topEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Episodes'**
+  String get topEpisodes;
+
+  /// No description provided for @episode.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode'**
+  String get episode;
+
+  /// No description provided for @goToPodcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Podcast'**
+  String get goToPodcast;
+
+  /// No description provided for @loadMoreEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more episodes'**
+  String get loadMoreEpisodes;
+
+  /// No description provided for @failedToLoadEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load episode'**
+  String get failedToLoadEpisode;
+
+  /// No description provided for @podcastListeningTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Podcast Listening Time'**
+  String get podcastListeningTime;
 }
 
 class _AppLocalizationsDelegate

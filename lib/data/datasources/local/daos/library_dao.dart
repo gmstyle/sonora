@@ -102,6 +102,51 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
     (t) => t.playlistId.equals(playlistId),
   )).write(LikedPlaylistsCompanion(thumbnailUrl: Value(thumbnailUrl)));
 
+  // ── Liked Podcasts ───────────────────────────────────────────
+
+  Future<List<LikedPodcast>> getAllLikedPodcasts() =>
+      select(db.likedPodcasts).get();
+
+  Stream<List<LikedPodcast>> watchAllLikedPodcasts() =>
+      select(db.likedPodcasts).watch();
+
+  Future<LikedPodcast?> getLikedPodcast(String browseId) =>
+      (select(db.likedPodcasts)
+        ..where((t) => t.browseId.equals(browseId))).getSingleOrNull();
+
+  Stream<LikedPodcast?> watchLikedPodcast(String browseId) =>
+      (select(db.likedPodcasts)
+        ..where((t) => t.browseId.equals(browseId))).watchSingleOrNull();
+
+  Future<void> insertLikedPodcast(LikedPodcastsCompanion entry) =>
+      into(db.likedPodcasts).insertOnConflictUpdate(entry);
+
+  Future<void> deleteLikedPodcast(String browseId) =>
+      (delete(db.likedPodcasts)
+        ..where((t) => t.browseId.equals(browseId))).go();
+
+  // ── Liked Episodes ───────────────────────────────────────────
+
+  Future<List<LikedEpisode>> getAllLikedEpisodes() =>
+      select(db.likedEpisodes).get();
+
+  Stream<List<LikedEpisode>> watchAllLikedEpisodes() =>
+      select(db.likedEpisodes).watch();
+
+  Future<LikedEpisode?> getLikedEpisode(String videoId) =>
+      (select(db.likedEpisodes)
+        ..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
+
+  Stream<LikedEpisode?> watchLikedEpisode(String videoId) =>
+      (select(db.likedEpisodes)
+        ..where((t) => t.videoId.equals(videoId))).watchSingleOrNull();
+
+  Future<void> insertLikedEpisode(LikedEpisodesCompanion entry) =>
+      into(db.likedEpisodes).insertOnConflictUpdate(entry);
+
+  Future<void> deleteLikedEpisode(String videoId) =>
+      (delete(db.likedEpisodes)..where((t) => t.videoId.equals(videoId))).go();
+
   Future<List<LikedSong>> getForgottenFavorites({int daysLimit = 30}) async {
     final cutoff = DateTime.now().subtract(Duration(days: daysLimit));
     final query = select(db.likedSongs).join([

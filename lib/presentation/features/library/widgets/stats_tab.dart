@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -21,7 +22,9 @@ class StatsTab extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (statsState.topSongs.isEmpty) {
+    if (statsState.topSongs.isEmpty &&
+        statsState.topEpisodes.isEmpty &&
+        statsState.topPodcasts.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -119,15 +122,66 @@ class StatsTab extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // Top Songs & Top Artists Columns
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _buildTopArtistsSection(statsState, theme, l10n)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildTopSongsSection(statsState, theme, l10n)),
+          if (statsState.topArtists.isNotEmpty ||
+              statsState.topSongs.isNotEmpty) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (statsState.topArtists.isNotEmpty)
+                  Expanded(
+                    child: _buildTopArtistsSection(statsState, theme, l10n),
+                  ),
+                if (statsState.topArtists.isNotEmpty &&
+                    statsState.topSongs.isNotEmpty)
+                  const SizedBox(width: 16),
+                if (statsState.topSongs.isNotEmpty)
+                  Expanded(
+                    child: _buildTopSongsSection(statsState, theme, l10n),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          if (statsState.topPodcasts.isNotEmpty ||
+              statsState.topEpisodes.isNotEmpty) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (statsState.topPodcasts.isNotEmpty)
+                  Expanded(
+                    child: _buildTopPodcastsSection(
+                      context,
+                      statsState,
+                      theme,
+                      l10n,
+                    ),
+                  ),
+                if (statsState.topPodcasts.isNotEmpty &&
+                    statsState.topEpisodes.isNotEmpty)
+                  const SizedBox(width: 16),
+                if (statsState.topEpisodes.isNotEmpty)
+                  Expanded(
+                    child: _buildTopEpisodesSection(
+                      context,
+                      statsState,
+                      theme,
+                      l10n,
+                    ),
+                  ),
+              ],
+            ),
+            if (statsState.podcastDurationMinutes > 0) ...[
+              const SizedBox(height: 16),
+              Text(
+                '${l10n.podcastListeningTime}: ${statsState.podcastDurationMinutes} ${l10n.minutesLabel}',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
+          ],
 
           // Hourly distribution chart
           _buildHourlyChart(statsState.hourlyDistribution, theme, l10n),
@@ -375,6 +429,190 @@ class StatsTab extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTopPodcastsSection(
+    BuildContext context,
+    StatsState state,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+          child: Text(
+            l10n.topPodcasts,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        ...List.generate(state.topPodcasts.length, (index) {
+          final podcast = state.topPodcasts[index];
+          return InkWell(
+            onTap:
+                podcast.podcastBrowseId != null
+                    ? () => context.push('/podcast/${podcast.podcastBrowseId}')
+                    : null,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child:
+                          podcast.thumbnailUrl != null
+                              ? CachedNetworkImage(
+                                imageUrl: podcast.thumbnailUrl!,
+                                fit: BoxFit.cover,
+                                errorWidget:
+                                    (context, url, error) => Container(
+                                      color:
+                                          theme
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                      child: const Icon(
+                                        LucideIcons.mic,
+                                        size: 16,
+                                      ),
+                                    ),
+                              )
+                              : Container(
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                child: const Icon(LucideIcons.mic, size: 16),
+                              ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          podcast.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${podcast.playCount} ${l10n.plays}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTopEpisodesSection(
+    BuildContext context,
+    StatsState state,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+          child: Text(
+            l10n.topEpisodes,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        ...List.generate(state.topEpisodes.length, (index) {
+          final episode = state.topEpisodes[index];
+          return InkWell(
+            onTap: () => context.push('/episode/${episode.videoId}'),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child:
+                          episode.thumbnailUrl != null
+                              ? CachedNetworkImage(
+                                imageUrl: episode.thumbnailUrl!,
+                                fit: BoxFit.cover,
+                                errorWidget:
+                                    (context, url, error) => Container(
+                                      color:
+                                          theme
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                      child: const Icon(
+                                        LucideIcons.micVocal,
+                                        size: 16,
+                                      ),
+                                    ),
+                              )
+                              : Container(
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                child: const Icon(
+                                  LucideIcons.micVocal,
+                                  size: 16,
+                                ),
+                              ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          episode.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          episode.artist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }),

@@ -41,6 +41,22 @@ final likedPlaylistProvider =
           .watchLikedPlaylist(playlistId);
     });
 
+/// Watches whether a specific podcast is subscribed.
+final likedPodcastProvider = StreamProvider.family<LikedPodcastModel?, String>((
+  ref,
+  browseId,
+) {
+  return ref.watch(libraryRepositoryProvider).watchLikedPodcast(browseId);
+});
+
+/// Watches whether a specific episode is saved.
+final likedEpisodeProvider = StreamProvider.family<LikedEpisodeModel?, String>((
+  ref,
+  videoId,
+) {
+  return ref.watch(libraryRepositoryProvider).watchLikedEpisode(videoId);
+});
+
 // ── LibraryNotifier ───────────────────────────────────────────────────────────
 
 final libraryNotifierProvider = NotifierProvider<LibraryNotifier, void>(
@@ -99,6 +115,26 @@ class LibraryNotifier extends Notifier<void> {
 
   Future<void> toggleLikedPlaylist(LikedPlaylistModel playlist) async {
     await _repo.toggleLikedPlaylist(playlist);
+  }
+
+  // ── Liked Podcasts ───────────────────────────────────────────────────────────
+
+  Future<void> toggleLikedPodcast(LikedPodcastModel podcast) async {
+    await _repo.toggleLikedPodcast(podcast);
+  }
+
+  Future<void> deleteLikedPodcast(String browseId) async {
+    await _repo.deleteLikedPodcast(browseId);
+  }
+
+  // ── Liked Episodes ───────────────────────────────────────────────────────────
+
+  Future<void> toggleLikedEpisode(LikedEpisodeModel episode) async {
+    await _repo.toggleLikedEpisode(episode);
+  }
+
+  Future<void> deleteLikedEpisode(String videoId) async {
+    await _repo.deleteLikedEpisode(videoId);
   }
 
   bool _thumbnailRefreshRunning = false;
@@ -207,6 +243,8 @@ class LibraryNotifier extends Notifier<void> {
     int? duration,
     bool isVideo = false,
     bool isExplicit = false,
+    String contentType = 'song',
+    String? podcastBrowseId,
   }) async {
     await _repo.recordPlay(
       videoId,
@@ -216,6 +254,8 @@ class LibraryNotifier extends Notifier<void> {
       duration: duration,
       isVideo: isVideo,
       isExplicit: isExplicit,
+      contentType: contentType,
+      podcastBrowseId: podcastBrowseId,
     );
   }
 
