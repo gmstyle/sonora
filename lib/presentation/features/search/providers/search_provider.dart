@@ -4,6 +4,9 @@ import '../../../providers/library_notifier.dart';
 import '../../../providers/library_repository_provider.dart';
 import '../../../providers/music_repository_provider.dart';
 
+/// Default page size for typed search (uses Innertube continuations).
+const kSearchResultLimit = 40;
+
 class _SearchQueryNotifier extends Notifier<String> {
   @override
   String build() => '';
@@ -57,24 +60,31 @@ final searchSuggestionsProvider = FutureProvider<List<String>>((ref) {
   return repo.getSearchSuggestions(query);
 });
 
+/// Filter indices:
+/// 0 All, 1 Songs, 2 Artists, 3 Albums, 4 Playlists,
+/// 5 Podcasts, 6 Episodes, 7 Profiles
 final searchResultsProvider = FutureProvider<List<SearchResult>>((ref) async {
   final query = ref.watch(activeSearchQueryProvider);
   final filter = ref.watch(searchFilterProvider);
   if (query.isEmpty) return [];
   final repo = ref.watch(musicRepositoryProvider);
 
-  // Use type-specific endpoints when a filter is active: they return richer
-  // metadata (e.g. albumId / artistId) than the generic mixed search.
   switch (filter) {
     case 1:
-      return repo.searchSongs(query);
+      return repo.searchSongs(query, limit: kSearchResultLimit);
     case 2:
-      return repo.searchArtists(query);
+      return repo.searchArtists(query, limit: kSearchResultLimit);
     case 3:
-      return repo.searchAlbums(query);
+      return repo.searchAlbums(query, limit: kSearchResultLimit);
     case 4:
-      return repo.searchPlaylists(query);
+      return repo.searchPlaylists(query, limit: kSearchResultLimit);
+    case 5:
+      return repo.searchPodcasts(query, limit: kSearchResultLimit);
+    case 6:
+      return repo.searchEpisodes(query, limit: kSearchResultLimit);
+    case 7:
+      return repo.searchProfiles(query, limit: kSearchResultLimit);
     default:
-      return repo.search(query);
+      return repo.search(query, limit: kSearchResultLimit);
   }
 });

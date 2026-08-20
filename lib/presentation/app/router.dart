@@ -14,6 +14,10 @@ import '../features/browse_section/browse_section_screen.dart';
 import '../features/explore/charts_screen.dart';
 import '../features/explore/moods_screen.dart';
 import '../features/explore/new_releases_screen.dart';
+import '../features/podcast/podcast_screen.dart';
+import '../features/user/user_screen.dart';
+import '../features/user/user_videos_screen.dart';
+import '../features/user/user_playlists_screen.dart';
 import '../features/library/widgets/smart_mix_detail_view.dart';
 import '../shared/layouts/app_shell.dart';
 
@@ -176,6 +180,58 @@ final routerProvider = Provider<GoRouter>((ref) {
                           child: const NewReleasesScreen(),
                         ),
                   ),
+                  GoRoute(
+                    path: 'podcast/:browseId',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: PodcastScreen(
+                            browseId: state.pathParameters['browseId']!,
+                          ),
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'user/:channelId',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: UserScreen(
+                            channelId: state.pathParameters['channelId']!,
+                          ),
+                        ),
+                    routes: [
+                      GoRoute(
+                        path: 'videos',
+                        pageBuilder: (context, state) {
+                          final channelId = state.pathParameters['channelId']!;
+                          final params =
+                              state.uri.queryParameters['params'] ?? '';
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: UserVideosScreen(
+                              channelId: channelId,
+                              params: params,
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'playlists',
+                        pageBuilder: (context, state) {
+                          final channelId = state.pathParameters['channelId']!;
+                          final params =
+                              state.uri.queryParameters['params'] ?? '';
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: UserPlaylistsScreen(
+                              channelId: channelId,
+                              params: params,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -185,6 +241,60 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/search',
                 builder: (context, state) => const SearchScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'podcast/:browseId',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: PodcastScreen(
+                            browseId: state.pathParameters['browseId']!,
+                          ),
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'user/:channelId',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: UserScreen(
+                            channelId: state.pathParameters['channelId']!,
+                          ),
+                        ),
+                    routes: [
+                      GoRoute(
+                        path: 'videos',
+                        pageBuilder: (context, state) {
+                          final channelId = state.pathParameters['channelId']!;
+                          final params =
+                              state.uri.queryParameters['params'] ?? '';
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: UserVideosScreen(
+                              channelId: channelId,
+                              params: params,
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'playlists',
+                        pageBuilder: (context, state) {
+                          final channelId = state.pathParameters['channelId']!;
+                          final params =
+                              state.uri.queryParameters['params'] ?? '';
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: UserPlaylistsScreen(
+                              channelId: channelId,
+                              params: params,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

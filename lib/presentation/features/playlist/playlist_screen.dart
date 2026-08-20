@@ -15,6 +15,7 @@ import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
@@ -832,18 +833,40 @@ class _PlaylistActions extends ConsumerWidget {
         .read(actionFeedbackProvider.notifier)
         .report(AppLocalizations.of(context)!.shufflingPlaylist(playlist.name));
     final player = ref.read(playerStateProvider.notifier);
-    final shuffled = List<VideoDetailed>.from(videos)..shuffle();
+    final useCase = ref.read(startRadioUseCaseProvider);
+
     try {
-      await player.playPlaylist(shuffled, startIndex: 0);
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()),
+      // Prefer YouTube's native shuffle watch playlist when available.
+      var playlistId = playlist.playlistId;
+      if (playlistId.startsWith('VL')) {
+        playlistId = playlistId.substring(2);
+      }
+      final result = await useCase.execute(
+        videos.isNotEmpty ? videos.first.videoId : '',
+        playlistId: playlistId,
+        radio: false,
+        shuffle: true,
+      );
+      await player.playNow([result.firstItem]);
+      if (result.remaining.isNotEmpty) {
+        player.addAllToQueue(useCase.toPendingItems(result.remaining));
+      }
+    } catch (_) {
+      final shuffled = List<VideoDetailed>.from(videos)..shuffle();
+      try {
+        await player.playPlaylist(shuffled, startIndex: 0);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(
+                  context,
+                )!.failedToPlayPlaylist(e.toString()),
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     }
   }

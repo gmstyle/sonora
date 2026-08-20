@@ -296,6 +296,18 @@ abstract class AppLocalizations {
   /// **'Failed to load videos'**
   String get failedToLoadVideos;
 
+  /// No description provided for @failedToLoadPodcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load podcast'**
+  String get failedToLoadPodcast;
+
+  /// No description provided for @failedToLoadUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load user profile'**
+  String get failedToLoadUser;
+
   /// No description provided for @videoCount.
   ///
   /// In en, this message translates to:
@@ -883,6 +895,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playlists'**
   String get searchPlaylists;
+
+  /// No description provided for @searchPodcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Podcasts'**
+  String get searchPodcasts;
+
+  /// No description provided for @searchEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes'**
+  String get searchEpisodes;
+
+  /// No description provided for @searchProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get searchProfiles;
+
+  /// No description provided for @podcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Podcasts'**
+  String get podcasts;
+
+  /// No description provided for @episodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes'**
+  String get episodes;
+
+  /// No description provided for @profiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles'**
+  String get profiles;
 
   /// No description provided for @searchFailed.
   ///

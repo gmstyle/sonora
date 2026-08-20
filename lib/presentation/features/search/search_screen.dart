@@ -355,9 +355,36 @@ class _SearchResults extends ConsumerWidget {
       imageUrl =
           result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
       onTap = () => context.push('/playlist/${result.playlistId}');
+    } else if (result is PodcastDetailed) {
+      title = result.name;
+      subtitle = result.author ?? '';
+      type = AppLocalizations.of(context)!.podcasts;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap = () => context.push('/podcast/${result.browseId}');
+    } else if (result is EpisodeDetailed) {
+      title = result.name;
+      subtitle = [
+        if (result.podcastName != null) result.podcastName!,
+        if (result.date != null) result.date!,
+      ].join(' · ');
+      type = AppLocalizations.of(context)!.episodes;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap =
+          () => ref
+              .read(playerStateProvider.notifier)
+              .playVideoId(result.videoId, isVideo: false);
+    } else if (result is ProfileDetailed) {
+      title = result.name;
+      subtitle = result.handle ?? '';
+      type = AppLocalizations.of(context)!.profiles;
+      imageUrl =
+          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      onTap = () => context.push('/user/${result.browseId}');
     }
 
-    final bool isCircle = result is ArtistDetailed;
+    final bool isCircle = result is ArtistDetailed || result is ProfileDetailed;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -442,7 +469,13 @@ class _SearchResults extends ConsumerWidget {
               ),
               const SizedBox(width: 16),
               Icon(
-                LucideIcons.playCircle,
+                result is PodcastDetailed ||
+                        result is ProfileDetailed ||
+                        result is ArtistDetailed ||
+                        result is AlbumDetailed ||
+                        result is PlaylistDetailed
+                    ? LucideIcons.chevronRight
+                    : LucideIcons.playCircle,
                 size: 36,
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -467,6 +500,9 @@ class _SearchResults extends ConsumerWidget {
             AppLocalizations.of(context)!.searchArtists,
             AppLocalizations.of(context)!.searchAlbums,
             AppLocalizations.of(context)!.searchPlaylists,
+            AppLocalizations.of(context)!.searchPodcasts,
+            AppLocalizations.of(context)!.searchEpisodes,
+            AppLocalizations.of(context)!.searchProfiles,
           ],
           selectedIndex: filter,
           onSelected:
@@ -515,6 +551,9 @@ class _SearchResults extends ConsumerWidget {
               final artists = results.whereType<ArtistDetailed>().toList();
               final albums = results.whereType<AlbumDetailed>().toList();
               final playlists = results.whereType<PlaylistDetailed>().toList();
+              final podcasts = results.whereType<PodcastDetailed>().toList();
+              final episodes = results.whereType<EpisodeDetailed>().toList();
+              final profiles = results.whereType<ProfileDetailed>().toList();
 
               return ListView(
                 padding: EdgeInsets.only(
@@ -661,6 +700,48 @@ class _SearchResults extends ConsumerWidget {
                       ),
                     ),
                   ],
+
+                  // 7. Podcasts
+                  if (podcasts.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.podcasts,
+                      onSeeAll:
+                          () =>
+                              ref.read(searchFilterProvider.notifier).update(5),
+                    ),
+                    ...podcasts
+                        .take(4)
+                        .map((p) => _buildResultItem(context, ref, p)),
+                  ],
+
+                  // 8. Episodes
+                  if (episodes.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.episodes,
+                      onSeeAll:
+                          () =>
+                              ref.read(searchFilterProvider.notifier).update(6),
+                    ),
+                    ...episodes
+                        .take(4)
+                        .map((e) => _buildResultItem(context, ref, e)),
+                  ],
+
+                  // 9. Profiles
+                  if (profiles.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      title: AppLocalizations.of(context)!.profiles,
+                      onSeeAll:
+                          () =>
+                              ref.read(searchFilterProvider.notifier).update(7),
+                    ),
+                    ...profiles
+                        .take(4)
+                        .map((p) => _buildResultItem(context, ref, p)),
+                  ],
                 ],
               );
             },
@@ -731,6 +812,59 @@ class _SearchResults extends ConsumerWidget {
         artist: result.artist.name,
         thumbnailUrl:
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+      );
+    }
+    if (result is PodcastDetailed) {
+      return ListTile(
+        leading: ThumbnailWidget(
+          imageUrl:
+              result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+          size: 48,
+          shape: ThumbnailShape.rounded,
+        ),
+        title: Text(result.name, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          [
+            if (result.author != null && result.author!.isNotEmpty)
+              result.author!,
+            AppLocalizations.of(context)!.podcasts,
+          ].join(' · '),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(LucideIcons.chevronRight),
+        onTap: () => context.push('/podcast/${result.browseId}'),
+      );
+    }
+    if (result is EpisodeDetailed) {
+      return SongTile(
+        videoId: result.videoId,
+        title: result.name,
+        artist: result.podcastName ?? AppLocalizations.of(context)!.episodes,
+        thumbnailUrl:
+            result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        playCount: result.date,
+        isVideo: false,
+        onTap:
+            () => ref
+                .read(playerStateProvider.notifier)
+                .playVideoId(result.videoId, isVideo: false),
+      );
+    }
+    if (result is ProfileDetailed) {
+      return ListTile(
+        leading: ThumbnailWidget(
+          imageUrl:
+              result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+          size: 48,
+          shape: ThumbnailShape.circle,
+        ),
+        title: Text(result.name, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          result.handle ?? AppLocalizations.of(context)!.profiles,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(LucideIcons.chevronRight),
+        onTap: () => context.push('/user/${result.browseId}'),
       );
     }
     return const SizedBox.shrink();

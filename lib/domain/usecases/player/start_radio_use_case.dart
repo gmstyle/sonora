@@ -15,13 +15,23 @@ class StartRadioUseCase {
 
   StartRadioUseCase(this._musicRepository);
 
+  /// Starts a radio / watch queue from a seed video and/or playlist id.
+  ///
+  /// Prefer [playlistId] when available (artist `radioId` / `shuffleId`, or
+  /// playlist shuffle). Otherwise uses [seedVideoId] with [radio].
   Future<RadioResult> execute(
     String seedVideoId, {
+    String? playlistId,
+    bool radio = true,
+    bool shuffle = false,
     bool resolveFirstUrl = true,
   }) async {
     final watch = await _musicRepository.getWatchPlaylist(
-      videoId: seedVideoId,
-      radio: true,
+      videoId:
+          playlistId == null && seedVideoId.isNotEmpty ? seedVideoId : null,
+      playlistId: playlistId,
+      radio: playlistId == null && radio,
+      shuffle: shuffle,
     );
     if (watch.tracks.isEmpty) {
       throw StateError('No radio items available');
@@ -31,7 +41,9 @@ class StartRadioUseCase {
     // getUpNexts behaviour) so autoplay and explicit radio both queue related
     // songs rather than replaying the seed.
     final tracks =
-        watch.tracks.first.videoId == seedVideoId
+        playlistId == null &&
+                seedVideoId.isNotEmpty &&
+                watch.tracks.first.videoId == seedVideoId
             ? watch.tracks.skip(1).toList()
             : watch.tracks;
     if (tracks.isEmpty) throw StateError('No radio items available');

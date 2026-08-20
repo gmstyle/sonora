@@ -6,27 +6,24 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../providers/music_repository_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/song_tile.dart';
+import 'providers/user_provider.dart';
 
-final artistVideosProvider = FutureProvider.family<List<VideoDetailed>, String>(
-  (ref, artistId) {
-    final repo = ref.watch(musicRepositoryProvider);
-    return repo.getArtistVideos(artistId);
-  },
-);
+class UserVideosScreen extends ConsumerWidget {
+  final String channelId;
+  final String params;
+  final String? userName;
 
-class ArtistVideosScreen extends ConsumerWidget {
-  final String artistId;
-  final String? artistName;
-
-  const ArtistVideosScreen({
+  const UserVideosScreen({
     super.key,
-    required this.artistId,
-    this.artistName,
+    required this.channelId,
+    required this.params,
+    this.userName,
   });
+
+  UserContentParams get _key => (channelId: channelId, params: params);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,9 +31,9 @@ class ArtistVideosScreen extends ConsumerWidget {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < kCompactBreakpoint;
         final isWide = constraints.maxWidth >= kExpandedBreakpoint;
-        return _ArtistVideosBody(
-          artistId: artistId,
-          artistName: artistName,
+        return _UserVideosBody(
+          contentKey: _key,
+          userName: userName,
           isMobile: isMobile,
           isWide: isWide,
         );
@@ -45,26 +42,26 @@ class ArtistVideosScreen extends ConsumerWidget {
   }
 }
 
-class _ArtistVideosBody extends ConsumerWidget {
-  final String artistId;
-  final String? artistName;
+class _UserVideosBody extends ConsumerWidget {
+  final UserContentParams contentKey;
+  final String? userName;
   final bool isMobile;
   final bool isWide;
 
-  const _ArtistVideosBody({
-    required this.artistId,
-    this.artistName,
+  const _UserVideosBody({
+    required this.contentKey,
+    this.userName,
     required this.isMobile,
     required this.isWide,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final videosAsync = ref.watch(artistVideosProvider(artistId));
+    final videosAsync = ref.watch(userVideosProvider(contentKey));
     final l10n = AppLocalizations.of(context)!;
     final title =
-        artistName != null && artistName!.isNotEmpty
-            ? '${l10n.videos} · $artistName'
+        userName != null && userName!.isNotEmpty
+            ? '${l10n.videos} · $userName'
             : l10n.videos;
 
     return Scaffold(
@@ -81,7 +78,7 @@ class _ArtistVideosBody extends ConsumerWidget {
         error:
             (e, _) => ErrorRetryWidget(
               message: l10n.failedToLoadVideos,
-              onRetry: () => ref.invalidate(artistVideosProvider(artistId)),
+              onRetry: () => ref.invalidate(userVideosProvider(contentKey)),
             ),
         data: (videos) {
           if (videos.isEmpty) {
@@ -89,7 +86,7 @@ class _ArtistVideosBody extends ConsumerWidget {
           }
 
           final list = RefreshIndicator(
-            onRefresh: () => ref.refresh(artistVideosProvider(artistId).future),
+            onRefresh: () => ref.refresh(userVideosProvider(contentKey).future),
             child: ListView.builder(
               padding: EdgeInsets.only(
                 bottom:
@@ -129,8 +126,6 @@ class _ArtistVideosBody extends ConsumerWidget {
 
           if (!isWide && isMobile) return list;
 
-          // Tablet / wide: same tracklist language as library detail panes,
-          // with a readable max width on large screens.
           return Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(

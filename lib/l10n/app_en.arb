@@ -71,6 +71,8 @@
   },
   "failedToLoadPlaylist": "Failed to load playlist",
   "failedToLoadVideos": "Failed to load videos",
+  "failedToLoadPodcast": "Failed to load podcast",
+  "failedToLoadUser": "Failed to load user profile",
   "videoCount": "{count, plural, =1{1 video} other{{count} videos}}",
   "@videoCount": {
     "placeholders": {
@@ -268,6 +270,12 @@
   "searchArtists": "Artists",
   "searchAlbums": "Albums",
   "searchPlaylists": "Playlists",
+  "searchPodcasts": "Podcasts",
+  "searchEpisodes": "Episodes",
+  "searchProfiles": "Profiles",
+  "podcasts": "Podcasts",
+  "episodes": "Episodes",
+  "profiles": "Profiles",
   "searchFailed": "Search failed",
   "noResults": "No results",
   "noResultsHint": "Try a different search term",

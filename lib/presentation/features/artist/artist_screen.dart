@@ -896,6 +896,8 @@ class _ArtistActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasSongs = artist.topSongs.isNotEmpty;
+    final canShuffle =
+        hasSongs || (artist.shuffleId != null && artist.shuffleId!.isNotEmpty);
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < kCompactBreakpoint;
 
@@ -912,7 +914,7 @@ class _ArtistActions extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(LucideIcons.shuffle),
                   onPressed:
-                      hasSongs
+                      canShuffle
                           ? () => _shufflePlay(context, ref, artist)
                           : null,
                   tooltip: AppLocalizations.of(context)!.shuffle,
@@ -978,7 +980,8 @@ class _ArtistActions extends ConsumerWidget {
           label: Text(AppLocalizations.of(context)!.playTopSongs),
         ),
         FilledButton.tonalIcon(
-          onPressed: hasSongs ? () => _shufflePlay(context, ref, artist) : null,
+          onPressed:
+              canShuffle ? () => _shufflePlay(context, ref, artist) : null,
           icon: const Icon(LucideIcons.shuffle),
           label: Text(AppLocalizations.of(context)!.shuffle),
         ),
@@ -1028,12 +1031,30 @@ class _ArtistActions extends ConsumerWidget {
     WidgetRef ref,
     ArtistFull artist,
   ) async {
-    if (artist.topSongs.isEmpty) return;
     ref
         .read(actionFeedbackProvider.notifier)
         .report('Shuffling ${artist.name}…');
     final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(startRadioUseCaseProvider);
+
     try {
+      if (artist.shuffleId != null && artist.shuffleId!.isNotEmpty) {
+        final seed =
+            artist.topSongs.isNotEmpty ? artist.topSongs.first.videoId : '';
+        final result = await useCase.execute(
+          seed,
+          playlistId: artist.shuffleId,
+          radio: false,
+          shuffle: true,
+        );
+        await player.playNow([result.firstItem]);
+        if (result.remaining.isNotEmpty) {
+          player.addAllToQueue(useCase.toPendingItems(result.remaining));
+        }
+        return;
+      }
+
+      if (artist.topSongs.isEmpty) return;
       final songs = await _resolveAllTopSongs(ref, artist);
       final shuffled = List<SongDetailed>.from(songs)..shuffle();
       await player.playAlbum(shuffled, startIndex: 0);
@@ -1161,29 +1182,27 @@ class _ArtistRadioButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hasSongs = artist.topSongs.isNotEmpty;
+    final canStart = artist.radioId != null || artist.topSongs.isNotEmpty;
 
     return FilledButton.tonalIcon(
-      onPressed:
-          hasSongs
-              ? () =>
-                  _startArtistRadio(context, ref, artist.topSongs.first.videoId)
-              : null,
+      onPressed: canStart ? () => _startArtistRadio(context, ref) : null,
       icon: const Icon(LucideIcons.radio),
       label: Text(AppLocalizations.of(context)!.artistRadio),
     );
   }
 
-  Future<void> _startArtistRadio(
-    BuildContext context,
-    WidgetRef ref,
-    String videoId,
-  ) async {
+  Future<void> _startArtistRadio(BuildContext context, WidgetRef ref) async {
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(startRadioUseCaseProvider);
+    final seedVideoId =
+        artist.topSongs.isNotEmpty ? artist.topSongs.first.videoId : '';
 
     try {
-      final result = await useCase.execute(videoId);
+      final result = await useCase.execute(
+        seedVideoId,
+        playlistId: artist.radioId,
+        radio: artist.radioId == null,
+      );
       await player.playNow([result.firstItem]);
 
       if (result.remaining.isNotEmpty) {

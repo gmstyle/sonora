@@ -118,6 +118,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get failedToLoadVideos => 'Impossibile caricare i video';
 
   @override
+  String get failedToLoadPodcast => 'Impossibile caricare il podcast';
+
+  @override
+  String get failedToLoadUser => 'Impossibile caricare il profilo utente';
+
+  @override
   String videoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -487,6 +493,24 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get searchPlaylists => 'Playlist';
+
+  @override
+  String get searchPodcasts => 'Podcast';
+
+  @override
+  String get searchEpisodes => 'Episodi';
+
+  @override
+  String get searchProfiles => 'Profili';
+
+  @override
+  String get podcasts => 'Podcast';
+
+  @override
+  String get episodes => 'Episodi';
+
+  @override
+  String get profiles => 'Profili';
 
   @override
   String get searchFailed => 'Ricerca fallita';

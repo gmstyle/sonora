@@ -118,6 +118,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadVideos => 'Failed to load videos';
 
   @override
+  String get failedToLoadPodcast => 'Failed to load podcast';
+
+  @override
+  String get failedToLoadUser => 'Failed to load user profile';
+
+  @override
   String videoCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -482,6 +488,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchPlaylists => 'Playlists';
+
+  @override
+  String get searchPodcasts => 'Podcasts';
+
+  @override
+  String get searchEpisodes => 'Episodes';
+
+  @override
+  String get searchProfiles => 'Profiles';
+
+  @override
+  String get podcasts => 'Podcasts';
+
+  @override
+  String get episodes => 'Episodes';
+
+  @override
+  String get profiles => 'Profiles';
 
   @override
   String get searchFailed => 'Search failed';
