@@ -71,10 +71,7 @@ final homeRandomAlbumsProvider = FutureProvider<List<LikedAlbumModel>>((
 });
 
 final getNewReleasesUseCaseProvider = Provider<GetNewReleasesUseCase>((ref) {
-  return GetNewReleasesUseCase(
-    ref.watch(musicRepositoryProvider),
-    ref.watch(libraryRepositoryProvider),
-  );
+  return GetNewReleasesUseCase(ref.watch(musicRepositoryProvider));
 });
 
 final homeNewReleasesProvider = FutureProvider<List<AlbumDetailed>>((ref) {
@@ -82,12 +79,13 @@ final homeNewReleasesProvider = FutureProvider<List<AlbumDetailed>>((ref) {
   return useCase.execute();
 });
 
+/// First [_kHomeSectionMaxItems] albums from the YT Music New Releases feed
+/// (editorial order, not shuffled).
 final homeRandomNewReleasesProvider = FutureProvider<List<AlbumDetailed>>((
   ref,
 ) async {
   final all = await ref.watch(homeNewReleasesProvider.future);
-  final shuffled = List<AlbumDetailed>.from(all)..shuffle(Random());
-  return shuffled.take(_kHomeSectionMaxItems).toList();
+  return all.take(_kHomeSectionMaxItems).toList();
 });
 
 final getDiscoverSuggestionsUseCaseProvider =

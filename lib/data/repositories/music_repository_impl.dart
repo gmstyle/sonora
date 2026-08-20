@@ -95,4 +95,77 @@ class MusicRepositoryImpl implements MusicRepository {
     audioQuality: quality,
     preferVideo: preferVideo,
   );
+
+  @override
+  Future<WatchPlaylistResult> getWatchPlaylist({
+    String? videoId,
+    String? playlistId,
+    bool radio = false,
+    bool shuffle = false,
+  }) => _ytmusic.getWatchPlaylist(
+    videoId: videoId,
+    playlistId: playlistId,
+    radio: radio,
+    shuffle: shuffle,
+  );
+
+  @override
+  Future<List<RelatedSection>> getSongRelated(String browseId) =>
+      _ytmusic.getSongRelated(browseId);
+
+  @override
+  Future<List<VideoDetailed>> getArtistVideos(String artistId) =>
+      _ytmusic.getArtistVideos(artistId);
+
+  @override
+  Future<ChartsResult> getCharts({String country = 'ZZ'}) =>
+      _ytmusic.getCharts(country: country);
+
+  @override
+  Future<MoodCategoriesResult> getMoodCategories() =>
+      _ytmusic.getMoodCategories();
+
+  @override
+  Future<List<PlaylistDetailed>> getMoodPlaylists(String params) =>
+      _ytmusic.getMoodPlaylists(params);
+
+  @override
+  Future<NewReleasesResult> getNewReleases() => _ytmusic.getNewReleases();
+
+  @override
+  Future<String?> getAlbumBrowseId(String audioPlaylistId) =>
+      _ytmusic.getAlbumBrowseId(audioPlaylistId);
+
+  @override
+  Future<List<PodcastDetailed>> searchPodcasts(
+    String query, {
+    int limit = 20,
+  }) => _ytmusic.searchPodcasts(query, limit: limit);
+
+  @override
+  Future<List<EpisodeDetailed>> searchEpisodes(
+    String query, {
+    int limit = 20,
+  }) => _ytmusic.searchEpisodes(query, limit: limit);
+
+  @override
+  Future<List<ProfileDetailed>> searchProfiles(
+    String query, {
+    int limit = 20,
+  }) => _ytmusic.searchProfiles(query, limit: limit);
+
+  @override
+  Future<UserFull> getUser(String channelId) => _ytmusic.getUser(channelId);
+
+  @override
+  Future<List<PlaylistDetailed>> getUserPlaylists(
+    String channelId,
+    String params,
+  ) => _ytmusic.getUserPlaylists(channelId, params);
+
+  @override
+  Future<List<VideoDetailed>> getUserVideos(
+    String channelId,
+    String params,
+  ) => _ytmusic.getUserVideos(channelId, params);
 }

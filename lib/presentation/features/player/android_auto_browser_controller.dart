@@ -102,7 +102,7 @@ class AndroidAutoBrowserController {
        _playAlbumUseCase = PlayAlbumUseCase(musicRepo),
        _playPlaylistUseCase = PlayPlaylistUseCase(musicRepo),
        _playSmartMixUseCase = PlaySmartMixUseCase(musicRepo),
-       _getNewReleasesUseCase = GetNewReleasesUseCase(musicRepo, libraryRepo),
+       _getNewReleasesUseCase = GetNewReleasesUseCase(musicRepo),
        _getDiscoverSuggestionsUseCase = GetDiscoverSuggestionsUseCase(
          musicRepo,
          libraryRepo,
@@ -511,7 +511,7 @@ class AndroidAutoBrowserController {
       final sections = result.sections;
       dev.log('[AA] getHome returned ${sections.length} sections for explore');
 
-      // 1. New Releases (from followed artists)
+      // 1. New Releases (YT Music Explore feed)
       try {
         final releases = await _getNewReleasesUseCase.execute();
         if (releases.isNotEmpty) {

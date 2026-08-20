@@ -19,9 +19,24 @@ class StartRadioUseCase {
     String seedVideoId, {
     bool resolveFirstUrl = true,
   }) async {
-    final upNexts = await _musicRepository.getUpNexts(seedVideoId);
-    if (upNexts.isEmpty) throw StateError('No radio items available');
+    final watch = await _musicRepository.getWatchPlaylist(
+      videoId: seedVideoId,
+      radio: true,
+    );
+    if (watch.tracks.isEmpty) {
+      throw StateError('No radio items available');
+    }
 
+    // Skip the seed track when YT returns it as the first entry (same as
+    // getUpNexts behaviour) so autoplay and explicit radio both queue related
+    // songs rather than replaying the seed.
+    final tracks =
+        watch.tracks.first.videoId == seedVideoId
+            ? watch.tracks.skip(1).toList()
+            : watch.tracks;
+    if (tracks.isEmpty) throw StateError('No radio items available');
+
+    final upNexts = tracks.map(_watchTrackToUpNext).toList();
     final first = upNexts.first;
     final MediaItem firstItem;
     if (resolveFirstUrl) {
@@ -79,5 +94,18 @@ class StartRadioUseCase {
               : null,
     );
     return track.toFreshMediaItem();
+  }
+
+  UpNextsDetails _watchTrackToUpNext(WatchTrack track) {
+    return UpNextsDetails(
+      type: 'SONG',
+      videoId: track.videoId,
+      title: track.title,
+      artists: track.artist,
+      album: track.album,
+      duration: track.duration,
+      thumbnails: track.thumbnails,
+      isExplicit: track.isExplicit,
+    );
   }
 }

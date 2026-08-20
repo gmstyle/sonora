@@ -73,4 +73,63 @@ class YtmusicDatasource {
 
   Future<List<VideoDetailed>> getPlaylistVideos(String playlistId) =>
       client.getPlaylistVideos(playlistId);
+
+  Future<WatchPlaylistResult> getWatchPlaylist({
+    String? videoId,
+    String? playlistId,
+    bool radio = false,
+    bool shuffle = false,
+  }) => client.getWatchPlaylist(
+    videoId: videoId,
+    playlistId: playlistId,
+    radio: radio,
+    shuffle: shuffle,
+  );
+
+  Future<List<RelatedSection>> getSongRelated(String browseId) =>
+      client.getSongRelated(browseId);
+
+  Future<List<VideoDetailed>> getArtistVideos(String artistId) =>
+      client.getArtistVideos(artistId);
+
+  Future<ChartsResult> getCharts({String country = 'ZZ'}) =>
+      client.getCharts(country: country);
+
+  Future<MoodCategoriesResult> getMoodCategories() =>
+      client.getMoodCategories();
+
+  Future<List<PlaylistDetailed>> getMoodPlaylists(String params) =>
+      client.getMoodPlaylists(params);
+
+  Future<NewReleasesResult> getNewReleases() => client.getNewReleases();
+
+  Future<String?> getAlbumBrowseId(String audioPlaylistId) =>
+      client.getAlbumBrowseId(audioPlaylistId);
+
+  Future<List<PodcastDetailed>> searchPodcasts(
+    String query, {
+    int limit = 20,
+  }) => client.searchPodcasts(query, limit: limit);
+
+  Future<List<EpisodeDetailed>> searchEpisodes(
+    String query, {
+    int limit = 20,
+  }) => client.searchEpisodes(query, limit: limit);
+
+  Future<List<ProfileDetailed>> searchProfiles(
+    String query, {
+    int limit = 20,
+  }) => client.searchProfiles(query, limit: limit);
+
+  Future<UserFull> getUser(String channelId) => client.getUser(channelId);
+
+  Future<List<PlaylistDetailed>> getUserPlaylists(
+    String channelId,
+    String params,
+  ) => client.getUserPlaylists(channelId, params);
+
+  Future<List<VideoDetailed>> getUserVideos(
+    String channelId,
+    String params,
+  ) => client.getUserVideos(channelId, params);
 }

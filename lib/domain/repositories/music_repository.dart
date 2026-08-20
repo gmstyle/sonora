@@ -28,4 +28,24 @@ abstract class MusicRepository {
     MediaQuality? quality,
     bool preferVideo = false,
   });
+
+  Future<WatchPlaylistResult> getWatchPlaylist({
+    String? videoId,
+    String? playlistId,
+    bool radio = false,
+    bool shuffle = false,
+  });
+  Future<List<RelatedSection>> getSongRelated(String browseId);
+  Future<List<VideoDetailed>> getArtistVideos(String artistId);
+  Future<ChartsResult> getCharts({String country = 'ZZ'});
+  Future<MoodCategoriesResult> getMoodCategories();
+  Future<List<PlaylistDetailed>> getMoodPlaylists(String params);
+  Future<NewReleasesResult> getNewReleases();
+  Future<String?> getAlbumBrowseId(String audioPlaylistId);
+  Future<List<PodcastDetailed>> searchPodcasts(String query, {int limit = 20});
+  Future<List<EpisodeDetailed>> searchEpisodes(String query, {int limit = 20});
+  Future<List<ProfileDetailed>> searchProfiles(String query, {int limit = 20});
+  Future<UserFull> getUser(String channelId);
+  Future<List<PlaylistDetailed>> getUserPlaylists(String channelId, String params);
+  Future<List<VideoDetailed>> getUserVideos(String channelId, String params);
 }
