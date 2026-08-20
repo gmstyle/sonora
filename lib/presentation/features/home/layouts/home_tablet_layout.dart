@@ -194,6 +194,7 @@ class HomeTabletLayout extends ConsumerWidget {
                               ),
                               HomeYourArtists(artistsAsync, cardWidth: 140),
                               HomeLikedAlbums(albumsAsync, cardWidth: 160),
+                              const HomeExplore(cardWidth: 160),
                               HomeNewReleases(newReleasesAsync, cardWidth: 160),
                               HomeDiscover(discoverAsync, cardWidth: 160),
                               HomeSimilarArtists(

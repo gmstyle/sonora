@@ -1194,6 +1194,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get similarArtistsHome => 'Similar artists';
 
   @override
+  String get explore => 'Explore';
+
+  @override
+  String get charts => 'Charts';
+
+  @override
+  String get moodsAndGenres => 'Moods & genres';
+
+  @override
+  String get topArtists => 'Top Artists';
+
+  @override
+  String get chartVideos => 'Top music videos';
+
+  @override
+  String get chartDaily => 'Daily';
+
+  @override
+  String get chartWeekly => 'Weekly';
+
+  @override
+  String get chartGenres => 'Genres';
+
+  @override
+  String get chartLanguages => 'Languages';
+
+  @override
+  String get failedToLoadExplore => 'Failed to load explore content';
+
+  @override
+  String get noContentAvailable => 'No content available';
+
+  @override
   String get retry => 'Retry';
 
   @override
@@ -1377,9 +1410,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get listeningTime => 'Listening Time';
-
-  @override
-  String get topArtists => 'Top Artists';
 
   @override
   String get insufficientData => 'Listen to more tracks to unlock your stats!';

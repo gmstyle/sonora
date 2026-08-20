@@ -593,6 +593,17 @@
   "newReleases": "New releases",
   "discover": "Discover",
   "similarArtistsHome": "Similar artists",
+  "explore": "Explore",
+  "charts": "Charts",
+  "moodsAndGenres": "Moods & genres",
+  "topArtists": "Top artists",
+  "chartVideos": "Top music videos",
+  "chartDaily": "Daily",
+  "chartWeekly": "Weekly",
+  "chartGenres": "Genres",
+  "chartLanguages": "Languages",
+  "failedToLoadExplore": "Failed to load explore content",
+  "noContentAvailable": "No content available",
 
   "@@sectionMeta": {
     "common": "Common"

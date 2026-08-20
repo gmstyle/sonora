@@ -737,6 +737,114 @@ class HomeYourMixes extends ConsumerWidget {
   }
 }
 
+class HomeExplore extends StatelessWidget {
+  final double cardWidth;
+
+  const HomeExplore({super.key, this.cardWidth = 140});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final height = cardWidth + 70;
+    final items = [
+      (
+        title: l10n.charts,
+        route: '/charts',
+        icon: LucideIcons.trophy,
+        colors: const [Color(0xFFE65100), Color(0xFFF9A825)],
+      ),
+      (
+        title: l10n.moodsAndGenres,
+        route: '/moods',
+        icon: LucideIcons.sparkles,
+        colors: const [Color(0xFF6A1B9A), Color(0xFF26A69A)],
+      ),
+      (
+        title: l10n.newReleases,
+        route: '/new-releases',
+        icon: LucideIcons.disc3,
+        colors: const [Color(0xFF1565C0), Color(0xFF42A5F5)],
+      ),
+    ];
+
+    return _HomeCarouselSection(
+      title: l10n.explore,
+      height: height,
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return _ExploreEntryCard(
+          title: item.title,
+          icon: item.icon,
+          colors: item.colors,
+          cardWidth: cardWidth,
+          onTap: () => context.push(item.route),
+        );
+      },
+    );
+  }
+}
+
+class _ExploreEntryCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final List<Color> colors;
+  final double cardWidth;
+  final VoidCallback onTap;
+
+  const _ExploreEntryCard({
+    required this.title,
+    required this.icon,
+    required this.colors,
+    required this.cardWidth,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleButton(
+      onTap: onTap,
+      child: SizedBox(
+        width: cardWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    colors: colors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: cardWidth * 0.32,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class HomeYourArtists extends ConsumerWidget {
   final AsyncValue<List<FollowedArtistModel>> artistsAsync;
   final double cardWidth;

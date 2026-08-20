@@ -46,6 +46,9 @@ abstract class MusicRepository {
   Future<List<EpisodeDetailed>> searchEpisodes(String query, {int limit = 20});
   Future<List<ProfileDetailed>> searchProfiles(String query, {int limit = 20});
   Future<UserFull> getUser(String channelId);
-  Future<List<PlaylistDetailed>> getUserPlaylists(String channelId, String params);
+  Future<List<PlaylistDetailed>> getUserPlaylists(
+    String channelId,
+    String params,
+  );
   Future<List<VideoDetailed>> getUserVideos(String channelId, String params);
 }

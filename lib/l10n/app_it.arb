@@ -443,6 +443,17 @@
   "newReleases": "Nuove uscite",
   "discover": "Scopri",
   "similarArtistsHome": "Artisti simili",
+  "explore": "Esplora",
+  "charts": "Classifiche",
+  "moodsAndGenres": "Mood e generi",
+  "topArtists": "Artisti in evidenza",
+  "chartVideos": "Video musicali top",
+  "chartDaily": "Giornaliere",
+  "chartWeekly": "Settimanali",
+  "chartGenres": "Generi",
+  "chartLanguages": "Lingue",
+  "failedToLoadExplore": "Impossibile caricare Esplora",
+  "noContentAvailable": "Nessun contenuto disponibile",
 
   "@@sectionMeta": {
     "common": "Comuni"

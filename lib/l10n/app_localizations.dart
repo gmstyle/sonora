@@ -2090,6 +2090,72 @@ abstract class AppLocalizations {
   /// **'Similar artists'**
   String get similarArtistsHome;
 
+  /// No description provided for @explore.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore'**
+  String get explore;
+
+  /// No description provided for @charts.
+  ///
+  /// In en, this message translates to:
+  /// **'Charts'**
+  String get charts;
+
+  /// No description provided for @moodsAndGenres.
+  ///
+  /// In en, this message translates to:
+  /// **'Moods & genres'**
+  String get moodsAndGenres;
+
+  /// No description provided for @topArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Top Artists'**
+  String get topArtists;
+
+  /// No description provided for @chartVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Top music videos'**
+  String get chartVideos;
+
+  /// No description provided for @chartDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get chartDaily;
+
+  /// No description provided for @chartWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get chartWeekly;
+
+  /// No description provided for @chartGenres.
+  ///
+  /// In en, this message translates to:
+  /// **'Genres'**
+  String get chartGenres;
+
+  /// No description provided for @chartLanguages.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages'**
+  String get chartLanguages;
+
+  /// No description provided for @failedToLoadExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load explore content'**
+  String get failedToLoadExplore;
+
+  /// No description provided for @noContentAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No content available'**
+  String get noContentAvailable;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
@@ -2431,12 +2497,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Listening Time'**
   String get listeningTime;
-
-  /// No description provided for @topArtists.
-  ///
-  /// In en, this message translates to:
-  /// **'Top Artists'**
-  String get topArtists;
 
   /// No description provided for @insufficientData.
   ///

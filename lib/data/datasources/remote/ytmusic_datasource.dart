@@ -128,8 +128,6 @@ class YtmusicDatasource {
     String params,
   ) => client.getUserPlaylists(channelId, params);
 
-  Future<List<VideoDetailed>> getUserVideos(
-    String channelId,
-    String params,
-  ) => client.getUserVideos(channelId, params);
+  Future<List<VideoDetailed>> getUserVideos(String channelId, String params) =>
+      client.getUserVideos(channelId, params);
 }

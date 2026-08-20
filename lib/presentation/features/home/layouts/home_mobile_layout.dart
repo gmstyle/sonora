@@ -187,6 +187,7 @@ class HomeMobileLayout extends ConsumerWidget {
                               ),
                               HomeYourArtists(artistsAsync, cardWidth: 120),
                               HomeLikedAlbums(albumsAsync, cardWidth: 140),
+                              const HomeExplore(cardWidth: 140),
                               HomeNewReleases(newReleasesAsync, cardWidth: 140),
                               HomeDiscover(discoverAsync, cardWidth: 140),
                               HomeSimilarArtists(

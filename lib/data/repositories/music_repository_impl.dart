@@ -164,8 +164,6 @@ class MusicRepositoryImpl implements MusicRepository {
   ) => _ytmusic.getUserPlaylists(channelId, params);
 
   @override
-  Future<List<VideoDetailed>> getUserVideos(
-    String channelId,
-    String params,
-  ) => _ytmusic.getUserVideos(channelId, params);
+  Future<List<VideoDetailed>> getUserVideos(String channelId, String params) =>
+      _ytmusic.getUserVideos(channelId, params);
 }

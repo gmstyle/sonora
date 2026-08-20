@@ -1202,6 +1202,39 @@ class AppLocalizationsIt extends AppLocalizations {
   String get similarArtistsHome => 'Artisti simili';
 
   @override
+  String get explore => 'Esplora';
+
+  @override
+  String get charts => 'Classifiche';
+
+  @override
+  String get moodsAndGenres => 'Mood e generi';
+
+  @override
+  String get topArtists => 'Artisti più ascoltati';
+
+  @override
+  String get chartVideos => 'Video musicali top';
+
+  @override
+  String get chartDaily => 'Giornaliere';
+
+  @override
+  String get chartWeekly => 'Settimanali';
+
+  @override
+  String get chartGenres => 'Generi';
+
+  @override
+  String get chartLanguages => 'Lingue';
+
+  @override
+  String get failedToLoadExplore => 'Impossibile caricare Esplora';
+
+  @override
+  String get noContentAvailable => 'Nessun contenuto disponibile';
+
+  @override
   String get retry => 'Riprova';
 
   @override
@@ -1385,9 +1418,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get listeningTime => 'Tempo di ascolto';
-
-  @override
-  String get topArtists => 'Artisti più ascoltati';
 
   @override
   String get insufficientData =>

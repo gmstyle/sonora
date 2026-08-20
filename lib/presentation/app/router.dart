@@ -10,10 +10,36 @@ import '../features/artist/artist_screen.dart';
 import '../features/album/album_screen.dart';
 import '../features/playlist/playlist_screen.dart';
 import '../features/browse_section/browse_section_screen.dart';
+import '../features/explore/charts_screen.dart';
+import '../features/explore/moods_screen.dart';
+import '../features/explore/new_releases_screen.dart';
 import '../features/library/widgets/smart_mix_detail_view.dart';
 import '../shared/layouts/app_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+CustomTransitionPage<void> _slideUpPage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage(
+    key: key,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: animation.drive(
+          Tween(
+            begin: const Offset(0.0, 1.0),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        ),
+        child: child,
+      );
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+  );
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -34,123 +60,43 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'artist/:artistId',
                     pageBuilder:
-                        (context, state) => CustomTransitionPage(
+                        (context, state) => _slideUpPage(
                           key: state.pageKey,
                           child: ArtistScreen(
                             artistId: state.pathParameters['artistId']!,
                             heroTag: state.uri.queryParameters['heroTag'],
-                          ),
-                          transitionsBuilder: (
-                            context,
-                            animation,
-                            secondaryAnimation,
-                            child,
-                          ) {
-                            return SlideTransition(
-                              position: animation.drive(
-                                Tween(
-                                  begin: const Offset(0.0, 1.0),
-                                  end: Offset.zero,
-                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
-                              ),
-                              child: child,
-                            );
-                          },
-                          transitionDuration: const Duration(milliseconds: 300),
-                          reverseTransitionDuration: const Duration(
-                            milliseconds: 250,
                           ),
                         ),
                   ),
                   GoRoute(
                     path: 'album/:albumId',
                     pageBuilder:
-                        (context, state) => CustomTransitionPage(
+                        (context, state) => _slideUpPage(
                           key: state.pageKey,
                           child: AlbumScreen(
                             albumId: state.pathParameters['albumId']!,
                             heroTag: state.uri.queryParameters['heroTag'],
-                          ),
-                          transitionsBuilder: (
-                            context,
-                            animation,
-                            secondaryAnimation,
-                            child,
-                          ) {
-                            return SlideTransition(
-                              position: animation.drive(
-                                Tween(
-                                  begin: const Offset(0.0, 1.0),
-                                  end: Offset.zero,
-                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
-                              ),
-                              child: child,
-                            );
-                          },
-                          transitionDuration: const Duration(milliseconds: 300),
-                          reverseTransitionDuration: const Duration(
-                            milliseconds: 250,
                           ),
                         ),
                   ),
                   GoRoute(
                     path: 'playlist/:playlistId',
                     pageBuilder:
-                        (context, state) => CustomTransitionPage(
+                        (context, state) => _slideUpPage(
                           key: state.pageKey,
                           child: PlaylistScreen(
                             playlistId: state.pathParameters['playlistId']!,
                             heroTag: state.uri.queryParameters['heroTag'],
-                          ),
-                          transitionsBuilder: (
-                            context,
-                            animation,
-                            secondaryAnimation,
-                            child,
-                          ) {
-                            return SlideTransition(
-                              position: animation.drive(
-                                Tween(
-                                  begin: const Offset(0.0, 1.0),
-                                  end: Offset.zero,
-                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
-                              ),
-                              child: child,
-                            );
-                          },
-                          transitionDuration: const Duration(milliseconds: 300),
-                          reverseTransitionDuration: const Duration(
-                            milliseconds: 250,
                           ),
                         ),
                   ),
                   GoRoute(
                     path: 'smart-mix/:type',
                     pageBuilder:
-                        (context, state) => CustomTransitionPage(
+                        (context, state) => _slideUpPage(
                           key: state.pageKey,
                           child: SmartMixDetailView(
                             type: state.pathParameters['type']!,
-                          ),
-                          transitionsBuilder: (
-                            context,
-                            animation,
-                            secondaryAnimation,
-                            child,
-                          ) {
-                            return SlideTransition(
-                              position: animation.drive(
-                                Tween(
-                                  begin: const Offset(0.0, 1.0),
-                                  end: Offset.zero,
-                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
-                              ),
-                              child: child,
-                            );
-                          },
-                          transitionDuration: const Duration(milliseconds: 300),
-                          reverseTransitionDuration: const Duration(
-                            milliseconds: 250,
                           ),
                         ),
                   ),
@@ -161,35 +107,57 @@ final routerProvider = Provider<GoRouter>((ref) {
                       final params = state.uri.queryParameters['params'];
                       final title =
                           state.uri.queryParameters['title'] ?? 'Section';
-                      return CustomTransitionPage(
+                      return _slideUpPage(
                         key: state.pageKey,
                         child: BrowseSectionScreen(
                           browseId: browseId,
                           params: params,
                           title: title,
                         ),
-                        transitionsBuilder: (
-                          context,
-                          animation,
-                          secondaryAnimation,
-                          child,
-                        ) {
-                          return SlideTransition(
-                            position: animation.drive(
-                              Tween(
-                                begin: const Offset(0.0, 1.0),
-                                end: Offset.zero,
-                              ).chain(CurveTween(curve: Curves.easeOutCubic)),
-                            ),
-                            child: child,
-                          );
-                        },
-                        transitionDuration: const Duration(milliseconds: 300),
-                        reverseTransitionDuration: const Duration(
-                          milliseconds: 250,
-                        ),
                       );
                     },
+                  ),
+                  GoRoute(
+                    path: 'charts',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: const ChartsScreen(),
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'moods',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: const MoodsScreen(),
+                        ),
+                    routes: [
+                      GoRoute(
+                        path: 'playlists',
+                        pageBuilder: (context, state) {
+                          final params =
+                              state.uri.queryParameters['params'] ?? '';
+                          final title =
+                              state.uri.queryParameters['title'] ?? 'Mood';
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: MoodPlaylistsScreen(
+                              params: params,
+                              title: title,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'new-releases',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: const NewReleasesScreen(),
+                        ),
                   ),
                 ],
               ),
