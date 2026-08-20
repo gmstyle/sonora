@@ -7,6 +7,7 @@ import '../features/library/library_screen.dart';
 import '../features/downloads/downloads_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/artist/artist_screen.dart';
+import '../features/artist/artist_videos_screen.dart';
 import '../features/album/album_screen.dart';
 import '../features/playlist/playlist_screen.dart';
 import '../features/browse_section/browse_section_screen.dart';
@@ -67,6 +68,22 @@ final routerProvider = Provider<GoRouter>((ref) {
                             heroTag: state.uri.queryParameters['heroTag'],
                           ),
                         ),
+                    routes: [
+                      GoRoute(
+                        path: 'videos',
+                        pageBuilder: (context, state) {
+                          final artistId = state.pathParameters['artistId']!;
+                          final name = state.uri.queryParameters['name'];
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: ArtistVideosScreen(
+                              artistId: artistId,
+                              artistName: name,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'album/:albumId',

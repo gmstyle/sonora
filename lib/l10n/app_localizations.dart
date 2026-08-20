@@ -1790,6 +1790,30 @@ abstract class AppLocalizations {
   /// **'Lyrics'**
   String get lyrics;
 
+  /// No description provided for @related.
+  ///
+  /// In en, this message translates to:
+  /// **'Related'**
+  String get related;
+
+  /// No description provided for @failedToLoadRelated.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load related content'**
+  String get failedToLoadRelated;
+
+  /// No description provided for @noRelatedContent.
+  ///
+  /// In en, this message translates to:
+  /// **'No related content available'**
+  String get noRelatedContent;
+
+  /// No description provided for @showAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all'**
+  String get showAll;
+
   /// No description provided for @queue.
   ///
   /// In en, this message translates to:

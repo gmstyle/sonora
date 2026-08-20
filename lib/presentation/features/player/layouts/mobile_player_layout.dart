@@ -8,8 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../widgets/player_controls.dart';
-import '../widgets/lyrics_view.dart';
-import '../widgets/queue_sheet.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
@@ -199,13 +197,11 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                               ),
                             ),
                           )
-                          : widget.activeView == PlayerSubView.lyrics
-                          ? LyricsView(
-                            key: const ValueKey('lyrics'),
+                          : buildPlayerSubPanel(
+                            activeView: widget.activeView,
                             videoId: widget.videoId,
                             position: widget.playerState.position,
-                          )
-                          : const QueueSheet(key: ValueKey('queue')),
+                          ),
                 ),
               ),
               const SizedBox(height: 32),

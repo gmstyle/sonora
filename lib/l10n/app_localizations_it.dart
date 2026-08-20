@@ -1028,6 +1028,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get lyrics => 'Testi';
 
   @override
+  String get related => 'Correlati';
+
+  @override
+  String get failedToLoadRelated => 'Impossibile caricare i correlati';
+
+  @override
+  String get noRelatedContent => 'Nessun contenuto correlato disponibile';
+
+  @override
+  String get showAll => 'Vedi tutto';
+
+  @override
   String get queue => 'Coda';
 
   @override

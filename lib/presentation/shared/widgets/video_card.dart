@@ -15,6 +15,7 @@ class VideoCard extends ConsumerWidget {
   final String? thumbnailUrl;
   final String? artistId;
   final bool isExplicit;
+  final double cardWidth;
 
   const VideoCard({
     super.key,
@@ -24,6 +25,7 @@ class VideoCard extends ConsumerWidget {
     this.thumbnailUrl,
     this.artistId,
     this.isExplicit = false,
+    this.cardWidth = 200,
   });
 
   @override
@@ -48,7 +50,7 @@ class VideoCard extends ConsumerWidget {
             isExplicit: isExplicit,
           ),
       child: SizedBox(
-        width: 200,
+        width: cardWidth,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

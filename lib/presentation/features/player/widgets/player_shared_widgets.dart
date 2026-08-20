@@ -25,6 +25,9 @@ import 'cast_button.dart';
 import '../../../providers/equalizer_provider.dart';
 import 'equalizer_panel.dart';
 import '../../../../core/constants/app_constants.dart';
+import 'lyrics_view.dart';
+import 'queue_sheet.dart';
+import 'related_view.dart';
 
 /// Blurred artwork + animated gradient overlay.
 ///
@@ -394,7 +397,28 @@ Widget buildProgressBar(
   );
 }
 
-/// Row of actions: share, cast, lyrics toggle, queue toggle, sleep timer.
+/// Lyrics / related / queue panel for the full player.
+Widget buildPlayerSubPanel({
+  required PlayerSubView activeView,
+  required String videoId,
+  required Duration position,
+}) {
+  switch (activeView) {
+    case PlayerSubView.lyrics:
+      return LyricsView(
+        key: const ValueKey('lyrics'),
+        videoId: videoId,
+        position: position,
+      );
+    case PlayerSubView.related:
+      return RelatedView(key: const ValueKey('related'), videoId: videoId);
+    case PlayerSubView.queue:
+    case PlayerSubView.none:
+      return const QueueSheet(key: ValueKey('queue'));
+  }
+}
+
+/// Row of actions: share, cast, lyrics toggle, related, queue, sleep timer.
 Widget buildBottomActionsRow(
   BuildContext context,
   WidgetRef ref,
@@ -477,6 +501,26 @@ Widget buildBottomActionsRow(
           },
           tooltip: AppLocalizations.of(context)!.lyrics,
         ),
+      IconButton(
+        icon: Icon(
+          LucideIcons.sparkles,
+          size: iconSize,
+          color:
+              activeView == PlayerSubView.related
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+        ),
+        onPressed: () {
+          ref
+              .read(playerSubViewProvider.notifier)
+              .set(
+                activeView == PlayerSubView.related
+                    ? PlayerSubView.none
+                    : PlayerSubView.related,
+              );
+        },
+        tooltip: AppLocalizations.of(context)!.related,
+      ),
       IconButton(
         icon: Icon(
           LucideIcons.listMusic,

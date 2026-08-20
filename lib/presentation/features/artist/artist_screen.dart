@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_constants.dart';
@@ -301,7 +302,15 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     const SizedBox(height: 24),
                   ],
                   if (artist.topVideos.isNotEmpty) ...[
-                    _SectionHeader(title: l10n.videos),
+                    _SectionHeader(
+                      title: l10n.videos,
+                      onShowAll: () {
+                        final name = Uri.encodeComponent(artist.name);
+                        context.push(
+                          '/artist/${artist.artistId}/videos?name=$name',
+                        );
+                      },
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 180,
@@ -1199,18 +1208,53 @@ class _ArtistRadioButton extends ConsumerWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+  final VoidCallback? onShowAll;
 
-  const _SectionHeader({required this.title});
+  const _SectionHeader({required this.title, this.onShowAll});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 4),
-      child: Text(
-        title,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (onShowAll != null)
+            TextButton(
+              onPressed: onShowAll,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.showAll,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    LucideIcons.chevronRight,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -1020,6 +1020,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyrics => 'Lyrics';
 
   @override
+  String get related => 'Related';
+
+  @override
+  String get failedToLoadRelated => 'Failed to load related content';
+
+  @override
+  String get noRelatedContent => 'No related content available';
+
+  @override
+  String get showAll => 'Show all';
+
+  @override
   String get queue => 'Queue';
 
   @override

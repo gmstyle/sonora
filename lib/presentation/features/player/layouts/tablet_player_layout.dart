@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/player_provider.dart';
 import '../widgets/player_controls.dart';
-import '../widgets/lyrics_view.dart';
-import '../widgets/queue_sheet.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
@@ -93,15 +91,11 @@ class TabletPlayerLayout extends ConsumerWidget {
                                 duration: const Duration(milliseconds: 300),
                                 child:
                                     isPanelOpen
-                                        ? (activeView == PlayerSubView.lyrics
-                                            ? LyricsView(
-                                              key: const ValueKey('lyrics'),
-                                              videoId: videoId,
-                                              position: playerState.position,
-                                            )
-                                            : const QueueSheet(
-                                              key: ValueKey('queue'),
-                                            ))
+                                        ? buildPlayerSubPanel(
+                                          activeView: activeView,
+                                          videoId: videoId,
+                                          position: playerState.position,
+                                        )
                                         : PlayerDefaultView(
                                           key: const ValueKey('empty'),
                                           tight: tight,
