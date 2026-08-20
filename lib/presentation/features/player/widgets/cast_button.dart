@@ -7,8 +7,9 @@ import 'cast_dialog.dart';
 class CastButton extends ConsumerWidget {
   final Color? color;
   final double? size;
+  final ButtonStyle? style;
 
-  const CastButton({super.key, this.color, this.size});
+  const CastButton({super.key, this.color, this.size, this.style});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,6 +22,7 @@ class CastButton extends ConsumerWidget {
         final theme = Theme.of(context);
 
         return IconButton(
+          style: style,
           icon: Icon(
             isConnected ? LucideIcons.cast : LucideIcons.cast,
             color: isConnected ? theme.colorScheme.primary : color,
@@ -33,6 +35,7 @@ class CastButton extends ConsumerWidget {
       },
       orElse:
           () => IconButton(
+            style: style,
             icon: Icon(LucideIcons.cast, color: color, size: size),
             onPressed: null,
           ),

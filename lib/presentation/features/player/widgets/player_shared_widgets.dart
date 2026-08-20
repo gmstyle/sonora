@@ -430,12 +430,23 @@ Widget buildBottomActionsRow(
   final theme = Theme.of(context);
   final double iconSize = isMobile ? 18.0 : 22.0;
   final isVideo = ref.watch(playerStateProvider).isVideo;
+  // Mi A1 (~312px content) cannot fit 7×48 IconButtons; shrink tap targets.
+  final ButtonStyle? actionStyle =
+      isMobile
+          ? IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            minimumSize: const Size(40, 40),
+            padding: const EdgeInsets.all(8),
+          )
+          : null;
 
   return Row(
     mainAxisAlignment:
         isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
     children: [
       IconButton(
+        style: actionStyle,
         icon: Icon(LucideIcons.share2, size: iconSize),
         onPressed: () {
           final currentSong = ref.read(playerStateProvider).currentSong;
@@ -452,13 +463,18 @@ Widget buildBottomActionsRow(
         tooltip: AppLocalizations.of(context)!.share,
         color: theme.colorScheme.onSurfaceVariant,
       ),
-      CastButton(size: iconSize, color: theme.colorScheme.onSurfaceVariant),
+      CastButton(
+        size: iconSize,
+        color: theme.colorScheme.onSurfaceVariant,
+        style: actionStyle,
+      ),
       if (isVideo &&
           ref.watch(settingsProvider.select((s) => s.enableVideoPlayback))) ...[
         Builder(
           builder: (context) {
             final videoState = ref.watch(videoPlayerProvider);
             return IconButton(
+              style: actionStyle,
               icon: Icon(
                 videoState.isVideoVisible
                     ? LucideIcons.monitor
@@ -482,6 +498,7 @@ Widget buildBottomActionsRow(
       ],
       if (!isVideo)
         IconButton(
+          style: actionStyle,
           icon: Icon(
             LucideIcons.micVocal,
             size: iconSize,
@@ -502,6 +519,7 @@ Widget buildBottomActionsRow(
           tooltip: AppLocalizations.of(context)!.lyrics,
         ),
       IconButton(
+        style: actionStyle,
         icon: Icon(
           LucideIcons.sparkles,
           size: iconSize,
@@ -522,6 +540,7 @@ Widget buildBottomActionsRow(
         tooltip: AppLocalizations.of(context)!.related,
       ),
       IconButton(
+        style: actionStyle,
         icon: Icon(
           LucideIcons.listMusic,
           size: iconSize,
@@ -542,6 +561,7 @@ Widget buildBottomActionsRow(
         tooltip: AppLocalizations.of(context)!.queue,
       ),
       IconButton(
+        style: actionStyle,
         icon: Icon(
           LucideIcons.sliders,
           size: iconSize,
@@ -554,6 +574,7 @@ Widget buildBottomActionsRow(
         tooltip: AppLocalizations.of(context)!.equalizer,
       ),
       IconButton(
+        style: actionStyle,
         icon: Icon(
           LucideIcons.timer,
           size: iconSize,

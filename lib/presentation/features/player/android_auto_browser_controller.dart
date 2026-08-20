@@ -79,6 +79,10 @@ class AndroidAutoBrowserController {
   static const String _homePlaylistPrefix = '__home_playlist__:';
   static const String _mixesId = '__mixes__';
   static const String _newReleasesId = '__new_releases__';
+  static const String _chartsId = '__charts__';
+  static const String _chartSectionPrefix = '__chart_section__:';
+  static const String _moodsId = '__moods__';
+  static const String _moodCatPrefix = '__mood_cat__:';
   static const String _discoverId = '__discover__';
   static const String _similarArtistsId = '__similar_artists__';
   static const String _downloadsId = '__downloads__';
@@ -158,6 +162,10 @@ class AndroidAutoBrowserController {
           return await _buildDownloadChildren();
         case _newReleasesId:
           return await _buildNewReleasesChildren();
+        case _chartsId:
+          return await _buildChartsChildren();
+        case _moodsId:
+          return await _buildMoodsChildren();
         case _discoverId:
           return await _buildDiscoverChildren();
         case _similarArtistsId:
@@ -188,6 +196,12 @@ class AndroidAutoBrowserController {
           }
           if (parentMediaId.startsWith(_homePlaylistPrefix)) {
             return await _buildHomePlaylistVideoChildren(parentMediaId);
+          }
+          if (parentMediaId.startsWith(_chartSectionPrefix)) {
+            return await _buildChartSectionChildren(parentMediaId);
+          }
+          if (parentMediaId.startsWith(_moodCatPrefix)) {
+            return await _buildMoodPlaylistsChildren(parentMediaId);
           }
           return [];
       }
@@ -511,7 +525,62 @@ class AndroidAutoBrowserController {
       final sections = result.sections;
       dev.log('[AA] getHome returned ${sections.length} sections for explore');
 
-      // 1. New Releases (YT Music Explore feed)
+      // 1. Charts
+      try {
+        final charts = await _musicRepo.getCharts();
+        final preview = charts.videos
+            .take(3)
+            .map(_chartPlaylistFolder)
+            .toList(growable: false);
+        if (preview.isNotEmpty ||
+            (charts.daily?.isNotEmpty ?? false) ||
+            (charts.weekly?.isNotEmpty ?? false) ||
+            charts.artists.isNotEmpty) {
+          items.add(
+            MediaItem(
+              id: _chartsId,
+              title: 'Charts',
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleGrid,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+          items.addAll(preview);
+        }
+      } catch (e) {
+        dev.log('[AA] Failed to load charts for explore: $e');
+      }
+
+      // 2. Moods & Genres
+      try {
+        final moods = await _musicRepo.getMoodCategories();
+        final categories = moods.sections.entries
+            .expand((e) => e.value.map((c) => (e.key, c)))
+            .take(3)
+            .toList(growable: false);
+        if (categories.isNotEmpty) {
+          items.add(
+            MediaItem(
+              id: _moodsId,
+              title: 'Moods & Genres',
+              playable: false,
+              extras: {
+                _kContentStyleBrowsable: _kStyleList,
+                _kContentStylePlayable: _kStyleList,
+              },
+            ),
+          );
+          items.addAll(
+            categories.map((pair) => _moodCategoryFolder(pair.$2, pair.$1)),
+          );
+        }
+      } catch (e) {
+        dev.log('[AA] Failed to load moods for explore: $e');
+      }
+
+      // 3. New Releases (YT Music Explore feed)
       try {
         final releases = await _getNewReleasesUseCase.execute();
         if (releases.isNotEmpty) {
@@ -552,7 +621,7 @@ class AndroidAutoBrowserController {
         dev.log('[AA] Failed to load new releases for explore: $e');
       }
 
-      // 2. Discover (recommendations)
+      // 4. Discover (recommendations)
       try {
         final suggestions = await _getDiscoverSuggestionsUseCase.execute();
         if (suggestions.isNotEmpty) {
@@ -593,7 +662,7 @@ class AndroidAutoBrowserController {
         dev.log('[AA] Failed to load discover suggestions for explore: $e');
       }
 
-      // 3. Similar Artists
+      // 5. Similar Artists
       try {
         final similar = await _getSimilarArtistsSuggestionsUseCase.execute();
         if (similar.isNotEmpty) {
@@ -633,7 +702,7 @@ class AndroidAutoBrowserController {
         dev.log('[AA] Failed to load similar artists for explore: $e');
       }
 
-      // 4. YTM Feed Sections 1..N
+      // 6. YTM Feed Sections 1..N
       if (sections.length > 1) {
         for (var i = 1; i < sections.length; i++) {
           final section = sections[i];
@@ -1019,16 +1088,171 @@ class AndroidAutoBrowserController {
   }
 
   Future<List<MediaItem>> _buildNewReleasesChildren() async {
-    final releases = await _getNewReleasesUseCase.execute();
-    return releases
+    final result = await _getNewReleasesUseCase.executeFull();
+    final items = <MediaItem>[
+      ...result.albums.map(
+        (a) => MediaItem(
+          id: '$_homeAlbumPrefix${a.albumId}',
+          title: a.name,
+          artist: a.artist.name,
+          artUri:
+              a.thumbnails.isNotEmpty
+                  ? Uri.tryParse(a.thumbnails.last.url)
+                  : null,
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleList,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      ),
+      ...result.videos.map((v) {
+        final track = QueueTrack(
+          videoId: v.videoId,
+          needsUrl: true,
+          isVideo: true,
+          isExplicit: v.isExplicit,
+          title: v.name,
+          artist: v.artist.name,
+          duration: Duration(seconds: v.duration ?? 0),
+          artUri:
+              v.thumbnails.isNotEmpty
+                  ? Uri.tryParse(v.thumbnails.last.url)
+                  : null,
+        );
+        return track.toFreshMediaItem(
+          additionalExtras: {_kContentStylePlayable: _kStyleList},
+        );
+      }),
+    ];
+    return items;
+  }
+
+  Future<List<MediaItem>> _buildChartsChildren() async {
+    final charts = await _musicRepo.getCharts();
+    final items = <MediaItem>[];
+
+    void addSection(String key, String title, bool hasContent) {
+      if (!hasContent) return;
+      items.add(
+        MediaItem(
+          id: '$_chartSectionPrefix$key',
+          title: title,
+          playable: false,
+          extras: {
+            _kContentStyleBrowsable: _kStyleGrid,
+            _kContentStylePlayable: _kStyleList,
+          },
+        ),
+      );
+    }
+
+    addSection('videos', 'Top Music Videos', charts.videos.isNotEmpty);
+    addSection('daily', 'Daily', charts.daily?.isNotEmpty ?? false);
+    addSection('weekly', 'Weekly', charts.weekly?.isNotEmpty ?? false);
+    addSection('genres', 'Genres', charts.genres?.isNotEmpty ?? false);
+    addSection('languages', 'Languages', charts.languages?.isNotEmpty ?? false);
+    addSection('artists', 'Artists', charts.artists.isNotEmpty);
+    return items;
+  }
+
+  Future<List<MediaItem>> _buildChartSectionChildren(
+    String parentMediaId,
+  ) async {
+    final section = parentMediaId.substring(_chartSectionPrefix.length);
+    final charts = await _musicRepo.getCharts();
+
+    switch (section) {
+      case 'videos':
+        return charts.videos.map(_chartPlaylistFolder).toList();
+      case 'daily':
+        return (charts.daily ?? []).map(_chartPlaylistFolder).toList();
+      case 'weekly':
+        return (charts.weekly ?? []).map(_chartPlaylistFolder).toList();
+      case 'genres':
+        return (charts.genres ?? []).map(_chartPlaylistFolder).toList();
+      case 'languages':
+        return (charts.languages ?? []).map(_chartPlaylistFolder).toList();
+      case 'artists':
+        return charts.artists
+            .map(
+              (a) => MediaItem(
+                id: '$_artistPrefix${a.browseId}',
+                title: a.title,
+                artist: a.subscribers,
+                artUri:
+                    a.thumbnails.isNotEmpty
+                        ? Uri.tryParse(a.thumbnails.last.url)
+                        : null,
+                playable: false,
+                extras: {
+                  _kContentStyleBrowsable: _kStyleList,
+                  _kContentStylePlayable: _kStyleList,
+                },
+              ),
+            )
+            .toList();
+      default:
+        return [];
+    }
+  }
+
+  MediaItem _chartPlaylistFolder(ChartPlaylist playlist) {
+    return MediaItem(
+      id: '$_homePlaylistPrefix${playlist.playlistId}',
+      title: playlist.title,
+      artUri:
+          playlist.thumbnails.isNotEmpty
+              ? Uri.tryParse(playlist.thumbnails.last.url)
+              : null,
+      playable: false,
+      extras: {
+        _kContentStyleBrowsable: _kStyleList,
+        _kContentStylePlayable: _kStyleList,
+      },
+    );
+  }
+
+  Future<List<MediaItem>> _buildMoodsChildren() async {
+    final result = await _musicRepo.getMoodCategories();
+    final items = <MediaItem>[];
+    for (final entry in result.sections.entries) {
+      for (final category in entry.value) {
+        items.add(_moodCategoryFolder(category, entry.key));
+      }
+    }
+    return items;
+  }
+
+  MediaItem _moodCategoryFolder(MoodCategory category, String sectionTitle) {
+    return MediaItem(
+      id: '$_moodCatPrefix${Uri.encodeComponent(category.params)}',
+      title: category.title,
+      artist: sectionTitle,
+      playable: false,
+      extras: {
+        _kContentStyleBrowsable: _kStyleList,
+        _kContentStylePlayable: _kStyleList,
+      },
+    );
+  }
+
+  Future<List<MediaItem>> _buildMoodPlaylistsChildren(
+    String parentMediaId,
+  ) async {
+    final params = Uri.decodeComponent(
+      parentMediaId.substring(_moodCatPrefix.length),
+    );
+    final playlists = await _musicRepo.getMoodPlaylists(params);
+    return playlists
         .map(
-          (a) => MediaItem(
-            id: '$_homeAlbumPrefix${a.albumId}',
-            title: a.name,
-            artist: a.artist.name,
+          (p) => MediaItem(
+            id: '$_homePlaylistPrefix${p.playlistId}',
+            title: p.name,
+            artist: p.artist.name,
             artUri:
-                a.thumbnails.isNotEmpty
-                    ? Uri.tryParse(a.thumbnails.last.url)
+                p.thumbnails.isNotEmpty
+                    ? Uri.tryParse(p.thumbnails.last.url)
                     : null,
             playable: false,
             extras: {
@@ -1286,7 +1510,8 @@ class AndroidAutoBrowserController {
   Future<List<MediaItem>> _buildHomeAlbumSongChildren(
     String parentMediaId,
   ) async {
-    final albumId = parentMediaId.substring(_homeAlbumPrefix.length);
+    final rawId = parentMediaId.substring(_homeAlbumPrefix.length);
+    final albumId = await _musicRepo.resolveAlbumId(rawId);
     final album = await _musicRepo.getAlbum(albumId);
     final liked = await _libraryRepo.getLikedAlbum(albumId);
 
@@ -1395,14 +1620,16 @@ class AndroidAutoBrowserController {
     try {
       // ── Album actions ────────────────────────────────────────────
       if (mediaId.startsWith(_actionPlayAlbum)) {
-        final albumId = mediaId.substring(_actionPlayAlbum.length);
+        final rawId = mediaId.substring(_actionPlayAlbum.length);
+        final albumId = await _musicRepo.resolveAlbumId(rawId);
         final album = await _musicRepo.getAlbum(albumId);
         final items = await _playAlbumUseCase.execute(album.songs);
         await _playNow(items);
         return;
       }
       if (mediaId.startsWith(_actionShuffleAlbum)) {
-        final albumId = mediaId.substring(_actionShuffleAlbum.length);
+        final rawId = mediaId.substring(_actionShuffleAlbum.length);
+        final albumId = await _musicRepo.resolveAlbumId(rawId);
         final album = await _musicRepo.getAlbum(albumId);
         final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
         final items = await _playAlbumUseCase.execute(shuffled);
@@ -1410,7 +1637,8 @@ class AndroidAutoBrowserController {
         return;
       }
       if (mediaId.startsWith(_actionLikeAlbum)) {
-        final albumId = mediaId.substring(_actionLikeAlbum.length);
+        final rawId = mediaId.substring(_actionLikeAlbum.length);
+        final albumId = await _musicRepo.resolveAlbumId(rawId);
         final existing = await _libraryRepo.getLikedAlbum(albumId);
         if (existing != null) {
           await _libraryRepo.deleteLikedAlbum(albumId);
