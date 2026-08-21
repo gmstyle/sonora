@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 
@@ -166,7 +168,8 @@ class MediaCacheService {
   }
 
   /// Downloads progressive video-only + audio-only URLs and remuxes them into
-  /// a single `{videoId}.mp4` via ffmpeg so the existing muxed-cache path works.
+  /// a single `{videoId}.mp4` via FFmpeg Kit so the existing muxed-cache path works
+  /// on Android and Linux without a system `ffmpeg` binary.
   Future<void> downloadAdaptiveRemux({
     required String videoId,
     required String videoUrl,
@@ -187,6 +190,15 @@ class MediaCacheService {
     final outTmp = File('${cacheDir.path}/$videoId.mux.tmp.mp4');
     final outFinal = File('${cacheDir.path}/$videoId.mp4');
 
+    var remuxStarted = false;
+    void cancelRemuxIfNeeded() {
+      if (remuxStarted) {
+        FFmpegKit.cancel();
+      }
+    }
+
+    cancelToken.whenCancel.then((_) => cancelRemuxIfNeeded());
+
     try {
       debugPrint(
         '[MediaCacheService] Starting adaptive video cache for $videoId...',
@@ -196,7 +208,10 @@ class MediaCacheService {
         _dio.download(audioUrl, audioTmp.path, cancelToken: cancelToken),
       ]);
 
-      final ffmpeg = await Process.run('ffmpeg', [
+      if (cancelToken.isCancelled) return;
+
+      remuxStarted = true;
+      final session = await FFmpegKit.executeWithArguments([
         '-y',
         '-i',
         videoTmp.path,
@@ -211,9 +226,18 @@ class MediaCacheService {
         '-shortest',
         outTmp.path,
       ]);
-      if (ffmpeg.exitCode != 0) {
+      remuxStarted = false;
+
+      if (cancelToken.isCancelled) {
+        await FFmpegKit.cancel(session.getSessionId());
+        return;
+      }
+
+      final returnCode = await session.getReturnCode();
+      if (!ReturnCode.isSuccess(returnCode)) {
+        final logs = await session.getAllLogsAsString();
         throw StateError(
-          'ffmpeg remux failed (exit ${ffmpeg.exitCode}): ${ffmpeg.stderr}',
+          'ffmpeg remux failed (code ${returnCode?.getValue()}): $logs',
         );
       }
       if (await outFinal.exists()) await outFinal.delete();
@@ -223,6 +247,7 @@ class MediaCacheService {
       );
       await _enforceSizeLimit();
     } catch (e) {
+      cancelRemuxIfNeeded();
       debugPrint(
         '[MediaCacheService] Adaptive video cache failed for $videoId: $e',
       );

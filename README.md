@@ -110,7 +110,7 @@ lib/
 
 - Flutter SDK 3.44+ (stable channel)
 - Android Studio (for Android builds)
-- Linux: `clang`, `cmake`, `ninja`, `libgtk-3-dev`, `pkg-config`
+- Linux: `clang`, `cmake`, `ninja`, `libgtk-3-dev`, `pkg-config`, `libjson-glib-dev` (Debian/Ubuntu) / `json-glib-devel` (Fedora) — required to build `ffmpeg_kit_flutter_new_min` for adaptive video remux
 
 ### Build from Source
 

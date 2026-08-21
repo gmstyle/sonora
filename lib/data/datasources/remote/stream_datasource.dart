@@ -170,7 +170,7 @@ class StreamDatasource {
   /// Disk-caches a playable muxed `.mp4` for [videoId] (lookahead / offline).
   ///
   /// Live video playback may use HLS; this path downloads progressive muxed
-  /// when available, otherwise adaptive videoOnly+audioOnly remuxed via ffmpeg.
+  /// when available, otherwise adaptive videoOnly+audioOnly remuxed via FFmpeg Kit.
   Future<void> ensureVideoDiskCache(
     String videoId, {
     MediaQuality? audioQuality,
