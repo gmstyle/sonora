@@ -13,6 +13,7 @@ import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/playlist_card.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_card.dart';
+import '../player_navigation.dart';
 
 final songRelatedProvider = FutureProvider.family<List<RelatedSection>, String>(
   (ref, videoId) async {
@@ -173,6 +174,7 @@ class _RelatedSectionBlock extends ConsumerWidget {
   Widget _buildCard(BuildContext context, dynamic item) {
     const cardWidth = 140.0;
     if (item is AlbumDetailed) {
+      final heroTag = 'related_album_${item.albumId}';
       return AlbumCard(
         albumId: item.albumId,
         name: item.name,
@@ -182,20 +184,32 @@ class _RelatedSectionBlock extends ConsumerWidget {
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,
         cardWidth: cardWidth,
-        heroTag: 'related_album_${item.albumId}',
+        heroTag: heroTag,
+        onTap:
+            () => closeFullPlayerAndNavigate(
+              context,
+              '/album/${item.albumId}?heroTag=${Uri.encodeComponent(heroTag)}',
+            ),
       );
     }
     if (item is ArtistDetailed) {
+      final heroTag = 'related_artist_${item.artistId}';
       return ArtistCard(
         artistId: item.artistId,
         name: item.name,
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         cardWidth: 120,
-        heroTag: 'related_artist_${item.artistId}',
+        heroTag: heroTag,
+        onTap:
+            () => closeFullPlayerAndNavigate(
+              context,
+              '/artist/${item.artistId}?heroTag=${Uri.encodeComponent(heroTag)}',
+            ),
       );
     }
     if (item is PlaylistDetailed) {
+      final heroTag = 'related_playlist_${item.playlistId}';
       return PlaylistCard(
         playlistId: item.playlistId,
         name: item.name,
@@ -203,7 +217,12 @@ class _RelatedSectionBlock extends ConsumerWidget {
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         cardWidth: cardWidth,
-        heroTag: 'related_playlist_${item.playlistId}',
+        heroTag: heroTag,
+        onTap:
+            () => closeFullPlayerAndNavigate(
+              context,
+              '/playlist/${item.playlistId}?heroTag=${Uri.encodeComponent(heroTag)}',
+            ),
       );
     }
     if (item is VideoDetailed) {

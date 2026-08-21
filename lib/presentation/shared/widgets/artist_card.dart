@@ -14,6 +14,7 @@ class ArtistCard extends ConsumerWidget {
   final String? monthlyListeners;
   final double cardWidth;
   final String? heroTag;
+  final VoidCallback? onTap;
 
   const ArtistCard({
     super.key,
@@ -23,6 +24,7 @@ class ArtistCard extends ConsumerWidget {
     this.monthlyListeners,
     this.cardWidth = 120,
     this.heroTag,
+    this.onTap,
   });
 
   @override
@@ -39,6 +41,7 @@ class ArtistCard extends ConsumerWidget {
 
     return ScaleButton(
       onTap:
+          onTap ??
           () => context.push(
             '/artist/$artistId?heroTag=${Uri.encodeComponent(tag)}',
           ),

@@ -24,6 +24,7 @@ class PlaylistCard extends ConsumerStatefulWidget {
   final double cardWidth;
   final String? heroTag;
   final LocalPlaylistModel? localPlaylist;
+  final VoidCallback? onTap;
 
   const PlaylistCard({
     super.key,
@@ -35,6 +36,7 @@ class PlaylistCard extends ConsumerStatefulWidget {
     this.cardWidth = 150,
     this.heroTag,
     this.localPlaylist,
+    this.onTap,
   }) : assert(
          playlistId != null || localPlaylistId != null,
          'Must provide either playlistId or localPlaylistId',
@@ -89,34 +91,36 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: ScaleButton(
-        onTap: () {
-          if (isLocal) {
-            final playlistModel =
-                widget.localPlaylist ??
-                LocalPlaylistModel(
-                  id: widget.localPlaylistId!,
-                  name: widget.name,
-                  description: widget.artist,
-                  createdAt: DateTime.now(),
+        onTap:
+            widget.onTap ??
+            () {
+              if (isLocal) {
+                final playlistModel =
+                    widget.localPlaylist ??
+                    LocalPlaylistModel(
+                      id: widget.localPlaylistId!,
+                      name: widget.name,
+                      description: widget.artist,
+                      createdAt: DateTime.now(),
+                    );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => PlaylistDetailView(
+                          playlist: playlistModel,
+                          onUpdated: () {
+                            ref.invalidate(playlistsProvider);
+                          },
+                        ),
+                  ),
                 );
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (_) => PlaylistDetailView(
-                      playlist: playlistModel,
-                      onUpdated: () {
-                        ref.invalidate(playlistsProvider);
-                      },
-                    ),
-              ),
-            );
-          } else {
-            context.push(
-              '/playlist/${widget.playlistId}?heroTag=${Uri.encodeComponent(tag)}',
-            );
-          }
-        },
+              } else {
+                context.push(
+                  '/playlist/${widget.playlistId}?heroTag=${Uri.encodeComponent(tag)}',
+                );
+              }
+            },
         onLongPress: () {
           if (isLocal) {
             final playlistModel =

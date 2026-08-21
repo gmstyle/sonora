@@ -18,6 +18,7 @@ class AlbumCard extends ConsumerStatefulWidget {
   final String? artistId;
   final double cardWidth;
   final String? heroTag;
+  final VoidCallback? onTap;
 
   const AlbumCard({
     super.key,
@@ -29,6 +30,7 @@ class AlbumCard extends ConsumerStatefulWidget {
     this.artistId,
     this.cardWidth = 150,
     this.heroTag,
+    this.onTap,
   });
 
   @override
@@ -60,6 +62,7 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
       onExit: (_) => setState(() => _isHovered = false),
       child: ScaleButton(
         onTap:
+            widget.onTap ??
             () => context.push(
               '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
             ),

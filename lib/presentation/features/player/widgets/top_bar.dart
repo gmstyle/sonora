@@ -1,13 +1,13 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../domain/models/queue_track.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
+import '../player_navigation.dart';
 
 class TopBar extends ConsumerWidget {
   const TopBar({
@@ -73,7 +73,6 @@ class TopBar extends ConsumerWidget {
         IconButton(
           icon: Icon(LucideIcons.moreVertical, color: pc.iconPrimary),
           onPressed: () {
-            final router = GoRouter.of(context);
             ContextMenuSheet.showForNowPlaying(
               context,
               videoId: videoId,
@@ -87,12 +86,10 @@ class TopBar extends ConsumerWidget {
               albumId: albumId,
               isExplicit: track.isExplicit,
               onGoToArtist: (artistId) {
-                Navigator.of(context).pop();
-                router.push('/artist/$artistId');
+                closeFullPlayerAndNavigate(context, '/artist/$artistId');
               },
               onGoToAlbum: (albumId) {
-                Navigator.of(context).pop();
-                router.push('/album/$albumId');
+                closeFullPlayerAndNavigate(context, '/album/$albumId');
               },
             );
           },
