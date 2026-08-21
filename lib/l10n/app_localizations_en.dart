@@ -588,6 +588,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get streamAudioQuality => 'Streaming audio quality';
 
   @override
+  String get mediaCacheSize => 'Media cache size';
+
+  @override
+  String get mediaCacheSizeHint =>
+      'Temporary cache for playback lookahead. Library downloads are not affected.';
+
+  @override
   String get downloadQuality => 'Download quality';
 
   @override

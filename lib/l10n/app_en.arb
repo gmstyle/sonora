@@ -306,6 +306,8 @@
   "enableVideoPlayback": "Play video",
   "enableVideoPlaybackHint": "Show music videos in the player. When disabled, only audio is played.",
   "streamAudioQuality": "Streaming audio quality",
+  "mediaCacheSize": "Media cache size",
+  "mediaCacheSizeHint": "Temporary cache for playback lookahead. Library downloads are not affected.",
   "downloadQuality": "Download quality",
   "qualityHigh": "High",
   "qualityMid": "Medium",

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sonora/domain/models/media_cache_size.dart';
 import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 
@@ -25,6 +26,7 @@ void main() {
       expect(settings.trackHistory, true);
       expect(settings.checkUpdatesOnStartup, true);
       expect(settings.crossfadeDuration, const Duration(seconds: 2));
+      expect(settings.mediaCacheSize, MediaCacheSize.gb1);
     });
 
     test('custom constructor values', () {
@@ -106,6 +108,7 @@ void main() {
       expect(settings.autoPlayUpNext, true);
       expect(settings.enableVideoPlayback, false);
       expect(settings.streamAudioQuality, MediaQuality.high);
+      expect(settings.mediaCacheSize, MediaCacheSize.gb1);
       expect(settings.downloadQuality, MediaQuality.high);
       expect(settings.downloadPath, isNull);
       expect(settings.downloadOnlyOnWifi, false);
@@ -124,6 +127,7 @@ void main() {
         kRestoreQueueKey: false,
         kAutoPlayUpNextKey: false,
         kStreamQualityKey: 'mid',
+        kMediaCacheSizeKey: 'gb5',
         kDownloadQualityKey: 'low',
         kDownloadPathKey: '/music',
         kDownloadWifiKey: true,
@@ -146,6 +150,7 @@ void main() {
       expect(settings.restoreQueueOnStartup, false);
       expect(settings.autoPlayUpNext, false);
       expect(settings.streamAudioQuality, MediaQuality.mid);
+      expect(settings.mediaCacheSize, MediaCacheSize.gb5);
       expect(settings.downloadQuality, MediaQuality.low);
       expect(settings.downloadPath, '/music');
       expect(settings.downloadOnlyOnWifi, true);
@@ -296,6 +301,24 @@ void main() {
         MediaQuality.low,
       );
       expect(prefs.getString(kStreamAudioQualityKey), 'low');
+    });
+
+    test('setMediaCacheSize updates state and persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(settingsProvider.notifier)
+          .setMediaCacheSize(MediaCacheSize.mb500);
+      expect(
+        container.read(settingsProvider).mediaCacheSize,
+        MediaCacheSize.mb500,
+      );
+      expect(prefs.getString(kMediaCacheSizeKey), 'mb500');
     });
 
     test('setDownloadQuality updates state and persists', () async {

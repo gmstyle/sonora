@@ -593,6 +593,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get streamAudioQuality => 'Qualità audio streaming';
 
   @override
+  String get mediaCacheSize => 'Dimensione cache media';
+
+  @override
+  String get mediaCacheSizeHint =>
+      'Cache temporanea per il lookahead in riproduzione. I download della libreria non sono coinvolti.';
+
+  @override
   String get downloadQuality => 'Qualità download';
 
   @override

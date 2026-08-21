@@ -27,7 +27,7 @@ class MediaCacheHit {
 /// - Providing offline fallback when network connectivity is lost
 ///
 /// The cache uses LRU (Least Recently Used) eviction with a configurable
-/// size limit (default: 500MB). When the limit is exceeded, the oldest
+/// size limit (default: 1 GB, user-configurable). When the limit is exceeded, the oldest
 /// files (by modification time) are automatically deleted.
 ///
 /// Layout under [cacheDirName]:
@@ -113,12 +113,25 @@ class MediaCacheService {
   final Dio _dio = Dio();
   final Map<String, CancelToken> _activeDownloads = {};
 
-  /// Maximum total size of the cache in bytes (default: 500MB).
+  /// Maximum total size of the cache in bytes (default: 1 GB).
   /// When exceeded, the least recently modified files are deleted.
-  final int maxCacheSizeBytes = 500 * 1024 * 1024;
+  int maxCacheSizeBytes = 1024 * 1024 * 1024;
 
   int get _effectiveMaxCacheSizeBytes =>
       debugMaxCacheSizeBytes ?? maxCacheSizeBytes;
+
+  /// Updates the LRU cap without scanning the cache directory.
+  void applyMaxCacheSizeBytes(int bytes) {
+    if (bytes <= 0) return;
+    maxCacheSizeBytes = bytes;
+  }
+
+  /// Updates the LRU cap. If the new cap is below current usage, evicts
+  /// oldest files (does not wipe the cache).
+  Future<void> setMaxCacheSizeBytes(int bytes) async {
+    applyMaxCacheSizeBytes(bytes);
+    await _enforceSizeLimit();
+  }
 
   /// videoIds of downloads currently in flight (snapshot copy).
   Set<String> get inFlightDownloads => _activeDownloads.keys.toSet();

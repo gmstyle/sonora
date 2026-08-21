@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/platform_utils.dart';
+import '../../../domain/models/media_cache_size.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/export_backup_use_case_provider.dart';
@@ -358,6 +359,22 @@ class _PlaybackSection extends ConsumerWidget {
           },
         ),
         const Divider(height: 1),
+        SettingsDropdownTile(
+          title: l10n.mediaCacheSize,
+          subtitle: l10n.mediaCacheSizeHint,
+          value: settings.mediaCacheSize.storageValue,
+          icon: LucideIcons.hardDrive,
+          options: {
+            for (final size in MediaCacheSize.values)
+              size.storageValue: size.displayLabel,
+          },
+          onChanged: (v) {
+            if (v != null) {
+              notifier.setMediaCacheSize(MediaCacheSize.fromStorage(v));
+            }
+          },
+        ),
+        const Divider(height: 1),
         SettingsSwitchTile(
           title: l10n.autoPlayUpNext,
           subtitle: l10n.autoPlayUpNextHint,
@@ -661,6 +678,7 @@ class _BackupSection extends StatelessWidget {
         'autoPlayUpNext': settings.autoPlayUpNext,
         'enableVideoPlayback': settings.enableVideoPlayback,
         'streamAudioQuality': settings.streamAudioQuality.storageValue,
+        'mediaCacheSize': settings.mediaCacheSize.storageValue,
         'downloadQuality': settings.downloadQuality.storageValue,
         'downloadOnlyOnWifi': settings.downloadOnlyOnWifi,
         'trackHistory': settings.trackHistory,
@@ -815,6 +833,13 @@ class _BackupSection extends StatelessWidget {
           if (audioRaw != null) {
             notifier.setStreamAudioQuality(MediaQuality.fromStorage(audioRaw));
           }
+        }
+        if (importedSettings.containsKey('mediaCacheSize')) {
+          notifier.setMediaCacheSize(
+            MediaCacheSize.fromStorage(
+              importedSettings['mediaCacheSize'] as String?,
+            ),
+          );
         }
         if (importedSettings.containsKey('downloadQuality')) {
           notifier.setDownloadQuality(

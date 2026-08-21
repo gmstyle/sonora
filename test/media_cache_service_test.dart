@@ -16,6 +16,7 @@ void main() {
   tearDown(() async {
     cache.debugCacheDir = null;
     cache.debugMaxCacheSizeBytes = null;
+    cache.maxCacheSizeBytes = 1024 * 1024 * 1024;
     if (await cacheDir.exists()) {
       await cacheDir.delete(recursive: true);
     }
@@ -158,5 +159,23 @@ void main() {
       expect(await muxed.exists(), isFalse);
       expect(await audio.exists(), isTrue);
     });
+
+    test(
+      'setMaxCacheSizeBytes lowers the cap and evicts without wipe',
+      () async {
+        final old = await writeCache('old.webm', bytes: 100);
+        final keep = await writeCache('keep.webm', bytes: 100);
+        await old.setLastModified(
+          DateTime.now().subtract(const Duration(hours: 2)),
+        );
+        await keep.setLastModified(DateTime.now());
+
+        await cache.setMaxCacheSizeBytes(150);
+
+        expect(await old.exists(), isFalse);
+        expect(await keep.exists(), isTrue);
+        expect(cache.maxCacheSizeBytes, 150);
+      },
+    );
   });
 }

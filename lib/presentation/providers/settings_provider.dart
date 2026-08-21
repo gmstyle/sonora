@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/utils/android_battery.dart';
 import '../../data/services/media_cache_service.dart';
+import '../../domain/models/media_cache_size.dart';
 import '../../domain/models/media_quality.dart';
 import '../features/home/providers/home_provider.dart';
 import 'stream_datasource_provider.dart';
@@ -26,6 +27,7 @@ class Settings {
   final bool autoPlayUpNext;
   final bool enableVideoPlayback;
   final MediaQuality streamAudioQuality;
+  final MediaCacheSize mediaCacheSize;
   final MediaQuality downloadQuality;
   final String? downloadPath;
   final bool downloadOnlyOnWifi;
@@ -50,6 +52,7 @@ class Settings {
     this.autoPlayUpNext = true,
     this.enableVideoPlayback = false,
     this.streamAudioQuality = MediaQuality.high,
+    this.mediaCacheSize = MediaCacheSize.gb1,
     this.downloadQuality = MediaQuality.high,
     this.downloadPath,
     this.downloadOnlyOnWifi = false,
@@ -75,6 +78,7 @@ class Settings {
     bool? autoPlayUpNext,
     bool? enableVideoPlayback,
     MediaQuality? streamAudioQuality,
+    MediaCacheSize? mediaCacheSize,
     MediaQuality? downloadQuality,
     String? downloadPath,
     bool? downloadOnlyOnWifi,
@@ -101,6 +105,7 @@ class Settings {
       autoPlayUpNext: autoPlayUpNext ?? this.autoPlayUpNext,
       enableVideoPlayback: enableVideoPlayback ?? this.enableVideoPlayback,
       streamAudioQuality: streamAudioQuality ?? this.streamAudioQuality,
+      mediaCacheSize: mediaCacheSize ?? this.mediaCacheSize,
       downloadQuality: downloadQuality ?? this.downloadQuality,
       downloadPath:
           clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
@@ -128,7 +133,7 @@ class SettingsNotifier extends Notifier<Settings> {
   @override
   Settings build() {
     _prefs = ref.read(sharedPreferencesProvider);
-    return Settings(
+    final settings = Settings(
       themeMode: ThemeMode.values[_prefs.getInt(kThemeModeKey) ?? 0],
       useDynamicColor: _prefs.getBool(kUseDynamicColorKey) ?? true,
       useAmoled: _prefs.getBool(kUseAmoledKey) ?? false,
@@ -141,6 +146,9 @@ class SettingsNotifier extends Notifier<Settings> {
       streamAudioQuality: MediaQuality.fromStorage(
         _prefs.getString(kStreamAudioQualityKey) ??
             _prefs.getString(kStreamQualityKey),
+      ),
+      mediaCacheSize: MediaCacheSize.fromStorage(
+        _prefs.getString(kMediaCacheSizeKey),
       ),
       downloadQuality: MediaQuality.fromStorage(
         _prefs.getString(kDownloadQualityKey),
@@ -158,6 +166,10 @@ class SettingsNotifier extends Notifier<Settings> {
       playlistConflictStrategy:
           _prefs.getString(kPlaylistConflictStrategyKey) ?? 'merge',
     );
+    MediaCacheService.instance.applyMaxCacheSizeBytes(
+      settings.mediaCacheSize.bytes,
+    );
+    return settings;
   }
 
   Future<void> _save() async {
@@ -173,6 +185,10 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setString(
       kStreamAudioQualityKey,
       state.streamAudioQuality.storageValue,
+    );
+    await _prefs.setString(
+      kMediaCacheSizeKey,
+      state.mediaCacheSize.storageValue,
     );
     await _prefs.setString(
       kDownloadQualityKey,
@@ -264,6 +280,13 @@ class SettingsNotifier extends Notifier<Settings> {
     await MediaCacheService.instance.clearCache();
   }
 
+  Future<void> setMediaCacheSize(MediaCacheSize value) async {
+    if (state.mediaCacheSize == value) return;
+    state = state.copyWith(mediaCacheSize: value);
+    await _save();
+    await MediaCacheService.instance.setMaxCacheSizeBytes(value.bytes);
+  }
+
   Future<void> setDownloadQuality(MediaQuality value) async {
     if (state.downloadQuality == value) return;
     state = state.copyWith(downloadQuality: value);
@@ -347,6 +370,7 @@ const kEnableVideoPlaybackKey = 'enableVideoPlayback';
 /// Legacy single stream-quality key; still read as migration fallback.
 const kStreamQualityKey = 'streamQuality';
 const kStreamAudioQualityKey = 'streamAudioQuality';
+const kMediaCacheSizeKey = 'mediaCacheSize';
 const kDownloadQualityKey = 'downloadQuality';
 const kDownloadPathKey = 'downloadPath';
 const kDownloadWifiKey = 'downloadOnlyOnWifi';

@@ -1088,6 +1088,18 @@ abstract class AppLocalizations {
   /// **'Streaming audio quality'**
   String get streamAudioQuality;
 
+  /// No description provided for @mediaCacheSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Media cache size'**
+  String get mediaCacheSize;
+
+  /// No description provided for @mediaCacheSizeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary cache for playback lookahead. Library downloads are not affected.'**
+  String get mediaCacheSizeHint;
+
   /// No description provided for @downloadQuality.
   ///
   /// In en, this message translates to:
