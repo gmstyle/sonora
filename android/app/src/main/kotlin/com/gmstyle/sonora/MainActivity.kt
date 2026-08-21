@@ -1,7 +1,6 @@
 package com.gmstyle.sonora
 
 import android.content.Intent
-import android.os.Build
 import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
@@ -17,6 +16,34 @@ class MainActivity : AudioServiceFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.gmstyle.sonora/battery"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "openManufacturerBatterySettings" -> {
+                    try {
+                        OemBatterySettings.open(this)
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("BATTERY_SETTINGS", e.message, null)
+                    }
+                }
+                "openBluetoothSettings" -> {
+                    try {
+                        startActivity(
+                            Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("BLUETOOTH_SETTINGS", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,

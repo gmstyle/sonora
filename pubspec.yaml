@@ -74,7 +74,6 @@ dependencies:
 
   # ── Casting & Connectivity ──────────────────────────────────
   dart_cast: ^0.7.3
-  open_settings_plus: ^0.5.0
   flutter_multicast_lock: ^1.2.1
 
   # ── UI-UX ────────────────────────────────────────────────────────
@@ -87,8 +86,6 @@ dependencies:
 
   # ── Settings ─────────────────────────────────────────────────
   shared_preferences: ^2.5.3
-  disable_battery_optimization: ^1.1.2
-
   # ── Localizzazione ────────────────────────────────────────────
   intl: any
 

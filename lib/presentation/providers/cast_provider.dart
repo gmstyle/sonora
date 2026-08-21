@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:dart_cast/dart_cast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:open_settings_plus/open_settings_plus.dart';
+import '../../core/utils/android_battery.dart';
 import '../../data/services/cast_service.dart';
 
 enum CastConnectionState { disconnected, connecting, connected, error }
@@ -101,7 +101,7 @@ class CastNotifier extends AsyncNotifier<CastState> {
 
   void openBluetoothSettings() {
     if (Platform.isAndroid) {
-      const OpenSettingsPlusAndroid().bluetooth();
+      AndroidBattery.openBluetoothSettings();
     } else if (Platform.isLinux) {
       Process.run('gnome-control-center', ['bluetooth']);
       // Add more for other DEs if needed, or use a more generic way

@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:disable_battery_optimization/disable_battery_optimization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/utils/android_battery.dart';
 import 'settings_provider.dart';
 
 /// Pure visibility rule for the proactive battery-optimization prompt.
@@ -32,8 +32,7 @@ final shouldShowBatteryPromptProvider = FutureProvider<bool>((ref) async {
   final dismissed = prefs.getBool(kBatteryPromptDismissedKey) ?? false;
   if (dismissed) return false;
 
-  final disabled =
-      await DisableBatteryOptimization.isBatteryOptimizationDisabled;
+  final disabled = await AndroidBattery.isOptimizationDisabled();
   return shouldShowBatteryPrompt(
     isAndroid: true,
     dismissedForever: false,

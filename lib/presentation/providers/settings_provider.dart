@@ -1,10 +1,10 @@
 import 'dart:io';
 
-import 'package:disable_battery_optimization/disable_battery_optimization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/utils/android_battery.dart';
 import '../../data/services/media_cache_service.dart';
 import '../../domain/models/media_quality.dart';
 import '../features/home/providers/home_provider.dart';
@@ -371,31 +371,16 @@ const kBatteryPromptDismissedKey = 'batteryPromptDismissed';
 
 final batteryOptimizationProvider = FutureProvider<bool>((ref) async {
   if (!Platform.isAndroid) return true;
-  final disabled =
-      await DisableBatteryOptimization.isBatteryOptimizationDisabled;
-  return disabled ?? true;
-});
-
-final manufacturerBatteryOptimizationProvider = FutureProvider<bool>((
-  ref,
-) async {
-  if (!Platform.isAndroid) return true;
-  final disabled =
-      await DisableBatteryOptimization
-          .isManufacturerBatteryOptimizationDisabled;
-  return disabled ?? true;
+  return AndroidBattery.isOptimizationDisabled();
 });
 
 extension BatteryOptimizationNotifier on SettingsNotifier {
   Future<void> requestDisableBatteryOptimization() async {
-    await DisableBatteryOptimization.showDisableBatteryOptimizationSettings();
+    await AndroidBattery.requestDisableOptimization();
   }
 
   Future<void> requestDisableManufacturerOptimization() async {
-    await DisableBatteryOptimization.showDisableManufacturerBatteryOptimizationSettings(
-      'Battery Optimization',
-      'Follow the steps to disable manufacturer battery optimization.',
-    );
+    await AndroidBattery.openManufacturerSettings();
   }
 
   Future<void> dismissBatteryPromptForever() async {

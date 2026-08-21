@@ -470,10 +470,8 @@ class _BatterySection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final batteryAsync = ref.watch(batteryOptimizationProvider);
-    final manBatteryAsync = ref.watch(manufacturerBatteryOptimizationProvider);
 
     final batteryDisabled = batteryAsync.value ?? false;
-    final manBatteryDisabled = manBatteryAsync.value ?? false;
 
     return SettingsSection(
       title: l10n.batteryOptimization,
@@ -491,16 +489,14 @@ class _BatterySection extends ConsumerWidget {
           },
         ),
         const Divider(height: 1),
-        SettingsSwitchTile(
+        SettingsButtonTile(
           title: l10n.manufacturerBatteryOptimization,
           subtitle: l10n.manufacturerBatteryOptimizationHint,
-          value: manBatteryDisabled,
           icon: LucideIcons.leaf,
-          onChanged: (_) async {
+          onPressed: () async {
             await ref
                 .read(settingsProvider.notifier)
                 .requestDisableManufacturerOptimization();
-            ref.invalidate(manufacturerBatteryOptimizationProvider);
           },
         ),
       ],
