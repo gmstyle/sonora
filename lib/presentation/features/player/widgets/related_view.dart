@@ -10,6 +10,7 @@ import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/artist_card.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
+import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/playlist_card.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_card.dart';
@@ -76,13 +77,34 @@ class RelatedView extends ConsumerWidget {
   }
 }
 
-class _RelatedSectionBlock extends ConsumerWidget {
+class _RelatedSectionBlock extends ConsumerStatefulWidget {
   final RelatedSection section;
 
   const _RelatedSectionBlock({required this.section});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_RelatedSectionBlock> createState() =>
+      _RelatedSectionBlockState();
+}
+
+class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final section = widget.section;
     final title = section.title.isNotEmpty ? section.title : '';
     final contents = section.contents;
     if (contents.isEmpty) return const SizedBox.shrink();
@@ -156,15 +178,20 @@ class _RelatedSectionBlock extends ConsumerWidget {
         if (hasCards)
           SizedBox(
             height: 200,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: contents.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final item = contents[index];
-                return _buildCard(context, item);
-              },
+            child: HoverCarouselArrows(
+              controller: _scrollController,
+              scrollAmount: 300.0,
+              child: ListView.separated(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: contents.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final item = contents[index];
+                  return _buildCard(context, item);
+                },
+              ),
             ),
           ),
       ],
