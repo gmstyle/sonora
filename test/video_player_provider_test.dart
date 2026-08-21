@@ -86,6 +86,22 @@ void main() {
     });
   });
 
+  group('shouldReplaceVideoWithShimmer', () {
+    test('is true only for the first load before init', () {
+      const loading = VideoPlayerState(isLoading: true);
+      expect(shouldReplaceVideoWithShimmer(loading), isTrue);
+    });
+
+    test('stays false once the video surface is initialized', () {
+      const switching = VideoPlayerState(
+        isInitialized: true,
+        isLoading: true,
+        isVideoVisible: true,
+      );
+      expect(shouldReplaceVideoWithShimmer(switching), isFalse);
+    });
+  });
+
   group('shouldShowVideoPlayer', () {
     test('requires enable + visible + initialized', () {
       const ready = VideoPlayerState(isVideoVisible: true, isInitialized: true);

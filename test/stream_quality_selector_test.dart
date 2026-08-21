@@ -26,6 +26,30 @@ void main() {
     );
   }
 
+  VideoOnlyStreamInfo videoOnly({
+    required int tag,
+    required int bitrate,
+    required VideoQuality quality,
+    required VideoResolution resolution,
+    StreamContainer container = StreamContainer.mp4,
+  }) {
+    return VideoOnlyStreamInfo(
+      videoId,
+      tag,
+      Uri.parse('https://example.com/v$tag'),
+      container,
+      FileSize(5000),
+      Bitrate(bitrate),
+      'avc1',
+      quality.name,
+      quality,
+      resolution,
+      const Framerate(30),
+      const [],
+      MediaType('video', container.name),
+    );
+  }
+
   MuxedStreamInfo muxed(
     int tag,
     int bitrate,
@@ -153,6 +177,82 @@ void main() {
           preferVideo: false,
         ),
         throwsStateError,
+      );
+    });
+  });
+
+  group('selectAdaptiveCachePair', () {
+    test('caps video at 720p and prefers mp4', () {
+      final manifest = StreamManifest([
+        videoOnly(
+          tag: 101,
+          bitrate: 900000,
+          quality: VideoQuality.high1080,
+          resolution: const VideoResolution(1920, 1080),
+        ),
+        videoOnly(
+          tag: 102,
+          bitrate: 500000,
+          quality: VideoQuality.high720,
+          resolution: const VideoResolution(1280, 720),
+        ),
+        videoOnly(
+          tag: 103,
+          bitrate: 700000,
+          quality: VideoQuality.high720,
+          resolution: const VideoResolution(1280, 720),
+          container: StreamContainer.webM,
+        ),
+        audio(1, 48000),
+        audio(2, 256000),
+      ]);
+
+      final pair = selector.selectAdaptiveCachePair(
+        manifest,
+        audioQuality: MediaQuality.high,
+      );
+      expect(pair, isNotNull);
+      expect(pair!.video.tag, 102);
+      expect(pair.video.container, StreamContainer.mp4);
+      expect(pair.audio.tag, 2);
+    });
+
+    test('falls back to webm when no mp4 video-only exists', () {
+      final manifest = StreamManifest([
+        videoOnly(
+          tag: 201,
+          bitrate: 400000,
+          quality: VideoQuality.high720,
+          resolution: const VideoResolution(1280, 720),
+          container: StreamContainer.webM,
+        ),
+        audio(9, 128000),
+      ]);
+
+      final pair = selector.selectAdaptiveCachePair(
+        manifest,
+        audioQuality: MediaQuality.high,
+      );
+      expect(pair, isNotNull);
+      expect(pair!.video.tag, 201);
+      expect(pair.video.container, StreamContainer.webM);
+    });
+
+    test('returns null when audio-only is missing', () {
+      final manifest = StreamManifest([
+        videoOnly(
+          tag: 301,
+          bitrate: 400000,
+          quality: VideoQuality.high720,
+          resolution: const VideoResolution(1280, 720),
+        ),
+      ]);
+      expect(
+        selector.selectAdaptiveCachePair(
+          manifest,
+          audioQuality: MediaQuality.high,
+        ),
+        isNull,
       );
     });
   });

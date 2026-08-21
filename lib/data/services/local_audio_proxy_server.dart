@@ -260,7 +260,7 @@ class LocalAudioProxyServer {
 
         // Never disk-cache HLS playlists: they are tiny text manifests whose
         // segment URLs expire, and caching them would poison the media cache.
-        // Instead, background-remux progressive adaptive A/V into a muxed mp4.
+        // Instead, background-cache a progressive adaptive pair (or muxed).
         final isHlsPlaylist =
             (cType?.contains('mpegurl') ?? false) ||
             currentUrl.contains('/api/manifest/');

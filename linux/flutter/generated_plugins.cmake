@@ -4,7 +4,6 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   dynamic_color
-  ffmpeg_kit_flutter_new_min
   media_kit_libs_linux
   media_kit_video
   screen_retriever_linux

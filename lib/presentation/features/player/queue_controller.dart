@@ -10,6 +10,7 @@ import '../../../domain/models/media_quality.dart';
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
+import 'external_audio_track_controller.dart';
 
 /// Dedicated controller for playback queue management.
 ///
@@ -313,13 +314,23 @@ class QueueController {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
     final preferVideo = prefersVideo(track);
+    final extras = <String, dynamic>{'mediaItem': tagged};
+    final isCache = MediaCacheService.isMediaCacheUri(track.url);
     final useLocal =
         track.isLocalFile &&
-        !(preferVideo &&
-            MediaCacheService.isMediaCacheUri(track.url) &&
-            !MediaCacheService.isMuxedCacheUri(track.url));
+        (!isCache ||
+            MediaCacheService.isCacheCompatibleWithPreferVideo(
+              track.url,
+              preferVideo,
+            ));
     if (useLocal) {
-      return Media(track.url!, extras: {'mediaItem': tagged});
+      if (preferVideo && MediaCacheService.isVideoOnlyCacheUri(track.url)) {
+        final audioUri = MediaCacheService.siblingAudioUriIfExists(track.url);
+        if (audioUri != null) {
+          extras[ExternalAudioTrackController.extraKey] = audioUri;
+        }
+      }
+      return Media(track.url!, extras: extras);
     }
     if (_proxyServer != null &&
         _proxyServer.isRunning &&
@@ -329,13 +340,13 @@ class QueueController {
         audioQuality: streamAudioQuality,
         preferVideo: preferVideo,
       );
-      return Media(proxyUrl, extras: {'mediaItem': tagged});
+      return Media(proxyUrl, extras: extras);
     }
     if (track.hasUrl) {
-      return Media(track.url!, extras: {'mediaItem': tagged});
+      return Media(track.url!, extras: extras);
     }
     final dummy = 'http://localhost/dummy_${track.videoId}.wav';
-    return Media(dummy, extras: {'mediaItem': tagged});
+    return Media(dummy, extras: extras);
   }
 
   // ── Queue mutations ────────────────────────────────────────────────────────

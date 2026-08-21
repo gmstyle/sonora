@@ -167,16 +167,16 @@ class StreamDatasource {
   Future<StreamManifest> getManifest(String videoId) =>
       _scheduler.schedule(() => _yt.videos.streamsClient.getManifest(videoId));
 
-  /// Disk-caches a playable muxed `.mp4` for [videoId] (lookahead / offline).
+  /// Disk-caches playable video for [videoId] (lookahead / offline).
   ///
   /// Live video playback may use HLS; this path downloads progressive muxed
-  /// when available, otherwise adaptive videoOnly+audioOnly remuxed via FFmpeg Kit.
+  /// when available, otherwise an adaptive video-only + audio-only pair.
   Future<void> ensureVideoDiskCache(
     String videoId, {
     MediaQuality? audioQuality,
   }) async {
     final cache = MediaCacheService.instance;
-    final existing = await cache.getCachedFileUri(videoId, preferVideo: true);
+    final existing = await cache.getCachedHit(videoId, preferVideo: true);
     if (existing != null) return;
 
     final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
@@ -197,7 +197,7 @@ class StreamDatasource {
     );
     if (pair == null) return;
 
-    await cache.downloadAdaptiveRemux(
+    await cache.downloadAdaptivePair(
       videoId: videoId,
       videoUrl: pair.video.url.toString(),
       audioUrl: pair.audio.url.toString(),

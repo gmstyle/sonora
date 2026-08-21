@@ -110,6 +110,21 @@ class _SonoraVideoPlayerState extends ConsumerState<SonoraVideoPlayer>
         height: widget.height,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
+          layoutBuilder: (currentChild, previousChildren) {
+            return Stack(
+              alignment: Alignment.center,
+              fit: StackFit.loose,
+              children: [
+                // Never keep an outgoing Video: it holds [_videoKey] and
+                // overlapping it with the incoming one throws Duplicate
+                // GlobalKey / Duplicate keys.
+                ...previousChildren.where(
+                  (child) => child.key != const ValueKey('video'),
+                ),
+                if (currentChild != null) currentChild,
+              ],
+            );
+          },
           child: _buildContent(context, videoState, cs),
         ),
       ),
@@ -121,8 +136,9 @@ class _SonoraVideoPlayerState extends ConsumerState<SonoraVideoPlayer>
     VideoPlayerState videoState,
     ColorScheme cs,
   ) {
-    // M4: Show shimmer while video is loading
-    if (videoState.isLoading) {
+    // M4: Shimmer only before the first surface exists. Track switches
+    // keep the Video widget mounted (same GlobalKey).
+    if (shouldReplaceVideoWithShimmer(videoState)) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       return Shimmer.fromColors(
         key: const ValueKey('loading'),
@@ -180,12 +196,14 @@ class _SonoraVideoPlayerState extends ConsumerState<SonoraVideoPlayer>
 
       if (!widget.showControls) {
         return AspectRatio(
+          key: const ValueKey('video'),
           aspectRatio: videoState.aspectRatio,
           child: videoWidget,
         );
       }
 
       return MaterialVideoControlsTheme(
+        key: const ValueKey('video'),
         normal: MaterialVideoControlsThemeData(
           buttonBarButtonSize: 24.0,
           buttonBarHeight: 48.0,

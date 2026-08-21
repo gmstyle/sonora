@@ -19,6 +19,12 @@ bool shouldShowVideoPlayer({
     videoState.isVideoVisible &&
     videoState.isInitialized;
 
+/// Shimmer only before the first [VideoController]. After that, keep the
+/// surface mounted so track switches do not duplicate the Video [GlobalKey]
+/// inside [AnimatedSwitcher].
+bool shouldReplaceVideoWithShimmer(VideoPlayerState videoState) =>
+    videoState.isLoading && !videoState.isInitialized;
+
 /// Whether a [VideoController] (and Android texture) should be allocated.
 bool shouldAttachVideoController({
   required bool enableVideoPlayback,

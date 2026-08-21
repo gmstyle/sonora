@@ -147,8 +147,9 @@ class PlayVideoIdUseCase {
   /// is still on disk (cleans up stale downloads), otherwise resolves the
   /// stream URL from [MusicRepository].
   ///
-  /// When [preferVideo] is true, only muxed media-cache files (`.mp4`) are
-  /// reused — leftover audio-only `.webm` entries are ignored.
+  /// When [preferVideo] is true, muxed `{id}.mp4` or a complete adaptive
+  /// pair (`{id}.v.*` + audio) is reused — leftover audio-only `.webm` is
+  /// ignored. Pair hits return the video-only URI.
   Future<String> resolveUrl(String videoId, {bool preferVideo = false}) async {
     if (_libraryRepo != null) {
       try {
@@ -166,12 +167,12 @@ class PlayVideoIdUseCase {
     }
 
     try {
-      final cachedUri = await MediaCacheService.instance.getCachedFileUri(
+      final hit = await MediaCacheService.instance.getCachedHit(
         videoId,
         preferVideo: preferVideo,
       );
-      if (cachedUri != null) {
-        return cachedUri;
+      if (hit != null) {
+        return hit.primaryUri;
       }
     } catch (_) {}
 

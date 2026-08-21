@@ -89,7 +89,10 @@ class PlaybackRestoreController {
   bool get isRestoring => _restoreStatus == RestoreStatus.restoring;
 
   /// Whether a persisted URL should be kept as a local file on restore.
-  /// Audio-only media-cache files are not kept for video tracks in video mode.
+  ///
+  /// Video-only `{id}.v.*` is kept only when the sibling audio exists.
+  /// Audio-only `.webm`/`.mp3` are kept for audio tracks (and audio mode);
+  /// they are rejected for video tracks in video mode.
   @visibleForTesting
   static bool keepLocalUrlOnRestore(
     QueueTrack track, {
@@ -97,12 +100,15 @@ class PlaybackRestoreController {
   }) {
     if (!track.isLocalFile) return false;
     if (UrlStaleness.isStale(track.url)) return false;
-    if (enableVideoPlayback &&
-        track.isVideo &&
-        MediaCacheService.isMediaCacheUri(track.url) &&
-        !MediaCacheService.isMuxedCacheUri(track.url)) {
-      return false;
+    if (!MediaCacheService.isMediaCacheUri(track.url)) return true;
+
+    if (enableVideoPlayback && track.isVideo) {
+      return MediaCacheService.isCacheCompatibleWithPreferVideo(
+        track.url,
+        true,
+      );
     }
+    if (MediaCacheService.isVideoOnlyCacheUri(track.url)) return false;
     return true;
   }
 

@@ -642,7 +642,7 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 | Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test` |
 | Version check | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists |
 | Android build | `flutter build apk --release` with signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`) |
-| Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`, `libjson-glib-dev`) → `flutter build linux --release` |
+| Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
 | Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
 | GitHub Release | Tag `v{version}+{build}`, auto-generated changelog, APK + DEB + RPM attached |
 

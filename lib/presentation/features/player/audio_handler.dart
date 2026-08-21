@@ -23,6 +23,7 @@ import 'android_auto_browser_controller.dart';
 import 'cast_playback_controller.dart';
 import 'equalizer_controller.dart';
 import 'audio_session_controller.dart';
+import 'external_audio_track_controller.dart';
 import 'like_controller.dart';
 import 'play_error.dart';
 import 'player_engine_configurator.dart';
@@ -66,6 +67,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final TrackUrlResolver _urlResolver;
   late final PlaybackRecoveryController _recoveryController;
   late final PlaybackRestoreController _restoreController;
+  late final ExternalAudioTrackController _externalAudio;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -178,6 +180,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
+    _externalAudio = ExternalAudioTrackController(player: _player);
     _startRadioUseCase = StartRadioUseCase(musicRepo);
 
     _likeController = LikeController(
@@ -538,6 +541,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (_isStopping) return;
 
     final index = playlist.index;
+    if (index >= 0 && index < playlist.medias.length) {
+      unawaited(_externalAudio.attachForMedia(playlist.medias[index]));
+    } else {
+      unawaited(_externalAudio.attachForMedia(null));
+    }
 
     if (!_queueController.isResolvingItem) {
       _skipNavigator.clearTarget();

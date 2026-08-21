@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
@@ -6,6 +8,7 @@ import 'package:sonora/data/services/local_audio_proxy_server.dart';
 import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/models/queue_track.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
+import 'package:sonora/presentation/features/player/external_audio_track_controller.dart';
 import 'package:sonora/presentation/features/player/queue_controller.dart';
 
 class _FakeStreamDatasource extends StreamDatasource {
@@ -177,6 +180,70 @@ void main() {
 
     expect(media.uri.contains('/stream?videoId='), isFalse);
   });
+
+  test('toMedia rejects video-only cache without sibling audio', () {
+    controller.updateStreamPrefs(enableVideoPlayback: true);
+    const cacheUrl = 'file:///tmp/sonora_media_cache/vidOrphan.v.mp4';
+    final item =
+        const QueueTrack(
+          videoId: 'vidOrphan',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: cacheUrl,
+        ).toFreshMediaItem();
+
+    final media = controller.toMedia(item);
+
+    expect(media.uri, contains('/stream?videoId=vidOrphan'));
+    expect(media.uri, contains('v=1'));
+    expect(media.extras?[ExternalAudioTrackController.extraKey], isNull);
+    expect(media.extras?['adaptiveCandidate'], isNull);
+    expect(media.extras?['audioProxyUrl'], isNull);
+  });
+
+  test(
+    'toMedia uses video-only cache plus externalAudioUri when sibling exists',
+    () async {
+      controller.updateStreamPrefs(enableVideoPlayback: true);
+      final cacheDir = Directory(
+        '${Directory.systemTemp.path}/sonora_media_cache',
+      );
+      await cacheDir.create(recursive: true);
+      final video = File('${cacheDir.path}/vidPair.v.mp4');
+      final audio = File('${cacheDir.path}/vidPair.webm');
+      await video.writeAsBytes(const [1, 2, 3]);
+      await audio.writeAsBytes(const [4, 5, 6]);
+      addTearDown(() async {
+        if (await video.exists()) await video.delete();
+        if (await audio.exists()) await audio.delete();
+      });
+
+      final item =
+          QueueTrack(
+            videoId: 'vidPair',
+            title: 'Video',
+            artist: 'A',
+            isVideo: true,
+            url: video.uri.toString(),
+          ).toFreshMediaItem();
+
+      final media = controller.toMedia(item);
+
+      expect(media.uri.contains('/stream?videoId='), isFalse);
+      expect(
+        media.uri == video.uri.toString() ||
+            media.uri.contains('vidPair.v.mp4'),
+        isTrue,
+      );
+      expect(
+        media.extras?[ExternalAudioTrackController.extraKey],
+        audio.uri.toString(),
+      );
+      expect(media.extras?['adaptiveCandidate'], isNull);
+      expect(media.extras?['audioProxyUrl'], isNull);
+    },
+  );
 
   test(
     'endResolving invokes onResolvingIdle only when nested count hits 0',
