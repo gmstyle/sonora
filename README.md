@@ -10,53 +10,41 @@ Sonora is a cross-platform music and video streaming app built with Flutter. It 
 [![Total Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/total.svg)](https://github.com/gmstyle/sonora/releases)
 [![Latest Release Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/latest/total.svg)](https://github.com/gmstyle/sonora/releases/latest)
 
+## Screenshots
+
+| Wide (desktop) | Tablet | Mobile |
+|----------------|--------|--------|
+| ![Home on a wide desktop layout](screens/home-wide.png) | ![Home on a tablet layout](screens/home-tablet.png) | ![Home on a mobile layout](screens/home-mobile.png) |
+| ![Player on a wide desktop layout](screens/player-wide.png) | ![Player on a tablet layout](screens/player-tablet.png) | ![Player on a mobile layout](screens/player-mobile.png) |
+
 ## Donate
+
 If you enjoy Sonora and want to support its development, a small donation is always appreciated:
 
 [![Donate with PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://paypal.me/gmstyle)
 
 ---
 
-## Screenshots
-
-| Wide (desktop) | Tablet | Mobile |
-|----------------|--------|--------|
-| ![Home wide](screens/home-wide.png) | ![Player](screens/home-tablet.png) | ![Home mobile](screens/home-mobile.png) |
-| ![Settings wide](screens/player-wide.png) | ![Artist](screens/player-tablet.png) | ![Library mobile](screens/player-mobile.png) |
-
----
-
 ## Features
 
-- **YouTube Music streaming** — search, browse, and play songs, albums, artists, playlists, music videos, podcasts, and episodes directly from YouTube Music
-- **Explore** — Charts, Moods & Genres, and New Releases with dedicated browse screens
-- **Podcasts & episodes** — podcast detail pages, episode detail pages, subscribe/unsubscribe, save episodes, play/shuffle episode queues, and download support
-- **User / channel pages** — browse non-artist YouTube Music user channels, their videos, and playlists
-- **Related content** — in-player Related panel with similar songs and sections from YouTube Music
-- **Background playback** — keep listening/watching while using other apps, with a persistent notification on Android
-- **Audio & Video support** — switch between audio-only and video playback seamlessly
-- **Android Auto** — driving support with playback controls, Home / Library / Mixes / Explore browse, Charts & Moods, subscribed podcasts, queue split (Playing Next / Up Next), and sleep timer
-- **Casting** — stream audio to Chromecast and DLNA devices (WiFi speakers, Smart TVs)
-- **Offline downloads & playback** — save songs and podcast episodes locally for offline listening with zero-network local playback support
-- **Explicit Offline Mode** — manual switch to override device network status and browse/play locally cached tracks only
-- **Connectivity awareness** — global warning banner when offline, automatic connection restoration cues, and friendly network error handling
-- **Local library** — save favorite songs, albums, artists, playlists, subscribed podcasts, and saved episodes; create custom playlists
-- **YouTube Playlist Syncing** — import and synchronize remote YouTube Music playlists into local database
-- **Smart Playlists (Auto-mixes)** — dynamic automatically generated playlists based on listening history (Most Played, Recently Played, Forgotten Favorites)
-- **Listening history** — track songs, videos, and podcast episodes (typed history with podcast linkage)
-- **Search** — search songs, albums, artists, playlists, music videos, podcasts, episodes, and users
-- **5-Band Equalizer** — customize audio gain (-12dB to +12dB) across 5 bands (Bass, Mid-Bass, Mid, Mid-High, High) with pre-built presets managed natively through `media_kit` FFmpeg audio filters
-- **Listening Stats & Sonora Wrapped** — offline-first dashboard summarizing total listening time, Top Songs, Top Artists, Top Podcasts, Top Episodes, hourly/weekly listening charts, and a timed Instagram/Spotify-style stories view for sharing your Sonora Wrapped
-- **Adaptive UI & Overlays** — optimized layouts for mobile, tablet, and wide screens (NavigationBar / NavigationRail / NavigationDrawer). Temporary panels (Equalizer, Casting, Sleep Timer, Sync Panel) adaptively display as centered dialogs on wide desktops and modal bottom sheets on mobile.
-- **Themes** — light, dark, and AMOLED themes, with Dynamic Color support on Android 12+
-- **Crossfade** — smooth transitions between songs (configurable duration)
-- **Sleep timer** — stop playback after a set time
-- **Linux desktop** — system tray, MPRIS global controls (D-Bus), resizable window
-- **Auto-update** — automatic update check via GitHub Releases
-- **Headless CLI** — control Sonora from the terminal: search, play, download, and manage library without the GUI
-- **Backup & restore** — export and import your local library (backup format v3 includes subscribed podcasts and saved episodes)
-- **P2P Local Synchronization** — synchronize your music library (likes, playlists, podcasts, episodes, history) peer-to-peer over Wi-Fi between multiple Sonora instances (Android & Linux) without cloud dependencies
-- **Localization** — Italian and English
+**Playback**
+- YouTube Music streaming for songs, albums, artists, playlists, music videos, podcasts, and episodes
+- Audio and video playback, background play, crossfade, 5-band equalizer, and sleep timer
+- Related songs in the player, casting to Chromecast and DLNA, Android Auto (Home, Library, Mixes, Explore, Charts & Moods, podcasts)
+
+**Library & offline**
+- Local library for favorites, playlists, subscribed podcasts, and saved episodes
+- YouTube playlist import/sync, smart mixes from listening history, typed history
+- Downloads, explicit offline mode, and a connectivity banner when the network drops
+
+**Explore**
+- Charts, Moods & Genres, and New Releases
+- Podcast and episode pages, user/channel pages, search across songs, videos, podcasts, and users
+
+**Desktop & extras**
+- Adaptive layouts (phone, tablet, wide) with light, dark, and AMOLED themes (Dynamic Color on Android 12+)
+- Linux tray and MPRIS; auto-update from GitHub Releases with in-app release notes
+- Headless CLI, backup/restore, P2P library sync over Wi-Fi, Sonora Wrapped stats, Italian and English
 
 ---
 
@@ -72,35 +60,14 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 ---
 
-## Tech Stack
+## Download
 
-| Component | Library |
-|-----------|---------|
-| **Framework** | Flutter 3.47+ |
-| **State Management** | Riverpod 3.x |
-| **Navigation** | go_router 17.x |
-| **Local Database** | Drift (ex Moor) |
-| **Media Playback** | media_kit + audio_service |
-| **YouTube Music API** | [dart_ytmusic_api](https://github.com/gmstyle/dart_ytmusic_api) |
-| **Stream URL** | youtube_explode_dart |
-| **Casting** | dart_cast |
-| **Themes** | dynamic_color, palette_generator |
-| **Downloads** | Dio |
-| **CLI** | args 2.x |
-| **Notifications** | flutter_local_notifications |
+Get the latest build from [GitHub Releases](https://github.com/gmstyle/sonora/releases/latest):
 
-### Architecture
-
-Clean Architecture with three layers:
-
-```
-lib/
-├── core/          # Constants, themes, utilities, extensions
-├── data/          # Data sources (remote YTM, local Drift) + repository implementations
-├── domain/        # Models, repository interfaces, use cases
-├── presentation/  # Riverpod providers, widgets, screens, router
-└── l10n/          # EN / IT localization
-```
+- **Android**: signed APK
+- **Linux portable**: `sonora-linux-x64.tar.gz` with install scripts
+- **Linux DEB**: Debian / Ubuntu
+- **Linux RPM**: Fedora / RHEL
 
 ---
 
@@ -110,7 +77,7 @@ lib/
 
 - Flutter SDK 3.47+ (stable channel)
 - Android Studio (for Android builds)
-- Linux: `clang`, `cmake`, `ninja`, `libgtk-3-dev`, `pkg-config`
+- Linux: `clang`, `cmake`, `ninja`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`, `libayatana-appindicator3-dev`, `libmpv-dev`
 
 ### Build from Source
 
@@ -118,19 +85,12 @@ lib/
 git clone https://github.com/gmstyle/sonora.git
 cd sonora
 
-# Generate Drift code
 dart run build_runner build --delete-conflicting-outputs
-
-# Generate localizations
 flutter gen-l10n
 
-# Run in debug mode
 flutter run
 
-# Android release build
 flutter build apk --release
-
-# Linux release build
 flutter build linux --release
 ```
 
@@ -145,29 +105,19 @@ See [CLI documentation](docs/CLI.md) for all commands and options.
 
 ---
 
-## Download
-
-Download the latest release from [GitHub Releases](https://github.com/gmstyle/sonora/releases/latest):
-
-- **Android**: signed APK ready to install
-- **Linux**: `sonora-linux-x64.tar.gz` with install scripts
-
----
-
 ## Development
 
-- [CLI documentation](docs/CLI.md) — headless terminal usage: search, play, download, library, history
-- [Developer documentation](docs/SONORA-DEV-DOCS.md) — detailed guide on architecture, database, audio engine, and conventions
-- Report bugs or request features via [GitHub Issues](https://github.com/gmstyle/sonora/issues)
-- Pull requests are welcome!
+Architecture, database, audio engine, and the release pipeline are documented in [SONORA-DEV-DOCS.md](docs/SONORA-DEV-DOCS.md). Stack: Flutter 3.47+, Riverpod, go_router, Drift, media_kit, [dart_ytmusic_api](https://github.com/gmstyle/dart_ytmusic_api), youtube_explode_dart.
 
-### Useful Commands
+- [CLI documentation](docs/CLI.md)
+- Report bugs or request features via [GitHub Issues](https://github.com/gmstyle/sonora/issues)
+- Pull requests are welcome
 
 ```bash
-flutter analyze                                          # Static analysis
-flutter test                                             # Run tests
-dart run build_runner build --delete-conflicting-outputs  # Regenerate Drift code
-flutter gen-l10n                                         # Regenerate localizations
+flutter analyze
+flutter test
+dart run build_runner build --delete-conflicting-outputs
+flutter gen-l10n
 ```
 
 ---
@@ -178,5 +128,4 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 ## Disclaimer
 
-Sonora is a independent project and is not endorsed by YouTube or Google.
-Sonora does not collect any personal data or information, it does not host, distribute or sell any copyrighted material. All content is the property of the respective content owners. Sonora is for educational purposes only. The developer not encourage any illegal activity and not responsible for any illegal use of the software.
+Sonora is an independent project and is not endorsed by YouTube or Google. It does not collect personal data and does not host, distribute, or sell copyrighted material. All content belongs to the respective owners. Sonora is for educational purposes only. The developer does not encourage illegal activity and is not responsible for misuse of the software.
