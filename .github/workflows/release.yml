@@ -71,6 +71,17 @@ jobs:
             echo "SKIP_RELEASE=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate Changelog
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        run: python3 scripts/generate_release_notes.py > release-notes.md
+
+      - name: Upload release notes
+        if: steps.version_check.outputs.SKIP_RELEASE == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+
   build-android:
     needs: [validate, prepare]
     if: needs.prepare.outputs.SKIP_RELEASE == 'false'
@@ -265,23 +276,18 @@ jobs:
           name: linux-artifacts
           path: artifacts/
 
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: .
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.APP_VERSION }}+${{ needs.prepare.outputs.BUILD_NUMBER }}
           name: Release v${{ needs.prepare.outputs.APP_VERSION }} (${{ needs.prepare.outputs.BUILD_NUMBER }})
-          generate_release_notes: true
-          body: |
-            **Version:** ${{ needs.prepare.outputs.APP_VERSION }}
-            **Build:** ${{ needs.prepare.outputs.BUILD_NUMBER }}
-
-            ---
-
-            ## Downloads
-            - **Android APK**: allegato sotto
-            - **Linux tar.gz** (portable): allegato sotto
-            - **Linux DEB** (Debian/Ubuntu): allegato sotto
-            - **Linux RPM** (Fedora/RHEL): allegato sotto
+          body_path: release-notes.md
           files: |
             artifacts/**/*.apk
             artifacts/sonora-linux-x64.tar.gz
@@ -289,3 +295,21 @@ jobs:
             artifacts/**/*.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md
+        continue-on-error: true
+        run: |
+          python3 scripts/insert_changelog_entry.py \
+            "${{ needs.prepare.outputs.APP_VERSION }}+${{ needs.prepare.outputs.BUILD_NUMBER }}" \
+            release-notes.md \
+            CHANGELOG.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          if git diff --staged --quiet; then
+            echo "CHANGELOG.md unchanged"
+          else
+            git commit -m "docs(release): update CHANGELOG for v${{ needs.prepare.outputs.APP_VERSION }} [skip ci]"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi

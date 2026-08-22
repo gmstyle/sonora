@@ -51,6 +51,7 @@ import 'presentation/providers/stream_datasource_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
 import 'presentation/providers/ytmusic_provider.dart';
+import 'presentation/shared/widgets/release_notes_view.dart';
 
 LinuxTrayService? _trayService;
 
@@ -439,23 +440,18 @@ class _StartupUpdateDialogState extends ConsumerState<_StartupUpdateDialog> {
         return Text(l10n.downloadComplete);
 
       default:
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_localVersion.isNotEmpty)
-                Text(l10n.currentVersion(_localVersion)),
-              Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
-              if (state.result?.changelog.isNotEmpty == true) ...[
-                const SizedBox(height: 16),
-                Text(
-                  state.result!.changelog,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_localVersion.isNotEmpty)
+              Text(l10n.currentVersion(_localVersion)),
+            Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
+            if (state.result?.changelog.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              ReleaseNotesView(changelog: state.result!.changelog),
             ],
-          ),
+          ],
         );
     }
   }

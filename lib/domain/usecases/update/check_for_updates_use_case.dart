@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'release_changelog.dart';
+
 class UpdateCheckResult {
   final String latestVersion;
   final String changelog;
@@ -63,7 +65,7 @@ class CheckForUpdatesUseCase {
 
       final data = jsonDecode(body) as Map<String, dynamic>;
       final latestTag = data['tag_name'] as String? ?? '';
-      final changelog = data['body'] as String? ?? '';
+      final changelog = sanitizeReleaseNotes(data['body'] as String? ?? '');
       final assets = (data['assets'] as List<dynamic>?) ?? [];
 
       final isNewer = _isRemoteVersionNewer(latestTag, currentVersion);

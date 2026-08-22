@@ -22,6 +22,7 @@ import '../../providers/update_notifier.dart';
 import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
+import '../../shared/widgets/release_notes_view.dart';
 import 'settings_shared.dart';
 import 'widgets/local_sync_panel.dart';
 import '../../providers/sync_provider.dart';
@@ -1155,23 +1156,18 @@ class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
         return Text(l10n.downloadComplete);
 
       case UpdateStatus.updateAvailable:
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_localVersion.isNotEmpty)
-                Text(l10n.currentVersion(_localVersion)),
-              Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
-              if (state.result?.changelog.isNotEmpty == true) ...[
-                const SizedBox(height: 16),
-                Text(
-                  state.result!.changelog,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_localVersion.isNotEmpty)
+              Text(l10n.currentVersion(_localVersion)),
+            Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
+            if (state.result?.changelog.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              ReleaseNotesView(changelog: state.result!.changelog),
             ],
-          ),
+          ],
         );
 
       case UpdateStatus.noUpdateAvailable:
