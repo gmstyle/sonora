@@ -8,7 +8,7 @@ Sonora is a cross-platform Flutter music and video streaming app that uses **You
 
 | Component | Library | Version |
 |---|---|---|
-| Framework | Flutter | 3.44.1 (stable) |
+| Framework | Flutter | 3.47.1 (stable) |
 | State Management | `flutter_riverpod` | ^3.3.1 |
 | Navigation | `go_router` | ^17.2.3 |
 | Local Database | `drift` + `drift_flutter` | ^2.33.0 / ^0.3.0 |
@@ -640,13 +640,16 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 | Step | Detail |
 |---|---|
 | Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test` |
-| Version check | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists |
+| Prepare | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists, writes `release-notes.md` via `scripts/generate_release_notes.py` |
 | Android build | `flutter build apk --release` with signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`) |
 | Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
 | Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
-| GitHub Release | Tag `v{version}+{build}`, auto-generated changelog, APK + DEB + RPM attached |
+| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, APK + DEB + RPM attached |
+| CHANGELOG.md | After the GitHub Release, `scripts/insert_changelog_entry.py` prepends `## [{version}+{build}]` and pushes with `[skip ci]` |
 
-**Flutter version**: 3.44.1 (cached via `subosito/flutter-action`).
+**Flutter version**: 3.47.1 (cached via `subosito/flutter-action`).
+
+**Release notes**: generated from [Conventional Commits](https://www.conventionalcommits.org/) since the previous tag (`feat` / `fix` / `perf` only). Preview locally with `python3 scripts/generate_release_notes.py`. Housekeeping (`chore`, `docs`, `ci`, `test`, `refactor`, `chore(release)`, …) is omitted so the in-app dialog stays user-facing. The seed file is `CHANGELOG.md`.
 
 ### 8.2 Local Workflow Testing
 
@@ -666,11 +669,11 @@ export DOCKER_HOST=unix:///run/user/1000/podman/podman.sock
 # Run the validate job (flutter pub get → analyze → test, no secrets needed)
 act -j validate
 
-# Dry-run the release job to verify the full pipeline structure
-act -j release --dryrun
+# Dry-run a later job to verify step sequencing (no secrets, no real build)
+act -j prepare --dryrun
 ```
 
-The `validate` job runs the full Flutter analysis + 124 tests inside a container mimicking the GitHub runner. The `release` job requires the `production` environment and GitHub secrets (`KEYSTORE_BASE64`, etc.), so it cannot run end-to-end locally — use `--dryrun` to verify step sequencing and conditional execution.
+The `validate` job runs Flutter analysis + tests inside a container mimicking the GitHub runner. `build-android` requires the `production` environment and GitHub secrets (`KEYSTORE_BASE64`, etc.), so it cannot run end-to-end locally — use `--dryrun` on `prepare` / `build-linux` / `create-release` to verify sequencing.
 
 **Packaging test (no container):**
 
@@ -681,7 +684,7 @@ bash packaging/linux/build-packages.sh --format all --skip-build
 
 ### 8.3 In-App Update
 
-`UpdateNotifier` + `CheckForUpdatesUseCase` check the GitHub Releases API. On Android, downloads the APK and installs it via `url_launcher`. On Linux, opens the release page in the browser. Throttle: max 1 check/24h via `SharedPreferences`.
+`UpdateNotifier` + `CheckForUpdatesUseCase` check the GitHub Releases API (`/releases/latest`). The release `body` is sanitized (`sanitizeReleaseNotes`) to drop Version/Build headers and a Downloads footer, then rendered in the update dialog via `ReleaseNotesView` before the user taps download/install. On Android, the APK is downloaded and installed. On Linux, the release page opens in the browser. Throttle: max 1 check/24h via `SharedPreferences`.
 
 ### 8.4 Signing
 
@@ -1003,7 +1006,7 @@ Consumed by `action_feedback_listener.dart` and `feedback_toast.dart` widgets.
 
 ```bash
 # Android
-flutter build apk --release --build-name=1.7.0 --build-number=55
+flutter build apk --release --build-name=1.7.2 --build-number=58
 
 # Linux — Flutter bundle
 flutter build linux --release

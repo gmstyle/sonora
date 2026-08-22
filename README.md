@@ -76,7 +76,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 | Component | Library |
 |-----------|---------|
-| **Framework** | Flutter 3.44+ |
+| **Framework** | Flutter 3.47+ |
 | **State Management** | Riverpod 3.x |
 | **Navigation** | go_router 17.x |
 | **Local Database** | Drift (ex Moor) |
@@ -108,7 +108,7 @@ lib/
 
 ### Prerequisites
 
-- Flutter SDK 3.44+ (stable channel)
+- Flutter SDK 3.47+ (stable channel)
 - Android Studio (for Android builds)
 - Linux: `clang`, `cmake`, `ninja`, `libgtk-3-dev`, `pkg-config`
 
