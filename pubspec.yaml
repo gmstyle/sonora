@@ -22,7 +22,7 @@ dependencies:
   dart_ytmusic_api:
     git:
       url: https://github.com/gmstyle/dart_ytmusic_api.git
-      ref: dev
+      ref: main
   youtube_explode_dart:
     #path: ../youtube_explode_dart
     git:
