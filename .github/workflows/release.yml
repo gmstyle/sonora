@@ -13,7 +13,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: subosito/flutter-action@v2
         with:
@@ -23,7 +23,7 @@ jobs:
           pub-cache: false
 
       - name: Cache Pub Dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache/hosted
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -45,7 +45,7 @@ jobs:
       BUILD_NUMBER: ${{ steps.get_version.outputs.BUILD_NUMBER }}
       SKIP_RELEASE: ${{ steps.version_check.outputs.SKIP_RELEASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -77,7 +77,7 @@ jobs:
 
       - name: Upload release notes
         if: steps.version_check.outputs.SKIP_RELEASE == 'false'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-notes
           path: release-notes.md
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.1'
@@ -97,7 +97,7 @@ jobs:
           pub-cache: false
 
       - name: Cache Pub Dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache/hosted
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -108,7 +108,7 @@ jobs:
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -128,7 +128,7 @@ jobs:
             --build-number=${{ needs.prepare.outputs.BUILD_NUMBER }}
 
       - name: Upload Android Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-apk
           path: build/app/outputs/flutter-apk/*.apk
@@ -138,7 +138,7 @@ jobs:
     if: needs.prepare.outputs.SKIP_RELEASE == 'false'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.1'
@@ -147,7 +147,7 @@ jobs:
           pub-cache: false
 
       - name: Cache Pub Dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache/hosted
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -249,7 +249,7 @@ jobs:
         run: bash packaging/linux/build-packages.sh --format all --skip-build
 
       - name: Upload Linux Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-artifacts
           path: |
@@ -262,22 +262,22 @@ jobs:
     if: needs.prepare.outputs.SKIP_RELEASE == 'false'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Download Android Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: android-apk
           path: artifacts/
 
       - name: Download Linux Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-artifacts
           path: artifacts/
 
       - name: Download release notes
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-notes
           path: .
