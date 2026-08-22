@@ -7,6 +7,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
+import 'shelf_card_layout.dart';
 import 'thumbnail_widget.dart';
 import 'hover_play_button.dart';
 
@@ -95,18 +96,16 @@ class _ReleaseCardState extends ConsumerState<ReleaseCard> {
               thumbnailUrl: widget.thumbnailUrl,
               year: widget.year,
             ),
-        child: SizedBox(
-          width: widget.cardWidth,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
+        child: ShelfCardLayout(
+          cardWidth: widget.cardWidth,
+          coverBuilder:
+              (size) => Stack(
                 children: [
                   Hero(
                     tag: tag,
                     child: ThumbnailWidget(
                       imageUrl: widget.thumbnailUrl,
-                      size: widget.cardWidth,
+                      size: size,
                       shape: ThumbnailShape.rounded,
                     ),
                   ),
@@ -140,31 +139,31 @@ class _ReleaseCardState extends ConsumerState<ReleaseCard> {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                widget.name,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 2,
-                style: textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+          textBlock: [
+            const SizedBox(height: 6),
+            Text(
+              widget.name,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: 2),
-              Text(
-                [
-                  if (widget.showArtist) widget.artist,
-                  if (!widget.showArtist) _typeLabel(context),
-                  if (widget.year != null) widget.year.toString(),
-                ].join(' · '),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w400,
-                ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              [
+                if (widget.showArtist) widget.artist,
+                if (!widget.showArtist) _typeLabel(context),
+                if (widget.year != null) widget.year.toString(),
+              ].join(' · '),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w400,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

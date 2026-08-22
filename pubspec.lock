@@ -333,11 +333,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "83f5db354fe7d938a5c07af9a0330e8abc647b7a"
+      ref: dev
+      resolved-ref: "76d6b51e5c0e609f375af9f81b45a283c2f59568"
       url: "https://github.com/gmstyle/dart_ytmusic_api.git"
     source: git
-    version: "1.7.0"
+    version: "1.7.1"
   dbus:
     dependency: transitive
     description:

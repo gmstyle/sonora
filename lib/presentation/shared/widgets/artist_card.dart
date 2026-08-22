@@ -5,6 +5,7 @@ import '../../../core/extensions/stat_format.dart';
 import '../../../l10n/app_localizations.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
+import 'shelf_card_layout.dart';
 import 'thumbnail_widget.dart';
 
 class ArtistCard extends ConsumerWidget {
@@ -32,9 +33,7 @@ class ArtistCard extends ConsumerWidget {
     final subtitle =
         monthlyListeners != null && monthlyListeners!.isNotEmpty
             ? stripYtLabel(monthlyListeners)
-            : AppLocalizations.of(
-              context,
-            )!.artists; // Fallback "Artisti" / "Artists"
+            : AppLocalizations.of(context)!.artists;
 
     final thumbSize = (cardWidth * 110 / 120).roundToDouble();
     final tag = heroTag ?? 'artist_art_$artistId';
@@ -53,87 +52,42 @@ class ArtistCard extends ConsumerWidget {
             thumbnailUrl: thumbnailUrl,
             monthlyListeners: monthlyListeners,
           ),
-      child: SizedBox(
-        width: cardWidth,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final textBlock = <Widget>[
-              const SizedBox(height: 10),
-              Text(
-                name,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+      child: ShelfCardLayout(
+        cardWidth: cardWidth,
+        maxCoverSize: thumbSize,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        coverBuilder:
+            (size) => Hero(
+              tag: tag,
+              child: ThumbnailWidget(
+                imageUrl: thumbnailUrl,
+                size: size,
+                shape: ThumbnailShape.circle,
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle ?? '',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ];
-
-            // Grid / carousel cells pass a max height; shrink the avatar
-            // so name + subtitle still fit without overflowing.
-            // AspectRatio sizes to the fitted square (not the flex max), so
-            // Flexible(loose) does not leave a gap above the title.
-            if (constraints.hasBoundedHeight) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: thumbSize,
-                        maxHeight: thumbSize,
-                      ),
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: LayoutBuilder(
-                          builder: (context, coverConstraints) {
-                            return Hero(
-                              tag: tag,
-                              child: ThumbnailWidget(
-                                imageUrl: thumbnailUrl,
-                                size: coverConstraints.maxWidth,
-                                shape: ThumbnailShape.circle,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  ...textBlock,
-                ],
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Hero(
-                  tag: tag,
-                  child: ThumbnailWidget(
-                    imageUrl: thumbnailUrl,
-                    size: thumbSize,
-                    shape: ThumbnailShape.circle,
-                  ),
-                ),
-                ...textBlock,
-              ],
-            );
-          },
-        ),
+            ),
+        textBlock: [
+          const SizedBox(height: 10),
+          Text(
+            name,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle ?? '',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
       ),
     );
   }

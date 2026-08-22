@@ -11,6 +11,7 @@ import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
+import 'shelf_card_layout.dart';
 import 'thumbnail_widget.dart';
 import 'playlist_cover_collage.dart';
 import 'hover_play_button.dart';
@@ -146,105 +147,54 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
             );
           }
         },
-        child: SizedBox(
-          width: widget.cardWidth,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              Widget cover(double size) {
-                return Stack(
-                  children: [
-                    Hero(
-                      tag: tag,
-                      child:
-                          isLocal
-                              ? _LocalPlaylistCoverBuilder(
-                                playlistId: widget.localPlaylistId!,
-                                size: size,
-                              )
-                              : ThumbnailWidget(
-                                imageUrl: widget.thumbnailUrl,
-                                size: size,
-                                shape: ThumbnailShape.rounded,
-                              ),
-                    ),
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: HoverPlayButton(
-                        isVisible: _isHovered,
-                        onTap: _play,
-                      ),
-                    ),
-                  ],
-                );
-              }
-
-              final textBlock = <Widget>[
-                const SizedBox(height: 8),
-                Text(
-                  widget.name,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                ),
-                if (widget.artist != null && widget.artist!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    widget.artist!,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ];
-
-              // Grid / carousel cells pass a max height; shrink the square
-              // cover so title + artist still fit without overflowing.
-              // AspectRatio sizes to the fitted square (not the flex max), so
-              // Flexible(loose) does not leave a gap above the title.
-              if (constraints.hasBoundedHeight) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Flexible(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: widget.cardWidth,
-                          maxHeight: widget.cardWidth,
-                        ),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: LayoutBuilder(
-                            builder: (context, coverConstraints) {
-                              return cover(coverConstraints.maxWidth);
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                    ...textBlock,
-                  ],
-                );
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+        child: ShelfCardLayout(
+          cardWidth: widget.cardWidth,
+          coverBuilder:
+              (size) => Stack(
                 children: [
-                  SizedBox(
-                    width: widget.cardWidth,
-                    height: widget.cardWidth,
-                    child: cover(widget.cardWidth),
+                  Hero(
+                    tag: tag,
+                    child:
+                        isLocal
+                            ? _LocalPlaylistCoverBuilder(
+                              playlistId: widget.localPlaylistId!,
+                              size: size,
+                            )
+                            : ThumbnailWidget(
+                              imageUrl: widget.thumbnailUrl,
+                              size: size,
+                              shape: ThumbnailShape.rounded,
+                            ),
                   ),
-                  ...textBlock,
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
+                  ),
                 ],
-              );
-            },
-          ),
+              ),
+          textBlock: [
+            const SizedBox(height: 8),
+            Text(
+              widget.name,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            ),
+            if (widget.artist != null && widget.artist!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                widget.artist!,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

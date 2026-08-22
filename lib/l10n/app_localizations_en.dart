@@ -1213,6 +1213,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get continueListening => 'Continue Listening';
 
   @override
+  String get yourMusicZone => 'Your music';
+
+  @override
+  String get discoverZone => 'Discover';
+
+  @override
+  String get editorialZone => 'Editorial';
+
+  @override
   String get refresh => 'Refresh';
 
   @override

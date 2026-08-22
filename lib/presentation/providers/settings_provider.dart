@@ -236,7 +236,8 @@ class SettingsNotifier extends Notifier<Settings> {
     await ref
         .read(ytmusicDatasourceProvider)
         .reinitialize(gl: gl, hl: state.hl);
-    ref.invalidate(homeSectionsProvider);
+    ref.invalidate(homeBaseResultProvider);
+    ref.invalidate(homeEditorialSectionsProvider);
   }
 
   Future<void> setHl(String hl) async {
@@ -246,7 +247,8 @@ class SettingsNotifier extends Notifier<Settings> {
     await ref
         .read(ytmusicDatasourceProvider)
         .reinitialize(gl: state.gl, hl: hl);
-    ref.invalidate(homeSectionsProvider);
+    ref.invalidate(homeBaseResultProvider);
+    ref.invalidate(homeEditorialSectionsProvider);
   }
 
   Future<void> setCrossfadeSeconds(int seconds) async {

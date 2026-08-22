@@ -7,6 +7,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
+import 'shelf_card_layout.dart';
 import 'thumbnail_widget.dart';
 import 'video_badge.dart';
 import 'explicit_badge.dart';
@@ -49,10 +50,6 @@ class SongCard extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
-    final thumbRatio = cardWidth / 150;
-    final thumbSize = cardWidth;
-    final height = (statLabel != null ? 236 : 220) * thumbRatio;
-
     return ScaleButton(
       onTap:
           () => ref
@@ -72,17 +69,14 @@ class SongCard extends ConsumerWidget {
             playCount: playCount,
             isExplicit: isExplicit,
           ),
-      child: SizedBox(
-        width: cardWidth,
-        height: height,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
+      child: ShelfCardLayout(
+        cardWidth: cardWidth,
+        coverBuilder:
+            (size) => Stack(
               children: [
                 ThumbnailWidget(
                   imageUrl: thumbnailUrl,
-                  size: thumbSize,
+                  size: size,
                   shape: ThumbnailShape.rounded,
                 ),
                 if (duration != null)
@@ -135,38 +129,38 @@ class SongCard extends ConsumerWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text.rich(
-              TextSpan(
-                children: [
-                  if (isExplicit)
-                    const WidgetSpan(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 6.0),
-                        child: ExplicitBadge(),
-                      ),
-                      alignment: PlaceholderAlignment.middle,
+        textBlock: [
+          const SizedBox(height: 6),
+          Text.rich(
+            TextSpan(
+              children: [
+                if (isExplicit)
+                  const WidgetSpan(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: 6.0),
+                      child: ExplicitBadge(),
                     ),
-                  TextSpan(text: title),
-                ],
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+                    alignment: PlaceholderAlignment.middle,
+                  ),
+                TextSpan(text: title),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              [artist, if (statLabel != null) statLabel].join(' · '),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            [artist, if (statLabel != null) statLabel].join(' · '),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }

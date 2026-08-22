@@ -131,6 +131,7 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
           width: widget.cardWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Stack(
                 children: [
@@ -173,15 +174,13 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
-              Flexible(
-                child: Text(
-                  mixDesc,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                mixDesc,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

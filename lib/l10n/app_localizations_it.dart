@@ -1221,6 +1221,15 @@ class AppLocalizationsIt extends AppLocalizations {
   String get continueListening => 'Continua ad ascoltare';
 
   @override
+  String get yourMusicZone => 'La tua musica';
+
+  @override
+  String get discoverZone => 'Scopri';
+
+  @override
+  String get editorialZone => 'Editoriale';
+
+  @override
   String get refresh => 'Aggiorna';
 
   @override

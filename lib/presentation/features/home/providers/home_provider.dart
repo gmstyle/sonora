@@ -22,14 +22,28 @@ final homeSelectedChipParamsProvider =
       HomeSelectedChipParamsNotifier.new,
     );
 
-final homeResultProvider = FutureProvider<BrowseHomeResult>((ref) async {
+/// Unfiltered YT Music home feed — discover hero, chips list, ambient background.
+final homeBaseResultProvider = FutureProvider<BrowseHomeResult>((ref) async {
   final repo = ref.watch(musicRepositoryProvider);
-  final params = ref.watch(homeSelectedChipParamsProvider);
-  return repo.getHome(params: params);
+  return repo.getHome();
 });
 
-final homeSectionsProvider = FutureProvider<List<HomeSection>>((ref) async {
-  final result = await ref.watch(homeResultProvider.future);
+final homeBaseSectionsProvider = FutureProvider<List<HomeSection>>((ref) async {
+  final result = await ref.watch(homeBaseResultProvider.future);
+  return result.sections;
+});
+
+/// Editorial shelves — filtered when a chip is selected, otherwise base sublist.
+final homeEditorialSectionsProvider = FutureProvider<List<HomeSection>>((
+  ref,
+) async {
+  final params = ref.watch(homeSelectedChipParamsProvider);
+  if (params == null) {
+    final sections = await ref.watch(homeBaseSectionsProvider.future);
+    return sections.length > 1 ? sections.sublist(1) : <HomeSection>[];
+  }
+  final repo = ref.watch(musicRepositoryProvider);
+  final result = await repo.getHome(params: params);
   return result.sections;
 });
 

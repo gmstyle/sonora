@@ -2126,6 +2126,24 @@ abstract class AppLocalizations {
   /// **'Continue Listening'**
   String get continueListening;
 
+  /// No description provided for @yourMusicZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your music'**
+  String get yourMusicZone;
+
+  /// No description provided for @discoverZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover'**
+  String get discoverZone;
+
+  /// No description provided for @editorialZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Editorial'**
+  String get editorialZone;
+
   /// No description provided for @refresh.
   ///
   /// In en, this message translates to:

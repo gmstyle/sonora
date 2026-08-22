@@ -29,7 +29,7 @@ class _BatteryPromptGateState extends ConsumerState<BatteryPromptGate> {
 
     // Wait until home data settles (success or error) before prompting.
     try {
-      await ref.read(homeSectionsProvider.future);
+      await ref.read(homeBaseSectionsProvider.future);
     } catch (_) {
       // Home failed to load — still proceed with the prompt.
     }
