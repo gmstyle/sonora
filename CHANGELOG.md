@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.7.2+58] - 2026-08-22
+
+### Features
+
+- **release**: Generate changelog notes and show them before update
+- **home**: Refresh UI with themed zones and editorial-only chip reload
+
+### Bug Fixes
+
+- **library**: Replace hardcoded tab indices with LibraryTab enum
+- **android-auto**: Map podcast, episode, and artist YT home shelves
+
 ## [1.7.0] - 2026-08-21
 
 ### Features
