@@ -825,8 +825,70 @@ class AndroidAutoBrowserController {
           },
         ),
       ];
+    } else if (content is ArtistDetailed) {
+      return [_artistBrowseItem(content)];
+    } else if (content is PodcastDetailed) {
+      if (content.browseId.isEmpty) return [];
+      return [_podcastBrowseItem(content)];
+    } else if (content is EpisodeDetailed) {
+      final item = _episodePlayableItem(content);
+      return item != null ? [item] : [];
     }
     return [];
+  }
+
+  MediaItem _artistBrowseItem(ArtistDetailed artist) {
+    return MediaItem(
+      id: '$_artistPrefix${artist.artistId}',
+      title: artist.name,
+      artUri:
+          artist.thumbnails.isNotEmpty
+              ? Uri.tryParse(artist.thumbnails.last.url)
+              : null,
+      playable: false,
+      extras: {
+        _kContentStyleBrowsable: _kStyleGrid,
+        _kContentStylePlayable: _kStyleList,
+      },
+    );
+  }
+
+  MediaItem _podcastBrowseItem(PodcastDetailed podcast) {
+    return MediaItem(
+      id: '$_podcastPrefix${podcast.browseId}',
+      title: podcast.name,
+      artist: podcast.author,
+      artUri:
+          podcast.thumbnails.isNotEmpty
+              ? Uri.tryParse(podcast.thumbnails.last.url)
+              : null,
+      playable: false,
+      extras: {
+        _kContentStyleBrowsable: _kStyleList,
+        _kContentStylePlayable: _kStyleList,
+      },
+    );
+  }
+
+  MediaItem? _episodePlayableItem(EpisodeDetailed episode) {
+    if (episode.videoId.isEmpty) return null;
+    final track = QueueTrack(
+      videoId: episode.videoId,
+      needsUrl: true,
+      contentType: 'episode',
+      podcastBrowseId: episode.podcastId,
+      title: episode.name,
+      artist: episode.podcastName ?? '',
+      album: episode.podcastName,
+      publishDate: episode.date,
+      artUri:
+          episode.thumbnails.isNotEmpty
+              ? Uri.tryParse(episode.thumbnails.last.url)
+              : null,
+    );
+    return track.toFreshMediaItem(
+      additionalExtras: {_kContentStylePlayable: _kStyleList},
+    );
   }
 
   Future<List<MediaItem>> _buildHomeSectionChildren(
