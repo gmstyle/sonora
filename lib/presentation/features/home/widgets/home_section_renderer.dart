@@ -273,7 +273,9 @@ class HomeContinueListening extends ConsumerWidget {
                     ),
                     TextButton(
                       onPressed: () {
-                        ref.read(libraryActiveTabProvider.notifier).update(4);
+                        ref
+                            .read(libraryActiveTabProvider.notifier)
+                            .update(LibraryTab.history);
                         context.go('/library');
                       },
                       style: TextButton.styleFrom(
@@ -980,7 +982,7 @@ class HomeYourPlaylists extends ConsumerWidget {
           onShowAll: () {
             ref
                 .read(libraryActiveTabProvider.notifier)
-                .update(2); // Playlists is index 2
+                .update(LibraryTab.playlists);
             context.go('/library');
           },
         );
@@ -1052,7 +1054,7 @@ class HomeYourMixes extends ConsumerWidget {
         return SmartMixCard(type: type, cardWidth: cardWidth);
       },
       onShowAll: () {
-        ref.read(libraryActiveTabProvider.notifier).update(5);
+        ref.read(libraryActiveTabProvider.notifier).update(LibraryTab.mixes);
         context.go('/library');
       },
     );
@@ -1158,7 +1160,9 @@ class HomeYourArtists extends ConsumerWidget {
             );
           },
           onShowAll: () {
-            ref.read(libraryActiveTabProvider.notifier).update(1);
+            ref
+                .read(libraryActiveTabProvider.notifier)
+                .update(LibraryTab.artists);
             context.go('/library');
           },
         );
@@ -1204,7 +1208,9 @@ class HomeLikedAlbums extends ConsumerWidget {
                 title: AppLocalizations.of(context)!.likedAlbumsHome,
                 horizontalPadding: horizontalPadding,
                 onShowAll: () {
-                  ref.read(libraryActiveTabProvider.notifier).update(3);
+                  ref
+                      .read(libraryActiveTabProvider.notifier)
+                      .update(LibraryTab.albums);
                   context.go('/library');
                 },
               ),
@@ -1242,7 +1248,9 @@ class HomeLikedAlbums extends ConsumerWidget {
             );
           },
           onShowAll: () {
-            ref.read(libraryActiveTabProvider.notifier).update(3);
+            ref
+                .read(libraryActiveTabProvider.notifier)
+                .update(LibraryTab.albums);
             context.go('/library');
           },
         );

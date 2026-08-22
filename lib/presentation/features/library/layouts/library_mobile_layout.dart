@@ -30,15 +30,10 @@ class LibraryMobileLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = ref.watch(libraryActiveTabProvider);
+    final selectedTab = ref.watch(libraryActiveTabProvider);
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
-    final isListOrGridTab =
-        selectedIndex == 1 ||
-        selectedIndex == 2 ||
-        selectedIndex == 3 ||
-        selectedIndex == 4 ||
-        selectedIndex == 6;
+    final isListOrGridTab = selectedTab.supportsListGridView;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -63,22 +58,23 @@ class LibraryMobileLayout extends ConsumerWidget {
                   horizontal: 16,
                   vertical: 8,
                 ),
-                itemCount: _getTabs(context).length,
+                itemCount: LibraryTab.values.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, i) {
+                  final tab = LibraryTab.values[i];
                   return ChoiceChip(
                     label: Text(_getTabs(context)[i]),
-                    selected: i == selectedIndex,
+                    selected: tab == selectedTab,
                     onSelected: (selected) {
                       if (selected) {
-                        ref.read(libraryActiveTabProvider.notifier).update(i);
+                        ref.read(libraryActiveTabProvider.notifier).update(tab);
                       }
                     },
                   );
                 },
               ),
             ),
-          if (selectedIndex != 7) ...[
+          if (selectedTab.showsHeaderControls) ...[
             LibraryHeaderControls(
               showViewSwitcher: !isSearchActive && isListOrGridTab,
             ),
@@ -89,7 +85,7 @@ class LibraryMobileLayout extends ConsumerWidget {
                 isSearchActive
                     ? const LibrarySearchResultsView()
                     : IndexedStack(
-                      index: selectedIndex,
+                      index: selectedTab.index,
                       children: const [
                         FavoritesTab(),
                         ArtistsTab(),

@@ -64,15 +64,10 @@ class LibrarySplitLayout extends ConsumerWidget {
     final size = MediaQuery.of(context).size;
     final isWide = size.width >= 1200; // kExpandedBreakpoint
 
-    final selectedIndex = ref.watch(libraryActiveTabProvider);
+    final selectedTab = ref.watch(libraryActiveTabProvider);
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
-    final isListOrGridTab =
-        selectedIndex == 1 ||
-        selectedIndex == 2 ||
-        selectedIndex == 3 ||
-        selectedIndex == 4 ||
-        selectedIndex == 6;
+    final isListOrGridTab = selectedTab.supportsListGridView;
 
     Widget mainRow = Row(
       children: [
@@ -97,17 +92,18 @@ class LibrarySplitLayout extends ConsumerWidget {
                     horizontal: 12,
                     vertical: 8,
                   ),
-                  itemCount: _tabs.length,
+                  itemCount: LibraryTab.values.length,
                   itemBuilder: (context, index) {
-                    final tab = _tabs[index];
-                    final isSelected = index == selectedIndex;
+                    final tab = LibraryTab.values[index];
+                    final tabMeta = _tabs[index];
+                    final isSelected = tab == selectedTab;
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: ScaleButton(
                         onTap: () {
                           ref
                               .read(libraryActiveTabProvider.notifier)
-                              .update(index);
+                              .update(tab);
                         },
                         child: Container(
                           decoration: BoxDecoration(
@@ -125,7 +121,7 @@ class LibrarySplitLayout extends ConsumerWidget {
                           child: Row(
                             children: [
                               Icon(
-                                tab.icon,
+                                tabMeta.icon,
                                 color:
                                     isSelected
                                         ? theme.colorScheme.primary
@@ -135,7 +131,7 @@ class LibrarySplitLayout extends ConsumerWidget {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  tab.getTitle(context),
+                                  tabMeta.getTitle(context),
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     fontWeight:
                                         isSelected
@@ -169,7 +165,7 @@ class LibrarySplitLayout extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (selectedIndex != 7) ...[
+              if (selectedTab.showsHeaderControls) ...[
                 LibraryHeaderControls(
                   showViewSwitcher: !isSearchActive && isListOrGridTab,
                 ),
@@ -183,7 +179,7 @@ class LibrarySplitLayout extends ConsumerWidget {
                       isSearchActive
                           ? const LibrarySearchResultsView()
                           : IndexedStack(
-                            index: selectedIndex,
+                            index: selectedTab.index,
                             children: const [
                               FavoritesTab(),
                               ArtistsTab(),

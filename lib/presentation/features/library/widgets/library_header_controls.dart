@@ -113,7 +113,7 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
                           .setLibraryGridView(!isGridView);
                     },
                   ),
-                if (activeTab == 5)
+                if (activeTab.showsClearHistory)
                   IconButton(
                     onPressed: () => _clearHistory(context),
                     icon: const Icon(LucideIcons.trash),

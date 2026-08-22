@@ -367,13 +367,34 @@ final sortedLikedPodcastsProvider =
       });
     });
 
-class LibraryActiveTabNotifier extends Notifier<int> {
+enum LibraryTab {
+  favorites,
+  artists,
+  playlists,
+  albums,
+  podcasts,
+  history,
+  mixes,
+  stats;
+
+  /// Tabs that support list/grid view switching in [LibraryHeaderControls].
+  bool get supportsListGridView => switch (this) {
+    artists || playlists || albums || podcasts || mixes => true,
+    _ => false,
+  };
+
+  bool get showsHeaderControls => this != stats;
+
+  bool get showsClearHistory => this == history;
+}
+
+class LibraryActiveTabNotifier extends Notifier<LibraryTab> {
   @override
-  int build() => 0;
-  void update(int value) => state = value;
+  LibraryTab build() => LibraryTab.favorites;
+  void update(LibraryTab value) => state = value;
 }
 
 final libraryActiveTabProvider =
-    NotifierProvider<LibraryActiveTabNotifier, int>(
+    NotifierProvider<LibraryActiveTabNotifier, LibraryTab>(
       LibraryActiveTabNotifier.new,
     );
