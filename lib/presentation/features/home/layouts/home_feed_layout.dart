@@ -188,8 +188,10 @@ class HomeFeedLayout extends ConsumerWidget {
         cardWidth: metrics.cardWidth,
         horizontalPadding: metrics.horizontalPadding,
         useGrid: metrics.useLikedAlbumsGrid,
-        gridColumns: 3,
-        gridMaxItems: 6,
+        gridMinColumns: metrics.albumGridMinColumns,
+        gridMaxColumns: metrics.albumGridMaxColumns,
+        gridMinCellWidth: metrics.albumGridMinCellWidth,
+        gridMaxItems: metrics.albumGridMaxItems,
         gridSpacing: metrics.albumGridSpacing,
       ),
     ];

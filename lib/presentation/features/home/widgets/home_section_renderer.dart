@@ -1176,7 +1176,9 @@ class HomeLikedAlbums extends ConsumerWidget {
   final double cardWidth;
   final double horizontalPadding;
   final bool useGrid;
-  final int gridColumns;
+  final int gridMinColumns;
+  final int gridMaxColumns;
+  final double gridMinCellWidth;
   final int gridMaxItems;
   final double gridSpacing;
 
@@ -1186,8 +1188,10 @@ class HomeLikedAlbums extends ConsumerWidget {
     this.cardWidth = 140,
     this.horizontalPadding = 16,
     this.useGrid = false,
-    this.gridColumns = 3,
-    this.gridMaxItems = 6,
+    this.gridMinColumns = 3,
+    this.gridMaxColumns = 6,
+    this.gridMinCellWidth = 140,
+    this.gridMaxItems = 12,
     this.gridSpacing = 12,
   });
 
@@ -1218,8 +1222,9 @@ class HomeLikedAlbums extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: _HomeAlbumGrid(
                   albums: gridAlbums,
-                  cardWidth: cardWidth,
-                  columns: gridColumns,
+                  minColumns: gridMinColumns,
+                  maxColumns: gridMaxColumns,
+                  minCellWidth: gridMinCellWidth,
                   spacing: gridSpacing,
                 ),
               ),
@@ -1592,27 +1597,34 @@ class _HomeSectionHeader extends StatelessWidget {
 
 class _HomeAlbumGrid extends StatelessWidget {
   final List<LikedAlbumModel> albums;
-  final double cardWidth;
-  final int columns;
+  final int minColumns;
+  final int maxColumns;
+  final double minCellWidth;
   final double spacing;
 
   const _HomeAlbumGrid({
     required this.albums,
-    required this.cardWidth,
-    required this.columns,
+    required this.minColumns,
+    required this.maxColumns,
+    required this.minCellWidth,
     required this.spacing,
   });
+
+  int _columnCount(double maxWidth) {
+    final fitColumns =
+        ((maxWidth + spacing) / (minCellWidth + spacing)).floor();
+    return fitColumns.clamp(minColumns, maxColumns).clamp(1, albums.length);
+  }
+
+  double _cellWidth(double maxWidth, int columns) =>
+      (maxWidth - (columns - 1) * spacing) / columns;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final gap =
-            columns > 1
-                ? ((constraints.maxWidth - columns * cardWidth) / (columns - 1))
-                    .clamp(spacing, double.infinity)
-                : 0.0;
-
+        final columns = _columnCount(constraints.maxWidth);
+        final cellWidth = _cellWidth(constraints.maxWidth, columns);
         final rows = <Widget>[];
         for (var i = 0; i < albums.length; i += columns) {
           final chunk = albums.skip(i).take(columns).toList();
@@ -1625,16 +1637,19 @@ class _HomeAlbumGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var j = 0; j < chunk.length; j++) ...[
-                    if (j > 0) SizedBox(width: gap),
-                    AlbumCard(
-                      albumId: chunk[j].albumId,
-                      name: chunk[j].name,
-                      artist: chunk[j].artistName,
-                      artistId: chunk[j].artistId,
-                      thumbnailUrl: chunk[j].thumbnailUrl,
-                      year: chunk[j].year,
-                      cardWidth: cardWidth,
-                      heroTag: 'home_liked_album_${chunk[j].albumId}',
+                    if (j > 0) SizedBox(width: spacing),
+                    SizedBox(
+                      width: cellWidth,
+                      child: AlbumCard(
+                        albumId: chunk[j].albumId,
+                        name: chunk[j].name,
+                        artist: chunk[j].artistName,
+                        artistId: chunk[j].artistId,
+                        thumbnailUrl: chunk[j].thumbnailUrl,
+                        year: chunk[j].year,
+                        cardWidth: cellWidth,
+                        heroTag: 'home_liked_album_${chunk[j].albumId}',
+                      ),
                     ),
                   ],
                 ],
@@ -1643,7 +1658,7 @@ class _HomeAlbumGrid extends StatelessWidget {
           );
         }
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: rows,
         );
       },

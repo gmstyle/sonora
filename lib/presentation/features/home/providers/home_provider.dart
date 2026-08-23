@@ -6,6 +6,7 @@ import 'package:sonora/domain/models/library_models.dart';
 import 'package:sonora/domain/usecases/home/get_discover_suggestions_use_case.dart';
 import 'package:sonora/domain/usecases/home/get_new_releases_use_case.dart';
 import 'package:sonora/domain/usecases/home/get_similar_artists_suggestions_use_case.dart';
+import 'package:sonora/presentation/features/library/providers/library_provider.dart';
 import 'package:sonora/presentation/providers/library_repository_provider.dart';
 import 'package:sonora/presentation/providers/music_repository_provider.dart';
 
@@ -78,8 +79,7 @@ final homeRandomArtistsProvider = FutureProvider<List<FollowedArtistModel>>((
 final homeRandomAlbumsProvider = FutureProvider<List<LikedAlbumModel>>((
   ref,
 ) async {
-  final repo = ref.watch(libraryRepositoryProvider);
-  final all = await repo.getAllLikedAlbums();
+  final all = await ref.watch(likedAlbumsProvider.future);
   final shuffled = List<LikedAlbumModel>.from(all)..shuffle(Random());
   return shuffled.take(_kHomeSectionMaxItems).toList();
 });

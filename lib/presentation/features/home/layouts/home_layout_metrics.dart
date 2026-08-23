@@ -44,6 +44,16 @@ class HomeLayoutMetrics {
     HomeLayoutSize.wide => 12,
   };
 
+  int get albumGridMinColumns => 3;
+
+  int get albumGridMaxColumns => 6;
+
+  /// Minimum cover width when computing fill-width grid columns on wide.
+  double get albumGridMinCellWidth => 140;
+
+  /// Two full rows at max column count (same cap as other home sections).
+  int get albumGridMaxItems => 12;
+
   double get artistAvatarSize => size == HomeLayoutSize.wide ? 72 : 64;
 
   double get continueThumbnailSize => size == HomeLayoutSize.mobile ? 48 : 56;
