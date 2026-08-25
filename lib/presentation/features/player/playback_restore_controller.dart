@@ -151,10 +151,17 @@ class PlaybackRestoreController {
        _setIsStopping = setIsStopping;
 
   Future<void> awaitReady() async {
+    // Wait for cold/warm restore to finish before play/skip from AA or the
+    // notification. A short abort used to race mid-open and start the wrong
+    // index; keep a long safety bound so a hung restore cannot block forever.
     await _readyCompleter.future
-        .timeout(const Duration(seconds: 3), onTimeout: () {})
+        .timeout(readyWaitTimeout, onTimeout: () {})
         .catchError((_) {});
   }
+
+  /// Upper bound for [awaitReady]. Must cover cold-restore URL resolve + seek.
+  @visibleForTesting
+  static const Duration readyWaitTimeout = Duration(seconds: 60);
 
   Future<void> ensureReady() => _ensureReady();
 

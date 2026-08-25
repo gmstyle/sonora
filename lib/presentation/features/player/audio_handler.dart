@@ -217,6 +217,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       connectivity: _sharedConnectivity,
       userQueue: () => _queueController.userQueue,
       upNextQueue: () => _queueController.upNextQueue,
+      currentMediaItem: () => mediaItem.valueOrNull,
       playNow: (items) => playNow(items),
     );
 
@@ -243,6 +244,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       getPlaybackState: () => playbackState.value,
       setPlaybackState: (state) => playbackState.add(state),
       isRestoring: () => _restoreController.isRestoring,
+      isResolving: () => _queueController.isResolvingItem,
       savedPosition: () => _restoreController.savedPosition,
       isLiked: () => _likeController.isCurrentSongLiked,
       onBecameReady: () => _recoveryController.resetRetryCount(),
@@ -936,6 +938,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = false;
     _volumeController.prepareTransitionMute();
     await _synchronizedOpen(() async {
+      _queueController.beginResolving();
       try {
         final (itemsWithKeys, medias) = _queueController.preparePlaylist(
           items,
@@ -957,6 +960,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       } catch (e) {
         _volumeController.endTransitionMute();
         rethrow;
+      } finally {
+        _queueController.endResolving();
+        if (!_queueController.isResolvingItem) {
+          _statePublisher.invalidate();
+          _statePublisher.updatePlaybackState();
+        }
       }
     }, shouldAbort: shouldAbort);
   }
@@ -969,6 +978,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = false;
     _volumeController.prepareTransitionMute();
     await _synchronizedOpen(() async {
+      _queueController.beginResolving();
       try {
         final (itemsWithKeys, medias) = _queueController.preparePlaylist(
           items,
@@ -1019,6 +1029,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       } catch (e) {
         _volumeController.endTransitionMute();
         rethrow;
+      } finally {
+        _queueController.endResolving();
+        if (!_queueController.isResolvingItem) {
+          _statePublisher.invalidate();
+          _statePublisher.updatePlaybackState();
+        }
       }
     }, shouldAbort: shouldAbort);
   }

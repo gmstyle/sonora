@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../../../domain/models/queue_track.dart';
@@ -14,6 +15,7 @@ class PlaybackStatePublisher {
   final PlaybackState Function() _getPlaybackState;
   final void Function(PlaybackState) _setPlaybackState;
   final bool Function() _isRestoring;
+  final bool Function() _isResolving;
   final Duration Function() _savedPosition;
   final bool Function() _isLiked;
   final void Function() _onBecameReady;
@@ -29,6 +31,7 @@ class PlaybackStatePublisher {
     required PlaybackState Function() getPlaybackState,
     required void Function(PlaybackState) setPlaybackState,
     required bool Function() isRestoring,
+    required bool Function() isResolving,
     required Duration Function() savedPosition,
     required bool Function() isLiked,
     required void Function() onBecameReady,
@@ -36,11 +39,18 @@ class PlaybackStatePublisher {
        _getPlaybackState = getPlaybackState,
        _setPlaybackState = setPlaybackState,
        _isRestoring = isRestoring,
+       _isResolving = isResolving,
        _savedPosition = savedPosition,
        _isLiked = isLiked,
        _onBecameReady = onBecameReady;
 
   String? get lastEmittedMediaItemId => _lastEmittedMediaItemId;
+
+  /// True while playlist may be transiently empty (open / replace / restore).
+  /// Publishing [AudioProcessingState.idle] in that window stops the Android
+  /// MediaSession (`audio_service` calls `_stop()` on idle), which kills
+  /// Android Auto transport controls until a process restart.
+  bool get isSuppressingIdle => _isRestoring() || _isResolving();
 
   /// Forces the next [updatePlaybackState] to emit even if processing/playing
   /// appear unchanged. Used after focus denial, cast URL swaps, etc.
@@ -55,21 +65,45 @@ class PlaybackStatePublisher {
     lastEmittedDuration = t.duration;
   }
 
-  AudioProcessingState getProcessingState() {
-    if (_player.state.buffering) {
+  /// Maps raw player flags to an [AudioProcessingState].
+  ///
+  /// When [playlistEmpty] is true and [suppressingIdle] is true (open / URL
+  /// replace / restore), returns [AudioProcessingState.buffering] instead of
+  /// [AudioProcessingState.idle] so `audio_service` does not tear down the
+  /// MediaSession.
+  @visibleForTesting
+  static AudioProcessingState resolveProcessingState({
+    required bool buffering,
+    required bool completed,
+    required bool playlistEmpty,
+    required bool suppressingIdle,
+  }) {
+    if (buffering) {
       return AudioProcessingState.buffering;
     }
-    if (_player.state.completed) {
+    if (completed) {
       return AudioProcessingState.completed;
     }
-    if (_player.state.playlist.medias.isEmpty) {
+    if (playlistEmpty) {
+      if (suppressingIdle) {
+        return AudioProcessingState.buffering;
+      }
       return AudioProcessingState.idle;
     }
     return AudioProcessingState.ready;
   }
 
+  AudioProcessingState getProcessingState() {
+    return resolveProcessingState(
+      buffering: _player.state.buffering,
+      completed: _player.state.completed,
+      playlistEmpty: _player.state.playlist.medias.isEmpty,
+      suppressingIdle: isSuppressingIdle,
+    );
+  }
+
   void updatePlaybackState() {
-    if (_isRestoring()) return;
+    if (_isRestoring() || _isResolving()) return;
 
     final processing = getProcessingState();
     final playing = _player.state.playing;

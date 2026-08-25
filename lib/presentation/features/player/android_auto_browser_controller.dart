@@ -5,6 +5,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../domain/models/library_models.dart';
 import '../../../domain/models/queue_track.dart';
@@ -39,6 +40,7 @@ class AndroidAutoBrowserController {
   final Connectivity _connectivity;
   final List<MediaItem> Function() _userQueue;
   final List<MediaItem> Function() _upNextQueue;
+  final MediaItem? Function() _currentMediaItem;
   final Future<void> Function(List<MediaItem> items) _playNow;
 
   // ── Android Auto extras ──────────────────────────────────────────────────────
@@ -66,6 +68,9 @@ class AndroidAutoBrowserController {
 
   // ── AA content tree IDs ──────────────────────────────────────────────────────
   static const String _rootId = '/';
+
+  /// Root id used by [audio_service] when AA/BT requests EXTRA_RECENT.
+  static const String _recentRootId = 'recent';
   static const String _homeId = '__home__';
   static const String _libraryId = '__library__';
   static const String _exploreId = '__explore__';
@@ -106,6 +111,7 @@ class AndroidAutoBrowserController {
     required Connectivity connectivity,
     required List<MediaItem> Function() userQueue,
     required List<MediaItem> Function() upNextQueue,
+    required MediaItem? Function() currentMediaItem,
     required Future<void> Function(List<MediaItem> items) playNow,
   }) : _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
@@ -124,6 +130,7 @@ class AndroidAutoBrowserController {
        _connectivity = connectivity,
        _userQueue = userQueue,
        _upNextQueue = upNextQueue,
+       _currentMediaItem = currentMediaItem,
        _playNow = playNow;
 
   // ═══════════════════════════════════════════════════════════════
@@ -143,6 +150,11 @@ class AndroidAutoBrowserController {
         parentMediaId.isEmpty;
     try {
       if (isRoot) return _buildRootChildren();
+
+      // Playback resumption (AA/BT EXTRA_RECENT): 0 or 1 current item.
+      if (parentMediaId == _recentRootId) {
+        return _buildResumptionChildren();
+      }
 
       switch (parentMediaId) {
         // Top-level tabs
@@ -318,6 +330,17 @@ class AndroidAutoBrowserController {
   /// as playable so AA can offer the user to jump to a specific track.
   List<MediaItem> _buildQueueSectionChildren({required bool upNext}) {
     return upNext ? _upNextQueue() : _userQueue();
+  }
+
+  /// MediaBrowser EXTRA_RECENT root: the currently playing / last-known item.
+  List<MediaItem> _buildResumptionChildren() =>
+      resumptionChildrenFor(_currentMediaItem());
+
+  /// Pure helper for the EXTRA_RECENT browse root (0 or 1 playable item).
+  @visibleForTesting
+  static List<MediaItem> resumptionChildrenFor(MediaItem? current) {
+    if (current == null) return const [];
+    return [current];
   }
 
   Future<List<MediaItem>> _buildLibraryChildren() async {
