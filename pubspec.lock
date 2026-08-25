@@ -333,7 +333,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: dev
+      ref: HEAD
       resolved-ref: "76d6b51e5c0e609f375af9f81b45a283c2f59568"
       url: "https://github.com/gmstyle/dart_ytmusic_api.git"
     source: git
@@ -1871,8 +1871,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
-      resolved-ref: f2e231d81987dd403c6e4a358446307203567457
+      ref: HEAD
+      resolved-ref: fe43c513ea35c2352f00b2ce650083c81c3e4a57
       url: "https://github.com/gmstyle/youtube_explode_dart.git"
     source: git
     version: "3.1.1"
