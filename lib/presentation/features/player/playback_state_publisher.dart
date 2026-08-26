@@ -172,4 +172,35 @@ class PlaybackStatePublisher {
     }
     _lastPosition = pos;
   }
+
+  /// Publishes a non-idle [AudioProcessingState.loading] while cold restore is
+  /// still resolving the stream URL. Android Auto hides the now-playing UI on
+  /// [AudioProcessingState.idle] / STATE_NONE — so we must leave idle as soon
+  /// as we know which track will resume.
+  void publishConnecting({required int queueIndex, Duration? position}) {
+    final current = _getPlaybackState();
+    final updated = current.copyWith(
+      processingState: AudioProcessingState.loading,
+      playing: false,
+      queueIndex: queueIndex,
+      updatePosition:
+          position ??
+          (_isRestoring() ? _savedPosition() : _player.state.position),
+      speed: _player.state.rate,
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+        MediaAction.setRating,
+      },
+      androidCompactActionIndices: const [0, 1, 2],
+    );
+    _lastEmittedProcessingState = AudioProcessingState.loading;
+    _lastEmittedPlaying = false;
+    _setPlaybackState(
+      updated.copyWith(
+        controls: PlayerMediaControls.build(updated, isLiked: _isLiked()),
+      ),
+    );
+  }
 }

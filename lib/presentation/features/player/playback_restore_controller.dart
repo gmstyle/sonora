@@ -48,12 +48,12 @@ class PlaybackRestoreController {
   final PlaybackStatePublisher _statePublisher;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final void Function(bool) _setUserWantsPlaying;
-  final MediaItem? Function() _currentMediaItem;
   final void Function(MediaItem) _emitMediaItem;
   final Future<void> Function(AudioServiceShuffleMode) _applyShuffleMode;
   final Future<void> Function(AudioServiceRepeatMode) _applyRepeatMode;
   final void Function(List<MediaItem>) _updateQueueStream;
   final void Function(bool) _setIsStopping;
+  final void Function()? _onRestoreReady;
 
   RestoreStatus _restoreStatus = RestoreStatus.idle;
   final StreamController<RestoreStatus> _restoreStatusController =
@@ -129,12 +129,12 @@ class PlaybackRestoreController {
     required PlaybackStatePublisher statePublisher,
     required PlayVideoIdUseCase playVideoIdUseCase,
     required void Function(bool) setUserWantsPlaying,
-    required MediaItem? Function() currentMediaItem,
     required void Function(MediaItem) emitMediaItem,
     required Future<void> Function(AudioServiceShuffleMode) applyShuffleMode,
     required Future<void> Function(AudioServiceRepeatMode) applyRepeatMode,
     required void Function(List<MediaItem>) updateQueueStream,
     required void Function(bool) setIsStopping,
+    void Function()? onRestoreReady,
   }) : _player = player,
        _prefs = prefs,
        _queueRepo = queueRepo,
@@ -143,12 +143,12 @@ class PlaybackRestoreController {
        _statePublisher = statePublisher,
        _playVideoIdUseCase = playVideoIdUseCase,
        _setUserWantsPlaying = setUserWantsPlaying,
-       _currentMediaItem = currentMediaItem,
        _emitMediaItem = emitMediaItem,
        _applyShuffleMode = applyShuffleMode,
        _applyRepeatMode = applyRepeatMode,
        _updateQueueStream = updateQueueStream,
-       _setIsStopping = setIsStopping;
+       _setIsStopping = setIsStopping,
+       _onRestoreReady = onRestoreReady;
 
   Future<void> awaitReady() async {
     // Wait for cold/warm restore to finish before play/skip from AA or the
@@ -219,6 +219,7 @@ class PlaybackRestoreController {
               lastPauseTimestamp: _lastPauseTimestamp,
             )) {
           _setRestoreStatus(RestoreStatus.ready);
+          _onRestoreReady?.call();
           return;
         }
 
@@ -236,6 +237,7 @@ class PlaybackRestoreController {
           _setRestoreStatus(RestoreStatus.ready);
           _statePublisher.invalidate();
           _statePublisher.updatePlaybackState();
+          _onRestoreReady?.call();
         }
         // Best-effort prefetch of the next item too; failures here are
         // non-fatal since it is not the one about to play.
@@ -263,6 +265,7 @@ class PlaybackRestoreController {
       _setRestoreStatus(RestoreStatus.ready);
       _statePublisher.invalidate();
       _statePublisher.updatePlaybackState();
+      _onRestoreReady?.call();
     }
   }
 
@@ -365,6 +368,16 @@ class PlaybackRestoreController {
     }
 
     var currentItem = items[savedIndex];
+    // Publish metadata immediately so Android Auto can show the now-playing
+    // chrome while the stream URL is still resolving (STATE_NONE / idle hides
+    // the player until the user picks a track from browse).
+    _savedPosition = meta.position;
+    _emitMediaItem(currentItem);
+    _statePublisher.publishConnecting(
+      queueIndex: savedIndex,
+      position: _savedPosition,
+    );
+
     try {
       final currentTrack = QueueTrack.fromMediaItem(currentItem);
       final freshUrl = await _playVideoIdUseCase.resolveUrl(
@@ -376,13 +389,12 @@ class PlaybackRestoreController {
       ).copyWith(url: freshUrl, needsUrl: false);
       currentItem = track.toMediaItem(currentItem);
       items[savedIndex] = currentItem;
+      _emitMediaItem(currentItem);
     } catch (e) {
       dev.log(
         '[AudioHandler] _doRestore: failed URL resolve for index $savedIndex: $e',
       );
     }
-
-    _savedPosition = meta.position;
 
     if (meta.shuffleMode != null) {
       await _applyShuffleMode(meta.shuffleMode!);
@@ -462,12 +474,10 @@ class PlaybackRestoreController {
       // Publish the final playlist to the queue stream before restore is
       // marked ready, so the full-player queue is populated immediately.
       _queueController.syncQueue(isStopping: false);
-      // Seed mediaItem if playlist events were suppressed during open.
+      // Seed / refresh mediaItem after open (URL may have been resolved above).
       final playlist = _player.state.playlist;
       final idx = playlist.index;
-      if (idx >= 0 &&
-          idx < playlist.medias.length &&
-          _currentMediaItem() == null) {
+      if (idx >= 0 && idx < playlist.medias.length) {
         final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
         if (item != null) {
           _emitMediaItem(item);

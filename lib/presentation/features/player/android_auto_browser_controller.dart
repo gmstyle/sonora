@@ -41,6 +41,7 @@ class AndroidAutoBrowserController {
   final List<MediaItem> Function() _userQueue;
   final List<MediaItem> Function() _upNextQueue;
   final MediaItem? Function() _currentMediaItem;
+  final Future<void> Function() _awaitReady;
   final Future<void> Function(List<MediaItem> items) _playNow;
 
   // ── Android Auto extras ──────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ class AndroidAutoBrowserController {
     required List<MediaItem> Function() userQueue,
     required List<MediaItem> Function() upNextQueue,
     required MediaItem? Function() currentMediaItem,
+    required Future<void> Function() awaitReady,
     required Future<void> Function(List<MediaItem> items) playNow,
   }) : _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
@@ -131,6 +133,7 @@ class AndroidAutoBrowserController {
        _userQueue = userQueue,
        _upNextQueue = upNextQueue,
        _currentMediaItem = currentMediaItem,
+       _awaitReady = awaitReady,
        _playNow = playNow;
 
   // ═══════════════════════════════════════════════════════════════
@@ -151,8 +154,11 @@ class AndroidAutoBrowserController {
     try {
       if (isRoot) return _buildRootChildren();
 
-      // Playback resumption (AA/BT EXTRA_RECENT): 0 or 1 current item.
+      // Playback resumption (AA/BT EXTRA_RECENT): wait for restore so we do
+      // not return [] while the queue is still loading — AA would hide the
+      // now-playing chrome until the user picks a track from browse.
       if (parentMediaId == _recentRootId) {
+        await _awaitReady();
         return _buildResumptionChildren();
       }
 

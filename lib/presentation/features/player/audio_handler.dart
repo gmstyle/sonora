@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:media_kit/media_kit.dart';
@@ -218,6 +219,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       userQueue: () => _queueController.userQueue,
       upNextQueue: () => _queueController.upNextQueue,
       currentMediaItem: () => mediaItem.valueOrNull,
+      awaitReady: () => _restoreController.awaitReady(),
       playNow: (items) => playNow(items),
     );
 
@@ -344,7 +346,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       statePublisher: _statePublisher,
       playVideoIdUseCase: _playVideoIdUseCase,
       setUserWantsPlaying: (v) => _userWantsPlaying = v,
-      currentMediaItem: () => mediaItem.valueOrNull,
       emitMediaItem: (item) => mediaItem.add(item),
       applyShuffleMode: (shuffleMode) async {
         await _player.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
@@ -364,6 +365,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       },
       updateQueueStream: (items) => queue.add(items),
       setIsStopping: (v) => _isStopping = v,
+      onRestoreReady: _notifyAndroidAutoResumption,
     );
     _audioSessionController = AudioSessionController(
       userWantsPlaying: () => _userWantsPlaying,
@@ -668,6 +670,36 @@ class SonoraAudioHandler extends BaseAudioHandler {
       _userWantsPlaying = false;
       _statePublisher.invalidate();
       _statePublisher.updatePlaybackState();
+    }
+  }
+
+  /// AA/AAOS call this when the media source becomes active. Native audio_service
+  /// activates the MediaSession first; we finish restore and publish paused
+  /// metadata so the now-playing chrome appears without requiring a browse tap.
+  @override
+  Future<void> prepare() async {
+    await _restoreController.awaitReady();
+    final playlist = _player.state.playlist;
+    final idx = playlist.index;
+    if (mediaItem.valueOrNull == null &&
+        idx >= 0 &&
+        idx < playlist.medias.length) {
+      final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
+      if (item != null) {
+        mediaItem.add(item);
+      }
+    }
+    _statePublisher.invalidate();
+    _statePublisher.updatePlaybackState();
+  }
+
+  void _notifyAndroidAutoResumption() {
+    try {
+      AudioServicePlatform.instance.notifyChildrenChanged(
+        const NotifyChildrenChangedRequest(parentMediaId: 'recent'),
+      );
+    } catch (e) {
+      dev.log('[AA] notifyChildrenChanged(recent) failed: $e');
     }
   }
 
