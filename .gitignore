@@ -47,3 +47,8 @@ app.*.map.json
 # Drift / Build Runner generated files
 *.g.dart
 *.freezed.dart
+
+# Cursor — keep project skills in git; ignore local plans/cache/etc.
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
