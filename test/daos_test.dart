@@ -380,6 +380,60 @@ void main() {
       final playlists = await libraryDao.getAllLikedPlaylists();
       expect(playlists, isEmpty);
     });
+
+    test('getForgottenFavorites deduplicates duplicate history rows', () async {
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Song 1'),
+          artist: Value('Artist 1'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
+      final oldPlay = DateTime.now().subtract(const Duration(days: 60));
+      await historyDao.insertHistoryRaw(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        playedAt: oldPlay,
+      );
+      await historyDao.insertHistoryRaw(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        playedAt: oldPlay.subtract(const Duration(days: 1)),
+      );
+
+      final forgotten = await libraryDao.getForgottenFavorites(daysLimit: 30);
+      expect(forgotten.length, 1);
+      expect(forgotten.first.videoId, 'video_1');
+    });
+
+    test('getForgottenFavorites uses latest play date per videoId', () async {
+      await libraryDao.insertLikedSong(
+        LikedSongsCompanion(
+          videoId: Value('video_1'),
+          title: Value('Song 1'),
+          artist: Value('Artist 1'),
+          addedAt: Value(DateTime.now()),
+        ),
+      );
+      await historyDao.insertHistoryRaw(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        playedAt: DateTime.now().subtract(const Duration(days: 60)),
+      );
+      await historyDao.insertHistoryRaw(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        playedAt: DateTime.now().subtract(const Duration(days: 5)),
+      );
+
+      final forgotten = await libraryDao.getForgottenFavorites(daysLimit: 30);
+      expect(forgotten, isEmpty);
+    });
   });
 
   group('PlaylistsDao', () {
@@ -799,6 +853,36 @@ void main() {
 
       final limited = await historyDao.getRecentHistory(limit: 3);
       expect(limited.length, 3);
+    });
+
+    test('getMostPlayedSongs deduplicates by videoId', () async {
+      await historyDao.insertHistoryRaw(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        playedAt: DateTime(2024, 1, 2),
+        playCount: 10,
+      );
+      await historyDao.insertHistoryRaw(
+        'video_1',
+        'Song 1',
+        'Artist 1',
+        playedAt: DateTime(2024, 1, 1),
+        playCount: 5,
+      );
+      await historyDao.insertHistoryRaw(
+        'video_2',
+        'Song 2',
+        'Artist 2',
+        playedAt: DateTime(2024, 1, 1),
+        playCount: 8,
+      );
+
+      final mostPlayed = await historyDao.getMostPlayedSongs();
+      expect(mostPlayed.length, 2);
+      expect(mostPlayed.map((h) => h.videoId).toSet(), {'video_1', 'video_2'});
+      expect(mostPlayed.first.videoId, 'video_1');
+      expect(mostPlayed.first.playCount, 10);
     });
 
     test('insert and retrieve search history', () async {

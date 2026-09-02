@@ -147,36 +147,38 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Future<void> deleteLikedEpisode(String videoId) =>
       (delete(db.likedEpisodes)..where((t) => t.videoId.equals(videoId))).go();
 
-  Future<List<LikedSong>> getForgottenFavorites({int daysLimit = 30}) async {
+  static const _forgottenFavoritesQuery = '''
+SELECT ls.*
+FROM liked_songs ls
+LEFT JOIN (
+  SELECT video_id, MAX(played_at) AS last_played
+  FROM history
+  GROUP BY video_id
+) h ON ls.video_id = h.video_id
+WHERE h.last_played IS NULL OR h.last_played < ?
+''';
+
+  Future<List<LikedSong>> getForgottenFavorites({int daysLimit = 30}) {
     final cutoff = DateTime.now().subtract(Duration(days: daysLimit));
-    final query = select(db.likedSongs).join([
-      leftOuterJoin(
-        db.history,
-        db.history.videoId.equalsExp(db.likedSongs.videoId),
-      ),
-    ]);
-    query.where(
-      db.history.playedAt.isNull() |
-          db.history.playedAt.isSmallerThanValue(cutoff),
-    );
-    final rows = await query.get();
-    return rows.map((row) => row.readTable(db.likedSongs)).toList();
+    return _queryForgottenFavorites(cutoff);
+  }
+
+  Future<List<LikedSong>> _queryForgottenFavorites(DateTime cutoff) {
+    return customSelect(
+      _forgottenFavoritesQuery,
+      variables: [Variable.withDateTime(cutoff)],
+      readsFrom: {db.likedSongs, db.history},
+    ).map((row) => db.likedSongs.map(row.data)).get();
   }
 
   Stream<List<LikedSong>> watchForgottenFavorites({int daysLimit = 30}) {
     final cutoff = DateTime.now().subtract(Duration(days: daysLimit));
-    final query = select(db.likedSongs).join([
-      leftOuterJoin(
-        db.history,
-        db.history.videoId.equalsExp(db.likedSongs.videoId),
-      ),
-    ]);
-    query.where(
-      db.history.playedAt.isNull() |
-          db.history.playedAt.isSmallerThanValue(cutoff),
+    return customSelect(
+      _forgottenFavoritesQuery,
+      variables: [Variable.withDateTime(cutoff)],
+      readsFrom: {db.likedSongs, db.history},
+    ).watch().map(
+      (rows) => rows.map((row) => db.likedSongs.map(row.data)).toList(),
     );
-    return query.watch().map((rows) {
-      return rows.map((row) => row.readTable(db.likedSongs)).toList();
-    });
   }
 }

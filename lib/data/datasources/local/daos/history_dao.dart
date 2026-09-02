@@ -137,15 +137,33 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     SearchHistoryCompanion(query: Value(query), searchedAt: Value(searchedAt)),
   );
 
-  Future<List<HistoryData>> getMostPlayedSongs({int limit = 50}) =>
-      (select(db.history)
-            ..orderBy([(t) => OrderingTerm.desc(t.playCount)])
-            ..limit(limit))
-          .get();
+  Future<List<HistoryData>> getMostPlayedSongs({int limit = 50}) async {
+    // Over-fetch to account for any pre-existing duplicates, then deduplicate
+    // in Dart keeping the highest playCount row per videoId.
+    final rows =
+        await (select(db.history)
+              ..orderBy([
+                (t) => OrderingTerm.desc(t.playCount),
+                (t) => OrderingTerm.desc(t.playedAt),
+              ])
+              ..limit(limit * 3))
+            .get();
+    return _dedupeMostPlayed(rows, limit);
+  }
 
-  Stream<List<HistoryData>> watchMostPlayedSongs({int limit = 50}) =>
-      (select(db.history)
-            ..orderBy([(t) => OrderingTerm.desc(t.playCount)])
-            ..limit(limit))
-          .watch();
+  Stream<List<HistoryData>> watchMostPlayedSongs({int limit = 50}) {
+    return (select(db.history)
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.playCount),
+            (t) => OrderingTerm.desc(t.playedAt),
+          ])
+          ..limit(limit * 3))
+        .watch()
+        .map((rows) => _dedupeMostPlayed(rows, limit));
+  }
+
+  List<HistoryData> _dedupeMostPlayed(List<HistoryData> rows, int limit) {
+    final seen = <String>{};
+    return rows.where((r) => seen.add(r.videoId)).take(limit).toList();
+  }
 }
