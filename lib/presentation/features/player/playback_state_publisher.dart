@@ -18,6 +18,7 @@ class PlaybackStatePublisher {
   final bool Function() _isResolving;
   final Duration Function() _savedPosition;
   final bool Function() _isLiked;
+  final bool Function() _isExplicitlyPaused;
   final void Function() _onBecameReady;
 
   Duration _lastPosition = Duration.zero;
@@ -34,6 +35,7 @@ class PlaybackStatePublisher {
     required bool Function() isResolving,
     required Duration Function() savedPosition,
     required bool Function() isLiked,
+    required bool Function() isExplicitlyPaused,
     required void Function() onBecameReady,
   }) : _player = player,
        _getPlaybackState = getPlaybackState,
@@ -42,6 +44,7 @@ class PlaybackStatePublisher {
        _isResolving = isResolving,
        _savedPosition = savedPosition,
        _isLiked = isLiked,
+       _isExplicitlyPaused = isExplicitlyPaused,
        _onBecameReady = onBecameReady;
 
   String? get lastEmittedMediaItemId => _lastEmittedMediaItemId;
@@ -106,7 +109,7 @@ class PlaybackStatePublisher {
     if (_isRestoring() || _isResolving()) return;
 
     final processing = getProcessingState();
-    final playing = _player.state.playing;
+    final playing = _isExplicitlyPaused() ? false : _player.state.playing;
 
     if (processing == AudioProcessingState.ready) {
       _onBecameReady();

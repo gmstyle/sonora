@@ -196,7 +196,7 @@ class LinuxTrayService {
       if (_isPlaying) {
         await _audioHandler!.pause();
       } else {
-        await _audioHandler!.play();
+        await _audioHandler!.resumeFromUser();
       }
     }
   }

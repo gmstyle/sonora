@@ -152,6 +152,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isStopping = false;
   bool _userWantsPlaying = false;
 
+  /// Set by explicit [pause] / [stop]; cleared when playback actually resumes.
+  /// Used to reject spurious MediaSession PLAY after ear-detection route changes.
+  bool _userExplicitlyPaused = false;
+
+  /// Set by [resumeFromUser] so in-app resume bypasses the explicit-pause guard.
+  bool _resumeAuthorized = false;
+
   /// Serializes playlist rebuilds (setQueue / playNow) through the same FIFO
   /// lock as queue mutations, so Add to Queue cannot race Play All / URL swaps.
   ///
@@ -250,6 +257,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isResolving: () => _queueController.isResolvingItem,
       savedPosition: () => _restoreController.savedPosition,
       isLiked: () => _likeController.isCurrentSongLiked,
+      isExplicitlyPaused: () => _userExplicitlyPaused,
       onBecameReady: () => _recoveryController.resetRetryCount(),
     );
     _skipNavigator = SkipNavigator();
@@ -431,6 +439,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void _setupListeners() {
     _player.stream.playing.listen((playing) {
+      if (playing && _userExplicitlyPaused && !_resumeAuthorized) {
+        unawaited(_player.pause());
+        return;
+      }
       if (playing) {
         _userWantsPlaying = true;
       } else if (!_restoreController.isRestoring &&
@@ -646,8 +658,27 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// In-app / deliberate resume entry point. Bypasses the guard that blocks
+  /// spurious MediaSession PLAY after Pixel Buds ear-detection while paused.
+  Future<void> resumeFromUser() async {
+    _resumeAuthorized = true;
+    try {
+      await play();
+    } finally {
+      _resumeAuthorized = false;
+    }
+  }
+
   @override
   Future<void> play() async {
+    final suppressSpuriousPlay =
+        _userExplicitlyPaused && !_player.state.playing && !_resumeAuthorized;
+    if (suppressSpuriousPlay) {
+      _statePublisher.invalidate();
+      _statePublisher.updatePlaybackState();
+      return;
+    }
+    _userExplicitlyPaused = false;
     _userWantsPlaying = true;
     _isStopping = false;
     _audioSessionController.cancelResumeOnInterruptionEnd();
@@ -709,8 +740,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
+    _userExplicitlyPaused = true;
     _audioSessionController.cancelResumeOnInterruptionEnd();
     await _pause();
+    await _audioSessionController.releaseFocus();
+    _statePublisher.invalidate();
+    _statePublisher.updatePlaybackState();
   }
 
   Future<void> _pause() async {
@@ -730,6 +765,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
+    _userExplicitlyPaused = true;
     _userWantsPlaying = false;
     _restoreController.markPaused();
     if (_castController.castState?.connectionState ==

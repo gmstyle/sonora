@@ -968,7 +968,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   // ── Metodi base ───────────────────────────────────────────────
 
-  Future<void> play() => _handler.play();
+  Future<void> play() => _handler.resumeFromUser();
 
   Future<void> pause() => _handler.pause();
 
@@ -988,7 +988,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         _isFetchingUpNext = true;
         await _fetchAutoPlayUpNext();
       } else {
-        await _handler.play();
+        await _handler.resumeFromUser();
       }
     }
   }
@@ -1018,7 +1018,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     try {
       await _handler.skipToQueueItem(index);
       if (_operationVersion != v) return;
-      await _handler.play();
+      await _handler.resumeFromUser();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -1056,7 +1056,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           item,
         ], shouldAbort: () => _operationVersion != v);
         if (_operationVersion != v) return;
-        await _handler.play();
+        await _handler.resumeFromUser();
       } catch (e) {
         if (_operationVersion == v) {
           state = state.copyWith(
