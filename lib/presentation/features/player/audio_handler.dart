@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/utils/platform_utils.dart';
 import '../../../domain/repositories/queue_repository.dart';
 
 import 'package:audio_service/audio_service.dart';
@@ -694,13 +695,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   void _notifyAndroidAutoResumption() {
-    try {
-      AudioServicePlatform.instance.notifyChildrenChanged(
-        const NotifyChildrenChangedRequest(parentMediaId: 'recent'),
-      );
-    } catch (e) {
-      dev.log('[AA] notifyChildrenChanged(recent) failed: $e');
-    }
+    if (!isAndroid) return;
+    unawaited(
+      AudioServicePlatform.instance
+          .notifyChildrenChanged(
+            const NotifyChildrenChangedRequest(parentMediaId: 'recent'),
+          )
+          .catchError((Object e) {
+            dev.log('[AA] notifyChildrenChanged(recent) failed: $e');
+          }),
+    );
   }
 
   @override
