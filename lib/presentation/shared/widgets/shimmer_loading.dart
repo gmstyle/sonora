@@ -41,7 +41,11 @@ class ShimmerLoading extends StatelessWidget {
     this.zoneGap = 16,
   });
 
-  double get _sectionShelfHeight => cardWidth + 56;
+  /// Space below the square cover for title + subtitle bars.
+  /// Matches album/playlist shelf cards ([HomeLayoutMetrics.shelfTextHeight]).
+  static const double cardTextHeight = 56;
+
+  double get _sectionShelfHeight => cardWidth + cardTextHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -108,27 +112,62 @@ class _ShimmerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: cardWidth,
-          height: cardWidth,
-          child: const ColoredBox(color: Colors.white),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: cardWidth * 0.75,
-          height: 12,
-          child: const ColoredBox(color: Colors.white),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          width: cardWidth * 0.5,
-          height: 10,
-          child: const ColoredBox(color: Colors.white),
-        ),
-      ],
+    final textBlock = <Widget>[
+      const SizedBox(height: 8),
+      SizedBox(
+        width: cardWidth * 0.75,
+        height: 12,
+        child: const ColoredBox(color: Colors.white),
+      ),
+      const SizedBox(height: 4),
+      SizedBox(
+        width: cardWidth * 0.5,
+        height: 10,
+        child: const ColoredBox(color: Colors.white),
+      ),
+    ];
+
+    // Same idea as [ShelfCardLayout]: when the parent (carousel/shelf)
+    // bounds height, shrink the cover so the text bars never overflow.
+    return SizedBox(
+      width: cardWidth,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.hasBoundedHeight) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: cardWidth,
+                      maxHeight: cardWidth,
+                    ),
+                    child: const AspectRatio(
+                      aspectRatio: 1,
+                      child: ColoredBox(color: Colors.white),
+                    ),
+                  ),
+                ),
+                ...textBlock,
+              ],
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: cardWidth,
+                height: cardWidth,
+                child: const ColoredBox(color: Colors.white),
+              ),
+              ...textBlock,
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -182,7 +221,7 @@ class _ShimmerCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: cardWidth + 24,
+      height: cardWidth + ShimmerLoading.cardTextHeight,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
