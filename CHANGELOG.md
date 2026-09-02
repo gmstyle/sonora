@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.7.4+60] - 2026-09-02
+
+### Bug Fixes
+
+- **ui**: Stop shimmer carousel cards overflowing by 10px
+- **player**: Allow playNow after pause so artist/album play starts
+- **player**: Block spurious resume when earbuds removed while paused
+- **linux**: Skip Android Auto notifyChildrenChanged on non-Android platforms
+- **mixes**: Deduplicate most played and forgotten favorites queries
+- **aa**: Show now-playing on cold start without browse tap
+- **aa**: Keep MediaSession alive across transient empty playlists
+- **home**: Fill-width liked albums grid on wide and sync library data
+
 ## [1.7.2+58] - 2026-08-22
 
 ### Features
