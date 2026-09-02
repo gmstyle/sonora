@@ -1048,6 +1048,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
     bool Function()? shouldAbort,
   }) async {
     _isStopping = false;
+    // playNow is an explicit user-initiated session. pause() (called by
+    // playAlbum/playPlaylist/etc.) sets _userExplicitlyPaused to block
+    // spurious MediaSession PLAY; leaving it set here makes playing.listen
+    // immediately pause() the freshly opened playlist.
+    _userExplicitlyPaused = false;
     _volumeController.prepareTransitionMute();
     await _synchronizedOpen(() async {
       _queueController.beginResolving();
