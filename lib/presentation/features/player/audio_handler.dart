@@ -30,6 +30,7 @@ import 'like_controller.dart';
 import 'play_error.dart';
 import 'player_engine_configurator.dart';
 import 'player_media_controls.dart';
+import 'playback_intent_controller.dart';
 import 'playback_recovery_controller.dart';
 import 'playback_restore_controller.dart';
 import 'playback_state_publisher.dart';
@@ -150,15 +151,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   bool _isStopping = false;
-  bool _userWantsPlaying = false;
 
-  /// Set by in-app [pauseFromUser] / [stop]; not by MediaSession (buds) pause.
-  /// Used to reject spurious MediaSession PLAY after ear-detection while paused
-  /// from the app, without blocking intentional buds tap-to-resume.
-  bool _userExplicitlyPaused = false;
-
-  /// Set by [resumeFromUser] so in-app resume bypasses the explicit-pause guard.
-  bool _resumeAuthorized = false;
+  /// What the user wants playback to be doing, as opposed to what the engine is
+  /// doing. See [PlaybackIntentController] for the full truth table.
+  final PlaybackIntentController _intent = PlaybackIntentController();
 
   /// Serializes playlist rebuilds (setQueue / playNow) through the same FIFO
   /// lock as queue mutations, so Add to Queue cannot race Play All / URL swaps.
@@ -246,7 +242,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       player: _player,
       volumeController: _volumeController,
       playVideoIdUseCase: _playVideoIdUseCase,
-      userWantsPlaying: () => _userWantsPlaying,
+      userWantsPlaying: () => _intent.userWantsPlaying,
       currentMediaItem: () => mediaItem.value,
       requestPlay: play,
     );
@@ -258,7 +254,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isResolving: () => _queueController.isResolvingItem,
       savedPosition: () => _restoreController.savedPosition,
       isLiked: () => _likeController.isCurrentSongLiked,
-      isExplicitlyPaused: () => _userExplicitlyPaused,
+      isExplicitlyPaused: () => _intent.isExplicitlyPaused,
       onBecameReady: () => _recoveryController.resetRetryCount(),
     );
     _skipNavigator = SkipNavigator();
@@ -273,7 +269,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           () =>
               _castController.castState?.connectionState ==
               CastConnectionState.connected,
-      userWantsPlaying: () => _userWantsPlaying,
+      userWantsPlaying: () => _intent.userWantsPlaying,
       isStopping: () => _isStopping,
       isRestoring: () => _restoreController.isRestoring,
       requestPlay: play,
@@ -314,7 +310,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       statePublisher: _statePublisher,
       urlResolver: _urlResolver,
       connectivity: _sharedConnectivity,
-      userWantsPlaying: () => _userWantsPlaying,
+      userWantsPlaying: () => _intent.userWantsPlaying,
       isStopping: () => _isStopping,
       requestPlay: play,
       skipToQueueItem: skipToQueueItem,
@@ -355,7 +351,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       urlResolver: _urlResolver,
       statePublisher: _statePublisher,
       playVideoIdUseCase: _playVideoIdUseCase,
-      setUserWantsPlaying: (v) => _userWantsPlaying = v,
+      setUserWantsPlaying: _intent.setUserWantsPlaying,
       emitMediaItem: (item) => mediaItem.add(item),
       applyShuffleMode: (shuffleMode) async {
         await _player.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
@@ -378,7 +374,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onRestoreReady: _notifyAndroidAutoResumption,
     );
     _audioSessionController = AudioSessionController(
-      userWantsPlaying: () => _userWantsPlaying,
+      userWantsPlaying: () => _intent.userWantsPlaying,
       isPlaying: () => _player.state.playing,
       onPauseRequested: _pause,
       onResumeRequested: play,
@@ -440,17 +436,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   void _setupListeners() {
     _player.stream.playing.listen((playing) {
-      if (playing && _userExplicitlyPaused && !_resumeAuthorized) {
+      if (_intent.shouldForcePause(playing: playing)) {
         unawaited(_player.pause());
         return;
       }
-      if (playing) {
-        _userWantsPlaying = true;
-      } else if (!_restoreController.isRestoring &&
-          !_volumeController.isTransitionMuted &&
-          !_castController.pausedForConnection) {
-        _userWantsPlaying = false;
-      }
+      _intent.onEnginePlaying(
+        playing,
+        suppressClear:
+            _restoreController.isRestoring ||
+            _volumeController.isTransitionMuted ||
+            _castController.pausedForConnection,
+      );
       _statePublisher.updatePlaybackState();
     });
     _player.stream.buffering.listen(
@@ -661,19 +657,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   /// In-app / deliberate resume entry point. Bypasses the guard that blocks
   /// spurious MediaSession PLAY after Pixel Buds ear-detection while paused.
-  Future<void> resumeFromUser() async {
-    _resumeAuthorized = true;
-    try {
-      await play();
-    } finally {
-      _resumeAuthorized = false;
-    }
-  }
+  Future<void> resumeFromUser() => _intent.runAuthorizedResume(play);
 
-  /// In-app pause. Marks [_userExplicitlyPaused] so ear-detection PLAY is
+  /// In-app pause. Marks an explicit pause so ear-detection PLAY is
   /// ignored until [resumeFromUser]. MediaSession [pause] does not set this.
   Future<void> pauseFromUser() async {
-    _userExplicitlyPaused = true;
+    _intent.onUserPause();
     _audioSessionController.cancelResumeOnInterruptionEnd();
     await _pause();
     await _audioSessionController.releaseFocus();
@@ -683,15 +672,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> play() async {
-    final suppressSpuriousPlay =
-        _userExplicitlyPaused && !_player.state.playing && !_resumeAuthorized;
-    if (suppressSpuriousPlay) {
+    if (_intent.shouldRejectPlay(engineIsPlaying: _player.state.playing)) {
       _statePublisher.invalidate();
       _statePublisher.updatePlaybackState();
       return;
     }
-    _userExplicitlyPaused = false;
-    _userWantsPlaying = true;
+    _intent.onPlayAccepted();
     _isStopping = false;
     _audioSessionController.cancelResumeOnInterruptionEnd();
     _restoreController.clearPauseTimestamp();
@@ -711,7 +697,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await _castController.castService?.play();
       }
     } else {
-      _userWantsPlaying = false;
+      _intent.onFocusDenied();
       _statePublisher.invalidate();
       _statePublisher.updatePlaybackState();
     }
@@ -752,8 +738,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
-    // MediaSession / buds / notification pause — do not set
-    // [_userExplicitlyPaused], so a following buds tap can call [play].
+    // MediaSession / buds / notification pause — deliberately not an explicit
+    // pause, so a following buds tap can call [play].
+    _intent.onSessionPause();
     _audioSessionController.cancelResumeOnInterruptionEnd();
     await _pause();
     await _audioSessionController.releaseFocus();
@@ -762,7 +749,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _pause() async {
-    _userWantsPlaying = false;
+    _intent.onPauseApplied();
     _restoreController.markPaused();
     await _player.pause();
     if (_castController.castState?.connectionState ==
@@ -778,8 +765,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
-    _userExplicitlyPaused = true;
-    _userWantsPlaying = false;
+    _intent.onStop();
     _restoreController.markPaused();
     if (_castController.castState?.connectionState ==
         CastConnectionState.connected) {
@@ -953,7 +939,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       // If the user wanted playback but the player is still paused after the
       // jump (e.g., tap an item while paused), resume — but only when not in
       // cast mode, since castSong (fired from _onPlaylistChanged) owns resumption.
-      if (_userWantsPlaying &&
+      if (_intent.userWantsPlaying &&
           !_player.state.playing &&
           _castController.castState?.connectionState !=
               CastConnectionState.connected) {
@@ -1040,7 +1026,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
           position: Duration.zero,
         );
         final playlist = Playlist(medias, index: initialIndex);
-        _userWantsPlaying = false;
+        _intent.onQueueReplaced();
         await _player.open(playlist, play: false);
       } catch (e) {
         _volumeController.endTransitionMute();
@@ -1062,9 +1048,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }) async {
     _isStopping = false;
     // playNow is an explicit user-initiated session. pauseFromUser() (called
-    // by playAlbum/playPlaylist/etc.) sets _userExplicitlyPaused; leaving it
-    // set here makes playing.listen immediately pause() the new playlist.
-    _userExplicitlyPaused = false;
+    // by playAlbum/playPlaylist/etc.) marks an explicit pause; leaving it set
+    // here makes playing.listen immediately pause() the new playlist.
+    _intent.onNewSessionStarted();
     _volumeController.prepareTransitionMute();
     await _synchronizedOpen(() async {
       _queueController.beginResolving();
@@ -1113,7 +1099,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             resolvedItems.map(_queueController.toMedia).toList();
         final playlist = Playlist(finalMedias, index: initialIndex);
         final hasFocus = await _audioSessionController.requestFocus();
-        _userWantsPlaying = hasFocus;
+        _intent.onSessionOpened(hasFocus: hasFocus);
         await _player.open(playlist, play: hasFocus);
       } catch (e) {
         _volumeController.endTransitionMute();
@@ -1191,7 +1177,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> clearQueue() async {
-    _userWantsPlaying = false;
+    _intent.onQueueCleared();
     _urlResolver.cancelLookahead();
     await _queueController.clear();
     queue.add([]);
