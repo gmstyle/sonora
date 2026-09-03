@@ -1,6 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -370,9 +371,10 @@ class HomeSectionRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (section.contents.isEmpty) return const SizedBox.shrink();
 
+    final useHero = isFirst && _sectionUsesHeroCarousel(section);
     final carouselHeight = _sectionCarouselHeight(
       section,
-      isFirst: isFirst,
+      isFirst: useHero,
       metrics: metrics,
     );
 
@@ -428,7 +430,7 @@ class HomeSectionRow extends ConsumerWidget {
         SizedBox(
           height: carouselHeight,
           child:
-              isFirst
+              useHero
                   ? _HeroCarousel(
                     items: section.contents,
                     viewportFraction: metrics.heroViewportFraction,
