@@ -35,6 +35,7 @@ import 'playback_recovery_controller.dart';
 import 'playback_restore_controller.dart';
 import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
+import 'playlist_open_coordinator.dart';
 import 'queue_controller.dart';
 import 'skip_navigator.dart';
 import 'track_url_resolver.dart';
@@ -71,6 +72,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlaybackRecoveryController _recoveryController;
   late final PlaybackRestoreController _restoreController;
   late final ExternalAudioTrackController _externalAudio;
+  late final PlaylistOpenCoordinator _playlistOpener;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -97,7 +99,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       enableVideoPlayback: enableVideoPlayback,
     );
     if (audioChanged || enableChanged) {
-      unawaited(_rebuildPlaylistMedia());
+      unawaited(_playlistOpener.rebuildMedia());
     }
   }
 
@@ -123,55 +125,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
   }
 
-  Future<void> _rebuildPlaylistMedia() async {
-    final playlist = _player.state.playlist;
-    if (playlist.medias.isEmpty) return;
-    final items = [
-      for (final media in playlist.medias)
-        media.extras?['mediaItem'] as MediaItem?,
-    ];
-    final index = playlist.index;
-    final pos = _player.state.position;
-    final wasPlaying = _player.state.playing;
-    await _queueController.runBatch(() async {
-      for (var i = 0; i < items.length; i++) {
-        final item = items[i];
-        if (item == null) continue;
-        await _queueController.replaceAtUnlocked(
-          i,
-          _queueController.toMedia(item),
-        );
-      }
-      if (index >= 0 && index < _player.state.playlist.medias.length) {
-        await _player.jump(index);
-        if (pos > Duration.zero) await _player.seek(pos);
-        if (wasPlaying) await _player.play();
-      }
-    }, isStopping: _isStopping);
-  }
-
   bool _isStopping = false;
 
   /// What the user wants playback to be doing, as opposed to what the engine is
   /// doing. See [PlaybackIntentController] for the full truth table.
   final PlaybackIntentController _intent = PlaybackIntentController();
-
-  /// Serializes playlist rebuilds (setQueue / playNow) through the same FIFO
-  /// lock as queue mutations, so Add to Queue cannot race Play All / URL swaps.
-  ///
-  /// When [shouldAbort] is provided it is evaluated right before the
-  /// action runs (i.e. after any in-flight action completes); if it
-  /// returns `true` the action is skipped entirely, so an obsolete caller
-  /// never touches the player — the most recent call always wins.
-  Future<void> _synchronizedOpen(
-    Future<void> Function() action, {
-    bool Function()? shouldAbort,
-  }) async {
-    await _queueController.runExclusive(() async {
-      if (shouldAbort?.call() ?? false) return;
-      await action();
-    });
-  }
 
   Stream<PlayErrorEvent> get onPlayError => _recoveryController.onPlayError;
 
@@ -379,6 +337,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onPauseRequested: _pause,
       onResumeRequested: play,
       onDuck: _volumeController.setDucking,
+    );
+    _playlistOpener = PlaylistOpenCoordinator(
+      player: _player,
+      queueController: _queueController,
+      queueRepo: _queueRepo,
+      volumeController: _volumeController,
+      statePublisher: _statePublisher,
+      intent: _intent,
+      playVideoIdUseCase: _playVideoIdUseCase,
+      requestFocus: _audioSessionController.requestFocus,
+      emitQueue: (items) => queue.add(items),
+      isStopping: () => _isStopping,
+      setIsStopping: (v) => _isStopping = v,
+      log: dev.log,
     );
 
     unawaited(_audioSessionController.setup());
@@ -1005,114 +977,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
     List<MediaItem> items, {
     int initialIndex = 0,
     bool Function()? shouldAbort,
-  }) async {
-    _isStopping = false;
-    _volumeController.prepareTransitionMute();
-    await _synchronizedOpen(() async {
-      _queueController.beginResolving();
-      try {
-        final (itemsWithKeys, medias) = _queueController.preparePlaylist(
-          items,
-          initialIndex: initialIndex,
-        );
-        queue.add(itemsWithKeys);
-        // A brand-new playback session starts at position 0 — explicitly
-        // reset the persisted position so a process death right after this
-        // call can't resume with a stale position left over from whatever
-        // was playing before.
-        await _queueRepo.persistQueue(
-          itemsWithKeys,
-          currentIndex: initialIndex,
-          position: Duration.zero,
-        );
-        final playlist = Playlist(medias, index: initialIndex);
-        _intent.onQueueReplaced();
-        await _player.open(playlist, play: false);
-      } catch (e) {
-        _volumeController.endTransitionMute();
-        rethrow;
-      } finally {
-        _queueController.endResolving();
-        if (!_queueController.isResolvingItem) {
-          _statePublisher.invalidate();
-          _statePublisher.updatePlaybackState();
-        }
-      }
-    }, shouldAbort: shouldAbort);
-  }
+  }) => _playlistOpener.setQueue(
+    items,
+    initialIndex: initialIndex,
+    shouldAbort: shouldAbort,
+  );
 
   Future<void> playNow(
     List<MediaItem> items, {
     int initialIndex = 0,
     bool Function()? shouldAbort,
-  }) async {
-    _isStopping = false;
-    // playNow is an explicit user-initiated session. pauseFromUser() (called
-    // by playAlbum/playPlaylist/etc.) marks an explicit pause; leaving it set
-    // here makes playing.listen immediately pause() the new playlist.
-    _intent.onNewSessionStarted();
-    _volumeController.prepareTransitionMute();
-    await _synchronizedOpen(() async {
-      _queueController.beginResolving();
-      try {
-        final (itemsWithKeys, medias) = _queueController.preparePlaylist(
-          items,
-          initialIndex: initialIndex,
-        );
-        var resolvedItems = itemsWithKeys;
-        queue.add(resolvedItems);
-        // Same reasoning as setQueue: a brand-new session starts at 0.
-        await _queueRepo.persistQueue(
-          resolvedItems,
-          currentIndex: initialIndex,
-          position: Duration.zero,
-        );
-
-        if (initialIndex >= 0 && initialIndex < resolvedItems.length) {
-          final initialItem = resolvedItems[initialIndex];
-          final track = QueueTrack.fromMediaItem(initialItem);
-          if (track.needsUrl) {
-            try {
-              final url = await _playVideoIdUseCase.resolveUrl(
-                track.videoId,
-                preferVideo: _queueController.prefersVideo(track),
-              );
-              final resolved = track
-                  .copyWith(url: url, needsUrl: false)
-                  .toMediaItem(initialItem);
-              resolvedItems = List.from(resolvedItems);
-              resolvedItems[initialIndex] = resolved;
-              queue.add(resolvedItems);
-              await _queueRepo.persistQueue(
-                resolvedItems,
-                currentIndex: initialIndex,
-              );
-            } catch (e) {
-              dev.log(
-                '[AudioHandler] Failed to resolve initial item URL for ${track.videoId}: $e',
-              );
-            }
-          }
-        }
-
-        final finalMedias =
-            resolvedItems.map(_queueController.toMedia).toList();
-        final playlist = Playlist(finalMedias, index: initialIndex);
-        final hasFocus = await _audioSessionController.requestFocus();
-        _intent.onSessionOpened(hasFocus: hasFocus);
-        await _player.open(playlist, play: hasFocus);
-      } catch (e) {
-        _volumeController.endTransitionMute();
-        rethrow;
-      } finally {
-        _queueController.endResolving();
-        if (!_queueController.isResolvingItem) {
-          _statePublisher.invalidate();
-          _statePublisher.updatePlaybackState();
-        }
-      }
-    }, shouldAbort: shouldAbort);
-  }
+  }) => _playlistOpener.playNow(
+    items,
+    initialIndex: initialIndex,
+    shouldAbort: shouldAbort,
+  );
 
   Future<void> playNext(MediaItem item) async {
     await _queueController.runBatch(
