@@ -29,10 +29,10 @@ class _FakePlayerState extends Fake implements PlayerState {
 }
 
 class _FakePlayer extends Fake implements Player {
-  _FakePlayer(this.playlist, {this.playerDuration = Duration.zero});
+  _FakePlayer(this.playlist);
 
   Playlist playlist;
-  Duration playerDuration;
+  Duration playerDuration = Duration.zero;
 
   @override
   PlayerState get state => _FakePlayerState(playlist, playerDuration);
