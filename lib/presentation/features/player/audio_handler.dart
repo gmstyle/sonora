@@ -151,7 +151,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     _likeController = LikeController(
       libraryRepo: libraryRepo,
-      onLikeChanged: () => _rebuildControls(),
+      onLikeChanged: () => _transitions.rebuildControls(),
     );
 
     _equalizerController = EqualizerController(player: _player);
@@ -356,6 +356,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
     _transitions = TrackTransitionCoordinator(
       player: _player,
+      intent: _intent,
       externalAudio: _externalAudio,
       queueController: _queueController,
       skipNavigator: _skipNavigator,
@@ -369,10 +370,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
       currentMediaItem: () => mediaItem.value,
       emitMediaItem: (item) => mediaItem.add(item),
       isStopping: () => _isStopping,
+      isRestoring: () => _restoreController.isRestoring,
     );
 
     unawaited(_audioSessionController.setup());
-    _setupListeners();
+    _transitions.setupListeners();
     _recoveryController.startListening();
     unawaited(_engineConfigurator.configure());
     unawaited(_restoreController.ensureReady());
@@ -423,77 +425,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// subscribe to it directly without going through [playbackState], which
   /// would cause Android Auto to re-render the queue view on every tick.
   Stream<Duration> get positionStream => _player.stream.position;
-
-  void _setupListeners() {
-    _player.stream.playing.listen((playing) {
-      if (_intent.shouldForcePause(playing: playing)) {
-        unawaited(_player.pause());
-        return;
-      }
-      _intent.onEnginePlaying(
-        playing,
-        suppressClear:
-            _restoreController.isRestoring ||
-            _volumeController.isTransitionMuted ||
-            _castController.pausedForConnection,
-      );
-      _statePublisher.updatePlaybackState();
-    });
-    _player.stream.buffering.listen(
-      (_) => _statePublisher.updatePlaybackState(),
-    );
-    _player.stream.completed.listen(
-      (_) => _statePublisher.updatePlaybackState(),
-    );
-
-    _player.stream.playlist.listen((playlist) {
-      if (!_queueController.isResolvingItem) {
-        _statePublisher.updatePlaybackState();
-      }
-      _transitions.onPlaylistChanged(playlist);
-    });
-
-    _player.stream.duration.listen(_transitions.onDurationChanged);
-
-    _player.stream.position.listen((pos) {
-      _volumeController.handleCrossfade(pos);
-      _statePublisher.handlePositionTick(pos);
-      if (_volumeController.isTransitionMuted &&
-          _player.state.playing &&
-          pos.inMilliseconds > 150) {
-        _volumeController.endTransitionMute();
-      }
-    });
-    _player.stream.buffer.listen(_statePublisher.onBufferedPositionChanged);
-
-    _player.stream.shuffle.listen((shuffled) {
-      final shuffleMode =
-          shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
-      _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
-      _rebuildControls();
-    });
-
-    _player.stream.playlistMode.listen((mode) {
-      final repeatMode = switch (mode) {
-        PlaylistMode.none => AudioServiceRepeatMode.none,
-        PlaylistMode.single => AudioServiceRepeatMode.one,
-        PlaylistMode.loop => AudioServiceRepeatMode.all,
-      };
-      _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
-      _rebuildControls();
-    });
-  }
-
-  void _rebuildControls() {
-    _statePublisher.updateState(
-      (s) => s.copyWith(
-        controls: PlayerMediaControls.build(
-          s,
-          isLiked: _likeController.isCurrentSongLiked,
-        ),
-      ),
-    );
-  }
 
   /// In-app / deliberate resume entry point. Bypasses the guard that blocks
   /// spurious MediaSession PLAY after Pixel Buds ear-detection while paused.

@@ -10,18 +10,22 @@ import '../../providers/cast_provider.dart';
 import 'cast_playback_controller.dart';
 import 'external_audio_track_controller.dart';
 import 'like_controller.dart';
+import 'playback_intent_controller.dart';
 import 'playback_recovery_controller.dart';
 import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
+import 'player_media_controls.dart';
 import 'queue_controller.dart';
 import 'skip_navigator.dart';
 import 'track_url_resolver.dart';
 
-/// Runs everything that has to happen when the engine moves to another track.
+/// Wires media_kit player streams and runs the track-change cascade.
 ///
-/// This is the most order-sensitive code in the player module. The steps below
-/// are not independent, and a mechanically correct extraction that reorders two
-/// of them breaks casting or queue persistence with nothing to signal it.
+/// [setupListeners] owns the subscriptions; [onPlaylistChanged] is the cascade
+/// itself. This is the most order-sensitive code in the player module. The
+/// steps below are not independent, and a mechanically correct extraction that
+/// reorders two of them breaks casting or queue persistence with nothing to
+/// signal it.
 ///
 /// ## The cascade, in order
 ///
@@ -52,6 +56,7 @@ import 'track_url_resolver.dart';
 /// own driver — gating it would stall look-ahead permanently.
 class TrackTransitionCoordinator {
   final Player _player;
+  final PlaybackIntentController _intent;
   final ExternalAudioTrackController _externalAudio;
   final QueueController _queueController;
   final SkipNavigator _skipNavigator;
@@ -65,9 +70,11 @@ class TrackTransitionCoordinator {
   final MediaItem? Function() _currentMediaItem;
   final void Function(MediaItem) _emitMediaItem;
   final bool Function() _isStopping;
+  final bool Function() _isRestoring;
 
   TrackTransitionCoordinator({
     required Player player,
+    required PlaybackIntentController intent,
     required ExternalAudioTrackController externalAudio,
     required QueueController queueController,
     required SkipNavigator skipNavigator,
@@ -81,7 +88,9 @@ class TrackTransitionCoordinator {
     required MediaItem? Function() currentMediaItem,
     required void Function(MediaItem) emitMediaItem,
     required bool Function() isStopping,
+    required bool Function() isRestoring,
   }) : _player = player,
+       _intent = intent,
        _externalAudio = externalAudio,
        _queueController = queueController,
        _skipNavigator = skipNavigator,
@@ -94,7 +103,81 @@ class TrackTransitionCoordinator {
        _volumeController = volumeController,
        _currentMediaItem = currentMediaItem,
        _emitMediaItem = emitMediaItem,
-       _isStopping = isStopping;
+       _isStopping = isStopping,
+       _isRestoring = isRestoring;
+
+  /// Subscribes to media_kit streams. Called once from the handler constructor.
+  void setupListeners() {
+    _player.stream.playing.listen((playing) {
+      if (_intent.shouldForcePause(playing: playing)) {
+        unawaited(_player.pause());
+        return;
+      }
+      _intent.onEnginePlaying(
+        playing,
+        suppressClear:
+            _isRestoring() ||
+            _volumeController.isTransitionMuted ||
+            _castController().pausedForConnection,
+      );
+      _statePublisher.updatePlaybackState();
+    });
+    _player.stream.buffering.listen(
+      (_) => _statePublisher.updatePlaybackState(),
+    );
+    _player.stream.completed.listen(
+      (_) => _statePublisher.updatePlaybackState(),
+    );
+
+    _player.stream.playlist.listen((playlist) {
+      if (!_queueController.isResolvingItem) {
+        _statePublisher.updatePlaybackState();
+      }
+      onPlaylistChanged(playlist);
+    });
+
+    _player.stream.duration.listen(onDurationChanged);
+
+    _player.stream.position.listen((pos) {
+      _volumeController.handleCrossfade(pos);
+      _statePublisher.handlePositionTick(pos);
+      if (_volumeController.isTransitionMuted &&
+          _player.state.playing &&
+          pos.inMilliseconds > 150) {
+        _volumeController.endTransitionMute();
+      }
+    });
+    _player.stream.buffer.listen(_statePublisher.onBufferedPositionChanged);
+
+    _player.stream.shuffle.listen((shuffled) {
+      final shuffleMode =
+          shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
+      _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
+      rebuildControls();
+    });
+
+    _player.stream.playlistMode.listen((mode) {
+      final repeatMode = switch (mode) {
+        PlaylistMode.none => AudioServiceRepeatMode.none,
+        PlaylistMode.single => AudioServiceRepeatMode.one,
+        PlaylistMode.loop => AudioServiceRepeatMode.all,
+      };
+      _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
+      rebuildControls();
+    });
+  }
+
+  /// Rebuilds the notification / Android Auto control row (play, shuffle, like).
+  void rebuildControls() {
+    _statePublisher.updateState(
+      (s) => s.copyWith(
+        controls: PlayerMediaControls.build(
+          s,
+          isLiked: _likeController.isCurrentSongLiked,
+        ),
+      ),
+    );
+  }
 
   void onPlaylistChanged(Playlist playlist) {
     if (_isStopping()) return;

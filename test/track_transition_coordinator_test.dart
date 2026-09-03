@@ -6,6 +6,7 @@ import 'package:sonora/domain/repositories/queue_repository.dart';
 import 'package:sonora/presentation/features/player/cast_playback_controller.dart';
 import 'package:sonora/presentation/features/player/external_audio_track_controller.dart';
 import 'package:sonora/presentation/features/player/like_controller.dart';
+import 'package:sonora/presentation/features/player/playback_intent_controller.dart';
 import 'package:sonora/presentation/features/player/playback_recovery_controller.dart';
 import 'package:sonora/presentation/features/player/playback_state_publisher.dart';
 import 'package:sonora/presentation/features/player/playback_volume_controller.dart';
@@ -169,6 +170,7 @@ void main() {
 
     coordinator = TrackTransitionCoordinator(
       player: player,
+      intent: PlaybackIntentController(),
       externalAudio: externalAudio,
       queueController: queueController,
       skipNavigator: _FakeSkipNavigator(),
@@ -182,6 +184,7 @@ void main() {
       currentMediaItem: () => emitted.isEmpty ? null : emitted.last,
       emitMediaItem: emitted.add,
       isStopping: () => isStopping,
+      isRestoring: () => false,
     );
   });
 
