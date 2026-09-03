@@ -152,8 +152,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   bool _isStopping = false;
   bool _userWantsPlaying = false;
 
-  /// Set by explicit [pause] / [stop]; cleared when playback actually resumes.
-  /// Used to reject spurious MediaSession PLAY after ear-detection route changes.
+  /// Set by in-app [pauseFromUser] / [stop]; not by MediaSession (buds) pause.
+  /// Used to reject spurious MediaSession PLAY after ear-detection while paused
+  /// from the app, without blocking intentional buds tap-to-resume.
   bool _userExplicitlyPaused = false;
 
   /// Set by [resumeFromUser] so in-app resume bypasses the explicit-pause guard.
@@ -669,6 +670,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
+  /// In-app pause. Marks [_userExplicitlyPaused] so ear-detection PLAY is
+  /// ignored until [resumeFromUser]. MediaSession [pause] does not set this.
+  Future<void> pauseFromUser() async {
+    _userExplicitlyPaused = true;
+    _audioSessionController.cancelResumeOnInterruptionEnd();
+    await _pause();
+    await _audioSessionController.releaseFocus();
+    _statePublisher.invalidate();
+    _statePublisher.updatePlaybackState();
+  }
+
   @override
   Future<void> play() async {
     final suppressSpuriousPlay =
@@ -740,7 +752,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
-    _userExplicitlyPaused = true;
+    // MediaSession / buds / notification pause — do not set
+    // [_userExplicitlyPaused], so a following buds tap can call [play].
     _audioSessionController.cancelResumeOnInterruptionEnd();
     await _pause();
     await _audioSessionController.releaseFocus();
@@ -1048,10 +1061,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     bool Function()? shouldAbort,
   }) async {
     _isStopping = false;
-    // playNow is an explicit user-initiated session. pause() (called by
-    // playAlbum/playPlaylist/etc.) sets _userExplicitlyPaused to block
-    // spurious MediaSession PLAY; leaving it set here makes playing.listen
-    // immediately pause() the freshly opened playlist.
+    // playNow is an explicit user-initiated session. pauseFromUser() (called
+    // by playAlbum/playPlaylist/etc.) sets _userExplicitlyPaused; leaving it
+    // set here makes playing.listen immediately pause() the new playlist.
     _userExplicitlyPaused = false;
     _volumeController.prepareTransitionMute();
     await _synchronizedOpen(() async {

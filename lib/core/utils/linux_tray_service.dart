@@ -194,7 +194,7 @@ class LinuxTrayService {
   Future<void> _sendPlayPauseAction() async {
     if (_audioHandler != null) {
       if (_isPlaying) {
-        await _audioHandler!.pause();
+        await _audioHandler!.pauseFromUser();
       } else {
         await _audioHandler!.resumeFromUser();
       }
