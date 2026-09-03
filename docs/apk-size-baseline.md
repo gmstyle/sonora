@@ -107,6 +107,49 @@ Each split now carries exactly one `libmpv.so`, for its own architecture:
 The ~26.9 MiB of foreign-ABI duplication is gone. A user on arm64 downloads 43.6 MB instead of
 125.7 MB.
 
-## After: split per ABI + R8 / resource shrinking
+## R8 / resource shrinking: already enabled, no change needed
 
-_To be filled in by task A5._
+`android/app/build.gradle.kts` does not mention `isMinifyEnabled` or `isShrinkResources`, which
+suggests minification is off. It is not: the Flutter Gradle plugin turns it on for release builds.
+
+`packages/flutter_tools/gradle/src/main/kotlin/FlutterPlugin.kt:216-226`:
+
+```kotlin
+if (FlutterPluginUtils.shouldShrinkResources(project)) {
+    releaseBuildType.isMinifyEnabled = true
+    releaseBuildType.isShrinkResources = FlutterPluginUtils.isBuiltAsApp(project)
+    releaseBuildType.proguardFiles.add(getDefaultProguardFile("proguard-android-optimize.txt"))
+    releaseBuildType.proguardFiles.add(flutterProguardRules)
+    // …and android/app/proguard-rules.pro when present
+}
+```
+
+`shouldShrinkResources` defaults to `true`. The project's own `proguard-rules.pro` is picked up
+automatically, which is why the existing `audio_service` keep rule works without being wired up.
+
+Measured A/B on the arm64 split, same source tree:
+
+| Configuration | APK size |
+|---|---|
+| As shipped (Flutter default, R8 on) | 43,617,827 bytes (43.6 MB) |
+| `isMinifyEnabled = false`, `isShrinkResources = false` | 48,823,045 bytes (48.8 MB) |
+
+R8 is already saving about 5.2 MB per APK. Adding an explicit `isMinifyEnabled = true` block was
+tried and produced a **byte-identical** APK, confirming it is a no-op that only duplicates what the
+Flutter plugin already does — with the added risk of an explicit `proguardFiles(...)` call that omits
+Flutter's own `flutter_proguard_rules.pro`. The change was reverted.
+
+No action taken for this item. Extra `-keep` rules were also reverted: the app already ships with R8
+enabled and only the `audio_service` rule, so adding defensive keeps would fix no observed problem
+and could only grow the APK.
+
+## Summary
+
+| Stage | arm64 download size |
+|---|---|
+| Universal APK (before) | 125.7 MB |
+| Split per ABI (R8 already on) | 43.6 MB |
+
+The single effective lever was the per-ABI split. R8 was already doing its part, and the remaining
+weight is native code — `libmpv.so` (11.8 MiB), `libflutter.so` (11.2 MiB) and `libapp.so`
+(12.7 MiB) — which no packaging flag can shrink further.
