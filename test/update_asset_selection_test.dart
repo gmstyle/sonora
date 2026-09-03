@@ -15,10 +15,7 @@ void main() {
     ];
 
     test('picks arm64 when the device prefers arm64', () {
-      final picked = selectApkAsset(splitRelease, [
-        'arm64-v8a',
-        'armeabi-v7a',
-      ]);
+      final picked = selectApkAsset(splitRelease, ['arm64-v8a', 'armeabi-v7a']);
 
       expect(picked?.name, 'app-arm64-v8a-release.apk');
       expect(picked?.url, 'https://example.com/app-arm64-v8a-release.apk');
@@ -32,10 +29,7 @@ void main() {
 
     test('honours ABI order rather than asset order', () {
       // arm64 comes first in the asset list, but the device prefers v7a.
-      final picked = selectApkAsset(splitRelease, [
-        'armeabi-v7a',
-        'arm64-v8a',
-      ]);
+      final picked = selectApkAsset(splitRelease, ['armeabi-v7a', 'arm64-v8a']);
 
       expect(picked?.name, 'app-armeabi-v7a-release.apk');
     });
@@ -53,11 +47,14 @@ void main() {
     });
 
     test('returns null when the release ships no APK', () {
-      final picked = selectApkAsset([
-        asset('sonora-1.7.4-60.deb'),
-        asset('sonora-1.7.4-60.x86_64.rpm'),
-        asset('sonora-linux-x64.tar.gz'),
-      ], ['arm64-v8a']);
+      final picked = selectApkAsset(
+        [
+          asset('sonora-1.7.4-60.deb'),
+          asset('sonora-1.7.4-60.x86_64.rpm'),
+          asset('sonora-linux-x64.tar.gz'),
+        ],
+        ['arm64-v8a'],
+      );
 
       expect(picked, isNull);
     });
@@ -69,18 +66,19 @@ void main() {
     test('older universal releases stay updatable', () {
       // Releases published before the per-ABI split carry a single
       // app-release.apk, which matches no ABI string.
-      final picked = selectApkAsset([
-        asset('app-release.apk'),
-      ], ['arm64-v8a', 'armeabi-v7a']);
+      final picked = selectApkAsset(
+        [asset('app-release.apk')],
+        ['arm64-v8a', 'armeabi-v7a'],
+      );
 
       expect(picked?.name, 'app-release.apk');
     });
 
     test('tolerates assets with missing fields', () {
-      final picked = selectApkAsset([
-        <String, dynamic>{},
-        asset('app-arm64-v8a-release.apk'),
-      ], ['arm64-v8a']);
+      final picked = selectApkAsset(
+        [<String, dynamic>{}, asset('app-arm64-v8a-release.apk')],
+        ['arm64-v8a'],
+      );
 
       expect(picked?.name, 'app-arm64-v8a-release.apk');
     });

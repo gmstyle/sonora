@@ -249,7 +249,8 @@ class TrackTransitionCoordinator {
 
     var track = QueueTrack.fromMediaItem(item);
     final playerDuration = _player.state.duration;
-    final trackChanged = track.videoId != _statePublisher.lastEmittedMediaItemId;
+    final trackChanged =
+        track.videoId != _statePublisher.lastEmittedMediaItemId;
 
     // On track change, player.state.duration is often still the *previous*
     // track's length — copying it here stamps a stale duration and then
@@ -279,7 +280,8 @@ class TrackTransitionCoordinator {
 
   void _castCurrentTrack(MediaItem item, QueueTrack track) {
     final cast = _castController();
-    if (cast.castState?.connectionState != CastConnectionState.connected) return;
+    if (cast.castState?.connectionState != CastConnectionState.connected)
+      return;
     if (track.needsUrl) return;
 
     unawaited(

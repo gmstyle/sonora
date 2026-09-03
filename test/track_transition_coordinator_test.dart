@@ -39,8 +39,7 @@ class _FakePlayer extends Fake implements Player {
   PlayerState get state => _FakePlayerState(playlist, playerDuration);
 }
 
-class _FakeExternalAudio extends Fake
-    implements ExternalAudioTrackController {
+class _FakeExternalAudio extends Fake implements ExternalAudioTrackController {
   Media? lastMedia;
   int calls = 0;
 
@@ -346,15 +345,18 @@ void main() {
       expect(emitted, isEmpty);
     });
 
-    test('onDurationChanged binds to the playing track, not the published one', () {
-      // Resolve suppressed the media-item update across a skip, so nothing has
-      // been published yet while the player already sits on 'b'.
-      player.playlist = playlistOf(const ['a', 'b'], index: 1);
+    test(
+      'onDurationChanged binds to the playing track, not the published one',
+      () {
+        // Resolve suppressed the media-item update across a skip, so nothing has
+        // been published yet while the player already sits on 'b'.
+        player.playlist = playlistOf(const ['a', 'b'], index: 1);
 
-      coordinator.onDurationChanged(const Duration(minutes: 4));
+        coordinator.onDurationChanged(const Duration(minutes: 4));
 
-      expect(emitted.single.id, 'b');
-      expect(emitted.single.duration, const Duration(minutes: 4));
-    });
+        expect(emitted.single.id, 'b');
+        expect(emitted.single.duration, const Duration(minutes: 4));
+      },
+    );
   });
 }
