@@ -8,14 +8,24 @@ Sonora is a cross-platform Flutter music and video streaming app that uses **You
 
 | Component | Library | Version |
 |---|---|---|
-| Framework | Flutter | 3.47.1 (stable) |
+| Framework | Flutter | 3.47.2 (stable) |
 | State Management | `flutter_riverpod` | ^3.3.1 |
-| Navigation | `go_router` | ^17.2.3 |
-| Local Database | `drift` + `drift_flutter` | ^2.33.0 / ^0.3.0 |
+| Navigation | `go_router` | ^18.0.1 |
+| Local Database | `drift` + `drift_flutter` | ^2.34.4 / ^0.3.1 |
 | Media Playback | `media_kit` + `audio_service` | ^1.2.6 / ^0.18.18 |
 | YTM Data | `dart_ytmusic_api` | git (`gmstyle/dart_ytmusic_api`) |
 | Stream URL | `youtube_explode_dart` | git (`gmstyle/youtube_explode_dart`, fork with `androidVr` adaptive fix) |
-| Casting | `dart_cast` | ^0.6.0 |
+| Casting | `dart_cast` | ^0.7.3 |
+
+**Why `media_kit` and not `just_audio`.** Sonora plays audio and, when
+`Settings.enableVideoPlayback` is on, video — from a single `Player` that opens one muxed stream and
+attaches or detaches the video track. `just_audio` has no video support and `media_kit_video`
+requires a `media_kit.Player`, so keeping the video feature would mean running two playback engines
+and duplicating the queue, crossfade, restore, recovery, cast and equalizer paths across both. On
+Linux `just_audio` has no first-party backend and would run on libmpv anyway through
+`just_audio_media_kit`, which additionally has no equalizer and ignores shuffle order. The
+MediaSession, the media notification, Android Auto and MPRIS all come from `audio_service`, not from
+the playback engine, so switching engines would not change them.
 
 **Architecture**: Clean Architecture with 3 layers — `data/`, `domain/`, `presentation/`. Types from `dart_ytmusic_api` (`SongDetailed`, `ArtistFull`, `PodcastFull`, `EpisodeFull`, `UserFull`, `ChartsResult`, etc.) are used directly without mapping. Local entities (liked songs, playlists, subscribed podcasts, saved episodes, etc.) are PODO in `domain/models/library_models.dart`.
 
@@ -344,6 +354,7 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 |---|---|---|
 | `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔Media conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
 | `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` for audio and video alike |
+| `ExternalAudioTrackController` | `external_audio_track_controller.dart` | Applies `extras['externalAudioUri']` via `Player.setAudioTrack` when a cached video-only file must be paired with a separate audio file; resets to `AudioTrack.auto()` otherwise. Stale attaches are dropped by generation counter when the user skips |
 | `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
 | `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
 | `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume / ducking |
@@ -641,13 +652,22 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 |---|---|
 | Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test` |
 | Prepare | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists, writes `release-notes.md` via `scripts/generate_release_notes.py` |
-| Android build | `flutter build apk --release` with signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`) |
+| Android build | `flutter build apk --release --split-per-abi` with signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`); the x86_64 split is deleted before upload since it only targets emulators |
 | Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
 | Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
-| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, APK + DEB + RPM attached |
+| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, per-ABI APKs (`arm64-v8a`, `armeabi-v7a`) + DEB + RPM attached |
 | CHANGELOG.md | After the GitHub Release, `scripts/insert_changelog_entry.py` prepends `## [{version}+{build}]` and pushes with `[skip ci]` |
 
-**Flutter version**: 3.47.1 (cached via `subosito/flutter-action`).
+**Flutter version**: 3.47.2 (cached via `subosito/flutter-action`).
+
+**APK size**: shipping one APK per ABI keeps `libmpv.so`, `libflutter.so` and `libapp.so` to a single
+architecture — 43.6 MB for arm64 instead of a 125.7 MB universal APK. R8 and resource shrinking are
+already enabled by the Flutter Gradle plugin for release builds, which also picks up
+`android/app/proguard-rules.pro` automatically. See [apk-size-baseline.md](apk-size-baseline.md).
+
+**In-app updater**: because releases now carry several APKs, `selectApkAsset` in
+`lib/domain/usecases/update/apk_asset_selection.dart` picks the one matching `Build.SUPPORTED_ABIS`,
+falling back to the first APK so pre-split releases stay updatable.
 
 **Release notes**: generated from [Conventional Commits](https://www.conventionalcommits.org/) since the previous tag (`feat` / `fix` / `perf` only). Preview locally with `python3 scripts/generate_release_notes.py`. Housekeeping (`chore`, `docs`, `ci`, `test`, `refactor`, `chore(release)`, …) is omitted so the in-app dialog stays user-facing. The seed file is `CHANGELOG.md`.
 
@@ -815,7 +835,9 @@ AudioServiceConfig(
 
 ### 11.2 MPRIS
 
-`audio_service_mpris` provides D-Bus MPRIS integration on Linux. Configured in `main.dart` alongside `audio_service`.
+`audio_service_mpris` provides D-Bus MPRIS integration on Linux. There is **no MPRIS-specific code in `main.dart`**: the package is a federated platform implementation that registers itself as `AudioServicePlatform.instance`, so it activates implicitly when `AudioService.init` runs. It derives the D-Bus identity from `androidNotificationChannelId` / `androidNotificationChannelName` in `AudioServiceConfig`, and forwards D-Bus play/pause/next/previous/seek to `SonoraAudioHandler`.
+
+Being Dart-only, it does not appear in `linux/flutter/generated_plugin_registrant.cc`.
 
 ### 11.3 Linux Packaging
 
@@ -887,18 +909,39 @@ Produces:
 
 ### 13.1 Test Files
 
+27 files, 282 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences.
+
 | File | Count | Coverage |
 |---|---|---|
-| `test/daos_test.dart` | ~65 | All DAOs with upsert, edge cases |
-| `test/library_repository_test.dart` | ~35 | Toggle, mapping, CRUD |
-| `test/local_audio_proxy_server_test.dart` | ~5 | Loopback server, quality query params, validation |
-| `test/stream_quality_selector_test.dart` | ~9 | audioOnly / muxed tiers + fallback |
-| `test/player_state_test.dart` | ~8 | PlayerState + Settings base |
-| `test/settings_provider_test.dart` | ~22 | Settings model + setters (incl. stream/download quality) |
-| `test/widget_test.dart` | 1 | App bootstrap smoke test |
-| `test/ytmusic_datasource_test.dart` | ~6 | Live network: search, suggestions, reinitialize |
+| `test/daos_test.dart` | 66 | All DAOs with upsert, edge cases |
+| `test/library_repository_test.dart` | 35 | Toggle, mapping, CRUD |
+| `test/settings_provider_test.dart` | 26 | Settings model + setters (incl. stream/download quality) |
+| `test/track_url_resolver_prefetch_test.dart` | 15 | Lazy resolve + adaptive lookahead |
+| `test/queue_meta_atomicity_test.dart` | 11 | Atomic playback-pointer persistence |
+| `test/media_cache_service_test.dart` | 10 | LRU disk cache behaviour |
+| `test/queue_controller_to_media_test.dart` | 10 | `toMedia` URI selection (proxy / file / dummy) |
+| `test/stream_quality_selector_test.dart` | 10 | audioOnly / muxed tiers + fallback |
+| `test/update_asset_selection_test.dart` | 10 | Per-ABI APK pick for the in-app updater |
+| `test/video_player_provider_test.dart` | 10 | Video attach/detach predicates |
+| `test/media_cache_uri_test.dart` | 9 | Cache URI + HLS playlist detection |
+| `test/playback_restore_local_url_test.dart` | 7 | Restore with local / stale URLs |
+| `test/battery_prompt_provider_test.dart` | 6 | Battery-optimisation prompt state |
+| `test/downloads_notifier_test.dart` | 6 | Download progress state |
+| `test/core/url_staleness_test.dart` | 5 | Stream URL expiry checks |
+| `test/local_audio_proxy_server_test.dart` | 5 | Loopback server, quality query params, validation |
+| `test/playback_state_publisher_test.dart` | 5 | media_kit state → `AudioProcessingState` |
+| `test/player_state_test.dart` | 5 | PlayerState + Settings base |
+| `test/queue_split_test.dart` | 5 | User queue / Up Next section split |
+| `test/release_changelog_test.dart` | 5 | Release-notes sanitisation |
+| `test/ytmusic_datasource_test.dart` | 5 | Live network: search, suggestions, reinitialize |
+| `test/android_auto_recent_test.dart` | 3 | AA recent-items node |
+| `test/core/extensions/duration_ext_test.dart` | 3 | `Duration` → `"3:45"` |
+| `test/external_audio_track_controller_test.dart` | 3 | Dual-file cache audio attach |
+| `test/media_cache_size_test.dart` | 3 | Cache size accounting |
+| `test/youtube_request_scheduler_test.dart` | 3 | Request throttling |
+| `test/queue_repository_test.dart` | 1 | Queue persist / restore round-trip |
 
-**Total**: see `flutter test` — suite includes DAO, repository, settings, stream quality, proxy, and downloads notifier coverage.
+`test/ytmusic_datasource_test.dart` hits the live YouTube Music API and can fail offline.
 
 ### 13.2 Commands
 
@@ -1005,8 +1048,8 @@ Consumed by `action_feedback_listener.dart` and `feedback_toast.dart` widgets.
 ### Manual release build
 
 ```bash
-# Android
-flutter build apk --release --build-name=1.7.2 --build-number=58
+# Android — one APK per ABI, as the release workflow does
+flutter build apk --release --split-per-abi --build-name=1.7.2 --build-number=58
 
 # Linux — Flutter bundle
 flutter build linux --release
