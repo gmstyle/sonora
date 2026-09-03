@@ -38,6 +38,7 @@ import 'playback_volume_controller.dart';
 import 'playlist_open_coordinator.dart';
 import 'queue_controller.dart';
 import 'skip_navigator.dart';
+import 'track_transition_coordinator.dart';
 import 'track_url_resolver.dart';
 
 export 'playback_restore_controller.dart' show RestoreStatus;
@@ -73,6 +74,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlaybackRestoreController _restoreController;
   late final ExternalAudioTrackController _externalAudio;
   late final PlaylistOpenCoordinator _playlistOpener;
+  late final TrackTransitionCoordinator _transitions;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -352,6 +354,22 @@ class SonoraAudioHandler extends BaseAudioHandler {
       setIsStopping: (v) => _isStopping = v,
       log: dev.log,
     );
+    _transitions = TrackTransitionCoordinator(
+      player: _player,
+      externalAudio: _externalAudio,
+      queueController: _queueController,
+      skipNavigator: _skipNavigator,
+      statePublisher: _statePublisher,
+      queueRepo: _queueRepo,
+      recoveryController: () => _recoveryController,
+      likeController: _likeController,
+      castController: () => _castController,
+      urlResolver: _urlResolver,
+      volumeController: _volumeController,
+      currentMediaItem: () => mediaItem.value,
+      emitMediaItem: (item) => mediaItem.add(item),
+      isStopping: () => _isStopping,
+    );
 
     unawaited(_audioSessionController.setup());
     _setupListeners();
@@ -432,56 +450,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
       if (!_queueController.isResolvingItem) {
         _statePublisher.updatePlaybackState();
       }
-      _onPlaylistChanged(playlist);
+      _transitions.onPlaylistChanged(playlist);
     });
 
-    _player.stream.duration.listen((duration) {
-      // Duration is independent of URL resolve; do not drop updates while
-      // isResolvingItem (look-ahead) or AA seekbar stays at 0 forever when
-      // media_kit emits duration only once during that window.
-      if (duration == Duration.zero) return;
-
-      // Resolve can suppress _onPlaylistChanged mediaItem updates across a
-      // skip, so mediaItem.value may still be the previous track while the
-      // player has already moved on. Bind duration to the playlist identity.
-      final playlist = _player.state.playlist;
-      final index = playlist.index;
-      MediaItem? playingItem;
-      if (index >= 0 && index < playlist.medias.length) {
-        playingItem = playlist.medias[index].extras?['mediaItem'] as MediaItem?;
-      }
-
-      final current = mediaItem.value;
-      final playingTrack =
-          playingItem != null ? QueueTrack.fromMediaItem(playingItem) : null;
-      final currentTrack =
-          current != null ? QueueTrack.fromMediaItem(current) : null;
-
-      if (playingTrack != null &&
-          playingItem != null &&
-          (currentTrack == null ||
-              currentTrack.videoId != playingTrack.videoId)) {
-        final updatedTrack =
-            (playingTrack.duration != null &&
-                    playingTrack.duration != Duration.zero)
-                ? playingTrack
-                : playingTrack.copyWith(duration: duration);
-        final updated = updatedTrack.toMediaItem(playingItem);
-        _statePublisher.noteEmittedMediaItem(updated, track: updatedTrack);
-        mediaItem.add(updated);
-        return;
-      }
-
-      if (current == null || currentTrack == null) return;
-      if (currentTrack.duration != null &&
-          currentTrack.duration != Duration.zero) {
-        return;
-      }
-      final updatedTrack = currentTrack.copyWith(duration: duration);
-      final updated = updatedTrack.toMediaItem(current);
-      _statePublisher.noteEmittedMediaItem(updated, track: updatedTrack);
-      mediaItem.add(updated);
-    });
+    _player.stream.duration.listen(_transitions.onDurationChanged);
 
     _player.stream.position.listen((pos) {
       _volumeController.handleCrossfade(pos);
@@ -521,110 +493,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         ),
       ),
     );
-  }
-
-  void _onPlaylistChanged(Playlist playlist) {
-    if (_isStopping) return;
-
-    final index = playlist.index;
-    if (index >= 0 && index < playlist.medias.length) {
-      unawaited(_externalAudio.attachForMedia(playlist.medias[index]));
-    } else {
-      unawaited(_externalAudio.attachForMedia(null));
-    }
-
-    if (!_queueController.isResolvingItem) {
-      _skipNavigator.clearTarget();
-      _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
-      if (index >= 0) {
-        // Persist the raw index alongside the item's stable identity (its
-        // videoId) in the SAME atomic QueueMeta row that the queue itself
-        // is persisted to (see `QueueRepositoryImpl`). Doing this on every
-        // track change — not just when the queue's structure changes (see
-        // `persistQueue` calls below) — means the "where were we" pointer
-        // can never lag behind the actually-playing track, which used to
-        // cause resuming into a stale/wrong index after a process restart.
-        final currentMediaItem =
-            index < playlist.medias.length
-                ? (playlist.medias[index].extras?['mediaItem'] as MediaItem?)
-                : null;
-        final videoId =
-            currentMediaItem != null
-                ? QueueTrack.fromMediaItem(currentMediaItem).videoId
-                : null;
-        unawaited(_queueRepo.persistCurrentIndex(index, videoId: videoId));
-      }
-    }
-
-    if (!_queueController.isResolvingItem &&
-        index >= 0 &&
-        index < playlist.medias.length) {
-      final media = playlist.medias[index];
-      var item = media.extras?['mediaItem'] as MediaItem?;
-      if (item != null) {
-        var track = QueueTrack.fromMediaItem(item);
-        final playerDuration = _player.state.duration;
-        final trackChanged =
-            track.videoId != _statePublisher.lastEmittedMediaItemId;
-        // On track change, player.state.duration is often still the *previous*
-        // track's length — copying it here stamps a stale duration and then
-        // blocks the real player duration patch (skipAlreadySet).
-        if (!trackChanged &&
-            (track.duration == null || track.duration == Duration.zero) &&
-            playerDuration != Duration.zero) {
-          track = track.copyWith(duration: playerDuration);
-          item = track.toMediaItem(item);
-        }
-
-        final durationResolved =
-            !trackChanged &&
-            (_statePublisher.lastEmittedDuration == null ||
-                _statePublisher.lastEmittedDuration == Duration.zero) &&
-            (track.duration != null && track.duration != Duration.zero);
-        if (trackChanged || durationResolved) {
-          _statePublisher.noteEmittedMediaItem(item, track: track);
-          mediaItem.add(item);
-          if (trackChanged) {
-            _recoveryController.resetRetryCount();
-            _likeController.checkCurrentSongLiked(track.videoId);
-            if (_castController.castState?.connectionState ==
-                CastConnectionState.connected) {
-              if (!track.needsUrl) {
-                unawaited(
-                  _castController
-                      .castSong(
-                        item,
-                        _castController.castState!,
-                        _castController.castService!,
-                      )
-                      .catchError(
-                        (Object e) =>
-                            dev.log('[AudioHandler] castSong error: $e'),
-                      ),
-                );
-              }
-            }
-          }
-        }
-      }
-    }
-
-    unawaited(
-      _urlResolver
-          .resolvePendingItems(index)
-          .catchError(
-            (Object e) =>
-                dev.log('[AudioHandler] _resolvePendingItems error: $e'),
-          ),
-    );
-
-    if (!_queueController.isResolvingItem) {
-      _queueController.syncQueue(isStopping: _isStopping);
-    }
-
-    if (!_queueController.isResolvingItem) {
-      _volumeController.beginFadeIn();
-    }
   }
 
   /// In-app / deliberate resume entry point. Bypasses the guard that blocks

@@ -354,6 +354,8 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 |---|---|---|
 | `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔Media conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
 | `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` for audio and video alike |
+| `PlaylistOpenCoordinator` | `playlist_open_coordinator.dart` | The three wholesale playlist replacements — `setQueue` (stages paused), `playNow` (requests focus, resolves the first URL, opens playing) and `rebuildMedia` (re-derives `Media` after a quality/mode change). All run under the queue's FIFO lock; `shouldAbort` is evaluated after any in-flight open so the most recent caller wins |
+| `TrackTransitionCoordinator` | `track_transition_coordinator.dart` | The track-change cascade: external audio → queue pointer → media item → cast → resolve → queue sync → fade-in, plus the duration stamping bound to playlist identity. `isResolvingItem` suppresses the pointer, media item, sync and fade but deliberately **not** the audio attach or the resolver. Order is locked by `test/track_transition_coordinator_test.dart` |
 | `PlaybackIntentController` | `playback_intent_controller.dart` | Single source of truth for what the *user* wants playback to be doing: `userWantsPlaying`, `isExplicitlyPaused`, and the authorised-resume window. Distinguishes an in-app pause from a notification/headset pause so Pixel Buds ear-detection PLAY is rejected while a deliberate buds tap still resumes. Full truth table in the class doc; covered by `test/playback_intent_controller_test.dart` |
 | `ExternalAudioTrackController` | `external_audio_track_controller.dart` | Applies `extras['externalAudioUri']` via `Player.setAudioTrack` when a cached video-only file must be paired with a separate audio file; resets to `AudioTrack.auto()` otherwise. Stale attaches are dropped by generation counter when the user skips |
 | `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
@@ -910,13 +912,15 @@ Produces:
 
 ### 13.1 Test Files
 
-27 files, 282 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences.
+29 files, 323 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences.
 
 | File | Count | Coverage |
 |---|---|---|
 | `test/daos_test.dart` | 66 | All DAOs with upsert, edge cases |
 | `test/library_repository_test.dart` | 35 | Toggle, mapping, CRUD |
+| `test/playback_intent_controller_test.dart` | 27 | Buds ear-detection, Assistant interruption, becoming-noisy, cold restore |
 | `test/settings_provider_test.dart` | 26 | Settings model + setters (incl. stream/download quality) |
+| `test/track_transition_coordinator_test.dart` | 14 | Cascade order and `isResolvingItem` suppression |
 | `test/track_url_resolver_prefetch_test.dart` | 15 | Lazy resolve + adaptive lookahead |
 | `test/queue_meta_atomicity_test.dart` | 11 | Atomic playback-pointer persistence |
 | `test/media_cache_service_test.dart` | 10 | LRU disk cache behaviour |
