@@ -1,0 +1,96 @@
+# APK Size Baseline
+
+Measurements taken before any packaging optimisation, to give the split-per-ABI and R8 work a
+reference point.
+
+| | |
+|---|---|
+| Date | 2026-09-03 |
+| App version | `1.7.4+60` (from `pubspec.yaml`) |
+| Flutter | 3.47.x (project pins 3.47.2 in CI) |
+| Build type | `release`, debug-signed locally (`key.properties` absent) |
+
+## Commands
+
+```bash
+# Universal (fat) APK — what release.yml currently ships
+flutter build apk --release
+ls -la build/app/outputs/flutter-apk/app-release.apk
+
+# arm64 with size breakdown
+flutter build apk --release --analyze-size --target-platform android-arm64
+```
+
+## Totals
+
+| Build | APK size |
+|---|---|
+| Universal (`flutter build apk --release`) | **125.7 MB** (as reported by the Flutter tool) |
+| `--target-platform android-arm64` | **72,104,013 bytes** (68.8 MiB) |
+
+## Top 15 entries, arm64 build
+
+Uncompressed sizes from `apk-code-size-analysis_01.json`. Analysed total: 71,843,456 bytes (68.5 MiB).
+
+| Size | Entry |
+|---|---|
+| 15.08 MiB | `lib/x86_64/libmpv.so` |
+| 11.80 MiB | `lib/arm64-v8a/libmpv.so` |
+| 11.20 MiB | `lib/arm64-v8a/libflutter.so` (Flutter Engine) |
+| 11.20 MiB | `lib/armeabi-v7a/libmpv.so` |
+| 1.65 MiB | `lib/arm64-v8a/libsqlite3.so` |
+| 0.88 MiB | `lib/arm64-v8a/libapp.so` (Dart AOT, largest single node) |
+| 0.66 MiB | `classes.dex` |
+| 0.52 MiB | `res/AE.png` |
+| 0.37 MiB | `lib/arm64-v8a/libmediakitandroidhelper.so` |
+| 0.35 MiB | `lib/x86_64/libmediakitandroidhelper.so` |
+| 0.27 MiB | `lib/armeabi-v7a/libmediakitandroidhelper.so` |
+| 0.27 MiB | `res/9X.png` |
+| 0.21 MiB | `assets/.../LucideVariable-w300.ttf` |
+| 0.21 MiB | `assets/.../LucideVariable-w200.ttf` |
+| 0.20 MiB | `resources.arsc` |
+
+## Native libraries in the universal APK
+
+All three ABIs are shipped in full. Uncompressed, per ABI:
+
+| Library | armeabi-v7a | arm64-v8a | x86_64 |
+|---|---|---|---|
+| `libmpv.so` | 11,746,532 | 12,369,680 | 15,816,336 |
+| `libapp.so` (Dart AOT) | 14,746,184 | 13,304,712 | 13,697,928 |
+| `libflutter.so` | 8,615,900 | 11,747,864 | 13,051,424 |
+| `libsqlite3.so` | 1,713,736 | 1,732,360 | 1,709,544 |
+| `libmediakitandroidhelper.so` | 286,812 | 386,696 | 367,528 |
+| `libdartjni.so` | 81,444 | 131,248 | 116,640 |
+| `libdatastore_shared_counter.so` | 4,416 | 7,112 | 6,224 |
+| **Total** | **~35.5 MiB** | **~37.8 MiB** | **~42.7 MiB** |
+
+Roughly 116 MiB of the 125.7 MB APK is native code for three architectures.
+
+## Finding: `--target-platform` does not filter plugin native libraries
+
+The arm64-targeted build still contains, as dead weight:
+
+| Entry | Size |
+|---|---|
+| `lib/x86_64/libmpv.so` | 15.08 MiB |
+| `lib/armeabi-v7a/libmpv.so` | 11.20 MiB |
+| `lib/x86_64/libmediakitandroidhelper.so` | 0.35 MiB |
+| `lib/armeabi-v7a/libmediakitandroidhelper.so` | 0.27 MiB |
+| **Total waste** | **~26.9 MiB** |
+
+`--target-platform` only constrains the Flutter-produced `libapp.so` and `libflutter.so`. Native
+libraries coming from plugin AARs — here `media_kit_libs_android_video`, which supplies `libmpv.so`
+and `libmediakitandroidhelper.so` — are still packaged for every ABI, because
+`android/app/build.gradle.kts` declares no `abiFilters` and the build uses no ABI splits.
+
+The practical consequence is that only `--split-per-abi` (or an explicit `abiFilters`) actually
+removes foreign-architecture `libmpv.so` copies. This is what task A3 addresses.
+
+## After: split per ABI
+
+_To be filled in by task A3._
+
+## After: split per ABI + R8 / resource shrinking
+
+_To be filled in by task A5._
