@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:ui' show PlatformDispatcher;
 
@@ -323,6 +324,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       _finishCancelled(videoId);
     } catch (e) {
       _finishError(videoId, _mapError(e));
+      dev.log('[Download] failed for $videoId: $e');
     }
   }
 

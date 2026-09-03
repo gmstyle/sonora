@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../../../core/utils/url_staleness.dart';
@@ -166,6 +170,73 @@ class StreamDatasource {
 
   Future<StreamManifest> getManifest(String videoId) =>
       _scheduler.schedule(() => _yt.videos.streamsClient.getManifest(videoId));
+
+  /// Writes [stream] to [filePath] using youtube_explode's HTTP client.
+  ///
+  /// A raw GET of [StreamInfo.url] (e.g. via Dio) is often rejected with 403
+  /// after the same URL has been probed or played. [StreamClient.get] sends
+  /// the headers/cookies the CDN expects and concatenates HLS fragments.
+  Future<void> downloadStreamToFile(
+    StreamInfo stream,
+    String filePath, {
+    CancelToken? cancelToken,
+    required void Function(int received, int total) onProgress,
+  }) async {
+    if (cancelToken?.isCancelled ?? false) {
+      throw DioException(
+        requestOptions: RequestOptions(path: filePath),
+        type: DioExceptionType.cancel,
+      );
+    }
+
+    final sink = File(filePath).openWrite();
+    StreamSubscription<List<int>>? sub;
+    final done = Completer<void>();
+    var received = 0;
+    final total = stream.size.totalBytes;
+
+    void fail(Object error, [StackTrace? stackTrace]) {
+      if (!done.isCompleted) {
+        done.completeError(error, stackTrace);
+      }
+    }
+
+    try {
+      sub = _yt.videos.streamsClient
+          .get(stream)
+          .listen(
+            (chunk) {
+              sink.add(chunk);
+              received += chunk.length;
+              if (total > 0) onProgress(received, total);
+            },
+            onError: fail,
+            onDone: () {
+              if (!done.isCompleted) done.complete();
+            },
+            cancelOnError: true,
+          );
+
+      if (cancelToken != null) {
+        unawaited(
+          cancelToken.whenCancel.then((_) async {
+            await sub?.cancel();
+            fail(
+              DioException(
+                requestOptions: RequestOptions(path: filePath),
+                type: DioExceptionType.cancel,
+              ),
+            );
+          }),
+        );
+      }
+
+      await done.future;
+    } finally {
+      await sub?.cancel();
+      await sink.close();
+    }
+  }
 
   /// Disk-caches playable video for [videoId] (lookahead / offline).
   ///

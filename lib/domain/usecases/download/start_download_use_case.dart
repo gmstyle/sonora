@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../../media/stream_quality_selector.dart';
 import '../../models/media_quality.dart';
@@ -12,13 +13,11 @@ import 'download_exceptions.dart';
 
 class StartDownloadUseCase {
   final StreamDatasource _streamDatasource;
-  final Dio _dio;
   final LibraryRepository _libraryRepository;
   final StreamQualitySelector _selector;
 
   StartDownloadUseCase(
     this._streamDatasource,
-    this._dio,
     this._libraryRepository, {
     StreamQualitySelector? selector,
   }) : _selector = selector ?? const StreamQualitySelector();
@@ -46,10 +45,10 @@ class StartDownloadUseCase {
     }
 
     final manifest = await _streamDatasource.getManifest(videoId);
-    final stream = _selector.select(
+    final stream = _selectDownloadStream(
       manifest,
       quality: quality,
-      preferVideo: isVideo,
+      isVideo: isVideo,
     );
 
     final downloadDir = await _resolveDownloadDir(
@@ -73,14 +72,18 @@ class StartDownloadUseCase {
     );
 
     try {
-      await _dio.download(
-        stream.url.toString(),
+      await _streamDatasource.downloadStreamToFile(
+        stream,
         filePath,
         cancelToken: cancelToken,
-        onReceiveProgress: (received, total) {
-          if (total > 0) onProgress(received, total);
-        },
+        onProgress: onProgress,
       );
+      if (cancelToken?.isCancelled ?? false) {
+        throw const DownloadCancelledException();
+      }
+    } on DownloadCancelledException {
+      await _cleanupOnFailure(videoId, filePath);
+      rethrow;
     } on DioException catch (e) {
       await _cleanupOnFailure(videoId, filePath);
       if (CancelToken.isCancel(e)) throw const DownloadCancelledException();
@@ -106,6 +109,24 @@ class StartDownloadUseCase {
     );
 
     return filePath;
+  }
+
+  StreamInfo _selectDownloadStream(
+    StreamManifest manifest, {
+    required MediaQuality quality,
+    required bool isVideo,
+  }) {
+    try {
+      return _selector.select(manifest, quality: quality, preferVideo: isVideo);
+    } catch (_) {
+      if (manifest.audioOnly.isNotEmpty) {
+        return manifest.audioOnly.withHighestBitrate();
+      }
+      if (manifest.muxed.isNotEmpty) {
+        return manifest.muxed.withHighestBitrate();
+      }
+      rethrow;
+    }
   }
 
   Future<void> _cleanupOnFailure(String videoId, String filePath) async {

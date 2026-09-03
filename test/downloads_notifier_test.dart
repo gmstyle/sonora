@@ -24,7 +24,7 @@ import 'package:sonora/presentation/providers/start_download_use_case_provider.d
 
 class _FakeStartDownloadUseCase extends StartDownloadUseCase {
   _FakeStartDownloadUseCase(LibraryRepository repository)
-    : super(StreamDatasource(), Dio(), repository);
+    : super(StreamDatasource(), repository);
 
   final List<String> started = [];
   final Set<String> failIds = {};
