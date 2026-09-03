@@ -123,9 +123,14 @@ jobs:
 
       - name: Build Android APK
         run: |
-          flutter build apk --release \
+          flutter build apk --release --split-per-abi \
             --build-name=${{ needs.prepare.outputs.APP_VERSION }} \
             --build-number=${{ needs.prepare.outputs.BUILD_NUMBER }}
+
+      # x86_64 only targets emulators. Shipping it would add ~44 MB to the
+      # release for no real device.
+      - name: Drop x86_64 APK
+        run: rm -f build/app/outputs/flutter-apk/*x86_64*.apk
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v7

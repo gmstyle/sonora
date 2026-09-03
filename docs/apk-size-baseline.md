@@ -89,7 +89,23 @@ removes foreign-architecture `libmpv.so` copies. This is what task A3 addresses.
 
 ## After: split per ABI
 
-_To be filled in by task A3._
+Same source tree, `flutter build apk --release --split-per-abi`.
+
+| APK | Size | Flutter-reported | vs universal |
+|---|---|---|---|
+| `app-arm64-v8a-release.apk` | 43,617,827 bytes | 43.6 MB | −65 % |
+| `app-armeabi-v7a-release.apk` | 41,108,849 bytes | 41.1 MB | −67 % |
+| `app-x86_64-release.apk` | 48,706,798 bytes | 48.7 MB | not shipped (emulator-only) |
+
+Each split now carries exactly one `libmpv.so`, for its own architecture:
+
+| APK | `libapp.so` | `libflutter.so` | `libmpv.so` |
+|---|---|---|---|
+| arm64-v8a | 13,304,712 | 11,747,864 | 12,369,680 |
+| armeabi-v7a | 14,746,184 | 8,615,900 | 11,746,532 |
+
+The ~26.9 MiB of foreign-ABI duplication is gone. A user on arm64 downloads 43.6 MB instead of
+125.7 MB.
 
 ## After: split per ABI + R8 / resource shrinking
 
