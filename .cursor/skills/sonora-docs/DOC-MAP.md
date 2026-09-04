@@ -36,6 +36,10 @@ High-level sections (numbers can drift — search headings):
 
 When documenting player work, prefer the facade + controllers narrative already in the file (`SonoraAudioHandler`, `PlaybackRestoreController`, `AndroidAutoBrowserController`, …).
 
+## docs/just-audio-migration.md
+
+Temporary working plan for the `media_kit` → `just_audio` refactor (branch `dev-just-audio`). Delete after the new architecture is folded into SONORA-DEV-DOCS.
+
 ## docs/CLI.md
 
 - Prerequisites, Installation, Usage

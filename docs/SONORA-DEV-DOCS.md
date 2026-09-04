@@ -27,6 +27,10 @@ Linux `just_audio` has no first-party backend and would run on libmpv anyway thr
 MediaSession, the media notification, Android Auto and MPRIS all come from `audio_service`, not from
 the playback engine, so switching engines would not change them.
 
+> **In progress:** video playback is being removed and the engine is moving to
+> `just_audio` + `audio_service`. Locked decisions, phases, and the deferred
+> Linux gapless follow-up live in [just-audio-migration.md](just-audio-migration.md).
+
 **Architecture**: Clean Architecture with 3 layers — `data/`, `domain/`, `presentation/`. Types from `dart_ytmusic_api` (`SongDetailed`, `ArtistFull`, `PodcastFull`, `EpisodeFull`, `UserFull`, `ChartsResult`, etc.) are used directly without mapping. Local entities (liked songs, playlists, subscribed podcasts, saved episodes, etc.) are PODO in `domain/models/library_models.dart`.
 
 ---
