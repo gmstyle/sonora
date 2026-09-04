@@ -179,9 +179,10 @@ class PlayerState {
       hasError: hasError ?? this.hasError,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       lastPlayError: clearError ? null : (lastPlayError ?? this.lastPlayError),
-      unplayableVideoIds: clearUnplayable
-          ? const {}
-          : (unplayableVideoIds ?? this.unplayableVideoIds),
+      unplayableVideoIds:
+          clearUnplayable
+              ? const {}
+              : (unplayableVideoIds ?? this.unplayableVideoIds),
       currentSong: currentSong ?? this.currentSong,
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
@@ -189,9 +190,10 @@ class PlayerState {
       duration: duration ?? this.duration,
       shuffleMode: shuffleMode ?? this.shuffleMode,
       repeatMode: repeatMode ?? this.repeatMode,
-      sleepTimerRemaining: clearSleepTimer
-          ? null
-          : (sleepTimerRemaining ?? this.sleepTimerRemaining),
+      sleepTimerRemaining:
+          clearSleepTimer
+              ? null
+              : (sleepTimerRemaining ?? this.sleepTimerRemaining),
       userQueue: userQueue ?? this.userQueue,
       upNextQueue: upNextQueue ?? this.upNextQueue,
       upNextStartIndex: upNextStartIndex ?? this.upNextStartIndex,
@@ -375,19 +377,14 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           currentIndex: s.queueIndex ?? 0,
           shuffleMode: s.shuffleMode,
           repeatMode: s.repeatMode,
-          // Keep isSwitching true while the player is paused during a user-
-          // initiated song change (e.g. after pause() in playNow/skipToIndex),
-          // so the mini-player keeps showing the loading shimmer until the new
-          // track is actually playing.
-          isSwitching:
-              wasSwitching &&
-                  !(s.processingState == AudioProcessingState.ready &&
-                      s.playing)
-              ? true
-              : false,
+          // Keep isSwitching true only while the player is still paused during
+          // a user-initiated song change. ExoPlayer often reports buffering
+          // while already outputting audio; waiting for `ready` left the mini
+          // player stuck on shimmer.
+          isSwitching: wasSwitching && !s.playing,
         );
 
-        if (s.processingState == AudioProcessingState.ready && s.playing) {
+        if (s.playing) {
           state = state.copyWith(isSwitching: false);
           // Clear transient error message from failed retry
           if (state.errorMessage != null) {
@@ -668,7 +665,13 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
-  // ── API mutazione coda ────────────────────────────────────────
+  void _clearSwitchingIfAudible() {
+    final enginePlaying = _handler.engine.state.playing;
+    final sessionPlaying = _handler.playbackState.valueOrNull?.playing ?? false;
+    if (enginePlaying || sessionPlaying) {
+      state = state.copyWith(isSwitching: false);
+    }
+  }
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     final v = ++_operationVersion;
@@ -680,6 +683,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         initialIndex: initialIndex,
         shouldAbort: () => _operationVersion != v,
       );
+      if (_operationVersion != v) return;
+      _clearSwitchingIfAudible();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -704,6 +709,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         initialIndex: startIndex,
         shouldAbort: () => _operationVersion != v,
       );
+      if (_operationVersion != v) return;
+      _clearSwitchingIfAudible();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -731,6 +738,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         initialIndex: startIndex,
         shouldAbort: () => _operationVersion != v,
       );
+      if (_operationVersion != v) return;
+      _clearSwitchingIfAudible();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -767,14 +776,15 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final playable = episodes
           .where((e) => e.videoId.isNotEmpty)
           .toList(growable: false);
-      final initialIndex = startIndex >= 0 && startIndex < playable.length
-          ? startIndex
-          : 0;
+      final initialIndex =
+          startIndex >= 0 && startIndex < playable.length ? startIndex : 0;
       await _handler.playNow(
         items,
         initialIndex: initialIndex,
         shouldAbort: () => _operationVersion != v,
       );
+      if (_operationVersion != v) return;
+      _clearSwitchingIfAudible();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -799,6 +809,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         initialIndex: startIndex,
         shouldAbort: () => _operationVersion != v,
       );
+      if (_operationVersion != v) return;
+      _clearSwitchingIfAudible();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -1018,6 +1030,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       await _handler.skipToQueueItem(index);
       if (_operationVersion != v) return;
       await _handler.resumeFromUser();
+      if (_operationVersion != v) return;
+      _clearSwitchingIfAudible();
     } catch (e) {
       if (_operationVersion == v) {
         state = state.copyWith(
@@ -1056,6 +1070,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         ], shouldAbort: () => _operationVersion != v);
         if (_operationVersion != v) return;
         await _handler.resumeFromUser();
+        if (_operationVersion != v) return;
+        _clearSwitchingIfAudible();
       } catch (e) {
         if (_operationVersion == v) {
           state = state.copyWith(
@@ -1072,9 +1088,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _handler.setShuffleMode(mode);
 
   Future<void> toggleShuffle() async {
-    final newMode = state.shuffleMode == AudioServiceShuffleMode.none
-        ? AudioServiceShuffleMode.all
-        : AudioServiceShuffleMode.none;
+    final newMode =
+        state.shuffleMode == AudioServiceShuffleMode.none
+            ? AudioServiceShuffleMode.all
+            : AudioServiceShuffleMode.none;
     await _handler.setShuffleMode(newMode);
   }
 

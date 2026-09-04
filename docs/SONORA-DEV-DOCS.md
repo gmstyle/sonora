@@ -142,7 +142,7 @@ lib/
         ├── user/                         # UserScreen + UserVideosScreen + UserPlaylistsScreen
         ├── player/                       # Playback Engine (facade + controllers):
         │   ├── audio_handler.dart        # SonoraAudioHandler — audio_service facade, transport, wiring
-        │   ├── playback_engine.dart      # Vendor-neutral PlaybackEngine port (volume 0..1)
+        │   ├── playback_engine.dart      # Vendor-neutral PlaybackEngine port (volume 0..1, replace)
         │   ├── just_audio_playback_engine.dart # Production engine (ExoPlayer / just_audio_media_kit)
         │   ├── media_kit_playback_engine.dart  # Unused Linux fallback
         │   ├── queue_controller.dart     # Queue mutations, section tags, persist/sync
@@ -347,7 +347,7 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 
 | Controller | File | Responsibility |
 |---|---|---|
-| `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔`EngineMedia` conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
+| `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔`EngineMedia` conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` (`PlaybackEngine.replace`) / `runBatch` |
 | `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` (audio-only) |
 | `PlaylistOpenCoordinator` | `playlist_open_coordinator.dart` | The three wholesale playlist replacements — `setQueue` (stages paused), `playNow` (requests focus, resolves the first URL, opens playing) and `rebuildMedia` (re-derives `EngineMedia` after a quality change). All run under the queue's FIFO lock; `shouldAbort` is evaluated after any in-flight open so the most recent caller wins |
 | `TrackTransitionCoordinator` | `track_transition_coordinator.dart` | Owns `PlaybackEngine` stream subscriptions (`setupListeners`) and the track-change cascade: external audio → queue pointer → media item → cast → resolve → queue sync → fade-in, plus duration stamping bound to playlist identity. `isResolvingItem` suppresses the pointer, media item, sync and fade but deliberately **not** the audio attach or the resolver. Order is locked by `test/track_transition_coordinator_test.dart` |
@@ -415,9 +415,11 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When the playlist index changes, the resolver resolves the URL for the current item and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background timer pre-resolves `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
 
+`skipToQueueItem` jumps immediately when the engine URI is already playable (local proxy or `file://`), even if `needsUrl` is still true. YouTube resolve runs in the background after the jump. Shuffle skip targets a random index that lookahead did not prefetch; blocking on Innertube before the jump was a 1–2s stall. The dummy placeholder (`http://localhost/dummy_…`) is the only URI that still blocks skip. `QueueController.replaceAt` uses `PlaybackEngine.replace` (just_audio: remove + insert at index) rather than remove → add → move, which threw `IllegalArgumentException` in ExoPlayer on Android.
+
 **Dart-Side Shuffle & Race Condition Protection:**
 
-- **Custom Shuffle** (`SkipNavigator`): Engine-level shuffle is not used (`JustAudioPlaybackEngine.setShuffle` only notifies listeners; `just_audio_media_kit` ignores `shuffleOrder`). When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` selects a random index. A shuffled-history list tracks previously played indices so `skipToPrevious()` can step backward along the exact shuffled path.
+- **Custom Shuffle** (`SkipNavigator`): Engine-level shuffle is not used (`JustAudioPlaybackEngine.setShuffle` only notifies listeners; `just_audio_media_kit` ignores `shuffleOrder`). When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` selects a random index. Natural track end does not emit `completed` on a concatenating just_audio playlist (the engine auto-advances `+1`); `TrackTransitionCoordinator` intercepts that auto-advance and also calls `skipToNext` in the last ~450ms so shuffle applies without a sequential blip. A shuffled-history list tracks previously played indices so `skipToPrevious()` can step backward along the exact shuffled path.
 - **Rapid Skip Protection** (`SkipNavigator`): During rapid manual skips, asynchronous playlist index updates lag behind taps. A synchronous target-skip index keeps each rapid tap resolving to the correct item.
 - **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
 

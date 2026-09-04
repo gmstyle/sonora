@@ -106,7 +106,12 @@ class PlaybackStatePublisher {
   }
 
   void updatePlaybackState() {
-    if (_isRestoring() || _isResolving()) return;
+    final enginePlaying = _engine.state.playing;
+    // Dropping the only playing=true event during URL resolve left the mini
+    // player stuck on shimmer (PlaybackState.playing frozen false).
+    if ((_isRestoring() || _isResolving()) && !enginePlaying) {
+      return;
+    }
 
     final processing = getProcessingState();
     final playing = _isExplicitlyPaused() ? false : _engine.state.playing;
@@ -171,7 +176,14 @@ class PlaybackStatePublisher {
         pos < _lastPosition - const Duration(milliseconds: 500);
     final advancedEnough = pos >= _lastPosition + const Duration(seconds: 1);
     if (jumpedBackward || advancedEnough) {
-      updateState((s) => s);
+      final playing = _isExplicitlyPaused() ? false : _engine.state.playing;
+      updateState(
+        (s) => s.copyWith(
+          playing: playing,
+          processingState: getProcessingState(),
+          queueIndex: _engine.state.playlist.index,
+        ),
+      );
     }
     _lastPosition = pos;
   }

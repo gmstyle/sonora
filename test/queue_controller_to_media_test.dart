@@ -255,4 +255,43 @@ void main() {
 
     expect(media.uri, 'http://localhost/dummy_vid3.wav');
   });
+
+  test('replaceAt swaps a slot without changing length or neighbors', () async {
+    final engine = FakePlaybackEngine();
+    final qc = QueueController(
+      engine: engine,
+      queueRepo: _FakeQueueRepository(),
+      getQueue: () => <MediaItem>[],
+      getShuffleMode: () => AudioServiceShuffleMode.none,
+      getRepeatMode: () => AudioServiceRepeatMode.none,
+      updateQueueStream: (_) {},
+      proxyServer: proxy,
+    );
+    final items = [
+      const QueueTrack(videoId: 'a', title: 'A').toFreshMediaItem(),
+      const QueueTrack(
+        videoId: 'b',
+        title: 'B',
+        needsUrl: true,
+      ).toFreshMediaItem(),
+      const QueueTrack(videoId: 'c', title: 'C').toFreshMediaItem(),
+    ];
+    await engine.open(items.map(qc.toMedia).toList());
+    expect(engine.playlist.medias.length, 3);
+
+    final updated =
+        const QueueTrack(
+          videoId: 'b',
+          title: 'B',
+          url: 'https://example.com/b.mp3',
+        ).toFreshMediaItem();
+    final written = await qc.replaceAt(1, qc.toMedia(updated));
+
+    expect(written, 1);
+    expect(engine.playlist.medias.length, 3);
+    expect(engine.playlist.index, 0);
+    expect(engine.playlist.medias[0].mediaItem?.title, 'A');
+    expect(engine.playlist.medias[1].uri, contains('videoId=b'));
+    expect(engine.playlist.medias[2].mediaItem?.title, 'C');
+  });
 }

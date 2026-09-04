@@ -171,7 +171,7 @@ class QueueController {
   }
 
   /// Replaces the media at [index] while preserving playlist length/order
-  /// (remove → add → move-last-to-index). Serialized with other mutations.
+  /// via [PlaybackEngine.replace]. Serialized with other mutations.
   ///
   /// When [expectedVideoId] is set, re-locates that track if [index] no longer
   /// points at it (concurrent inserts can shift indices between resolve and
@@ -205,9 +205,7 @@ class QueueController {
     final len = _engine.state.playlist.medias.length;
     if (target < 0 || target >= len) return -1;
 
-    await _engine.remove(target);
-    await _engine.add(media);
-    await _engine.move(_engine.state.playlist.medias.length - 1, target);
+    await _engine.replace(target, media);
     return target;
   }
 
@@ -331,7 +329,7 @@ class QueueController {
     if (track.hasUrl) {
       return EngineMedia(uri: track.url!, mediaItem: tagged);
     }
-    final dummy = 'http://localhost/dummy_${track.videoId}.wav';
+    final dummy = '$kPlaceholderAudioUriPrefix${track.videoId}.wav';
     return EngineMedia(uri: dummy, mediaItem: tagged);
   }
 

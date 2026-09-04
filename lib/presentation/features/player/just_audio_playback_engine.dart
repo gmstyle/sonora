@@ -38,6 +38,12 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
   }
 
   static AudioSource toSource(EngineMedia media) {
+    if (isPlaceholderAudioUri(media.uri)) {
+      return SilenceAudioSource(
+        duration: const Duration(seconds: 1),
+        tag: media,
+      );
+    }
     return AudioSource.uri(Uri.parse(media.uri), tag: media);
   }
 
@@ -159,6 +165,14 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
 
   @override
   Future<void> remove(int index) => _player.removeAudioSourceAt(index);
+
+  @override
+  Future<void> replace(int index, EngineMedia media) async {
+    final len = _player.audioSources.length;
+    if (index < 0 || index >= len) return;
+    await _player.removeAudioSourceAt(index);
+    await _player.insertAudioSource(index, toSource(media));
+  }
 
   @override
   Future<void> move(int from, int to) {

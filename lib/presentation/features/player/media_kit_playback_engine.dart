@@ -128,6 +128,18 @@ class MediaKitPlaybackEngine implements PlaybackEngine {
   Future<void> remove(int index) => _player.remove(index);
 
   @override
+  Future<void> replace(int index, EngineMedia media) async {
+    final len = _player.state.playlist.medias.length;
+    if (index < 0 || index >= len) return;
+    await _player.remove(index);
+    await _player.add(toMk(media));
+    final last = _player.state.playlist.medias.length - 1;
+    if (last != index) {
+      await move(last, index);
+    }
+  }
+
+  @override
   Future<void> move(int from, int to) {
     if (from == to) return Future.value();
     final mkTo = from < to ? to + 1 : to;

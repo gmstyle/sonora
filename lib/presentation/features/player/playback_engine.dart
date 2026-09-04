@@ -6,6 +6,15 @@ enum EngineRepeatMode { none, one, all }
 /// Sidecar audio extras key (video-only cache pairs).
 const kExternalAudioUriExtraKey = 'externalAudioUri';
 
+/// Engine URI used when the local proxy is down and the track has no stream URL
+/// yet. Production just_audio maps this to a silent source so ExoPlayer never
+/// fetches a fake `.wav`.
+const kPlaceholderAudioUriPrefix = 'http://localhost/dummy_';
+
+/// True when [uri] is empty or the dummy placeholder, not a playable proxy/file.
+bool isPlaceholderAudioUri(String uri) =>
+    uri.isEmpty || uri.startsWith(kPlaceholderAudioUriPrefix);
+
 /// One playlist entry for [PlaybackEngine].
 ///
 /// [mediaItem] is the audio_service identity for the slot. [externalAudioUri]
@@ -26,9 +35,10 @@ class EngineMedia {
     return EngineMedia(
       uri: uri ?? this.uri,
       mediaItem: mediaItem ?? this.mediaItem,
-      externalAudioUri: clearExternalAudio
-          ? null
-          : (externalAudioUri ?? this.externalAudioUri),
+      externalAudioUri:
+          clearExternalAudio
+              ? null
+              : (externalAudioUri ?? this.externalAudioUri),
     );
   }
 }
@@ -110,6 +120,12 @@ abstract class PlaybackEngine {
   Future<void> add(EngineMedia media);
 
   Future<void> remove(int index);
+
+  /// Replaces the source at [index] without changing playlist length or order.
+  ///
+  /// Prefer this over remove → add → move: just_audio's concatenating `move`
+  /// hits an ExoPlayer `IllegalArgumentException` on Android.
+  Future<void> replace(int index, EngineMedia media);
 
   /// Moves the item at [from] so it occupies [to] in the resulting list.
   Future<void> move(int from, int to);

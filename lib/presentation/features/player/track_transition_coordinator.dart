@@ -71,6 +71,12 @@ class TrackTransitionCoordinator {
   final void Function(MediaItem) _emitMediaItem;
   final bool Function() _isStopping;
   final bool Function() _isRestoring;
+  final bool Function() _isShuffleAll;
+  final bool Function() _isRepeatOne;
+  final Future<void> Function()? _skipToNext;
+  final Future<void> Function(int index)? _skipToQueueItem;
+  int? _previousPlaylistIndex;
+  bool _shuffleEndArmed = false;
 
   TrackTransitionCoordinator({
     required PlaybackEngine engine,
@@ -89,6 +95,10 @@ class TrackTransitionCoordinator {
     required void Function(MediaItem) emitMediaItem,
     required bool Function() isStopping,
     required bool Function() isRestoring,
+    bool Function()? isShuffleAll,
+    bool Function()? isRepeatOne,
+    Future<void> Function()? skipToNext,
+    Future<void> Function(int index)? skipToQueueItem,
   }) : _engine = engine,
        _intent = intent,
        _externalAudio = externalAudio,
@@ -104,7 +114,11 @@ class TrackTransitionCoordinator {
        _currentMediaItem = currentMediaItem,
        _emitMediaItem = emitMediaItem,
        _isStopping = isStopping,
-       _isRestoring = isRestoring;
+       _isRestoring = isRestoring,
+       _isShuffleAll = isShuffleAll ?? (() => false),
+       _isRepeatOne = isRepeatOne ?? (() => false),
+       _skipToNext = skipToNext,
+       _skipToQueueItem = skipToQueueItem;
 
   /// Subscribes to media_kit streams. Called once from the handler constructor.
   void setupListeners() {
@@ -130,7 +144,16 @@ class TrackTransitionCoordinator {
     );
 
     _engine.playlistStream.listen((playlist) {
-      if (!_queueController.isResolvingItem) {
+      final previousIndex = _previousPlaylistIndex;
+      if (_redirectShuffleAutoAdvance(previousIndex, playlist.index)) {
+        _previousPlaylistIndex = playlist.index;
+        return;
+      }
+      _previousPlaylistIndex = playlist.index;
+      // Keep emitting while the engine is already audible; dropping this
+      // during URL resolve froze PlaybackState.playing=false (mini-player
+      // shimmer).
+      if (!_queueController.isResolvingItem || _engine.state.playing) {
         _statePublisher.updatePlaybackState();
       }
       onPlaylistChanged(playlist);
@@ -141,6 +164,7 @@ class TrackTransitionCoordinator {
     _engine.positionStream.listen((pos) {
       _volumeController.handleCrossfade(pos);
       _statePublisher.handlePositionTick(pos);
+      _maybeShuffleAdvanceNearEnd(pos);
       if (_volumeController.isTransitionMuted &&
           _engine.state.playing &&
           pos.inMilliseconds > 150) {
@@ -152,9 +176,8 @@ class TrackTransitionCoordinator {
     );
 
     _engine.shuffleStream.listen((shuffled) {
-      final shuffleMode = shuffled
-          ? AudioServiceShuffleMode.all
-          : AudioServiceShuffleMode.none;
+      final shuffleMode =
+          shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
       _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
       rebuildControls();
     });
@@ -168,6 +191,51 @@ class TrackTransitionCoordinator {
       _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
       rebuildControls();
     });
+  }
+
+  /// just_audio concatenates in list order and never emits `completed` between
+  /// items, so Dart-side shuffle must intercept engine auto-advance (`+1`).
+  bool _redirectShuffleAutoAdvance(int? previousIndex, int newIndex) {
+    final jump = _skipToQueueItem;
+    if (jump == null) return false;
+    if (!_isShuffleAll() || _isRepeatOne()) return false;
+    if (_skipNavigator.targetSkipIndex != null) return false;
+    if (previousIndex == null || newIndex != previousIndex + 1) return false;
+
+    final len = _engine.state.playlist.medias.length;
+    final nextIndex = SkipNavigator.computeNextIndex(
+      length: len,
+      currentTarget: previousIndex,
+      shuffle: true,
+      repeatAll: true,
+    );
+    _skipNavigator.recordForwardSkip(previousIndex);
+    _skipNavigator.targetSkipIndex = nextIndex;
+    unawaited(jump(nextIndex));
+    return true;
+  }
+
+  void _maybeShuffleAdvanceNearEnd(Duration pos) {
+    final skip = _skipToNext;
+    if (skip == null) return;
+    if (!_isShuffleAll() || _isRepeatOne() || !_engine.state.playing) {
+      _shuffleEndArmed = false;
+      return;
+    }
+    final duration = _engine.state.duration;
+    if (duration < const Duration(seconds: 5)) {
+      _shuffleEndArmed = false;
+      return;
+    }
+    final remaining = duration - pos;
+    if (remaining <= const Duration(milliseconds: 450) &&
+        remaining >= Duration.zero) {
+      if (_shuffleEndArmed) return;
+      _shuffleEndArmed = true;
+      unawaited(skip());
+    } else if (remaining > const Duration(seconds: 2)) {
+      _shuffleEndArmed = false;
+    }
   }
 
   /// Rebuilds the notification / Android Auto control row (play, shuffle, like).
@@ -235,12 +303,14 @@ class TrackTransitionCoordinator {
     // the "where were we" pointer can never lag behind the actually-playing
     // track, which used to cause resuming into a stale/wrong index after a
     // process restart.
-    final currentMediaItem = index < playlist.medias.length
-        ? playlist.medias[index].mediaItem
-        : null;
-    final videoId = currentMediaItem != null
-        ? QueueTrack.fromMediaItem(currentMediaItem).videoId
-        : null;
+    final currentMediaItem =
+        index < playlist.medias.length
+            ? playlist.medias[index].mediaItem
+            : null;
+    final videoId =
+        currentMediaItem != null
+            ? QueueTrack.fromMediaItem(currentMediaItem).videoId
+            : null;
     unawaited(_queueRepo.persistCurrentIndex(index, videoId: videoId));
   }
 
@@ -281,8 +351,9 @@ class TrackTransitionCoordinator {
 
   void _castCurrentTrack(MediaItem item, QueueTrack track) {
     final cast = _castController();
-    if (cast.castState?.connectionState != CastConnectionState.connected)
+    if (cast.castState?.connectionState != CastConnectionState.connected) {
       return;
+    }
     if (track.needsUrl) return;
 
     unawaited(
@@ -314,12 +385,10 @@ class TrackTransitionCoordinator {
     }
 
     final current = _currentMediaItem();
-    final playingTrack = playingItem != null
-        ? QueueTrack.fromMediaItem(playingItem)
-        : null;
-    final currentTrack = current != null
-        ? QueueTrack.fromMediaItem(current)
-        : null;
+    final playingTrack =
+        playingItem != null ? QueueTrack.fromMediaItem(playingItem) : null;
+    final currentTrack =
+        current != null ? QueueTrack.fromMediaItem(current) : null;
 
     if (playingTrack != null &&
         playingItem != null &&
@@ -327,9 +396,9 @@ class TrackTransitionCoordinator {
             currentTrack.videoId != playingTrack.videoId)) {
       final updatedTrack =
           (playingTrack.duration != null &&
-              playingTrack.duration != Duration.zero)
-          ? playingTrack
-          : playingTrack.copyWith(duration: duration);
+                  playingTrack.duration != Duration.zero)
+              ? playingTrack
+              : playingTrack.copyWith(duration: duration);
       final updated = updatedTrack.toMediaItem(playingItem);
       _statePublisher.noteEmittedMediaItem(updated, track: updatedTrack);
       _emitMediaItem(updated);

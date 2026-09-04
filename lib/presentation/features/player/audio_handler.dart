@@ -357,6 +357,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       emitMediaItem: (item) => mediaItem.add(item),
       isStopping: () => _isStopping,
       isRestoring: () => _restoreController.isRestoring,
+      isShuffleAll:
+          () => playbackState.value.shuffleMode == AudioServiceShuffleMode.all,
+      isRepeatOne:
+          () => playbackState.value.repeatMode == AudioServiceRepeatMode.one,
+      skipToNext: skipToNext,
+      skipToQueueItem: skipToQueueItem,
     );
 
     unawaited(_audioSessionController.setup());
@@ -629,10 +635,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    _statePublisher.updateState(
-      (s) => s.copyWith(processingState: AudioProcessingState.buffering),
-    );
-
     await _restoreController.awaitReady();
 
     final playlist = _engine.state.playlist;
@@ -652,25 +654,29 @@ class SonoraAudioHandler extends BaseAudioHandler {
       final media = playlist.medias[index];
       final item = media.mediaItem;
       final track = item != null ? QueueTrack.fromMediaItem(item) : null;
+      // Proxy/file URIs are already playable even when extras still say
+      // needsUrl. Waiting on YouTube resolve here is what made shuffled
+      // skips take 1–2s — lookahead only prefetches sequential +1/+2/+3.
+      final mustResolveBeforeJump =
+          track?.needsUrl == true && isPlaceholderAudioUri(media.uri);
 
-      if (track?.needsUrl == true) {
+      if (mustResolveBeforeJump) {
+        _statePublisher.updateState(
+          (s) => s.copyWith(processingState: AudioProcessingState.buffering),
+        );
         await _urlResolver.resolveSinglePendingItem(
           index,
           treatAsCurrent: true,
         );
 
-        // Verify the resolve actually produced a playable URL before
-        // jumping. On failure (e.g. a transient network hiccup or a 429
-        // that didn't recover in time), `_resolveSinglePendingItem` leaves
-        // `needsUrl` untouched, and the underlying Media is still the
-        // http://localhost dummy placeholder — jumping there would leave
-        // playback silently "doing nothing" with zero feedback to the user.
+        // Verify the resolve actually produced a playable URI before
+        // jumping. On failure the engine is still on the dummy placeholder —
+        // jumping there would leave playback silently doing nothing.
         final refreshed = _engine.state.playlist;
-        final refreshedTrack =
-            index < refreshed.medias.length
-                ? QueueTrack.fromMediaItem(refreshed.medias[index].mediaItem!)
-                : null;
-        if (refreshedTrack?.needsUrl == true) {
+        final refreshedMedia =
+            index < refreshed.medias.length ? refreshed.medias[index] : null;
+        if (refreshedMedia == null ||
+            isPlaceholderAudioUri(refreshedMedia.uri)) {
           _volumeController.endTransitionMute();
           // Resolve failed while playlist.index may still be the previous
           // track (treatAsCurrent resolve before jump), so the resolver's
@@ -756,21 +762,27 @@ class SonoraAudioHandler extends BaseAudioHandler {
     List<MediaItem> items, {
     int initialIndex = 0,
     bool Function()? shouldAbort,
-  }) => _playlistOpener.setQueue(
-    items,
-    initialIndex: initialIndex,
-    shouldAbort: shouldAbort,
-  );
+  }) {
+    _urlResolver.resetSession();
+    return _playlistOpener.setQueue(
+      items,
+      initialIndex: initialIndex,
+      shouldAbort: shouldAbort,
+    );
+  }
 
   Future<void> playNow(
     List<MediaItem> items, {
     int initialIndex = 0,
     bool Function()? shouldAbort,
-  }) => _playlistOpener.playNow(
-    items,
-    initialIndex: initialIndex,
-    shouldAbort: shouldAbort,
-  );
+  }) {
+    _urlResolver.resetSession();
+    return _playlistOpener.playNow(
+      items,
+      initialIndex: initialIndex,
+      shouldAbort: shouldAbort,
+    );
+  }
 
   Future<void> playNext(MediaItem item) async {
     await _queueController.runBatch(

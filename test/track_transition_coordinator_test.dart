@@ -45,7 +45,16 @@ class _FakeQueueController extends Fake implements QueueController {
 
 class _FakeSkipNavigator extends Fake implements SkipNavigator {
   @override
-  void clearTarget() => steps.add('clearTarget');
+  int? targetSkipIndex;
+
+  @override
+  void clearTarget() {
+    targetSkipIndex = null;
+    steps.add('clearTarget');
+  }
+
+  @override
+  void recordForwardSkip(int fromIndex) {}
 }
 
 class _FakeStatePublisher extends Fake implements PlaybackStatePublisher {

@@ -39,5 +39,21 @@ void main() {
       expect((source as UriAudioSource).uri.toString(), media.uri);
       expect(source.tag, same(media));
     });
+
+    test('isPlaceholderAudioUri matches dummy prefix and empty URI', () {
+      expect(isPlaceholderAudioUri('http://localhost/dummy_abc.wav'), isTrue);
+      expect(isPlaceholderAudioUri(''), isTrue);
+      expect(
+        isPlaceholderAudioUri('http://127.0.0.1:1/stream?videoId=abc'),
+        isFalse,
+      );
+    });
+
+    test('toSource maps dummy URIs to SilenceAudioSource', () {
+      const media = EngineMedia(uri: 'http://localhost/dummy_abc.wav');
+      final source = JustAudioPlaybackEngine.toSource(media);
+      expect(source, isA<SilenceAudioSource>());
+      expect((source as SilenceAudioSource).tag, same(media));
+    });
   });
 }

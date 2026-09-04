@@ -118,6 +118,15 @@ class FakePlaybackEngine implements PlaybackEngine {
   }
 
   @override
+  Future<void> replace(int index, EngineMedia media) async {
+    if (index < 0 || index >= playlist.medias.length) return;
+    final medias = List<EngineMedia>.from(playlist.medias);
+    medias[index] = media;
+    playlist = EnginePlaylist(index: playlist.index, medias: medias);
+    emitPlaylist();
+  }
+
+  @override
   Future<void> move(int from, int to) async {
     if (from == to) return;
     final medias = List<EngineMedia>.from(playlist.medias);

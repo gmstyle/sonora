@@ -24,7 +24,7 @@ import 'queue_controller.dart';
 /// - Pre-caching resolved upcoming tracks via [MediaCacheService]
 ///
 /// **Does NOT handle:**
-/// - Queue mutations beyond [QueueController.replaceAt]
+/// - Queue mutations beyond [QueueController.replaceAt] (`PlaybackEngine.replace`)
 /// - Playback control beyond the injected callbacks
 /// - Connection-failure recovery (delegated to [onResolveFailed])
 ///
@@ -57,6 +57,10 @@ class TrackUrlResolver {
   final Future<void> Function() _castPause;
 
   final Set<String> _pendingResolutions = {};
+
+  /// Video IDs whose engine URI is already playable (proxy/file) so a later
+  /// YouTube resolve must not pause/swap the currently playing source.
+  final Set<String> _engineUriReady = {};
   final Set<String> _prefetchInFlight = {};
   Timer? _lookaheadTimer;
   PlayErrorKind? _lastResolveFailureKind;
@@ -116,8 +120,13 @@ class TrackUrlResolver {
   /// Cancels the look-ahead resolution timer without disposing the resolver.
   void cancelLookahead() => _lookaheadTimer?.cancel();
 
+  /// Drops the "already playable via proxy" skip-list. Call when the playlist
+  /// is replaced wholesale ([setQueue] / [playNow]).
+  void resetSession() => _engineUriReady.clear();
+
   void dispose() {
     _lookaheadTimer?.cancel();
+    _engineUriReady.clear();
     // Teardown: stop every disk pre-cache download this resolver started.
     for (final videoId in _prefetchInFlight) {
       MediaCacheService.instance.cancelDownload(videoId);
@@ -248,6 +257,7 @@ class TrackUrlResolver {
     if (!forceResolve && !track.needsUrl) return;
 
     final videoId = track.videoId;
+    if (!forceResolve && _engineUriReady.contains(videoId)) return;
 
     if (!_pendingResolutions.add(videoId)) return;
     _lastResolveFailureKind = null;
@@ -289,6 +299,16 @@ class TrackUrlResolver {
           .copyWith(url: url, needsUrl: false)
           .toMediaItem(currentItem ?? item);
       final updatedMedia = _queueController.toMedia(updatedItem);
+
+      // Proxy/file URI is already on the engine; swapping the current source
+      // would glitch playback. Remember so lookahead does not retry Innertube.
+      final isPlayingSlot = index == _engine.state.playlist.index;
+      if (updatedMedia.uri == currentMedia.uri &&
+          isPlayingSlot &&
+          !_isCastConnected()) {
+        _engineUriReady.add(videoId);
+        return;
+      }
 
       if (_isCastConnected()) {
         if (index == _engine.state.playlist.index) {
