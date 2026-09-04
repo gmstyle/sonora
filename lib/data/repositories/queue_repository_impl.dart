@@ -161,7 +161,8 @@ class QueueRepositoryImpl implements QueueRepository {
           QueueMetaCompanion.insert(
             id: const Value(_metaRowId),
             currentIndex: Value(index < 0 ? 0 : index),
-            currentVideoId: Value(videoId),
+            currentVideoId:
+                videoId != null ? Value(videoId) : const Value.absent(),
             updatedAt: Value(DateTime.now()),
           ),
         );

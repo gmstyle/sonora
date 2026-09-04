@@ -293,7 +293,9 @@ class TrackTransitionCoordinator {
 
   void _publishQueuePointer(EnginePlaylist playlist, int index) {
     _skipNavigator.clearTarget();
-    _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
+    if (!_isRestoring()) {
+      _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
+    }
     if (index < 0) return;
 
     // Persist the raw index alongside the item's stable identity (its
@@ -311,6 +313,10 @@ class TrackTransitionCoordinator {
         currentMediaItem != null
             ? QueueTrack.fromMediaItem(currentMediaItem).videoId
             : null;
+    // Empty playlist events during cold restore were writing index=0 and
+    // videoId=null to QueueMeta *before* restoreMeta() ran, wiping a
+    // correct pointer (e.g. Dance Monkey @ 0:55 → Calm Down @ 0:55).
+    if (_isRestoring() || currentMediaItem == null) return;
     unawaited(_queueRepo.persistCurrentIndex(index, videoId: videoId));
   }
 
