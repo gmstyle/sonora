@@ -18,7 +18,7 @@ Sonora is a cross-platform Flutter music streaming app that uses **YouTube Music
 | Stream URL | `youtube_explode_dart` | git (`gmstyle/youtube_explode_dart`, fork with `androidVr` adaptive fix) |
 | Casting | `dart_cast` | ^0.7.3 |
 
-**Why `just_audio`.** In-app video playback was removed: catalog music videos still exist and play as **audio**. Android uses ExoPlayer through `just_audio` (no `libmpv.so` in the APK). Linux uses `just_audio_media_kit` (libmpv). Controllers talk to a vendor-neutral `PlaybackEngine`; `audio_service` still owns the MediaSession, notification, Android Auto, and MPRIS. Sonora's `LocalAudioProxyServer` + `MediaCacheService` stay in front of YouTube (403/429, Range, LRU lookahead) — `LockCachingAudioSource` is not used. Shuffle stays in `SkipNavigator` because `just_audio_media_kit` ignores `shuffleOrder`. `MediaKitPlaybackEngine` remains in-tree as a Linux fallback.
+**Why `just_audio`.** In-app video playback was removed: catalog music videos still exist and play as **audio**. Android uses ExoPlayer through `just_audio` (no `libmpv.so` in the APK). Linux uses `just_audio_media_kit` (libmpv). Controllers talk to a vendor-neutral `PlaybackEngine`; `audio_service` still owns the MediaSession, notification, Android Auto, and MPRIS. Sonora's `LocalAudioProxyServer` + `MediaCacheService` stay in front of YouTube (403/429, Range, LRU lookahead) — `LockCachingAudioSource` is not used. Shuffle stays in `SkipNavigator` because `just_audio_media_kit` ignores `shuffleOrder`.
 
 **Architecture**: Clean Architecture with 3 layers — `data/`, `domain/`, `presentation/`. Types from `dart_ytmusic_api` (`SongDetailed`, `ArtistFull`, `PodcastFull`, `EpisodeFull`, `UserFull`, `ChartsResult`, etc.) are used directly without mapping. Local entities (liked songs, playlists, subscribed podcasts, saved episodes, etc.) are PODO in `domain/models/library_models.dart`.
 
@@ -144,7 +144,6 @@ lib/
         │   ├── audio_handler.dart        # SonoraAudioHandler — audio_service facade, transport, wiring
         │   ├── playback_engine.dart      # Vendor-neutral PlaybackEngine port (volume 0..1, replace)
         │   ├── just_audio_playback_engine.dart # Production engine (ExoPlayer / just_audio_media_kit)
-        │   ├── media_kit_playback_engine.dart  # Unused Linux fallback
         │   ├── queue_controller.dart     # Queue mutations, section tags, persist/sync
         │   ├── track_url_resolver.dart   # Lazy URL resolve + lookahead prefetch
         │   ├── playback_restore_controller.dart  # Cold start / warm resume
@@ -341,7 +340,6 @@ Generated file: `database.g.dart`. **Every table modification** requires:
                                Recovery/    Controls       AndroidAuto
                                Volume/      LikeController BrowserController
                                StatePub     AudioSession
-                                            EngineConfig
                                             Equalizer
 ```
 
