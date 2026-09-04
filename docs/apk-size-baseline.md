@@ -3,6 +3,11 @@
 Measurements taken before any packaging optimisation, to give the split-per-ABI and R8 work a
 reference point.
 
+> **Note (just_audio):** From the `just_audio` playback-engine change onward, Android no longer
+> depends on `media_kit_libs_android_video`, so `libmpv.so` (~12 MiB per ABI) is **not** packaged
+> in the APK. Figures below are the historical baseline **with** libmpv, kept so ABI-split and R8
+> work still have a reference.
+
 | | |
 |---|---|
 | Date | 2026-09-03 |
