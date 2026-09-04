@@ -140,6 +140,7 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
     List<EngineMedia> medias, {
     int index = 0,
     bool play = true,
+    Duration position = Duration.zero,
   }) async {
     if (medias.isEmpty) {
       await _player.stop();
@@ -150,10 +151,15 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
     await _player.setAudioSources(
       medias.map(toSource).toList(),
       initialIndex: clamped,
+      initialPosition: position,
       preload: true,
     );
     if (play) {
-      await _player.play();
+      // just_audio's play() Future completes only on pause/stop/track end,
+      // not when playback has started. Awaiting it here froze cold restore
+      // (isRestoring stuck, mini player shimmer) while audio was already
+      // playing.
+      unawaited(_player.play());
     } else {
       await _player.pause();
     }

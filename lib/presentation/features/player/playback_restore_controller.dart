@@ -394,13 +394,17 @@ class PlaybackRestoreController {
     final restoredMedias = items.map(_queueController.toMedia).toList();
     _setUserWantsPlaying(false);
 
-    // Open with play: true to trigger stream decoding (needed for the player
-    // to report duration on streaming URLs). We pause right after the seek.
-    // Suppress intermediate playlist events: the engine may briefly report an
-    // empty playlist during open, which would otherwise sync/persist [].
+    // Load paused at the persisted index/position. just_audio's preload
+    // already reports duration without starting playback; play:true was a
+    // media_kit workaround that produced a ~1s audio blip on cold start.
     _queueController.beginResolving();
     try {
-      await _engine.open(restoredMedias, index: savedIndex, play: true);
+      await _engine.open(
+        restoredMedias,
+        index: savedIndex,
+        play: false,
+        position: _savedPosition,
+      );
 
       // media_kit may briefly report index 0 while opening a non-zero playlist
       // index (especially with video/HLS). Wait for the intended item before

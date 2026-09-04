@@ -91,9 +91,11 @@ class FakePlaybackEngine implements PlaybackEngine {
     List<EngineMedia> medias, {
     int index = 0,
     bool play = true,
+    Duration position = Duration.zero,
   }) async {
     playlist = EnginePlaylist(index: index, medias: List.of(medias));
     playing = play && medias.isNotEmpty;
+    this.position = position;
     emitPlaylist();
   }
 

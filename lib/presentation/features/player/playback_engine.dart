@@ -115,6 +115,7 @@ abstract class PlaybackEngine {
     List<EngineMedia> medias, {
     int index = 0,
     bool play = true,
+    Duration position = Duration.zero,
   });
 
   Future<void> add(EngineMedia media);
