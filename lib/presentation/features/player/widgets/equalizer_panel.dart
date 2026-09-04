@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/platform_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/equalizer_provider.dart';
 
@@ -84,20 +85,22 @@ class EqualizerPanel extends ConsumerWidget {
             ),
             Row(
               children: [
-                Text(
-                  eqState.enabled ? l10n.onLabel : l10n.offLabel,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (!isLinux) ...[
+                  Text(
+                    eqState.enabled ? l10n.onLabel : l10n.offLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Switch(
-                  value: eqState.enabled,
-                  onChanged: (val) {
-                    eqNotifier.setEnabled(val);
-                  },
-                ),
+                  const SizedBox(width: 8),
+                  Switch(
+                    value: eqState.enabled,
+                    onChanged: (val) {
+                      eqNotifier.setEnabled(val);
+                    },
+                  ),
+                ],
                 if (isDialog) ...[
                   const SizedBox(width: 8),
                   IconButton(
@@ -115,117 +118,127 @@ class EqualizerPanel extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // Presets Selection (Wrapped to show all chips at once)
-        AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: eqState.enabled ? 1.0 : 0.4,
-          child: IgnorePointer(
-            ignoring: !eqState.enabled,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Presets',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8.0,
-                  runSpacing: 4.0,
-                  children: [
-                    if (eqState.preset == 'custom')
-                      FilterChip(
-                        label: Text(_getPresetName(context, 'custom')),
-                        selected: true,
-                        onSelected: (_) {},
-                      ),
-                    ...kEqualizerPresets.keys.map((presetKey) {
-                      final isSelected = eqState.preset == presetKey;
-                      return FilterChip(
-                        label: Text(_getPresetName(context, presetKey)),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) {
-                            eqNotifier.setPreset(presetKey);
-                          }
-                        },
-                      );
-                    }),
-                  ],
-                ),
-              ],
+        if (isLinux) ...[
+          Text(
+            l10n.linuxEqualizerHint,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-        ),
-        const SizedBox(height: 24),
-
-        // Vertical Sliders
-        AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: eqState.enabled ? 1.0 : 0.4,
-          child: IgnorePointer(
-            ignoring: !eqState.enabled,
-            child: SizedBox(
-              height: 220,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(5, (index) {
-                  final gain = eqState.gains[index];
-                  final gainText =
-                      gain > 0 ? '+${gain.round()} dB' : '${gain.round()} dB';
-
-                  return Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          gainText,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: RotatedBox(
-                            quarterTurns: 3,
-                            child: SliderTheme(
-                              data: theme.sliderTheme.copyWith(
-                                trackHeight: 4,
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 8,
-                                ),
-                              ),
-                              child: Slider(
-                                value: gain,
-                                min: -12.0,
-                                max: 12.0,
-                                divisions: 24,
-                                onChanged: (val) {
-                                  eqNotifier.setGain(index, val);
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          bandFrequencies[index],
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+          const SizedBox(height: 16),
+        ] else ...[
+          // Presets Selection (Wrapped to show all chips at once)
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: eqState.enabled ? 1.0 : 0.4,
+            child: IgnorePointer(
+              ignoring: !eqState.enabled,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Presets',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
                     ),
-                  );
-                }),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: 4.0,
+                    children: [
+                      if (eqState.preset == 'custom')
+                        FilterChip(
+                          label: Text(_getPresetName(context, 'custom')),
+                          selected: true,
+                          onSelected: (_) {},
+                        ),
+                      ...kEqualizerPresets.keys.map((presetKey) {
+                        final isSelected = eqState.preset == presetKey;
+                        return FilterChip(
+                          label: Text(_getPresetName(context, presetKey)),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              eqNotifier.setPreset(presetKey);
+                            }
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 24),
+
+          // Vertical Sliders
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: eqState.enabled ? 1.0 : 0.4,
+            child: IgnorePointer(
+              ignoring: !eqState.enabled,
+              child: SizedBox(
+                height: 220,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(5, (index) {
+                    final gain = eqState.gains[index];
+                    final gainText =
+                        gain > 0 ? '+${gain.round()} dB' : '${gain.round()} dB';
+
+                    return Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            gainText,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: RotatedBox(
+                              quarterTurns: 3,
+                              child: SliderTheme(
+                                data: theme.sliderTheme.copyWith(
+                                  trackHeight: 4,
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 8,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: gain,
+                                  min: -12.0,
+                                  max: 12.0,
+                                  divisions: 24,
+                                  onChanged: (val) {
+                                    eqNotifier.setGain(index, val);
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            bandFrequencies[index],
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ],
     );
 

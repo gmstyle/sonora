@@ -11,7 +11,6 @@ class FullscreenOverlayLayout extends ConsumerWidget {
   const FullscreenOverlayLayout({
     super.key,
     required this.currentSong,
-    required this.isVideo,
     required this.videoId,
     required this.artUrl,
     required this.albumName,
@@ -24,7 +23,6 @@ class FullscreenOverlayLayout extends ConsumerWidget {
   });
 
   final MediaItem currentSong;
-  final bool isVideo;
   final String videoId;
   final String? artUrl;
   final String? albumName;

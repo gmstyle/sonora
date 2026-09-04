@@ -90,26 +90,15 @@ class PlaybackRestoreController {
 
   /// Whether a persisted URL should be kept as a local file on restore.
   ///
-  /// Video-only `{id}.v.*` is kept only when the sibling audio exists.
-  /// Audio-only `.webm`/`.mp3` are kept for audio tracks (and audio mode);
-  /// they are rejected for video tracks in video mode.
+  /// Media-cache hits are kept only when they are audio-only
+  /// (`.webm`/`.m4a`/`.mp3`). Muxed `{id}.mp4` and video-only `{id}.v.*`
+  /// files are discarded so restore always plays audio.
   @visibleForTesting
-  static bool keepLocalUrlOnRestore(
-    QueueTrack track, {
-    required bool enableVideoPlayback,
-  }) {
+  static bool keepLocalUrlOnRestore(QueueTrack track) {
     if (!track.isLocalFile) return false;
     if (UrlStaleness.isStale(track.url)) return false;
     if (!MediaCacheService.isMediaCacheUri(track.url)) return true;
-
-    if (enableVideoPlayback && track.isVideo) {
-      return MediaCacheService.isCacheCompatibleWithPreferVideo(
-        track.url,
-        true,
-      );
-    }
-    if (MediaCacheService.isVideoOnlyCacheUri(track.url)) return false;
-    return true;
+    return MediaCacheService.isCacheCompatibleWithPreferVideo(track.url, false);
   }
 
   void markPaused() {
@@ -298,31 +287,34 @@ class PlaybackRestoreController {
     // Honor the current autoplay setting: if the user disabled Up Next
     // between sessions, strip the upnext section from the restored queue.
     final autoplayEnabled = _prefs.getBool(kAutoPlayUpNextKey) ?? true;
-    final filtered = autoplayEnabled
-        ? rawEntries
-        : rawEntries
-              .where((entry) => entry.section == QueueSection.user)
-              .toList();
+    final filtered =
+        autoplayEnabled
+            ? rawEntries
+            : rawEntries
+                .where((entry) => entry.section == QueueSection.user)
+                .toList();
 
     final seenIds = <String>{};
-    final items = filtered.map((entry) {
-      final track = entry.track;
-      final baseItem = track.toFreshMediaItem();
-      final taggedItem = entry.section == QueueSection.upnext
-          ? QueueController.tagUpNext(baseItem)
-          : QueueController.tagUser(baseItem);
-      final isLocalAndValid = PlaybackRestoreController.keepLocalUrlOnRestore(
-        track,
-        enableVideoPlayback: _queueController.enableVideoPlayback,
-      );
-      if (isLocalAndValid) {
-        return _queueController.ensureQueueId(taggedItem, seenIds);
-      }
-      return _queueController.ensureQueueId(
-        track.copyWith(clearUrl: true, needsUrl: true).toMediaItem(taggedItem),
-        seenIds,
-      );
-    }).toList();
+    final items =
+        filtered.map((entry) {
+          final track = entry.track;
+          final baseItem = track.toFreshMediaItem();
+          final taggedItem =
+              entry.section == QueueSection.upnext
+                  ? QueueController.tagUpNext(baseItem)
+                  : QueueController.tagUser(baseItem);
+          final isLocalAndValid =
+              PlaybackRestoreController.keepLocalUrlOnRestore(track);
+          if (isLocalAndValid) {
+            return _queueController.ensureQueueId(taggedItem, seenIds);
+          }
+          return _queueController.ensureQueueId(
+            track
+                .copyWith(clearUrl: true, needsUrl: true)
+                .toMediaItem(taggedItem),
+            seenIds,
+          );
+        }).toList();
 
     _updateQueueStream(items);
 

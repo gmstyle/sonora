@@ -15,8 +15,7 @@ class MediaKitPlaybackEngine implements PlaybackEngine {
     );
   }
 
-  /// Underlying media_kit player. Used by equalizer, engine configurator, and
-  /// the video surface until those are removed or ported.
+  /// Underlying media_kit player. Used by equalizer and engine configurator.
   Player get nativePlayer => _player;
 
   static Media toMk(EngineMedia media) {

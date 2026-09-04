@@ -16,7 +16,6 @@ class WidePlayerLayout extends ConsumerWidget {
     super.key,
     required this.artworkKey,
     required this.currentSong,
-    required this.isVideo,
     required this.videoId,
     required this.artUrl,
     required this.albumName,
@@ -31,7 +30,6 @@ class WidePlayerLayout extends ConsumerWidget {
 
   final GlobalKey artworkKey;
   final MediaItem currentSong;
-  final bool isVideo;
   final String videoId;
   final String? artUrl;
   final String? albumName;
@@ -75,7 +73,6 @@ class WidePlayerLayout extends ConsumerWidget {
                           ),
                           videoId: videoId,
                           isSwitching: playerState.isSwitching,
-                          isVideo: isVideo,
                         ),
                       ],
                     ),

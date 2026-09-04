@@ -1070,18 +1070,6 @@ abstract class AppLocalizations {
   /// **'Automatically play related content when queue ends'**
   String get autoPlayUpNextHint;
 
-  /// No description provided for @enableVideoPlayback.
-  ///
-  /// In en, this message translates to:
-  /// **'Play video'**
-  String get enableVideoPlayback;
-
-  /// No description provided for @enableVideoPlaybackHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Show music videos in the player. When disabled, only audio is played.'**
-  String get enableVideoPlaybackHint;
-
   /// No description provided for @streamAudioQuality.
   ///
   /// In en, this message translates to:
@@ -1123,18 +1111,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Low'**
   String get qualityLow;
-
-  /// No description provided for @hideVideo.
-  ///
-  /// In en, this message translates to:
-  /// **'Hide video'**
-  String get hideVideo;
-
-  /// No description provided for @showVideo.
-  ///
-  /// In en, this message translates to:
-  /// **'Show video'**
-  String get showVideo;
 
   /// No description provided for @downloadsSettings.
   ///
@@ -2545,6 +2521,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Equalizer enabled'**
   String get equalizerEnabled;
+
+  /// No description provided for @linuxEqualizerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Use system equalizer'**
+  String get linuxEqualizerUnavailable;
+
+  /// No description provided for @linuxEqualizerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonora does not apply in-app EQ on Linux. Use EasyEffects or your PipeWire / PulseAudio equalizer instead.'**
+  String get linuxEqualizerHint;
 
   /// No description provided for @presetCustom.
   ///

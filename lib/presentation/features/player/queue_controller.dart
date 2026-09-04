@@ -39,9 +39,6 @@ class QueueController {
   /// Current stream audio quality preference (updated from settings).
   MediaQuality streamAudioQuality;
 
-  /// Whether video playback is enabled (updated from settings).
-  bool enableVideoPlayback;
-
   /// Invoked when the last nested [beginResolving] is matched by
   /// [endResolving]. Used to re-sync playback after URL resolve / retry.
   void Function()? onResolvingIdle;
@@ -64,7 +61,6 @@ class QueueController {
     required void Function(List<MediaItem>) updateQueueStream,
     LocalAudioProxyServer? proxyServer,
     this.streamAudioQuality = MediaQuality.high,
-    this.enableVideoPlayback = false,
     this.onResolvingIdle,
   }) : _engine = engine,
        _queueRepo = queueRepo,
@@ -75,15 +71,9 @@ class QueueController {
        _proxyServer = proxyServer;
 
   /// Syncs stream-related prefs from settings without restarting playback.
-  void updateStreamPrefs({
-    MediaQuality? streamAudioQuality,
-    bool? enableVideoPlayback,
-  }) {
+  void updateStreamPrefs({MediaQuality? streamAudioQuality}) {
     if (streamAudioQuality != null) {
       this.streamAudioQuality = streamAudioQuality;
-    }
-    if (enableVideoPlayback != null) {
-      this.enableVideoPlayback = enableVideoPlayback;
     }
   }
 
@@ -111,7 +101,8 @@ class QueueController {
   }
 
   /// Whether [track] should play as video (muxed proxy with `v=1`).
-  bool prefersVideo(QueueTrack track) => enableVideoPlayback && track.isVideo;
+  /// Video playback has been removed; streams are always audio-only.
+  bool prefersVideo(QueueTrack track) => false;
 
   /// Runs [action] exclusively (FIFO) so overlapping callers never interleave
   /// playlist mutations. Used by batch adds, single adds, replaceAt, and
@@ -430,9 +421,10 @@ class QueueController {
     final item = media.mediaItem;
     if (item == null) return;
 
-    final target = (boundary == null || newIndex < boundary)
-        ? QueueSection.user
-        : QueueSection.upnext;
+    final target =
+        (boundary == null || newIndex < boundary)
+            ? QueueSection.user
+            : QueueSection.upnext;
     if (sectionOf(item) == target) return;
 
     final retagged = tagSection(item, target);
@@ -485,12 +477,12 @@ class QueueController {
     final playlist = _engine.state.playlist;
     final items = playlist.medias.map((e) => e.mediaItem).nonNulls.toList();
 
-    final newIds = items
-        .map((e) => e.extras?['queueId'] as String? ?? e.id)
-        .toList();
-    final currentIds = _getQueue()
-        .map((e) => e.extras?['queueId'] as String? ?? e.id)
-        .toList();
+    final newIds =
+        items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
+    final currentIds =
+        _getQueue()
+            .map((e) => e.extras?['queueId'] as String? ?? e.id)
+            .toList();
     final queueStructureChanged =
         newIds.length != currentIds.length ||
         !const ListEquality().equals(newIds, currentIds);
@@ -537,9 +529,8 @@ class QueueController {
     int initialIndex = 0,
   }) {
     final seenIds = <String>{};
-    final itemsWithKeys = items
-        .map((item) => ensureQueueId(item, seenIds))
-        .toList();
+    final itemsWithKeys =
+        items.map((item) => ensureQueueId(item, seenIds)).toList();
     final medias = itemsWithKeys.map(toMedia).toList();
     return (itemsWithKeys, medias);
   }

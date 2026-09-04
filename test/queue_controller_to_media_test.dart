@@ -55,12 +55,13 @@ void main() {
   test('toMedia prefers file:// over proxy when proxy is running', () {
     expect(proxy.isRunning, isTrue);
     const fileUrl = 'file:///data/vid1.mp3';
-    final item = const QueueTrack(
-      videoId: 'vid1',
-      title: 'Local',
-      artist: 'A',
-      url: fileUrl,
-    ).toFreshMediaItem();
+    final item =
+        const QueueTrack(
+          videoId: 'vid1',
+          title: 'Local',
+          artist: 'A',
+          url: fileUrl,
+        ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -74,12 +75,13 @@ void main() {
 
   test('toMedia uses proxy for remote URLs when proxy is running', () {
     expect(proxy.isRunning, isTrue);
-    final item = const QueueTrack(
-      videoId: 'vid2',
-      title: 'Remote',
-      artist: 'A',
-      url: 'https://example.com/vid2.mp3',
-    ).toFreshMediaItem();
+    final item =
+        const QueueTrack(
+          videoId: 'vid2',
+          title: 'Remote',
+          artist: 'A',
+          url: 'https://example.com/vid2.mp3',
+        ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -90,46 +92,57 @@ void main() {
     expect(media.externalAudioUri, isNull);
   });
 
-  test('toMedia builds single muxed proxy URL when video playback enabled', () {
-    controller.updateStreamPrefs(
-      enableVideoPlayback: true,
-      streamAudioQuality: MediaQuality.high,
-    );
-    final item = const QueueTrack(
-      videoId: 'vidVideo',
-      title: 'Video',
-      artist: 'A',
-      isVideo: true,
-      url: 'https://example.com/v.mp4',
-    ).toFreshMediaItem();
+  test('toMedia uses audio proxy for catalog video tracks', () {
+    controller.updateStreamPrefs(streamAudioQuality: MediaQuality.high);
+    final item =
+        const QueueTrack(
+          videoId: 'vidVideo',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: 'https://example.com/v.mp4',
+        ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
     expect(
       media.uri,
-      proxy.getStreamUrlForVideo(
-        'vidVideo',
-        audioQuality: MediaQuality.high,
-        preferVideo: true,
-      ),
+      proxy.getStreamUrlForVideo('vidVideo', audioQuality: MediaQuality.high),
     );
     expect(media.externalAudioUri, isNull);
     expect(media.uri, contains('qa=high'));
-    expect(media.uri, contains('v=1'));
+    expect(media.uri, isNot(contains('v=1')));
     expect(media.uri, isNot(contains('qv=')));
     expect(media.uri, isNot(contains('kind=')));
   });
 
-  test('toMedia uses sonora_media_cache mp4 for video tracks', () {
-    controller.updateStreamPrefs(enableVideoPlayback: true);
+  test('toMedia rejects muxed media-cache mp4 for catalog video tracks', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.mp4';
-    final item = const QueueTrack(
-      videoId: 'vidVideo',
-      title: 'Video',
-      artist: 'A',
-      isVideo: true,
-      url: cacheUrl,
-    ).toFreshMediaItem();
+    final item =
+        const QueueTrack(
+          videoId: 'vidVideo',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: cacheUrl,
+        ).toFreshMediaItem();
+
+    final media = controller.toMedia(item);
+
+    expect(media.uri, contains('/stream?videoId=vidVideo'));
+    expect(media.uri, isNot(contains('v=1')));
+  });
+
+  test('toMedia keeps audio webm media-cache for catalog video tracks', () {
+    const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.webm';
+    final item =
+        const QueueTrack(
+          videoId: 'vidVideo',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: cacheUrl,
+        ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -140,31 +153,15 @@ void main() {
     );
   });
 
-  test('toMedia rejects audio webm media-cache for video tracks', () {
-    controller.updateStreamPrefs(enableVideoPlayback: true);
-    const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.webm';
-    final item = const QueueTrack(
-      videoId: 'vidVideo',
-      title: 'Video',
-      artist: 'A',
-      isVideo: true,
-      url: cacheUrl,
-    ).toFreshMediaItem();
-
-    final media = controller.toMedia(item);
-
-    expect(media.uri, contains('/stream?videoId=vidVideo'));
-    expect(media.uri, contains('v=1'));
-  });
-
   test('toMedia still uses media-cache file for audio-only', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vid1.webm';
-    final item = const QueueTrack(
-      videoId: 'vid1',
-      title: 'Song',
-      artist: 'A',
-      url: cacheUrl,
-    ).toFreshMediaItem();
+    final item =
+        const QueueTrack(
+          videoId: 'vid1',
+          title: 'Song',
+          artist: 'A',
+          url: cacheUrl,
+        ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -172,27 +169,26 @@ void main() {
   });
 
   test('toMedia rejects video-only cache without sibling audio', () {
-    controller.updateStreamPrefs(enableVideoPlayback: true);
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidOrphan.v.mp4';
-    final item = const QueueTrack(
-      videoId: 'vidOrphan',
-      title: 'Video',
-      artist: 'A',
-      isVideo: true,
-      url: cacheUrl,
-    ).toFreshMediaItem();
+    final item =
+        const QueueTrack(
+          videoId: 'vidOrphan',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: cacheUrl,
+        ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
     expect(media.uri, contains('/stream?videoId=vidOrphan'));
-    expect(media.uri, contains('v=1'));
+    expect(media.uri, isNot(contains('v=1')));
     expect(media.externalAudioUri, isNull);
   });
 
   test(
-    'toMedia uses video-only cache plus externalAudioUri when sibling exists',
+    'toMedia does not attach externalAudioUri for video-only cache pairs',
     () async {
-      controller.updateStreamPrefs(enableVideoPlayback: true);
       final cacheDir = Directory(
         '${Directory.systemTemp.path}/sonora_media_cache',
       );
@@ -206,23 +202,20 @@ void main() {
         if (await audio.exists()) await audio.delete();
       });
 
-      final item = QueueTrack(
-        videoId: 'vidPair',
-        title: 'Video',
-        artist: 'A',
-        isVideo: true,
-        url: video.uri.toString(),
-      ).toFreshMediaItem();
+      final item =
+          QueueTrack(
+            videoId: 'vidPair',
+            title: 'Video',
+            artist: 'A',
+            isVideo: true,
+            url: video.uri.toString(),
+          ).toFreshMediaItem();
 
       final media = controller.toMedia(item);
 
-      expect(media.uri.contains('/stream?videoId='), isFalse);
-      expect(
-        media.uri == video.uri.toString() ||
-            media.uri.contains('vidPair.v.mp4'),
-        isTrue,
-      );
-      expect(media.externalAudioUri, audio.uri.toString());
+      expect(media.uri, contains('/stream?videoId=vidPair'));
+      expect(media.uri, isNot(contains('v=1')));
+      expect(media.externalAudioUri, isNull);
     },
   );
 
@@ -251,11 +244,12 @@ void main() {
 
   test('toMedia uses dummy URL when unresolved and proxy is off', () async {
     await proxy.stop();
-    final item = const QueueTrack(
-      videoId: 'vid3',
-      title: 'Pending',
-      needsUrl: true,
-    ).toFreshMediaItem();
+    final item =
+        const QueueTrack(
+          videoId: 'vid3',
+          title: 'Pending',
+          needsUrl: true,
+        ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 

@@ -336,14 +336,6 @@ class _PlaybackSection extends ConsumerWidget {
           icon: LucideIcons.rotateCcw,
         ),
         const Divider(height: 1),
-        SettingsSwitchTile(
-          title: l10n.enableVideoPlayback,
-          subtitle: l10n.enableVideoPlaybackHint,
-          value: settings.enableVideoPlayback,
-          onChanged: notifier.setEnableVideoPlayback,
-          icon: LucideIcons.video,
-        ),
-        const Divider(height: 1),
         SettingsDropdownTile(
           title: l10n.streamAudioQuality,
           value: settings.streamAudioQuality.storageValue,
@@ -387,7 +379,9 @@ class _PlaybackSection extends ConsumerWidget {
         SettingsButtonTile(
           title: l10n.equalizer,
           subtitle:
-              eqState.enabled
+              isLinux
+                  ? l10n.linuxEqualizerUnavailable
+                  : eqState.enabled
                   ? '${l10n.onLabel} (${getPresetName(eqState.preset)})'
                   : l10n.offLabel,
           icon: LucideIcons.sliders,

@@ -1,8 +1,11 @@
 import 'dart:developer' as dev;
+import 'dart:io';
+
 import 'package:media_kit/media_kit.dart';
 
 /// Applies the mpv lavfi equalizer filter to the local [Player].
 ///
+/// Linux uses the system equalizer (EasyEffects / Pulse / PipeWire) instead.
 /// Does not hold a back-reference to [SonoraAudioHandler]; only needs the
 /// media_kit [Player] whose native platform properties are mutated.
 class EqualizerController {
@@ -14,6 +17,12 @@ class EqualizerController {
     required bool enabled,
     required List<double> gains,
   }) async {
+    if (Platform.isLinux) {
+      dev.log(
+        '[EqualizerController] Linux uses system EQ; skipping in-app filter',
+      );
+      return;
+    }
     try {
       final playerPlatform = _player.platform;
 

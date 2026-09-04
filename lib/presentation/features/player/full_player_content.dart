@@ -53,7 +53,6 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     if (currentSong == null) return const SizedBox.shrink();
 
     final track = QueueTrack.fromMediaItem(currentSong);
-    final isVideo = track.isVideo;
     final videoId = track.videoId;
     final artUrl = currentSong.artUri?.toString();
     final albumName = currentSong.album;
@@ -106,7 +105,6 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
               if (showFullscreenOverlay)
                 FullscreenOverlayLayout(
                   currentSong: currentSong,
-                  isVideo: isVideo,
                   videoId: videoId,
                   artUrl: artUrl,
                   albumName: albumName,
@@ -121,7 +119,6 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 MobilePlayerLayout(
                   artworkKey: _artworkKey,
                   currentSong: currentSong,
-                  isVideo: isVideo,
                   videoId: videoId,
                   artUrl: artUrl,
                   albumName: albumName,
@@ -137,7 +134,6 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 TabletPlayerLayout(
                   artworkKey: _artworkKey,
                   currentSong: currentSong,
-                  isVideo: isVideo,
                   videoId: videoId,
                   artUrl: artUrl,
                   albumName: albumName,
@@ -153,7 +149,6 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                 WidePlayerLayout(
                   artworkKey: _artworkKey,
                   currentSong: currentSong,
-                  isVideo: isVideo,
                   videoId: videoId,
                   artUrl: artUrl,
                   albumName: albumName,

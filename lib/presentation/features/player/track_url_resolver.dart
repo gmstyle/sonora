@@ -6,7 +6,6 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'playback_engine.dart';
 
-import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../data/services/media_cache_service.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
@@ -37,7 +36,6 @@ class TrackUrlResolver {
   final QueueController _queueController;
   final PlaybackVolumeController _volumeController;
   final PlaybackStatePublisher _statePublisher;
-  final StreamDatasource? _streamDatasource;
   final bool Function() _isCastConnected;
   final bool Function() _userWantsPlaying;
   final bool Function() _isStopping;
@@ -72,7 +70,6 @@ class TrackUrlResolver {
     required QueueController queueController,
     required PlaybackVolumeController volumeController,
     required PlaybackStatePublisher statePublisher,
-    StreamDatasource? streamDatasource,
     required bool Function() isCastConnected,
     required bool Function() userWantsPlaying,
     required bool Function() isStopping,
@@ -101,7 +98,6 @@ class TrackUrlResolver {
        _queueController = queueController,
        _volumeController = volumeController,
        _statePublisher = statePublisher,
-       _streamDatasource = streamDatasource,
        _isCastConnected = isCastConnected,
        _userWantsPlaying = userWantsPlaying,
        _isStopping = isStopping,
@@ -170,31 +166,13 @@ class TrackUrlResolver {
     final item = media.mediaItem;
     if (item == null) return;
     final track = QueueTrack.fromMediaItem(item);
-    final preferVideo = _queueController.prefersVideo(track);
     final url = diskPrefetchUrlFor(item);
     final videoId = track.videoId;
     if (!_prefetchInFlight.add(videoId)) return;
     unawaited(() async {
       try {
-        // Video mode must prefetch the muxed stream — MediaItem.url is often
-        // an audio-only resolve and would poison the cache as .webm.
-        final streamUrl = preferVideo
-            ? await _playVideoIdUseCase.resolveStreamUrl(
-                videoId,
-                preferVideo: true,
-              )
-            : url;
-        if (streamUrl == null) return;
-        if (preferVideo) {
-          // Live play may be HLS; disk cache uses progressive muxed/adaptive.
-          final ds = _streamDatasource;
-          if (ds != null) {
-            await ds.ensureVideoDiskCache(videoId);
-            return;
-          }
-          if (MediaCacheService.isHlsPlaylistUrl(streamUrl)) return;
-        }
-        await MediaCacheService.instance.downloadToCache(videoId, streamUrl);
+        if (url == null) return;
+        await MediaCacheService.instance.downloadToCache(videoId, url);
       } catch (_) {
       } finally {
         _prefetchInFlight.remove(videoId);
@@ -292,7 +270,7 @@ class TrackUrlResolver {
           .timeout(
             isCurrent
                 ? PlayVideoIdUseCase.streamUrlTimeout +
-                      const Duration(seconds: 5)
+                    const Duration(seconds: 5)
                 : const Duration(seconds: 15),
           );
 
@@ -300,9 +278,8 @@ class TrackUrlResolver {
       if (index >= playlist2.medias.length) return;
       final currentMedia = playlist2.medias[index];
       final currentItem = currentMedia.mediaItem;
-      final currentTrack = currentItem != null
-          ? QueueTrack.fromMediaItem(currentItem)
-          : null;
+      final currentTrack =
+          currentItem != null ? QueueTrack.fromMediaItem(currentItem) : null;
       if (currentTrack?.videoId != videoId) return;
       if (!forceResolve && currentTrack?.needsUrl != true) return;
       // Abort background pre-fetch if the user has skipped past this item.
