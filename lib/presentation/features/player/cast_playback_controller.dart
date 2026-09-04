@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_cast/dart_cast.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 import '../../../data/services/cast_service.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
@@ -14,7 +14,7 @@ import 'playback_volume_controller.dart';
 /// injected via [requestPlay] (must call the handler's `play()`, not
 /// `player.play()`, so the cast device stays in sync).
 class CastPlaybackController {
-  final Player _player;
+  final PlaybackEngine _engine;
   final PlaybackVolumeController _volumeController;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final bool Function() _userWantsPlaying;
@@ -27,13 +27,13 @@ class CastPlaybackController {
   int _castSongToken = 0;
 
   CastPlaybackController({
-    required Player player,
+    required PlaybackEngine engine,
     required PlaybackVolumeController volumeController,
     required PlayVideoIdUseCase playVideoIdUseCase,
     required bool Function() userWantsPlaying,
     required MediaItem? Function() currentMediaItem,
     required Future<void> Function() requestPlay,
-  }) : _player = player,
+  }) : _engine = engine,
        _volumeController = volumeController,
        _playVideoIdUseCase = playVideoIdUseCase,
        _userWantsPlaying = userWantsPlaying,
@@ -50,9 +50,9 @@ class CastPlaybackController {
     _castService = service;
 
     if (state.connectionState == CastConnectionState.connecting) {
-      if (_player.state.playing) {
+      if (_engine.state.playing) {
         pausedForConnection = true;
-        await _player.pause();
+        await _engine.pause();
       }
     } else if (state.connectionState == CastConnectionState.connected) {
       if (_castState?.connectionState != CastConnectionState.connected) {
@@ -64,12 +64,12 @@ class CastPlaybackController {
         state.connectionState == CastConnectionState.error) {
       if (_castState?.connectionState == CastConnectionState.connected) {
         _volumeController.setLocalVolume(
-          _volumeController.lastSetVolume * 100.0,
+          _volumeController.lastSetVolume,
           force: true,
         );
       }
       if (pausedForConnection) {
-        await _player.play();
+        await _engine.play();
         pausedForConnection = false;
       }
     }
@@ -83,7 +83,7 @@ class CastPlaybackController {
   ) async {
     final item = _currentMediaItem();
     if (item == null) return;
-    final currentPos = _player.state.position;
+    final currentPos = _engine.state.position;
     await castSong(item, state, service, startPosition: currentPos);
   }
 
@@ -97,10 +97,10 @@ class CastPlaybackController {
     final token = ++_castSongToken;
 
     final wasPlaying =
-        _player.state.playing || pausedForConnection || _userWantsPlaying();
+        _engine.state.playing || pausedForConnection || _userWantsPlaying();
     if (wasPlaying) {
       pausedForConnection = true;
-      await _player.pause();
+      await _engine.pause();
     }
     _volumeController.setLocalVolume(0.0);
 

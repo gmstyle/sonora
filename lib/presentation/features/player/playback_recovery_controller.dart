@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:developer' as dev;
 
-import 'package:audio_service/audio_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 
 import '../../../core/utils/connectivity_utils.dart';
 import '../../../data/services/media_cache_service.dart';
@@ -30,7 +29,7 @@ import 'track_url_resolver.dart';
 /// Does not hold a back-reference to [SonoraAudioHandler]; playback intent,
 /// cast state, and queue navigation are injected as narrow callbacks.
 class PlaybackRecoveryController {
-  final Player _player;
+  final PlaybackEngine _engine;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final QueueController _queueController;
   final PlaybackVolumeController _volumeController;
@@ -86,7 +85,7 @@ class PlaybackRecoveryController {
   }
 
   PlaybackRecoveryController({
-    required Player player,
+    required PlaybackEngine engine,
     required PlayVideoIdUseCase playVideoIdUseCase,
     required QueueController queueController,
     required PlaybackVolumeController volumeController,
@@ -109,7 +108,7 @@ class PlaybackRecoveryController {
     castMedia,
     required Future<void> Function() waitForCastPlaying,
     required Future<void> Function() castPause,
-  }) : _player = player,
+  }) : _engine = engine,
        _playVideoIdUseCase = playVideoIdUseCase,
        _queueController = queueController,
        _volumeController = volumeController,
@@ -131,7 +130,7 @@ class PlaybackRecoveryController {
 
   /// Attaches player error and connectivity subscriptions.
   void startListening() {
-    _playerErrorSub = _player.stream.error.listen(_onPlayerError);
+    _playerErrorSub = _engine.errorStream.listen(_onPlayerError);
     _connectivitySub = _connectivity.onConnectivityChanged.listen(
       _onConnectivityChanged,
     );
@@ -145,7 +144,7 @@ class PlaybackRecoveryController {
     if (kind == PlayErrorKind.network) {
       _interruptedByNetworkDrop = true;
     }
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     final currentIndex = playlist.index;
     if (currentIndex < 0) return;
 
@@ -169,12 +168,12 @@ class PlaybackRecoveryController {
     String? title,
     PlayErrorKind kind = PlayErrorKind.unknown,
   }) async {
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     if (failedIndex < 0) return;
 
     int targetIndex = -1;
     for (int i = failedIndex + 1; i < playlist.medias.length; i++) {
-      final mediaItem = playlist.medias[i].extras?['mediaItem'] as MediaItem?;
+      final mediaItem = playlist.medias[i].mediaItem;
       if (mediaItem == null) continue;
       final track = QueueTrack.fromMediaItem(mediaItem);
 
@@ -202,7 +201,7 @@ class PlaybackRecoveryController {
       dev.log(
         '[AudioHandler] No playable tracks after $failedIndex. Stopping playback.',
       );
-      await _player.stop();
+      await _engine.stop();
     }
 
     if (videoId != null && title != null) {
@@ -221,9 +220,9 @@ class PlaybackRecoveryController {
     if (isOnline && _interruptedByNetworkDrop) {
       dev.log('[AudioHandler] Network connection restored. Auto-resuming...');
       _interruptedByNetworkDrop = false;
-      final currentIndex = _player.state.playlist.index;
+      final currentIndex = _engine.state.playlist.index;
       if (currentIndex >= 0 &&
-          currentIndex < _player.state.playlist.medias.length) {
+          currentIndex < _engine.state.playlist.medias.length) {
         await _urlResolver.resolveSinglePendingItem(
           currentIndex,
           forceResolve: true,
@@ -243,11 +242,10 @@ class PlaybackRecoveryController {
     // isResolvingItem suppresses _onPlaylistChanged). Using the stale
     // MediaItem with the new index caused replaceAt to overwrite the next
     // track with a duplicate of the previous one.
-    final playlistIndex = _player.state.playlist.index;
-    final medias = _player.state.playlist.medias;
+    final playlistIndex = _engine.state.playlist.index;
+    final medias = _engine.state.playlist.medias;
     if (playlistIndex < 0 || playlistIndex >= medias.length) return;
-    final currentItem =
-        medias[playlistIndex].extras?['mediaItem'] as MediaItem?;
+    final currentItem = medias[playlistIndex].mediaItem;
     if (currentItem == null) return;
     final track = QueueTrack.fromMediaItem(currentItem);
     final videoId = track.videoId;
@@ -273,15 +271,13 @@ class PlaybackRecoveryController {
       );
 
       // Re-read index after the await — user may have skipped meanwhile.
-      final currentIndex = _player.state.playlist.index;
-      final mediasAfter = _player.state.playlist.medias;
+      final currentIndex = _engine.state.playlist.index;
+      final mediasAfter = _engine.state.playlist.medias;
       if (currentIndex < 0 || currentIndex >= mediasAfter.length) return;
-      final itemAtIndex =
-          mediasAfter[currentIndex].extras?['mediaItem'] as MediaItem?;
-      final idAtIndex =
-          itemAtIndex != null
-              ? QueueTrack.fromMediaItem(itemAtIndex).videoId
-              : null;
+      final itemAtIndex = mediasAfter[currentIndex].mediaItem;
+      final idAtIndex = itemAtIndex != null
+          ? QueueTrack.fromMediaItem(itemAtIndex).videoId
+          : null;
       if (idAtIndex != videoId) {
         return;
       }
@@ -291,8 +287,8 @@ class PlaybackRecoveryController {
           .toMediaItem(currentItem);
       final updatedMedia = _queueController.toMedia(updatedItem);
 
-      final wasPlaying = _player.state.playing || _userWantsPlaying();
-      final currentPos = _player.state.position;
+      final wasPlaying = _engine.state.playing || _userWantsPlaying();
+      final currentPos = _engine.state.position;
 
       try {
         await _queueController.runBatch(
@@ -301,7 +297,7 @@ class PlaybackRecoveryController {
               // Cast is active: send the refreshed URL to the cast device too.
               if (wasPlaying) {
                 _setPausedForConnection(true);
-                await _player.pause();
+                await _engine.pause();
               }
               _volumeController.setLocalVolume(0.0);
 
@@ -320,8 +316,8 @@ class PlaybackRecoveryController {
                 expectedVideoId: videoId,
               );
               if (replacedAt < 0) return;
-              await _player.jump(replacedAt);
-              if (currentPos > Duration.zero) await _player.seek(currentPos);
+              await _engine.jump(replacedAt);
+              if (currentPos > Duration.zero) await _engine.seek(currentPos);
 
               if (wasPlaying) {
                 await _waitForCastPlaying();
@@ -331,19 +327,19 @@ class PlaybackRecoveryController {
                 await _castPause();
               }
             } else {
-              if (wasPlaying) await _player.pause();
+              if (wasPlaying) await _engine.pause();
               final replacedAt = await _queueController.replaceAtUnlocked(
                 currentIndex,
                 updatedMedia,
                 expectedVideoId: videoId,
               );
               if (replacedAt < 0) return;
-              await _player.jump(replacedAt);
+              await _engine.jump(replacedAt);
 
               if (currentPos > Duration.zero) {
-                await _player.seek(currentPos);
+                await _engine.seek(currentPos);
               }
-              if (wasPlaying) await _player.play();
+              if (wasPlaying) await _engine.play();
             }
           },
           isStopping: _isStopping(),
@@ -353,7 +349,7 @@ class PlaybackRecoveryController {
           },
         );
       } finally {
-        final actualIndex = _player.state.playlist.index;
+        final actualIndex = _engine.state.playlist.index;
         if (actualIndex >= 0) {
           _statePublisher.updateState(
             (s) => s.copyWith(queueIndex: actualIndex),

@@ -3,7 +3,7 @@ import 'dart:developer' as dev;
 
 import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/url_staleness.dart';
@@ -40,7 +40,7 @@ enum RestoreStatus {
 /// queue stream updates, and shuffle/repeat application are injected as narrow
 /// callbacks.
 class PlaybackRestoreController {
-  final Player _player;
+  final PlaybackEngine _engine;
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
   final QueueController _queueController;
@@ -121,7 +121,7 @@ class PlaybackRestoreController {
   }
 
   PlaybackRestoreController({
-    required Player player,
+    required PlaybackEngine engine,
     required SharedPreferences prefs,
     required QueueRepository queueRepo,
     required QueueController queueController,
@@ -135,7 +135,7 @@ class PlaybackRestoreController {
     required void Function(List<MediaItem>) updateQueueStream,
     required void Function(bool) setIsStopping,
     void Function()? onRestoreReady,
-  }) : _player = player,
+  }) : _engine = engine,
        _prefs = prefs,
        _queueRepo = queueRepo,
        _queueController = queueController,
@@ -190,12 +190,12 @@ class PlaybackRestoreController {
   Future<void> _ensureReady() async {
     if (_restoreStatus == RestoreStatus.restoring) return;
 
-    if (_player.state.playing) {
+    if (_engine.state.playing) {
       _setRestoreStatus(RestoreStatus.ready);
       return;
     }
 
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     if (playlist.medias.isNotEmpty) {
       // Warm resume: the process (and therefore the in-memory playlist) is
       // still alive — this is the common Android case, since the player
@@ -209,7 +209,7 @@ class PlaybackRestoreController {
       // "play stays stuck" on Android after the app sat idle for a while.
       final idx = playlist.index;
       if (idx >= 0 && idx < playlist.medias.length) {
-        final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
+        final item = playlist.medias[idx].mediaItem;
         final track = item != null ? QueueTrack.fromMediaItem(item) : null;
         final isDummy = track?.url?.contains('localhost/dummy') == true;
         if (track != null &&
@@ -229,7 +229,7 @@ class PlaybackRestoreController {
         // Freeze the position hint first so the seek bar doesn't jump while
         // RestoreStatus.restoring is briefly emitted (PlayerNotifier reads
         // `savedPosition` on that transition).
-        _savedPosition = _player.state.position;
+        _savedPosition = _engine.state.position;
         _setRestoreStatus(RestoreStatus.restoring);
         try {
           await _urlResolver.resolveSinglePendingItem(idx, forceResolve: true);
@@ -298,37 +298,31 @@ class PlaybackRestoreController {
     // Honor the current autoplay setting: if the user disabled Up Next
     // between sessions, strip the upnext section from the restored queue.
     final autoplayEnabled = _prefs.getBool(kAutoPlayUpNextKey) ?? true;
-    final filtered =
-        autoplayEnabled
-            ? rawEntries
-            : rawEntries
-                .where((entry) => entry.section == QueueSection.user)
-                .toList();
+    final filtered = autoplayEnabled
+        ? rawEntries
+        : rawEntries
+              .where((entry) => entry.section == QueueSection.user)
+              .toList();
 
     final seenIds = <String>{};
-    final items =
-        filtered.map((entry) {
-          final track = entry.track;
-          final baseItem = track.toFreshMediaItem();
-          final taggedItem =
-              entry.section == QueueSection.upnext
-                  ? QueueController.tagUpNext(baseItem)
-                  : QueueController.tagUser(baseItem);
-          final isLocalAndValid =
-              PlaybackRestoreController.keepLocalUrlOnRestore(
-                track,
-                enableVideoPlayback: _queueController.enableVideoPlayback,
-              );
-          if (isLocalAndValid) {
-            return _queueController.ensureQueueId(taggedItem, seenIds);
-          }
-          return _queueController.ensureQueueId(
-            track
-                .copyWith(clearUrl: true, needsUrl: true)
-                .toMediaItem(taggedItem),
-            seenIds,
-          );
-        }).toList();
+    final items = filtered.map((entry) {
+      final track = entry.track;
+      final baseItem = track.toFreshMediaItem();
+      final taggedItem = entry.section == QueueSection.upnext
+          ? QueueController.tagUpNext(baseItem)
+          : QueueController.tagUser(baseItem);
+      final isLocalAndValid = PlaybackRestoreController.keepLocalUrlOnRestore(
+        track,
+        enableVideoPlayback: _queueController.enableVideoPlayback,
+      );
+      if (isLocalAndValid) {
+        return _queueController.ensureQueueId(taggedItem, seenIds);
+      }
+      return _queueController.ensureQueueId(
+        track.copyWith(clearUrl: true, needsUrl: true).toMediaItem(taggedItem),
+        seenIds,
+      );
+    }).toList();
 
     _updateQueueStream(items);
 
@@ -405,60 +399,57 @@ class PlaybackRestoreController {
     }
 
     _setIsStopping(false);
-    final restoredPlaylist = Playlist(
-      items.map(_queueController.toMedia).toList(),
-      index: savedIndex,
-    );
+    final restoredMedias = items.map(_queueController.toMedia).toList();
     _setUserWantsPlaying(false);
 
     // Open with play: true to trigger stream decoding (needed for the player
     // to report duration on streaming URLs). We pause right after the seek.
-    // Suppress intermediate playlist events: media_kit briefly reports an
+    // Suppress intermediate playlist events: the engine may briefly report an
     // empty playlist during open, which would otherwise sync/persist [].
     _queueController.beginResolving();
     try {
-      await _player.open(restoredPlaylist, play: true);
+      await _engine.open(restoredMedias, index: savedIndex, play: true);
 
       // media_kit may briefly report index 0 while opening a non-zero playlist
       // index (especially with video/HLS). Wait for the intended item before
       // seeking so the seek is not applied to the wrong track.
-      if (savedIndex > 0 && _player.state.playlist.index != savedIndex) {
+      if (savedIndex > 0 && _engine.state.playlist.index != savedIndex) {
         try {
-          await _player.stream.playlist
+          await _engine.playlistStream
               .where((p) => p.index == savedIndex)
               .first
               .timeout(const Duration(seconds: 5));
         } catch (_) {
-          if (_player.state.playlist.index != savedIndex) {
-            await _player.jump(savedIndex);
+          if (_engine.state.playlist.index != savedIndex) {
+            await _engine.jump(savedIndex);
           }
         }
       }
 
       if (_savedPosition > Duration.zero) {
         try {
-          await _player.stream.duration
+          await _engine.durationStream
               .where((d) => d > Duration.zero)
               .first
               .timeout(const Duration(seconds: 8));
         } catch (_) {}
-        await _player.seek(_savedPosition);
+        await _engine.seek(_savedPosition);
         // Video/HLS seeks complete asynchronously: await returns while
         // position is still 0. Wait until the demuxer reports a position near
         // the target before pausing / ending restore (otherwise UI + persist
         // race to 0 and wipe the restored pointer).
         const tolerance = Duration(seconds: 2);
         try {
-          await _player.stream.position
+          await _engine.positionStream
               .where((p) => (p - _savedPosition).abs() <= tolerance)
               .first
               .timeout(const Duration(seconds: 8));
         } catch (_) {
           // One retry — first seek can be ignored if the stream was not
           // fully ready yet despite duration > 0.
-          await _player.seek(_savedPosition);
+          await _engine.seek(_savedPosition);
           try {
-            await _player.stream.position
+            await _engine.positionStream
                 .where((p) => (p - _savedPosition).abs() <= tolerance)
                 .first
                 .timeout(const Duration(seconds: 5));
@@ -466,8 +457,8 @@ class PlaybackRestoreController {
         }
       }
       // Pause after restore — the user didn't ask for playback.
-      if (_player.state.playing) {
-        await _player.pause();
+      if (_engine.state.playing) {
+        await _engine.pause();
       }
     } finally {
       _queueController.endResolving();
@@ -475,10 +466,10 @@ class PlaybackRestoreController {
       // marked ready, so the full-player queue is populated immediately.
       _queueController.syncQueue(isStopping: false);
       // Seed / refresh mediaItem after open (URL may have been resolved above).
-      final playlist = _player.state.playlist;
+      final playlist = _engine.state.playlist;
       final idx = playlist.index;
       if (idx >= 0 && idx < playlist.medias.length) {
-        final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
+        final item = playlist.medias[idx].mediaItem;
         if (item != null) {
           _emitMediaItem(item);
         }

@@ -179,10 +179,9 @@ class PlayerState {
       hasError: hasError ?? this.hasError,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       lastPlayError: clearError ? null : (lastPlayError ?? this.lastPlayError),
-      unplayableVideoIds:
-          clearUnplayable
-              ? const {}
-              : (unplayableVideoIds ?? this.unplayableVideoIds),
+      unplayableVideoIds: clearUnplayable
+          ? const {}
+          : (unplayableVideoIds ?? this.unplayableVideoIds),
       currentSong: currentSong ?? this.currentSong,
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
@@ -190,10 +189,9 @@ class PlayerState {
       duration: duration ?? this.duration,
       shuffleMode: shuffleMode ?? this.shuffleMode,
       repeatMode: repeatMode ?? this.repeatMode,
-      sleepTimerRemaining:
-          clearSleepTimer
-              ? null
-              : (sleepTimerRemaining ?? this.sleepTimerRemaining),
+      sleepTimerRemaining: clearSleepTimer
+          ? null
+          : (sleepTimerRemaining ?? this.sleepTimerRemaining),
       userQueue: userQueue ?? this.userQueue,
       upNextQueue: upNextQueue ?? this.upNextQueue,
       upNextStartIndex: upNextStartIndex ?? this.upNextStartIndex,
@@ -301,12 +299,12 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     // is correct even if the broadcast duration stream's latest emission
     // arrived before _durationSub subscribes (broadcast streams do not
     // replay the last value).
-    final playerDuration = _handler.player.state.duration;
+    final playerDuration = _handler.engine.state.duration;
     if (playerDuration > Duration.zero) {
       initialState = initialState.copyWith(duration: playerDuration);
     }
 
-    final playerPosition = _handler.player.state.position;
+    final playerPosition = _handler.engine.state.position;
     if (_handler.currentRestoreStatus == RestoreStatus.restoring) {
       initialState = initialState.copyWith(
         isRestoring: true,
@@ -349,7 +347,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           // subscribed after a transient state). Playlist index is the
           // fallback when PlaybackState.queueIndex is still null.
           final qi = _handler.playbackState.valueOrNull?.queueIndex;
-          final playlistIdx = _handler.player.state.playlist.index;
+          final playlistIdx = _handler.engine.state.playlist.index;
           final resolved =
               qi ?? (playlistIdx >= 0 ? playlistIdx : state.currentIndex);
           state = state.copyWith(isRestoring: false, currentIndex: resolved);
@@ -383,10 +381,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           // track is actually playing.
           isSwitching:
               wasSwitching &&
-                      !(s.processingState == AudioProcessingState.ready &&
-                          s.playing)
-                  ? true
-                  : false,
+                  !(s.processingState == AudioProcessingState.ready &&
+                      s.playing)
+              ? true
+              : false,
         );
 
         if (s.processingState == AudioProcessingState.ready && s.playing) {
@@ -769,8 +767,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final playable = episodes
           .where((e) => e.videoId.isNotEmpty)
           .toList(growable: false);
-      final initialIndex =
-          startIndex >= 0 && startIndex < playable.length ? startIndex : 0;
+      final initialIndex = startIndex >= 0 && startIndex < playable.length
+          ? startIndex
+          : 0;
       await _handler.playNow(
         items,
         initialIndex: initialIndex,
@@ -1073,10 +1072,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _handler.setShuffleMode(mode);
 
   Future<void> toggleShuffle() async {
-    final newMode =
-        state.shuffleMode == AudioServiceShuffleMode.none
-            ? AudioServiceShuffleMode.all
-            : AudioServiceShuffleMode.none;
+    final newMode = state.shuffleMode == AudioServiceShuffleMode.none
+        ? AudioServiceShuffleMode.all
+        : AudioServiceShuffleMode.none;
     await _handler.setShuffleMode(newMode);
   }
 

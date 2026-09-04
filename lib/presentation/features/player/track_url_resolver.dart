@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 
 import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../data/services/media_cache_service.dart';
@@ -32,7 +32,7 @@ import 'queue_controller.dart';
 /// Does not hold a back-reference to [SonoraAudioHandler]; cast state,
 /// playback intent, and failure handling are injected as narrow callbacks.
 class TrackUrlResolver {
-  final Player _player;
+  final PlaybackEngine _engine;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final QueueController _queueController;
   final PlaybackVolumeController _volumeController;
@@ -67,7 +67,7 @@ class TrackUrlResolver {
   PlayErrorKind? get lastResolveFailureKind => _lastResolveFailureKind;
 
   TrackUrlResolver({
-    required Player player,
+    required PlaybackEngine engine,
     required PlayVideoIdUseCase playVideoIdUseCase,
     required QueueController queueController,
     required PlaybackVolumeController volumeController,
@@ -96,7 +96,7 @@ class TrackUrlResolver {
     castMedia,
     required Future<void> Function() waitForCastPlaying,
     required Future<void> Function() castPause,
-  }) : _player = player,
+  }) : _engine = engine,
        _playVideoIdUseCase = playVideoIdUseCase,
        _queueController = queueController,
        _volumeController = volumeController,
@@ -147,14 +147,14 @@ class TrackUrlResolver {
 
     _lookaheadTimer?.cancel();
     _lookaheadTimer = Timer(const Duration(seconds: 20), () async {
-      final actualIndex = _player.state.playlist.index;
-      if (actualIndex == currentIndex && _player.state.playing) {
+      final actualIndex = _engine.state.playlist.index;
+      if (actualIndex == currentIndex && _engine.state.playing) {
         await resolveSinglePendingItem(currentIndex + 2);
         _prefetchDiskCacheAt(currentIndex + 2);
 
         await Future.delayed(const Duration(seconds: 3));
-        final finalIndex = _player.state.playlist.index;
-        if (finalIndex == currentIndex && _player.state.playing) {
+        final finalIndex = _engine.state.playlist.index;
+        if (finalIndex == currentIndex && _engine.state.playing) {
           await resolveSinglePendingItem(currentIndex + 3);
           _prefetchDiskCacheAt(currentIndex + 3);
         }
@@ -164,10 +164,10 @@ class TrackUrlResolver {
 
   /// Kicks off a disk cache download for [index] using a fresh playlist read.
   void _prefetchDiskCacheAt(int index) {
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     if (index < 0 || index >= playlist.medias.length) return;
     final media = playlist.medias[index];
-    final item = media.extras?['mediaItem'] as MediaItem?;
+    final item = media.mediaItem;
     if (item == null) return;
     final track = QueueTrack.fromMediaItem(item);
     final preferVideo = _queueController.prefersVideo(track);
@@ -178,13 +178,12 @@ class TrackUrlResolver {
       try {
         // Video mode must prefetch the muxed stream — MediaItem.url is often
         // an audio-only resolve and would poison the cache as .webm.
-        final streamUrl =
-            preferVideo
-                ? await _playVideoIdUseCase.resolveStreamUrl(
-                  videoId,
-                  preferVideo: true,
-                )
-                : url;
+        final streamUrl = preferVideo
+            ? await _playVideoIdUseCase.resolveStreamUrl(
+                videoId,
+                preferVideo: true,
+              )
+            : url;
         if (streamUrl == null) return;
         if (preferVideo) {
           // Live play may be HLS; disk cache uses progressive muxed/adaptive.
@@ -223,13 +222,13 @@ class TrackUrlResolver {
   }
 
   Set<String> _stalePrefetchVideoIds(int currentIndex) {
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     return stalePrefetchIds(
       inFlight: _prefetchInFlight,
       queueVideoIds: [
         for (final media in playlist.medias)
           () {
-            final item = media.extras?['mediaItem'] as MediaItem?;
+            final item = media.mediaItem;
             if (item == null) return null;
             return QueueTrack.fromMediaItem(item).videoId;
           }(),
@@ -256,16 +255,16 @@ class TrackUrlResolver {
     // Overrides the auto-detected "is this the active item" check below.
     // Pass `true` when the caller is about to make [index] the active item
     // (e.g. [skipToQueueItem] resolving the tapped item *before* jumping to
-    // it, when `_player.state.playlist.index` still points at the old
+    // it, when `_engine.state.playlist.index` still points at the old
     // track) so it gets the long, 429-back-off-tolerant timeout instead of
     // the short background one.
     bool? treatAsCurrent,
   }) async {
     if (index < 0) return;
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     if (index >= playlist.medias.length) return;
     final media = playlist.medias[index];
-    final item = media.extras?['mediaItem'] as MediaItem?;
+    final item = media.mediaItem;
     if (item == null) return;
     final track = QueueTrack.fromMediaItem(item);
     if (!forceResolve && !track.needsUrl) return;
@@ -293,16 +292,17 @@ class TrackUrlResolver {
           .timeout(
             isCurrent
                 ? PlayVideoIdUseCase.streamUrlTimeout +
-                    const Duration(seconds: 5)
+                      const Duration(seconds: 5)
                 : const Duration(seconds: 15),
           );
 
-      final playlist2 = _player.state.playlist;
+      final playlist2 = _engine.state.playlist;
       if (index >= playlist2.medias.length) return;
       final currentMedia = playlist2.medias[index];
-      final currentItem = currentMedia.extras?['mediaItem'] as MediaItem?;
-      final currentTrack =
-          currentItem != null ? QueueTrack.fromMediaItem(currentItem) : null;
+      final currentItem = currentMedia.mediaItem;
+      final currentTrack = currentItem != null
+          ? QueueTrack.fromMediaItem(currentItem)
+          : null;
       if (currentTrack?.videoId != videoId) return;
       if (!forceResolve && currentTrack?.needsUrl != true) return;
       // Abort background pre-fetch if the user has skipped past this item.
@@ -314,12 +314,12 @@ class TrackUrlResolver {
       final updatedMedia = _queueController.toMedia(updatedItem);
 
       if (_isCastConnected()) {
-        if (index == _player.state.playlist.index) {
-          final wasPlaying = _player.state.playing || _userWantsPlaying();
-          final currentPos = _player.state.position;
+        if (index == _engine.state.playlist.index) {
+          final wasPlaying = _engine.state.playing || _userWantsPlaying();
+          final currentPos = _engine.state.position;
           if (wasPlaying) {
             _setPausedForConnection(true);
-            await _player.pause();
+            await _engine.pause();
           }
           _volumeController.setLocalVolume(0.0);
 
@@ -339,8 +339,8 @@ class TrackUrlResolver {
             expectedVideoId: videoId,
           );
           if (replacedAt < 0) return;
-          await _player.jump(replacedAt);
-          if (currentPos > Duration.zero) await _player.seek(currentPos);
+          await _engine.jump(replacedAt);
+          if (currentPos > Duration.zero) await _engine.seek(currentPos);
 
           if (wasPlaying) {
             await _waitForCastPlaying();
@@ -359,19 +359,19 @@ class TrackUrlResolver {
           );
         }
       } else {
-        if (index == _player.state.playlist.index) {
-          final wasPlaying = _player.state.playing;
-          final currentPos = _player.state.position;
-          if (wasPlaying) await _player.pause();
+        if (index == _engine.state.playlist.index) {
+          final wasPlaying = _engine.state.playing;
+          final currentPos = _engine.state.position;
+          if (wasPlaying) await _engine.pause();
           final replacedAt = await _queueController.replaceAt(
             index,
             updatedMedia,
             expectedVideoId: videoId,
           );
           if (replacedAt < 0) return;
-          await _player.jump(replacedAt);
-          if (currentPos > Duration.zero) await _player.seek(currentPos);
-          if (wasPlaying) await _player.play();
+          await _engine.jump(replacedAt);
+          if (currentPos > Duration.zero) await _engine.seek(currentPos);
+          if (wasPlaying) await _engine.play();
         } else {
           await _queueController.replaceAt(
             index,
@@ -384,7 +384,7 @@ class TrackUrlResolver {
       dev.log('[AudioHandler] Failed to resolve URL for item at $index: $e');
       final kind = PlayErrorKind.classify(e);
       _lastResolveFailureKind = kind;
-      final playlist3 = _player.state.playlist;
+      final playlist3 = _engine.state.playlist;
       if (index == playlist3.index) {
         await _onResolveFailed(videoId, item.title, kind);
       }
@@ -396,13 +396,13 @@ class TrackUrlResolver {
         _statePublisher.invalidate();
         _statePublisher.updatePlaybackState();
       }
-      final actualIndex = _player.state.playlist.index;
+      final actualIndex = _engine.state.playlist.index;
       if (actualIndex >= 0 && !_isRestoring()) {
         _statePublisher.updateState((s) => s.copyWith(queueIndex: actualIndex));
-        final playlist = _player.state.playlist;
+        final playlist = _engine.state.playlist;
         if (actualIndex < playlist.medias.length) {
           final media = playlist.medias[actualIndex];
-          var item = media.extras?['mediaItem'] as MediaItem?;
+          var item = media.mediaItem;
           if (item != null) {
             // Look-ahead resolves re-emit the *current* MediaItem from playlist
             // extras. If metadata had duration 0/null, that would wipe a
@@ -414,7 +414,7 @@ class TrackUrlResolver {
             var track = QueueTrack.fromMediaItem(item);
             final trackChanged =
                 track.videoId != _statePublisher.lastEmittedMediaItemId;
-            final playerDuration = _player.state.duration;
+            final playerDuration = _engine.state.duration;
             if (!trackChanged &&
                 (track.duration == null || track.duration == Duration.zero) &&
                 playerDuration > Duration.zero) {

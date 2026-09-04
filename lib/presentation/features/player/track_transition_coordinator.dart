@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:audio_service/audio_service.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
@@ -55,7 +55,7 @@ import 'track_url_resolver.dart';
 /// has to follow the playlist even mid-resolve, and step 5 is the resolver's
 /// own driver — gating it would stall look-ahead permanently.
 class TrackTransitionCoordinator {
-  final Player _player;
+  final PlaybackEngine _engine;
   final PlaybackIntentController _intent;
   final ExternalAudioTrackController _externalAudio;
   final QueueController _queueController;
@@ -73,7 +73,7 @@ class TrackTransitionCoordinator {
   final bool Function() _isRestoring;
 
   TrackTransitionCoordinator({
-    required Player player,
+    required PlaybackEngine engine,
     required PlaybackIntentController intent,
     required ExternalAudioTrackController externalAudio,
     required QueueController queueController,
@@ -89,7 +89,7 @@ class TrackTransitionCoordinator {
     required void Function(MediaItem) emitMediaItem,
     required bool Function() isStopping,
     required bool Function() isRestoring,
-  }) : _player = player,
+  }) : _engine = engine,
        _intent = intent,
        _externalAudio = externalAudio,
        _queueController = queueController,
@@ -108,9 +108,9 @@ class TrackTransitionCoordinator {
 
   /// Subscribes to media_kit streams. Called once from the handler constructor.
   void setupListeners() {
-    _player.stream.playing.listen((playing) {
+    _engine.playingStream.listen((playing) {
       if (_intent.shouldForcePause(playing: playing)) {
-        unawaited(_player.pause());
+        unawaited(_engine.pause());
         return;
       }
       _intent.onEnginePlaying(
@@ -122,45 +122,48 @@ class TrackTransitionCoordinator {
       );
       _statePublisher.updatePlaybackState();
     });
-    _player.stream.buffering.listen(
+    _engine.bufferingStream.listen(
       (_) => _statePublisher.updatePlaybackState(),
     );
-    _player.stream.completed.listen(
+    _engine.completedStream.listen(
       (_) => _statePublisher.updatePlaybackState(),
     );
 
-    _player.stream.playlist.listen((playlist) {
+    _engine.playlistStream.listen((playlist) {
       if (!_queueController.isResolvingItem) {
         _statePublisher.updatePlaybackState();
       }
       onPlaylistChanged(playlist);
     });
 
-    _player.stream.duration.listen(onDurationChanged);
+    _engine.durationStream.listen(onDurationChanged);
 
-    _player.stream.position.listen((pos) {
+    _engine.positionStream.listen((pos) {
       _volumeController.handleCrossfade(pos);
       _statePublisher.handlePositionTick(pos);
       if (_volumeController.isTransitionMuted &&
-          _player.state.playing &&
+          _engine.state.playing &&
           pos.inMilliseconds > 150) {
         _volumeController.endTransitionMute();
       }
     });
-    _player.stream.buffer.listen(_statePublisher.onBufferedPositionChanged);
+    _engine.bufferedPositionStream.listen(
+      _statePublisher.onBufferedPositionChanged,
+    );
 
-    _player.stream.shuffle.listen((shuffled) {
-      final shuffleMode =
-          shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
+    _engine.shuffleStream.listen((shuffled) {
+      final shuffleMode = shuffled
+          ? AudioServiceShuffleMode.all
+          : AudioServiceShuffleMode.none;
       _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
       rebuildControls();
     });
 
-    _player.stream.playlistMode.listen((mode) {
+    _engine.repeatModeStream.listen((mode) {
       final repeatMode = switch (mode) {
-        PlaylistMode.none => AudioServiceRepeatMode.none,
-        PlaylistMode.single => AudioServiceRepeatMode.one,
-        PlaylistMode.loop => AudioServiceRepeatMode.all,
+        EngineRepeatMode.none => AudioServiceRepeatMode.none,
+        EngineRepeatMode.one => AudioServiceRepeatMode.one,
+        EngineRepeatMode.all => AudioServiceRepeatMode.all,
       };
       _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
       rebuildControls();
@@ -179,7 +182,7 @@ class TrackTransitionCoordinator {
     );
   }
 
-  void onPlaylistChanged(Playlist playlist) {
+  void onPlaylistChanged(EnginePlaylist playlist) {
     if (_isStopping()) return;
 
     final index = playlist.index;
@@ -220,7 +223,7 @@ class TrackTransitionCoordinator {
     }
   }
 
-  void _publishQueuePointer(Playlist playlist, int index) {
+  void _publishQueuePointer(EnginePlaylist playlist, int index) {
     _skipNavigator.clearTarget();
     _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
     if (index < 0) return;
@@ -232,23 +235,21 @@ class TrackTransitionCoordinator {
     // the "where were we" pointer can never lag behind the actually-playing
     // track, which used to cause resuming into a stale/wrong index after a
     // process restart.
-    final currentMediaItem =
-        index < playlist.medias.length
-            ? (playlist.medias[index].extras?['mediaItem'] as MediaItem?)
-            : null;
-    final videoId =
-        currentMediaItem != null
-            ? QueueTrack.fromMediaItem(currentMediaItem).videoId
-            : null;
+    final currentMediaItem = index < playlist.medias.length
+        ? playlist.medias[index].mediaItem
+        : null;
+    final videoId = currentMediaItem != null
+        ? QueueTrack.fromMediaItem(currentMediaItem).videoId
+        : null;
     unawaited(_queueRepo.persistCurrentIndex(index, videoId: videoId));
   }
 
-  void _publishMediaItem(Media media) {
-    var item = media.extras?['mediaItem'] as MediaItem?;
+  void _publishMediaItem(EngineMedia media) {
+    var item = media.mediaItem;
     if (item == null) return;
 
     var track = QueueTrack.fromMediaItem(item);
-    final playerDuration = _player.state.duration;
+    final playerDuration = _engine.state.duration;
     final trackChanged =
         track.videoId != _statePublisher.lastEmittedMediaItemId;
 
@@ -305,18 +306,20 @@ class TrackTransitionCoordinator {
     // media_kit emits duration only once during that window.
     if (duration == Duration.zero) return;
 
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     final index = playlist.index;
     MediaItem? playingItem;
     if (index >= 0 && index < playlist.medias.length) {
-      playingItem = playlist.medias[index].extras?['mediaItem'] as MediaItem?;
+      playingItem = playlist.medias[index].mediaItem;
     }
 
     final current = _currentMediaItem();
-    final playingTrack =
-        playingItem != null ? QueueTrack.fromMediaItem(playingItem) : null;
-    final currentTrack =
-        current != null ? QueueTrack.fromMediaItem(current) : null;
+    final playingTrack = playingItem != null
+        ? QueueTrack.fromMediaItem(playingItem)
+        : null;
+    final currentTrack = current != null
+        ? QueueTrack.fromMediaItem(current)
+        : null;
 
     if (playingTrack != null &&
         playingItem != null &&
@@ -324,9 +327,9 @@ class TrackTransitionCoordinator {
             currentTrack.videoId != playingTrack.videoId)) {
       final updatedTrack =
           (playingTrack.duration != null &&
-                  playingTrack.duration != Duration.zero)
-              ? playingTrack
-              : playingTrack.copyWith(duration: duration);
+              playingTrack.duration != Duration.zero)
+          ? playingTrack
+          : playingTrack.copyWith(duration: duration);
       final updated = updatedTrack.toMediaItem(playingItem);
       _statePublisher.noteEmittedMediaItem(updated, track: updatedTrack);
       _emitMediaItem(updated);
