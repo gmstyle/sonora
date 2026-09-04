@@ -4,6 +4,9 @@ import 'package:media_kit/media_kit.dart';
 import 'playback_engine.dart';
 
 /// [PlaybackEngine] backed by a media_kit [Player].
+///
+/// Unused while [JustAudioPlaybackEngine] is the production engine. Kept as a
+/// Linux fallback if `just_audio_media_kit` playlist/seek/webm playback fails.
 class MediaKitPlaybackEngine implements PlaybackEngine {
   final Player _player;
 

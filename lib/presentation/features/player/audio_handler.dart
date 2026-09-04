@@ -9,7 +9,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'media_kit_playback_engine.dart';
+import 'just_audio_playback_engine.dart';
 import 'playback_engine.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../domain/models/library_models.dart';
@@ -29,7 +29,6 @@ import 'audio_session_controller.dart';
 import 'external_audio_track_controller.dart';
 import 'like_controller.dart';
 import 'play_error.dart';
-import 'player_engine_configurator.dart';
 import 'player_media_controls.dart';
 import 'playback_intent_controller.dart';
 import 'playback_recovery_controller.dart';
@@ -51,7 +50,7 @@ import '../../../domain/models/media_quality.dart';
 import '../../providers/settings_provider.dart';
 
 class SonoraAudioHandler extends BaseAudioHandler {
-  final MediaKitPlaybackEngine _engine = MediaKitPlaybackEngine.create();
+  final JustAudioPlaybackEngine _engine = JustAudioPlaybackEngine.create();
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
@@ -63,7 +62,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final EqualizerController _equalizerController;
   late final QueueController _queueController;
   late final AudioSessionController _audioSessionController;
-  late final PlayerEngineConfigurator _engineConfigurator;
   late final LikeController _likeController;
   late final PlaybackVolumeController _volumeController;
   late final PlaybackStatePublisher _statePublisher;
@@ -143,7 +141,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onLikeChanged: () => _transitions.rebuildControls(),
     );
 
-    _equalizerController = EqualizerController(player: _engine.nativePlayer);
+    _equalizerController = EqualizerController(
+      equalizer: _engine.androidEqualizer,
+    );
 
     _queueController = QueueController(
       engine: _engine,
@@ -176,9 +176,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       playNow: (items) => playNow(items),
     );
 
-    _engineConfigurator = PlayerEngineConfigurator(
-      player: _engine.nativePlayer,
-    );
     // Volume must be constructed before cast so CastPlaybackController can
     // receive it; isCastConnected is late-bound and safe once cast is assigned.
     _volumeController = PlaybackVolumeController(
@@ -365,7 +362,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     unawaited(_audioSessionController.setup());
     _transitions.setupListeners();
     _recoveryController.startListening();
-    unawaited(_engineConfigurator.configure());
     unawaited(_restoreController.ensureReady());
 
     // Inizializza l'equalizzatore all'avvio in base alle impostazioni persistite
@@ -410,9 +406,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Stream<Duration?> get durationStream =>
       _engine.durationStream.map((d) => d == Duration.zero ? null : d);
 
-  /// Exposes the raw position stream from media_kit so that UI layers can
-  /// subscribe to it directly without going through [playbackState], which
-  /// would cause Android Auto to re-render the queue view on every tick.
   Stream<Duration> get positionStream => _engine.positionStream;
 
   /// In-app / deliberate resume entry point. Bypasses the guard that blocks
