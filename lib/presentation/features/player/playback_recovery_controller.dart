@@ -275,9 +275,10 @@ class PlaybackRecoveryController {
       final mediasAfter = _engine.state.playlist.medias;
       if (currentIndex < 0 || currentIndex >= mediasAfter.length) return;
       final itemAtIndex = mediasAfter[currentIndex].mediaItem;
-      final idAtIndex = itemAtIndex != null
-          ? QueueTrack.fromMediaItem(itemAtIndex).videoId
-          : null;
+      final idAtIndex =
+          itemAtIndex != null
+              ? QueueTrack.fromMediaItem(itemAtIndex).videoId
+              : null;
       if (idAtIndex != videoId) {
         return;
       }

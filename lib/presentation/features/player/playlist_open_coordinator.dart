@@ -148,9 +148,8 @@ class PlaylistOpenCoordinator {
 
         resolvedItems = await _resolveInitialUrl(resolvedItems, initialIndex);
 
-        final finalMedias = resolvedItems
-            .map(_queueController.toMedia)
-            .toList();
+        final finalMedias =
+            resolvedItems.map(_queueController.toMedia).toList();
         final hasFocus = await _requestFocus();
         _intent.onSessionOpened(hasFocus: hasFocus);
         await _engine.open(finalMedias, index: initialIndex, play: hasFocus);
