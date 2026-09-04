@@ -26,12 +26,22 @@ void main() {
       expect(PlaybackRestoreController.keepLocalUrlOnRestore(track), isFalse);
     });
 
-    test('keeps audio webm media-cache for catalog video tracks', () {
-      const track = QueueTrack(
+    test('keeps audio webm media-cache for catalog video tracks', () async {
+      final cacheDir = Directory(
+        '${Directory.systemTemp.path}/sonora_media_cache',
+      );
+      await cacheDir.create(recursive: true);
+      final file = File('${cacheDir.path}/vid_audio_restore.webm');
+      await file.writeAsBytes(const [1, 2, 3]);
+      addTearDown(() async {
+        if (await file.exists()) await file.delete();
+      });
+
+      final track = QueueTrack(
         videoId: 'vid',
         title: 'Video',
         isVideo: true,
-        url: 'file:///tmp/sonora_media_cache/vid.webm',
+        url: file.uri.toString(),
       );
       expect(PlaybackRestoreController.keepLocalUrlOnRestore(track), isTrue);
     });
