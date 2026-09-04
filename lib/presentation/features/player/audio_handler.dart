@@ -73,6 +73,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlaylistOpenCoordinator _playlistOpener;
   late final TrackTransitionCoordinator _transitions;
 
+  final _uiPosition = StreamController<Duration>.broadcast();
+  final _uiDuration = StreamController<Duration?>.broadcast();
+  StreamSubscription<Duration>? _engineUiPosSub;
+  StreamSubscription<Duration>? _engineUiDurSub;
+
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
   static final Connectivity _sharedConnectivity = Connectivity();
@@ -110,7 +115,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _queueRepo.persistPlaybackPointer(
       currentIndex: index,
       videoId: videoId,
-      position: _engine.state.position,
+      position:
+          _isCastConnected()
+              ? (_castController.lastCastPosition ?? _engine.state.position)
+              : _engine.state.position,
     );
   }
 
@@ -191,7 +199,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       playVideoIdUseCase: _playVideoIdUseCase,
       userWantsPlaying: () => _intent.userWantsPlaying,
       currentMediaItem: () => mediaItem.value,
-      requestPlay: play,
+      lanCastUrl: _queueController.lanCastUrlFor,
     );
     _statePublisher = PlaybackStatePublisher(
       engine: _engine,
@@ -203,7 +211,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isLiked: () => _likeController.isCurrentSongLiked,
       isExplicitlyPaused: () => _intent.isExplicitlyPaused,
       onBecameReady: () => _recoveryController.resetRetryCount(),
+      isCastConnected: _isCastConnected,
+      isCastSessionPlaying: () => _castController.isRemotePlaying,
+      castPosition: () => _castController.lastCastPosition,
     );
+    _castController.onTransportChanged = _onCastTransportChanged;
+    _castController.onCastPosition = _onCastPosition;
+    _castController.onCastDuration = _onCastDuration;
     _skipNavigator = SkipNavigator();
     _urlResolver = TrackUrlResolver(
       engine: _engine,
@@ -240,10 +254,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         );
       },
       waitForCastPlaying:
-          () => _castController.waitForCastSessionState(
-            _castController.castService!,
-            SessionState.playing,
-          ),
+          () async {
+            await _castController.waitForCastSessionState(
+              _castController.castService!,
+              SessionState.playing,
+            );
+          },
       castPause: () async {
         await _castController.castService?.pause();
       },
@@ -281,10 +297,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         );
       },
       waitForCastPlaying:
-          () => _castController.waitForCastSessionState(
-            _castController.castService!,
-            SessionState.playing,
-          ),
+          () async {
+            await _castController.waitForCastSessionState(
+              _castController.castService!,
+              SessionState.playing,
+            );
+          },
       castPause: () async {
         await _castController.castService?.pause();
       },
@@ -368,6 +386,16 @@ class SonoraAudioHandler extends BaseAudioHandler {
     unawaited(_audioSessionController.setup());
     _transitions.setupListeners();
     _recoveryController.startListening();
+    _engineUiPosSub = _engine.positionStream.listen((pos) {
+      if (_isCastConnected()) return;
+      if (!_uiPosition.isClosed) _uiPosition.add(pos);
+    });
+    _engineUiDurSub = _engine.durationStream.listen((d) {
+      if (_isCastConnected()) return;
+      if (!_uiDuration.isClosed) {
+        _uiDuration.add(d == Duration.zero ? null : d);
+      }
+    });
     unawaited(_restoreController.ensureReady());
 
     // Inizializza l'equalizzatore all'avvio in base alle impostazioni persistite
@@ -409,10 +437,37 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// pre-populate the seek bar before the player has actually seeked.
   Duration get savedPosition => _restoreController.savedPosition;
 
-  Stream<Duration?> get durationStream =>
-      _engine.durationStream.map((d) => d == Duration.zero ? null : d);
+  bool _isCastConnected() =>
+      _castController.castState?.connectionState ==
+      CastConnectionState.connected;
 
-  Stream<Duration> get positionStream => _engine.positionStream;
+  void _onCastTransportChanged() {
+    if (_isCastConnected()) {
+      final remote = _castController.remoteSessionState;
+      if (remote == SessionState.playing) {
+        _intent.onPlayAccepted();
+      } else if (remote == SessionState.paused) {
+        _intent.onPauseApplied();
+      }
+    }
+    _statePublisher.invalidate();
+    _statePublisher.updatePlaybackState();
+  }
+
+  void _onCastPosition(Duration pos) {
+    if (!_uiPosition.isClosed) _uiPosition.add(pos);
+    _statePublisher.handlePositionTick(pos);
+  }
+
+  void _onCastDuration(Duration d) {
+    if (d > Duration.zero && !_uiDuration.isClosed) {
+      _uiDuration.add(d);
+    }
+  }
+
+  Stream<Duration?> get durationStream => _uiDuration.stream;
+
+  Stream<Duration> get positionStream => _uiPosition.stream;
 
   /// In-app / deliberate resume entry point. Bypasses the guard that blocks
   /// spurious MediaSession PLAY after Pixel Buds ear-detection while paused.
@@ -450,10 +505,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _restoreController.awaitReady();
 
     if (await _audioSessionController.requestFocus()) {
-      await _engine.play();
-      if (_castController.castState?.connectionState ==
-          CastConnectionState.connected) {
+      final castConnected =
+          _castController.castState?.connectionState ==
+          CastConnectionState.connected;
+      if (castConnected) {
         await _castController.castService?.play();
+      } else {
+        await _engine.play();
       }
     } else {
       _intent.onFocusDenied();
@@ -915,6 +973,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _recoveryController.dispose();
     _audioSessionController.dispose();
     _restoreController.dispose();
+    unawaited(_engineUiPosSub?.cancel());
+    unawaited(_engineUiDurSub?.cancel());
+    unawaited(_uiPosition.close());
+    unawaited(_uiDuration.close());
     _engine.dispose();
   }
 

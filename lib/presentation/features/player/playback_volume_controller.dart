@@ -51,7 +51,8 @@ class PlaybackVolumeController {
 
   void setLocalVolume(double volume, {bool force = false}) {
     final v = volume.clamp(0.0, 1.0);
-    if (!force && _isCastConnected()) {
+    final castConnected = _isCastConnected();
+    if (!force && castConnected) {
       unawaitedSetVolume(0.0);
     } else {
       unawaitedSetVolume(v);

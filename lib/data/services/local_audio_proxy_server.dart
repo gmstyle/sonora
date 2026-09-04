@@ -50,9 +50,11 @@ class LocalAudioProxyServer {
     app.get('/stream', _handleStream);
 
     try {
+      // Listen on all interfaces so a Chromecast on the LAN can pull audio
+      // through this proxy. Local playback still uses 127.0.0.1 ([streamBaseUrl]).
       _server = await shelf_io.serve(
         app.call,
-        InternetAddress.loopbackIPv4,
+        InternetAddress.anyIPv4,
         0, // Port 0 lets the OS assign an available ephemeral port
       );
       dev.log('[LocalAudioProxyServer] Server started at $streamBaseUrl');
@@ -93,6 +95,50 @@ class LocalAudioProxyServer {
     return Uri.parse(
       '$streamBaseUrl/stream',
     ).replace(queryParameters: params).toString();
+  }
+
+  /// First non-loopback IPv4, preferring Wi-Fi-style interface names.
+  static Future<String?> lookupLanIPv4() async {
+    final interfaces = await NetworkInterface.list(
+      type: InternetAddressType.IPv4,
+      includeLinkLocal: false,
+    );
+    String? fallback;
+    for (final iface in interfaces) {
+      final name = iface.name.toLowerCase();
+      final isWifi =
+          name.contains('wlan') ||
+          name.contains('wifi') ||
+          name.contains('wl') ||
+          name == 'en0' ||
+          name.startsWith('wlp') ||
+          name.startsWith('enp');
+      for (final addr in iface.addresses) {
+        if (addr.isLoopback) continue;
+        if (isWifi) return addr.address;
+        fallback ??= addr.address;
+      }
+    }
+    return fallback;
+  }
+
+  /// Same path as [getStreamUrlForVideo] but advertised with the phone's LAN
+  /// IP so a cast device can fetch it. Null if the server is down or no LAN IP.
+  Future<String?> getCastStreamUrlForVideo(
+    String videoId, {
+    MediaQuality audioQuality = MediaQuality.high,
+    bool preferVideo = false,
+  }) async {
+    if (!isRunning || videoId.isEmpty) return null;
+    final ip = await lookupLanIPv4();
+    if (ip == null) return null;
+    return Uri.parse(
+      getStreamUrlForVideo(
+        videoId,
+        audioQuality: audioQuality,
+        preferVideo: preferVideo,
+      ),
+    ).replace(host: ip).toString();
   }
 
   /// Resolves audio quality from `qa`, falling back to legacy `q`.

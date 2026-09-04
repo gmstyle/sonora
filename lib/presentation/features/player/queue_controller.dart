@@ -70,6 +70,16 @@ class QueueController {
        _updateQueueStream = updateQueueStream,
        _proxyServer = proxyServer;
 
+  /// HTTP URL a Chromecast on the LAN can fetch (phone proxy, not loopback).
+  Future<String?> lanCastUrlFor(QueueTrack track) async {
+    if (track.videoId.isEmpty) return null;
+    return _proxyServer?.getCastStreamUrlForVideo(
+      track.videoId,
+      audioQuality: streamAudioQuality,
+      preferVideo: prefersVideo(track),
+    );
+  }
+
   /// Syncs stream-related prefs from settings without restarting playback.
   void updateStreamPrefs({MediaQuality? streamAudioQuality}) {
     if (streamAudioQuality != null) {
