@@ -163,8 +163,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       updateQueueStream: (items) => queue.add(items),
       proxyServer: _proxyServer,
       streamAudioQuality: MediaQuality.fromStorage(
-        _prefs.getString(kStreamAudioQualityKey) ??
-            _prefs.getString(kStreamQualityKey),
+        readStreamAudioQualityPref(_prefs),
       ),
     );
 
@@ -400,9 +399,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     unawaited(_restoreController.ensureReady());
 
     // Inizializza l'equalizzatore all'avvio in base alle impostazioni persistite
-    final eqEnabled = _prefs.getBool('equalizerEnabled') ?? false;
+    final eqEnabled = _prefs.getBool(kEqualizerEnabledKey) ?? false;
     final eqGainsStr =
-        _prefs.getStringList('equalizerGains') ??
+        _prefs.getStringList(kEqualizerGainsKey) ??
         ['0.0', '0.0', '0.0', '0.0', '0.0'];
     final eqGains = eqGainsStr.map((s) => double.tryParse(s) ?? 0.0).toList();
     unawaited(

@@ -278,7 +278,7 @@ class PlaybackRestoreController {
       // Fall through to the empty-queue restore path below.
     }
 
-    final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
+    final restoreOnStartup = _prefs.getBool(kRestoreQueueKey) ?? true;
     if (!restoreOnStartup) return;
 
     final rawEntries = await _queueRepo.restoreQueueWithSections();

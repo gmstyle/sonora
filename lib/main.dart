@@ -76,6 +76,7 @@ Future<void> main() async {
   await YTMusic().initialize();
 
   final prefs = await SharedPreferences.getInstance();
+  await migrateLegacySettingsPrefs(prefs);
 
   // Build shared instances early so SonoraAudioHandler (which runs inside the
   // background audio service) has access to them before the Flutter widget
@@ -84,10 +85,7 @@ Future<void> main() async {
   final ytmusicDs = YtmusicDatasource();
   final streamDs = StreamDatasource(
     getDefaultAudioQuality:
-        () => MediaQuality.fromStorage(
-          prefs.getString(kStreamAudioQualityKey) ??
-              prefs.getString(kStreamQualityKey),
-        ),
+        () => MediaQuality.fromStorage(readStreamAudioQualityPref(prefs)),
   );
 
   final proxyServer = LocalAudioProxyServer(streamDatasource: streamDs);

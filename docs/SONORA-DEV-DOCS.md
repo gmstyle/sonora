@@ -315,8 +315,11 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 | `likedPodcasts` / `likedEpisodes` | **v3** — subscribed podcasts + saved episodes |
 | `localPlaylists` (+ entries) | Custom playlists |
 | `history` / `searchHistory` | Listening + search history (history may include `contentType` / `podcastBrowseId`) |
+| `settings` | Portable prefs — see §12 |
 
-`ImportBackupUseCase` and `MergeLibraryUseCase` (P2P sync) restore/merge the same keys. Older backups without podcast keys remain valid (empty lists).
+The optional `settings` object uses the SharedPreferences key names from §12 (`Settings.toBackupMap` + `EqualizerState.toBackupMap`). Device-local `downloadPath` and runtime/migration keys are omitted. Import applies the map via `SettingsNotifier.applyBackupMap` / `EqualizerNotifier.applyBackupMap` and ignores unknown keys. Older zips that only have `streamQuality` still apply that value to `streamAudioQuality`.
+
+`ImportBackupUseCase` and `MergeLibraryUseCase` (P2P sync) restore/merge the library keys. Older backups without podcast keys remain valid (empty lists). P2P merge does not apply the `settings` object.
 
 ---
 
@@ -877,29 +880,42 @@ Produces:
 
 ## 12. Settings — Persistent Preferences
 
-`SettingsNotifier` (backed by `SharedPreferences`) manages:
+`SettingsNotifier` (backed by `SharedPreferences`) manages portable prefs plus a few device/runtime keys. Export/import of `backup.json` → `settings` is centralized in `Settings.toBackupMap` / `applyBackupMap` (plus `EqualizerState.toBackupMap` / `EqualizerNotifier.applyBackupMap`) so keys cannot drift from the `k*Key` constants.
 
-| Key | Type | Default | Side-effect |
-|---|---|---|---|
-| `themeMode` | int (ThemeMode enum) | 0 (system) | ThemeProvider |
-| `useDynamicColor` | bool | true | ThemeProvider |
-| `useAmoled` | bool | false | ThemeProvider |
-| `gl` | String | "US" | YTMusic reinitialize + invalidate home |
-| `hl` | String | "en" | YTMusic reinitialize + invalidate home |
-| `crossfadeSeconds` | int | 2 | `PlaybackVolumeController` crossfade |
-| `restoreQueueOnStartup` | bool | true | QueueUseCase at boot |
-| `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
-| `enableVideoPlayback` | bool | false | Legacy backup/import key only; no longer affects playback |
-| `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / audio stream pick; clears URL + media cache (legacy `streamQuality` migrates here) |
-| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` audio stream pick (catalog `isVideo` is metadata only) |
-| `downloadPath` | String? | null | StartDownloadUseCase |
-| `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
-| `trackHistory` | bool | true | History insert on play |
-| `offlineMode` | bool | false | Overrides network state to restrict online calls |
-| `checkUpdatesOnStartup` | bool | true | UpdateNotifier at boot |
-| `equalizerEnabled` | bool | false | `EqualizerController` filter application |
-| `equalizerGains` | String | "0,0,0,0,0" | `EqualizerController` filter gains |
-| `equalizerPreset` | String | "flat" | Display preset name in Equalizer UI |
+| Key | Type | Default | Backup | Side-effect |
+|---|---|---|---|---|
+| `themeMode` | int (ThemeMode enum) | 0 (system) | yes | ThemeProvider |
+| `useDynamicColor` | bool | true | yes | ThemeProvider |
+| `useAmoled` | bool | false | yes | ThemeProvider |
+| `gl` | String | "US" | yes | YTMusic reinitialize + invalidate home |
+| `hl` | String | "en" | yes | YTMusic reinitialize + invalidate home |
+| `crossfadeSeconds` | int | 2 | yes | `PlaybackVolumeController` crossfade |
+| `restoreQueueOnStartup` | bool | true | yes | Restore at boot |
+| `autoPlayUpNext` | bool | true | yes | PlayerNotifier auto-play |
+| `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | yes | Proxy / audio stream pick; clears URL + media cache |
+| `mediaCacheSize` | String (`mb500`/`gb1`/`gb2`/`gb5`) | `gb1` | yes | `MediaCacheService` max size |
+| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | yes | `StartDownloadUseCase` audio stream pick |
+| `downloadOnlyOnWifi` | bool | false | yes | StartDownloadUseCase |
+| `trackHistory` | bool | true | yes | History insert on play |
+| `checkUpdatesOnStartup` | bool | true | yes | UpdateNotifier at boot |
+| `isLibraryGridView` | bool | false | yes | Library layout |
+| `useVinylStyle` | bool | true | yes | Player artwork style |
+| `reduceEffects` | bool | false | yes | Reduced motion / effects |
+| `offlineMode` | bool | false | yes | Overrides network state to restrict online calls |
+| `localSyncEnabled` | bool | false | yes | P2P sync server |
+| `localSyncAutoEnabled` | bool | false | yes | Auto-start local sync |
+| `playlistConflictStrategy` | String | `merge` | yes | Local playlist merge strategy |
+| `equalizerEnabled` | bool | false | yes | `EqualizerController` (prefs owned by `EqualizerNotifier`) |
+| `equalizerGains` | StringList (5 bands) | `0.0`×5 | yes | `EqualizerController` filter gains |
+| `equalizerPreset` | String | `flat` | yes | Display preset name in Equalizer UI |
+| `downloadPath` | String? | null | no | Device filesystem path; not portable |
+| `lastUpdateCheckTime` | int | — | no | Runtime throttle |
+| `postQueueSplitDone` | bool | — | no | One-shot queue migration |
+| `batteryPromptDismissed` | bool | — | no | One-shot Android prompt |
+
+`librarySortType` (library UI) and sync pairing ids are also persisted locally and are not part of the settings backup map.
+
+On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `streamQuality` into `streamAudioQuality` (so the user's chosen quality is kept) and deletes `streamQuality` plus leftover `enableVideoPlayback`. New keys missing from older installs use the defaults above. Import of an older zip ignores unknown keys and still maps `streamQuality` → `streamAudioQuality`.
 
 ---
 
@@ -907,14 +923,14 @@ Produces:
 
 ### 13.1 Test Files
 
-29 files, 323 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences. Video-player tests were removed with in-app video playback; equalizer interpolation and just_audio mapping tests were added.
+29 files, 327 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences. Video-player tests were removed with in-app video playback; equalizer interpolation and just_audio mapping tests were added.
 
 | File | Count | Coverage |
 |---|---|---|
 | `test/daos_test.dart` | 66 | All DAOs with upsert, edge cases |
 | `test/library_repository_test.dart` | 35 | Toggle, mapping, CRUD |
 | `test/playback_intent_controller_test.dart` | 27 | Buds ear-detection, Assistant interruption, becoming-noisy, cold restore |
-| `test/settings_provider_test.dart` | 26 | Settings model + setters (incl. stream/download quality) |
+| `test/settings_provider_test.dart` | 30 | Settings model + setters + backup map + upgrade migration |
 | `test/track_transition_coordinator_test.dart` | 14 | Cascade order and `isResolvingItem` suppression |
 | `test/track_url_resolver_prefetch_test.dart` | 15 | Lazy resolve + adaptive lookahead |
 | `test/queue_meta_atomicity_test.dart` | 11 | Atomic playback-pointer persistence |

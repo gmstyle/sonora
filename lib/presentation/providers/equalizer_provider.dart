@@ -34,18 +34,40 @@ class EqualizerState {
       preset: preset ?? this.preset,
     );
   }
+
+  Map<String, dynamic> toBackupMap() {
+    return <String, dynamic>{
+      kEqualizerEnabledKey: enabled,
+      kEqualizerGainsKey: gains.map((g) => g.toString()).toList(),
+      kEqualizerPresetKey: preset,
+    };
+  }
+}
+
+/// Accepts a JSON list of numbers/strings or a comma-separated string.
+List<double>? parseEqualizerGains(Object? raw) {
+  final List<String> parts;
+  if (raw is List) {
+    parts = raw.map((e) => e.toString()).toList();
+  } else if (raw is String) {
+    parts = raw.split(',');
+  } else {
+    return null;
+  }
+  if (parts.length != 5) return null;
+  return parts.map((s) => double.tryParse(s.trim()) ?? 0.0).toList();
 }
 
 class EqualizerNotifier extends Notifier<EqualizerState> {
   @override
   EqualizerState build() {
     final prefs = ref.watch(sharedPreferencesProvider);
-    final enabled = prefs.getBool('equalizerEnabled') ?? false;
+    final enabled = prefs.getBool(kEqualizerEnabledKey) ?? false;
     final gainsStr =
-        prefs.getStringList('equalizerGains') ??
+        prefs.getStringList(kEqualizerGainsKey) ??
         ['0.0', '0.0', '0.0', '0.0', '0.0'];
     final gains = gainsStr.map((s) => double.tryParse(s) ?? 0.0).toList();
-    final preset = prefs.getString('equalizerPreset') ?? 'flat';
+    final preset = prefs.getString(kEqualizerPresetKey) ?? 'flat';
 
     // Verify the gains list is exactly 5 elements long, fallback to flat if not
     final List<double> verifiedGains;
@@ -65,7 +87,7 @@ class EqualizerNotifier extends Notifier<EqualizerState> {
   Future<void> setEnabled(bool value) async {
     final prefs = ref.read(sharedPreferencesProvider);
     state = state.copyWith(enabled: value);
-    await prefs.setBool('equalizerEnabled', value);
+    await prefs.setBool(kEqualizerEnabledKey, value);
     _updateAudioHandler();
   }
 
@@ -78,10 +100,10 @@ class EqualizerNotifier extends Notifier<EqualizerState> {
     final prefs = ref.read(sharedPreferencesProvider);
     state = state.copyWith(gains: newGains, preset: 'custom');
     await prefs.setStringList(
-      'equalizerGains',
+      kEqualizerGainsKey,
       newGains.map((g) => g.toString()).toList(),
     );
-    await prefs.setString('equalizerPreset', 'custom');
+    await prefs.setString(kEqualizerPresetKey, 'custom');
     _updateAudioHandler();
   }
 
@@ -92,10 +114,42 @@ class EqualizerNotifier extends Notifier<EqualizerState> {
     final prefs = ref.read(sharedPreferencesProvider);
     state = state.copyWith(preset: presetKey, gains: presetGains);
     await prefs.setStringList(
-      'equalizerGains',
+      kEqualizerGainsKey,
       presetGains.map((g) => g.toString()).toList(),
     );
-    await prefs.setString('equalizerPreset', presetKey);
+    await prefs.setString(kEqualizerPresetKey, presetKey);
+    _updateAudioHandler();
+  }
+
+  Future<void> applyBackupMap(Map<String, dynamic> map) async {
+    var enabled = state.enabled;
+    var gains = List<double>.from(state.gains);
+    var preset = state.preset;
+    var changed = false;
+
+    if (map[kEqualizerEnabledKey] is bool) {
+      enabled = map[kEqualizerEnabledKey] as bool;
+      changed = true;
+    }
+    final parsedGains = parseEqualizerGains(map[kEqualizerGainsKey]);
+    if (parsedGains != null) {
+      gains = parsedGains;
+      changed = true;
+    }
+    if (map[kEqualizerPresetKey] is String) {
+      preset = map[kEqualizerPresetKey] as String;
+      changed = true;
+    }
+    if (!changed) return;
+
+    final prefs = ref.read(sharedPreferencesProvider);
+    state = EqualizerState(enabled: enabled, gains: gains, preset: preset);
+    await prefs.setBool(kEqualizerEnabledKey, enabled);
+    await prefs.setStringList(
+      kEqualizerGainsKey,
+      gains.map((g) => g.toString()).toList(),
+    );
+    await prefs.setString(kEqualizerPresetKey, preset);
     _updateAudioHandler();
   }
 

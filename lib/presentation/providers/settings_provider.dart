@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -25,7 +26,6 @@ class Settings {
   final int crossfadeSeconds;
   final bool restoreQueueOnStartup;
   final bool autoPlayUpNext;
-  final bool enableVideoPlayback;
   final MediaQuality streamAudioQuality;
   final MediaCacheSize mediaCacheSize;
   final MediaQuality downloadQuality;
@@ -50,7 +50,6 @@ class Settings {
     this.crossfadeSeconds = 2,
     this.restoreQueueOnStartup = true,
     this.autoPlayUpNext = true,
-    this.enableVideoPlayback = false,
     this.streamAudioQuality = MediaQuality.high,
     this.mediaCacheSize = MediaCacheSize.gb1,
     this.downloadQuality = MediaQuality.high,
@@ -76,7 +75,6 @@ class Settings {
     int? crossfadeSeconds,
     bool? restoreQueueOnStartup,
     bool? autoPlayUpNext,
-    bool? enableVideoPlayback,
     MediaQuality? streamAudioQuality,
     MediaCacheSize? mediaCacheSize,
     MediaQuality? downloadQuality,
@@ -103,7 +101,6 @@ class Settings {
       restoreQueueOnStartup:
           restoreQueueOnStartup ?? this.restoreQueueOnStartup,
       autoPlayUpNext: autoPlayUpNext ?? this.autoPlayUpNext,
-      enableVideoPlayback: enableVideoPlayback ?? this.enableVideoPlayback,
       streamAudioQuality: streamAudioQuality ?? this.streamAudioQuality,
       mediaCacheSize: mediaCacheSize ?? this.mediaCacheSize,
       downloadQuality: downloadQuality ?? this.downloadQuality,
@@ -125,6 +122,37 @@ class Settings {
   }
 
   Duration get crossfadeDuration => Duration(seconds: crossfadeSeconds);
+
+  /// Portable prefs written into `backup.json` → `settings`.
+  ///
+  /// Excludes device-local [downloadPath] and runtime/migration keys
+  /// (`lastUpdateCheckTime`, `postQueueSplitDone`,
+  /// `batteryPromptDismissed`).
+  Map<String, dynamic> toBackupMap() {
+    return <String, dynamic>{
+      kThemeModeKey: themeMode.index,
+      kUseDynamicColorKey: useDynamicColor,
+      kUseAmoledKey: useAmoled,
+      kGlKey: gl,
+      kHlKey: hl,
+      kCrossfadeSecondsKey: crossfadeSeconds,
+      kRestoreQueueKey: restoreQueueOnStartup,
+      kAutoPlayUpNextKey: autoPlayUpNext,
+      kStreamAudioQualityKey: streamAudioQuality.storageValue,
+      kMediaCacheSizeKey: mediaCacheSize.storageValue,
+      kDownloadQualityKey: downloadQuality.storageValue,
+      kDownloadWifiKey: downloadOnlyOnWifi,
+      kTrackHistoryKey: trackHistory,
+      kCheckUpdatesKey: checkUpdatesOnStartup,
+      kIsLibraryGridViewKey: isLibraryGridView,
+      kUseVinylStyleKey: useVinylStyle,
+      kReduceEffectsKey: reduceEffects,
+      kOfflineModeKey: offlineMode,
+      kLocalSyncEnabledKey: localSyncEnabled,
+      kLocalSyncAutoEnabledKey: localSyncAutoEnabled,
+      kPlaylistConflictStrategyKey: playlistConflictStrategy,
+    };
+  }
 }
 
 class SettingsNotifier extends Notifier<Settings> {
@@ -142,10 +170,8 @@ class SettingsNotifier extends Notifier<Settings> {
       crossfadeSeconds: _prefs.getInt(kCrossfadeSecondsKey) ?? 2,
       restoreQueueOnStartup: _prefs.getBool(kRestoreQueueKey) ?? true,
       autoPlayUpNext: _prefs.getBool(kAutoPlayUpNextKey) ?? true,
-      enableVideoPlayback: _prefs.getBool(kEnableVideoPlaybackKey) ?? false,
       streamAudioQuality: MediaQuality.fromStorage(
-        _prefs.getString(kStreamAudioQualityKey) ??
-            _prefs.getString(kStreamQualityKey),
+        readStreamAudioQualityPref(_prefs),
       ),
       mediaCacheSize: MediaCacheSize.fromStorage(
         _prefs.getString(kMediaCacheSizeKey),
@@ -169,6 +195,9 @@ class SettingsNotifier extends Notifier<Settings> {
     MediaCacheService.instance.applyMaxCacheSizeBytes(
       settings.mediaCacheSize.bytes,
     );
+    // One-shot: copy leftover `streamQuality` and drop dead keys so an
+    // upgraded install keeps the user's quality without reading them again.
+    unawaited(migrateLegacySettingsPrefs(_prefs));
     return settings;
   }
 
@@ -181,7 +210,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setInt(kCrossfadeSecondsKey, state.crossfadeSeconds);
     await _prefs.setBool(kRestoreQueueKey, state.restoreQueueOnStartup);
     await _prefs.setBool(kAutoPlayUpNextKey, state.autoPlayUpNext);
-    await _prefs.setBool(kEnableVideoPlaybackKey, state.enableVideoPlayback);
     await _prefs.setString(
       kStreamAudioQualityKey,
       state.streamAudioQuality.storageValue,
@@ -266,14 +294,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await _save();
   }
 
-  Future<void> setEnableVideoPlayback(bool value) async {
-    if (state.enableVideoPlayback == value) return;
-    state = state.copyWith(enableVideoPlayback: value);
-    await _save();
-    ref.read(streamDatasourceProvider).clearUrlCache();
-    await MediaCacheService.instance.clearCache();
-  }
-
   Future<void> setStreamAudioQuality(MediaQuality value) async {
     if (state.streamAudioQuality == value) return;
     state = state.copyWith(streamAudioQuality: value);
@@ -349,6 +369,122 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(playlistConflictStrategy: value);
     await _save();
   }
+
+  /// Applies a `backup.json` settings map. Unknown keys and
+  /// device-local `downloadPath` are ignored. Older zips that only
+  /// have `streamQuality` still apply that value to [streamAudioQuality].
+  Future<void> applyBackupMap(Map<String, dynamic> map) async {
+    final themeIndex = _backupInt(map[kThemeModeKey]);
+    if (themeIndex != null &&
+        themeIndex >= 0 &&
+        themeIndex < ThemeMode.values.length) {
+      await setThemeMode(ThemeMode.values[themeIndex]);
+    }
+
+    final useDynamicColor = _backupBool(map[kUseDynamicColorKey]);
+    if (useDynamicColor != null) {
+      await setUseDynamicColor(useDynamicColor);
+    }
+
+    final useAmoled = _backupBool(map[kUseAmoledKey]);
+    if (useAmoled != null) {
+      await setUseAmoled(useAmoled);
+    }
+
+    final gl = _backupString(map[kGlKey]);
+    if (gl != null) {
+      await setGl(gl);
+    }
+
+    final hl = _backupString(map[kHlKey]);
+    if (hl != null) {
+      await setHl(hl);
+    }
+
+    final crossfade = _backupInt(map[kCrossfadeSecondsKey]);
+    if (crossfade != null) {
+      await setCrossfadeSeconds(crossfade);
+    }
+
+    final restoreQueue = _backupBool(map[kRestoreQueueKey]);
+    if (restoreQueue != null) {
+      await setRestoreQueueOnStartup(restoreQueue);
+    }
+
+    final autoPlay = _backupBool(map[kAutoPlayUpNextKey]);
+    if (autoPlay != null) {
+      await setAutoPlayUpNext(autoPlay);
+    }
+
+    final audioRaw =
+        _backupString(map[kStreamAudioQualityKey]) ??
+        _backupString(map[kLegacyStreamQualityKey]);
+    if (audioRaw != null) {
+      await setStreamAudioQuality(MediaQuality.fromStorage(audioRaw));
+    }
+
+    if (map.containsKey(kMediaCacheSizeKey)) {
+      await setMediaCacheSize(
+        MediaCacheSize.fromStorage(_backupString(map[kMediaCacheSizeKey])),
+      );
+    }
+
+    if (map.containsKey(kDownloadQualityKey)) {
+      await setDownloadQuality(
+        MediaQuality.fromStorage(_backupString(map[kDownloadQualityKey])),
+      );
+    }
+
+    final wifiOnly = _backupBool(map[kDownloadWifiKey]);
+    if (wifiOnly != null) {
+      await setDownloadOnlyOnWifi(wifiOnly);
+    }
+
+    final trackHistory = _backupBool(map[kTrackHistoryKey]);
+    if (trackHistory != null) {
+      await setTrackHistory(trackHistory);
+    }
+
+    final checkUpdates = _backupBool(map[kCheckUpdatesKey]);
+    if (checkUpdates != null) {
+      await setCheckUpdatesOnStartup(checkUpdates);
+    }
+
+    final gridView = _backupBool(map[kIsLibraryGridViewKey]);
+    if (gridView != null) {
+      await setLibraryGridView(gridView);
+    }
+
+    final vinyl = _backupBool(map[kUseVinylStyleKey]);
+    if (vinyl != null) {
+      await setUseVinylStyle(vinyl);
+    }
+
+    final reduceEffects = _backupBool(map[kReduceEffectsKey]);
+    if (reduceEffects != null) {
+      await setReduceEffects(reduceEffects);
+    }
+
+    final offline = _backupBool(map[kOfflineModeKey]);
+    if (offline != null) {
+      await setOfflineMode(offline);
+    }
+
+    final localSync = _backupBool(map[kLocalSyncEnabledKey]);
+    if (localSync != null) {
+      await setLocalSyncEnabled(localSync);
+    }
+
+    final localSyncAuto = _backupBool(map[kLocalSyncAutoEnabledKey]);
+    if (localSyncAuto != null) {
+      await setLocalSyncAutoEnabled(localSyncAuto);
+    }
+
+    final conflict = _backupString(map[kPlaylistConflictStrategyKey]);
+    if (conflict != null) {
+      await setPlaylistConflictStrategy(conflict);
+    }
+  }
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
@@ -367,11 +503,34 @@ const kPlaylistConflictStrategyKey = 'playlistConflictStrategy';
 const kCrossfadeSecondsKey = 'crossfadeSeconds';
 const kRestoreQueueKey = 'restoreQueueOnStartup';
 const kAutoPlayUpNextKey = 'autoPlayUpNext';
-const kEnableVideoPlaybackKey = 'enableVideoPlayback';
-
-/// Legacy single stream-quality key; still read as migration fallback.
-const kStreamQualityKey = 'streamQuality';
+const kEqualizerEnabledKey = 'equalizerEnabled';
+const kEqualizerGainsKey = 'equalizerGains';
+const kEqualizerPresetKey = 'equalizerPreset';
 const kStreamAudioQualityKey = 'streamAudioQuality';
+
+/// Written by older builds; copied into [kStreamAudioQualityKey] then deleted.
+const kLegacyStreamQualityKey = 'streamQuality';
+
+/// Leftover from in-app video playback; ignored and deleted on upgrade.
+const kLegacyEnableVideoPlaybackKey = 'enableVideoPlayback';
+
+/// Quality stored as `streamAudioQuality`, or leftover `streamQuality`.
+String? readStreamAudioQualityPref(SharedPreferences prefs) {
+  return prefs.getString(kStreamAudioQualityKey) ??
+      prefs.getString(kLegacyStreamQualityKey);
+}
+
+/// One-shot upgrade: persist the current key and drop dead leftovers.
+Future<void> migrateLegacySettingsPrefs(SharedPreferences prefs) async {
+  if (!prefs.containsKey(kStreamAudioQualityKey)) {
+    final legacy = prefs.getString(kLegacyStreamQualityKey);
+    if (legacy != null) {
+      await prefs.setString(kStreamAudioQualityKey, legacy);
+    }
+  }
+  await prefs.remove(kLegacyStreamQualityKey);
+  await prefs.remove(kLegacyEnableVideoPlaybackKey);
+}
 const kMediaCacheSizeKey = 'mediaCacheSize';
 const kDownloadQualityKey = 'downloadQuality';
 const kDownloadPathKey = 'downloadPath';
@@ -392,6 +551,48 @@ const kPostQueueSplitDoneKey = 'postQueueSplitDone';
 
 /// When `true`, the proactive battery-optimization startup prompt is never shown again.
 const kBatteryPromptDismissedKey = 'batteryPromptDismissed';
+
+/// Keys written by [Settings.toBackupMap]. Equalizer keys are merged in
+/// separately from `EqualizerState.toBackupMap`.
+const kSettingsBackupKeys = <String>{
+  kThemeModeKey,
+  kUseDynamicColorKey,
+  kUseAmoledKey,
+  kGlKey,
+  kHlKey,
+  kCrossfadeSecondsKey,
+  kRestoreQueueKey,
+  kAutoPlayUpNextKey,
+  kStreamAudioQualityKey,
+  kMediaCacheSizeKey,
+  kDownloadQualityKey,
+  kDownloadWifiKey,
+  kTrackHistoryKey,
+  kCheckUpdatesKey,
+  kIsLibraryGridViewKey,
+  kUseVinylStyleKey,
+  kReduceEffectsKey,
+  kOfflineModeKey,
+  kLocalSyncEnabledKey,
+  kLocalSyncAutoEnabledKey,
+  kPlaylistConflictStrategyKey,
+};
+
+int? _backupInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return null;
+}
+
+bool? _backupBool(Object? value) {
+  if (value is bool) return value;
+  return null;
+}
+
+String? _backupString(Object? value) {
+  if (value is String) return value;
+  return null;
+}
 
 // ── Battery Optimization (Android only) ───────────────────────────
 
