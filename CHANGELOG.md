@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.0+61] - 2026-09-05
+
+### Features
+
+- **player**: Switch playback engine to just_audio
+
+### Bug Fixes
+
+- **settings**: Align backup keys and migrate leftover prefs
+- **player**: Cache lookahead with authenticated downloads
+- **linux**: Ship window icon and silence ayatana deprecation
+- **update**: Ship universal APK with ABI splits for updater bridge
+- **player**: Allow Pixel Buds tap after in-app pause
+- **player**: Hand off playback to Chromecast without dual audio
+- **player**: Do not wipe queue pointer during cold restore
+- **android**: Allow loopback HTTP for the local audio proxy
+- **player**: Restore queue paused without hanging mini-player
+- **player**: Shuffle on track end and unstick mini-player loading
+- **download**: Fetch song bytes through youtube_explode, not a raw Dio GET
+- **home**: Render song shelves instead of empty hero carousel
+- **update**: Pick the APK matching the device ABI
+- **player**: Allow earbuds tap-to-resume after MediaSession pause
+
 ## [1.7.4+60] - 2026-09-02
 
 ### Bug Fixes
