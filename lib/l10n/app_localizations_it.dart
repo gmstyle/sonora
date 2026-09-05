@@ -1037,6 +1037,15 @@ class AppLocalizationsIt extends AppLocalizations {
   String get nowPlaying => 'IN RIPRODUZIONE';
 
   @override
+  String get openPlayer => 'Apri lettore';
+
+  @override
+  String get previousTrack => 'Precedente';
+
+  @override
+  String get nextTrack => 'Successivo';
+
+  @override
   String get mv => 'MV';
 
   @override

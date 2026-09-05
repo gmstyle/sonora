@@ -46,18 +46,14 @@ class MiniPlayerContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSwitching = playerState.isBlocked;
+    final shellWidth = MediaQuery.sizeOf(context).width;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 600) {
-          return _mobileLayout(context, ref, isSwitching);
-        } else if (constraints.maxWidth < 1200) {
-          return _tabletLayout(context, ref, isSwitching);
-        } else {
-          return _desktopLayout(context, ref, isSwitching);
-        }
-      },
-    );
+    if (shellWidth < kCompactBreakpoint) {
+      return _mobileLayout(context, ref, isSwitching);
+    } else if (shellWidth < kExpandedBreakpoint) {
+      return _tabletLayout(context, ref, isSwitching);
+    }
+    return _desktopLayout(context, ref, isSwitching);
   }
 
   // ── Mobile Layout (<600px) ──────────────────────────────────────
@@ -164,6 +160,9 @@ class MiniPlayerContent extends ConsumerWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
+    final hideMetadata =
+        MediaQuery.sizeOf(context).width >= kExpandedBreakpoint &&
+        !ref.watch(sidebarCollapsedProvider);
 
     return GestureDetector(
       onTap: isSwitching ? null : onTap,
@@ -188,45 +187,46 @@ class MiniPlayerContent extends ConsumerWidget {
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
                     : Row(
                       children: [
-                        const SizedBox(width: 12),
-                        _artwork(size: 60, radius: 8, cs: cs, ref: ref),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      track.title,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyLarge,
-                                      maxLines: 1,
+                        if (!hideMetadata) ...[
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        track.title,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodyLarge,
+                                        maxLines: 1,
+                                      ),
                                     ),
-                                  ),
-                                  if (track.isExplicit)
-                                    const ExplicitBadge(
-                                      leading: SizedBox(width: 6),
-                                    ),
-                                  if (track.isVideo)
-                                    const VideoBadge(
-                                      leading: SizedBox(width: 6),
-                                    ),
-                                ],
-                              ),
-                              Text(
-                                track.artist ?? '',
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: cs.onSurfaceVariant,
+                                    if (track.isExplicit)
+                                      const ExplicitBadge(
+                                        leading: SizedBox(width: 6),
+                                      ),
+                                    if (track.isVideo)
+                                      const VideoBadge(
+                                        leading: SizedBox(width: 6),
+                                      ),
+                                  ],
                                 ),
-                                maxLines: 1,
-                              ),
-                            ],
+                                Text(
+                                  track.artist ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ] else
+                          const Spacer(),
                         _iconButton(
                           icon: LucideIcons.skipBack,
                           color: cs.onSurfaceVariant,
@@ -240,6 +240,7 @@ class MiniPlayerContent extends ConsumerWidget {
                           onPressed: onSkipNext,
                           size: 20,
                         ),
+                        if (hideMetadata) const Spacer(),
                         _likeButton(context, ref, cs),
                         CastButton(size: 20, color: cs.onSurfaceVariant),
                         const SizedBox(width: 4),
@@ -305,84 +306,58 @@ class MiniPlayerContent extends ConsumerWidget {
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
                     : Row(
                       children: [
-                        // LEFT — artwork + title/artist (tap to open full player)
+                        // LEFT — title/artist when the nav chrome does not
+                        // already show metadata (wide sidebar expanded).
                         Expanded(
-                          flex: 3,
+                          flex: isSidebarExpanded ? 1 : 3,
                           child: AnimatedCrossFade(
-                            firstChild: AnimatedSlide(
-                              offset:
-                                  isSidebarExpanded
-                                      ? const Offset(-0.2, 0.0)
-                                      : Offset.zero,
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeInOut,
-                              child: AnimatedOpacity(
-                                opacity: isSidebarExpanded ? 0.0 : 1.0,
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeInOut,
-                                child: IgnorePointer(
-                                  ignoring: isSidebarExpanded,
-                                  child: GestureDetector(
-                                    onTap: isSwitching ? null : onTap,
-                                    child: Row(
+                            firstChild: GestureDetector(
+                              onTap: isSwitching ? null : onTap,
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        const SizedBox(width: 12),
-                                        _artwork(
-                                          size: 56,
-                                          radius: 8,
-                                          cs: cs,
-                                          ref: ref,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      track.title,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: theme
-                                                          .textTheme
-                                                          .titleSmall
-                                                          ?.copyWith(
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                          ),
-                                                      maxLines: 1,
-                                                    ),
-                                                  ),
-                                                  if (track.isExplicit)
-                                                    const ExplicitBadge(
-                                                      leading: SizedBox(
-                                                        width: 6,
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                              Text(
-                                                track.artist ?? '',
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                track.title,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: theme.textTheme.bodySmall
+                                                style: theme
+                                                    .textTheme
+                                                    .titleSmall
                                                     ?.copyWith(
-                                                      color:
-                                                          cs.onSurfaceVariant,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                 maxLines: 1,
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                            if (track.isExplicit)
+                                              const ExplicitBadge(
+                                                leading: SizedBox(width: 6),
+                                              ),
+                                          ],
+                                        ),
+                                        Text(
+                                          track.artist ?? '',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: cs.onSurfaceVariant,
+                                              ),
+                                          maxLines: 1,
                                         ),
                                       ],
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
                             ),
                             secondChild: const SizedBox.shrink(),
@@ -395,7 +370,7 @@ class MiniPlayerContent extends ConsumerWidget {
                         ),
                         // CENTER — controls + progress + time
                         Expanded(
-                          flex: 4,
+                          flex: isSidebarExpanded ? 5 : 4,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -455,56 +430,72 @@ class MiniPlayerContent extends ConsumerWidget {
                         // RIGHT — full - like + lyrics + queue + more
                         Expanded(
                           flex: 3,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              _iconButton(
-                                icon: LucideIcons.maximize2,
-                                color: cs.onSurfaceVariant,
-                                onPressed: isSwitching ? null : onTap,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _iconButton(
+                                    icon: LucideIcons.maximize2,
+                                    color: cs.onSurfaceVariant,
+                                    onPressed: isSwitching ? null : onTap,
+                                  ),
+                                  _likeButton(context, ref, cs),
+                                  _iconButton(
+                                    icon: LucideIcons.micVocal,
+                                    color:
+                                        activeView == PlayerSubView.lyrics
+                                            ? cs.primary
+                                            : cs.onSurfaceVariant,
+                                    onPressed: onOpenLyrics,
+                                    size: 20,
+                                  ),
+                                  _iconButton(
+                                    icon: LucideIcons.listMusic,
+                                    color:
+                                        activeView == PlayerSubView.queue
+                                            ? cs.primary
+                                            : cs.onSurfaceVariant,
+                                    onPressed: onOpenQueue,
+                                    size: 20,
+                                  ),
+                                  CastButton(
+                                    size: 20,
+                                    color: cs.onSurfaceVariant,
+                                    style: IconButton.styleFrom(
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                      minimumSize: const Size(36, 36),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                  _iconButton(
+                                    icon: LucideIcons.moreVertical,
+                                    color: cs.onSurfaceVariant,
+                                    onPressed: () {
+                                      ContextMenuSheet.showForSong(
+                                        context,
+                                        videoId: track.videoId,
+                                        title: track.title,
+                                        artist: track.artist ?? '',
+                                        artistId: track.artistId,
+                                        albumId: track.albumId,
+                                        thumbnailUrl: track.artUri?.toString(),
+                                        duration: track.duration?.inSeconds,
+                                        albumName: track.album ?? '',
+                                        isVideo: track.isVideo,
+                                        isExplicit: track.isExplicit,
+                                      );
+                                    },
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
                               ),
-                              _likeButton(context, ref, cs),
-                              _iconButton(
-                                icon: LucideIcons.micVocal,
-                                color:
-                                    activeView == PlayerSubView.lyrics
-                                        ? cs.primary
-                                        : cs.onSurfaceVariant,
-                                onPressed: onOpenLyrics,
-                                size: 20,
-                              ),
-                              _iconButton(
-                                icon: LucideIcons.listMusic,
-                                color:
-                                    activeView == PlayerSubView.queue
-                                        ? cs.primary
-                                        : cs.onSurfaceVariant,
-                                onPressed: onOpenQueue,
-                                size: 20,
-                              ),
-                              CastButton(size: 20, color: cs.onSurfaceVariant),
-                              _iconButton(
-                                icon: LucideIcons.moreVertical,
-                                color: cs.onSurfaceVariant,
-                                onPressed: () {
-                                  ContextMenuSheet.showForSong(
-                                    context,
-                                    videoId: track.videoId,
-                                    title: track.title,
-                                    artist: track.artist ?? '',
-                                    artistId: track.artistId,
-                                    albumId: track.albumId,
-                                    thumbnailUrl: track.artUri?.toString(),
-                                    duration: track.duration?.inSeconds,
-                                    albumName: track.album ?? '',
-                                    isVideo: track.isVideo,
-                                    isExplicit: track.isExplicit,
-                                  );
-                                },
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                            ],
+                            ),
                           ),
                         ),
                       ],
@@ -630,9 +621,13 @@ class MiniPlayerContent extends ConsumerWidget {
                 onPressed();
               }
               : onPressed,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-      padding: EdgeInsets.zero,
-      splashRadius: 18,
+      style: IconButton.styleFrom(
+        foregroundColor: color,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        minimumSize: const Size(36, 36),
+        padding: EdgeInsets.zero,
+      ),
     );
   }
 
@@ -695,9 +690,12 @@ class MiniPlayerContent extends ConsumerWidget {
                     ),
                   );
             },
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            padding: EdgeInsets.zero,
-            splashRadius: 18,
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              minimumSize: const Size(36, 36),
+              padding: EdgeInsets.zero,
+            ),
           );
         },
       );
@@ -754,9 +752,12 @@ class MiniPlayerContent extends ConsumerWidget {
                   ),
                 );
           },
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-          padding: EdgeInsets.zero,
-          splashRadius: 18,
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+            minimumSize: const Size(36, 36),
+            padding: EdgeInsets.zero,
+          ),
         );
       },
     );

@@ -1029,6 +1029,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nowPlaying => 'NOW PLAYING';
 
   @override
+  String get openPlayer => 'Open player';
+
+  @override
+  String get previousTrack => 'Previous';
+
+  @override
+  String get nextTrack => 'Next';
+
+  @override
   String get mv => 'MV';
 
   @override

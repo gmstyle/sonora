@@ -475,7 +475,9 @@ class PlaybackRestoreController {
       // queueIndex=0 while the engine briefly reports index 0. Publish the
       // restored index explicitly so the queue highlight matches mediaItem.
       if (publishIndex >= 0) {
-        _statePublisher.updateState((s) => s.copyWith(queueIndex: publishIndex));
+        _statePublisher.updateState(
+          (s) => s.copyWith(queueIndex: publishIndex),
+        );
       }
       _statePublisher.updatePlaybackState();
       // Look-ahead was skipped while restoring. Start it on the persisted
@@ -485,9 +487,8 @@ class PlaybackRestoreController {
           _urlResolver
               .resolvePendingItems(publishIndex)
               .catchError(
-                (Object e) => dev.log(
-                  '[AudioHandler] restore look-ahead failed: $e',
-                ),
+                (Object e) =>
+                    dev.log('[AudioHandler] restore look-ahead failed: $e'),
               ),
         );
       }

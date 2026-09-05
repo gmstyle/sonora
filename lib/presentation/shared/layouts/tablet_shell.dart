@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features/player/nav_now_playing.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
@@ -30,21 +31,34 @@ class TabletShell extends ConsumerWidget {
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: (index) => navigationShell.goBranch(index),
-            labelType: NavigationRailLabelType.none,
-            leading: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: SonoraLogo.icon(36),
-            ),
-            destinations: [
-              for (var i = 0; i < _icons.length; i++)
-                NavigationRailDestination(
-                  icon: Icon(_icons[i]),
-                  label: Text(_getLabel(AppLocalizations.of(context)!, i)),
+          ColoredBox(
+            color: Theme.of(context).colorScheme.surface,
+            child: Column(
+              children: [
+                Expanded(
+                  child: NavigationRail(
+                    selectedIndex: navigationShell.currentIndex,
+                    onDestinationSelected:
+                        (index) => navigationShell.goBranch(index),
+                    labelType: NavigationRailLabelType.none,
+                    leading: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: SonoraLogo.icon(36),
+                    ),
+                    destinations: [
+                      for (var i = 0; i < _icons.length; i++)
+                        NavigationRailDestination(
+                          icon: Icon(_icons[i]),
+                          label: Text(
+                            _getLabel(AppLocalizations.of(context)!, i),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-            ],
+                const NavNowPlaying(expanded: false),
+              ],
+            ),
           ),
           VerticalDivider(
             width: 1,

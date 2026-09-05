@@ -11,6 +11,35 @@ import 'layouts/tablet_player_layout.dart';
 import 'layouts/wide_player_layout.dart';
 import 'layouts/fullscreen_overlay_layout.dart';
 
+/// Pushes [FullPlayerContent] with the same slide-up used by every shell.
+void openFullPlayer(
+  BuildContext context, {
+  PlayerSubView subView = PlayerSubView.none,
+}) {
+  if (subView != PlayerSubView.none) {
+    ProviderScope.containerOf(
+      context,
+    ).read(playerSubViewProvider.notifier).set(subView);
+  }
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      pageBuilder:
+          (context, animation, secondaryAnimation) =>
+              FullPlayerContent(initialSubView: subView),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final tween = Tween(
+          begin: const Offset(0.0, 1.0),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutCubic));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 350),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      fullscreenDialog: true,
+    ),
+  );
+}
+
 class FullPlayerContent extends ConsumerStatefulWidget {
   final PlayerSubView initialSubView;
 

@@ -1808,6 +1808,24 @@ abstract class AppLocalizations {
   /// **'NOW PLAYING'**
   String get nowPlaying;
 
+  /// No description provided for @openPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Open player'**
+  String get openPlayer;
+
+  /// No description provided for @previousTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previousTrack;
+
+  /// No description provided for @nextTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get nextTrack;
+
   /// No description provided for @mv.
   ///
   /// In en, this message translates to:
