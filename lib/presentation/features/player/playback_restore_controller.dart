@@ -460,8 +460,12 @@ class PlaybackRestoreController {
       // Seed / refresh mediaItem after open (URL may have been resolved above).
       final playlist = _engine.state.playlist;
       final idx = playlist.index;
-      if (idx >= 0 && idx < playlist.medias.length) {
-        final item = playlist.medias[idx].mediaItem;
+      final publishIndex =
+          (savedIndex >= 0 && savedIndex < playlist.medias.length)
+              ? savedIndex
+              : idx;
+      if (publishIndex >= 0 && publishIndex < playlist.medias.length) {
+        final item = playlist.medias[publishIndex].mediaItem;
         if (item != null) {
           _emitMediaItem(item);
         }
@@ -470,10 +474,23 @@ class PlaybackRestoreController {
       // published — and a concurrent look-ahead URL resolve can even stamp
       // queueIndex=0 while the engine briefly reports index 0. Publish the
       // restored index explicitly so the queue highlight matches mediaItem.
-      if (idx >= 0) {
-        _statePublisher.updateState((s) => s.copyWith(queueIndex: idx));
+      if (publishIndex >= 0) {
+        _statePublisher.updateState((s) => s.copyWith(queueIndex: publishIndex));
       }
       _statePublisher.updatePlaybackState();
+      // Look-ahead was skipped while restoring. Start it on the persisted
+      // slot now that the playlist is open, not on the transient index 0.
+      if (publishIndex >= 0) {
+        unawaited(
+          _urlResolver
+              .resolvePendingItems(publishIndex)
+              .catchError(
+                (Object e) => dev.log(
+                  '[AudioHandler] restore look-ahead failed: $e',
+                ),
+              ),
+        );
+      }
     }
   }
 }

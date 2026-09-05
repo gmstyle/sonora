@@ -176,8 +176,18 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
   Future<void> replace(int index, EngineMedia media) async {
     final len = _player.audioSources.length;
     if (index < 0 || index >= len) return;
+    final current = _player.currentIndex;
+    final pos = _player.position;
     await _player.removeAudioSourceAt(index);
     await _player.insertAudioSource(index, toSource(media));
+    // just_audio_media_kit: removing a source *before* the current one
+    // decrements currentIndex; inserting it back does not increment it,
+    // so the engine silently moves to the previous track (restore x → x-1).
+    if (current != null &&
+        index < current &&
+        _player.currentIndex == current - 1) {
+      await _player.seek(pos, index: current);
+    }
   }
 
   @override

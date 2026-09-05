@@ -47,8 +47,12 @@ import 'track_url_resolver.dart';
 /// suppressed during that window, otherwise every look-ahead resolve would
 /// republish the media item, re-persist the pointer and re-trigger a fade.
 ///
-/// Step 4 is deliberately **not** suppressed: it is the resolver's own driver
-/// — gating it would stall look-ahead permanently.
+/// Step 4 is deliberately **not** suppressed during URL resolve: it is the
+/// resolver's own driver — gating it would stall look-ahead permanently.
+/// Cold restore is the exception: the engine briefly reports index 0 while
+/// opening a non-zero playlist, and look-ahead of those placeholders would
+/// replace sources *before* the current index. On just_audio_media_kit that
+/// drops currentIndex by 1. Restore starts look-ahead itself after open.
 class TrackTransitionCoordinator {
   final PlaybackEngine _engine;
   final PlaybackIntentController _intent;
@@ -257,15 +261,21 @@ class TrackTransitionCoordinator {
       _publishMediaItem(playlist.medias[index]);
     }
 
-    // 5 — the resolver's driver, never suppressed
-    unawaited(
-      _urlResolver
-          .resolvePendingItems(index)
-          .catchError(
-            (Object e) =>
-                dev.log('[AudioHandler] _resolvePendingItems error: $e'),
-          ),
-    );
+    // Look-ahead is the resolver's driver and is not gated by isResolvingItem.
+    // Skip it during cold restore — the engine emits index 0 before the
+    // persisted slot, and replacing those earlier placeholders drops the
+    // restored currentIndex (x → x-1). Restore kicks off look-ahead itself
+    // once the playlist is open at the saved index.
+    if (!_isRestoring()) {
+      unawaited(
+        _urlResolver
+            .resolvePendingItems(index)
+            .catchError(
+              (Object e) =>
+                  dev.log('[AudioHandler] _resolvePendingItems error: $e'),
+            ),
+      );
+    }
 
     if (!_queueController.isResolvingItem) {
       _queueController.syncQueue(isStopping: _isStopping());

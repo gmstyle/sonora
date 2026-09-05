@@ -257,6 +257,35 @@ void main() {
     });
   });
 
+  group('isRestoring', () {
+    test('does not start look-ahead from a transient restore index', () {
+      final restoringCoordinator = TrackTransitionCoordinator(
+        engine: engine,
+        intent: PlaybackIntentController(),
+        queueController: queueController,
+        skipNavigator: _FakeSkipNavigator(),
+        statePublisher: statePublisher,
+        queueRepo: queueRepo,
+        recoveryController: _FakeRecovery.new,
+        likeController: _FakeLike(),
+        castController: _FakeCast.new,
+        urlResolver: urlResolver,
+        volumeController: _FakeVolume(),
+        currentMediaItem: () => emitted.isEmpty ? null : emitted.last,
+        emitMediaItem: emitted.add,
+        isStopping: () => false,
+        isRestoring: () => true,
+      );
+
+      restoringCoordinator.onPlaylistChanged(
+        playlistOf(const ['a', 'b', 'c', 'd'], index: 0),
+      );
+
+      expect(steps, isNot(contains('resolve')));
+      expect(urlResolver.lastIndex, isNull);
+    });
+  });
+
   group('duration stamping', () {
     test('does not stamp a stale duration on a track change', () {
       engine.duration = const Duration(minutes: 9);
