@@ -406,9 +406,9 @@ class PlaybackRestoreController {
         position: _savedPosition,
       );
 
-      // media_kit may briefly report index 0 while opening a non-zero playlist
-      // index (especially with video/HLS). Wait for the intended item before
-      // seeking so the seek is not applied to the wrong track.
+      // The engine may briefly report index 0 while opening a non-zero playlist
+      // index. Wait for the intended item before seeking so the seek is not
+      // applied to the wrong track.
       if (savedIndex > 0 && _engine.state.playlist.index != savedIndex) {
         try {
           await _engine.playlistStream
@@ -472,7 +472,7 @@ class PlaybackRestoreController {
       }
       // Playlist events were suppressed during open, so queueIndex was never
       // published — and a concurrent look-ahead URL resolve can even stamp
-      // queueIndex=0 while media_kit briefly reports index 0. Publish the
+      // queueIndex=0 while the engine briefly reports index 0. Publish the
       // restored index explicitly so the queue highlight matches mediaItem.
       if (idx >= 0) {
         _statePublisher.updateState((s) => s.copyWith(queueIndex: idx));

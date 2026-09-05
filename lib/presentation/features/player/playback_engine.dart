@@ -1,10 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 
-/// Repeat mode exposed by [PlaybackEngine], independent of media_kit / just_audio.
+/// Repeat mode exposed by [PlaybackEngine], independent of the audio backend.
 enum EngineRepeatMode { none, one, all }
-
-/// Sidecar audio extras key (video-only cache pairs).
-const kExternalAudioUriExtraKey = 'externalAudioUri';
 
 /// Engine URI used when the local proxy is down and the track has no stream URL
 /// yet. Production just_audio maps this to a silent source so ExoPlayer never
@@ -17,28 +14,17 @@ bool isPlaceholderAudioUri(String uri) =>
 
 /// One playlist entry for [PlaybackEngine].
 ///
-/// [mediaItem] is the audio_service identity for the slot. [externalAudioUri]
-/// is only used for dual-file video-cache hits (media_kit `audio-add`).
+/// [mediaItem] is the audio_service identity for the slot.
 class EngineMedia {
   final String uri;
   final MediaItem? mediaItem;
-  final String? externalAudioUri;
 
-  const EngineMedia({required this.uri, this.mediaItem, this.externalAudioUri});
+  const EngineMedia({required this.uri, this.mediaItem});
 
-  EngineMedia copyWith({
-    String? uri,
-    MediaItem? mediaItem,
-    String? externalAudioUri,
-    bool clearExternalAudio = false,
-  }) {
+  EngineMedia copyWith({String? uri, MediaItem? mediaItem}) {
     return EngineMedia(
       uri: uri ?? this.uri,
       mediaItem: mediaItem ?? this.mediaItem,
-      externalAudioUri:
-          clearExternalAudio
-              ? null
-              : (externalAudioUri ?? this.externalAudioUri),
     );
   }
 }
@@ -67,8 +53,8 @@ class EnginePlaylist {
   }
 }
 
-/// Synchronous engine snapshot used by controllers instead of media_kit
-/// `Player.state`.
+/// Synchronous engine snapshot used by controllers instead of reading
+/// just_audio player state directly.
 class PlaybackEngineState {
   final EnginePlaylist playlist;
   final Duration position;
@@ -96,7 +82,7 @@ class PlaybackEngineState {
 /// Vendor-neutral playback port. Controllers talk only to this type.
 ///
 /// Volume is always 0..1. [move] uses destination index in the current list
-/// (0..length-1), not media_kit's insert-before index.
+/// (0..length-1), not an insert-before index.
 abstract class PlaybackEngine {
   PlaybackEngineState get state;
 
@@ -146,9 +132,6 @@ abstract class PlaybackEngine {
   Future<void> setShuffle(bool enabled);
 
   Future<void> setRepeatMode(EngineRepeatMode mode);
-
-  /// Attaches a sidecar audio file (video-only cache pairs) or clears it.
-  Future<void> attachExternalAudio(String? uri);
 
   Future<void> dispose();
 }

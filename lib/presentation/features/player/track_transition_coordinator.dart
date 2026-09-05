@@ -8,7 +8,6 @@ import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
 import '../../providers/cast_provider.dart';
 import 'cast_playback_controller.dart';
-import 'external_audio_track_controller.dart';
 import 'like_controller.dart';
 import 'playback_intent_controller.dart';
 import 'playback_recovery_controller.dart';
@@ -19,7 +18,7 @@ import 'queue_controller.dart';
 import 'skip_navigator.dart';
 import 'track_url_resolver.dart';
 
-/// Wires media_kit player streams and runs the track-change cascade.
+/// Wires [PlaybackEngine] streams and runs the track-change cascade.
 ///
 /// [setupListeners] owns the subscriptions; [onPlaylistChanged] is the cascade
 /// itself. This is the most order-sensitive code in the player module. The
@@ -30,34 +29,29 @@ import 'track_url_resolver.dart';
 /// ## The cascade, in order
 ///
 /// 1. **Bail out if stopping.** A `stop()` in flight must not repopulate state.
-/// 2. **External audio.** Attach or detach the separate audio file for a
-///    cached video-only track. Runs *before* anything reads player state,
-///    because the track has to be complete before it is published.
-/// 3. **Queue pointer.** Clear the skip target, publish `queueIndex`, and
+/// 2. **Queue pointer.** Clear the skip target, publish `queueIndex`, and
 ///    persist index + videoId atomically. Persisting on every track change,
 ///    not just on structural queue changes, is what stops the "where were we"
 ///    pointer from lagging behind after a process restart.
-/// 4. **Media item.** Patch the duration if it is safe to do so, publish, and
+/// 3. **Media item.** Patch the duration if it is safe to do so, publish, and
 ///    on a genuine track change reset the retry counter, refresh the liked
 ///    state, and hand the track to the cast device.
-/// 5. **Resolve.** Kick off lazy URL resolution and look-ahead.
-/// 6. **Sync queue.** Reconcile the `audio_service` queue with the playlist.
-/// 7. **Fade in.**
+/// 4. **Resolve.** Kick off lazy URL resolution and look-ahead.
+/// 5. **Sync queue.** Reconcile the `audio_service` queue with the playlist.
+/// 6. **Fade in.**
 ///
 /// ## The role of `isResolvingItem`
 ///
-/// While the resolver is swapping a URL into the playlist, media_kit emits
-/// playlist events for what is really the *same* track. Steps 3, 4, 6 and 7 are
+/// While the resolver is swapping a URL into the playlist, the engine emits
+/// playlist events for what is really the *same* track. Steps 2, 3, 5 and 6 are
 /// suppressed during that window, otherwise every look-ahead resolve would
 /// republish the media item, re-persist the pointer and re-trigger a fade.
 ///
-/// Steps 2 and 5 are deliberately **not** suppressed: the external audio track
-/// has to follow the playlist even mid-resolve, and step 5 is the resolver's
-/// own driver — gating it would stall look-ahead permanently.
+/// Step 4 is deliberately **not** suppressed: it is the resolver's own driver
+/// — gating it would stall look-ahead permanently.
 class TrackTransitionCoordinator {
   final PlaybackEngine _engine;
   final PlaybackIntentController _intent;
-  final ExternalAudioTrackController _externalAudio;
   final QueueController _queueController;
   final SkipNavigator _skipNavigator;
   final PlaybackStatePublisher _statePublisher;
@@ -81,7 +75,6 @@ class TrackTransitionCoordinator {
   TrackTransitionCoordinator({
     required PlaybackEngine engine,
     required PlaybackIntentController intent,
-    required ExternalAudioTrackController externalAudio,
     required QueueController queueController,
     required SkipNavigator skipNavigator,
     required PlaybackStatePublisher statePublisher,
@@ -101,7 +94,6 @@ class TrackTransitionCoordinator {
     Future<void> Function(int index)? skipToQueueItem,
   }) : _engine = engine,
        _intent = intent,
-       _externalAudio = externalAudio,
        _queueController = queueController,
        _skipNavigator = skipNavigator,
        _statePublisher = statePublisher,
@@ -120,7 +112,7 @@ class TrackTransitionCoordinator {
        _skipToNext = skipToNext,
        _skipToQueueItem = skipToQueueItem;
 
-  /// Subscribes to media_kit streams. Called once from the handler constructor.
+  /// Subscribes to engine streams. Called once from the handler constructor.
   void setupListeners() {
     _engine.playingStream.listen((playing) {
       if (_intent.shouldForcePause(playing: playing)) {
@@ -255,13 +247,6 @@ class TrackTransitionCoordinator {
 
     final index = playlist.index;
 
-    // 2 — external audio, never suppressed
-    if (index >= 0 && index < playlist.medias.length) {
-      unawaited(_externalAudio.attachForMedia(playlist.medias[index]));
-    } else {
-      unawaited(_externalAudio.attachForMedia(null));
-    }
-
     if (!_queueController.isResolvingItem) {
       _publishQueuePointer(playlist, index);
     }
@@ -371,7 +356,7 @@ class TrackTransitionCoordinator {
     );
   }
 
-  /// Stamps a duration onto the published media item once media_kit reports it.
+  /// Stamps a duration onto the published media item once the engine reports it.
   ///
   /// Resolve can suppress the [onPlaylistChanged] media-item update across a
   /// skip, so `mediaItem` may still hold the previous track while the player has
@@ -380,7 +365,7 @@ class TrackTransitionCoordinator {
   void onDurationChanged(Duration duration) {
     // Duration is independent of URL resolve; do not drop updates while
     // isResolvingItem (look-ahead) or AA seekbar stays at 0 forever when
-    // media_kit emits duration only once during that window.
+    // the engine emits duration only once during that window.
     if (duration == Duration.zero) return;
 
     final playlist = _engine.state.playlist;

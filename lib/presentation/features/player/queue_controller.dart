@@ -307,7 +307,6 @@ class QueueController {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
     final preferVideo = prefersVideo(track);
-    String? externalAudioUri;
     final isCache = MediaCacheService.isMediaCacheUri(track.url);
     final useLocal =
         track.isLocalFile &&
@@ -317,14 +316,7 @@ class QueueController {
               preferVideo,
             ));
     if (useLocal) {
-      if (preferVideo && MediaCacheService.isVideoOnlyCacheUri(track.url)) {
-        externalAudioUri = MediaCacheService.siblingAudioUriIfExists(track.url);
-      }
-      return EngineMedia(
-        uri: track.url!,
-        mediaItem: tagged,
-        externalAudioUri: externalAudioUri,
-      );
+      return EngineMedia(uri: track.url!, mediaItem: tagged);
     }
     if (_proxyServer != null &&
         _proxyServer.isRunning &&

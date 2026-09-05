@@ -82,7 +82,7 @@ class StreamDatasource {
       // YouTube no longer serves progressive muxed streams for many videos to
       // anonymous clients (androidVr is bot-gated, visionos is adaptive-only).
       // In that case fall back to the HLS master playlist exposed by the
-      // manifest: media_kit/mpv plays it natively with audio+video.
+      // manifest: libmpv on Linux can play it natively with audio+video.
       final hlsFallbackUrl =
           (preferVideo &&
                   manifest.muxed.isEmpty &&

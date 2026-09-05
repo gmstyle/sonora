@@ -12,13 +12,13 @@ import 'media_cache_service.dart';
 
 /// Local HTTP Proxy Server running on 127.0.0.1.
 ///
-/// Acts as a resilient buffer between `media_kit` (libmpv) and YouTube Music
+/// Acts as a resilient buffer between just_audio and YouTube Music
 /// remote streams. Responsibilities:
 /// - Serves locally cached media files directly from disk if available
 /// - Supports HTTP Range requests for instant seek/scrubbing
 /// - Transparently fetches remote stream URLs via [StreamDatasource]
 /// - Retries and auto-refreshes expired/rate-limited YouTube URLs (HTTP 403/429)
-///   without throwing unrecoverable errors to `media_kit`
+///   without throwing unrecoverable errors to the engine
 class LocalAudioProxyServer {
   final StreamDatasource _streamDatasource;
   final MediaCacheService _mediaCacheService;
@@ -75,7 +75,7 @@ class LocalAudioProxyServer {
   /// Constructs a local proxy stream URL for a given [videoId].
   ///
   /// [audioQuality] and [preferVideo] are forwarded as query params (`qa`/`v`)
-  /// so the handler can resolve the correct YouTube stream when media_kit
+  /// so the handler can resolve the correct YouTube stream when the engine
   /// requests it.
   String getStreamUrlForVideo(
     String videoId, {
@@ -249,7 +249,7 @@ class LocalAudioProxyServer {
     );
   }
 
-  /// Proxies a remote YouTube stream to the local client (`media_kit`).
+  /// Proxies a remote YouTube stream to the local client (just_audio).
   ///
   /// Retries up to 3 times with fresh URL resolution if YouTube responds with
   /// HTTP 403 (expired token), HTTP 429 (rate limited), or a socket error.

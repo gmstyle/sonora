@@ -25,7 +25,6 @@ class FakePlaybackEngine implements PlaybackEngine {
   final _repeat = StreamController<EngineRepeatMode>.broadcast();
   final _error = StreamController<String>.broadcast();
 
-  String? lastExternalAudioUri;
   bool shuffleEnabled = false;
   EngineRepeatMode repeatMode = EngineRepeatMode.none;
 
@@ -183,11 +182,6 @@ class FakePlaybackEngine implements PlaybackEngine {
   Future<void> setRepeatMode(EngineRepeatMode mode) async {
     repeatMode = mode;
     _repeat.add(mode);
-  }
-
-  @override
-  Future<void> attachExternalAudio(String? uri) async {
-    lastExternalAudioUri = uri;
   }
 
   @override

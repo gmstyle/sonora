@@ -26,7 +26,6 @@ import 'android_auto_browser_controller.dart';
 import 'cast_playback_controller.dart';
 import 'equalizer_controller.dart';
 import 'audio_session_controller.dart';
-import 'external_audio_track_controller.dart';
 import 'like_controller.dart';
 import 'play_error.dart';
 import 'player_media_controls.dart';
@@ -69,7 +68,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final TrackUrlResolver _urlResolver;
   late final PlaybackRecoveryController _recoveryController;
   late final PlaybackRestoreController _restoreController;
-  late final ExternalAudioTrackController _externalAudio;
   late final PlaylistOpenCoordinator _playlistOpener;
   late final TrackTransitionCoordinator _transitions;
 
@@ -98,7 +96,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _persistPlaybackPointer() async {
-    // During cold restore, media_kit seek is async: endResolving used to
+    // During cold restore, engine seek is async: endResolving used to
     // persist position 0 and wipe the just-restored pointer before seek landed.
     if (_restoreController.isRestoring) return;
 
@@ -141,7 +139,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
-    _externalAudio = ExternalAudioTrackController(engine: _engine);
     _startRadioUseCase = StartRadioUseCase(musicRepo);
 
     _likeController = LikeController(
@@ -361,7 +358,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _transitions = TrackTransitionCoordinator(
       engine: _engine,
       intent: _intent,
-      externalAudio: _externalAudio,
       queueController: _queueController,
       skipNavigator: _skipNavigator,
       statePublisher: _statePublisher,
@@ -880,7 +876,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   /// Removes every item currently tagged as [QueueSection.upnext] from the
-  /// underlying media_kit playlist, leaving the user queue untouched.
+  /// underlying engine playlist, leaving the user queue untouched.
   ///
   /// The current playback is preserved (if the current item itself is
   /// upnext, it is left in place to avoid a jarring skip).

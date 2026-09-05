@@ -217,11 +217,6 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
   }
 
   @override
-  Future<void> attachExternalAudio(String? uri) async {
-    // Video-only cache pairs are no longer used; just_audio has no sidecar track.
-  }
-
-  @override
   Future<void> dispose() async {
     await _shuffleOut.close();
     await _repeatOut.close();
