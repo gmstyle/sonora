@@ -98,7 +98,7 @@ class PlaybackRestoreController {
     if (!track.isLocalFile) return false;
     if (UrlStaleness.isStale(track.url)) return false;
     if (!MediaCacheService.isMediaCacheUri(track.url)) return true;
-    return MediaCacheService.isCacheCompatibleWithPreferVideo(track.url, false);
+    return MediaCacheService.isPlayableCacheUri(track.url);
   }
 
   void markPaused() {
@@ -278,7 +278,7 @@ class PlaybackRestoreController {
       // Fall through to the empty-queue restore path below.
     }
 
-    final restoreOnStartup = _prefs.getBool('restoreQueueOnStartup') ?? true;
+    final restoreOnStartup = _prefs.getBool(kRestoreQueueKey) ?? true;
     if (!restoreOnStartup) return;
 
     final rawEntries = await _queueRepo.restoreQueueWithSections();
@@ -365,11 +365,7 @@ class PlaybackRestoreController {
     );
 
     try {
-      final currentTrack = QueueTrack.fromMediaItem(currentItem);
-      final freshUrl = await _playVideoIdUseCase.resolveUrl(
-        currentItem.id,
-        preferVideo: _queueController.prefersVideo(currentTrack),
-      );
+      final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
       final track = QueueTrack.fromMediaItem(
         currentItem,
       ).copyWith(url: freshUrl, needsUrl: false);
@@ -406,9 +402,9 @@ class PlaybackRestoreController {
         position: _savedPosition,
       );
 
-      // media_kit may briefly report index 0 while opening a non-zero playlist
-      // index (especially with video/HLS). Wait for the intended item before
-      // seeking so the seek is not applied to the wrong track.
+      // The engine may briefly report index 0 while opening a non-zero playlist
+      // index. Wait for the intended item before seeking so the seek is not
+      // applied to the wrong track.
       if (savedIndex > 0 && _engine.state.playlist.index != savedIndex) {
         try {
           await _engine.playlistStream
@@ -472,7 +468,7 @@ class PlaybackRestoreController {
       }
       // Playlist events were suppressed during open, so queueIndex was never
       // published — and a concurrent look-ahead URL resolve can even stamp
-      // queueIndex=0 while media_kit briefly reports index 0. Publish the
+      // queueIndex=0 while the engine briefly reports index 0. Publish the
       // restored index explicitly so the queue highlight matches mediaItem.
       if (idx >= 0) {
         _statePublisher.updateState((s) => s.copyWith(queueIndex: idx));

@@ -175,10 +175,7 @@ class PlaylistOpenCoordinator {
     if (!track.needsUrl) return items;
 
     try {
-      final url = await _playVideoIdUseCase.resolveUrl(
-        track.videoId,
-        preferVideo: _queueController.prefersVideo(track),
-      );
+      final url = await _playVideoIdUseCase.resolveUrl(track.videoId);
       final resolved = track
           .copyWith(url: url, needsUrl: false)
           .toMediaItem(initialItem);

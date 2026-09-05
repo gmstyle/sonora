@@ -988,7 +988,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (state.isPlaying) {
       await _handler.pauseFromUser();
     } else {
-      // When the queue is exhausted and autoplay is enabled, media_kit's
+      // When the queue is exhausted and autoplay is enabled, the engine's
       // play() would restart from index 0 (the first user track).  Delegate
       // to _fetchAutoPlayUpNext which either skips to an existing up-next
       // item or fetches a new one before starting playback.

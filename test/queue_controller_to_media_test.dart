@@ -15,7 +15,6 @@ class _FakeStreamDatasource extends StreamDatasource {
   Future<String> getStreamUrl(
     String videoId, {
     MediaQuality? audioQuality,
-    bool preferVideo = false,
     int attempt = 1,
   }) async {
     return 'http://example.com/$videoId.mp3';
@@ -89,7 +88,6 @@ void main() {
       media.uri,
       proxy.getStreamUrlForVideo('vid2', audioQuality: MediaQuality.high),
     );
-    expect(media.externalAudioUri, isNull);
   });
 
   test('toMedia uses audio proxy for catalog video tracks', () {
@@ -109,7 +107,6 @@ void main() {
       media.uri,
       proxy.getStreamUrlForVideo('vidVideo', audioQuality: MediaQuality.high),
     );
-    expect(media.externalAudioUri, isNull);
     expect(media.uri, contains('qa=high'));
     expect(media.uri, isNot(contains('v=1')));
     expect(media.uri, isNot(contains('qv=')));
@@ -183,11 +180,10 @@ void main() {
 
     expect(media.uri, contains('/stream?videoId=vidOrphan'));
     expect(media.uri, isNot(contains('v=1')));
-    expect(media.externalAudioUri, isNull);
   });
 
   test(
-    'toMedia does not attach externalAudioUri for video-only cache pairs',
+    'toMedia routes video-only cache pairs through the audio proxy',
     () async {
       final cacheDir = Directory(
         '${Directory.systemTemp.path}/sonora_media_cache',
@@ -215,7 +211,6 @@ void main() {
 
       expect(media.uri, contains('/stream?videoId=vidPair'));
       expect(media.uri, isNot(contains('v=1')));
-      expect(media.externalAudioUri, isNull);
     },
   );
 

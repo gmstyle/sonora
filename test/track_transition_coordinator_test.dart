@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/domain/models/queue_track.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
 import 'package:sonora/presentation/features/player/cast_playback_controller.dart';
-import 'package:sonora/presentation/features/player/external_audio_track_controller.dart';
 import 'package:sonora/presentation/features/player/like_controller.dart';
 import 'package:sonora/presentation/features/player/playback_engine.dart';
 import 'package:sonora/presentation/features/player/playback_intent_controller.dart';
@@ -20,18 +19,6 @@ import 'helpers/fake_playback_engine.dart';
 /// Shared log so every fake can record the step it performed, which is what
 /// lets these tests assert the cascade *order* rather than just its effects.
 late List<String> steps;
-
-class _FakeExternalAudio extends Fake implements ExternalAudioTrackController {
-  EngineMedia? lastMedia;
-  int calls = 0;
-
-  @override
-  Future<void> attachForMedia(EngineMedia? media) async {
-    calls++;
-    lastMedia = media;
-    steps.add('externalAudio');
-  }
-}
 
 class _FakeQueueController extends Fake implements QueueController {
   bool resolving = false;
@@ -135,7 +122,6 @@ EngineMedia mediaFor(MediaItem item) =>
 
 void main() {
   late FakePlaybackEngine engine;
-  late _FakeExternalAudio externalAudio;
   late _FakeQueueController queueController;
   late _FakeStatePublisher statePublisher;
   late _FakeQueueRepo queueRepo;
@@ -155,7 +141,6 @@ void main() {
     emitted = [];
     isStopping = false;
     engine = FakePlaybackEngine(playlist: playlistOf(const ['a']));
-    externalAudio = _FakeExternalAudio();
     queueController = _FakeQueueController();
     statePublisher = _FakeStatePublisher();
     queueRepo = _FakeQueueRepo();
@@ -164,7 +149,6 @@ void main() {
     coordinator = TrackTransitionCoordinator(
       engine: engine,
       intent: PlaybackIntentController(),
-      externalAudio: externalAudio,
       queueController: queueController,
       skipNavigator: _FakeSkipNavigator(),
       statePublisher: statePublisher,
@@ -189,7 +173,6 @@ void main() {
       coordinator.onPlaylistChanged(playlist);
 
       expect(steps, [
-        'externalAudio',
         'clearTarget',
         'queueIndex',
         'persistPointer',
@@ -254,19 +237,6 @@ void main() {
       expect(emitted, isEmpty);
     });
 
-    test('does NOT suppress the external audio attach', () {
-      final playlist = playlistOf(const ['a']);
-      engine.playlist = playlist;
-
-      coordinator.onPlaylistChanged(playlist);
-
-      expect(
-        steps,
-        contains('externalAudio'),
-        reason: 'the audio track must follow the playlist mid-resolve',
-      );
-    });
-
     test('does NOT suppress the resolver, which would stall look-ahead', () {
       final playlist = playlistOf(const ['a', 'b'], index: 1);
       engine.playlist = playlist;
@@ -277,34 +247,13 @@ void main() {
       expect(urlResolver.lastIndex, 1);
     });
 
-    test('leaves exactly the two unsuppressed steps', () {
+    test('leaves exactly the unsuppressed resolve step', () {
       final playlist = playlistOf(const ['a']);
       engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
-      expect(steps, ['externalAudio', 'resolve']);
-    });
-  });
-
-  group('external audio', () {
-    test('detaches when the index is out of range', () {
-      final playlist = playlistOf(const ['a'], index: -1);
-      engine.playlist = playlist;
-
-      coordinator.onPlaylistChanged(playlist);
-
-      expect(externalAudio.calls, 1);
-      expect(externalAudio.lastMedia, isNull);
-    });
-
-    test('attaches the media at the playing index', () {
-      final playlist = playlistOf(const ['a', 'b'], index: 1);
-      engine.playlist = playlist;
-
-      coordinator.onPlaylistChanged(playlist);
-
-      expect(externalAudio.lastMedia, playlist.medias[1]);
+      expect(steps, ['resolve']);
     });
   });
 

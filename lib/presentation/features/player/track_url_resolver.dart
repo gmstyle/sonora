@@ -6,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
 import 'playback_engine.dart';
 
+import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../data/services/media_cache_service.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
@@ -33,6 +34,7 @@ import 'queue_controller.dart';
 class TrackUrlResolver {
   final PlaybackEngine _engine;
   final PlayVideoIdUseCase _playVideoIdUseCase;
+  final StreamDatasource _streamDatasource;
   final QueueController _queueController;
   final PlaybackVolumeController _volumeController;
   final PlaybackStatePublisher _statePublisher;
@@ -71,6 +73,7 @@ class TrackUrlResolver {
   TrackUrlResolver({
     required PlaybackEngine engine,
     required PlayVideoIdUseCase playVideoIdUseCase,
+    required StreamDatasource streamDatasource,
     required QueueController queueController,
     required PlaybackVolumeController volumeController,
     required PlaybackStatePublisher statePublisher,
@@ -99,6 +102,7 @@ class TrackUrlResolver {
     required Future<void> Function() castPause,
   }) : _engine = engine,
        _playVideoIdUseCase = playVideoIdUseCase,
+       _streamDatasource = streamDatasource,
        _queueController = queueController,
        _volumeController = volumeController,
        _statePublisher = statePublisher,
@@ -174,14 +178,15 @@ class TrackUrlResolver {
     final media = playlist.medias[index];
     final item = media.mediaItem;
     if (item == null) return;
-    final track = QueueTrack.fromMediaItem(item);
-    final url = diskPrefetchUrlFor(item);
-    final videoId = track.videoId;
+    if (!shouldPrefetchDiskCache(item)) return;
+    final videoId = QueueTrack.fromMediaItem(item).videoId;
     if (!_prefetchInFlight.add(videoId)) return;
     unawaited(() async {
       try {
-        if (url == null) return;
-        await MediaCacheService.instance.downloadToCache(videoId, url);
+        await _streamDatasource.cacheAudio(
+          videoId,
+          audioQuality: _queueController.streamAudioQuality,
+        );
       } catch (_) {
       } finally {
         _prefetchInFlight.remove(videoId);
@@ -224,16 +229,13 @@ class TrackUrlResolver {
     );
   }
 
-  /// URL eligible for disk look-ahead pre-cache, or null if the item must not
-  /// be downloaded (unresolved, local file, or dummy placeholder).
+  /// Whether [item] should be disk-prefetched by videoId (authenticated
+  /// [StreamDatasource.cacheAudio]). Local files are already on disk.
   @visibleForTesting
-  static String? diskPrefetchUrlFor(MediaItem? item) {
-    if (item == null) return null;
+  static bool shouldPrefetchDiskCache(MediaItem? item) {
+    if (item == null) return false;
     final t = QueueTrack.fromMediaItem(item);
-    if (t.hasUrl && !t.isLocalFile && !t.url!.startsWith('http://localhost')) {
-      return t.url;
-    }
-    return null;
+    return t.videoId.isNotEmpty && !t.isLocalFile;
   }
 
   Future<void> resolveSinglePendingItem(
@@ -273,10 +275,7 @@ class TrackUrlResolver {
       // be re-resolved once they actually become current.
       final isCurrent = treatAsCurrent ?? (index == playlist.index);
       final url = await _playVideoIdUseCase
-          .resolveUrl(
-            videoId,
-            preferVideo: _queueController.prefersVideo(track),
-          )
+          .resolveUrl(videoId)
           .timeout(
             isCurrent
                 ? PlayVideoIdUseCase.streamUrlTimeout +

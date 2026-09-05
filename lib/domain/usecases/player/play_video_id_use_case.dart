@@ -74,10 +74,7 @@ class PlayVideoIdUseCase {
     }
 
     // Pre-warm: start stream URL resolution in parallel with metadata fetch.
-    final urlFuture = resolveUrl(
-      videoId,
-      preferVideo: isVideoHint == true,
-    ).timeout(streamUrlTimeout);
+    final urlFuture = resolveUrl(videoId).timeout(streamUrlTimeout);
 
     String title, artist, thumbnailUrl;
     int durationSec;
@@ -147,10 +144,9 @@ class PlayVideoIdUseCase {
   /// is still on disk (cleans up stale downloads), otherwise resolves the
   /// stream URL from [MusicRepository].
   ///
-  /// When [preferVideo] is true, muxed `{id}.mp4` or a complete adaptive
-  /// pair (`{id}.v.*` + audio) is reused — leftover audio-only `.webm` is
-  /// ignored. Pair hits return the video-only URI.
-  Future<String> resolveUrl(String videoId, {bool preferVideo = false}) async {
+  /// Reuses a completed library download or an audio-only media-cache hit,
+  /// otherwise resolves a stream URL from [MusicRepository].
+  Future<String> resolveUrl(String videoId) async {
     if (_libraryRepo != null) {
       try {
         final download = await _libraryRepo.getDownload(videoId);
@@ -167,10 +163,7 @@ class PlayVideoIdUseCase {
     }
 
     try {
-      final hit = await MediaCacheService.instance.getCachedHit(
-        videoId,
-        preferVideo: preferVideo,
-      );
+      final hit = await MediaCacheService.instance.getCachedHit(videoId);
       if (hit != null) {
         return hit.primaryUri;
       }
@@ -182,17 +175,12 @@ class PlayVideoIdUseCase {
       throw const SocketException('Offline: cannot resolve stream URL.');
     }
 
-    return await resolveStreamUrl(videoId, preferVideo: preferVideo);
+    return await resolveStreamUrl(videoId);
   }
 
   /// Resolves the stream URL for [videoId].
   /// Used when metadata (title, artist, etc.) is already available from the UI.
-  Future<String> resolveStreamUrl(
-    String videoId, {
-    bool preferVideo = false,
-  }) async {
-    return _repo
-        .getStreamUrl(videoId, preferVideo: preferVideo)
-        .timeout(streamUrlTimeout);
+  Future<String> resolveStreamUrl(String videoId) async {
+    return _repo.getStreamUrl(videoId).timeout(streamUrlTimeout);
   }
 }

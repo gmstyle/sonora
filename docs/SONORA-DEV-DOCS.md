@@ -315,8 +315,11 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 | `likedPodcasts` / `likedEpisodes` | **v3** — subscribed podcasts + saved episodes |
 | `localPlaylists` (+ entries) | Custom playlists |
 | `history` / `searchHistory` | Listening + search history (history may include `contentType` / `podcastBrowseId`) |
+| `settings` | Portable prefs — see §12 |
 
-`ImportBackupUseCase` and `MergeLibraryUseCase` (P2P sync) restore/merge the same keys. Older backups without podcast keys remain valid (empty lists).
+The optional `settings` object uses the SharedPreferences key names from §12 (`Settings.toBackupMap` + `EqualizerState.toBackupMap`). Device-local `downloadPath` and runtime/migration keys are omitted. Import applies the map via `SettingsNotifier.applyBackupMap` / `EqualizerNotifier.applyBackupMap` and ignores unknown keys. Older zips that only have `streamQuality` still apply that value to `streamAudioQuality`.
+
+`ImportBackupUseCase` and `MergeLibraryUseCase` (P2P sync) restore/merge the library keys. Older backups without podcast keys remain valid (empty lists). P2P merge does not apply the `settings` object.
 
 ---
 
@@ -348,9 +351,8 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 | `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔`EngineMedia` conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` (`PlaybackEngine.replace`) / `runBatch` |
 | `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` (audio-only) |
 | `PlaylistOpenCoordinator` | `playlist_open_coordinator.dart` | The three wholesale playlist replacements — `setQueue` (stages paused), `playNow` (requests focus, resolves the first URL, opens playing) and `rebuildMedia` (re-derives `EngineMedia` after a quality change). All run under the queue's FIFO lock; `shouldAbort` is evaluated after any in-flight open so the most recent caller wins |
-| `TrackTransitionCoordinator` | `track_transition_coordinator.dart` | Owns `PlaybackEngine` stream subscriptions (`setupListeners`) and the track-change cascade: external audio → queue pointer → media item → cast → resolve → queue sync → fade-in, plus duration stamping bound to playlist identity. `isResolvingItem` suppresses the pointer, media item, sync and fade but deliberately **not** the audio attach or the resolver. Order is locked by `test/track_transition_coordinator_test.dart` |
+| `TrackTransitionCoordinator` | `track_transition_coordinator.dart` | Owns `PlaybackEngine` stream subscriptions (`setupListeners`) and the track-change cascade: queue pointer → media item → cast → resolve → queue sync → fade-in, plus duration stamping bound to playlist identity. `isResolvingItem` suppresses the pointer, media item, sync and fade but deliberately **not** the resolver. Order is locked by `test/track_transition_coordinator_test.dart` |
 | `PlaybackIntentController` | `playback_intent_controller.dart` | Single source of truth for what the *user* wants playback to be doing: `userWantsPlaying`, `isExplicitlyPaused`, and the authorised-resume window. Distinguishes an in-app pause from a notification/headset pause so Pixel Buds ear-detection PLAY is rejected while a deliberate buds tap still resumes. Full truth table in the class doc; covered by `test/playback_intent_controller_test.dart` |
-| `ExternalAudioTrackController` | `external_audio_track_controller.dart` | Applies `extras['externalAudioUri']` via `Player.setAudioTrack` when a cached video-only file must be paired with a separate audio file; resets to `AudioTrack.auto()` otherwise. Stale attaches are dropped by generation counter when the user skips |
 | `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
 | `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
 | `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume / ducking |
@@ -393,18 +395,18 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
   - Runs locally on `127.0.0.1` using a dynamic ephemeral port assigned by the OS at startup.
   - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&qa=<high|mid|low>` (legacy `q` still accepted as fallback for audio quality).
     - `qa` — streaming audio quality from `Settings.streamAudioQuality` (built by `QueueController.toMedia`).
-    - Catalog music videos use the same audio-only proxy path (`QueueController.prefersVideo` is always false). `v=1` is no longer emitted.
-  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3). Muxed `{id}.mp4` and video-only `{id}.v.*` hits are not used for playback.
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, preferVideo: false)` and `YoutubeRequestScheduler`.
+    - Catalog music videos use the same audio-only proxy path.
+  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3). Muxed `{id}.mp4` and video-only `{id}.v.*` leftovers are ignored.
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:)` and `YoutubeRequestScheduler`.
   - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `just_audio`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio quality, and retries up to 3 times automatically. The engine sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (LRU, user-configurable size) for audio-only files. Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality clears this cache.
+  - **Background Cache Population**: As remote streams play, audio is saved asynchronously via `StreamDatasource.cacheAudio` → youtube_explode `StreamClient` (same authenticated downloader as library downloads; not a raw Dio GET). Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality clears this cache.
   - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` (e.g. persist playback pointer). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
   - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`) and downloads (`Settings.downloadQuality`).
-  - Playback always picks audio-only (`preferVideo == false`): `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
+  - Playback always picks audio-only: `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
   - **Downloads**: always audio-only using `downloadQuality`, even when the catalog item `isVideo` (that flag is stored as metadata only). Cast uses the same audio `select` path.
-  - `StreamDatasource` caches playback plans by `videoId|audioQ|preferVideo` and exposes `clearUrlCache()` when stream audio quality changes.
+  - `StreamDatasource` caches playback plans by `videoId|audioQ` and exposes `clearUrlCache()` when stream audio quality changes.
 
 - **Dual-Path Playback Architecture:**
   - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
@@ -878,29 +880,42 @@ Produces:
 
 ## 12. Settings — Persistent Preferences
 
-`SettingsNotifier` (backed by `SharedPreferences`) manages:
+`SettingsNotifier` (backed by `SharedPreferences`) manages portable prefs plus a few device/runtime keys. Export/import of `backup.json` → `settings` is centralized in `Settings.toBackupMap` / `applyBackupMap` (plus `EqualizerState.toBackupMap` / `EqualizerNotifier.applyBackupMap`) so keys cannot drift from the `k*Key` constants.
 
-| Key | Type | Default | Side-effect |
-|---|---|---|---|
-| `themeMode` | int (ThemeMode enum) | 0 (system) | ThemeProvider |
-| `useDynamicColor` | bool | true | ThemeProvider |
-| `useAmoled` | bool | false | ThemeProvider |
-| `gl` | String | "US" | YTMusic reinitialize + invalidate home |
-| `hl` | String | "en" | YTMusic reinitialize + invalidate home |
-| `crossfadeSeconds` | int | 2 | `PlaybackVolumeController` crossfade |
-| `restoreQueueOnStartup` | bool | true | QueueUseCase at boot |
-| `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
-| `enableVideoPlayback` | bool | false | Legacy backup/import key only; no longer affects playback |
-| `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / audio stream pick; clears URL + media cache (legacy `streamQuality` migrates here) |
-| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` audio stream pick (catalog `isVideo` is metadata only) |
-| `downloadPath` | String? | null | StartDownloadUseCase |
-| `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
-| `trackHistory` | bool | true | History insert on play |
-| `offlineMode` | bool | false | Overrides network state to restrict online calls |
-| `checkUpdatesOnStartup` | bool | true | UpdateNotifier at boot |
-| `equalizerEnabled` | bool | false | `EqualizerController` filter application |
-| `equalizerGains` | String | "0,0,0,0,0" | `EqualizerController` filter gains |
-| `equalizerPreset` | String | "flat" | Display preset name in Equalizer UI |
+| Key | Type | Default | Backup | Side-effect |
+|---|---|---|---|---|
+| `themeMode` | int (ThemeMode enum) | 0 (system) | yes | ThemeProvider |
+| `useDynamicColor` | bool | true | yes | ThemeProvider |
+| `useAmoled` | bool | false | yes | ThemeProvider |
+| `gl` | String | "US" | yes | YTMusic reinitialize + invalidate home |
+| `hl` | String | "en" | yes | YTMusic reinitialize + invalidate home |
+| `crossfadeSeconds` | int | 2 | yes | `PlaybackVolumeController` crossfade |
+| `restoreQueueOnStartup` | bool | true | yes | Restore at boot |
+| `autoPlayUpNext` | bool | true | yes | PlayerNotifier auto-play |
+| `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | yes | Proxy / audio stream pick; clears URL + media cache |
+| `mediaCacheSize` | String (`mb500`/`gb1`/`gb2`/`gb5`) | `gb1` | yes | `MediaCacheService` max size |
+| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | yes | `StartDownloadUseCase` audio stream pick |
+| `downloadOnlyOnWifi` | bool | false | yes | StartDownloadUseCase |
+| `trackHistory` | bool | true | yes | History insert on play |
+| `checkUpdatesOnStartup` | bool | true | yes | UpdateNotifier at boot |
+| `isLibraryGridView` | bool | false | yes | Library layout |
+| `useVinylStyle` | bool | true | yes | Player artwork style |
+| `reduceEffects` | bool | false | yes | Reduced motion / effects |
+| `offlineMode` | bool | false | yes | Overrides network state to restrict online calls |
+| `localSyncEnabled` | bool | false | yes | P2P sync server |
+| `localSyncAutoEnabled` | bool | false | yes | Auto-start local sync |
+| `playlistConflictStrategy` | String | `merge` | yes | Local playlist merge strategy |
+| `equalizerEnabled` | bool | false | yes | `EqualizerController` (prefs owned by `EqualizerNotifier`) |
+| `equalizerGains` | StringList (5 bands) | `0.0`×5 | yes | `EqualizerController` filter gains |
+| `equalizerPreset` | String | `flat` | yes | Display preset name in Equalizer UI |
+| `downloadPath` | String? | null | no | Device filesystem path; not portable |
+| `lastUpdateCheckTime` | int | — | no | Runtime throttle |
+| `postQueueSplitDone` | bool | — | no | One-shot queue migration |
+| `batteryPromptDismissed` | bool | — | no | One-shot Android prompt |
+
+`librarySortType` (library UI) and sync pairing ids are also persisted locally and are not part of the settings backup map.
+
+On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `streamQuality` into `streamAudioQuality` (so the user's chosen quality is kept) and deletes `streamQuality` plus leftover `enableVideoPlayback`. New keys missing from older installs use the defaults above. Import of an older zip ignores unknown keys and still maps `streamQuality` → `streamAudioQuality`.
 
 ---
 
@@ -908,22 +923,22 @@ Produces:
 
 ### 13.1 Test Files
 
-29 files, 323 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences. Video-player tests were removed with in-app video playback; equalizer interpolation and just_audio mapping tests were added.
+29 files, 327 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences. Video-player tests were removed with in-app video playback; equalizer interpolation and just_audio mapping tests were added.
 
 | File | Count | Coverage |
 |---|---|---|
 | `test/daos_test.dart` | 66 | All DAOs with upsert, edge cases |
 | `test/library_repository_test.dart` | 35 | Toggle, mapping, CRUD |
 | `test/playback_intent_controller_test.dart` | 27 | Buds ear-detection, Assistant interruption, becoming-noisy, cold restore |
-| `test/settings_provider_test.dart` | 26 | Settings model + setters (incl. stream/download quality) |
+| `test/settings_provider_test.dart` | 30 | Settings model + setters + backup map + upgrade migration |
 | `test/track_transition_coordinator_test.dart` | 14 | Cascade order and `isResolvingItem` suppression |
 | `test/track_url_resolver_prefetch_test.dart` | 15 | Lazy resolve + adaptive lookahead |
 | `test/queue_meta_atomicity_test.dart` | 11 | Atomic playback-pointer persistence |
-| `test/media_cache_service_test.dart` | 10 | LRU disk cache behaviour |
+| `test/media_cache_service_test.dart` | 8 | LRU disk cache behaviour |
 | `test/queue_controller_to_media_test.dart` | 10 | `toMedia` URI selection (proxy / file / dummy) |
-| `test/stream_quality_selector_test.dart` | 10 | audioOnly / muxed tiers + fallback |
+| `test/stream_quality_selector_test.dart` | 6 | audioOnly tiers + muxed fallback |
 | `test/update_asset_selection_test.dart` | 12 | Per-ABI APK pick for the in-app updater (incl. universal bridge) |
-| `test/media_cache_uri_test.dart` | 9 | Cache URI + HLS playlist detection |
+| `test/media_cache_uri_test.dart` | 8 | Cache URI classification |
 | `test/playback_restore_local_url_test.dart` | 6 | Restore with local / stale / audio-only cache URLs |
 | `test/just_audio_playback_engine_test.dart` | 2 | Repeat-mode + `AudioSource` tag mappings |
 | `test/equalizer_interpolation_test.dart` | 4 | 5-band → device-band gain interpolation |
@@ -938,7 +953,6 @@ Produces:
 | `test/ytmusic_datasource_test.dart` | 5 | Live network: search, suggestions, reinitialize |
 | `test/android_auto_recent_test.dart` | 3 | AA recent-items node |
 | `test/core/extensions/duration_ext_test.dart` | 3 | `Duration` → `"3:45"` |
-| `test/external_audio_track_controller_test.dart` | 3 | Dual-file cache audio attach |
 | `test/media_cache_size_test.dart` | 3 | Cache size accounting |
 | `test/youtube_request_scheduler_test.dart` | 3 | Request throttling |
 | `test/queue_repository_test.dart` | 1 | Queue persist / restore round-trip |

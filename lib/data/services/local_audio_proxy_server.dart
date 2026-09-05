@@ -12,13 +12,13 @@ import 'media_cache_service.dart';
 
 /// Local HTTP Proxy Server running on 127.0.0.1.
 ///
-/// Acts as a resilient buffer between `media_kit` (libmpv) and YouTube Music
+/// Acts as a resilient buffer between just_audio and YouTube Music
 /// remote streams. Responsibilities:
 /// - Serves locally cached media files directly from disk if available
 /// - Supports HTTP Range requests for instant seek/scrubbing
 /// - Transparently fetches remote stream URLs via [StreamDatasource]
 /// - Retries and auto-refreshes expired/rate-limited YouTube URLs (HTTP 403/429)
-///   without throwing unrecoverable errors to `media_kit`
+///   without throwing unrecoverable errors to the engine
 class LocalAudioProxyServer {
   final StreamDatasource _streamDatasource;
   final MediaCacheService _mediaCacheService;
@@ -74,27 +74,25 @@ class LocalAudioProxyServer {
 
   /// Constructs a local proxy stream URL for a given [videoId].
   ///
-  /// [audioQuality] and [preferVideo] are forwarded as query params (`qa`/`v`)
-  /// so the handler can resolve the correct YouTube stream when media_kit
-  /// requests it.
+  /// [audioQuality] is forwarded as `qa` so the handler can resolve the
+  /// correct YouTube audio stream when the engine requests it.
   String getStreamUrlForVideo(
     String videoId, {
     MediaQuality audioQuality = MediaQuality.high,
-    bool preferVideo = false,
   }) {
     if (!isRunning) {
       dev.log(
         '[LocalAudioProxyServer] WARNING: Server requested before start() was called!',
       );
     }
-    final params = <String, String>{
-      'videoId': videoId,
-      'qa': audioQuality.storageValue,
-      if (preferVideo) 'v': '1',
-    };
-    return Uri.parse(
-      '$streamBaseUrl/stream',
-    ).replace(queryParameters: params).toString();
+    return Uri.parse('$streamBaseUrl/stream')
+        .replace(
+          queryParameters: {
+            'videoId': videoId,
+            'qa': audioQuality.storageValue,
+          },
+        )
+        .toString();
   }
 
   /// First non-loopback IPv4, preferring Wi-Fi-style interface names.
@@ -127,17 +125,12 @@ class LocalAudioProxyServer {
   Future<String?> getCastStreamUrlForVideo(
     String videoId, {
     MediaQuality audioQuality = MediaQuality.high,
-    bool preferVideo = false,
   }) async {
     if (!isRunning || videoId.isEmpty) return null;
     final ip = await lookupLanIPv4();
     if (ip == null) return null;
     return Uri.parse(
-      getStreamUrlForVideo(
-        videoId,
-        audioQuality: audioQuality,
-        preferVideo: preferVideo,
-      ),
+      getStreamUrlForVideo(videoId, audioQuality: audioQuality),
     ).replace(host: ip).toString();
   }
 
@@ -146,7 +139,7 @@ class LocalAudioProxyServer {
     return MediaQuality.fromStorage(params['qa'] ?? params['q']);
   }
 
-  /// Route handler for `/stream?videoId=...&qa=...&v=...`
+  /// Route handler for `/stream?videoId=...&qa=...`
   Future<Response> _handleStream(Request request) async {
     final videoId = request.url.queryParameters['videoId'];
     if (videoId == null || videoId.isEmpty) {
@@ -154,14 +147,10 @@ class LocalAudioProxyServer {
     }
 
     final audioQuality = _audioQualityFromQuery(request.url.queryParameters);
-    final preferVideo = request.url.queryParameters['v'] == '1';
     final rangeHeaderStr = request.headers['range'];
 
     try {
-      final cachedUri = await _mediaCacheService.getCachedFileUri(
-        videoId,
-        preferVideo: preferVideo,
-      );
+      final cachedUri = await _mediaCacheService.getCachedFileUri(videoId);
       if (cachedUri != null) {
         final filePath = Uri.parse(cachedUri).toFilePath();
         final file = File(filePath);
@@ -181,12 +170,11 @@ class LocalAudioProxyServer {
       streamUrl = await _streamDatasource.getStreamUrl(
         videoId,
         audioQuality: audioQuality,
-        preferVideo: preferVideo,
       );
     } catch (e) {
       dev.log(
         '[LocalAudioProxyServer] Failed to resolve stream URL for $videoId '
-        '(qa=${audioQuality.storageValue}, v=$preferVideo): $e',
+        '(qa=${audioQuality.storageValue}): $e',
       );
       return Response.internalServerError(
         body: 'Failed to resolve stream URL: $e',
@@ -198,7 +186,6 @@ class LocalAudioProxyServer {
       streamUrl,
       rangeHeaderStr,
       audioQuality: audioQuality,
-      preferVideo: preferVideo,
     );
   }
 
@@ -249,7 +236,7 @@ class LocalAudioProxyServer {
     );
   }
 
-  /// Proxies a remote YouTube stream to the local client (`media_kit`).
+  /// Proxies a remote YouTube stream to the local client (just_audio).
   ///
   /// Retries up to 3 times with fresh URL resolution if YouTube responds with
   /// HTTP 403 (expired token), HTTP 429 (rate limited), or a socket error.
@@ -258,7 +245,6 @@ class LocalAudioProxyServer {
     String initialUrl,
     String? rangeHeaderStr, {
     required MediaQuality audioQuality,
-    required bool preferVideo,
   }) async {
     int attempts = 0;
     String currentUrl = initialUrl;
@@ -288,7 +274,6 @@ class LocalAudioProxyServer {
           currentUrl = await _streamDatasource.getStreamUrl(
             videoId,
             audioQuality: audioQuality,
-            preferVideo: preferVideo,
           );
           continue;
         }
@@ -305,23 +290,16 @@ class LocalAudioProxyServer {
         if (cRange != null) headers['Content-Range'] = cRange;
 
         // Never disk-cache HLS playlists: they are tiny text manifests whose
-        // segment URLs expire, and caching them would poison the media cache.
-        // Instead, background-cache a progressive adaptive pair (or muxed).
+        // segment URLs expire. Audio cache uses the authenticated StreamClient
+        // rather than a raw GET of [currentUrl] (often 403 after playback).
         final isHlsPlaylist =
             (cType?.contains('mpegurl') ?? false) ||
             currentUrl.contains('/api/manifest/');
-        if (isHlsPlaylist) {
-          if (preferVideo) {
-            unawaited(
-              _streamDatasource.ensureVideoDiskCache(
-                videoId,
-                audioQuality: audioQuality,
-              ),
-            );
-          }
-        } else if (rangeHeaderStr == null ||
-            rangeHeaderStr.startsWith('bytes=0-')) {
-          unawaited(_mediaCacheService.downloadToCache(videoId, currentUrl));
+        if (!isHlsPlaylist &&
+            (rangeHeaderStr == null || rangeHeaderStr.startsWith('bytes=0-'))) {
+          unawaited(
+            _streamDatasource.cacheAudio(videoId, audioQuality: audioQuality),
+          );
         }
 
         return Response(response.statusCode, body: response, headers: headers);
@@ -341,7 +319,6 @@ class LocalAudioProxyServer {
           currentUrl = await _streamDatasource.getStreamUrl(
             videoId,
             audioQuality: audioQuality,
-            preferVideo: preferVideo,
           );
         } catch (_) {}
       }

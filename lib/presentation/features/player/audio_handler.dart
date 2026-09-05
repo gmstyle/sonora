@@ -11,6 +11,7 @@ import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'just_audio_playback_engine.dart';
 import 'playback_engine.dart';
+import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
@@ -26,7 +27,6 @@ import 'android_auto_browser_controller.dart';
 import 'cast_playback_controller.dart';
 import 'equalizer_controller.dart';
 import 'audio_session_controller.dart';
-import 'external_audio_track_controller.dart';
 import 'like_controller.dart';
 import 'play_error.dart';
 import 'player_media_controls.dart';
@@ -52,6 +52,7 @@ import '../../providers/settings_provider.dart';
 class SonoraAudioHandler extends BaseAudioHandler {
   final JustAudioPlaybackEngine _engine = JustAudioPlaybackEngine.create();
   final PlayVideoIdUseCase _playVideoIdUseCase;
+  final StreamDatasource _streamDatasource;
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
   final LocalAudioProxyServer? _proxyServer;
@@ -69,7 +70,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final TrackUrlResolver _urlResolver;
   late final PlaybackRecoveryController _recoveryController;
   late final PlaybackRestoreController _restoreController;
-  late final ExternalAudioTrackController _externalAudio;
   late final PlaylistOpenCoordinator _playlistOpener;
   late final TrackTransitionCoordinator _transitions;
 
@@ -98,7 +98,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> _persistPlaybackPointer() async {
-    // During cold restore, media_kit seek is async: endResolving used to
+    // During cold restore, engine seek is async: endResolving used to
     // persist position 0 and wipe the just-restored pointer before seek landed.
     if (_restoreController.isRestoring) return;
 
@@ -134,14 +134,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required MusicRepository musicRepo,
     required LibraryRepository libraryRepo,
     required PlayVideoIdUseCase playVideoIdUseCase,
+    required StreamDatasource streamDatasource,
     required SharedPreferences prefs,
     required QueueRepository queueRepo,
     LocalAudioProxyServer? proxyServer,
   }) : _playVideoIdUseCase = playVideoIdUseCase,
+       _streamDatasource = streamDatasource,
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
-    _externalAudio = ExternalAudioTrackController(engine: _engine);
     _startRadioUseCase = StartRadioUseCase(musicRepo);
 
     _likeController = LikeController(
@@ -162,8 +163,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       updateQueueStream: (items) => queue.add(items),
       proxyServer: _proxyServer,
       streamAudioQuality: MediaQuality.fromStorage(
-        _prefs.getString(kStreamAudioQualityKey) ??
-            _prefs.getString(kStreamQualityKey),
+        readStreamAudioQualityPref(_prefs),
       ),
     );
 
@@ -222,6 +222,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _urlResolver = TrackUrlResolver(
       engine: _engine,
       playVideoIdUseCase: _playVideoIdUseCase,
+      streamDatasource: _streamDatasource,
       queueController: _queueController,
       volumeController: _volumeController,
       statePublisher: _statePublisher,
@@ -253,13 +254,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying:
-          () async {
-            await _castController.waitForCastSessionState(
-              _castController.castService!,
-              SessionState.playing,
-            );
-          },
+      waitForCastPlaying: () async {
+        await _castController.waitForCastSessionState(
+          _castController.castService!,
+          SessionState.playing,
+        );
+      },
       castPause: () async {
         await _castController.castService?.pause();
       },
@@ -296,13 +296,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying:
-          () async {
-            await _castController.waitForCastSessionState(
-              _castController.castService!,
-              SessionState.playing,
-            );
-          },
+      waitForCastPlaying: () async {
+        await _castController.waitForCastSessionState(
+          _castController.castService!,
+          SessionState.playing,
+        );
+      },
       castPause: () async {
         await _castController.castService?.pause();
       },
@@ -361,7 +360,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _transitions = TrackTransitionCoordinator(
       engine: _engine,
       intent: _intent,
-      externalAudio: _externalAudio,
       queueController: _queueController,
       skipNavigator: _skipNavigator,
       statePublisher: _statePublisher,
@@ -399,9 +397,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     unawaited(_restoreController.ensureReady());
 
     // Inizializza l'equalizzatore all'avvio in base alle impostazioni persistite
-    final eqEnabled = _prefs.getBool('equalizerEnabled') ?? false;
+    final eqEnabled = _prefs.getBool(kEqualizerEnabledKey) ?? false;
     final eqGainsStr =
-        _prefs.getStringList('equalizerGains') ??
+        _prefs.getStringList(kEqualizerGainsKey) ??
         ['0.0', '0.0', '0.0', '0.0', '0.0'];
     final eqGains = eqGainsStr.map((s) => double.tryParse(s) ?? 0.0).toList();
     unawaited(
@@ -880,7 +878,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   /// Removes every item currently tagged as [QueueSection.upnext] from the
-  /// underlying media_kit playlist, leaving the user queue untouched.
+  /// underlying engine playlist, leaving the user queue untouched.
   ///
   /// The current playback is preserved (if the current item itself is
   /// upnext, it is left in place to avoid a jarring skip).

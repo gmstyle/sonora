@@ -6,8 +6,8 @@ import 'package:sonora/presentation/features/player/track_url_resolver.dart';
 MediaItem _item(QueueTrack track) => track.toFreshMediaItem();
 
 void main() {
-  group('TrackUrlResolver.diskPrefetchUrlFor', () {
-    test('returns remote URL when resolved', () {
+  group('TrackUrlResolver.shouldPrefetchDiskCache', () {
+    test('returns true for resolved remote URLs', () {
       final item = _item(
         const QueueTrack(
           videoId: 'abc',
@@ -15,20 +15,20 @@ void main() {
           url: 'https://googlevideo.com/audio.mp3',
         ),
       );
-      expect(
-        TrackUrlResolver.diskPrefetchUrlFor(item),
-        'https://googlevideo.com/audio.mp3',
-      );
+      expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isTrue);
     });
 
-    test('returns null for unresolved needsUrl item (stale snapshot case)', () {
-      final item = _item(
-        const QueueTrack(videoId: 'abc', title: 'Song', needsUrl: true),
-      );
-      expect(TrackUrlResolver.diskPrefetchUrlFor(item), isNull);
-    });
+    test(
+      'returns true for unresolved needsUrl items (prefetch by videoId)',
+      () {
+        final item = _item(
+          const QueueTrack(videoId: 'abc', title: 'Song', needsUrl: true),
+        );
+        expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isTrue);
+      },
+    );
 
-    test('returns null for local file URLs', () {
+    test('returns false for local file URLs', () {
       final item = _item(
         const QueueTrack(
           videoId: 'abc',
@@ -36,10 +36,10 @@ void main() {
           url: 'file:///tmp/abc.mp3',
         ),
       );
-      expect(TrackUrlResolver.diskPrefetchUrlFor(item), isNull);
+      expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isFalse);
     });
 
-    test('returns null for localhost dummy placeholders', () {
+    test('returns true for dummy placeholders (prefetch by videoId)', () {
       final item = _item(
         const QueueTrack(
           videoId: 'abc',
@@ -47,29 +47,19 @@ void main() {
           url: 'http://localhost/dummy_abc.wav',
         ),
       );
-      expect(TrackUrlResolver.diskPrefetchUrlFor(item), isNull);
+      expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isTrue);
     });
 
-    test('returns null for null item', () {
-      expect(TrackUrlResolver.diskPrefetchUrlFor(null), isNull);
+    test('returns false for null item', () {
+      expect(TrackUrlResolver.shouldPrefetchDiskCache(null), isFalse);
     });
 
-    test('prefetches catalog video tracks as audio URLs', () {
-      final item = _item(
-        const QueueTrack(
-          videoId: 'vid',
-          title: 'Video',
-          isVideo: true,
-          url: 'https://googlevideo.com/video.mp4',
-        ),
-      );
-      expect(
-        TrackUrlResolver.diskPrefetchUrlFor(item),
-        'https://googlevideo.com/video.mp4',
-      );
+    test('returns false when videoId is empty', () {
+      final item = _item(const QueueTrack(videoId: '', title: 'Song'));
+      expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isFalse);
     });
 
-    test('prefetches catalog video tracks with audio stream URLs', () {
+    test('prefetches catalog video tracks as audio', () {
       final item = _item(
         const QueueTrack(
           videoId: 'vid',
@@ -78,10 +68,7 @@ void main() {
           url: 'https://googlevideo.com/audio.mp3',
         ),
       );
-      expect(
-        TrackUrlResolver.diskPrefetchUrlFor(item),
-        'https://googlevideo.com/audio.mp3',
-      );
+      expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isTrue);
     });
   });
 

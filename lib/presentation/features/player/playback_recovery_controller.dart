@@ -265,10 +265,7 @@ class PlaybackRecoveryController {
     _lastRetriedVideoId = videoId;
     _retryCount++;
     try {
-      final freshUrl = await _playVideoIdUseCase.resolveUrl(
-        videoId,
-        preferVideo: _queueController.prefersVideo(track),
-      );
+      final freshUrl = await _playVideoIdUseCase.resolveUrl(videoId);
 
       // Re-read index after the await — user may have skipped meanwhile.
       final currentIndex = _engine.state.playlist.index;
