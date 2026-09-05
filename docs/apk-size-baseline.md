@@ -3,6 +3,11 @@
 Measurements taken before any packaging optimisation, to give the split-per-ABI and R8 work a
 reference point.
 
+> **Note (just_audio):** From the `just_audio` playback-engine change onward, Android no longer
+> depends on `media_kit_libs_android_video`, so `libmpv.so` (~12 MiB per ABI) is **not** packaged
+> in the APK. Figures below are the historical baseline **with** libmpv, kept so ABI-split and R8
+> work still have a reference.
+
 | | |
 |---|---|
 | Date | 2026-09-03 |
@@ -96,6 +101,7 @@ Same source tree, `flutter build apk --release --split-per-abi`.
 | `app-arm64-v8a-release.apk` | 43,617,827 bytes | 43.6 MB | −65 % |
 | `app-armeabi-v7a-release.apk` | 41,108,849 bytes | 41.1 MB | −67 % |
 | `app-x86_64-release.apk` | 48,706,798 bytes | 48.7 MB | not shipped (emulator-only) |
+| `app-release.apk` (universal) | ~125.7 MB | — | shipped as bridge for pre-ABI-aware updaters; ABI-aware clients prefer a split |
 
 Each split now carries exactly one `libmpv.so`, for its own architecture:
 

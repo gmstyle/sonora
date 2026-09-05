@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:collection/collection.dart';
-import 'package:media_kit/media_kit.dart';
 
 import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../data/services/media_cache_service.dart';
@@ -10,7 +9,7 @@ import '../../../domain/models/media_quality.dart';
 import '../../../domain/models/queue_section.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
-import 'external_audio_track_controller.dart';
+import 'playback_engine.dart';
 
 /// Dedicated controller for playback queue management.
 ///
@@ -29,7 +28,7 @@ import 'external_audio_track_controller.dart';
 /// centralizes queue logic in one place, eliminating duplication and race
 /// conditions.
 class QueueController {
-  final Player _player;
+  final PlaybackEngine _engine;
   final QueueRepository _queueRepo;
   final List<MediaItem> Function() _getQueue;
   final AudioServiceShuffleMode Function() _getShuffleMode;
@@ -40,9 +39,6 @@ class QueueController {
   /// Current stream audio quality preference (updated from settings).
   MediaQuality streamAudioQuality;
 
-  /// Whether video playback is enabled (updated from settings).
-  bool enableVideoPlayback;
-
   /// Invoked when the last nested [beginResolving] is matched by
   /// [endResolving]. Used to re-sync playback after URL resolve / retry.
   void Function()? onResolvingIdle;
@@ -51,13 +47,13 @@ class QueueController {
   int _resolvingItemCount = 0;
 
   /// FIFO lock so concurrent [runBatch]/[addToQueue] callers cannot interleave
-  /// `_player.add` awaits (which previously mixed albums added in parallel).
+  /// `_engine.add` awaits (which previously mixed albums added in parallel).
   Future<void>? _mutationLock;
 
   static const String _kSectionKey = 'section';
 
   QueueController({
-    required Player player,
+    required PlaybackEngine engine,
     required QueueRepository queueRepo,
     required List<MediaItem> Function() getQueue,
     required AudioServiceShuffleMode Function() getShuffleMode,
@@ -65,9 +61,8 @@ class QueueController {
     required void Function(List<MediaItem>) updateQueueStream,
     LocalAudioProxyServer? proxyServer,
     this.streamAudioQuality = MediaQuality.high,
-    this.enableVideoPlayback = false,
     this.onResolvingIdle,
-  }) : _player = player,
+  }) : _engine = engine,
        _queueRepo = queueRepo,
        _getQueue = getQueue,
        _getShuffleMode = getShuffleMode,
@@ -75,23 +70,27 @@ class QueueController {
        _updateQueueStream = updateQueueStream,
        _proxyServer = proxyServer;
 
+  /// HTTP URL a Chromecast on the LAN can fetch (phone proxy, not loopback).
+  Future<String?> lanCastUrlFor(QueueTrack track) async {
+    if (track.videoId.isEmpty) return null;
+    return _proxyServer?.getCastStreamUrlForVideo(
+      track.videoId,
+      audioQuality: streamAudioQuality,
+      preferVideo: prefersVideo(track),
+    );
+  }
+
   /// Syncs stream-related prefs from settings without restarting playback.
-  void updateStreamPrefs({
-    MediaQuality? streamAudioQuality,
-    bool? enableVideoPlayback,
-  }) {
+  void updateStreamPrefs({MediaQuality? streamAudioQuality}) {
     if (streamAudioQuality != null) {
       this.streamAudioQuality = streamAudioQuality;
-    }
-    if (enableVideoPlayback != null) {
-      this.enableVideoPlayback = enableVideoPlayback;
     }
   }
 
   // ── Resolving state ────────────────────────────────────────────────────────
 
   /// True if we're executing a batch operation on the queue (e.g. addAllToQueue).
-  /// When true, listeners on `_player.stream.playlist` must suppress
+  /// When true, listeners on `_engine.playlistStream` must suppress
   /// intermediate syncs to avoid race conditions.
   bool get isResolvingItem => _resolvingItemCount > 0;
 
@@ -112,7 +111,8 @@ class QueueController {
   }
 
   /// Whether [track] should play as video (muxed proxy with `v=1`).
-  bool prefersVideo(QueueTrack track) => enableVideoPlayback && track.isVideo;
+  /// Video playback has been removed; streams are always audio-only.
+  bool prefersVideo(QueueTrack track) => false;
 
   /// Runs [action] exclusively (FIFO) so overlapping callers never interleave
   /// playlist mutations. Used by batch adds, single adds, replaceAt, and
@@ -166,22 +166,22 @@ class QueueController {
   /// [runBatch]. Calling the locked [replaceAt] from a batch deadlocks.
   Future<int> replaceAtUnlocked(
     int index,
-    Media media, {
+    EngineMedia media, {
     String? expectedVideoId,
   }) => _replaceAtUnlocked(index, media, expectedVideoId: expectedVideoId);
 
   /// Index of the first Up Next item, or null if none.
   int? get upNextStartIndex {
-    final medias = _player.state.playlist.medias;
+    final medias = _engine.state.playlist.medias;
     for (var i = 0; i < medias.length; i++) {
-      final it = medias[i].extras?['mediaItem'] as MediaItem?;
+      final it = medias[i].mediaItem;
       if (it != null && isUpNext(it)) return i;
     }
     return null;
   }
 
   /// Replaces the media at [index] while preserving playlist length/order
-  /// (remove → add → move-last-to-index). Serialized with other mutations.
+  /// via [PlaybackEngine.replace]. Serialized with other mutations.
   ///
   /// When [expectedVideoId] is set, re-locates that track if [index] no longer
   /// points at it (concurrent inserts can shift indices between resolve and
@@ -191,7 +191,7 @@ class QueueController {
   /// [replaceAtUnlocked] instead to avoid deadlock.
   Future<int> replaceAt(
     int index,
-    Media media, {
+    EngineMedia media, {
     String? expectedVideoId,
   }) async {
     return runExclusive(
@@ -201,7 +201,7 @@ class QueueController {
 
   Future<int> _replaceAtUnlocked(
     int index,
-    Media media, {
+    EngineMedia media, {
     String? expectedVideoId,
   }) async {
     var target = index;
@@ -212,27 +212,23 @@ class QueueController {
         if (target < 0) return -1;
       }
     }
-    final len = _player.state.playlist.medias.length;
+    final len = _engine.state.playlist.medias.length;
     if (target < 0 || target >= len) return -1;
 
-    await _player.remove(target);
-    await _player.add(media);
-    await _player.move(_player.state.playlist.medias.length - 1, target);
+    await _engine.replace(target, media);
     return target;
   }
 
   String? _videoIdAt(int index) {
-    final medias = _player.state.playlist.medias;
-    if (index < 0 || index >= medias.length) return null;
-    final it = medias[index].extras?['mediaItem'] as MediaItem?;
+    final it = _engine.state.playlist.mediaItemAt(index);
     if (it == null) return null;
     return QueueTrack.fromMediaItem(it).videoId;
   }
 
   int _indexOfVideoId(String videoId) {
-    final medias = _player.state.playlist.medias;
+    final medias = _engine.state.playlist.medias;
     for (var i = 0; i < medias.length; i++) {
-      final it = medias[i].extras?['mediaItem'] as MediaItem?;
+      final it = medias[i].mediaItem;
       if (it != null && QueueTrack.fromMediaItem(it).videoId == videoId) {
         return i;
       }
@@ -243,10 +239,7 @@ class QueueController {
   // ── Queue getters ──────────────────────────────────────────────────────────
 
   List<MediaItem> get _currentQueue =>
-      _player.state.playlist.medias
-          .map((e) => e.extras?['mediaItem'] as MediaItem?)
-          .nonNulls
-          .toList();
+      _engine.state.playlist.medias.map((e) => e.mediaItem).nonNulls.toList();
 
   /// Public read-only view of the current playlist.
   List<MediaItem> get currentQueue => _currentQueue;
@@ -304,17 +297,17 @@ class QueueController {
 
   // ── Media conversion ───────────────────────────────────────────────────────
 
-  /// Converts a MediaItem to a Media object for media_kit.
+  /// Converts a MediaItem to an [EngineMedia] for the playback engine.
   /// Assigns queueId if missing and tags as user section.
   ///
   /// Local `file://` URLs (library downloads and media-cache files) bypass
   /// the proxy so offline playback works. Cast still uses [MediaItem] extras,
-  /// not the media_kit source.
-  Media toMedia(MediaItem item) {
+  /// not the engine source.
+  EngineMedia toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
     final preferVideo = prefersVideo(track);
-    final extras = <String, dynamic>{'mediaItem': tagged};
+    String? externalAudioUri;
     final isCache = MediaCacheService.isMediaCacheUri(track.url);
     final useLocal =
         track.isLocalFile &&
@@ -325,12 +318,13 @@ class QueueController {
             ));
     if (useLocal) {
       if (preferVideo && MediaCacheService.isVideoOnlyCacheUri(track.url)) {
-        final audioUri = MediaCacheService.siblingAudioUriIfExists(track.url);
-        if (audioUri != null) {
-          extras[ExternalAudioTrackController.extraKey] = audioUri;
-        }
+        externalAudioUri = MediaCacheService.siblingAudioUriIfExists(track.url);
       }
-      return Media(track.url!, extras: extras);
+      return EngineMedia(
+        uri: track.url!,
+        mediaItem: tagged,
+        externalAudioUri: externalAudioUri,
+      );
     }
     if (_proxyServer != null &&
         _proxyServer.isRunning &&
@@ -340,24 +334,24 @@ class QueueController {
         audioQuality: streamAudioQuality,
         preferVideo: preferVideo,
       );
-      return Media(proxyUrl, extras: extras);
+      return EngineMedia(uri: proxyUrl, mediaItem: tagged);
     }
     if (track.hasUrl) {
-      return Media(track.url!, extras: extras);
+      return EngineMedia(uri: track.url!, mediaItem: tagged);
     }
-    final dummy = 'http://localhost/dummy_${track.videoId}.wav';
-    return Media(dummy, extras: extras);
+    final dummy = '$kPlaceholderAudioUriPrefix${track.videoId}.wav';
+    return EngineMedia(uri: dummy, mediaItem: tagged);
   }
 
   // ── Queue mutations ────────────────────────────────────────────────────────
 
   /// Inserts [item] immediately after the current track.
   Future<void> playNext(MediaItem item) async {
-    final ci = _player.state.playlist.index;
-    final insertAt = (ci + 1).clamp(0, _player.state.playlist.medias.length);
+    final ci = _engine.state.playlist.index;
+    final insertAt = (ci + 1).clamp(0, _engine.state.playlist.medias.length);
     final media = toMedia(item);
-    await _player.add(media);
-    await _player.move(_player.state.playlist.medias.length - 1, insertAt);
+    await _engine.add(media);
+    await _engine.move(_engine.state.playlist.medias.length - 1, insertAt);
   }
 
   /// Adds a single item at the end of the user queue (before Up Next).
@@ -371,9 +365,9 @@ class QueueController {
     if (items.isEmpty) return;
     var insertAt = upNextStartIndex;
     for (final item in items) {
-      await _player.add(toMedia(item));
+      await _engine.add(toMedia(item));
       if (insertAt != null) {
-        await _player.move(_player.state.playlist.medias.length - 1, insertAt);
+        await _engine.move(_engine.state.playlist.medias.length - 1, insertAt);
         insertAt++;
       }
     }
@@ -382,9 +376,9 @@ class QueueController {
   /// Appends a user-tagged item before the Up Next boundary (or at end).
   Future<void> _appendUserItem(MediaItem item) async {
     final insertAt = upNextStartIndex;
-    await _player.add(toMedia(item));
+    await _engine.add(toMedia(item));
     if (insertAt != null) {
-      await _player.move(_player.state.playlist.medias.length - 1, insertAt);
+      await _engine.move(_engine.state.playlist.medias.length - 1, insertAt);
     }
   }
 
@@ -393,19 +387,19 @@ class QueueController {
   Future<void> appendUpNext(List<MediaItem> items) async {
     if (items.isEmpty) return;
     for (final item in items) {
-      await _player.add(toMedia(tagUpNext(item)));
+      await _engine.add(toMedia(tagUpNext(item)));
     }
   }
 
   /// Removes the item at [index].
   Future<void> removeAt(int index) async {
-    if (index < 0 || index >= _player.state.playlist.medias.length) return;
-    await _player.remove(index);
+    if (index < 0 || index >= _engine.state.playlist.medias.length) return;
+    await _engine.remove(index);
   }
 
   /// Moves the item from [oldIndex] to [newIndex].
   Future<void> move(int oldIndex, int newIndex) async {
-    final len = _player.state.playlist.medias.length;
+    final len = _engine.state.playlist.medias.length;
     if (oldIndex < 0 || oldIndex >= len) return;
     if (newIndex < 0 || newIndex >= len) return;
     if (oldIndex == newIndex) return;
@@ -413,28 +407,26 @@ class QueueController {
     // Capture the up-next boundary BEFORE the move
     int? boundary;
     for (int i = 0; i < len; i++) {
-      final it =
-          _player.state.playlist.medias[i].extras?['mediaItem'] as MediaItem?;
+      final it = _engine.state.playlist.medias[i].mediaItem;
       if (it != null && isUpNext(it)) {
         boundary = i;
         break;
       }
     }
 
-    final toIndex = oldIndex < newIndex ? newIndex + 1 : newIndex;
-    await _player.move(oldIndex, toIndex);
+    await _engine.move(oldIndex, newIndex);
     await _retagMovedItem(newIndex, boundary);
   }
 
   /// Re-tags the item now sitting at [newIndex] based on the up-next
   /// [boundary] captured before the move.
   Future<void> _retagMovedItem(int newIndex, int? boundary) async {
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     if (newIndex < 0 || newIndex >= playlist.medias.length) return;
     if (newIndex == playlist.index) return;
 
     final media = playlist.medias[newIndex];
-    final item = media.extras?['mediaItem'] as MediaItem?;
+    final item = media.mediaItem;
     if (item == null) return;
 
     final target =
@@ -444,29 +436,26 @@ class QueueController {
     if (sectionOf(item) == target) return;
 
     final retagged = tagSection(item, target);
-    final newMedia = Media(
-      media.uri,
-      extras: {...?media.extras, 'mediaItem': retagged},
-    );
+    final newMedia = media.copyWith(mediaItem: retagged);
     await replaceAtUnlocked(newIndex, newMedia);
   }
 
   /// Clears the entire queue.
   Future<void> clear() async {
-    await _player.stop();
-    await _player.open(const Playlist([]), play: false);
+    await _engine.stop();
+    await _engine.open(const [], play: false);
   }
 
   /// Removes every user-queue track, preserving the autoplay "Up Next" section.
   Future<void> purgeUserQueue() async {
-    final medias = _player.state.playlist.medias;
-    final currentIndex = _player.state.playlist.index;
+    final medias = _engine.state.playlist.medias;
+    final currentIndex = _engine.state.playlist.index;
 
     for (int i = medias.length - 1; i >= 0; i--) {
       if (i == currentIndex) continue;
-      final item = medias[i].extras?['mediaItem'] as MediaItem?;
+      final item = medias[i].mediaItem;
       if (item != null && !isUpNext(item)) {
-        await _player.remove(i);
+        await _engine.remove(i);
       }
     }
   }
@@ -474,14 +463,14 @@ class QueueController {
   /// Removes every item currently tagged as upnext, leaving the user queue
   /// untouched.
   Future<void> purgeUpNext() async {
-    final medias = _player.state.playlist.medias;
-    final currentIndex = _player.state.playlist.index;
+    final medias = _engine.state.playlist.medias;
+    final currentIndex = _engine.state.playlist.index;
 
     for (int i = medias.length - 1; i >= 0; i--) {
       if (i == currentIndex) continue;
-      final item = medias[i].extras?['mediaItem'] as MediaItem?;
+      final item = medias[i].mediaItem;
       if (item != null && isUpNext(item)) {
-        await _player.remove(i);
+        await _engine.remove(i);
       }
     }
   }
@@ -493,12 +482,8 @@ class QueueController {
   /// Call after every queue mutation (add/remove/move) to keep the stream
   /// exposed to the UI and the database in sync.
   void syncQueue({bool isStopping = false}) {
-    final playlist = _player.state.playlist;
-    final items =
-        playlist.medias
-            .map((e) => e.extras?['mediaItem'] as MediaItem?)
-            .nonNulls
-            .toList();
+    final playlist = _engine.state.playlist;
+    final items = playlist.medias.map((e) => e.mediaItem).nonNulls.toList();
 
     final newIds =
         items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
@@ -510,7 +495,7 @@ class QueueController {
         newIds.length != currentIds.length ||
         !const ListEquality().equals(newIds, currentIds);
 
-    // media_kit emits an empty playlist while `_player.open` is swapping in
+    // The engine may emit an empty playlist while `open` is swapping in
     // a new list. Publishing that transient [] would wipe the audio_service
     // queue stream (empty full-player UI) and persist an empty DB snapshot.
     if (items.isEmpty && currentIds.isNotEmpty && !isStopping) {
@@ -537,7 +522,7 @@ class QueueController {
   }) async {
     await _queueRepo.persistQueue(
       _currentQueue,
-      currentIndex: _player.state.playlist.index,
+      currentIndex: _engine.state.playlist.index,
       shuffleMode: shuffleMode,
       repeatMode: repeatMode,
     );
@@ -545,9 +530,9 @@ class QueueController {
 
   /// Prepares a list of items for playlist opening.
   ///
-  /// Assigns unique queueIds and converts to Media objects.
+  /// Assigns unique queueIds and converts to engine media objects.
   /// Returns (itemsWithKeys, medias).
-  (List<MediaItem>, List<Media>) preparePlaylist(
+  (List<MediaItem>, List<EngineMedia>) preparePlaylist(
     List<MediaItem> items, {
     int initialIndex = 0,
   }) {

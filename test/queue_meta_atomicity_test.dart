@@ -110,6 +110,15 @@ void main() {
         expect(restoredItems.map((e) => e.videoId).toList(), ['a', 'b']);
       },
     );
+
+    test('null videoId does not wipe the persisted identity anchor', () async {
+      await repo.persistQueue([song('a'), song('b')], currentIndex: 1);
+      await repo.persistCurrentIndex(0);
+
+      final meta = await repo.restoreMeta();
+      expect(meta.currentIndex, 0);
+      expect(meta.currentVideoId, 'b');
+    });
   });
 
   group('persistPosition', () {

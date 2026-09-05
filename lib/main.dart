@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:media_kit/media_kit.dart';
+import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,7 +58,9 @@ LinuxTrayService? _trayService;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  MediaKit.ensureInitialized();
+  if (isLinux) {
+    JustAudioMediaKit.ensureInitialized(windows: false);
+  }
 
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const linuxSettings = LinuxInitializationSettings(
@@ -321,20 +323,15 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       }
     });
 
-    // Keep queue proxy URLs in sync with stream quality / video playback prefs.
-    ref.listen(
-      settingsProvider.select(
-        (s) => (s.streamAudioQuality, s.enableVideoPlayback),
-      ),
-      (previous, next) {
-        ref
-            .read(audioHandlerProvider)
-            .updateStreamPrefs(
-              streamAudioQuality: next.$1,
-              enableVideoPlayback: next.$2,
-            );
-      },
-    );
+    // Keep queue proxy URLs in sync with stream quality prefs.
+    ref.listen(settingsProvider.select((s) => s.streamAudioQuality), (
+      previous,
+      next,
+    ) {
+      ref
+          .read(audioHandlerProvider)
+          .updateStreamPrefs(streamAudioQuality: next);
+    });
 
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);

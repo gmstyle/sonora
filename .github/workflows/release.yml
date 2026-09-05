@@ -121,16 +121,17 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
-      - name: Build Android APK
+      # Ship three APKs:
+      # - app-release.apk (universal): bridge for clients whose updater still
+      #   takes the first .apk in the release (pre-ABI-aware builds).
+      # - arm64-v8a / armeabi-v7a splits: what the ABI-aware updater downloads.
+      # x86_64 is dropped — emulator-only.
+      - name: Build Android APKs
         run: |
-          flutter build apk --release --split-per-abi \
-            --build-name=${{ needs.prepare.outputs.APP_VERSION }} \
-            --build-number=${{ needs.prepare.outputs.BUILD_NUMBER }}
-
-      # x86_64 only targets emulators. Shipping it would add ~44 MB to the
-      # release for no real device.
-      - name: Drop x86_64 APK
-        run: rm -f build/app/outputs/flutter-apk/*x86_64*.apk
+          BUILD_ARGS="--build-name=${{ needs.prepare.outputs.APP_VERSION }} --build-number=${{ needs.prepare.outputs.BUILD_NUMBER }}"
+          flutter build apk --release $BUILD_ARGS
+          flutter build apk --release --split-per-abi $BUILD_ARGS
+          rm -f build/app/outputs/flutter-apk/*x86_64*.apk
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v7
@@ -287,6 +288,9 @@ jobs:
           name: release-notes
           path: .
 
+      # Upload the universal APK first so pre-ABI-aware updaters (which take
+      # the first .apk asset) get a package that installs on every device.
+      # ABI-aware clients ignore order and pick the matching split.
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -294,7 +298,9 @@ jobs:
           name: Release v${{ needs.prepare.outputs.APP_VERSION }} (${{ needs.prepare.outputs.BUILD_NUMBER }})
           body_path: release-notes.md
           files: |
-            artifacts/**/*.apk
+            artifacts/app-release.apk
+            artifacts/app-arm64-v8a-release.apk
+            artifacts/app-armeabi-v7a-release.apk
             artifacts/sonora-linux-x64.tar.gz
             artifacts/**/*.deb
             artifacts/**/*.rpm

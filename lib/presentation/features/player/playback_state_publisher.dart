@@ -1,17 +1,17 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:media_kit/media_kit.dart';
 
 import '../../../domain/models/queue_track.dart';
+import 'playback_engine.dart';
 import 'player_media_controls.dart';
 
-/// Projects media_kit player state into audio_service [PlaybackState], with
+/// Projects engine player state into audio_service [PlaybackState], with
 /// dedupe so Android Auto / notification hosts are not spammed.
 ///
 /// Does not hold a back-reference to [SonoraAudioHandler]; stream accessors and
 /// restore state are injected as narrow callbacks.
 class PlaybackStatePublisher {
-  final Player _player;
+  final PlaybackEngine _engine;
   final PlaybackState Function() _getPlaybackState;
   final void Function(PlaybackState) _setPlaybackState;
   final bool Function() _isRestoring;
@@ -20,6 +20,9 @@ class PlaybackStatePublisher {
   final bool Function() _isLiked;
   final bool Function() _isExplicitlyPaused;
   final void Function() _onBecameReady;
+  final bool Function() _isCastConnected;
+  final bool Function() _isCastSessionPlaying;
+  final Duration? Function() _castPosition;
 
   Duration _lastPosition = Duration.zero;
   String? _lastEmittedMediaItemId;
@@ -28,7 +31,7 @@ class PlaybackStatePublisher {
   bool? _lastEmittedPlaying;
 
   PlaybackStatePublisher({
-    required Player player,
+    required PlaybackEngine engine,
     required PlaybackState Function() getPlaybackState,
     required void Function(PlaybackState) setPlaybackState,
     required bool Function() isRestoring,
@@ -37,7 +40,10 @@ class PlaybackStatePublisher {
     required bool Function() isLiked,
     required bool Function() isExplicitlyPaused,
     required void Function() onBecameReady,
-  }) : _player = player,
+    bool Function()? isCastConnected,
+    bool Function()? isCastSessionPlaying,
+    Duration? Function()? castPosition,
+  }) : _engine = engine,
        _getPlaybackState = getPlaybackState,
        _setPlaybackState = setPlaybackState,
        _isRestoring = isRestoring,
@@ -45,7 +51,26 @@ class PlaybackStatePublisher {
        _savedPosition = savedPosition,
        _isLiked = isLiked,
        _isExplicitlyPaused = isExplicitlyPaused,
-       _onBecameReady = onBecameReady;
+       _onBecameReady = onBecameReady,
+       _isCastConnected = isCastConnected ?? _alwaysFalse,
+       _isCastSessionPlaying = isCastSessionPlaying ?? _alwaysFalse,
+       _castPosition = castPosition ?? _alwaysNullDuration;
+
+  static bool _alwaysFalse() => false;
+  static Duration? _alwaysNullDuration() => null;
+
+  bool _effectivePlaying() {
+    if (_isExplicitlyPaused()) return false;
+    if (_isCastConnected()) return _isCastSessionPlaying();
+    return _engine.state.playing;
+  }
+
+  Duration _effectivePosition() {
+    if (_isCastConnected()) {
+      return _castPosition() ?? _engine.state.position;
+    }
+    return _engine.state.position;
+  }
 
   String? get lastEmittedMediaItemId => _lastEmittedMediaItemId;
 
@@ -98,18 +123,25 @@ class PlaybackStatePublisher {
 
   AudioProcessingState getProcessingState() {
     return resolveProcessingState(
-      buffering: _player.state.buffering,
-      completed: _player.state.completed,
-      playlistEmpty: _player.state.playlist.medias.isEmpty,
+      buffering: _engine.state.buffering,
+      completed: _engine.state.completed,
+      playlistEmpty: _engine.state.playlist.medias.isEmpty,
       suppressingIdle: isSuppressingIdle,
     );
   }
 
   void updatePlaybackState() {
-    if (_isRestoring() || _isResolving()) return;
+    final enginePlaying = _engine.state.playing;
+    // Dropping the only playing=true event during URL resolve left the mini
+    // player stuck on shimmer (PlaybackState.playing frozen false).
+    if (!_isCastConnected() &&
+        (_isRestoring() || _isResolving()) &&
+        !enginePlaying) {
+      return;
+    }
 
     final processing = getProcessingState();
-    final playing = _isExplicitlyPaused() ? false : _player.state.playing;
+    final playing = _effectivePlaying();
 
     if (processing == AudioProcessingState.ready) {
       _onBecameReady();
@@ -127,8 +159,8 @@ class PlaybackStatePublisher {
     final updatedState = current.copyWith(
       processingState: processing,
       playing: playing,
-      updatePosition: _player.state.position,
-      speed: _player.state.rate,
+      updatePosition: _effectivePosition(),
+      speed: _engine.state.rate,
       systemActions: const {
         MediaAction.seek,
         MediaAction.seekForward,
@@ -153,9 +185,11 @@ class PlaybackStatePublisher {
     final updated = update(current);
     final position =
         forcePosition ??
-        (_isRestoring() ? _savedPosition() : _player.state.position);
+        (_isCastConnected()
+            ? _effectivePosition()
+            : (_isRestoring() ? _savedPosition() : _engine.state.position));
     _setPlaybackState(
-      updated.copyWith(updatePosition: position, speed: _player.state.rate),
+      updated.copyWith(updatePosition: position, speed: _engine.state.rate),
     );
   }
 
@@ -171,7 +205,14 @@ class PlaybackStatePublisher {
         pos < _lastPosition - const Duration(milliseconds: 500);
     final advancedEnough = pos >= _lastPosition + const Duration(seconds: 1);
     if (jumpedBackward || advancedEnough) {
-      updateState((s) => s);
+      final playing = _effectivePlaying();
+      updateState(
+        (s) => s.copyWith(
+          playing: playing,
+          processingState: getProcessingState(),
+          queueIndex: _engine.state.playlist.index,
+        ),
+      );
     }
     _lastPosition = pos;
   }
@@ -188,8 +229,8 @@ class PlaybackStatePublisher {
       queueIndex: queueIndex,
       updatePosition:
           position ??
-          (_isRestoring() ? _savedPosition() : _player.state.position),
-      speed: _player.state.rate,
+          (_isRestoring() ? _savedPosition() : _engine.state.position),
+      speed: _engine.state.rate,
       systemActions: const {
         MediaAction.seek,
         MediaAction.seekForward,

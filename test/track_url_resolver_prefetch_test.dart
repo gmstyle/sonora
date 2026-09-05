@@ -54,7 +54,7 @@ void main() {
       expect(TrackUrlResolver.diskPrefetchUrlFor(null), isNull);
     });
 
-    test('prefetches video tracks when video playback is enabled', () {
+    test('prefetches catalog video tracks as audio URLs', () {
       final item = _item(
         const QueueTrack(
           videoId: 'vid',
@@ -69,7 +69,7 @@ void main() {
       );
     });
 
-    test('still prefetches video tracks when video playback is off', () {
+    test('prefetches catalog video tracks with audio stream URLs', () {
       final item = _item(
         const QueueTrack(
           videoId: 'vid',

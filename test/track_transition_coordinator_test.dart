@@ -1,11 +1,11 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:sonora/domain/models/queue_track.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
 import 'package:sonora/presentation/features/player/cast_playback_controller.dart';
 import 'package:sonora/presentation/features/player/external_audio_track_controller.dart';
 import 'package:sonora/presentation/features/player/like_controller.dart';
+import 'package:sonora/presentation/features/player/playback_engine.dart';
 import 'package:sonora/presentation/features/player/playback_intent_controller.dart';
 import 'package:sonora/presentation/features/player/playback_recovery_controller.dart';
 import 'package:sonora/presentation/features/player/playback_state_publisher.dart';
@@ -15,36 +15,18 @@ import 'package:sonora/presentation/features/player/skip_navigator.dart';
 import 'package:sonora/presentation/features/player/track_transition_coordinator.dart';
 import 'package:sonora/presentation/features/player/track_url_resolver.dart';
 import 'package:sonora/presentation/providers/cast_provider.dart';
+import 'helpers/fake_playback_engine.dart';
 
 /// Shared log so every fake can record the step it performed, which is what
 /// lets these tests assert the cascade *order* rather than just its effects.
 late List<String> steps;
 
-class _FakePlayerState extends Fake implements PlayerState {
-  _FakePlayerState(this.playlist, this.duration);
-
-  @override
-  final Playlist playlist;
-  @override
-  final Duration duration;
-}
-
-class _FakePlayer extends Fake implements Player {
-  _FakePlayer(this.playlist);
-
-  Playlist playlist;
-  Duration playerDuration = Duration.zero;
-
-  @override
-  PlayerState get state => _FakePlayerState(playlist, playerDuration);
-}
-
 class _FakeExternalAudio extends Fake implements ExternalAudioTrackController {
-  Media? lastMedia;
+  EngineMedia? lastMedia;
   int calls = 0;
 
   @override
-  Future<void> attachForMedia(Media? media) async {
+  Future<void> attachForMedia(EngineMedia? media) async {
     calls++;
     lastMedia = media;
     steps.add('externalAudio');
@@ -63,7 +45,16 @@ class _FakeQueueController extends Fake implements QueueController {
 
 class _FakeSkipNavigator extends Fake implements SkipNavigator {
   @override
-  void clearTarget() => steps.add('clearTarget');
+  int? targetSkipIndex;
+
+  @override
+  void clearTarget() {
+    targetSkipIndex = null;
+    steps.add('clearTarget');
+  }
+
+  @override
+  void recordForwardSkip(int fromIndex) {}
 }
 
 class _FakeStatePublisher extends Fake implements PlaybackStatePublisher {
@@ -139,11 +130,11 @@ MediaItem itemFor(String videoId, {Duration? duration}) => MediaItem(
   extras: {'videoId': videoId, 'needsUrl': false},
 );
 
-Media mediaFor(MediaItem item) =>
-    Media('https://example.com/${item.id}', extras: {'mediaItem': item});
+EngineMedia mediaFor(MediaItem item) =>
+    EngineMedia(uri: 'https://example.com/${item.id}', mediaItem: item);
 
 void main() {
-  late _FakePlayer player;
+  late FakePlaybackEngine engine;
   late _FakeExternalAudio externalAudio;
   late _FakeQueueController queueController;
   late _FakeStatePublisher statePublisher;
@@ -153,14 +144,17 @@ void main() {
   late List<MediaItem> emitted;
   late bool isStopping;
 
-  Playlist playlistOf(List<String> ids, {int index = 0}) =>
-      Playlist([for (final id in ids) mediaFor(itemFor(id))], index: index);
+  EnginePlaylist playlistOf(List<String> ids, {int index = 0}) =>
+      EnginePlaylist(
+        index: index,
+        medias: [for (final id in ids) mediaFor(itemFor(id))],
+      );
 
   setUp(() {
     steps = [];
     emitted = [];
     isStopping = false;
-    player = _FakePlayer(playlistOf(const ['a']));
+    engine = FakePlaybackEngine(playlist: playlistOf(const ['a']));
     externalAudio = _FakeExternalAudio();
     queueController = _FakeQueueController();
     statePublisher = _FakeStatePublisher();
@@ -168,7 +162,7 @@ void main() {
     urlResolver = _FakeUrlResolver();
 
     coordinator = TrackTransitionCoordinator(
-      player: player,
+      engine: engine,
       intent: PlaybackIntentController(),
       externalAudio: externalAudio,
       queueController: queueController,
@@ -190,7 +184,7 @@ void main() {
   group('cascade order', () {
     test('runs the steps in the documented order', () {
       final playlist = playlistOf(const ['a', 'b'], index: 1);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -209,7 +203,7 @@ void main() {
 
     test('the media item is published before the queue is synced', () {
       final playlist = playlistOf(const ['a']);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -223,7 +217,7 @@ void main() {
 
     test('the pointer is persisted with the playing videoId', () {
       final playlist = playlistOf(const ['a', 'b'], index: 1);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -248,7 +242,7 @@ void main() {
 
     test('suppresses the pointer, media item, sync and fade', () {
       final playlist = playlistOf(const ['a']);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -262,7 +256,7 @@ void main() {
 
     test('does NOT suppress the external audio attach', () {
       final playlist = playlistOf(const ['a']);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -275,7 +269,7 @@ void main() {
 
     test('does NOT suppress the resolver, which would stall look-ahead', () {
       final playlist = playlistOf(const ['a', 'b'], index: 1);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -285,7 +279,7 @@ void main() {
 
     test('leaves exactly the two unsuppressed steps', () {
       final playlist = playlistOf(const ['a']);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -296,7 +290,7 @@ void main() {
   group('external audio', () {
     test('detaches when the index is out of range', () {
       final playlist = playlistOf(const ['a'], index: -1);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -306,7 +300,7 @@ void main() {
 
     test('attaches the media at the playing index', () {
       final playlist = playlistOf(const ['a', 'b'], index: 1);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -316,10 +310,9 @@ void main() {
 
   group('duration stamping', () {
     test('does not stamp a stale duration on a track change', () {
-      // The engine still reports the *previous* track's length here.
-      player.playerDuration = const Duration(minutes: 9);
+      engine.duration = const Duration(minutes: 9);
       final playlist = playlistOf(const ['a']);
-      player.playlist = playlist;
+      engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
@@ -328,13 +321,12 @@ void main() {
 
     test('stamps the engine duration once the track is already published', () {
       final playlist = playlistOf(const ['a']);
-      player.playlist = playlist;
+      engine.playlist = playlist;
       coordinator.onPlaylistChanged(playlist);
       emitted.clear();
       steps.clear();
 
-      // Same track, engine now knows the real length.
-      player.playerDuration = const Duration(minutes: 3);
+      engine.duration = const Duration(minutes: 3);
       coordinator.onPlaylistChanged(playlist);
 
       expect(emitted.single.duration, const Duration(minutes: 3));
@@ -348,9 +340,7 @@ void main() {
     test(
       'onDurationChanged binds to the playing track, not the published one',
       () {
-        // Resolve suppressed the media-item update across a skip, so nothing has
-        // been published yet while the player already sits on 'b'.
-        player.playlist = playlistOf(const ['a', 'b'], index: 1);
+        engine.playlist = playlistOf(const ['a', 'b'], index: 1);
 
         coordinator.onDurationChanged(const Duration(minutes: 4));
 

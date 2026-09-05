@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:audio_service/audio_service.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
@@ -55,7 +55,7 @@ import 'track_url_resolver.dart';
 /// has to follow the playlist even mid-resolve, and step 5 is the resolver's
 /// own driver — gating it would stall look-ahead permanently.
 class TrackTransitionCoordinator {
-  final Player _player;
+  final PlaybackEngine _engine;
   final PlaybackIntentController _intent;
   final ExternalAudioTrackController _externalAudio;
   final QueueController _queueController;
@@ -71,9 +71,15 @@ class TrackTransitionCoordinator {
   final void Function(MediaItem) _emitMediaItem;
   final bool Function() _isStopping;
   final bool Function() _isRestoring;
+  final bool Function() _isShuffleAll;
+  final bool Function() _isRepeatOne;
+  final Future<void> Function()? _skipToNext;
+  final Future<void> Function(int index)? _skipToQueueItem;
+  int? _previousPlaylistIndex;
+  bool _shuffleEndArmed = false;
 
   TrackTransitionCoordinator({
-    required Player player,
+    required PlaybackEngine engine,
     required PlaybackIntentController intent,
     required ExternalAudioTrackController externalAudio,
     required QueueController queueController,
@@ -89,7 +95,11 @@ class TrackTransitionCoordinator {
     required void Function(MediaItem) emitMediaItem,
     required bool Function() isStopping,
     required bool Function() isRestoring,
-  }) : _player = player,
+    bool Function()? isShuffleAll,
+    bool Function()? isRepeatOne,
+    Future<void> Function()? skipToNext,
+    Future<void> Function(int index)? skipToQueueItem,
+  }) : _engine = engine,
        _intent = intent,
        _externalAudio = externalAudio,
        _queueController = queueController,
@@ -104,13 +114,17 @@ class TrackTransitionCoordinator {
        _currentMediaItem = currentMediaItem,
        _emitMediaItem = emitMediaItem,
        _isStopping = isStopping,
-       _isRestoring = isRestoring;
+       _isRestoring = isRestoring,
+       _isShuffleAll = isShuffleAll ?? (() => false),
+       _isRepeatOne = isRepeatOne ?? (() => false),
+       _skipToNext = skipToNext,
+       _skipToQueueItem = skipToQueueItem;
 
   /// Subscribes to media_kit streams. Called once from the handler constructor.
   void setupListeners() {
-    _player.stream.playing.listen((playing) {
+    _engine.playingStream.listen((playing) {
       if (_intent.shouldForcePause(playing: playing)) {
-        unawaited(_player.pause());
+        unawaited(_engine.pause());
         return;
       }
       _intent.onEnginePlaying(
@@ -122,49 +136,106 @@ class TrackTransitionCoordinator {
       );
       _statePublisher.updatePlaybackState();
     });
-    _player.stream.buffering.listen(
+    _engine.bufferingStream.listen(
       (_) => _statePublisher.updatePlaybackState(),
     );
-    _player.stream.completed.listen(
+    _engine.completedStream.listen(
       (_) => _statePublisher.updatePlaybackState(),
     );
 
-    _player.stream.playlist.listen((playlist) {
-      if (!_queueController.isResolvingItem) {
+    _engine.playlistStream.listen((playlist) {
+      final previousIndex = _previousPlaylistIndex;
+      if (_redirectShuffleAutoAdvance(previousIndex, playlist.index)) {
+        _previousPlaylistIndex = playlist.index;
+        return;
+      }
+      _previousPlaylistIndex = playlist.index;
+      // Keep emitting while the engine is already audible; dropping this
+      // during URL resolve froze PlaybackState.playing=false (mini-player
+      // shimmer).
+      if (!_queueController.isResolvingItem || _engine.state.playing) {
         _statePublisher.updatePlaybackState();
       }
       onPlaylistChanged(playlist);
     });
 
-    _player.stream.duration.listen(onDurationChanged);
+    _engine.durationStream.listen(onDurationChanged);
 
-    _player.stream.position.listen((pos) {
+    _engine.positionStream.listen((pos) {
       _volumeController.handleCrossfade(pos);
       _statePublisher.handlePositionTick(pos);
+      _maybeShuffleAdvanceNearEnd(pos);
       if (_volumeController.isTransitionMuted &&
-          _player.state.playing &&
+          _engine.state.playing &&
           pos.inMilliseconds > 150) {
         _volumeController.endTransitionMute();
       }
     });
-    _player.stream.buffer.listen(_statePublisher.onBufferedPositionChanged);
+    _engine.bufferedPositionStream.listen(
+      _statePublisher.onBufferedPositionChanged,
+    );
 
-    _player.stream.shuffle.listen((shuffled) {
+    _engine.shuffleStream.listen((shuffled) {
       final shuffleMode =
           shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
       _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
       rebuildControls();
     });
 
-    _player.stream.playlistMode.listen((mode) {
+    _engine.repeatModeStream.listen((mode) {
       final repeatMode = switch (mode) {
-        PlaylistMode.none => AudioServiceRepeatMode.none,
-        PlaylistMode.single => AudioServiceRepeatMode.one,
-        PlaylistMode.loop => AudioServiceRepeatMode.all,
+        EngineRepeatMode.none => AudioServiceRepeatMode.none,
+        EngineRepeatMode.one => AudioServiceRepeatMode.one,
+        EngineRepeatMode.all => AudioServiceRepeatMode.all,
       };
       _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
       rebuildControls();
     });
+  }
+
+  /// just_audio concatenates in list order and never emits `completed` between
+  /// items, so Dart-side shuffle must intercept engine auto-advance (`+1`).
+  bool _redirectShuffleAutoAdvance(int? previousIndex, int newIndex) {
+    final jump = _skipToQueueItem;
+    if (jump == null) return false;
+    if (!_isShuffleAll() || _isRepeatOne()) return false;
+    if (_skipNavigator.targetSkipIndex != null) return false;
+    if (previousIndex == null || newIndex != previousIndex + 1) return false;
+
+    final len = _engine.state.playlist.medias.length;
+    final nextIndex = SkipNavigator.computeNextIndex(
+      length: len,
+      currentTarget: previousIndex,
+      shuffle: true,
+      repeatAll: true,
+    );
+    _skipNavigator.recordForwardSkip(previousIndex);
+    _skipNavigator.targetSkipIndex = nextIndex;
+    unawaited(jump(nextIndex));
+    return true;
+  }
+
+  void _maybeShuffleAdvanceNearEnd(Duration pos) {
+    final skip = _skipToNext;
+    if (skip == null) return;
+    if (!_isShuffleAll() || _isRepeatOne() || !_engine.state.playing) {
+      _shuffleEndArmed = false;
+      return;
+    }
+    final duration = _engine.state.duration;
+    if (duration < const Duration(seconds: 5)) {
+      _shuffleEndArmed = false;
+      return;
+    }
+    final remaining = duration - pos;
+    if (remaining <= const Duration(milliseconds: 450) &&
+        remaining >= Duration.zero) {
+      if (_shuffleEndArmed) return;
+      _shuffleEndArmed = true;
+      unawaited(skip());
+    } else if (remaining > const Duration(seconds: 2)) {
+      _shuffleEndArmed = false;
+    }
   }
 
   /// Rebuilds the notification / Android Auto control row (play, shuffle, like).
@@ -179,7 +250,7 @@ class TrackTransitionCoordinator {
     );
   }
 
-  void onPlaylistChanged(Playlist playlist) {
+  void onPlaylistChanged(EnginePlaylist playlist) {
     if (_isStopping()) return;
 
     final index = playlist.index;
@@ -220,9 +291,11 @@ class TrackTransitionCoordinator {
     }
   }
 
-  void _publishQueuePointer(Playlist playlist, int index) {
+  void _publishQueuePointer(EnginePlaylist playlist, int index) {
     _skipNavigator.clearTarget();
-    _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
+    if (!_isRestoring()) {
+      _statePublisher.updateState((s) => s.copyWith(queueIndex: index));
+    }
     if (index < 0) return;
 
     // Persist the raw index alongside the item's stable identity (its
@@ -234,21 +307,25 @@ class TrackTransitionCoordinator {
     // process restart.
     final currentMediaItem =
         index < playlist.medias.length
-            ? (playlist.medias[index].extras?['mediaItem'] as MediaItem?)
+            ? playlist.medias[index].mediaItem
             : null;
     final videoId =
         currentMediaItem != null
             ? QueueTrack.fromMediaItem(currentMediaItem).videoId
             : null;
+    // Empty playlist events during cold restore were writing index=0 and
+    // videoId=null to QueueMeta *before* restoreMeta() ran, wiping a
+    // correct pointer (e.g. Dance Monkey @ 0:55 → Calm Down @ 0:55).
+    if (_isRestoring() || currentMediaItem == null) return;
     unawaited(_queueRepo.persistCurrentIndex(index, videoId: videoId));
   }
 
-  void _publishMediaItem(Media media) {
-    var item = media.extras?['mediaItem'] as MediaItem?;
+  void _publishMediaItem(EngineMedia media) {
+    var item = media.mediaItem;
     if (item == null) return;
 
     var track = QueueTrack.fromMediaItem(item);
-    final playerDuration = _player.state.duration;
+    final playerDuration = _engine.state.duration;
     final trackChanged =
         track.videoId != _statePublisher.lastEmittedMediaItemId;
 
@@ -280,8 +357,9 @@ class TrackTransitionCoordinator {
 
   void _castCurrentTrack(MediaItem item, QueueTrack track) {
     final cast = _castController();
-    if (cast.castState?.connectionState != CastConnectionState.connected)
+    if (cast.castState?.connectionState != CastConnectionState.connected) {
       return;
+    }
     if (track.needsUrl) return;
 
     unawaited(
@@ -305,11 +383,11 @@ class TrackTransitionCoordinator {
     // media_kit emits duration only once during that window.
     if (duration == Duration.zero) return;
 
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     final index = playlist.index;
     MediaItem? playingItem;
     if (index >= 0 && index < playlist.medias.length) {
-      playingItem = playlist.medias[index].extras?['mediaItem'] as MediaItem?;
+      playingItem = playlist.medias[index].mediaItem;
     }
 
     final current = _currentMediaItem();

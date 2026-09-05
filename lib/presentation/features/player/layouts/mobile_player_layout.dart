@@ -6,20 +6,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../providers/player_provider.dart';
-import '../../../providers/settings_provider.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
 import '../widgets/player_bouncing_widget.dart';
-import '../../../providers/video_player_provider.dart';
 
 class MobilePlayerLayout extends ConsumerStatefulWidget {
   const MobilePlayerLayout({
     super.key,
     required this.artworkKey,
     required this.currentSong,
-    required this.isVideo,
     required this.videoId,
     required this.artUrl,
     required this.albumName,
@@ -34,7 +31,6 @@ class MobilePlayerLayout extends ConsumerStatefulWidget {
 
   final GlobalKey artworkKey;
   final MediaItem currentSong;
-  final bool isVideo;
   final String videoId;
   final String? artUrl;
   final String? albumName;
@@ -56,16 +52,6 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final videoState = ref.watch(videoPlayerProvider);
-    final enableVideoPlayback = ref.watch(
-      settingsProvider.select((s) => s.enableVideoPlayback),
-    );
-    final isVideoActive =
-        widget.isVideo &&
-        shouldShowVideoPlayer(
-          enableVideoPlayback: enableVideoPlayback,
-          videoState: videoState,
-        );
 
     return SafeArea(
       child: GestureDetector(
@@ -106,15 +92,12 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                             key: const ValueKey('none_view'),
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
-                              onTap:
-                                  isVideoActive && !_showDashboard
-                                      ? null
-                                      : () {
-                                        HapticFeedback.selectionClick();
-                                        setState(() {
-                                          _showDashboard = !_showDashboard;
-                                        });
-                                      },
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _showDashboard = !_showDashboard;
+                                });
+                              },
                               onHorizontalDragEnd: (details) {
                                 if (widget.playerState.isBlocked ||
                                     details.primaryVelocity == null) {
@@ -191,7 +174,6 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                                           videoId: widget.videoId,
                                           isSwitching:
                                               widget.playerState.isSwitching,
-                                          isVideo: widget.isVideo,
                                           showFlipIndicator: true,
                                         ),
                               ),

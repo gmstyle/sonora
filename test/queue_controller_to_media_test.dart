@@ -2,14 +2,13 @@ import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:sonora/data/datasources/remote/stream_datasource.dart';
 import 'package:sonora/data/services/local_audio_proxy_server.dart';
 import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/models/queue_track.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
-import 'package:sonora/presentation/features/player/external_audio_track_controller.dart';
 import 'package:sonora/presentation/features/player/queue_controller.dart';
+import 'helpers/fake_playback_engine.dart';
 
 class _FakeStreamDatasource extends StreamDatasource {
   @override
@@ -30,7 +29,6 @@ class _FakeQueueRepository implements QueueRepository {
 
 /// [QueueController.toMedia] does not touch the player; avoid requiring libmpv
 /// (missing on GitHub Actions `ubuntu-latest` validate runners).
-class _FakePlayer extends Fake implements Player {}
 
 void main() {
   late LocalAudioProxyServer proxy;
@@ -40,7 +38,7 @@ void main() {
     proxy = LocalAudioProxyServer(streamDatasource: _FakeStreamDatasource());
     await proxy.start();
     controller = QueueController(
-      player: _FakePlayer(),
+      engine: FakePlaybackEngine(),
       queueRepo: _FakeQueueRepository(),
       getQueue: () => <MediaItem>[],
       getShuffleMode: () => AudioServiceShuffleMode.none,
@@ -67,7 +65,6 @@ void main() {
 
     final media = controller.toMedia(item);
 
-    // media_kit may normalize file:// to a bare path; either form is local.
     expect(media.uri.contains('/stream?videoId='), isFalse);
     expect(
       media.uri == fileUrl || media.uri == '/data/vid1.mp3',
@@ -92,14 +89,11 @@ void main() {
       media.uri,
       proxy.getStreamUrlForVideo('vid2', audioQuality: MediaQuality.high),
     );
-    expect(media.extras?['adaptiveCandidate'], isNull);
+    expect(media.externalAudioUri, isNull);
   });
 
-  test('toMedia builds single muxed proxy URL when video playback enabled', () {
-    controller.updateStreamPrefs(
-      enableVideoPlayback: true,
-      streamAudioQuality: MediaQuality.high,
-    );
+  test('toMedia uses audio proxy for catalog video tracks', () {
+    controller.updateStreamPrefs(streamAudioQuality: MediaQuality.high);
     final item =
         const QueueTrack(
           videoId: 'vidVideo',
@@ -113,23 +107,34 @@ void main() {
 
     expect(
       media.uri,
-      proxy.getStreamUrlForVideo(
-        'vidVideo',
-        audioQuality: MediaQuality.high,
-        preferVideo: true,
-      ),
+      proxy.getStreamUrlForVideo('vidVideo', audioQuality: MediaQuality.high),
     );
-    expect(media.extras?['adaptiveCandidate'], isNull);
-    expect(media.extras?['audioProxyUrl'], isNull);
+    expect(media.externalAudioUri, isNull);
     expect(media.uri, contains('qa=high'));
-    expect(media.uri, contains('v=1'));
+    expect(media.uri, isNot(contains('v=1')));
     expect(media.uri, isNot(contains('qv=')));
     expect(media.uri, isNot(contains('kind=')));
   });
 
-  test('toMedia uses sonora_media_cache mp4 for video tracks', () {
-    controller.updateStreamPrefs(enableVideoPlayback: true);
+  test('toMedia rejects muxed media-cache mp4 for catalog video tracks', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.mp4';
+    final item =
+        const QueueTrack(
+          videoId: 'vidVideo',
+          title: 'Video',
+          artist: 'A',
+          isVideo: true,
+          url: cacheUrl,
+        ).toFreshMediaItem();
+
+    final media = controller.toMedia(item);
+
+    expect(media.uri, contains('/stream?videoId=vidVideo'));
+    expect(media.uri, isNot(contains('v=1')));
+  });
+
+  test('toMedia keeps audio webm media-cache for catalog video tracks', () {
+    const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.webm';
     final item =
         const QueueTrack(
           videoId: 'vidVideo',
@@ -148,24 +153,6 @@ void main() {
     );
   });
 
-  test('toMedia rejects audio webm media-cache for video tracks', () {
-    controller.updateStreamPrefs(enableVideoPlayback: true);
-    const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.webm';
-    final item =
-        const QueueTrack(
-          videoId: 'vidVideo',
-          title: 'Video',
-          artist: 'A',
-          isVideo: true,
-          url: cacheUrl,
-        ).toFreshMediaItem();
-
-    final media = controller.toMedia(item);
-
-    expect(media.uri, contains('/stream?videoId=vidVideo'));
-    expect(media.uri, contains('v=1'));
-  });
-
   test('toMedia still uses media-cache file for audio-only', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vid1.webm';
     final item =
@@ -182,7 +169,6 @@ void main() {
   });
 
   test('toMedia rejects video-only cache without sibling audio', () {
-    controller.updateStreamPrefs(enableVideoPlayback: true);
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidOrphan.v.mp4';
     final item =
         const QueueTrack(
@@ -196,16 +182,13 @@ void main() {
     final media = controller.toMedia(item);
 
     expect(media.uri, contains('/stream?videoId=vidOrphan'));
-    expect(media.uri, contains('v=1'));
-    expect(media.extras?[ExternalAudioTrackController.extraKey], isNull);
-    expect(media.extras?['adaptiveCandidate'], isNull);
-    expect(media.extras?['audioProxyUrl'], isNull);
+    expect(media.uri, isNot(contains('v=1')));
+    expect(media.externalAudioUri, isNull);
   });
 
   test(
-    'toMedia uses video-only cache plus externalAudioUri when sibling exists',
+    'toMedia does not attach externalAudioUri for video-only cache pairs',
     () async {
-      controller.updateStreamPrefs(enableVideoPlayback: true);
       final cacheDir = Directory(
         '${Directory.systemTemp.path}/sonora_media_cache',
       );
@@ -230,18 +213,9 @@ void main() {
 
       final media = controller.toMedia(item);
 
-      expect(media.uri.contains('/stream?videoId='), isFalse);
-      expect(
-        media.uri == video.uri.toString() ||
-            media.uri.contains('vidPair.v.mp4'),
-        isTrue,
-      );
-      expect(
-        media.extras?[ExternalAudioTrackController.extraKey],
-        audio.uri.toString(),
-      );
-      expect(media.extras?['adaptiveCandidate'], isNull);
-      expect(media.extras?['audioProxyUrl'], isNull);
+      expect(media.uri, contains('/stream?videoId=vidPair'));
+      expect(media.uri, isNot(contains('v=1')));
+      expect(media.externalAudioUri, isNull);
     },
   );
 
@@ -250,7 +224,7 @@ void main() {
     () {
       var idleCalls = 0;
       final idleController = QueueController(
-        player: _FakePlayer(),
+        engine: FakePlaybackEngine(),
         queueRepo: _FakeQueueRepository(),
         getQueue: () => <MediaItem>[],
         getShuffleMode: () => AudioServiceShuffleMode.none,
@@ -280,5 +254,44 @@ void main() {
     final media = controller.toMedia(item);
 
     expect(media.uri, 'http://localhost/dummy_vid3.wav');
+  });
+
+  test('replaceAt swaps a slot without changing length or neighbors', () async {
+    final engine = FakePlaybackEngine();
+    final qc = QueueController(
+      engine: engine,
+      queueRepo: _FakeQueueRepository(),
+      getQueue: () => <MediaItem>[],
+      getShuffleMode: () => AudioServiceShuffleMode.none,
+      getRepeatMode: () => AudioServiceRepeatMode.none,
+      updateQueueStream: (_) {},
+      proxyServer: proxy,
+    );
+    final items = [
+      const QueueTrack(videoId: 'a', title: 'A').toFreshMediaItem(),
+      const QueueTrack(
+        videoId: 'b',
+        title: 'B',
+        needsUrl: true,
+      ).toFreshMediaItem(),
+      const QueueTrack(videoId: 'c', title: 'C').toFreshMediaItem(),
+    ];
+    await engine.open(items.map(qc.toMedia).toList());
+    expect(engine.playlist.medias.length, 3);
+
+    final updated =
+        const QueueTrack(
+          videoId: 'b',
+          title: 'B',
+          url: 'https://example.com/b.mp3',
+        ).toFreshMediaItem();
+    final written = await qc.replaceAt(1, qc.toMedia(updated));
+
+    expect(written, 1);
+    expect(engine.playlist.medias.length, 3);
+    expect(engine.playlist.index, 0);
+    expect(engine.playlist.medias[0].mediaItem?.title, 'A');
+    expect(engine.playlist.medias[1].uri, contains('videoId=b'));
+    expect(engine.playlist.medias[2].mediaItem?.title, 'C');
   });
 }

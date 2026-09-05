@@ -1,12 +1,13 @@
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 
 /// Owns the player's output volume: crossfade envelope, transition mute and
 /// the cast-aware local volume application.
 ///
-/// Does not hold a back-reference to [SonoraAudioHandler]; the cast state is
-/// injected as the narrow [isCastConnected] predicate.
+/// Volume is always in the 0..1 range. Does not hold a back-reference to
+/// [SonoraAudioHandler]; the cast state is injected as the narrow
+/// [isCastConnected] predicate.
 class PlaybackVolumeController {
-  final Player _player;
+  final PlaybackEngine _engine;
   final bool Function() _isCastConnected;
 
   Duration _crossfadeDuration = Duration.zero;
@@ -15,9 +16,9 @@ class PlaybackVolumeController {
   bool _isTransitionMuted = false;
 
   PlaybackVolumeController({
-    required Player player,
+    required PlaybackEngine engine,
     required bool Function() isCastConnected,
-  }) : _player = player,
+  }) : _engine = engine,
        _isCastConnected = isCastConnected;
 
   /// True while a track transition is muted, i.e. between
@@ -35,7 +36,7 @@ class PlaybackVolumeController {
   }
 
   void prepareTransitionMute() {
-    if (_player.state.playlist.medias.isNotEmpty) {
+    if (_engine.state.playlist.medias.isNotEmpty) {
       _isTransitionMuted = true;
       setLocalVolume(0.0, force: true);
     }
@@ -44,16 +45,22 @@ class PlaybackVolumeController {
   void endTransitionMute() {
     if (!_isTransitionMuted) return;
 
-    setLocalVolume(_lastSetVolume * 100.0);
+    setLocalVolume(_lastSetVolume);
     _isTransitionMuted = false;
   }
 
   void setLocalVolume(double volume, {bool force = false}) {
-    if (!force && _isCastConnected()) {
-      _player.setVolume(0.0);
+    final v = volume.clamp(0.0, 1.0);
+    final castConnected = _isCastConnected();
+    if (!force && castConnected) {
+      unawaitedSetVolume(0.0);
     } else {
-      _player.setVolume(volume);
+      unawaitedSetVolume(v);
     }
+  }
+
+  void unawaitedSetVolume(double volume) {
+    _engine.setVolume(volume);
   }
 
   void _applyVolume(double volume) {
@@ -61,20 +68,20 @@ class PlaybackVolumeController {
     if ((v - _lastSetVolume).abs() > 0.005) {
       _lastSetVolume = v;
       if (!_isTransitionMuted) {
-        setLocalVolume(v * 100.0);
+        setLocalVolume(v);
       }
     }
   }
 
   /// Applies (or lifts) the OS-requested transient volume duck.
   void setDucking(bool ducking) {
-    setLocalVolume(_lastSetVolume * (ducking ? 20.0 : 100.0));
+    setLocalVolume(_lastSetVolume * (ducking ? 0.2 : 1.0));
   }
 
   /// Arms a fade-in from silence for the track that just became current.
   /// No-op when crossfade is disabled or the player is not playing.
   void beginFadeIn() {
-    if (_crossfadeDuration > Duration.zero && _player.state.playing) {
+    if (_crossfadeDuration > Duration.zero && _engine.state.playing) {
       _isFadingIn = true;
       _applyVolume(0.0);
     }
@@ -82,8 +89,8 @@ class PlaybackVolumeController {
 
   void handleCrossfade(Duration position) {
     if (_crossfadeDuration == Duration.zero) return;
-    final duration = _player.state.duration;
-    if (duration == Duration.zero || !_player.state.playing) return;
+    final duration = _engine.state.duration;
+    if (duration == Duration.zero || !_engine.state.playing) return;
 
     if (_isFadingIn) {
       final fadeMs = _crossfadeDuration.inMilliseconds;

@@ -1,30 +1,29 @@
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 
 /// Attaches (or clears) an external audio track for dual-file video cache hits.
 ///
-/// Pair playback uses [AudioTrack.uri] (`audio-add`). HLS, muxed files, and
-/// audio-only tracks must reset to [AudioTrack.auto] so they do not inherit
-/// the previous video's external audio.
+/// Pair playback uses [PlaybackEngine.attachExternalAudio]. HLS, muxed files,
+/// and audio-only tracks must reset to auto so they do not inherit the previous
+/// video's external audio.
 class ExternalAudioTrackController {
-  static const extraKey = 'externalAudioUri';
+  static const extraKey = kExternalAudioUriExtraKey;
 
-  final Player _player;
+  final PlaybackEngine _engine;
   int _generation = 0;
 
-  ExternalAudioTrackController({required Player player}) : _player = player;
+  ExternalAudioTrackController({required PlaybackEngine engine})
+    : _engine = engine;
 
-  /// Applies [media]'s `extras['externalAudioUri']`, or resets to auto.
+  /// Applies [media]'s sidecar audio URI, or resets to auto.
   ///
   /// Stale calls are ignored when a newer [attachForMedia] has already started
   /// (user skipped before the previous attach settled).
-  Future<void> attachForMedia(Media? media) async {
+  Future<void> attachForMedia(EngineMedia? media) async {
     final gen = ++_generation;
-    final uri = media?.extras?[extraKey] as String?;
+    final uri = media?.externalAudioUri;
     if (gen != _generation) return;
-    if (uri != null && uri.isNotEmpty) {
-      await _player.setAudioTrack(AudioTrack.uri(uri));
-    } else {
-      await _player.setAudioTrack(AudioTrack.auto());
-    }
+    await _engine.attachExternalAudio(
+      (uri != null && uri.isNotEmpty) ? uri : null,
+    );
   }
 }

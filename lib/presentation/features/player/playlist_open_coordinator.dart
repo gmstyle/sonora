@@ -1,9 +1,9 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:media_kit/media_kit.dart';
 
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/queue_repository.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
+import 'playback_engine.dart';
 import 'playback_intent_controller.dart';
 import 'playback_state_publisher.dart';
 import 'playback_volume_controller.dart';
@@ -31,7 +31,7 @@ import 'queue_controller.dart';
 /// URL up front so playback starts without a gap, and opens with `play: true`
 /// only if focus was granted.
 class PlaylistOpenCoordinator {
-  final Player _player;
+  final PlaybackEngine _engine;
   final QueueController _queueController;
   final QueueRepository _queueRepo;
   final PlaybackVolumeController _volumeController;
@@ -45,7 +45,7 @@ class PlaylistOpenCoordinator {
   final void Function(String) _log;
 
   PlaylistOpenCoordinator({
-    required Player player,
+    required PlaybackEngine engine,
     required QueueController queueController,
     required QueueRepository queueRepo,
     required PlaybackVolumeController volumeController,
@@ -57,7 +57,7 @@ class PlaylistOpenCoordinator {
     required bool Function() isStopping,
     required void Function(bool) setIsStopping,
     required void Function(String) log,
-  }) : _player = player,
+  }) : _engine = engine,
        _queueController = queueController,
        _queueRepo = queueRepo,
        _volumeController = volumeController,
@@ -107,9 +107,8 @@ class PlaylistOpenCoordinator {
           currentIndex: initialIndex,
           position: Duration.zero,
         );
-        final playlist = Playlist(medias, index: initialIndex);
         _intent.onQueueReplaced();
-        await _player.open(playlist, play: false);
+        await _engine.open(medias, index: initialIndex, play: false);
       } catch (e) {
         _volumeController.endTransitionMute();
         rethrow;
@@ -151,10 +150,9 @@ class PlaylistOpenCoordinator {
 
         final finalMedias =
             resolvedItems.map(_queueController.toMedia).toList();
-        final playlist = Playlist(finalMedias, index: initialIndex);
         final hasFocus = await _requestFocus();
         _intent.onSessionOpened(hasFocus: hasFocus);
-        await _player.open(playlist, play: hasFocus);
+        await _engine.open(finalMedias, index: initialIndex, play: hasFocus);
       } catch (e) {
         _volumeController.endTransitionMute();
         rethrow;
@@ -205,19 +203,16 @@ class PlaylistOpenCoordinator {
     }
   }
 
-  /// Rebuilds every [Media] in place after the stream quality or the
+  /// Rebuilds every engine source in place after the stream quality or the
   /// audio/video mode changed, so the playlist picks up new proxy URLs without
   /// interrupting what is currently playing.
   Future<void> rebuildMedia() async {
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     if (playlist.medias.isEmpty) return;
-    final items = [
-      for (final media in playlist.medias)
-        media.extras?['mediaItem'] as MediaItem?,
-    ];
+    final items = [for (final media in playlist.medias) media.mediaItem];
     final index = playlist.index;
-    final pos = _player.state.position;
-    final wasPlaying = _player.state.playing;
+    final pos = _engine.state.position;
+    final wasPlaying = _engine.state.playing;
     await _queueController.runBatch(() async {
       for (var i = 0; i < items.length; i++) {
         final item = items[i];
@@ -227,10 +222,10 @@ class PlaylistOpenCoordinator {
           _queueController.toMedia(item),
         );
       }
-      if (index >= 0 && index < _player.state.playlist.medias.length) {
-        await _player.jump(index);
-        if (pos > Duration.zero) await _player.seek(pos);
-        if (wasPlaying) await _player.play();
+      if (index >= 0 && index < _engine.state.playlist.medias.length) {
+        await _engine.jump(index);
+        if (pos > Duration.zero) await _engine.seek(pos);
+        if (wasPlaying) await _engine.play();
       }
     }, isStopping: _isStopping());
   }

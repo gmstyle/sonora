@@ -16,7 +16,6 @@ class TabletPlayerLayout extends ConsumerWidget {
     super.key,
     required this.artworkKey,
     required this.currentSong,
-    required this.isVideo,
     required this.videoId,
     required this.artUrl,
     required this.albumName,
@@ -31,7 +30,6 @@ class TabletPlayerLayout extends ConsumerWidget {
 
   final GlobalKey artworkKey;
   final MediaItem currentSong;
-  final bool isVideo;
   final String videoId;
   final String? artUrl;
   final String? albumName;
@@ -72,7 +70,6 @@ class TabletPlayerLayout extends ConsumerWidget {
                       ),
                       videoId: videoId,
                       isSwitching: playerState.isSwitching,
-                      isVideo: isVideo,
                     ),
                   ),
                   const SizedBox(width: 48),

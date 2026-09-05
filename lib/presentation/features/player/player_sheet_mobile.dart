@@ -9,13 +9,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../../domain/models/queue_track.dart';
-import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/vinyl_artwork.dart';
 import 'full_player_content.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/player_shared_widgets.dart';
-import 'widgets/video_player_widget.dart';
 import 'widgets/progress_bar_widget.dart';
 
 /// Mobile-only 72 px mini player bar.
@@ -97,7 +95,6 @@ class PlayerSheetMobile extends ConsumerWidget {
                           size: 44,
                           radius: 8,
                           cs: cs,
-                          isVideo: isVideo,
                           isPlaying: isPlaying,
                           useVinylStyle: useVinylStyle,
                         ),
@@ -263,7 +260,6 @@ class _MiniArtwork extends ConsumerWidget {
   final double size;
   final double radius;
   final ColorScheme cs;
-  final bool isVideo;
   final bool isPlaying;
   final bool useVinylStyle;
 
@@ -274,28 +270,10 @@ class _MiniArtwork extends ConsumerWidget {
     required this.cs,
     required this.isPlaying,
     required this.useVinylStyle,
-    this.isVideo = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final videoState = ref.watch(videoPlayerProvider);
-    final enableVideoPlayback = ref.watch(
-      settingsProvider.select((s) => s.enableVideoPlayback),
-    );
-    if (isVideo &&
-        shouldShowVideoPlayer(
-          enableVideoPlayback: enableVideoPlayback,
-          videoState: videoState,
-        )) {
-      return SonoraVideoPlayer(
-        width: size,
-        height: size,
-        borderRadius: BorderRadius.circular(radius),
-        fit: BoxFit.cover,
-        showControls: false,
-      );
-    }
     if (useVinylStyle) {
       return VinylArtwork(
         imageUrl: artUrl,

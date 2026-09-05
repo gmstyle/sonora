@@ -45,11 +45,7 @@ class StartDownloadUseCase {
     }
 
     final manifest = await _streamDatasource.getManifest(videoId);
-    final stream = _selectDownloadStream(
-      manifest,
-      quality: quality,
-      isVideo: isVideo,
-    );
+    final stream = _selectDownloadStream(manifest, quality: quality);
 
     final downloadDir = await _resolveDownloadDir(
       downloadPath,
@@ -114,10 +110,9 @@ class StartDownloadUseCase {
   StreamInfo _selectDownloadStream(
     StreamManifest manifest, {
     required MediaQuality quality,
-    required bool isVideo,
   }) {
     try {
-      return _selector.select(manifest, quality: quality, preferVideo: isVideo);
+      return _selector.select(manifest, quality: quality, preferVideo: false);
     } catch (_) {
       if (manifest.audioOnly.isNotEmpty) {
         return manifest.audioOnly.withHighestBitrate();

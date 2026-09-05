@@ -9,7 +9,8 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:media_kit/media_kit.dart';
+import 'just_audio_playback_engine.dart';
+import 'playback_engine.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
@@ -28,7 +29,6 @@ import 'audio_session_controller.dart';
 import 'external_audio_track_controller.dart';
 import 'like_controller.dart';
 import 'play_error.dart';
-import 'player_engine_configurator.dart';
 import 'player_media_controls.dart';
 import 'playback_intent_controller.dart';
 import 'playback_recovery_controller.dart';
@@ -50,9 +50,7 @@ import '../../../domain/models/media_quality.dart';
 import '../../providers/settings_provider.dart';
 
 class SonoraAudioHandler extends BaseAudioHandler {
-  final Player _player = Player(
-    configuration: const PlayerConfiguration(pitch: true),
-  );
+  final JustAudioPlaybackEngine _engine = JustAudioPlaybackEngine.create();
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
@@ -64,7 +62,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final EqualizerController _equalizerController;
   late final QueueController _queueController;
   late final AudioSessionController _audioSessionController;
-  late final PlayerEngineConfigurator _engineConfigurator;
   late final LikeController _likeController;
   late final PlaybackVolumeController _volumeController;
   late final PlaybackStatePublisher _statePublisher;
@@ -76,31 +73,26 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlaylistOpenCoordinator _playlistOpener;
   late final TrackTransitionCoordinator _transitions;
 
+  final _uiPosition = StreamController<Duration>.broadcast();
+  final _uiDuration = StreamController<Duration?>.broadcast();
+  StreamSubscription<Duration>? _engineUiPosSub;
+  StreamSubscription<Duration>? _engineUiDurSub;
+
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
   static final Connectivity _sharedConnectivity = Connectivity();
 
-  Player get player => _player;
-  LocalAudioProxyServer? get proxyServer => _proxyServer;
+  PlaybackEngine get engine => _engine;
 
-  /// Syncs stream quality / video playback prefs used when building proxy URLs.
-  /// Rebuilds in-memory [Media] sources when the playback mode or quality
-  /// actually changes so the current playlist picks up new proxy URLs.
-  void updateStreamPrefs({
-    MediaQuality? streamAudioQuality,
-    bool? enableVideoPlayback,
-  }) {
+  /// Syncs stream quality prefs used when building proxy URLs.
+  /// Rebuilds in-memory sources when quality actually changes so the current
+  /// playlist picks up new proxy URLs.
+  void updateStreamPrefs({MediaQuality? streamAudioQuality}) {
     final audioChanged =
         streamAudioQuality != null &&
         streamAudioQuality != _queueController.streamAudioQuality;
-    final enableChanged =
-        enableVideoPlayback != null &&
-        enableVideoPlayback != _queueController.enableVideoPlayback;
-    _queueController.updateStreamPrefs(
-      streamAudioQuality: streamAudioQuality,
-      enableVideoPlayback: enableVideoPlayback,
-    );
-    if (audioChanged || enableChanged) {
+    _queueController.updateStreamPrefs(streamAudioQuality: streamAudioQuality);
+    if (audioChanged) {
       unawaited(_playlistOpener.rebuildMedia());
     }
   }
@@ -110,12 +102,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     // persist position 0 and wipe the just-restored pointer before seek landed.
     if (_restoreController.isRestoring) return;
 
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     final index = playlist.index;
     if (index < 0) return;
     String? videoId;
     if (index < playlist.medias.length) {
-      final item = playlist.medias[index].extras?['mediaItem'] as MediaItem?;
+      final item = playlist.medias[index].mediaItem;
       if (item != null) {
         videoId = QueueTrack.fromMediaItem(item).videoId;
       }
@@ -123,7 +115,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _queueRepo.persistPlaybackPointer(
       currentIndex: index,
       videoId: videoId,
-      position: _player.state.position,
+      position:
+          _isCastConnected()
+              ? (_castController.lastCastPosition ?? _engine.state.position)
+              : _engine.state.position,
     );
   }
 
@@ -146,7 +141,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
-    _externalAudio = ExternalAudioTrackController(player: _player);
+    _externalAudio = ExternalAudioTrackController(engine: _engine);
     _startRadioUseCase = StartRadioUseCase(musicRepo);
 
     _likeController = LikeController(
@@ -154,10 +149,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
       onLikeChanged: () => _transitions.rebuildControls(),
     );
 
-    _equalizerController = EqualizerController(player: _player);
+    _equalizerController = EqualizerController(
+      equalizer: _engine.androidEqualizer,
+    );
 
     _queueController = QueueController(
-      player: _player,
+      engine: _engine,
       queueRepo: _queueRepo,
       getQueue: () => queue.value,
       getShuffleMode: () => playbackState.value.shuffleMode,
@@ -168,7 +165,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _prefs.getString(kStreamAudioQualityKey) ??
             _prefs.getString(kStreamQualityKey),
       ),
-      enableVideoPlayback: _prefs.getBool(kEnableVideoPlaybackKey) ?? false,
     );
 
     _queueController.onResolvingIdle = () {
@@ -188,26 +184,25 @@ class SonoraAudioHandler extends BaseAudioHandler {
       playNow: (items) => playNow(items),
     );
 
-    _engineConfigurator = PlayerEngineConfigurator(player: _player);
     // Volume must be constructed before cast so CastPlaybackController can
     // receive it; isCastConnected is late-bound and safe once cast is assigned.
     _volumeController = PlaybackVolumeController(
-      player: _player,
+      engine: _engine,
       isCastConnected:
           () =>
               _castController.castState?.connectionState ==
               CastConnectionState.connected,
     );
     _castController = CastPlaybackController(
-      player: _player,
+      engine: _engine,
       volumeController: _volumeController,
       playVideoIdUseCase: _playVideoIdUseCase,
       userWantsPlaying: () => _intent.userWantsPlaying,
       currentMediaItem: () => mediaItem.value,
-      requestPlay: play,
+      lanCastUrl: _queueController.lanCastUrlFor,
     );
     _statePublisher = PlaybackStatePublisher(
-      player: _player,
+      engine: _engine,
       getPlaybackState: () => playbackState.value,
       setPlaybackState: (state) => playbackState.add(state),
       isRestoring: () => _restoreController.isRestoring,
@@ -216,15 +211,20 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isLiked: () => _likeController.isCurrentSongLiked,
       isExplicitlyPaused: () => _intent.isExplicitlyPaused,
       onBecameReady: () => _recoveryController.resetRetryCount(),
+      isCastConnected: _isCastConnected,
+      isCastSessionPlaying: () => _castController.isRemotePlaying,
+      castPosition: () => _castController.lastCastPosition,
     );
+    _castController.onTransportChanged = _onCastTransportChanged;
+    _castController.onCastPosition = _onCastPosition;
+    _castController.onCastDuration = _onCastDuration;
     _skipNavigator = SkipNavigator();
     _urlResolver = TrackUrlResolver(
-      player: _player,
+      engine: _engine,
       playVideoIdUseCase: _playVideoIdUseCase,
       queueController: _queueController,
       volumeController: _volumeController,
       statePublisher: _statePublisher,
-      streamDatasource: _proxyServer?.streamDatasource,
       isCastConnected:
           () =>
               _castController.castState?.connectionState ==
@@ -254,16 +254,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
         );
       },
       waitForCastPlaying:
-          () => _castController.waitForCastSessionState(
-            _castController.castService!,
-            SessionState.playing,
-          ),
+          () async {
+            await _castController.waitForCastSessionState(
+              _castController.castService!,
+              SessionState.playing,
+            );
+          },
       castPause: () async {
         await _castController.castService?.pause();
       },
     );
     _recoveryController = PlaybackRecoveryController(
-      player: _player,
+      engine: _engine,
       playVideoIdUseCase: _playVideoIdUseCase,
       queueController: _queueController,
       volumeController: _volumeController,
@@ -295,16 +297,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
         );
       },
       waitForCastPlaying:
-          () => _castController.waitForCastSessionState(
-            _castController.castService!,
-            SessionState.playing,
-          ),
+          () async {
+            await _castController.waitForCastSessionState(
+              _castController.castService!,
+              SessionState.playing,
+            );
+          },
       castPause: () async {
         await _castController.castService?.pause();
       },
     );
     _restoreController = PlaybackRestoreController(
-      player: _player,
+      engine: _engine,
       prefs: _prefs,
       queueRepo: _queueRepo,
       queueController: _queueController,
@@ -314,19 +318,19 @@ class SonoraAudioHandler extends BaseAudioHandler {
       setUserWantsPlaying: _intent.setUserWantsPlaying,
       emitMediaItem: (item) => mediaItem.add(item),
       applyShuffleMode: (shuffleMode) async {
-        await _player.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
+        await _engine.setShuffle(shuffleMode == AudioServiceShuffleMode.all);
         _statePublisher.updateState(
           (s) => s.copyWith(shuffleMode: shuffleMode),
         );
       },
       applyRepeatMode: (repeatMode) async {
-        final playlistMode = switch (repeatMode) {
-          AudioServiceRepeatMode.none => PlaylistMode.none,
-          AudioServiceRepeatMode.one => PlaylistMode.single,
+        final engineRepeat = switch (repeatMode) {
+          AudioServiceRepeatMode.none => EngineRepeatMode.none,
+          AudioServiceRepeatMode.one => EngineRepeatMode.one,
           AudioServiceRepeatMode.all ||
-          AudioServiceRepeatMode.group => PlaylistMode.loop,
+          AudioServiceRepeatMode.group => EngineRepeatMode.all,
         };
-        await _player.setPlaylistMode(playlistMode);
+        await _engine.setRepeatMode(engineRepeat);
         _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
       },
       updateQueueStream: (items) => queue.add(items),
@@ -335,13 +339,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
     _audioSessionController = AudioSessionController(
       userWantsPlaying: () => _intent.userWantsPlaying,
-      isPlaying: () => _player.state.playing,
+      isPlaying: () => _engine.state.playing,
       onPauseRequested: _pause,
       onResumeRequested: play,
       onDuck: _volumeController.setDucking,
     );
     _playlistOpener = PlaylistOpenCoordinator(
-      player: _player,
+      engine: _engine,
       queueController: _queueController,
       queueRepo: _queueRepo,
       volumeController: _volumeController,
@@ -355,7 +359,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       log: dev.log,
     );
     _transitions = TrackTransitionCoordinator(
-      player: _player,
+      engine: _engine,
       intent: _intent,
       externalAudio: _externalAudio,
       queueController: _queueController,
@@ -371,12 +375,27 @@ class SonoraAudioHandler extends BaseAudioHandler {
       emitMediaItem: (item) => mediaItem.add(item),
       isStopping: () => _isStopping,
       isRestoring: () => _restoreController.isRestoring,
+      isShuffleAll:
+          () => playbackState.value.shuffleMode == AudioServiceShuffleMode.all,
+      isRepeatOne:
+          () => playbackState.value.repeatMode == AudioServiceRepeatMode.one,
+      skipToNext: skipToNext,
+      skipToQueueItem: skipToQueueItem,
     );
 
     unawaited(_audioSessionController.setup());
     _transitions.setupListeners();
     _recoveryController.startListening();
-    unawaited(_engineConfigurator.configure());
+    _engineUiPosSub = _engine.positionStream.listen((pos) {
+      if (_isCastConnected()) return;
+      if (!_uiPosition.isClosed) _uiPosition.add(pos);
+    });
+    _engineUiDurSub = _engine.durationStream.listen((d) {
+      if (_isCastConnected()) return;
+      if (!_uiDuration.isClosed) {
+        _uiDuration.add(d == Duration.zero ? null : d);
+      }
+    });
     unawaited(_restoreController.ensureReady());
 
     // Inizializza l'equalizzatore all'avvio in base alle impostazioni persistite
@@ -418,20 +437,45 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// pre-populate the seek bar before the player has actually seeked.
   Duration get savedPosition => _restoreController.savedPosition;
 
-  Stream<Duration?> get durationStream =>
-      _player.stream.duration.map((d) => d == Duration.zero ? null : d);
+  bool _isCastConnected() =>
+      _castController.castState?.connectionState ==
+      CastConnectionState.connected;
 
-  /// Exposes the raw position stream from media_kit so that UI layers can
-  /// subscribe to it directly without going through [playbackState], which
-  /// would cause Android Auto to re-render the queue view on every tick.
-  Stream<Duration> get positionStream => _player.stream.position;
+  void _onCastTransportChanged() {
+    if (_isCastConnected()) {
+      final remote = _castController.remoteSessionState;
+      if (remote == SessionState.playing) {
+        _intent.onPlayAccepted();
+      } else if (remote == SessionState.paused) {
+        _intent.onPauseApplied();
+      }
+    }
+    _statePublisher.invalidate();
+    _statePublisher.updatePlaybackState();
+  }
+
+  void _onCastPosition(Duration pos) {
+    if (!_uiPosition.isClosed) _uiPosition.add(pos);
+    _statePublisher.handlePositionTick(pos);
+  }
+
+  void _onCastDuration(Duration d) {
+    if (d > Duration.zero && !_uiDuration.isClosed) {
+      _uiDuration.add(d);
+    }
+  }
+
+  Stream<Duration?> get durationStream => _uiDuration.stream;
+
+  Stream<Duration> get positionStream => _uiPosition.stream;
 
   /// In-app / deliberate resume entry point. Bypasses the guard that blocks
   /// spurious MediaSession PLAY after Pixel Buds ear-detection while paused.
   Future<void> resumeFromUser() => _intent.runAuthorizedResume(play);
 
-  /// In-app pause. Marks an explicit pause so ear-detection PLAY is
-  /// ignored until [resumeFromUser]. MediaSession [pause] does not set this.
+  /// In-app pause. Marks an explicit pause so the next MediaSession PLAY
+  /// (Pixel Buds ear-detection) is ignored; a following tap can resume.
+  /// MediaSession [pause] does not set this.
   Future<void> pauseFromUser() async {
     _intent.onUserPause();
     _audioSessionController.cancelResumeOnInterruptionEnd();
@@ -443,7 +487,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> play() async {
-    if (_intent.shouldRejectPlay(engineIsPlaying: _player.state.playing)) {
+    if (_intent.shouldRejectPlay(engineIsPlaying: _engine.state.playing)) {
+      _intent.onRejectedSessionPlay();
       _statePublisher.invalidate();
       _statePublisher.updatePlaybackState();
       return;
@@ -453,7 +498,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _audioSessionController.cancelResumeOnInterruptionEnd();
     _restoreController.clearPauseTimestamp();
 
-    if (!_player.state.playing) {
+    if (!_engine.state.playing) {
       _statePublisher.updateState(
         (s) => s.copyWith(processingState: AudioProcessingState.buffering),
       );
@@ -462,10 +507,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _restoreController.awaitReady();
 
     if (await _audioSessionController.requestFocus()) {
-      await _player.play();
-      if (_castController.castState?.connectionState ==
-          CastConnectionState.connected) {
+      final castConnected =
+          _castController.castState?.connectionState ==
+          CastConnectionState.connected;
+      if (castConnected) {
         await _castController.castService?.play();
+      } else {
+        await _engine.play();
       }
     } else {
       _intent.onFocusDenied();
@@ -480,12 +528,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> prepare() async {
     await _restoreController.awaitReady();
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     final idx = playlist.index;
     if (mediaItem.valueOrNull == null &&
         idx >= 0 &&
         idx < playlist.medias.length) {
-      final item = playlist.medias[idx].extras?['mediaItem'] as MediaItem?;
+      final item = playlist.medias[idx].mediaItem;
       if (item != null) {
         mediaItem.add(item);
       }
@@ -522,7 +570,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> _pause() async {
     _intent.onPauseApplied();
     _restoreController.markPaused();
-    await _player.pause();
+    await _engine.pause();
     if (_castController.castState?.connectionState ==
         CastConnectionState.connected) {
       await _castController.castService?.pause();
@@ -553,14 +601,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _isStopping = true;
     _urlResolver.cancelLookahead();
     _volumeController.endTransitionMute();
-    await _player.stop();
+    await _engine.stop();
     await _audioSessionController.releaseFocus();
     await super.stop();
   }
 
   @override
   Future<void> seek(Duration position) async {
-    await _player.seek(position);
+    await _engine.seek(position);
     _statePublisher.updateState((s) => s, forcePosition: position);
     if (_castController.castState?.connectionState ==
         CastConnectionState.connected) {
@@ -572,10 +620,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> skipToNext() async {
     await _restoreController.awaitReady();
 
-    final len = _player.state.playlist.medias.length;
+    final len = _engine.state.playlist.medias.length;
     if (len == 0) return;
 
-    final currentIndex = _player.state.playlist.index;
+    final currentIndex = _engine.state.playlist.index;
     final currentTarget = _skipNavigator.resolveCurrentTarget(
       currentIndex,
       len,
@@ -600,17 +648,17 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> skipToPrevious() async {
     await _restoreController.awaitReady();
 
-    final len = _player.state.playlist.medias.length;
+    final len = _engine.state.playlist.medias.length;
     if (len == 0) return;
 
     // Standard behavior: if we've played more than 3 seconds of the current track,
     // "skip previous" just restarts the current track.
-    if (_player.state.position.inSeconds >= 3) {
+    if (_engine.state.position.inSeconds >= 3) {
       await seek(Duration.zero);
       return;
     }
 
-    final currentIndex = _player.state.playlist.index;
+    final currentIndex = _engine.state.playlist.index;
     final currentTarget = _skipNavigator.resolveCurrentTarget(
       currentIndex,
       len,
@@ -647,13 +695,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> skipToQueueItem(int index) async {
-    _statePublisher.updateState(
-      (s) => s.copyWith(processingState: AudioProcessingState.buffering),
-    );
-
     await _restoreController.awaitReady();
 
-    final playlist = _player.state.playlist;
+    final playlist = _engine.state.playlist;
     if (index < 0 || index >= playlist.medias.length) return;
 
     _volumeController.prepareTransitionMute();
@@ -668,29 +712,31 @@ class SonoraAudioHandler extends BaseAudioHandler {
       }
 
       final media = playlist.medias[index];
-      final item = media.extras?['mediaItem'] as MediaItem?;
+      final item = media.mediaItem;
       final track = item != null ? QueueTrack.fromMediaItem(item) : null;
+      // Proxy/file URIs are already playable even when extras still say
+      // needsUrl. Waiting on YouTube resolve here is what made shuffled
+      // skips take 1–2s — lookahead only prefetches sequential +1/+2/+3.
+      final mustResolveBeforeJump =
+          track?.needsUrl == true && isPlaceholderAudioUri(media.uri);
 
-      if (track?.needsUrl == true) {
+      if (mustResolveBeforeJump) {
+        _statePublisher.updateState(
+          (s) => s.copyWith(processingState: AudioProcessingState.buffering),
+        );
         await _urlResolver.resolveSinglePendingItem(
           index,
           treatAsCurrent: true,
         );
 
-        // Verify the resolve actually produced a playable URL before
-        // jumping. On failure (e.g. a transient network hiccup or a 429
-        // that didn't recover in time), `_resolveSinglePendingItem` leaves
-        // `needsUrl` untouched, and the underlying Media is still the
-        // http://localhost dummy placeholder — jumping there would leave
-        // playback silently "doing nothing" with zero feedback to the user.
-        final refreshed = _player.state.playlist;
-        final refreshedTrack =
-            index < refreshed.medias.length
-                ? QueueTrack.fromMediaItem(
-                  refreshed.medias[index].extras?['mediaItem'] as MediaItem,
-                )
-                : null;
-        if (refreshedTrack?.needsUrl == true) {
+        // Verify the resolve actually produced a playable URI before
+        // jumping. On failure the engine is still on the dummy placeholder —
+        // jumping there would leave playback silently doing nothing.
+        final refreshed = _engine.state.playlist;
+        final refreshedMedia =
+            index < refreshed.medias.length ? refreshed.medias[index] : null;
+        if (refreshedMedia == null ||
+            isPlaceholderAudioUri(refreshedMedia.uri)) {
           _volumeController.endTransitionMute();
           // Resolve failed while playlist.index may still be the previous
           // track (treatAsCurrent resolve before jump), so the resolver's
@@ -706,12 +752,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
         }
       }
 
-      await _player.jump(index);
+      await _engine.jump(index);
       // If the user wanted playback but the player is still paused after the
       // jump (e.g., tap an item while paused), resume — but only when not in
       // cast mode, since castSong (fired from _onPlaylistChanged) owns resumption.
       if (_intent.userWantsPlaying &&
-          !_player.state.playing &&
+          !_engine.state.playing &&
           _castController.castState?.connectionState !=
               CastConnectionState.connected) {
         await play();
@@ -729,7 +775,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
-    await _player.setShuffle(enabled);
+    await _engine.setShuffle(enabled);
     if (shuffleMode == AudioServiceShuffleMode.none) {
       _skipNavigator.clearHistory();
     }
@@ -739,13 +785,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) async {
-    final playlistMode = switch (repeatMode) {
-      AudioServiceRepeatMode.none => PlaylistMode.none,
-      AudioServiceRepeatMode.one => PlaylistMode.single,
+    final engineRepeat = switch (repeatMode) {
+      AudioServiceRepeatMode.none => EngineRepeatMode.none,
+      AudioServiceRepeatMode.one => EngineRepeatMode.one,
       AudioServiceRepeatMode.all ||
-      AudioServiceRepeatMode.group => PlaylistMode.loop,
+      AudioServiceRepeatMode.group => EngineRepeatMode.all,
     };
-    await _player.setPlaylistMode(playlistMode);
+    await _engine.setRepeatMode(engineRepeat);
     _statePublisher.updateState((s) => s.copyWith(repeatMode: repeatMode));
     unawaited(_queueRepo.persistPlaybackModes(repeatMode: repeatMode));
   }
@@ -776,21 +822,27 @@ class SonoraAudioHandler extends BaseAudioHandler {
     List<MediaItem> items, {
     int initialIndex = 0,
     bool Function()? shouldAbort,
-  }) => _playlistOpener.setQueue(
-    items,
-    initialIndex: initialIndex,
-    shouldAbort: shouldAbort,
-  );
+  }) {
+    _urlResolver.resetSession();
+    return _playlistOpener.setQueue(
+      items,
+      initialIndex: initialIndex,
+      shouldAbort: shouldAbort,
+    );
+  }
 
   Future<void> playNow(
     List<MediaItem> items, {
     int initialIndex = 0,
     bool Function()? shouldAbort,
-  }) => _playlistOpener.playNow(
-    items,
-    initialIndex: initialIndex,
-    shouldAbort: shouldAbort,
-  );
+  }) {
+    _urlResolver.resetSession();
+    return _playlistOpener.playNow(
+      items,
+      initialIndex: initialIndex,
+      shouldAbort: shouldAbort,
+    );
+  }
 
   Future<void> playNext(MediaItem item) async {
     await _queueController.runBatch(
@@ -872,7 +924,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> moveQueueItem(int oldIndex, int newIndex) async {
-    final len = _player.state.playlist.medias.length;
+    final len = _engine.state.playlist.medias.length;
 
     if (oldIndex < 0 || oldIndex >= len) return;
     if (newIndex < 0 || newIndex >= len) return;
@@ -900,7 +952,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
     await _persistPlaybackPointer();
     _isStopping = true;
-    await _player.stop();
+    await _engine.stop();
     await _audioSessionController.releaseFocus();
     await super.onTaskRemoved();
   }
@@ -908,7 +960,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   Future<void> persistQueue(List<MediaItem> items) async {
     await _queueRepo.persistQueue(
       items,
-      currentIndex: _player.state.playlist.index,
+      currentIndex: _engine.state.playlist.index,
       shuffleMode: playbackState.value.shuffleMode,
       repeatMode: playbackState.value.repeatMode,
     );
@@ -923,7 +975,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _recoveryController.dispose();
     _audioSessionController.dispose();
     _restoreController.dispose();
-    _player.dispose();
+    unawaited(_engineUiPosSub?.cancel());
+    unawaited(_engineUiDurSub?.cancel());
+    unawaited(_uiPosition.close());
+    unawaited(_uiDuration.close());
+    _engine.dispose();
   }
 
   // ═══════════════════════════════════════════════════════════════
