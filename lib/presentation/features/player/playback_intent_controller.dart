@@ -30,9 +30,9 @@ enum PlaybackIntent {
 /// ## Why the distinction exists
 ///
 /// Pixel Buds ear-detection sends a MediaSession PLAY when the buds are put back
-/// on. If the user had paused *from the app*, that PLAY must be ignored — but a
-/// deliberate buds tap must still resume. So "paused" alone is not enough
-/// information; the handler has to know *who* paused.
+/// on. If the user had paused *from the app*, that first PLAY is ignored and the
+/// guard is then cleared so a deliberate buds tap can resume. So "paused" alone
+/// is not enough information; the handler has to know *who* paused.
 ///
 /// ## Truth table
 ///
@@ -77,6 +77,11 @@ class PlaybackIntentController {
   bool _explicitlyPaused = false;
   bool _resumeAuthorized = false;
 
+  /// After an in-app pause, the next MediaSession PLAY is treated as Pixel
+  /// Buds ear-detection and ignored. A following PLAY (deliberate tap) is
+  /// accepted. [onStop] does not arm this; those PLAY events stay rejected.
+  bool _armEarDetectionReject = false;
+
   /// Whether the user currently wants audio running.
   bool get userWantsPlaying => _userWantsPlaying;
 
@@ -117,15 +122,27 @@ class PlaybackIntentController {
   /// `play()` passed [shouldRejectPlay] and is going ahead.
   void onPlayAccepted() {
     _explicitlyPaused = false;
+    _armEarDetectionReject = false;
     _userWantsPlaying = true;
   }
 
   /// The OS refused audio focus, so playback never started.
   void onFocusDenied() => _userWantsPlaying = false;
 
-  /// In-app pause. Marks the pause as the user's, so ear-detection PLAY is
-  /// rejected until the app resumes deliberately.
-  void onUserPause() => _explicitlyPaused = true;
+  /// In-app pause. Marks the pause as the user's and arms a one-shot reject
+  /// for the next MediaSession PLAY (ear-detection when a bud is reseated).
+  void onUserPause() {
+    _explicitlyPaused = true;
+    _armEarDetectionReject = true;
+  }
+
+  /// The MediaSession PLAY after [onUserPause] was ignored as ear-detection.
+  /// Clears the explicit pause so a later buds tap can call [play].
+  void onRejectedSessionPlay() {
+    if (!_armEarDetectionReject) return;
+    _armEarDetectionReject = false;
+    _explicitlyPaused = false;
+  }
 
   /// Pause coming from the media notification, a headset button or Android
   /// Auto. Intentionally leaves [isExplicitlyPaused] alone so a following
@@ -139,6 +156,7 @@ class PlaybackIntentController {
   void onStop() {
     _explicitlyPaused = true;
     _userWantsPlaying = false;
+    _armEarDetectionReject = false;
   }
 
   /// `setQueue()` opens the new playlist paused.
@@ -147,7 +165,10 @@ class PlaybackIntentController {
   /// `playNow()` is an explicit new session. `playAlbum` and friends call
   /// `pauseFromUser()` first, and leaving that pause set would make the engine
   /// immediately pause the freshly opened playlist.
-  void onNewSessionStarted() => _explicitlyPaused = false;
+  void onNewSessionStarted() {
+    _explicitlyPaused = false;
+    _armEarDetectionReject = false;
+  }
 
   /// `playNow()` opened the playlist; playback started only if focus was granted.
   void onSessionOpened({required bool hasFocus}) =>

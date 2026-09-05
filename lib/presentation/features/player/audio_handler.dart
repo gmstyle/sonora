@@ -473,8 +473,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// spurious MediaSession PLAY after Pixel Buds ear-detection while paused.
   Future<void> resumeFromUser() => _intent.runAuthorizedResume(play);
 
-  /// In-app pause. Marks an explicit pause so ear-detection PLAY is
-  /// ignored until [resumeFromUser]. MediaSession [pause] does not set this.
+  /// In-app pause. Marks an explicit pause so the next MediaSession PLAY
+  /// (Pixel Buds ear-detection) is ignored; a following tap can resume.
+  /// MediaSession [pause] does not set this.
   Future<void> pauseFromUser() async {
     _intent.onUserPause();
     _audioSessionController.cancelResumeOnInterruptionEnd();
@@ -487,6 +488,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> play() async {
     if (_intent.shouldRejectPlay(engineIsPlaying: _engine.state.playing)) {
+      _intent.onRejectedSessionPlay();
       _statePublisher.invalidate();
       _statePublisher.updatePlaybackState();
       return;

@@ -11,7 +11,10 @@ void main() {
 
   /// Mirrors `SonoraAudioHandler.play()`.
   bool play({bool engineIsPlaying = false}) {
-    if (intent.shouldRejectPlay(engineIsPlaying: engineIsPlaying)) return false;
+    if (intent.shouldRejectPlay(engineIsPlaying: engineIsPlaying)) {
+      intent.onRejectedSessionPlay();
+      return false;
+    }
     intent.onPlayAccepted();
     return true;
   }
@@ -59,6 +62,21 @@ void main() {
       // Buds are put back on and the MediaSession sends PLAY unprompted.
       expect(play(), isFalse, reason: 'ear-detection PLAY must be ignored');
       expect(intent.userWantsPlaying, isFalse);
+      expect(
+        intent.isExplicitlyPaused,
+        isFalse,
+        reason: 'the one-shot reject is consumed so a later tap can resume',
+      );
+    });
+
+    test('a buds tap after the ear-detection PLAY resumes', () {
+      play();
+      pauseFromUser();
+
+      expect(play(), isFalse, reason: 'first PLAY is ear-detection');
+      expect(play(), isTrue, reason: 'second PLAY is a deliberate tap');
+      expect(intent.userWantsPlaying, isTrue);
+      expect(intent.isExplicitlyPaused, isFalse);
     });
 
     test('the engine starting anyway is pushed back to paused', () {
