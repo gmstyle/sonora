@@ -648,22 +648,25 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 |---|---|
 | Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test` |
 | Prepare | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists, writes `release-notes.md` via `scripts/generate_release_notes.py` |
-| Android build | `flutter build apk --release --split-per-abi` with signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`); the x86_64 split is deleted before upload since it only targets emulators |
+| Android build | Builds a universal `app-release.apk` plus `--split-per-abi` (`arm64-v8a`, `armeabi-v7a`); signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`); the x86_64 split is deleted before upload (emulator-only) |
 | Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
 | Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
-| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, per-ABI APKs (`arm64-v8a`, `armeabi-v7a`) + DEB + RPM attached |
+| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, three APKs (`app-release.apk` first, then arm64 / armeabi splits) + DEB + RPM attached |
 | CHANGELOG.md | After the GitHub Release, `scripts/insert_changelog_entry.py` prepends `## [{version}+{build}]` and pushes with `[skip ci]` |
 
 **Flutter version**: 3.47.2 (cached via `subosito/flutter-action`).
 
-**APK size**: shipping one APK per ABI keeps `libmpv.so`, `libflutter.so` and `libapp.so` to a single
-architecture — 43.6 MB for arm64 instead of a 125.7 MB universal APK. R8 and resource shrinking are
-already enabled by the Flutter Gradle plugin for release builds, which also picks up
-`android/app/proguard-rules.pro` automatically. See [apk-size-baseline.md](apk-size-baseline.md).
+**APK size**: ABI-aware clients download a per-ABI split (~43.6 MB arm64) instead of the
+125.7 MB universal APK. The universal build stays in the release only as a bridge for older
+in-app updaters. R8 and resource shrinking are already enabled by the Flutter Gradle plugin for
+release builds, which also picks up `android/app/proguard-rules.pro` automatically. See
+[apk-size-baseline.md](apk-size-baseline.md).
 
-**In-app updater**: because releases now carry several APKs, `selectApkAsset` in
-`lib/domain/usecases/update/apk_asset_selection.dart` picks the one matching `Build.SUPPORTED_ABIS`,
-falling back to the first APK so pre-split releases stay updatable.
+**In-app updater**: `selectApkAsset` in `lib/domain/usecases/update/apk_asset_selection.dart`
+picks the APK matching `Build.SUPPORTED_ABIS`. The universal `app-release.apk` is uploaded first
+so pre-ABI-aware clients (which take the first `.apk`) still update on every device; once those
+clients are on a build with ABI selection, later updates prefer the matching split and fall back
+to the universal APK when no ABI matches.
 
 **Release notes**: generated from [Conventional Commits](https://www.conventionalcommits.org/) since the previous tag (`feat` / `fix` / `perf` only). Preview locally with `python3 scripts/generate_release_notes.py`. Housekeeping (`chore`, `docs`, `ci`, `test`, `refactor`, `chore(release)`, …) is omitted so the in-app dialog stays user-facing. The seed file is `CHANGELOG.md`.
 
@@ -919,7 +922,7 @@ Produces:
 | `test/media_cache_service_test.dart` | 10 | LRU disk cache behaviour |
 | `test/queue_controller_to_media_test.dart` | 10 | `toMedia` URI selection (proxy / file / dummy) |
 | `test/stream_quality_selector_test.dart` | 10 | audioOnly / muxed tiers + fallback |
-| `test/update_asset_selection_test.dart` | 10 | Per-ABI APK pick for the in-app updater |
+| `test/update_asset_selection_test.dart` | 12 | Per-ABI APK pick for the in-app updater (incl. universal bridge) |
 | `test/media_cache_uri_test.dart` | 9 | Cache URI + HLS playlist detection |
 | `test/playback_restore_local_url_test.dart` | 6 | Restore with local / stale / audio-only cache URLs |
 | `test/just_audio_playback_engine_test.dart` | 2 | Repeat-mode + `AudioSource` tag mappings |
@@ -1047,8 +1050,11 @@ Consumed by `action_feedback_listener.dart` and `feedback_toast.dart` widgets.
 ### Manual release build
 
 ```bash
-# Android — one APK per ABI, as the release workflow does
+# Android — universal + per-ABI splits, as the release workflow does
+flutter build apk --release --build-name=1.7.2 --build-number=58
 flutter build apk --release --split-per-abi --build-name=1.7.2 --build-number=58
+# optional: drop emulator-only split
+rm -f build/app/outputs/flutter-apk/*x86_64*.apk
 
 # Linux — Flutter bundle
 flutter build linux --release
