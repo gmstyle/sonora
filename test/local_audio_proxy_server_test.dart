@@ -9,17 +9,14 @@ import 'package:sonora/domain/models/media_quality.dart';
 class MockStreamDatasource extends StreamDatasource {
   bool invalidateCalled = false;
   MediaQuality? lastAudioQuality;
-  bool? lastPreferVideo;
 
   @override
   Future<String> getStreamUrl(
     String videoId, {
     MediaQuality? audioQuality,
-    bool preferVideo = false,
     int attempt = 1,
   }) async {
     lastAudioQuality = audioQuality;
-    lastPreferVideo = preferVideo;
     return 'http://example.com/test_stream.mp3';
   }
 
@@ -68,18 +65,18 @@ void main() {
       );
     });
 
-    test('getStreamUrlForVideo includes audio quality and preferVideo', () {
+    test('getStreamUrlForVideo includes audio quality only', () {
       final url = proxyServer.getStreamUrlForVideo(
         'vid',
         audioQuality: MediaQuality.mid,
-        preferVideo: true,
       );
       expect(
         url,
         equals(
-          'http://127.0.0.1:${proxyServer.port}/stream?videoId=vid&qa=mid&v=1',
+          'http://127.0.0.1:${proxyServer.port}/stream?videoId=vid&qa=mid',
         ),
       );
+      expect(url, isNot(contains('v=')));
       expect(url, isNot(contains('qv=')));
       expect(url, isNot(contains('kind=')));
     });
@@ -87,14 +84,13 @@ void main() {
     test('legacy q query maps to audio quality', () async {
       final req = await httpClient.getUrl(
         Uri.parse(
-          'http://127.0.0.1:${proxyServer.port}/stream?videoId=vid&q=mid&v=1',
+          'http://127.0.0.1:${proxyServer.port}/stream?videoId=vid&q=mid',
         ),
       );
       final res = await req.close();
       await res.drain();
       expect(res.statusCode, isNot(400));
       expect(mockStreamDs.lastAudioQuality, MediaQuality.mid);
-      expect(mockStreamDs.lastPreferVideo, isTrue);
     });
 
     test('Missing videoId returns 400 Bad Request', () async {

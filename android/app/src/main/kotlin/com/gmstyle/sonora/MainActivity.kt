@@ -47,6 +47,17 @@ class MainActivity : AudioServiceFragmentActivity() {
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
+            "com.gmstyle.sonora/device_abi"
+        ).setMethodCallHandler { call, result ->
+            if (call.method == "getSupportedAbis") {
+                result.success(android.os.Build.SUPPORTED_ABIS.toList())
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
             "com.gmstyle.sonora/apk_installer"
         ).setMethodCallHandler { call, result ->
             if (call.method == "installApk") {

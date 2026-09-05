@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'apk_asset_selection.dart';
 import 'release_changelog.dart';
 
 class UpdateCheckResult {
@@ -26,7 +27,18 @@ class CheckForUpdatesUseCase {
   final String repoOwner;
   final String repoName;
 
-  CheckForUpdatesUseCase({required this.repoOwner, required this.repoName});
+  /// Device ABIs, most-preferred first, used to pick the right APK from a
+  /// per-ABI release. Injected so the domain layer stays free of platform
+  /// channels; defaults to an empty list, which falls back to the first APK.
+  final Future<List<String>> Function() _supportedAbis;
+
+  CheckForUpdatesUseCase({
+    required this.repoOwner,
+    required this.repoName,
+    Future<List<String>> Function()? supportedAbis,
+  }) : _supportedAbis = supportedAbis ?? _noAbis;
+
+  static Future<List<String>> _noAbis() async => const <String>[];
 
   Future<UpdateCheckResult> execute({
     required String currentVersion,
@@ -70,17 +82,12 @@ class CheckForUpdatesUseCase {
 
       final isNewer = _isRemoteVersionNewer(latestTag, currentVersion);
 
-      String assetUrl = '';
-      String assetName = '';
-      for (final asset in assets) {
-        final map = asset as Map<String, dynamic>;
-        final name = map['name'] as String? ?? '';
-        if (name.endsWith('.apk')) {
-          assetUrl = map['browser_download_url'] as String? ?? '';
-          assetName = name;
-          break;
-        }
-      }
+      final apk = selectApkAsset(
+        assets.cast<Map<String, dynamic>>(),
+        await _supportedAbis(),
+      );
+      final assetUrl = apk?.url ?? '';
+      final assetName = apk?.name ?? '';
 
       return UpdateCheckResult(
         latestVersion: latestTag,

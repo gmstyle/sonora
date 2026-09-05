@@ -1,80 +1,155 @@
 import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_cast/dart_cast.dart';
-import 'package:media_kit/media_kit.dart';
+import 'playback_engine.dart';
 import '../../../data/services/cast_service.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../providers/cast_provider.dart';
 import 'playback_volume_controller.dart';
 
+bool _urlReachableByCastDevice(String? url) {
+  if (url == null || url.isEmpty) return false;
+  if (isPlaceholderAudioUri(url)) return false;
+  final uri = Uri.tryParse(url);
+  if (uri == null || !uri.hasScheme) return false;
+  if (uri.scheme == 'file') return false;
+  final host = uri.host;
+  if (host == '127.0.0.1' || host == 'localhost' || host == '::1') {
+    return false;
+  }
+  return uri.scheme == 'http' || uri.scheme == 'https';
+}
+
 /// Owns Chromecast / remote-playback connection lifecycle and media casting.
 ///
 /// Does not hold a back-reference to [SonoraAudioHandler]; playback intent is
-/// injected via [requestPlay] (must call the handler's `play()`, not
-/// `player.play()`, so the cast device stays in sync).
+/// injected via [userWantsPlaying] / [currentMediaItem]. Local engine stays
+/// paused while a cast session is active. Cast devices receive a LAN proxy
+/// URL (not `file://` or loopback) so they can fetch audio from the phone.
 class CastPlaybackController {
-  final Player _player;
+  final PlaybackEngine _engine;
   final PlaybackVolumeController _volumeController;
   final PlayVideoIdUseCase _playVideoIdUseCase;
   final bool Function() _userWantsPlaying;
   final MediaItem? Function() _currentMediaItem;
-  final Future<void> Function() _requestPlay;
+  final Future<String?> Function(QueueTrack track) _lanCastUrl;
 
   CastState? _castState;
   SonoraCastService? _castService;
   bool pausedForConnection = false;
   int _castSongToken = 0;
+  int _castEpoch = 0;
+  Duration? _lastCastPosition;
+  SessionState? _remoteSessionState;
+  StreamSubscription<Duration>? _castPositionSub;
+  StreamSubscription<Duration>? _castDurationSub;
+  StreamSubscription<SessionState>? _castSessionSub;
+
+  void Function()? onTransportChanged;
+  void Function(Duration position)? onCastPosition;
+  void Function(Duration duration)? onCastDuration;
 
   CastPlaybackController({
-    required Player player,
+    required PlaybackEngine engine,
     required PlaybackVolumeController volumeController,
     required PlayVideoIdUseCase playVideoIdUseCase,
     required bool Function() userWantsPlaying,
     required MediaItem? Function() currentMediaItem,
-    required Future<void> Function() requestPlay,
-  }) : _player = player,
+    required Future<String?> Function(QueueTrack track) lanCastUrl,
+  }) : _engine = engine,
        _volumeController = volumeController,
        _playVideoIdUseCase = playVideoIdUseCase,
        _userWantsPlaying = userWantsPlaying,
        _currentMediaItem = currentMediaItem,
-       _requestPlay = requestPlay;
+       _lanCastUrl = lanCastUrl;
 
   CastState? get castState => _castState;
   SonoraCastService? get castService => _castService;
+  Duration? get lastCastPosition => _lastCastPosition;
+  SessionState? get remoteSessionState => _remoteSessionState;
+
+  bool get isRemotePlaying {
+    if (_castState?.connectionState != CastConnectionState.connected) {
+      return false;
+    }
+    return _remoteSessionState == SessionState.playing ||
+        _remoteSessionState == SessionState.buffering;
+  }
 
   Future<void> updateCastState(
     CastState state,
     SonoraCastService service,
   ) async {
+    final previous = _castState;
     _castService = service;
+    _castState = state;
+    final epoch = ++_castEpoch;
 
     if (state.connectionState == CastConnectionState.connecting) {
-      if (_player.state.playing) {
+      if (_engine.state.playing) {
         pausedForConnection = true;
-        await _player.pause();
+        await _engine.pause();
       }
     } else if (state.connectionState == CastConnectionState.connected) {
-      if (_castState?.connectionState != CastConnectionState.connected) {
+      if (previous?.connectionState != CastConnectionState.connected) {
         _volumeController.setLocalVolume(0.0);
+        _listenCastPosition(service);
         await castCurrentSong(state, service);
-        pausedForConnection = false;
+        if (epoch != _castEpoch) return;
       }
     } else if (state.connectionState == CastConnectionState.disconnected ||
         state.connectionState == CastConnectionState.error) {
-      if (_castState?.connectionState == CastConnectionState.connected) {
+      _stopCastPosition();
+      final wasConnected =
+          previous?.connectionState == CastConnectionState.connected;
+      if (epoch != _castEpoch) return;
+      if (wasConnected) {
         _volumeController.setLocalVolume(
-          _volumeController.lastSetVolume * 100.0,
+          _volumeController.lastSetVolume,
           force: true,
         );
+        final resumePos = _lastCastPosition;
+        if (resumePos != null && resumePos > Duration.zero) {
+          await _engine.seek(resumePos);
+        }
       }
-      if (pausedForConnection) {
-        await _player.play();
+      if (pausedForConnection || _userWantsPlaying()) {
+        if (!_engine.state.playing) await _engine.play();
         pausedForConnection = false;
       }
+      _lastCastPosition = null;
     }
+  }
 
-    _castState = state;
+  void _listenCastPosition(SonoraCastService service) {
+    _castPositionSub?.cancel();
+    _castDurationSub?.cancel();
+    _castSessionSub?.cancel();
+    _remoteSessionState = service.activeSession?.state;
+    _castPositionSub = service.positionStream.listen((p) {
+      _lastCastPosition = p;
+      onCastPosition?.call(p);
+    });
+    _castDurationSub = service.durationStream.listen((d) {
+      if (d > Duration.zero) {
+        onCastDuration?.call(d);
+      }
+    });
+    _castSessionSub = service.stateStream.listen((s) {
+      _remoteSessionState = s;
+      onTransportChanged?.call();
+    });
+  }
+
+  void _stopCastPosition() {
+    _castPositionSub?.cancel();
+    _castPositionSub = null;
+    _castDurationSub?.cancel();
+    _castDurationSub = null;
+    _castSessionSub?.cancel();
+    _castSessionSub = null;
+    _remoteSessionState = null;
   }
 
   Future<void> castCurrentSong(
@@ -83,7 +158,7 @@ class CastPlaybackController {
   ) async {
     final item = _currentMediaItem();
     if (item == null) return;
-    final currentPos = _player.state.position;
+    final currentPos = _engine.state.position;
     await castSong(item, state, service, startPosition: currentPos);
   }
 
@@ -96,22 +171,33 @@ class CastPlaybackController {
     // Grab a token so concurrent calls from rapid skips can be cancelled.
     final token = ++_castSongToken;
 
+    final epochAtStart = _castEpoch;
+
     final wasPlaying =
-        _player.state.playing || pausedForConnection || _userWantsPlaying();
+        _engine.state.playing || pausedForConnection || _userWantsPlaying();
     if (wasPlaying) {
       pausedForConnection = true;
-      await _player.pause();
+      await _engine.pause();
     }
     _volumeController.setLocalVolume(0.0);
+    _lastCastPosition = startPosition ?? Duration.zero;
+    onCastPosition?.call(_lastCastPosition!);
+    if (item.duration != null && item.duration! > Duration.zero) {
+      onCastDuration?.call(item.duration!);
+    }
 
     // A newer castSong call has superseded this one — bail out.
-    if (_castSongToken != token) return;
+    if (_castSongToken != token || _castEpoch != epochAtStart) return;
 
     final track = QueueTrack.fromMediaItem(item);
-    String? url = track.hasUrl ? track.url : null;
-    if (url == null || track.needsUrl) {
+    String? url = await _lanCastUrl(track);
+    if (!_urlReachableByCastDevice(url) &&
+        _urlReachableByCastDevice(track.url)) {
+      url = track.url;
+    }
+    if (!_urlReachableByCastDevice(url)) {
       try {
-        url = await _playVideoIdUseCase.resolveUrl(track.videoId);
+        url = await _playVideoIdUseCase.resolveStreamUrl(track.videoId);
       } catch (_) {
         pausedForConnection = false;
         return;
@@ -119,10 +205,15 @@ class CastPlaybackController {
     }
 
     // Check again after the potentially slow URL resolve.
-    if (_castSongToken != token) return;
+    if (_castSongToken != token || _castEpoch != epochAtStart) return;
+
+    if (!_urlReachableByCastDevice(url)) {
+      pausedForConnection = false;
+      return;
+    }
 
     await service.castMedia(
-      url: url,
+      url: url!,
       title: item.title,
       artist: item.artist,
       album: item.album,
@@ -130,25 +221,31 @@ class CastPlaybackController {
       startPosition: startPosition,
     );
 
+    if (_castSongToken != token || _castEpoch != epochAtStart) return;
+
     if (wasPlaying) {
-      await waitForCastSessionState(service, SessionState.playing);
-      // Check after the wait — another skip could have fired during it.
-      if (_castSongToken != token) return;
-      pausedForConnection = false;
-      // Use requestPlay (handler.play) so that castService?.play() is also
-      // sent to the cast device.
-      await _requestPlay();
+      final reached = await waitForCastSessionState(
+        service,
+        SessionState.playing,
+      );
+      if (_castSongToken != token || _castEpoch != epochAtStart) return;
+      if (reached) {
+        _remoteSessionState = SessionState.playing;
+      }
+      await service.play();
+      onTransportChanged?.call();
     } else {
       await service.pause();
+      onTransportChanged?.call();
     }
   }
 
-  Future<void> waitForCastSessionState(
+  Future<bool> waitForCastSessionState(
     SonoraCastService service,
     SessionState targetState, {
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    if (service.activeSession?.state == targetState) return;
+    if (service.activeSession?.state == targetState) return true;
     final completer = Completer<void>();
     StreamSubscription? sub;
     sub = service.stateStream.listen((state) {
@@ -159,8 +256,9 @@ class CastPlaybackController {
     });
     try {
       await completer.future.timeout(timeout);
+      return true;
     } catch (_) {
-      // Timeout fallback
+      return false;
     } finally {
       await sub.cancel();
     }

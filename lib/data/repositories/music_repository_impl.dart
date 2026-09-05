@@ -89,15 +89,8 @@ class MusicRepositoryImpl implements MusicRepository {
       _ytmusic.getPlaylistVideos(playlistId);
 
   @override
-  Future<String> getStreamUrl(
-    String videoId, {
-    MediaQuality? quality,
-    bool preferVideo = false,
-  }) => _stream.getStreamUrl(
-    videoId,
-    audioQuality: quality,
-    preferVideo: preferVideo,
-  );
+  Future<String> getStreamUrl(String videoId, {MediaQuality? quality}) =>
+      _stream.getStreamUrl(videoId, audioQuality: quality);
 
   @override
   Future<WatchPlaylistResult> getWatchPlaylist({

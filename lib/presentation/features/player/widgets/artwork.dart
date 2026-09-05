@@ -5,11 +5,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../providers/palette_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/player_provider.dart';
-import '../../../providers/video_player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/vinyl_artwork.dart';
 import 'player_shared_widgets.dart';
-import 'video_player_widget.dart';
 
 class Artwork extends ConsumerWidget {
   const Artwork({
@@ -18,7 +16,6 @@ class Artwork extends ConsumerWidget {
     required this.size,
     required this.videoId,
     this.isSwitching = false,
-    this.isVideo = false,
     this.showFlipIndicator = false,
   });
 
@@ -26,36 +23,10 @@ class Artwork extends ConsumerWidget {
   final double size;
   final String videoId;
   final bool isSwitching;
-  final bool isVideo;
   final bool showFlipIndicator;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final videoState = ref.watch(videoPlayerProvider);
-    final enableVideoPlayback = ref.watch(
-      settingsProvider.select((s) => s.enableVideoPlayback),
-    );
-    if (isVideo &&
-        shouldShowVideoPlayer(
-          enableVideoPlayback: enableVideoPlayback,
-          videoState: videoState,
-        )) {
-      final double videoWidth;
-      final double videoHeight;
-      if (videoState.aspectRatio > 1.0) {
-        videoWidth = size;
-        videoHeight = size / videoState.aspectRatio;
-      } else {
-        videoHeight = size;
-        videoWidth = size * videoState.aspectRatio;
-      }
-      return SonoraVideoPlayer(
-        width: videoWidth,
-        height: videoHeight,
-        borderRadius: BorderRadius.circular(12),
-        autoFullscreenOnLandscape: true,
-      );
-    }
     final paletteMap = ref.watch(paletteNotifierProvider);
     final paletteData = paletteMap[videoId];
     final dominantColor =

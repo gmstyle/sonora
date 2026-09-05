@@ -7,6 +7,20 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
+// tray_manager still links libayatana-appindicator (not -glib). The C library
+// prints a deprecation warning on every AppIndicator create; drop only that
+// message until the plugin migrates.
+static void sonora_drop_ayatana_deprecation(const gchar* log_domain,
+                                            GLogLevelFlags log_level,
+                                            const gchar* message,
+                                            gpointer user_data) {
+  if (message != nullptr &&
+      g_str_has_prefix(message, "libayatana-appindicator is deprecated")) {
+    return;
+  }
+  g_log_default_handler(log_domain, log_level, message, user_data);
+}
+
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
@@ -64,9 +78,12 @@ static void my_application_activate(GApplication* application) {
   g_autofree gchar* exe_path = g_file_read_link("/proc/self/exe", nullptr);
   if (exe_path != nullptr) {
     g_autofree gchar* exe_dir = g_path_get_dirname(exe_path);
-    g_autofree gchar* icon_path = g_build_filename(exe_dir, "sonora.png", nullptr);
+    g_autofree gchar* icon_path =
+        g_build_filename(exe_dir, "sonora.png", nullptr);
     g_autoptr(GError) icon_err = nullptr;
-    if (!gtk_window_set_icon_from_file(window, icon_path, &icon_err)) {
+    if (gtk_window_set_icon_from_file(window, icon_path, &icon_err)) {
+      gtk_window_set_default_icon_from_file(icon_path, nullptr);
+    } else {
       g_warning("Failed to set window icon: %s", icon_err->message);
     }
   } else {
@@ -123,9 +140,11 @@ static gboolean my_application_local_command_line(GApplication* application,
 
 // Implements GApplication::startup.
 static void my_application_startup(GApplication* application) {
-  // MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
+  g_log_set_handler(
+      "libayatana-appindicator",
+      static_cast<GLogLevelFlags>(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL |
+                                  G_LOG_FLAG_RECURSION),
+      sonora_drop_ayatana_deprecation, nullptr);
 
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }

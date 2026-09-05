@@ -16,8 +16,6 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
-import '../../../providers/settings_provider.dart';
-import '../../../providers/video_player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/explicit_badge.dart';
 import 'progress_bar_widget.dart';
@@ -515,34 +513,6 @@ Widget buildBottomActionsRow(
         color: theme.colorScheme.onSurfaceVariant,
         style: actionStyle,
       ),
-      if (isVideo &&
-          ref.watch(settingsProvider.select((s) => s.enableVideoPlayback))) ...[
-        Builder(
-          builder: (context) {
-            final videoState = ref.watch(videoPlayerProvider);
-            return IconButton(
-              style: actionStyle,
-              icon: Icon(
-                videoState.isVideoVisible
-                    ? LucideIcons.monitor
-                    : LucideIcons.monitorOff,
-                size: iconSize,
-                color:
-                    videoState.isVideoVisible
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-              ),
-              onPressed: () {
-                ref.read(videoPlayerProvider.notifier).toggleVisibility();
-              },
-              tooltip:
-                  videoState.isVideoVisible
-                      ? AppLocalizations.of(context)!.hideVideo
-                      : AppLocalizations.of(context)!.showVideo,
-            );
-          },
-        ),
-      ],
       if (!isVideo && !isEpisode)
         IconButton(
           style: actionStyle,

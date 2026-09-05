@@ -3,7 +3,7 @@
   <img alt="Sonora" src="assets/logo_full.png" width="320">
 </picture>
 
-Sonora is a cross-platform music and video streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable experience on **Android** and **Linux desktop**.
+Sonora is a cross-platform music streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable experience on **Android** and **Linux desktop**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform: Android + Linux](https://img.shields.io/badge/Platform-Android%20%7C%20Linux-blue)
@@ -29,7 +29,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 **Playback**
 - YouTube Music streaming for songs, albums, artists, playlists, music videos, podcasts, and episodes
-- Audio and video playback, background play, crossfade, 5-band equalizer, and sleep timer
+- Audio playback (music videos play as audio), background play, crossfade, 5-band equalizer (Android; Linux uses the system EQ), and sleep timer
 - Related songs in the player, casting to Chromecast and DLNA, Android Auto (Home, Library, Mixes, Explore, Charts & Moods, podcasts)
 
 **Library & offline**
@@ -107,7 +107,7 @@ See [CLI documentation](docs/CLI.md) for all commands and options.
 
 ## Development
 
-Architecture, database, audio engine, and the release pipeline are documented in [SONORA-DEV-DOCS.md](docs/SONORA-DEV-DOCS.md). Stack: Flutter 3.47+, Riverpod, go_router, Drift, media_kit, [dart_ytmusic_api](https://github.com/gmstyle/dart_ytmusic_api), youtube_explode_dart.
+Architecture, database, audio engine, and the release pipeline are documented in [SONORA-DEV-DOCS.md](docs/SONORA-DEV-DOCS.md). Stack: Flutter 3.47+, Riverpod, go_router, Drift, just_audio, [dart_ytmusic_api](https://github.com/gmstyle/dart_ytmusic_api), youtube_explode_dart.
 
 - [CLI documentation](docs/CLI.md)
 - Report bugs or request features via [GitHub Issues](https://github.com/gmstyle/sonora/issues)

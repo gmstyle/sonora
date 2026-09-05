@@ -336,14 +336,6 @@ class _PlaybackSection extends ConsumerWidget {
           icon: LucideIcons.rotateCcw,
         ),
         const Divider(height: 1),
-        SettingsSwitchTile(
-          title: l10n.enableVideoPlayback,
-          subtitle: l10n.enableVideoPlaybackHint,
-          value: settings.enableVideoPlayback,
-          onChanged: notifier.setEnableVideoPlayback,
-          icon: LucideIcons.video,
-        ),
-        const Divider(height: 1),
         SettingsDropdownTile(
           title: l10n.streamAudioQuality,
           value: settings.streamAudioQuality.storageValue,
@@ -387,7 +379,9 @@ class _PlaybackSection extends ConsumerWidget {
         SettingsButtonTile(
           title: l10n.equalizer,
           subtitle:
-              eqState.enabled
+              isLinux
+                  ? l10n.linuxEqualizerUnavailable
+                  : eqState.enabled
                   ? '${l10n.onLabel} (${getPresetName(eqState.preset)})'
                   : l10n.offLabel,
           icon: LucideIcons.sliders,
@@ -667,30 +661,11 @@ class _BackupSection extends StatelessWidget {
   Future<void> _exportData(BuildContext context) async {
     try {
       final settings = ref.read(settingsProvider);
+      final equalizer = ref.read(equalizerNotifierProvider);
       final useCase = ref.read(exportBackupUseCaseProvider);
       final settingsMap = <String, dynamic>{
-        'themeMode': settings.themeMode.index,
-        'useDynamicColor': settings.useDynamicColor,
-        'useAmoled': settings.useAmoled,
-        'gl': settings.gl,
-        'hl': settings.hl,
-        'crossfadeSeconds': settings.crossfadeSeconds,
-        'restoreQueueOnStartup': settings.restoreQueueOnStartup,
-        'autoPlayUpNext': settings.autoPlayUpNext,
-        'enableVideoPlayback': settings.enableVideoPlayback,
-        'streamAudioQuality': settings.streamAudioQuality.storageValue,
-        'mediaCacheSize': settings.mediaCacheSize.storageValue,
-        'downloadQuality': settings.downloadQuality.storageValue,
-        'downloadOnlyOnWifi': settings.downloadOnlyOnWifi,
-        'trackHistory': settings.trackHistory,
-        'checkUpdatesOnStartup': settings.checkUpdatesOnStartup,
-        'isLibraryGridView': settings.isLibraryGridView,
-        'useVinylStyle': settings.useVinylStyle,
-        'reduceEffects': settings.reduceEffects,
-        'offlineMode': settings.offlineMode,
-        'localSyncEnabled': settings.localSyncEnabled,
-        'localSyncAutoEnabled': settings.localSyncAutoEnabled,
-        'playlistConflictStrategy': settings.playlistConflictStrategy,
+        ...settings.toBackupMap(),
+        ...equalizer.toBackupMap(),
       };
       final path = await useCase.execute(settings: settingsMap);
 
@@ -786,111 +761,12 @@ class _BackupSection extends StatelessWidget {
       ref.invalidate(libraryHistoryProvider);
 
       if (importedSettings != null && context.mounted) {
-        final notifier = ref.read(settingsProvider.notifier);
-        if (importedSettings.containsKey('themeMode')) {
-          notifier.setThemeMode(
-            ThemeMode.values[importedSettings['themeMode'] as int],
-          );
-        }
-        if (importedSettings.containsKey('useDynamicColor')) {
-          notifier.setUseDynamicColor(
-            importedSettings['useDynamicColor'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('useAmoled')) {
-          notifier.setUseAmoled(importedSettings['useAmoled'] as bool);
-        }
-        if (importedSettings.containsKey('gl')) {
-          notifier.setGl(importedSettings['gl'] as String);
-        }
-        if (importedSettings.containsKey('hl')) {
-          notifier.setHl(importedSettings['hl'] as String);
-        }
-        if (importedSettings.containsKey('crossfadeSeconds')) {
-          notifier.setCrossfadeSeconds(
-            importedSettings['crossfadeSeconds'] as int,
-          );
-        }
-        if (importedSettings.containsKey('restoreQueueOnStartup')) {
-          notifier.setRestoreQueueOnStartup(
-            importedSettings['restoreQueueOnStartup'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('autoPlayUpNext')) {
-          notifier.setAutoPlayUpNext(
-            importedSettings['autoPlayUpNext'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('enableVideoPlayback')) {
-          notifier.setEnableVideoPlayback(
-            importedSettings['enableVideoPlayback'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('streamAudioQuality') ||
-            importedSettings.containsKey('streamQuality')) {
-          final audioRaw =
-              importedSettings['streamAudioQuality'] as String? ??
-              importedSettings['streamQuality'] as String?;
-          if (audioRaw != null) {
-            notifier.setStreamAudioQuality(MediaQuality.fromStorage(audioRaw));
-          }
-        }
-        if (importedSettings.containsKey('mediaCacheSize')) {
-          notifier.setMediaCacheSize(
-            MediaCacheSize.fromStorage(
-              importedSettings['mediaCacheSize'] as String?,
-            ),
-          );
-        }
-        if (importedSettings.containsKey('downloadQuality')) {
-          notifier.setDownloadQuality(
-            MediaQuality.fromStorage(
-              importedSettings['downloadQuality'] as String?,
-            ),
-          );
-        }
-        if (importedSettings.containsKey('downloadOnlyOnWifi')) {
-          notifier.setDownloadOnlyOnWifi(
-            importedSettings['downloadOnlyOnWifi'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('trackHistory')) {
-          notifier.setTrackHistory(importedSettings['trackHistory'] as bool);
-        }
-        if (importedSettings.containsKey('checkUpdatesOnStartup')) {
-          notifier.setCheckUpdatesOnStartup(
-            importedSettings['checkUpdatesOnStartup'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('isLibraryGridView')) {
-          notifier.setLibraryGridView(
-            importedSettings['isLibraryGridView'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('useVinylStyle')) {
-          notifier.setUseVinylStyle(importedSettings['useVinylStyle'] as bool);
-        }
-        if (importedSettings.containsKey('reduceEffects')) {
-          notifier.setReduceEffects(importedSettings['reduceEffects'] as bool);
-        }
-        if (importedSettings.containsKey('offlineMode')) {
-          notifier.setOfflineMode(importedSettings['offlineMode'] as bool);
-        }
-        if (importedSettings.containsKey('localSyncEnabled')) {
-          notifier.setLocalSyncEnabled(
-            importedSettings['localSyncEnabled'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('localSyncAutoEnabled')) {
-          notifier.setLocalSyncAutoEnabled(
-            importedSettings['localSyncAutoEnabled'] as bool,
-          );
-        }
-        if (importedSettings.containsKey('playlistConflictStrategy')) {
-          notifier.setPlaylistConflictStrategy(
-            importedSettings['playlistConflictStrategy'] as String,
-          );
-        }
+        await ref
+            .read(settingsProvider.notifier)
+            .applyBackupMap(importedSettings);
+        await ref
+            .read(equalizerNotifierProvider.notifier)
+            .applyBackupMap(importedSettings);
       }
 
       if (context.mounted) {

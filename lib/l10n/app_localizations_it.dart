@@ -583,13 +583,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'Riproduci automaticamente contenuti correlati quando la coda termina';
 
   @override
-  String get enableVideoPlayback => 'Riproduci video';
-
-  @override
-  String get enableVideoPlaybackHint =>
-      'Mostra i video musicali nel player. Con disattivato, solo audio.';
-
-  @override
   String get streamAudioQuality => 'Qualità audio streaming';
 
   @override
@@ -610,12 +603,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get qualityLow => 'Bassa';
-
-  @override
-  String get hideVideo => 'Nascondi video';
-
-  @override
-  String get showVideo => 'Mostra video';
 
   @override
   String get downloadsSettings => 'Download';
@@ -1443,6 +1430,13 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get equalizerEnabled => 'Equalizzatore attivo';
+
+  @override
+  String get linuxEqualizerUnavailable => 'Usa l\'equalizzatore di sistema';
+
+  @override
+  String get linuxEqualizerHint =>
+      'Su Linux Sonora non applica un EQ interno. Usa EasyEffects o l\'equalizzatore PipeWire / PulseAudio.';
 
   @override
   String get presetCustom => 'Personalizzato';

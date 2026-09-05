@@ -9,7 +9,6 @@ import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
-import '../../providers/video_player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/vinyl_artwork.dart';
@@ -18,7 +17,6 @@ import '../../shared/widgets/explicit_badge.dart';
 import '../../providers/settings_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import 'widgets/animated_play_pause_icon.dart';
-import 'widgets/video_player_widget.dart';
 import 'widgets/cast_button.dart';
 import 'widgets/progress_bar_widget.dart';
 import '../../../core/extensions/duration_ext.dart';
@@ -93,13 +91,7 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         const SizedBox(width: 12),
-                        _artwork(
-                          size: 56,
-                          radius: 8,
-                          cs: cs,
-                          ref: ref,
-                          isVideo: track.isVideo,
-                        ),
+                        _artwork(size: 56, radius: 8, cs: cs, ref: ref),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -197,13 +189,7 @@ class MiniPlayerContent extends ConsumerWidget {
                     : Row(
                       children: [
                         const SizedBox(width: 12),
-                        _artwork(
-                          size: 60,
-                          radius: 8,
-                          cs: cs,
-                          ref: ref,
-                          isVideo: track.isVideo,
-                        ),
+                        _artwork(size: 60, radius: 8, cs: cs, ref: ref),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -346,7 +332,6 @@ class MiniPlayerContent extends ConsumerWidget {
                                           radius: 8,
                                           cs: cs,
                                           ref: ref,
-                                          isVideo: track.isVideo,
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -566,25 +551,7 @@ class MiniPlayerContent extends ConsumerWidget {
     required double radius,
     required ColorScheme cs,
     required WidgetRef ref,
-    required bool isVideo,
   }) {
-    final videoState = ref.watch(videoPlayerProvider);
-    final enableVideoPlayback = ref.watch(
-      settingsProvider.select((s) => s.enableVideoPlayback),
-    );
-    if (isVideo &&
-        shouldShowVideoPlayer(
-          enableVideoPlayback: enableVideoPlayback,
-          videoState: videoState,
-        )) {
-      return SonoraVideoPlayer(
-        width: size,
-        height: size,
-        borderRadius: BorderRadius.circular(radius),
-        fit: BoxFit.cover,
-        showControls: false,
-      );
-    }
     final useVinylStyle = ref.watch(
       settingsProvider.select((s) => s.useVinylStyle),
     );

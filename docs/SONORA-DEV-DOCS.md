@@ -2,20 +2,23 @@
 
 ## 1. Architectural Overview
 
-Sonora is a cross-platform Flutter music and video streaming app that uses **YouTube Music** as its data source via `dart_ytmusic_api` and `youtube_explode_dart` for stream URL resolution.
+Sonora is a cross-platform Flutter music streaming app that uses **YouTube Music** as its data source via `dart_ytmusic_api` and `youtube_explode_dart` for stream URL resolution.
 
 **Main stack:**
 
 | Component | Library | Version |
 |---|---|---|
-| Framework | Flutter | 3.47.1 (stable) |
+| Framework | Flutter | 3.47.2 (stable) |
 | State Management | `flutter_riverpod` | ^3.3.1 |
-| Navigation | `go_router` | ^17.2.3 |
-| Local Database | `drift` + `drift_flutter` | ^2.33.0 / ^0.3.0 |
-| Media Playback | `media_kit` + `audio_service` | ^1.2.6 / ^0.18.18 |
+| Navigation | `go_router` | ^18.0.1 |
+| Local Database | `drift` + `drift_flutter` | ^2.34.4 / ^0.3.1 |
+| Media Playback | `just_audio` + `audio_service` | ^0.10.4 / ^0.18.18 |
+| Linux audio backend | `just_audio_media_kit` + `media_kit_libs_linux` | ^2.1.0 / ^1.1.3 |
 | YTM Data | `dart_ytmusic_api` | git (`gmstyle/dart_ytmusic_api`) |
 | Stream URL | `youtube_explode_dart` | git (`gmstyle/youtube_explode_dart`, fork with `androidVr` adaptive fix) |
-| Casting | `dart_cast` | ^0.6.0 |
+| Casting | `dart_cast` | ^0.7.3 |
+
+**Why `just_audio`.** In-app video playback was removed: catalog music videos still exist and play as **audio**. Android uses ExoPlayer through `just_audio` (no `libmpv.so` in the APK). Linux uses `just_audio_media_kit` (libmpv). Controllers talk to a vendor-neutral `PlaybackEngine`; `audio_service` still owns the MediaSession, notification, Android Auto, and MPRIS. Sonora's `LocalAudioProxyServer` + `MediaCacheService` stay in front of YouTube (403/429, Range, LRU lookahead) — `LockCachingAudioSource` is not used. Shuffle stays in `SkipNavigator` because `just_audio_media_kit` ignores `shuffleOrder`.
 
 **Architecture**: Clean Architecture with 3 layers — `data/`, `domain/`, `presentation/`. Types from `dart_ytmusic_api` (`SongDetailed`, `ArtistFull`, `PodcastFull`, `EpisodeFull`, `UserFull`, `ChartsResult`, etc.) are used directly without mapping. Local entities (liked songs, playlists, subscribed podcasts, saved episodes, etc.) are PODO in `domain/models/library_models.dart`.
 
@@ -139,6 +142,8 @@ lib/
         ├── user/                         # UserScreen + UserVideosScreen + UserPlaylistsScreen
         ├── player/                       # Playback Engine (facade + controllers):
         │   ├── audio_handler.dart        # SonoraAudioHandler — audio_service facade, transport, wiring
+        │   ├── playback_engine.dart      # Vendor-neutral PlaybackEngine port (volume 0..1, replace)
+        │   ├── just_audio_playback_engine.dart # Production engine (ExoPlayer / just_audio_media_kit)
         │   ├── queue_controller.dart     # Queue mutations, section tags, persist/sync
         │   ├── track_url_resolver.dart   # Lazy URL resolve + lookahead prefetch
         │   ├── playback_restore_controller.dart  # Cold start / warm resume
@@ -147,10 +152,9 @@ lib/
         │   ├── playback_state_publisher.dart     # PlaybackState projection + dedupe
         │   ├── skip_navigator.dart       # Skip next/prev index + shuffle history
         │   ├── audio_session_controller.dart     # OS audio focus / interruptions
-        │   ├── player_engine_configurator.dart   # mpv cache / network / Linux vo props
         │   ├── player_media_controls.dart        # Notification MediaControl builder
         │   ├── like_controller.dart      # Current-track like state (song vs episode)
-        │   ├── equalizer_controller.dart # mpv lavfi 5-band EQ
+        │   ├── equalizer_controller.dart # AndroidEqualizer (5 Sonora bands interpolated)
         │   ├── cast_playback_controller.dart     # Chromecast / DLNA cast session
         │   ├── android_auto_browser_controller.dart # AA browse (Explore/Charts/Moods/Podcasts) & voice search
         │   ├── player_sheet.dart / player_sheet_mobile.dart / mini|full_player_content.dart
@@ -311,8 +315,11 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 | `likedPodcasts` / `likedEpisodes` | **v3** — subscribed podcasts + saved episodes |
 | `localPlaylists` (+ entries) | Custom playlists |
 | `history` / `searchHistory` | Listening + search history (history may include `contentType` / `podcastBrowseId`) |
+| `settings` | Portable prefs — see §12 |
 
-`ImportBackupUseCase` and `MergeLibraryUseCase` (P2P sync) restore/merge the same keys. Older backups without podcast keys remain valid (empty lists).
+The optional `settings` object uses the SharedPreferences key names from §12 (`Settings.toBackupMap` + `EqualizerState.toBackupMap`). Device-local `downloadPath` and runtime/migration keys are omitted. Import applies the map via `SettingsNotifier.applyBackupMap` / `EqualizerNotifier.applyBackupMap` and ignores unknown keys. Older zips that only have `streamQuality` still apply that value to `streamAudioQuality`.
+
+`ImportBackupUseCase` and `MergeLibraryUseCase` (P2P sync) restore/merge the library keys. Older backups without podcast keys remain valid (empty lists). P2P merge does not apply the `settings` object.
 
 ---
 
@@ -320,7 +327,7 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 
 ### 6.1 `SonoraAudioHandler` + controllers
 
-`SonoraAudioHandler` (`audio_handler.dart`) extends `BaseAudioHandler` from `audio_service`. It is the **facade** registered with `AudioService.init`: it owns the media_kit `Player`, exposes the public playback/queue API to `PlayerNotifier` / tray / notifications, and wires specialized **controllers**. Controllers never hold a back-reference to `SonoraAudioHandler`; they receive `Player`, repositories, and narrow callbacks (`requestPlay`, queue getters, cast predicates, …).
+`SonoraAudioHandler` (`audio_handler.dart`) extends `BaseAudioHandler` from `audio_service`. It is the **facade** registered with `AudioService.init`: it owns a `PlaybackEngine` (`JustAudioPlaybackEngine`), exposes the public playback/queue API to `PlayerNotifier` / tray / notifications, and wires specialized **controllers**. Controllers never hold a back-reference to `SonoraAudioHandler`; they receive `PlaybackEngine`, repositories, and narrow callbacks (`requestPlay`, queue getters, cast predicates, …).
 
 ```
                     ┌──────────────────────────────────────┐
@@ -336,24 +343,25 @@ Generated file: `database.g.dart`. **Every table modification** requires:
                                Recovery/    Controls       AndroidAuto
                                Volume/      LikeController BrowserController
                                StatePub     AudioSession
-                                            EngineConfig
                                             Equalizer
 ```
 
 | Controller | File | Responsibility |
 |---|---|---|
-| `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔Media conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` / `runBatch` |
-| `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` for audio and video alike |
+| `QueueController` | `queue_controller.dart` | Queue mutations (add/remove/move/clear/purge), section tagging (`user`/`upnext`), `queueId`, MediaItem↔`EngineMedia` conversion (incl. proxy URLs), `syncQueue` / `persistQueue`, `replaceAt` (`PlaybackEngine.replace`) / `runBatch` |
+| `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` (audio-only) |
+| `PlaylistOpenCoordinator` | `playlist_open_coordinator.dart` | The three wholesale playlist replacements — `setQueue` (stages paused), `playNow` (requests focus, resolves the first URL, opens playing) and `rebuildMedia` (re-derives `EngineMedia` after a quality change). All run under the queue's FIFO lock; `shouldAbort` is evaluated after any in-flight open so the most recent caller wins |
+| `TrackTransitionCoordinator` | `track_transition_coordinator.dart` | Owns `PlaybackEngine` stream subscriptions (`setupListeners`) and the track-change cascade: queue pointer → media item → cast → resolve → queue sync → fade-in, plus duration stamping bound to playlist identity. `isResolvingItem` suppresses the pointer, media item, sync and fade but deliberately **not** the resolver. Order is locked by `test/track_transition_coordinator_test.dart` |
+| `PlaybackIntentController` | `playback_intent_controller.dart` | Single source of truth for what the *user* wants playback to be doing: `userWantsPlaying`, `isExplicitlyPaused`, and the authorised-resume window. Distinguishes an in-app pause from a notification/headset pause so Pixel Buds ear-detection PLAY is rejected while a deliberate buds tap still resumes. Full truth table in the class doc; covered by `test/playback_intent_controller_test.dart` |
 | `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
 | `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
 | `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume / ducking |
-| `PlaybackStatePublisher` | `playback_state_publisher.dart` | Projects media_kit state → `audio_service` `PlaybackState` with emit dedupe; `invalidate()` after batch resolves |
+| `PlaybackStatePublisher` | `playback_state_publisher.dart` | Projects `PlaybackEngine` state → `audio_service` `PlaybackState` with emit dedupe; `invalidate()` after batch resolves; never emits `idle` during restore/resolve (Android Auto MediaSession) |
 | `SkipNavigator` | `skip_navigator.dart` | Next/previous index calculation, shuffle history, rapid-skip target index |
-| `AudioSessionController` | `audio_session_controller.dart` | OS audio focus, interruption pause/resume, becoming-noisy |
-| `PlayerEngineConfigurator` | `player_engine_configurator.dart` | mpv disk cache, network timeout, Linux `hwdec`/`vo` |
+| `AudioSessionController` | `audio_session_controller.dart` | OS audio focus, interruption pause/resume, becoming-noisy (`just_audio` is constructed with `handleInterruptions: false`) |
 | `PlayerMediaControls` | `player_media_controls.dart` | Pure builder for notification / MPRIS custom actions (shuffle, repeat, like, start radio) |
 | `LikeController` | `like_controller.dart` | Current-track liked flag + library toggle |
-| `EqualizerController` | `equalizer_controller.dart` | Applies mpv lavfi 5-band equalizer filter graph |
+| `EqualizerController` | `equalizer_controller.dart` | Android: interpolates 5 Sonora bands (100/300/1k/3k/10k Hz) onto `AndroidEqualizer` device bands. Linux: no-op (system EQ) |
 | `CastPlaybackController` | `cast_playback_controller.dart` | Cast connect lifecycle, `castSong` token cancellation, remote play/pause/seek sync |
 | `AndroidAutoBrowserController` | `android_auto_browser_controller.dart` | AA browse tree, search, `playFromMediaId` / `playFromSearch` |
 
@@ -366,12 +374,12 @@ Generated file: `database.g.dart`. **Every table modification** requires:
 
 **Media Player & Local HTTP Proxy Architecture:**
 
-Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoupled from remote networks via a dedicated loopback HTTP Proxy Server (`LocalAudioProxyServer` built with `shelf`).
+Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv via `just_audio_media_kit` on Linux), decoupled from remote networks via a dedicated loopback HTTP Proxy Server (`LocalAudioProxyServer` built with `shelf`).
 
 ```
 ┌─────────────────┐       HTTP Loopback       ┌────────────────────────┐
-│    media_kit    │ ────────────────────────> │ LocalAudioProxyServer  │
-│    (libmpv)     │  http://127.0.0.1:PORT/   │     (Shelf / Dart)     │
+│    just_audio   │ ────────────────────────> │ LocalAudioProxyServer  │
+│ (ExoPlayer/mpv) │  http://127.0.0.1:PORT/   │     (Shelf / Dart)     │
 └─────────────────┘                           └───────────┬────────────┘
                                                           │
                                      ┌────────────────────┴────────────────────┐
@@ -385,32 +393,33 @@ Sonora uses `media_kit` (libmpv) as its core cross-platform audio engine, decoup
 
 - **`LocalAudioProxyServer` (`local_audio_proxy_server.dart`)**:
   - Runs locally on `127.0.0.1` using a dynamic ephemeral port assigned by the OS at startup.
-  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&qa=<high|mid|low>[&v=1]` (legacy `q` still accepted as fallback for audio quality).
-    - `qa` — streaming audio quality from `Settings.streamAudioQuality` (built by `QueueController.toMedia`; used for audio-only picks and as cache-key component).
-    - `v=1` — video playback path when `Settings.enableVideoPlayback && track.isVideo` (best-bitrate muxed URL).
-  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3 or muxed mp4).
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, preferVideo:)` and `YoutubeRequestScheduler`.
-  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `media_kit`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio quality / preferVideo, and retries up to 3 times automatically. `media_kit` sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (enforcing a 500MB LRU limit) for both audio and muxed video. Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality **or** toggling `enableVideoPlayback` clears this cache so leftover files from the other mode are not reused.
+  - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&qa=<high|mid|low>` (legacy `q` still accepted as fallback for audio quality).
+    - `qa` — streaming audio quality from `Settings.streamAudioQuality` (built by `QueueController.toMedia`).
+    - Catalog music videos use the same audio-only proxy path.
+  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3). Muxed `{id}.mp4` and video-only `{id}.v.*` leftovers are ignored.
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:)` and `YoutubeRequestScheduler`.
+  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `just_audio`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio quality, and retries up to 3 times automatically. The engine sees only a smooth local stream without throwing unrecoverable player crashes.
+  - **Background Cache Population**: As remote streams play, audio is saved asynchronously via `StreamDatasource.cacheAudio` → youtube_explode `StreamClient` (same authenticated downloader as library downloads; not a raw Dio GET). Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality clears this cache.
   - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` (e.g. persist playback pointer). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
-  - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`) and downloads (`Settings.downloadQuality`). Video streaming has no quality setting.
-  - `preferVideo == false` (audio listening): pick from `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
-  - **Local video (muxed-only)**: when `preferVideo`, always pick the highest-bitrate muxed stream (`withHighestBitrate()`). `QueueController.toMedia` builds a single proxy URI with `v=1`. Typical YouTube muxed ceiling is ≤720p (often 360p).
-  - **Downloads / cast**: same `select` path — muxed when video, audio-only otherwise. Download video ignores `downloadQuality` tiers (best muxed); audio downloads still use `downloadQuality`.
-  - `StreamDatasource` caches playback plans by `videoId|audioQ|preferVideo` and exposes `clearUrlCache()` when stream audio quality or video playback settings change.
+  - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`) and downloads (`Settings.downloadQuality`).
+  - Playback always picks audio-only: `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
+  - **Downloads**: always audio-only using `downloadQuality`, even when the catalog item `isVideo` (that flag is stored as metadata only). Cast uses the same audio `select` path.
+  - `StreamDatasource` caches playback plans by `videoId|audioQ` and exposes `clearUrlCache()` when stream audio quality changes.
 
 - **Dual-Path Playback Architecture:**
-  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects stream via `StreamQualitySelector` using `downloadQuality` and `isVideo`. Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
-  - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback (audio-only or muxed video). Saved to temporary cache (`sonora_media_cache`) with a 500MB LRU size cap. Routed via local proxy loopback URLs; `file://` cache hits also bypass the proxy in `QueueController.toMedia`.
+  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
+  - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback (audio-only). Saved to temporary cache (`sonora_media_cache`) with a user-configurable LRU size cap. Routed via local proxy loopback URLs; `file://` audio-only cache hits also bypass the proxy in `QueueController.toMedia`.
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
 Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When the playlist index changes, the resolver resolves the URL for the current item and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background timer pre-resolves `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
 
+`skipToQueueItem` jumps immediately when the engine URI is already playable (local proxy or `file://`), even if `needsUrl` is still true. YouTube resolve runs in the background after the jump. Shuffle skip targets a random index that lookahead did not prefetch; blocking on Innertube before the jump was a 1–2s stall. The dummy placeholder (`http://localhost/dummy_…`) is the only URI that still blocks skip. `QueueController.replaceAt` uses `PlaybackEngine.replace` (just_audio: remove + insert at index) rather than remove → add → move, which threw `IllegalArgumentException` in ExoPlayer on Android.
+
 **Dart-Side Shuffle & Race Condition Protection:**
 
-- **Custom Shuffle** (`SkipNavigator`): Because `media_kit`'s native `next()` jumps to `currentIndex + 1` sequentially, custom shuffle is implemented on the Dart side. When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` selects a random index. A shuffled-history list tracks previously played indices so `skipToPrevious()` can step backward along the exact shuffled path.
+- **Custom Shuffle** (`SkipNavigator`): Engine-level shuffle is not used (`JustAudioPlaybackEngine.setShuffle` only notifies listeners; `just_audio_media_kit` ignores `shuffleOrder`). When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` selects a random index. Natural track end does not emit `completed` on a concatenating just_audio playlist (the engine auto-advances `+1`); `TrackTransitionCoordinator` intercepts that auto-advance and also calls `skipToNext` in the last ~450ms so shuffle applies without a sequential blip. A shuffled-history list tracks previously played indices so `skipToPrevious()` can step backward along the exact shuffled path.
 - **Rapid Skip Protection** (`SkipNavigator`): During rapid manual skips, asynchronous playlist index updates lag behind taps. A synchronous target-skip index keeps each rapid tap resolving to the correct item.
 - **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
 
@@ -421,7 +430,7 @@ If the stream URL expires or fails after retries, recovery advances to an offlin
 Volume fade-in/fade-out on the position stream. Duration configurable via `Settings.crossfadeSeconds` (pushed from `PlayerNotifier` via `setCrossfadeDuration`).
 
 **Restore** — owned by `PlaybackRestoreController`:
-`PlayerNotifier` observes `restoreStatusStream` / `savedPosition` to block controls and seed the seek bar during cold start and warm resume. After restore, `VideoPlayerNotifier` force-kicks `setVideoTrack` so the texture is not left black.
+`PlayerNotifier` observes `restoreStatusStream` / `savedPosition` to block controls and seed the seek bar during cold start and warm resume. Restore keeps local `file://` URLs only when they are downloads or **audio-only** media-cache files.
 
 ### 6.2 `PlayerNotifier` (player_provider.dart)
 
@@ -453,7 +462,7 @@ The `extras` field on `MediaItem` carries additional metadata:
 
 | Key | Type | Source | Usage |
 |---|---|---|---|
-| `url` | String | StreamDatasource / local download | Media URL for media_kit |
+| `url` | String | StreamDatasource / local download | Media URL for the playback engine |
 | `videoId` | String | Always present | Unique YT ID |
 | `isVideo` | String ("true"/"false") | getVideo fallback | Toggles between Audio and Video player |
 | `needsUrl` | String ("true") | Lazy resolution | Flag for deferred resolution |
@@ -468,7 +477,7 @@ The `extras` field on `MediaItem` carries additional metadata:
 
 ### 6.4 User Queue / Up Next Split (schemaVersion 18)
 
-The playback queue is logically split into two **sections** that share the same underlying `media_kit` playlist but are presented as distinct zones in the UI (and on Android Auto). A single `MediaItem` belongs to exactly one section, encoded in `extras['section']` as `'user'` or `'upnext'`. Items written before this feature have no `section` key and are interpreted as `'user'`.
+The playback queue is logically split into two **sections** that share the same underlying engine playlist but are presented as distinct zones in the UI (and on Android Auto). A single `MediaItem` belongs to exactly one section, encoded in `extras['section']` as `'user'` or `'upnext'`. Items written before this feature have no `section` key and are interpreted as `'user'`.
 
 - **User Queue** (`section: 'user'`) — tracks the user explicitly added via "Play all", "Play next", "Add to queue", or any single-track tap. This is the only section the user can fully manage (reorder, remove, clear).
 - **Up Next** (`section: 'upnext'`) — autoplay suggestions fetched by `StartRadioUseCase` (gated by `Settings.autoPlayUpNext`). Items are appended to the playlist with this tag and removed when the user disables autoplay.
@@ -578,12 +587,12 @@ Sonora monitors network state globally using `connectivity_plus` and local user 
 - **Error Interception**:
   - `PlayerErrorListener` and `ErrorRetryWidget` intercept raw socket/timeout exceptions and format them into localized user-friendly messages (`weakConnectionError`).
 
-### 6.8 5-Band Equalizer (mpv lavfi Audio Filters)
+### 6.8 5-Band Equalizer
 
-Sonora features a software-based **5-Band Equalizer** applied to the `media_kit` / libmpv pipeline via FFmpeg `lavfi` equalizer filters (`EqualizerController`).
+Sonora features a software-based **5-Band Equalizer** (`EqualizerController`) with centers at 100 / 300 / 1000 / 3000 / 10000 Hz.
 
-- **Filter Orchestration**: Band gains are translated to an `af` filtergraph string with center frequencies at 100 / 300 / 1000 / 3000 / 10000 Hz (`width_type=q`, Q=1.0).
-- **Native Platform Application**: The filter is applied dynamically on `NativePlayer` via `setProperty('af', …)`. Non-native platforms log and no-op.
+- **Android**: Gains are interpolated (log-frequency) onto the device `AndroidEqualizer` bands in the `just_audio` `AudioPipeline`. Band values are clamped to the platform min/max dB.
+- **Linux**: In-app EQ is disabled. The settings tile and equalizer panel explain that users should apply EasyEffects or the PipeWire / PulseAudio system equalizer.
 - **Equalizer State**: Managed via `EqualizerNotifier` and persisted in SharedPreferences; `EqualizerNotifier` calls `SonoraAudioHandler.setEqualizer`, which forwards to `EqualizerController`. The facade also bootstraps EQ from prefs at construction.
 - **Presets**: Offers predefined gain tables for common genres (e.g., Rock, Pop, Classical, Bass Boost, Vocals).
 
@@ -641,13 +650,25 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 |---|---|
 | Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test` |
 | Prepare | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists, writes `release-notes.md` via `scripts/generate_release_notes.py` |
-| Android build | `flutter build apk --release` with signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`) |
+| Android build | Builds a universal `app-release.apk` plus `--split-per-abi` (`arm64-v8a`, `armeabi-v7a`); signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`); the x86_64 split is deleted before upload (emulator-only) |
 | Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
 | Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
-| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, APK + DEB + RPM attached |
+| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, three APKs (`app-release.apk` first, then arm64 / armeabi splits) + DEB + RPM attached |
 | CHANGELOG.md | After the GitHub Release, `scripts/insert_changelog_entry.py` prepends `## [{version}+{build}]` and pushes with `[skip ci]` |
 
-**Flutter version**: 3.47.1 (cached via `subosito/flutter-action`).
+**Flutter version**: 3.47.2 (cached via `subosito/flutter-action`).
+
+**APK size**: ABI-aware clients download a per-ABI split (~43.6 MB arm64) instead of the
+125.7 MB universal APK. The universal build stays in the release only as a bridge for older
+in-app updaters. R8 and resource shrinking are already enabled by the Flutter Gradle plugin for
+release builds, which also picks up `android/app/proguard-rules.pro` automatically. See
+[apk-size-baseline.md](apk-size-baseline.md).
+
+**In-app updater**: `selectApkAsset` in `lib/domain/usecases/update/apk_asset_selection.dart`
+picks the APK matching `Build.SUPPORTED_ABIS`. The universal `app-release.apk` is uploaded first
+so pre-ABI-aware clients (which take the first `.apk`) still update on every device; once those
+clients are on a build with ABI selection, later updates prefer the matching split and fall back
+to the universal APK when no ABI matches.
 
 **Release notes**: generated from [Conventional Commits](https://www.conventionalcommits.org/) since the previous tag (`feat` / `fix` / `perf` only). Preview locally with `python3 scripts/generate_release_notes.py`. Housekeeping (`chore`, `docs`, `ci`, `test`, `refactor`, `chore(release)`, …) is omitted so the in-app dialog stays user-facing. The seed file is `CHANGELOG.md`.
 
@@ -815,7 +836,9 @@ AudioServiceConfig(
 
 ### 11.2 MPRIS
 
-`audio_service_mpris` provides D-Bus MPRIS integration on Linux. Configured in `main.dart` alongside `audio_service`.
+`audio_service_mpris` provides D-Bus MPRIS integration on Linux. There is **no MPRIS-specific code in `main.dart`**: the package is a federated platform implementation that registers itself as `AudioServicePlatform.instance`, so it activates implicitly when `AudioService.init` runs. It derives the D-Bus identity from `androidNotificationChannelId` / `androidNotificationChannelName` in `AudioServiceConfig`, and forwards D-Bus play/pause/next/previous/seek to `SonoraAudioHandler`.
+
+Being Dart-only, it does not appear in `linux/flutter/generated_plugin_registrant.cc`.
 
 ### 11.3 Linux Packaging
 
@@ -846,7 +869,7 @@ Produces:
 
 - `libgtk-3-0` / `gtk3` — GTK3 runtime
 - `libayatana-appindicator3-1` / `libappindicator-gtk3` — System tray icon
-- `libmpv2` / `mpv-libs` — media_kit audio backend
+- `libmpv2` / `mpv-libs` — Linux audio backend (`just_audio_media_kit`)
 
 **Options:**
 
@@ -857,29 +880,42 @@ Produces:
 
 ## 12. Settings — Persistent Preferences
 
-`SettingsNotifier` (backed by `SharedPreferences`) manages:
+`SettingsNotifier` (backed by `SharedPreferences`) manages portable prefs plus a few device/runtime keys. Export/import of `backup.json` → `settings` is centralized in `Settings.toBackupMap` / `applyBackupMap` (plus `EqualizerState.toBackupMap` / `EqualizerNotifier.applyBackupMap`) so keys cannot drift from the `k*Key` constants.
 
-| Key | Type | Default | Side-effect |
-|---|---|---|---|
-| `themeMode` | int (ThemeMode enum) | 0 (system) | ThemeProvider |
-| `useDynamicColor` | bool | true | ThemeProvider |
-| `useAmoled` | bool | false | ThemeProvider |
-| `gl` | String | "US" | YTMusic reinitialize + invalidate home |
-| `hl` | String | "en" | YTMusic reinitialize + invalidate home |
-| `crossfadeSeconds` | int | 2 | `PlaybackVolumeController` crossfade |
-| `restoreQueueOnStartup` | bool | true | QueueUseCase at boot |
-| `autoPlayUpNext` | bool | true | PlayerNotifier auto-play |
-| `enableVideoPlayback` | bool | false | Video track attach + `preferVideo` on proxy URLs; clears stream URL cache **and** media disk cache |
-| `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | Proxy / audio stream pick; clears URL + media cache (legacy `streamQuality` migrates here) |
-| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | `StartDownloadUseCase` stream pick (audio tiers; video uses best muxed) |
-| `downloadPath` | String? | null | StartDownloadUseCase |
-| `downloadOnlyOnWifi` | bool | false | StartDownloadUseCase |
-| `trackHistory` | bool | true | History insert on play |
-| `offlineMode` | bool | false | Overrides network state to restrict online calls |
-| `checkUpdatesOnStartup` | bool | true | UpdateNotifier at boot |
-| `equalizerEnabled` | bool | false | `EqualizerController` filter application |
-| `equalizerGains` | String | "0,0,0,0,0" | `EqualizerController` filter gains |
-| `equalizerPreset` | String | "flat" | Display preset name in Equalizer UI |
+| Key | Type | Default | Backup | Side-effect |
+|---|---|---|---|---|
+| `themeMode` | int (ThemeMode enum) | 0 (system) | yes | ThemeProvider |
+| `useDynamicColor` | bool | true | yes | ThemeProvider |
+| `useAmoled` | bool | false | yes | ThemeProvider |
+| `gl` | String | "US" | yes | YTMusic reinitialize + invalidate home |
+| `hl` | String | "en" | yes | YTMusic reinitialize + invalidate home |
+| `crossfadeSeconds` | int | 2 | yes | `PlaybackVolumeController` crossfade |
+| `restoreQueueOnStartup` | bool | true | yes | Restore at boot |
+| `autoPlayUpNext` | bool | true | yes | PlayerNotifier auto-play |
+| `streamAudioQuality` | String (`high`/`mid`/`low`) | `high` | yes | Proxy / audio stream pick; clears URL + media cache |
+| `mediaCacheSize` | String (`mb500`/`gb1`/`gb2`/`gb5`) | `gb1` | yes | `MediaCacheService` max size |
+| `downloadQuality` | String (`high`/`mid`/`low`) | `high` | yes | `StartDownloadUseCase` audio stream pick |
+| `downloadOnlyOnWifi` | bool | false | yes | StartDownloadUseCase |
+| `trackHistory` | bool | true | yes | History insert on play |
+| `checkUpdatesOnStartup` | bool | true | yes | UpdateNotifier at boot |
+| `isLibraryGridView` | bool | false | yes | Library layout |
+| `useVinylStyle` | bool | true | yes | Player artwork style |
+| `reduceEffects` | bool | false | yes | Reduced motion / effects |
+| `offlineMode` | bool | false | yes | Overrides network state to restrict online calls |
+| `localSyncEnabled` | bool | false | yes | P2P sync server |
+| `localSyncAutoEnabled` | bool | false | yes | Auto-start local sync |
+| `playlistConflictStrategy` | String | `merge` | yes | Local playlist merge strategy |
+| `equalizerEnabled` | bool | false | yes | `EqualizerController` (prefs owned by `EqualizerNotifier`) |
+| `equalizerGains` | StringList (5 bands) | `0.0`×5 | yes | `EqualizerController` filter gains |
+| `equalizerPreset` | String | `flat` | yes | Display preset name in Equalizer UI |
+| `downloadPath` | String? | null | no | Device filesystem path; not portable |
+| `lastUpdateCheckTime` | int | — | no | Runtime throttle |
+| `postQueueSplitDone` | bool | — | no | One-shot queue migration |
+| `batteryPromptDismissed` | bool | — | no | One-shot Android prompt |
+
+`librarySortType` (library UI) and sync pairing ids are also persisted locally and are not part of the settings backup map.
+
+On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `streamQuality` into `streamAudioQuality` (so the user's chosen quality is kept) and deletes `streamQuality` plus leftover `enableVideoPlayback`. New keys missing from older installs use the defaults above. Import of an older zip ignores unknown keys and still maps `streamQuality` → `streamAudioQuality`.
 
 ---
 
@@ -887,18 +923,41 @@ Produces:
 
 ### 13.1 Test Files
 
+29 files, 327 tests as of `1.7.4+60`. Counts below are `test(` / `testWidgets(` occurrences. Video-player tests were removed with in-app video playback; equalizer interpolation and just_audio mapping tests were added.
+
 | File | Count | Coverage |
 |---|---|---|
-| `test/daos_test.dart` | ~65 | All DAOs with upsert, edge cases |
-| `test/library_repository_test.dart` | ~35 | Toggle, mapping, CRUD |
-| `test/local_audio_proxy_server_test.dart` | ~5 | Loopback server, quality query params, validation |
-| `test/stream_quality_selector_test.dart` | ~9 | audioOnly / muxed tiers + fallback |
-| `test/player_state_test.dart` | ~8 | PlayerState + Settings base |
-| `test/settings_provider_test.dart` | ~22 | Settings model + setters (incl. stream/download quality) |
-| `test/widget_test.dart` | 1 | App bootstrap smoke test |
-| `test/ytmusic_datasource_test.dart` | ~6 | Live network: search, suggestions, reinitialize |
+| `test/daos_test.dart` | 66 | All DAOs with upsert, edge cases |
+| `test/library_repository_test.dart` | 35 | Toggle, mapping, CRUD |
+| `test/playback_intent_controller_test.dart` | 27 | Buds ear-detection, Assistant interruption, becoming-noisy, cold restore |
+| `test/settings_provider_test.dart` | 30 | Settings model + setters + backup map + upgrade migration |
+| `test/track_transition_coordinator_test.dart` | 14 | Cascade order and `isResolvingItem` suppression |
+| `test/track_url_resolver_prefetch_test.dart` | 15 | Lazy resolve + adaptive lookahead |
+| `test/queue_meta_atomicity_test.dart` | 11 | Atomic playback-pointer persistence |
+| `test/media_cache_service_test.dart` | 8 | LRU disk cache behaviour |
+| `test/queue_controller_to_media_test.dart` | 10 | `toMedia` URI selection (proxy / file / dummy) |
+| `test/stream_quality_selector_test.dart` | 6 | audioOnly tiers + muxed fallback |
+| `test/update_asset_selection_test.dart` | 12 | Per-ABI APK pick for the in-app updater (incl. universal bridge) |
+| `test/media_cache_uri_test.dart` | 8 | Cache URI classification |
+| `test/playback_restore_local_url_test.dart` | 6 | Restore with local / stale / audio-only cache URLs |
+| `test/just_audio_playback_engine_test.dart` | 2 | Repeat-mode + `AudioSource` tag mappings |
+| `test/equalizer_interpolation_test.dart` | 4 | 5-band → device-band gain interpolation |
+| `test/battery_prompt_provider_test.dart` | 6 | Battery-optimisation prompt state |
+| `test/downloads_notifier_test.dart` | 6 | Download progress state |
+| `test/core/url_staleness_test.dart` | 5 | Stream URL expiry checks |
+| `test/local_audio_proxy_server_test.dart` | 5 | Loopback server, quality query params, validation |
+| `test/playback_state_publisher_test.dart` | 5 | engine state → `AudioProcessingState` |
+| `test/player_state_test.dart` | 5 | PlayerState + Settings base |
+| `test/queue_split_test.dart` | 5 | User queue / Up Next section split |
+| `test/release_changelog_test.dart` | 5 | Release-notes sanitisation |
+| `test/ytmusic_datasource_test.dart` | 5 | Live network: search, suggestions, reinitialize |
+| `test/android_auto_recent_test.dart` | 3 | AA recent-items node |
+| `test/core/extensions/duration_ext_test.dart` | 3 | `Duration` → `"3:45"` |
+| `test/media_cache_size_test.dart` | 3 | Cache size accounting |
+| `test/youtube_request_scheduler_test.dart` | 3 | Request throttling |
+| `test/queue_repository_test.dart` | 1 | Queue persist / restore round-trip |
 
-**Total**: see `flutter test` — suite includes DAO, repository, settings, stream quality, proxy, and downloads notifier coverage.
+`test/ytmusic_datasource_test.dart` hits the live YouTube Music API and can fail offline.
 
 ### 13.2 Commands
 
@@ -1005,8 +1064,11 @@ Consumed by `action_feedback_listener.dart` and `feedback_toast.dart` widgets.
 ### Manual release build
 
 ```bash
-# Android
+# Android — universal + per-ABI splits, as the release workflow does
 flutter build apk --release --build-name=1.7.2 --build-number=58
+flutter build apk --release --split-per-abi --build-name=1.7.2 --build-number=58
+# optional: drop emulator-only split
+rm -f build/app/outputs/flutter-apk/*x86_64*.apk
 
 # Linux — Flutter bundle
 flutter build linux --release

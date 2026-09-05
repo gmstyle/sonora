@@ -578,13 +578,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically play related content when queue ends';
 
   @override
-  String get enableVideoPlayback => 'Play video';
-
-  @override
-  String get enableVideoPlaybackHint =>
-      'Show music videos in the player. When disabled, only audio is played.';
-
-  @override
   String get streamAudioQuality => 'Streaming audio quality';
 
   @override
@@ -605,12 +598,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qualityLow => 'Low';
-
-  @override
-  String get hideVideo => 'Hide video';
-
-  @override
-  String get showVideo => 'Show video';
 
   @override
   String get downloadsSettings => 'Downloads';
@@ -1435,6 +1422,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get equalizerEnabled => 'Equalizer enabled';
+
+  @override
+  String get linuxEqualizerUnavailable => 'Use system equalizer';
+
+  @override
+  String get linuxEqualizerHint =>
+      'Sonora does not apply in-app EQ on Linux. Use EasyEffects or your PipeWire / PulseAudio equalizer instead.';
 
   @override
   String get presetCustom => 'Custom';
