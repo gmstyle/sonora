@@ -29,80 +29,43 @@ void main() {
   }
 
   group('getCachedHit / getCachedFileUri', () {
-    test(
-      'preferVideo false returns only audio-only, never .v.* or muxed',
-      () async {
-        await writeCache('vid.webm');
-        await writeCache('vid.v.mp4');
-        await writeCache('vid.mp4');
-
-        final hit = await cache.getCachedHit('vid', preferVideo: false);
-        expect(hit, isNotNull);
-        expect(hit!.isPair, isFalse);
-        expect(hit.primaryUri, contains('vid.webm'));
-
-        final uri = await cache.getCachedFileUri('vid', preferVideo: false);
-        expect(uri, contains('vid.webm'));
-        expect(uri, isNot(contains('.v.')));
-        expect(uri, isNot(contains('vid.mp4')));
-      },
-    );
-
-    test(
-      'preferVideo false is a miss when only muxed or video-only exist',
-      () async {
-        await writeCache('vid.v.mp4');
-        await writeCache('vid.mp4');
-
-        expect(await cache.getCachedHit('vid', preferVideo: false), isNull);
-        expect(await cache.getCachedFileUri('vid', preferVideo: false), isNull);
-      },
-    );
-
-    test('preferVideo true returns muxed {id}.mp4', () async {
+    test('returns only audio-only, never .v.* or muxed', () async {
       await writeCache('vid.webm');
+      await writeCache('vid.v.mp4');
       await writeCache('vid.mp4');
 
-      final hit = await cache.getCachedHit('vid', preferVideo: true);
+      final hit = await cache.getCachedHit('vid');
       expect(hit, isNotNull);
-      expect(hit!.isPair, isFalse);
-      expect(hit.primaryUri, contains('vid.mp4'));
-      expect(hit.primaryUri, isNot(contains('.v.')));
+      expect(hit!.primaryUri, contains('vid.webm'));
 
-      final uri = await cache.getCachedFileUri('vid', preferVideo: true);
-      expect(uri, contains('vid.mp4'));
+      final uri = await cache.getCachedFileUri('vid');
+      expect(uri, contains('vid.webm'));
+      expect(uri, isNot(contains('.v.')));
+      expect(uri, isNot(contains('vid.mp4')));
     });
 
-    test(
-      'preferVideo true returns complete pair as video-only + audio',
-      () async {
-        await writeCache('vid.v.mp4');
-        await writeCache('vid.webm');
-
-        final hit = await cache.getCachedHit('vid', preferVideo: true);
-        expect(hit, isNotNull);
-        expect(hit!.isPair, isTrue);
-        expect(hit.primaryUri, contains('vid.v.mp4'));
-        expect(hit.externalAudioUri, contains('vid.webm'));
-
-        // Proxy wrapper must not serve video-only alone.
-        expect(await cache.getCachedFileUri('vid', preferVideo: true), isNull);
-      },
-    );
-
-    test('incomplete pair is a video miss', () async {
+    test('is a miss when only muxed or video-only exist', () async {
       await writeCache('vid.v.mp4');
+      await writeCache('vid.mp4');
 
-      expect(await cache.getCachedHit('vid', preferVideo: true), isNull);
-      expect(await cache.getCachedFileUri('vid', preferVideo: true), isNull);
+      expect(await cache.getCachedHit('vid'), isNull);
+      expect(await cache.getCachedFileUri('vid'), isNull);
+    });
+
+    test('pair leftovers still yield the audio-only sibling', () async {
+      await writeCache('vid.v.mp4');
+      await writeCache('vid.webm');
+
+      final hit = await cache.getCachedHit('vid');
+      expect(hit!.primaryUri, contains('vid.webm'));
+      expect(await cache.getCachedFileUri('vid'), contains('vid.webm'));
     });
 
     test('audio-only exists without video is still an audio hit', () async {
       await writeCache('song.webm');
 
-      final hit = await cache.getCachedHit('song', preferVideo: false);
+      final hit = await cache.getCachedHit('song');
       expect(hit!.primaryUri, contains('song.webm'));
-      expect(await cache.getCachedHit('song', preferVideo: true), isNull);
     });
   });
 

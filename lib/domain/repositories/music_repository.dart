@@ -26,11 +26,7 @@ abstract class MusicRepository {
   Future<AlbumFull> getAlbum(String albumId);
   Future<PlaylistFull> getPlaylist(String playlistId, {int limit = 100});
   Future<List<VideoDetailed>> getPlaylistVideos(String playlistId);
-  Future<String> getStreamUrl(
-    String videoId, {
-    MediaQuality? quality,
-    bool preferVideo = false,
-  });
+  Future<String> getStreamUrl(String videoId, {MediaQuality? quality});
 
   Future<WatchPlaylistResult> getWatchPlaylist({
     String? videoId,

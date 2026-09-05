@@ -98,7 +98,7 @@ class PlaybackRestoreController {
     if (!track.isLocalFile) return false;
     if (UrlStaleness.isStale(track.url)) return false;
     if (!MediaCacheService.isMediaCacheUri(track.url)) return true;
-    return MediaCacheService.isCacheCompatibleWithPreferVideo(track.url, false);
+    return MediaCacheService.isPlayableCacheUri(track.url);
   }
 
   void markPaused() {
@@ -365,11 +365,7 @@ class PlaybackRestoreController {
     );
 
     try {
-      final currentTrack = QueueTrack.fromMediaItem(currentItem);
-      final freshUrl = await _playVideoIdUseCase.resolveUrl(
-        currentItem.id,
-        preferVideo: _queueController.prefersVideo(currentTrack),
-      );
+      final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
       final track = QueueTrack.fromMediaItem(
         currentItem,
       ).copyWith(url: freshUrl, needsUrl: false);

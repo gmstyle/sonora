@@ -113,6 +113,7 @@ Future<void> main() async {
     musicRepo: musicRepo,
     libraryRepo: libraryRepo,
     playVideoIdUseCase: playVideoIdUseCase,
+    streamDatasource: streamDs,
     prefs: prefs,
     queueRepo: queueRepo,
     proxyServer: proxyServer,

@@ -15,7 +15,6 @@ class _FakeStreamDatasource extends StreamDatasource {
   Future<String> getStreamUrl(
     String videoId, {
     MediaQuality? audioQuality,
-    bool preferVideo = false,
     int attempt = 1,
   }) async {
     return 'http://example.com/$videoId.mp3';

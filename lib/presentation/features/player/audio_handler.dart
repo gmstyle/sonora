@@ -11,6 +11,7 @@ import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'just_audio_playback_engine.dart';
 import 'playback_engine.dart';
+import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
@@ -51,6 +52,7 @@ import '../../providers/settings_provider.dart';
 class SonoraAudioHandler extends BaseAudioHandler {
   final JustAudioPlaybackEngine _engine = JustAudioPlaybackEngine.create();
   final PlayVideoIdUseCase _playVideoIdUseCase;
+  final StreamDatasource _streamDatasource;
   final SharedPreferences _prefs;
   final QueueRepository _queueRepo;
   final LocalAudioProxyServer? _proxyServer;
@@ -132,10 +134,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required MusicRepository musicRepo,
     required LibraryRepository libraryRepo,
     required PlayVideoIdUseCase playVideoIdUseCase,
+    required StreamDatasource streamDatasource,
     required SharedPreferences prefs,
     required QueueRepository queueRepo,
     LocalAudioProxyServer? proxyServer,
   }) : _playVideoIdUseCase = playVideoIdUseCase,
+       _streamDatasource = streamDatasource,
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
@@ -219,6 +223,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _urlResolver = TrackUrlResolver(
       engine: _engine,
       playVideoIdUseCase: _playVideoIdUseCase,
+      streamDatasource: _streamDatasource,
       queueController: _queueController,
       volumeController: _volumeController,
       statePublisher: _statePublisher,

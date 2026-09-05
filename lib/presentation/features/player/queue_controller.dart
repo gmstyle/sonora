@@ -76,7 +76,6 @@ class QueueController {
     return _proxyServer?.getCastStreamUrlForVideo(
       track.videoId,
       audioQuality: streamAudioQuality,
-      preferVideo: prefersVideo(track),
     );
   }
 
@@ -109,10 +108,6 @@ class QueueController {
       onResolvingIdle?.call();
     }
   }
-
-  /// Whether [track] should play as video (muxed proxy with `v=1`).
-  /// Video playback has been removed; streams are always audio-only.
-  bool prefersVideo(QueueTrack track) => false;
 
   /// Runs [action] exclusively (FIFO) so overlapping callers never interleave
   /// playlist mutations. Used by batch adds, single adds, replaceAt, and
@@ -306,15 +301,10 @@ class QueueController {
   EngineMedia toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
-    final preferVideo = prefersVideo(track);
     final isCache = MediaCacheService.isMediaCacheUri(track.url);
     final useLocal =
         track.isLocalFile &&
-        (!isCache ||
-            MediaCacheService.isCacheCompatibleWithPreferVideo(
-              track.url,
-              preferVideo,
-            ));
+        (!isCache || MediaCacheService.isPlayableCacheUri(track.url));
     if (useLocal) {
       return EngineMedia(uri: track.url!, mediaItem: tagged);
     }
@@ -324,7 +314,6 @@ class QueueController {
       final proxyUrl = _proxyServer.getStreamUrlForVideo(
         track.videoId,
         audioQuality: streamAudioQuality,
-        preferVideo: preferVideo,
       );
       return EngineMedia(uri: proxyUrl, mediaItem: tagged);
     }

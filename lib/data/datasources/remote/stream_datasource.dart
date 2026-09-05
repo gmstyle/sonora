@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -10,7 +11,7 @@ import '../../../domain/models/media_quality.dart';
 import '../../services/media_cache_service.dart';
 import 'youtube_request_scheduler.dart';
 
-/// Cached URL for one videoId + audio quality + preferVideo combination.
+/// Cached URL for one videoId + audio quality combination.
 class PlaybackUrlPlan {
   final String primaryUrl;
 
@@ -47,28 +48,22 @@ class StreamDatasource {
            getDefaultQuality ??
            (() => MediaQuality.high);
 
-  /// In-memory playback plans: `videoId|audioQ|preferVideo` → URL.
+  /// In-memory playback plans: `videoId|audioQ` → URL.
   final Map<String, PlaybackUrlPlan> _playbackCache = {};
 
   static String playbackKey(
     String videoId, {
     required MediaQuality audioQuality,
-    required bool preferVideo,
-  }) => '$videoId|${audioQuality.name}|$preferVideo';
+  }) => '$videoId|${audioQuality.name}';
 
   /// Ensures a stream URL is resolved and cached for [videoId].
   Future<PlaybackUrlPlan> ensurePlaybackSelection(
     String videoId, {
     MediaQuality? audioQuality,
-    bool preferVideo = false,
     int attempt = 1,
   }) async {
     final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
-    final key = playbackKey(
-      videoId,
-      audioQuality: resolvedAudio,
-      preferVideo: preferVideo,
-    );
+    final key = playbackKey(videoId, audioQuality: resolvedAudio);
 
     final cached = _playbackCache[key];
     if (cached != null && !cached.isStale) {
@@ -79,25 +74,8 @@ class StreamDatasource {
       final manifest = await _scheduler.schedule(
         () => _yt.videos.streamsClient.getManifest(videoId),
       );
-      // YouTube no longer serves progressive muxed streams for many videos to
-      // anonymous clients (androidVr is bot-gated, visionos is adaptive-only).
-      // In that case fall back to the HLS master playlist exposed by the
-      // manifest: libmpv on Linux can play it natively with audio+video.
-      final hlsFallbackUrl =
-          (preferVideo &&
-                  manifest.muxed.isEmpty &&
-                  manifest.hlsManifestUrl != null)
-              ? manifest.hlsManifestUrl!
-              : null;
-      final selection =
-          hlsFallbackUrl == null
-              ? _selector.select(
-                manifest,
-                quality: resolvedAudio,
-                preferVideo: preferVideo,
-              )
-              : null;
-      final primaryUrl = hlsFallbackUrl ?? selection!.url.toString();
+      final selection = _selector.select(manifest, quality: resolvedAudio);
+      final primaryUrl = selection.url.toString();
       _assertAbsoluteHttpUrl(primaryUrl, 'primary');
       final plan = PlaybackUrlPlan(primaryUrl: primaryUrl);
       _playbackCache[key] = plan;
@@ -109,7 +87,6 @@ class StreamDatasource {
       return ensurePlaybackSelection(
         videoId,
         audioQuality: resolvedAudio,
-        preferVideo: preferVideo,
         attempt: attempt + 1,
       );
     } on ArgumentError catch (_) {
@@ -120,7 +97,6 @@ class StreamDatasource {
       return ensurePlaybackSelection(
         videoId,
         audioQuality: resolvedAudio,
-        preferVideo: preferVideo,
         attempt: attempt + 1,
       );
     }
@@ -143,7 +119,6 @@ class StreamDatasource {
   Future<String> getStreamUrl(
     String videoId, {
     MediaQuality? audioQuality,
-    bool preferVideo = false,
     int attempt = 1,
   }) async {
     final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
@@ -152,7 +127,6 @@ class StreamDatasource {
       final plan = await ensurePlaybackSelection(
         videoId,
         audioQuality: resolvedAudio,
-        preferVideo: preferVideo,
       );
       return plan.primaryUrl;
     } on RequestLimitExceededException {
@@ -162,7 +136,6 @@ class StreamDatasource {
       return getStreamUrl(
         videoId,
         audioQuality: resolvedAudio,
-        preferVideo: preferVideo,
         attempt: attempt + 1,
       );
     }
@@ -238,47 +211,39 @@ class StreamDatasource {
     }
   }
 
-  /// Disk-caches playable video for [videoId] (lookahead / offline).
+  /// Downloads the audio stream for [videoId] into [MediaCacheService] using
+  /// the same authenticated [StreamClient] as library downloads.
   ///
-  /// Live video playback may use HLS; this path downloads progressive muxed
-  /// when available, otherwise an adaptive video-only + audio-only pair.
-  Future<void> ensureVideoDiskCache(
+  /// Failures are logged and swallowed so lookahead / background cache never
+  /// interrupts playback.
+  Future<void> cacheAudio(
     String videoId, {
     MediaQuality? audioQuality,
   }) async {
-    final cache = MediaCacheService.instance;
-    final existing = await cache.getCachedHit(videoId, preferVideo: true);
-    if (existing != null) return;
+    try {
+      final cache = MediaCacheService.instance;
+      if (await cache.getCachedFileUri(videoId) != null) return;
 
-    final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
-    final manifest = await getManifest(videoId);
-
-    final muxed =
-        manifest.muxed.isEmpty
-            ? null
-            : manifest.muxed.toList().withHighestBitrate();
-    if (muxed != null) {
-      await cache.downloadToCache(videoId, muxed.url.toString());
-      return;
+      final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
+      final manifest = await getManifest(videoId);
+      final stream = _selector.select(manifest, quality: resolvedAudio);
+      await cache.downloadAudioToCache(
+        videoId: videoId,
+        extension: stream.container.name,
+        write: (tempPath, token) => downloadStreamToFile(
+          stream,
+          tempPath,
+          cancelToken: token,
+          onProgress: (_, __) {},
+        ),
+      );
+    } catch (e) {
+      dev.log('[StreamDatasource] cacheAudio failed for $videoId: $e');
     }
-
-    final pair = _selector.selectAdaptiveCachePair(
-      manifest,
-      audioQuality: resolvedAudio,
-    );
-    if (pair == null) return;
-
-    await cache.downloadAdaptivePair(
-      videoId: videoId,
-      videoUrl: pair.video.url.toString(),
-      audioUrl: pair.audio.url.toString(),
-      videoExt: pair.video.container.name,
-      audioExt: pair.audio.container.name,
-    );
   }
 
   /// Invalidates in-memory stream URL cache entries for [videoId]
-  /// (all quality / preferVideo variants).
+  /// (all quality variants).
   void invalidateCache(String videoId) {
     _playbackCache.removeWhere(
       (key, _) => key == videoId || key.startsWith('$videoId|'),

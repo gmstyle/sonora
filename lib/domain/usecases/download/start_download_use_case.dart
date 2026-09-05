@@ -112,7 +112,7 @@ class StartDownloadUseCase {
     required MediaQuality quality,
   }) {
     try {
-      return _selector.select(manifest, quality: quality, preferVideo: false);
+      return _selector.select(manifest, quality: quality);
     } catch (_) {
       if (manifest.audioOnly.isNotEmpty) {
         return manifest.audioOnly.withHighestBitrate();

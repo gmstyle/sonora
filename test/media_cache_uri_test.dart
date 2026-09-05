@@ -66,26 +66,11 @@ void main() {
       expect(MediaCacheService.isAudioOnlyCacheUri(videoOnly), isFalse);
     });
 
-    test('audio preferVideo requires audio-only, not muxed or video-only', () {
-      expect(
-        MediaCacheService.isCacheCompatibleWithPreferVideo(audioWebm, false),
-        isTrue,
-      );
-      expect(
-        MediaCacheService.isCacheCompatibleWithPreferVideo(muxed, false),
-        isFalse,
-      );
-      expect(
-        MediaCacheService.isCacheCompatibleWithPreferVideo(videoOnly, false),
-        isFalse,
-      );
-    });
-
-    test('video preferVideo accepts muxed without a sibling file', () {
-      expect(
-        MediaCacheService.isCacheCompatibleWithPreferVideo(muxed, true),
-        isTrue,
-      );
+    test('isPlayableCacheUri is audio-only only', () {
+      expect(MediaCacheService.isPlayableCacheUri(audioWebm), isTrue);
+      expect(MediaCacheService.isPlayableCacheUri(audioMp3), isTrue);
+      expect(MediaCacheService.isPlayableCacheUri(muxed), isFalse);
+      expect(MediaCacheService.isPlayableCacheUri(videoOnly), isFalse);
     });
   });
 }

@@ -392,18 +392,18 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
   - Runs locally on `127.0.0.1` using a dynamic ephemeral port assigned by the OS at startup.
   - Intercepts player requests for `http://127.0.0.1:<PORT>/stream?videoId=<videoId>&qa=<high|mid|low>` (legacy `q` still accepted as fallback for audio quality).
     - `qa` — streaming audio quality from `Settings.streamAudioQuality` (built by `QueueController.toMedia`).
-    - Catalog music videos use the same audio-only proxy path (`QueueController.prefersVideo` is always false). `v=1` is no longer emitted.
-  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3). Muxed `{id}.mp4` and video-only `{id}.v.*` hits are not used for playback.
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:, preferVideo: false)` and `YoutubeRequestScheduler`.
+    - Catalog music videos use the same audio-only proxy path.
+  - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3). Muxed `{id}.mp4` and video-only `{id}.v.*` leftovers are ignored.
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:)` and `YoutubeRequestScheduler`.
   - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `just_audio`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio quality, and retries up to 3 times automatically. The engine sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, data is saved asynchronously to disk via `MediaCacheService` (LRU, user-configurable size) for audio-only files. Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality clears this cache.
+  - **Background Cache Population**: As remote streams play, audio is saved asynchronously via `StreamDatasource.cacheAudio` → youtube_explode `StreamClient` (same authenticated downloader as library downloads; not a raw Dio GET). Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality clears this cache.
   - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` (e.g. persist playback pointer). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
   - Shared enum `MediaQuality { high, mid, low }` for streaming audio (`Settings.streamAudioQuality`) and downloads (`Settings.downloadQuality`).
-  - Playback always picks audio-only (`preferVideo == false`): `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
+  - Playback always picks audio-only: `manifest.audioOnly` via `sortByBitrate()` using **audio** quality — high = first, mid = median, low = last. Fallback to muxed if audio-only is empty.
   - **Downloads**: always audio-only using `downloadQuality`, even when the catalog item `isVideo` (that flag is stored as metadata only). Cast uses the same audio `select` path.
-  - `StreamDatasource` caches playback plans by `videoId|audioQ|preferVideo` and exposes `clearUrlCache()` when stream audio quality changes.
+  - `StreamDatasource` caches playback plans by `videoId|audioQ` and exposes `clearUrlCache()` when stream audio quality changes.
 
 - **Dual-Path Playback Architecture:**
   - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
@@ -918,11 +918,11 @@ Produces:
 | `test/track_transition_coordinator_test.dart` | 14 | Cascade order and `isResolvingItem` suppression |
 | `test/track_url_resolver_prefetch_test.dart` | 15 | Lazy resolve + adaptive lookahead |
 | `test/queue_meta_atomicity_test.dart` | 11 | Atomic playback-pointer persistence |
-| `test/media_cache_service_test.dart` | 10 | LRU disk cache behaviour |
+| `test/media_cache_service_test.dart` | 8 | LRU disk cache behaviour |
 | `test/queue_controller_to_media_test.dart` | 10 | `toMedia` URI selection (proxy / file / dummy) |
-| `test/stream_quality_selector_test.dart` | 10 | audioOnly / muxed tiers + fallback |
+| `test/stream_quality_selector_test.dart` | 6 | audioOnly tiers + muxed fallback |
 | `test/update_asset_selection_test.dart` | 12 | Per-ABI APK pick for the in-app updater (incl. universal bridge) |
-| `test/media_cache_uri_test.dart` | 9 | Cache URI + HLS playlist detection |
+| `test/media_cache_uri_test.dart` | 8 | Cache URI classification |
 | `test/playback_restore_local_url_test.dart` | 6 | Restore with local / stale / audio-only cache URLs |
 | `test/just_audio_playback_engine_test.dart` | 2 | Repeat-mode + `AudioSource` tag mappings |
 | `test/equalizer_interpolation_test.dart` | 4 | 5-band → device-band gain interpolation |
