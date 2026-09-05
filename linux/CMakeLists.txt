@@ -106,6 +106,17 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
+# Window / tray icons next to the executable (`flutter run` and packaged bundles).
+# Release packaging also copies these; without this step debug builds warn that
+# sonora.png is missing.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../assets/logo_full.png"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  RENAME "sonora.png"
+  COMPONENT Runtime)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../assets/icons/tray/tray_icon.png"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)
 
