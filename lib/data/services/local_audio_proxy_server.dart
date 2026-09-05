@@ -296,8 +296,7 @@ class LocalAudioProxyServer {
             (cType?.contains('mpegurl') ?? false) ||
             currentUrl.contains('/api/manifest/');
         if (!isHlsPlaylist &&
-            (rangeHeaderStr == null ||
-                rangeHeaderStr.startsWith('bytes=0-'))) {
+            (rangeHeaderStr == null || rangeHeaderStr.startsWith('bytes=0-'))) {
           unawaited(
             _streamDatasource.cacheAudio(videoId, audioQuality: audioQuality),
           );

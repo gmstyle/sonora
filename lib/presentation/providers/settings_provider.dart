@@ -531,6 +531,7 @@ Future<void> migrateLegacySettingsPrefs(SharedPreferences prefs) async {
   await prefs.remove(kLegacyStreamQualityKey);
   await prefs.remove(kLegacyEnableVideoPlaybackKey);
 }
+
 const kMediaCacheSizeKey = 'mediaCacheSize';
 const kDownloadQualityKey = 'downloadQuality';
 const kDownloadPathKey = 'downloadPath';

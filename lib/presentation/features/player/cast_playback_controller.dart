@@ -41,7 +41,6 @@ class CastPlaybackController {
   int _castSongToken = 0;
   int _castEpoch = 0;
   Duration? _lastCastPosition;
-  Duration? _lastCastDuration;
   SessionState? _remoteSessionState;
   StreamSubscription<Duration>? _castPositionSub;
   StreamSubscription<Duration>? _castDurationSub;
@@ -134,7 +133,6 @@ class CastPlaybackController {
     });
     _castDurationSub = service.durationStream.listen((d) {
       if (d > Duration.zero) {
-        _lastCastDuration = d;
         onCastDuration?.call(d);
       }
     });
@@ -185,7 +183,6 @@ class CastPlaybackController {
     _lastCastPosition = startPosition ?? Duration.zero;
     onCastPosition?.call(_lastCastPosition!);
     if (item.duration != null && item.duration! > Duration.zero) {
-      _lastCastDuration = item.duration;
       onCastDuration?.call(item.duration!);
     }
 

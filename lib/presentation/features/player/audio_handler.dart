@@ -254,13 +254,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying:
-          () async {
-            await _castController.waitForCastSessionState(
-              _castController.castService!,
-              SessionState.playing,
-            );
-          },
+      waitForCastPlaying: () async {
+        await _castController.waitForCastSessionState(
+          _castController.castService!,
+          SessionState.playing,
+        );
+      },
       castPause: () async {
         await _castController.castService?.pause();
       },
@@ -297,13 +296,12 @@ class SonoraAudioHandler extends BaseAudioHandler {
           artworkUrl: artworkUrl,
         );
       },
-      waitForCastPlaying:
-          () async {
-            await _castController.waitForCastSessionState(
-              _castController.castService!,
-              SessionState.playing,
-            );
-          },
+      waitForCastPlaying: () async {
+        await _castController.waitForCastSessionState(
+          _castController.castService!,
+          SessionState.playing,
+        );
+      },
       castPause: () async {
         await _castController.castService?.pause();
       },

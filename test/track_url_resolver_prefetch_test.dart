@@ -18,12 +18,15 @@ void main() {
       expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isTrue);
     });
 
-    test('returns true for unresolved needsUrl items (prefetch by videoId)', () {
-      final item = _item(
-        const QueueTrack(videoId: 'abc', title: 'Song', needsUrl: true),
-      );
-      expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isTrue);
-    });
+    test(
+      'returns true for unresolved needsUrl items (prefetch by videoId)',
+      () {
+        final item = _item(
+          const QueueTrack(videoId: 'abc', title: 'Song', needsUrl: true),
+        );
+        expect(TrackUrlResolver.shouldPrefetchDiskCache(item), isTrue);
+      },
+    );
 
     test('returns false for local file URLs', () {
       final item = _item(

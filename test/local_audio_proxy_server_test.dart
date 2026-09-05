@@ -83,7 +83,9 @@ void main() {
 
     test('legacy q query maps to audio quality', () async {
       final req = await httpClient.getUrl(
-        Uri.parse('http://127.0.0.1:${proxyServer.port}/stream?videoId=vid&q=mid'),
+        Uri.parse(
+          'http://127.0.0.1:${proxyServer.port}/stream?videoId=vid&q=mid',
+        ),
       );
       final res = await req.close();
       await res.drain();

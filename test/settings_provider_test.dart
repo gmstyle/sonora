@@ -242,40 +242,46 @@ void main() {
       expect(prefs.getBool(kAutoPlayUpNextKey), false);
     });
 
-    test('upgrade reads leftover streamQuality then persists new key', () async {
-      SharedPreferences.setMockInitialValues({
-        kLegacyStreamQualityKey: 'low',
-        kLegacyEnableVideoPlaybackKey: true,
-      });
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(container.dispose);
+    test(
+      'upgrade reads leftover streamQuality then persists new key',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          kLegacyStreamQualityKey: 'low',
+          kLegacyEnableVideoPlaybackKey: true,
+        });
+        final prefs = await SharedPreferences.getInstance();
+        final container = ProviderContainer(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        );
+        addTearDown(container.dispose);
 
-      final settings = container.read(settingsProvider);
-      expect(settings.streamAudioQuality, MediaQuality.low);
+        final settings = container.read(settingsProvider);
+        expect(settings.streamAudioQuality, MediaQuality.low);
 
-      await migrateLegacySettingsPrefs(prefs);
-      expect(prefs.getString(kStreamAudioQualityKey), 'low');
-      expect(prefs.containsKey(kLegacyStreamQualityKey), false);
-      expect(prefs.containsKey(kLegacyEnableVideoPlaybackKey), false);
-    });
+        await migrateLegacySettingsPrefs(prefs);
+        expect(prefs.getString(kStreamAudioQualityKey), 'low');
+        expect(prefs.containsKey(kLegacyStreamQualityKey), false);
+        expect(prefs.containsKey(kLegacyEnableVideoPlaybackKey), false);
+      },
+    );
 
-    test('upgrade prefers streamAudioQuality over leftover streamQuality', () async {
-      SharedPreferences.setMockInitialValues({
-        kLegacyStreamQualityKey: 'low',
-        kStreamAudioQualityKey: 'high',
-      });
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(container.dispose);
+    test(
+      'upgrade prefers streamAudioQuality over leftover streamQuality',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          kLegacyStreamQualityKey: 'low',
+          kStreamAudioQualityKey: 'high',
+        });
+        final prefs = await SharedPreferences.getInstance();
+        final container = ProviderContainer(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        );
+        addTearDown(container.dispose);
 
-      final settings = container.read(settingsProvider);
-      expect(settings.streamAudioQuality, MediaQuality.high);
-    });
+        final settings = container.read(settingsProvider);
+        expect(settings.streamAudioQuality, MediaQuality.high);
+      },
+    );
 
     test('setStreamAudioQuality updates state and persists', () async {
       SharedPreferences.setMockInitialValues({});
@@ -480,65 +486,68 @@ void main() {
       expect(map.containsKey(kLegacyEnableVideoPlaybackKey), false);
     });
 
-    test('applyBackupMap restores portable keys and ignores leftovers', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final container = ProviderContainer(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      );
-      addTearDown(container.dispose);
+    test(
+      'applyBackupMap restores portable keys and ignores leftovers',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final container = ProviderContainer(
+          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        );
+        addTearDown(container.dispose);
 
-      const imported = Settings(
-        themeMode: ThemeMode.light,
-        useDynamicColor: false,
-        useAmoled: true,
-        crossfadeSeconds: 11,
-        restoreQueueOnStartup: false,
-        autoPlayUpNext: false,
-        streamAudioQuality: MediaQuality.low,
-        mediaCacheSize: MediaCacheSize.mb500,
-        downloadQuality: MediaQuality.mid,
-        downloadOnlyOnWifi: true,
-        trackHistory: false,
-        checkUpdatesOnStartup: false,
-        isLibraryGridView: true,
-        reduceEffects: true,
-        offlineMode: true,
-        useVinylStyle: false,
-        localSyncEnabled: true,
-        localSyncAutoEnabled: true,
-        playlistConflictStrategy: 'keep_local',
-      );
+        const imported = Settings(
+          themeMode: ThemeMode.light,
+          useDynamicColor: false,
+          useAmoled: true,
+          crossfadeSeconds: 11,
+          restoreQueueOnStartup: false,
+          autoPlayUpNext: false,
+          streamAudioQuality: MediaQuality.low,
+          mediaCacheSize: MediaCacheSize.mb500,
+          downloadQuality: MediaQuality.mid,
+          downloadOnlyOnWifi: true,
+          trackHistory: false,
+          checkUpdatesOnStartup: false,
+          isLibraryGridView: true,
+          reduceEffects: true,
+          offlineMode: true,
+          useVinylStyle: false,
+          localSyncEnabled: true,
+          localSyncAutoEnabled: true,
+          playlistConflictStrategy: 'keep_local',
+        );
 
-      await container.read(settingsProvider.notifier).applyBackupMap({
-        ...imported.toBackupMap(),
-        kLegacyEnableVideoPlaybackKey: true,
-        kDownloadPathKey: '/should/not/apply',
-        kLegacyStreamQualityKey: 'high',
-      });
+        await container.read(settingsProvider.notifier).applyBackupMap({
+          ...imported.toBackupMap(),
+          kLegacyEnableVideoPlaybackKey: true,
+          kDownloadPathKey: '/should/not/apply',
+          kLegacyStreamQualityKey: 'high',
+        });
 
-      final settings = container.read(settingsProvider);
-      expect(settings.themeMode, ThemeMode.light);
-      expect(settings.useDynamicColor, false);
-      expect(settings.useAmoled, true);
-      expect(settings.crossfadeSeconds, 11);
-      expect(settings.restoreQueueOnStartup, false);
-      expect(settings.autoPlayUpNext, false);
-      expect(settings.streamAudioQuality, MediaQuality.low);
-      expect(settings.mediaCacheSize, MediaCacheSize.mb500);
-      expect(settings.downloadQuality, MediaQuality.mid);
-      expect(settings.downloadOnlyOnWifi, true);
-      expect(settings.trackHistory, false);
-      expect(settings.checkUpdatesOnStartup, false);
-      expect(settings.isLibraryGridView, true);
-      expect(settings.reduceEffects, true);
-      expect(settings.offlineMode, true);
-      expect(settings.useVinylStyle, false);
-      expect(settings.localSyncEnabled, true);
-      expect(settings.localSyncAutoEnabled, true);
-      expect(settings.playlistConflictStrategy, 'keep_local');
-      expect(settings.downloadPath, isNull);
-    });
+        final settings = container.read(settingsProvider);
+        expect(settings.themeMode, ThemeMode.light);
+        expect(settings.useDynamicColor, false);
+        expect(settings.useAmoled, true);
+        expect(settings.crossfadeSeconds, 11);
+        expect(settings.restoreQueueOnStartup, false);
+        expect(settings.autoPlayUpNext, false);
+        expect(settings.streamAudioQuality, MediaQuality.low);
+        expect(settings.mediaCacheSize, MediaCacheSize.mb500);
+        expect(settings.downloadQuality, MediaQuality.mid);
+        expect(settings.downloadOnlyOnWifi, true);
+        expect(settings.trackHistory, false);
+        expect(settings.checkUpdatesOnStartup, false);
+        expect(settings.isLibraryGridView, true);
+        expect(settings.reduceEffects, true);
+        expect(settings.offlineMode, true);
+        expect(settings.useVinylStyle, false);
+        expect(settings.localSyncEnabled, true);
+        expect(settings.localSyncAutoEnabled, true);
+        expect(settings.playlistConflictStrategy, 'keep_local');
+        expect(settings.downloadPath, isNull);
+      },
+    );
 
     test('applyBackupMap accepts older streamQuality-only zips', () async {
       SharedPreferences.setMockInitialValues({});

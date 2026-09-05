@@ -216,10 +216,7 @@ class StreamDatasource {
   ///
   /// Failures are logged and swallowed so lookahead / background cache never
   /// interrupts playback.
-  Future<void> cacheAudio(
-    String videoId, {
-    MediaQuality? audioQuality,
-  }) async {
+  Future<void> cacheAudio(String videoId, {MediaQuality? audioQuality}) async {
     try {
       final cache = MediaCacheService.instance;
       if (await cache.getCachedFileUri(videoId) != null) return;
@@ -230,12 +227,13 @@ class StreamDatasource {
       await cache.downloadAudioToCache(
         videoId: videoId,
         extension: stream.container.name,
-        write: (tempPath, token) => downloadStreamToFile(
-          stream,
-          tempPath,
-          cancelToken: token,
-          onProgress: (_, __) {},
-        ),
+        write:
+            (tempPath, token) => downloadStreamToFile(
+              stream,
+              tempPath,
+              cancelToken: token,
+              onProgress: (_, _) {},
+            ),
       );
     } catch (e) {
       dev.log('[StreamDatasource] cacheAudio failed for $videoId: $e');
