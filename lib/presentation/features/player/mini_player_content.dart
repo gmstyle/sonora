@@ -64,6 +64,7 @@ class MiniPlayerContent extends ConsumerWidget {
     final track = QueueTrack.fromMediaItem(currentSong);
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: isSwitching ? null : onTap,
       onHorizontalDragEnd: (details) {
         if (isSwitching) return;
@@ -165,6 +166,7 @@ class MiniPlayerContent extends ConsumerWidget {
         !ref.watch(sidebarCollapsedProvider);
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: isSwitching ? null : onTap,
       onHorizontalDragEnd: (details) {
         if (isSwitching) return;

@@ -43,6 +43,7 @@ class PlayerSheetMobile extends ConsumerWidget {
     );
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () => openFullPlayer(context),
       onVerticalDragEnd: (details) {
         if ((details.primaryVelocity ?? 0) < -200) {

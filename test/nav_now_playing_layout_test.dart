@@ -119,6 +119,19 @@ void main() {
     expect(find.text('Above Water'), findsOneWidget);
     expect(find.byType(AnimatedPlayPauseIcon), findsOneWidget);
     expect(tester.getSize(find.byType(PlayerSheetMobile)).height, 56);
+    expect(
+      tester
+          .widget<GestureDetector>(
+            find
+                .descendant(
+                  of: find.byType(PlayerSheetMobile),
+                  matching: find.byType(GestureDetector),
+                )
+                .first,
+          )
+          .behavior,
+      HitTestBehavior.opaque,
+    );
   });
 
   testWidgets('wide mini player hides artwork when sidebar is expanded', (
