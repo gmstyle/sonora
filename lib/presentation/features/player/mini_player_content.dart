@@ -19,7 +19,6 @@ import '../../../core/constants/app_constants.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/cast_button.dart';
 import 'widgets/progress_bar_widget.dart';
-import '../../../core/extensions/duration_ext.dart';
 
 class MiniPlayerContent extends ConsumerWidget {
   final MediaItem currentSong;
@@ -30,6 +29,7 @@ class MiniPlayerContent extends ConsumerWidget {
   final VoidCallback? onSkipPrevious;
   final VoidCallback? onOpenLyrics;
   final VoidCallback? onOpenQueue;
+  final ValueChanged<Duration>? onSeek;
 
   const MiniPlayerContent({
     super.key,
@@ -41,6 +41,7 @@ class MiniPlayerContent extends ConsumerWidget {
     this.onSkipPrevious,
     this.onOpenLyrics,
     this.onOpenQueue,
+    this.onSeek,
   });
 
   @override
@@ -145,9 +146,10 @@ class MiniPlayerContent extends ConsumerWidget {
               child: ProgressBarWidget(
                 position: playerState.position,
                 duration: playerState.duration,
-                disabled: playerState.isRestoring,
+                disabled: playerState.isRestoring || isSwitching,
                 isPlaying: playerState.isPlaying,
-                isMini: true,
+                density: ProgressBarDensity.compact,
+                onSeek: onSeek,
               ),
             ),
         ],
@@ -257,9 +259,10 @@ class MiniPlayerContent extends ConsumerWidget {
               child: ProgressBarWidget(
                 position: playerState.position,
                 duration: playerState.duration,
-                disabled: playerState.isRestoring,
+                disabled: playerState.isRestoring || isSwitching,
                 isPlaying: playerState.isPlaying,
-                isMini: true,
+                density: ProgressBarDensity.compact,
+                onSeek: onSeek,
               ),
             ),
         ],
@@ -274,11 +277,6 @@ class MiniPlayerContent extends ConsumerWidget {
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
     final activeView = ref.watch(playerSubViewProvider);
-    final elapsed = playerState.position.format();
-    final remaining =
-        playerState.duration > playerState.position
-            ? '-${(playerState.duration - playerState.position).format()}'
-            : '-0:00';
 
     final width = MediaQuery.of(context).size.width;
     final isWideScreen = width >= kExpandedBreakpoint;
@@ -374,6 +372,7 @@ class MiniPlayerContent extends ConsumerWidget {
                         Expanded(
                           flex: isSidebarExpanded ? 5 : 4,
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Row(
@@ -396,35 +395,20 @@ class MiniPlayerContent extends ConsumerWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const SizedBox(width: 16),
-                                  Text(
-                                    elapsed,
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: ProgressBarWidget(
-                                      position: playerState.position,
-                                      duration: playerState.duration,
-                                      disabled: playerState.isRestoring,
-                                      isPlaying: playerState.isPlaying,
-                                      isMini: true,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    remaining,
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                ],
+                              const SizedBox(height: 2),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: ProgressBarWidget(
+                                  position: playerState.position,
+                                  duration: playerState.duration,
+                                  disabled:
+                                      playerState.isRestoring || isSwitching,
+                                  isPlaying: playerState.isPlaying,
+                                  density: ProgressBarDensity.comfortable,
+                                  onSeek: onSeek,
+                                ),
                               ),
                             ],
                           ),
@@ -601,6 +585,8 @@ class MiniPlayerContent extends ConsumerWidget {
         backgroundColor: blocked ? cs.primary.withAlpha(128) : cs.primary,
         foregroundColor: cs.onPrimary,
         fixedSize: const Size(40, 40),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: EdgeInsets.zero,
         shape: const CircleBorder(),
       ),
     );

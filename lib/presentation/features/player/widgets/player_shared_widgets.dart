@@ -425,16 +425,16 @@ Widget buildMvBadge(BuildContext context) {
 
 /// Thin wrapper around [ProgressBarWidget].
 Widget buildProgressBar(
+  BuildContext context,
   WidgetRef ref,
   PlayerState playerState,
-  String videoId,
 ) {
   return ProgressBarWidget(
     position: playerState.position,
     duration: playerState.duration,
-    seed: videoId.hashCode,
     disabled: playerState.isRestoring,
     isPlaying: playerState.isPlaying,
+    density: ProgressBarDensity.expanded,
     onSeek: (pos) => ref.read(playerStateProvider.notifier).seek(pos),
   );
 }

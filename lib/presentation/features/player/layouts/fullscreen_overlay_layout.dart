@@ -57,7 +57,7 @@ class FullscreenOverlayLayout extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            buildProgressBar(ref, playerState, videoId),
+            buildProgressBar(context, ref, playerState),
             const SizedBox(height: 12),
             const PlayerControls(),
             const SizedBox(height: 4),

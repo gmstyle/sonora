@@ -9,13 +9,12 @@ import '../../providers/settings_provider.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/vinyl_artwork.dart';
 import 'full_player_content.dart';
-import 'widgets/progress_bar_widget.dart';
 
 /// Now-playing chrome that lives with vertical navigation.
 ///
 /// Compact (tablet rail / collapsed sidebar): progress-ring disc.
-/// Expanded (wide sidebar): artwork, title, and a display-only progress wave.
-/// Transport always lives in the mini player, never here.
+/// Expanded (wide sidebar): artwork and title.
+/// Transport and seek always live in the mini player, never here.
 class NavNowPlaying extends ConsumerWidget {
   final bool expanded;
 
@@ -109,7 +108,7 @@ class _ExpandedCard extends ConsumerWidget {
         child: InkWell(
           onTap: () => openFullPlayer(context),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            padding: const EdgeInsets.all(12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -139,14 +138,6 @@ class _ExpandedCard extends ConsumerWidget {
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
-                ),
-                const SizedBox(height: 10),
-                ProgressBarWidget(
-                  position: playerState.position,
-                  duration: playerState.duration,
-                  disabled: true,
-                  isPlaying: playerState.isPlaying,
-                  isMini: true,
                 ),
               ],
             ),

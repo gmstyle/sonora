@@ -43,6 +43,7 @@ class PlayerSheet extends ConsumerWidget {
       onOpenLyrics:
           () => openFullPlayer(context, subView: PlayerSubView.lyrics),
       onOpenQueue: () => openFullPlayer(context, subView: PlayerSubView.queue),
+      onSeek: (pos) => ref.read(playerStateProvider.notifier).seek(pos),
     );
 
     return Positioned(

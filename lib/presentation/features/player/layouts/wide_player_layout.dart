@@ -104,7 +104,7 @@ class WidePlayerLayout extends ConsumerWidget {
                               ),
                             ),
                             SizedBox(height: tight ? 2 : 16),
-                            buildProgressBar(ref, playerState, videoId),
+                            buildProgressBar(context, ref, playerState),
                             SizedBox(height: tight ? 2 : 24),
                             const PlayerControls(),
                             SizedBox(height: tight ? 2 : 16),

@@ -189,7 +189,7 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
               const SizedBox(height: 32),
               buildTrackInfoAndLikeRow(context, ref, widget.currentSong),
               const SizedBox(height: 16),
-              buildProgressBar(ref, widget.playerState, widget.videoId),
+              buildProgressBar(context, ref, widget.playerState),
               const SizedBox(height: 16),
               const PlayerControls(),
               const SizedBox(height: 8),

@@ -175,7 +175,9 @@ class PlayerSheetMobile extends ConsumerWidget {
                   duration: playerState.duration,
                   disabled: playerState.isRestoring,
                   isPlaying: playerState.isPlaying,
-                  isMini: true,
+                  density: ProgressBarDensity.compact,
+                  onSeek:
+                      isSwitching ? null : (pos) => playerNotifier.seek(pos),
                 ),
               ),
           ],
