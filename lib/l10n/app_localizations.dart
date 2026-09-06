@@ -1814,6 +1814,30 @@ abstract class AppLocalizations {
   /// **'Open player'**
   String get openPlayer;
 
+  /// No description provided for @fromTheAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'From the album'**
+  String get fromTheAlbum;
+
+  /// No description provided for @aboutTheArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'About the artist'**
+  String get aboutTheArtist;
+
+  /// No description provided for @fromThePodcast.
+  ///
+  /// In en, this message translates to:
+  /// **'From the podcast'**
+  String get fromThePodcast;
+
+  /// No description provided for @catalogSongCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} song} other{{count} songs}}'**
+  String catalogSongCount(int count);
+
   /// No description provided for @previousTrack.
   ///
   /// In en, this message translates to:

@@ -1,9 +1,12 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sonora/l10n/app_localizations.dart';
+import 'package:sonora/presentation/features/album/providers/album_provider.dart';
+import 'package:sonora/presentation/features/artist/providers/artist_provider.dart';
 import 'package:sonora/presentation/features/player/mini_player_content.dart';
 import 'package:sonora/presentation/features/player/nav_now_playing.dart';
 import 'package:sonora/presentation/features/player/player_sheet_mobile.dart';
@@ -31,6 +34,53 @@ class _FakeCast extends CastNotifier {
   Future<CastState> build() async => CastState();
 }
 
+AlbumFull _mockAlbum() {
+  final artist = ArtistBasic(name: 'Jah Lil', artistId: 'art1');
+  return AlbumFull(
+    type: 'ALBUM',
+    albumId: 'alb1',
+    playlistId: 'pl1',
+    name: 'Night Bloom',
+    artist: artist,
+    year: 2021,
+    thumbnails: const [],
+    songs: [
+      SongDetailed(
+        type: 'SONG',
+        videoId: 'vid1',
+        name: 'Above Water',
+        artist: artist,
+        thumbnails: const [],
+      ),
+      SongDetailed(
+        type: 'SONG',
+        videoId: 'vid2',
+        name: 'Other',
+        artist: artist,
+        thumbnails: const [],
+      ),
+    ],
+    relatedReleases: const [],
+  );
+}
+
+ArtistFull _mockArtist() {
+  return ArtistFull(
+    artistId: 'art1',
+    name: 'Jah Lil',
+    type: 'ARTIST',
+    thumbnails: const [],
+    topSongs: const [],
+    topAlbums: const [],
+    topSingles: const [],
+    topVideos: const [],
+    featuredOn: const [],
+    similarArtists: const [],
+    subscriberCount: '1.2M',
+    description: 'A reggae artist from Jamaica.',
+  );
+}
+
 void main() {
   final song = MediaItem(id: 'vid1', title: 'Above Water', artist: 'Jah Lil');
   final playing = PlayerState(
@@ -48,13 +98,22 @@ void main() {
     });
   });
 
-  Future<void> pumpNav(WidgetTester tester, {required bool expanded}) async {
+  Future<void> pumpNav(
+    WidgetTester tester, {
+    required bool expanded,
+    AlbumFull? album,
+    ArtistFull? artist,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playerStateProvider.overrideWith(_FakePlayer.new),
+          if (album != null)
+            albumProvider.overrideWith((ref, _) async => album),
+          if (artist != null)
+            artistProvider.overrideWith((ref, _) async => artist),
         ],
         child: MaterialApp(
           locale: const Locale('en'),
@@ -88,6 +147,8 @@ void main() {
     await pumpNav(tester, expanded: true);
     expect(find.text('Above Water'), findsOneWidget);
     expect(find.text('Jah Lil'), findsOneWidget);
+    expect(find.text('From the album'), findsNothing);
+    expect(find.text('About the artist'), findsNothing);
     expect(find.byType(AnimatedPlayPauseIcon), findsNothing);
     expect(find.byType(IconButton), findsNothing);
   });
@@ -96,6 +157,91 @@ void main() {
     await pumpNav(tester, expanded: false);
     expect(find.byType(AnimatedPlayPauseIcon), findsNothing);
     expect(find.byType(IconButton), findsNothing);
+    expect(find.byType(CustomPaint), findsWidgets);
+  });
+
+  testWidgets('expanded card shows album catalog context', (tester) async {
+    final albumSong = MediaItem(
+      id: 'vid1',
+      title: 'Above Water',
+      artist: 'Jah Lil',
+      extras: {'videoId': 'vid1', 'albumId': 'alb1'},
+    );
+    _seed = PlayerState(
+      currentSong: albumSong,
+      isPlaying: true,
+      position: const Duration(minutes: 2, seconds: 32),
+      duration: const Duration(minutes: 3, seconds: 30),
+    );
+    await pumpNav(tester, expanded: true, album: _mockAlbum());
+    expect(find.text('Above Water'), findsOneWidget);
+    expect(find.text('From the album'), findsOneWidget);
+    expect(find.text('Night Bloom'), findsOneWidget);
+    expect(find.text('2021 · 2 songs · 1 / 2'), findsOneWidget);
+    expect(find.byType(AnimatedPlayPauseIcon), findsNothing);
+    expect(find.byType(IconButton), findsNothing);
+  });
+
+  testWidgets('expanded card shows artist catalog context', (tester) async {
+    final artistSong = MediaItem(
+      id: 'vid1',
+      title: 'Above Water',
+      artist: 'Jah Lil',
+      extras: {'videoId': 'vid1', 'artistId': 'art1'},
+    );
+    _seed = PlayerState(
+      currentSong: artistSong,
+      isPlaying: true,
+      position: const Duration(minutes: 2, seconds: 32),
+      duration: const Duration(minutes: 3, seconds: 30),
+    );
+    await pumpNav(tester, expanded: true, artist: _mockArtist());
+    expect(find.text('About the artist'), findsOneWidget);
+    expect(find.text('1.2M subscribers'), findsOneWidget);
+    expect(find.text('A reggae artist from Jamaica.'), findsOneWidget);
+    expect(find.byType(AnimatedPlayPauseIcon), findsNothing);
+  });
+
+  testWidgets('expanded card shows podcast catalog context', (tester) async {
+    final episode = MediaItem(
+      id: 'ep1',
+      title: 'Episode 12',
+      artist: 'Cool Podcast',
+      extras: {
+        'contentType': 'episode',
+        'podcastBrowseId': 'MPSP123',
+        'publishDate': '2024-03-01',
+      },
+    );
+    _seed = PlayerState(
+      currentSong: episode,
+      isPlaying: true,
+      position: const Duration(minutes: 2),
+      duration: const Duration(minutes: 40),
+    );
+    await pumpNav(tester, expanded: true);
+    expect(find.text('From the podcast'), findsOneWidget);
+    expect(find.text('Cool Podcast'), findsWidgets);
+    expect(find.text('2024-03-01'), findsOneWidget);
+    expect(find.byType(AnimatedPlayPauseIcon), findsNothing);
+  });
+
+  testWidgets('collapsed rail does not show catalog context', (tester) async {
+    final albumSong = MediaItem(
+      id: 'vid1',
+      title: 'Above Water',
+      artist: 'Jah Lil',
+      extras: {'videoId': 'vid1', 'albumId': 'alb1', 'artistId': 'art1'},
+    );
+    _seed = PlayerState(
+      currentSong: albumSong,
+      isPlaying: true,
+      position: const Duration(minutes: 2, seconds: 32),
+      duration: const Duration(minutes: 3, seconds: 30),
+    );
+    await pumpNav(tester, expanded: false);
+    expect(find.text('From the album'), findsNothing);
+    expect(find.text('About the artist'), findsNothing);
     expect(find.byType(CustomPaint), findsWidgets);
   });
 

@@ -1032,6 +1032,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openPlayer => 'Open player';
 
   @override
+  String get fromTheAlbum => 'From the album';
+
+  @override
+  String get aboutTheArtist => 'About the artist';
+
+  @override
+  String get fromThePodcast => 'From the podcast';
+
+  @override
+  String catalogSongCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '$count song',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get previousTrack => 'Previous';
 
   @override

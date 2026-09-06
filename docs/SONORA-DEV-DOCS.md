@@ -623,7 +623,7 @@ Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.
 | 3 | `/downloads` | DownloadsScreen | — |
 | 4 | `/settings` | SettingsScreen | — |
 
-The player overlay sits **above** the shell and is not a route. Mobile fuses the mini player with the NavigationBar as one glass dock. Tablet and wide keep a floating mini player as the only transport surface. Now-playing identity lives in the nav chrome (`NavNowPlaying`: compact disc on the rail / collapsed sidebar, artwork+title card on the wide sidebar — no play/skip). Opening the full player is a slide-up push of `FullPlayerContent`.
+The player overlay sits **above** the shell and is not a route. Mobile fuses the mini player with the NavigationBar as one glass dock. Tablet and wide keep a floating mini player as the only transport surface. Now-playing identity lives in the nav chrome (`NavNowPlaying`: compact disc on the rail / collapsed sidebar; expanded sidebar shows an identity row plus catalog context for the album, artist, or podcast — no play/skip). Opening the full player is a slide-up push of `FullPlayerContent`. Tapping catalog context navigates to the album, artist, or podcast screen.
 
 ### 7.3 Adaptive Overlays (Modal BottomSheets & Dialogs)
 

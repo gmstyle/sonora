@@ -515,6 +515,15 @@
   "playingFrom": "PLAYING FROM",
   "nowPlaying": "NOW PLAYING",
   "openPlayer": "Open player",
+  "fromTheAlbum": "From the album",
+  "aboutTheArtist": "About the artist",
+  "fromThePodcast": "From the podcast",
+  "catalogSongCount": "{count, plural, =1{{count} song} other{{count} songs}}",
+  "@catalogSongCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "previousTrack": "Previous",
   "nextTrack": "Next",
   "mv": "MV",

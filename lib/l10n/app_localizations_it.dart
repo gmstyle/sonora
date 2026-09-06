@@ -1040,6 +1040,26 @@ class AppLocalizationsIt extends AppLocalizations {
   String get openPlayer => 'Apri lettore';
 
   @override
+  String get fromTheAlbum => 'Dall\'album';
+
+  @override
+  String get aboutTheArtist => 'Informazioni sull\'artista';
+
+  @override
+  String get fromThePodcast => 'Dal podcast';
+
+  @override
+  String catalogSongCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brani',
+      one: '$count brano',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get previousTrack => 'Precedente';
 
   @override
