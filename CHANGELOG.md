@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.2+63] - 2026-09-12
+
+### Features
+
+- **player**: Show album, artist, or podcast context in the sidebar now-playing card
+- **player**: Replace capsule seek bar with a thin streaming track
+
+### Bug Fixes
+
+- **player**: Let just_audio own local audio session handling
+- **player**: Open full player from any mobile mini-player tap
+
 ## [1.8.1+62] - 2026-09-05
 
 ### Features
