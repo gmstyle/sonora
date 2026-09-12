@@ -3,36 +3,41 @@ import 'dart:developer' as dev;
 
 import 'package:audio_session/audio_session.dart';
 
-/// Owns OS audio-session / focus lifecycle for the player.
+/// Configures the shared [AudioSession] and covers the one case `just_audio`
+/// cannot: Chromecast / DLNA, where the local engine is paused.
 ///
-/// Handles interruption events, becoming-noisy, and focus request/release.
-/// Does not hold a back-reference to [SonoraAudioHandler]; callers inject
-/// narrow callbacks instead.
+/// Official `just_audio` + `audio_service` setup:
+/// - `AudioPlayer()` keeps `handleInterruptions` / `handleAudioSessionActivation`
+///   / `androidApplyAudioAttributes` at their defaults (`true`).
+/// - Call [configure] once with [AudioSessionConfiguration.music].
+/// - Do **not** activate, pause, or duck locally — `just_audio` does that.
+/// - Do **not** `setActive(false)` on pause or stop (`just_audio` never does).
+///
+/// Cast is the documented exception: the audio plugin is not playing, so
+/// [requestFocus] (`setActive(true)`) and interruption pause/resume must be
+/// applied to the remote session instead.
 class AudioSessionController {
   final bool Function() _userWantsPlaying;
-  final bool Function() _isPlaying;
+  final bool Function() _isRemotePlaying;
+  final bool Function() _isRemotePlayback;
   final FutureOr<void> Function() _onPauseRequested;
   final FutureOr<void> Function() _onResumeRequested;
-  final void Function(bool ducking) _onDuck;
 
   bool _playOnInterruptionEnd = false;
   StreamSubscription<AudioInterruptionEvent>? _interruptionSub;
-  StreamSubscription<void>? _becomingNoisySub;
 
   AudioSessionController({
     required bool Function() userWantsPlaying,
-    required bool Function() isPlaying,
+    required bool Function() isRemotePlaying,
+    required bool Function() isRemotePlayback,
     required FutureOr<void> Function() onPauseRequested,
     required FutureOr<void> Function() onResumeRequested,
-    required void Function(bool ducking) onDuck,
   }) : _userWantsPlaying = userWantsPlaying,
-       _isPlaying = isPlaying,
+       _isRemotePlaying = isRemotePlaying,
+       _isRemotePlayback = isRemotePlayback,
        _onPauseRequested = onPauseRequested,
-       _onResumeRequested = onResumeRequested,
-       _onDuck = onDuck;
+       _onResumeRequested = onResumeRequested;
 
-  /// Clears the auto-resume-on-interruption-end flag.
-  /// Called from play / pause / stop / becoming-noisy.
   void cancelResumeOnInterruptionEnd() {
     _playOnInterruptionEnd = false;
   }
@@ -41,50 +46,45 @@ class AudioSessionController {
     try {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
-      _interruptionSub = session.interruptionEventStream.listen((event) {
-        if (event.begin) {
-          switch (event.type) {
-            case AudioInterruptionType.pause:
-            case AudioInterruptionType.unknown:
-              // Only mark for auto-resume if the user actually wants playback active.
-              // If the user explicitly paused (e.g. via earbud tap), _userWantsPlaying is false.
-              _playOnInterruptionEnd = _userWantsPlaying() && _isPlaying();
-              _onPauseRequested();
-              break;
-            case AudioInterruptionType.duck:
-              _onDuck(true);
-              break;
-          }
-        } else {
-          switch (event.type) {
-            case AudioInterruptionType.pause:
-            case AudioInterruptionType.unknown:
-              // Resume solely from the interruption flag. `_pause()` (and the
-              // playing stream) clear `_userWantsPlaying`, so gating on it
-              // here permanently blocked auto-resume after Gemini/Assistant.
-              if (_playOnInterruptionEnd) {
-                _onResumeRequested();
-              }
-              _playOnInterruptionEnd = false;
-              break;
-            case AudioInterruptionType.duck:
-              _onDuck(false);
-              break;
-          }
-        }
-      });
-      _becomingNoisySub = session.becomingNoisyEventStream.listen((_) {
-        dev.log(
-          '[AudioHandler] Headphones unplugged / Becoming Noisy -> pausing playback',
-        );
-        _playOnInterruptionEnd = false;
-        _onPauseRequested();
-      });
+      _interruptionSub = session.interruptionEventStream.listen(
+        handleInterruption,
+      );
     } catch (e) {
       dev.log('[AudioHandler] Failed to configure audio session: $e');
     }
   }
 
+  /// Local playback is owned by `just_audio` (`handleInterruptions: true`).
+  /// This only forwards pause/resume while Cast is connected.
+  void handleInterruption(AudioInterruptionEvent event) {
+    if (!_isRemotePlayback()) return;
+    if (event.begin) {
+      switch (event.type) {
+        case AudioInterruptionType.pause:
+        case AudioInterruptionType.unknown:
+          _playOnInterruptionEnd = _userWantsPlaying() && _isRemotePlaying();
+          _onPauseRequested();
+          break;
+        case AudioInterruptionType.duck:
+          break;
+      }
+    } else {
+      switch (event.type) {
+        case AudioInterruptionType.pause:
+        case AudioInterruptionType.unknown:
+          if (_playOnInterruptionEnd) {
+            _onResumeRequested();
+          }
+          _playOnInterruptionEnd = false;
+          break;
+        case AudioInterruptionType.duck:
+          break;
+      }
+    }
+  }
+
+  /// `just_audio` is not playing during Cast, so it will not activate the
+  /// session. [audio_session] documents `setActive(true)` for that case.
   Future<bool> requestFocus() async {
     try {
       final session = await AudioSession.instance;
@@ -95,17 +95,7 @@ class AudioSessionController {
     }
   }
 
-  Future<void> releaseFocus() async {
-    try {
-      final session = await AudioSession.instance;
-      await session.setActive(false);
-    } catch (e) {
-      dev.log('[AudioHandler] Failed to release audio focus: $e');
-    }
-  }
-
   void dispose() {
     _interruptionSub?.cancel();
-    _becomingNoisySub?.cancel();
   }
 }

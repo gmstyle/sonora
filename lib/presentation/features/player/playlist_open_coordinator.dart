@@ -27,9 +27,9 @@ import 'queue_controller.dart';
 /// ## Why the two open paths differ
 ///
 /// [setQueue] opens with `play: false` — it stages a queue. [playNow] is an
-/// explicit user session: it requests audio focus, resolves the first track's
-/// URL up front so playback starts without a gap, and opens with `play: true`
-/// only if focus was granted.
+/// explicit user session: it resolves the first track's URL up front so
+/// playback starts without a gap, then opens with `play: true`. `just_audio`
+/// activates the audio session on that play (media_kit could not).
 class PlaylistOpenCoordinator {
   final PlaybackEngine _engine;
   final QueueController _queueController;
@@ -38,7 +38,6 @@ class PlaylistOpenCoordinator {
   final PlaybackStatePublisher _statePublisher;
   final PlaybackIntentController _intent;
   final PlayVideoIdUseCase _playVideoIdUseCase;
-  final Future<bool> Function() _requestFocus;
   final void Function(List<MediaItem>) _emitQueue;
   final bool Function() _isStopping;
   final void Function(bool) _setIsStopping;
@@ -52,7 +51,6 @@ class PlaylistOpenCoordinator {
     required PlaybackStatePublisher statePublisher,
     required PlaybackIntentController intent,
     required PlayVideoIdUseCase playVideoIdUseCase,
-    required Future<bool> Function() requestFocus,
     required void Function(List<MediaItem>) emitQueue,
     required bool Function() isStopping,
     required void Function(bool) setIsStopping,
@@ -64,7 +62,6 @@ class PlaylistOpenCoordinator {
        _statePublisher = statePublisher,
        _intent = intent,
        _playVideoIdUseCase = playVideoIdUseCase,
-       _requestFocus = requestFocus,
        _emitQueue = emitQueue,
        _isStopping = isStopping,
        _setIsStopping = setIsStopping,
@@ -150,9 +147,8 @@ class PlaylistOpenCoordinator {
 
         final finalMedias =
             resolvedItems.map(_queueController.toMedia).toList();
-        final hasFocus = await _requestFocus();
-        _intent.onSessionOpened(hasFocus: hasFocus);
-        await _engine.open(finalMedias, index: initialIndex, play: hasFocus);
+        _intent.onSessionOpened(hasFocus: true);
+        await _engine.open(finalMedias, index: initialIndex, play: true);
       } catch (e) {
         _volumeController.endTransitionMute();
         rethrow;

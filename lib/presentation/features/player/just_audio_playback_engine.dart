@@ -26,10 +26,11 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
       eq = AndroidEqualizer();
       pipeline = AudioPipeline(androidAudioEffects: [eq]);
     }
+    // Recommended just_audio + audio_service defaults: interruptions,
+    // session activation and Android audio attributes are handled by
+    // just_audio. AudioSessionController only configures music() and the
+    // Cast path (local engine is paused).
     final player = AudioPlayer(
-      handleInterruptions: false,
-      handleAudioSessionActivation: false,
-      androidApplyAudioAttributes: false,
       maxSkipsOnError: 0,
       useLazyPreparation: true,
       audioPipeline: pipeline,

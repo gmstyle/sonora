@@ -338,10 +338,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
     );
     _audioSessionController = AudioSessionController(
       userWantsPlaying: () => _intent.userWantsPlaying,
-      isPlaying: () => _engine.state.playing,
+      isRemotePlaying: () => _castController.isRemotePlaying,
+      isRemotePlayback: _isCastConnected,
       onPauseRequested: _pause,
       onResumeRequested: play,
-      onDuck: _volumeController.setDucking,
     );
     _playlistOpener = PlaylistOpenCoordinator(
       engine: _engine,
@@ -351,7 +351,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       statePublisher: _statePublisher,
       intent: _intent,
       playVideoIdUseCase: _playVideoIdUseCase,
-      requestFocus: _audioSessionController.requestFocus,
       emitQueue: (items) => queue.add(items),
       isStopping: () => _isStopping,
       setIsStopping: (v) => _isStopping = v,
@@ -478,14 +477,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _intent.onUserPause();
     _audioSessionController.cancelResumeOnInterruptionEnd();
     await _pause();
-    await _audioSessionController.releaseFocus();
     _statePublisher.invalidate();
     _statePublisher.updatePlaybackState();
   }
 
   @override
   Future<void> play() async {
-    if (_intent.shouldRejectPlay(engineIsPlaying: _engine.state.playing)) {
+    if (_intent.shouldRejectPlay(
+      engineIsPlaying: _engine.state.playing || _isCastConnected(),
+    )) {
       _intent.onRejectedSessionPlay();
       _statePublisher.invalidate();
       _statePublisher.updatePlaybackState();
@@ -504,20 +504,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
     await _restoreController.awaitReady();
 
-    if (await _audioSessionController.requestFocus()) {
-      final castConnected =
-          _castController.castState?.connectionState ==
-          CastConnectionState.connected;
-      if (castConnected) {
-        await _castController.castService?.play();
-      } else {
-        await _engine.play();
-      }
-    } else {
-      _intent.onFocusDenied();
-      _statePublisher.invalidate();
-      _statePublisher.updatePlaybackState();
+    if (_isCastConnected()) {
+      // just_audio is paused while casting, so it will not activate the
+      // session. audio_session documents setActive(true) for that case.
+      await _audioSessionController.requestFocus();
+      await _castController.castService?.play();
+      return;
     }
+    await _engine.play();
   }
 
   /// AA/AAOS call this when the media source becomes active. Native audio_service
@@ -560,7 +554,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _intent.onSessionPause();
     _audioSessionController.cancelResumeOnInterruptionEnd();
     await _pause();
-    await _audioSessionController.releaseFocus();
     _statePublisher.invalidate();
     _statePublisher.updatePlaybackState();
   }
@@ -600,7 +593,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _urlResolver.cancelLookahead();
     _volumeController.endTransitionMute();
     await _engine.stop();
-    await _audioSessionController.releaseFocus();
     await super.stop();
   }
 
@@ -951,7 +943,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     await _persistPlaybackPointer();
     _isStopping = true;
     await _engine.stop();
-    await _audioSessionController.releaseFocus();
     await super.onTaskRemoved();
   }
 

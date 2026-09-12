@@ -73,11 +73,6 @@ class PlaybackVolumeController {
     }
   }
 
-  /// Applies (or lifts) the OS-requested transient volume duck.
-  void setDucking(bool ducking) {
-    setLocalVolume(_lastSetVolume * (ducking ? 0.2 : 1.0));
-  }
-
   /// Arms a fade-in from silence for the track that just became current.
   /// No-op when crossfade is disabled or the player is not playing.
   void beginFadeIn() {
