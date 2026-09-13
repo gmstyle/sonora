@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -41,91 +40,113 @@ class HomeFeedLayout extends ConsumerWidget {
     final isOffline = ref.watch(isOfflineProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        flexibleSpace: const GlassAppBarBackground(),
-        title: Row(
-          spacing: 8,
-          children: [
-            const SonoraLogo.icon(22),
-            Text(
-              _getGreeting(context),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        centerTitle: false,
-        actions: [
-          if (Platform.isLinux)
-            IconButton(
-              icon: const Icon(LucideIcons.refreshCw),
-              tooltip: l10n.refresh,
-              onPressed: () => _invalidateHome(ref),
-            ),
-        ],
-      ),
-      body: AmbientBackground(
-        child:
-            isOffline
-                ? RefreshIndicator(
-                  onRefresh: () => _refreshOffline(ref),
-                  child: ListView(
-                    padding: _listPadding(context),
-                    children: [
-                      _OfflineBanner(metrics: metrics),
-                      ..._buildRiprendiZone(historyAsync: historyAsync),
-                      ..._buildYourMusicZone(
-                        l10n: l10n,
-                        playlistsAsync: playlistsAsync,
-                        artistsAsync: artistsAsync,
-                        albumsAsync: albumsAsync,
-                        similarArtistsAsync: similarArtistsAsync,
-                        includeSimilarInMusicZone: false,
-                      ),
-                    ],
-                  ),
-                )
-                : baseSectionsAsync.when(
-                  loading: () => HomeShimmer(metrics: metrics),
-                  error:
-                      (_, _) => ErrorRetryWidget(
-                        message: l10n.failedToLoadHomeFeed,
-                        onRetry: () => ref.invalidate(homeBaseResultProvider),
-                      ),
-                  data:
-                      (sections) => RefreshIndicator(
-                        onRefresh: () => _refreshHome(ref),
-                        child: ListView(
-                          padding: _listPadding(context),
-                          children: [
-                            ..._buildRiprendiZone(historyAsync: historyAsync),
-                            ..._buildYourMusicZone(
-                              l10n: l10n,
-                              playlistsAsync: playlistsAsync,
-                              artistsAsync: artistsAsync,
-                              albumsAsync: albumsAsync,
-                              similarArtistsAsync: similarArtistsAsync,
-                              includeSimilarInMusicZone:
-                                  metrics.useSideBySideArtists,
-                            ),
-                            ..._buildDiscoverZone(
-                              context: context,
-                              l10n: l10n,
-                              sections: sections,
-                              newReleasesAsync: newReleasesAsync,
-                              discoverAsync: discoverAsync,
-                              similarArtistsAsync: similarArtistsAsync,
-                              showHero: !hideDiscoverHero,
-                              showSimilarArtists: !metrics.useSideBySideArtists,
-                            ),
-                            HomeEditorialZone(metrics: metrics),
-                          ],
-                        ),
-                      ),
+    // Desktop escape hatch: F5 / Ctrl+R / Cmd+R (pull-to-refresh covers touch).
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.f5):
+            () => _invalidateHome(ref),
+        const SingleActivator(LogicalKeyboardKey.keyR, control: true):
+            () => _invalidateHome(ref),
+        const SingleActivator(LogicalKeyboardKey.keyR, meta: true):
+            () => _invalidateHome(ref),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            flexibleSpace: const GlassAppBarBackground(),
+            title: Row(
+              spacing: 8,
+              children: [
+                const SonoraLogo.icon(22),
+                Text(
+                  _getGreeting(context),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
+              ],
+            ),
+            centerTitle: false,
+            actions: [
+              // Wide: settings gear lives in the sidebar only.
+              if (size != HomeLayoutSize.wide)
+                IconButton(
+                  icon: const Icon(LucideIcons.settings),
+                  tooltip: l10n.settingsLabel,
+                  onPressed: () => context.push('/settings'),
+                ),
+            ],
+          ),
+          body: AmbientBackground(
+            child:
+                isOffline
+                    ? RefreshIndicator(
+                      onRefresh: () => _refreshOffline(ref),
+                      child: ListView(
+                        padding: _listPadding(context),
+                        children: [
+                          _OfflineBanner(metrics: metrics),
+                          ..._buildRiprendiZone(historyAsync: historyAsync),
+                          ..._buildYourMusicZone(
+                            l10n: l10n,
+                            playlistsAsync: playlistsAsync,
+                            artistsAsync: artistsAsync,
+                            albumsAsync: albumsAsync,
+                            similarArtistsAsync: similarArtistsAsync,
+                            includeSimilarInMusicZone: false,
+                          ),
+                        ],
+                      ),
+                    )
+                    : baseSectionsAsync.when(
+                      loading: () => HomeShimmer(metrics: metrics),
+                      error:
+                          (_, _) => ErrorRetryWidget(
+                            message: l10n.failedToLoadHomeFeed,
+                            onRetry:
+                                () => ref.invalidate(homeBaseResultProvider),
+                          ),
+                      data:
+                          (sections) => RefreshIndicator(
+                            onRefresh: () => _refreshHome(ref),
+                            child: ListView(
+                              padding: _listPadding(context),
+                              children: [
+                                ..._buildRiprendiZone(
+                                  historyAsync: historyAsync,
+                                ),
+                                HomeExplore(
+                                  horizontalPadding: metrics.horizontalPadding,
+                                ),
+                                ..._buildYourMusicZone(
+                                  l10n: l10n,
+                                  playlistsAsync: playlistsAsync,
+                                  artistsAsync: artistsAsync,
+                                  albumsAsync: albumsAsync,
+                                  similarArtistsAsync: similarArtistsAsync,
+                                  includeSimilarInMusicZone:
+                                      metrics.useSideBySideArtists,
+                                ),
+                                ..._buildDiscoverZone(
+                                  context: context,
+                                  l10n: l10n,
+                                  sections: sections,
+                                  newReleasesAsync: newReleasesAsync,
+                                  discoverAsync: discoverAsync,
+                                  similarArtistsAsync: similarArtistsAsync,
+                                  showHero: !hideDiscoverHero,
+                                  showSimilarArtists:
+                                      !metrics.useSideBySideArtists,
+                                ),
+                                HomeEditorialZone(metrics: metrics),
+                              ],
+                            ),
+                          ),
+                    ),
+          ),
+        ),
       ),
     );
   }
@@ -210,7 +231,6 @@ class HomeFeedLayout extends ConsumerWidget {
     final hasHero =
         showHero && sections.isNotEmpty && sections.first.contents.isNotEmpty;
 
-    // Explore chips are always present when online; zone is never fully empty.
     return [
       HomeZoneHeader(title: l10n.discoverZone, metrics: metrics),
       if (hasHero)
@@ -220,7 +240,6 @@ class HomeFeedLayout extends ConsumerWidget {
           metrics: metrics,
           onShowAll: _browseCallback(context, sections[0]),
         ),
-      HomeExplore(horizontalPadding: metrics.horizontalPadding),
       HomeNewReleases(
         newReleasesAsync,
         cardWidth: metrics.cardWidth,

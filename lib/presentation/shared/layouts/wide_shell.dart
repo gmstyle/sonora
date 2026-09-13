@@ -18,7 +18,6 @@ final _icons = [
   LucideIcons.search,
   LucideIcons.library,
   LucideIcons.download,
-  LucideIcons.settings,
 ];
 
 class WideShell extends ConsumerStatefulWidget {
@@ -68,26 +67,31 @@ class _WideShellState extends ConsumerState<WideShell> {
                                     ? MainAxisAlignment.center
                                     : MainAxisAlignment.spaceBetween,
                             children: [
-                              if (!isCollapsed) ...[
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const SonoraLogo.icon(32),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'SONORA',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 2,
-                                        color: colorScheme.primary,
+                              if (!isCollapsed)
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      const SonoraLogo.icon(32),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          'SONORA',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 2,
+                                            color: colorScheme.primary,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ],
                               IconButton(
+                                visualDensity: VisualDensity.compact,
                                 icon: Icon(
                                   isCollapsed
                                       ? LucideIcons.menu
@@ -111,6 +115,7 @@ class _WideShellState extends ConsumerState<WideShell> {
                             ],
                           ),
                         ),
+                        _buildSettingsEntry(context, isCollapsed),
                         NavNowPlaying(expanded: !isCollapsed),
                       ],
                     ),
@@ -141,6 +146,86 @@ class _WideShellState extends ConsumerState<WideShell> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsEntry(BuildContext context, bool isCollapsed) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final label = AppLocalizations.of(context)!.settingsLabel;
+    final isSelected = GoRouterState.of(context).uri.path == '/settings';
+
+    if (isCollapsed) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Tooltip(
+          message: label,
+          child: SizedBox(
+            height: 48,
+            width: double.infinity,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                backgroundColor:
+                    isSelected
+                        ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                        : null,
+                foregroundColor:
+                    isSelected ? colorScheme.primary : colorScheme.onSurface,
+                padding: EdgeInsets.zero,
+              ),
+              onPressed: () => context.push('/settings'),
+              child: const Icon(LucideIcons.settings),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      child: ScaleButton(
+        onTap: () => context.push('/settings'),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color:
+                isSelected
+                    ? colorScheme.secondaryContainer.withValues(alpha: 0.4)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Icon(
+                LucideIcons.settings,
+                color:
+                    isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color:
+                        isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -245,11 +330,5 @@ class _WideShellState extends ConsumerState<WideShell> {
 }
 
 String _getLabel(AppLocalizations l10n, int index) {
-  return [
-    l10n.home,
-    l10n.search,
-    l10n.library,
-    l10n.downloads,
-    l10n.settingsLabel,
-  ][index];
+  return [l10n.home, l10n.search, l10n.library, l10n.downloads][index];
 }

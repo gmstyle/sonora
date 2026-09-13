@@ -16,7 +16,6 @@ final _icons = [
   LucideIcons.search,
   LucideIcons.library,
   LucideIcons.download,
-  LucideIcons.settings,
 ];
 
 class MobileShell extends ConsumerWidget {
@@ -111,11 +110,5 @@ class MobileShell extends ConsumerWidget {
 }
 
 String _getLabel(AppLocalizations l10n, int index) {
-  return [
-    l10n.home,
-    l10n.search,
-    l10n.library,
-    l10n.downloads,
-    l10n.settingsLabel,
-  ][index];
+  return [l10n.home, l10n.search, l10n.library, l10n.downloads][index];
 }

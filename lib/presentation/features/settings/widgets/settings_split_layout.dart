@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/scale_button.dart';
@@ -30,12 +31,24 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Text(
-                  AppLocalizations.of(context)!.settingsLabel,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                padding: const EdgeInsets.fromLTRB(8, 16, 24, 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(LucideIcons.arrowLeft),
+                      tooltip:
+                          MaterialLocalizations.of(context).backButtonTooltip,
+                      onPressed: () => popSettings(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context)!.settingsLabel,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -170,35 +183,39 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
       ],
     );
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isWide ? 48.0 : 16.0,
-            vertical: isWide ? 32.0 : 16.0,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1240),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.3,
+    // Card + document padding only at >= kExpandedBreakpoint (1200).
+    // Tablet 600–1199: full-bleed split on shell surface.
+    final Widget body =
+        isWide
+            ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48.0,
+                  vertical: 32.0,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1240),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.3,
+                        ),
+                      ),
+                    ),
+                    color: theme.colorScheme.surfaceContainerLow,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: mainRow,
+                    ),
                   ),
                 ),
               ),
-              color: theme.colorScheme.surfaceContainerLow,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: mainRow,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+            )
+            : mainRow;
+
+    return Scaffold(backgroundColor: theme.colorScheme.surface, body: body);
   }
 }

@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
+
+/// Pops Settings when it was pushed onto the stack; otherwise goes home
+/// (deep link `/settings` with nothing to pop).
+void popSettings(BuildContext context) {
+  if (context.canPop()) {
+    context.pop();
+  } else {
+    context.go('/');
+  }
+}
 
 // ── Section container ────────────────────────────────────────────
 

@@ -260,35 +260,39 @@ class LibrarySplitLayout extends ConsumerWidget {
       ],
     );
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isWide ? 48.0 : 16.0,
-            vertical: isWide ? 32.0 : 16.0,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1240),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.3,
+    // Card + document padding only at >= kExpandedBreakpoint (1200).
+    // Tablet 600–1199: full-bleed split on shell surface.
+    final Widget body =
+        isWide
+            ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48.0,
+                  vertical: 32.0,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1240),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.3,
+                        ),
+                      ),
+                    ),
+                    color: theme.colorScheme.surfaceContainerLow,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: mainRow,
+                    ),
                   ),
                 ),
               ),
-              color: theme.colorScheme.surfaceContainerLow,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: mainRow,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+            )
+            : mainRow;
+
+    return Scaffold(backgroundColor: theme.colorScheme.surface, body: body);
   }
 }
