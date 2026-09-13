@@ -464,7 +464,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _intent.onPlayAccepted();
     _isStopping = false;
     _castController.cancelResumeOnInterruptionEnd();
-    _restoreController.clearPauseTimestamp();
 
     if (!_engine.state.playing) {
       _statePublisher.updateState(
@@ -472,7 +471,14 @@ class SonoraAudioHandler extends BaseAudioHandler {
       );
     }
 
+    // Align MediaSession / Android Auto play with opening the phone UI:
+    // [ensureReady] refreshes a stale stream URL while the process is still
+    // alive (warm path). [awaitReady] alone only waits if a restore is already
+    // in flight. Keep [clearPauseTimestamp] after that so the idle-staleness
+    // check can still see the last pause time.
+    await _restoreController.ensureReady();
     await _restoreController.awaitReady();
+    _restoreController.clearPauseTimestamp();
 
     if (_isCastConnected()) {
       // just_audio is paused while casting, so it will not activate the
