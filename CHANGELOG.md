@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.3+64] - 2026-09-13
+
+### Features
+
+- **player**: Podcast-aware full player UX and landscape fixes
+- **ux**: Polish Settings rail, Clear Queue, Cast, shimmer, offline CTA
+- **ux**: Pin Explore, trim tablet framing, move Settings off nav
+- **ui**: Tighten library, search, and nav chrome
+
+### Bug Fixes
+
+- **player**: Advance Cast queue when a remote track ends
+- **player**: Refresh warm stream URL on MediaSession play
+- **player**: Follow the standard MediaSession play/pause contract
+
 ## [1.8.2+63] - 2026-09-12
 
 ### Features
