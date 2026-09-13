@@ -47,6 +47,11 @@ import 'track_url_resolver.dart';
 /// suppressed during that window, otherwise every look-ahead resolve would
 /// republish the media item, re-persist the pointer and re-trigger a fade.
 ///
+/// A **genuine track change** (different videoId) still runs steps 2 and 3
+/// while resolving. Skip-previous during look-ahead would otherwise update
+/// the local index without calling [castSong], leaving the Cast device on
+/// the previous track.
+///
 /// Step 4 is deliberately **not** suppressed during URL resolve: it is the
 /// resolver's own driver — gating it would stall look-ahead permanently.
 /// Cold restore is the exception: the engine briefly reports index 0 while
@@ -246,14 +251,23 @@ class TrackTransitionCoordinator {
     if (_isStopping()) return;
 
     final index = playlist.index;
+    String? currentVideoId;
+    if (index >= 0 && index < playlist.medias.length) {
+      final item = playlist.medias[index].mediaItem;
+      if (item != null) {
+        currentVideoId = QueueTrack.fromMediaItem(item).videoId;
+      }
+    }
+    final trackChanged =
+        currentVideoId != null &&
+        currentVideoId != _statePublisher.lastEmittedMediaItemId;
+    final publishNow = !_queueController.isResolvingItem || trackChanged;
 
-    if (!_queueController.isResolvingItem) {
+    if (publishNow) {
       _publishQueuePointer(playlist, index);
     }
 
-    if (!_queueController.isResolvingItem &&
-        index >= 0 &&
-        index < playlist.medias.length) {
+    if (publishNow && index >= 0 && index < playlist.medias.length) {
       _publishMediaItem(playlist.medias[index]);
     }
 

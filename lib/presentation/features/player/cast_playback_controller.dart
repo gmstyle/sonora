@@ -57,6 +57,8 @@ class CastPlaybackController {
   void Function(Duration duration)? onCastDuration;
   FutureOr<void> Function()? onInterruptionPause;
   FutureOr<void> Function()? onInterruptionResume;
+  VoidCallback? onRemoteTrackEnded;
+  bool _castEndAdvanceInFlight = false;
 
   CastPlaybackController({
     required PlaybackEngine engine,
@@ -144,10 +146,29 @@ class CastPlaybackController {
         onCastDuration?.call(d);
       }
     });
-    _castSessionSub = service.stateStream.listen((s) {
-      _remoteSessionState = s;
-      onTransportChanged?.call();
-    });
+    _castSessionSub = service.stateStream.listen(handleRemoteSessionState);
+  }
+
+  /// Applies a remote [SessionState] from dart_cast. Natural end is
+  /// `playing → idle`; `loading → idle` is a load handshake and must not
+  /// advance the queue.
+  @visibleForTesting
+  void handleRemoteSessionState(SessionState next) {
+    final prev = _remoteSessionState;
+    _remoteSessionState = next;
+    if (next == SessionState.playing || next == SessionState.loading) {
+      _castEndAdvanceInFlight = false;
+    }
+    final shouldAdvance =
+        prev == SessionState.playing &&
+        next == SessionState.idle &&
+        _userWantsPlaying() &&
+        !_castEndAdvanceInFlight;
+    onTransportChanged?.call();
+    if (shouldAdvance) {
+      _castEndAdvanceInFlight = true;
+      onRemoteTrackEnded?.call();
+    }
   }
 
   void _stopCastPosition() {

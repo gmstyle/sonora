@@ -217,6 +217,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _castController.onCastDuration = _onCastDuration;
     _castController.onInterruptionPause = _pause;
     _castController.onInterruptionResume = play;
+    _castController.onRemoteTrackEnded = _onCastRemoteEnded;
     _skipNavigator = SkipNavigator();
     _urlResolver = TrackUrlResolver(
       engine: _engine,
@@ -455,6 +456,47 @@ class SonoraAudioHandler extends BaseAudioHandler {
     }
   }
 
+  void _onCastRemoteEnded() {
+    if (!_isCastConnected() || !_intent.userWantsPlaying) return;
+
+    final repeat = playbackState.value.repeatMode;
+    if (repeat == AudioServiceRepeatMode.one) {
+      final item = mediaItem.value;
+      final state = _castController.castState;
+      final service = _castController.castService;
+      if (item != null && state != null && service != null) {
+        unawaited(
+          _castController.castSong(
+            item,
+            state,
+            service,
+            startPosition: Duration.zero,
+          ),
+        );
+      }
+      return;
+    }
+
+    final len = _engine.state.playlist.medias.length;
+    final index = _engine.state.playlist.index;
+    final shuffle =
+        playbackState.value.shuffleMode == AudioServiceShuffleMode.all;
+    final repeatAll =
+        repeat == AudioServiceRepeatMode.all ||
+        repeat == AudioServiceRepeatMode.group;
+    if (len == 0) return;
+    if (index >= len - 1 && !shuffle && !repeatAll) {
+      _statePublisher.updateState(
+        (s) => s.copyWith(
+          processingState: AudioProcessingState.completed,
+          playing: false,
+        ),
+      );
+      return;
+    }
+    unawaited(skipToNext());
+  }
+
   Stream<Duration?> get durationStream => _uiDuration.stream;
 
   Stream<Duration> get positionStream => _uiPosition.stream;
@@ -615,8 +657,13 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (len == 0) return;
 
     // Standard behavior: if we've played more than 3 seconds of the current track,
-    // "skip previous" just restarts the current track.
-    if (_engine.state.position.inSeconds >= 3) {
+    // "skip previous" just restarts the current track. While casting, the local
+    // engine is paused at 0, so use the remote position.
+    final position =
+        _isCastConnected()
+            ? (_castController.lastCastPosition ?? _engine.state.position)
+            : _engine.state.position;
+    if (position.inSeconds >= 3) {
       await seek(Duration.zero);
       return;
     }

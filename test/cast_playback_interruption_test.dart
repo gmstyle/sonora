@@ -6,7 +6,10 @@ import 'package:sonora/presentation/features/player/cast_playback_controller.dar
 import 'package:sonora/presentation/features/player/playback_engine.dart';
 import 'package:sonora/presentation/features/player/playback_volume_controller.dart';
 
-class _FakeEngine extends Fake implements PlaybackEngine {}
+class _FakeEngine extends Fake implements PlaybackEngine {
+  @override
+  PlaybackEngineState get state => const PlaybackEngineState();
+}
 
 class _FakeVolume extends Fake implements PlaybackVolumeController {}
 
@@ -95,6 +98,54 @@ void main() {
       );
       expect(pauseCount, 0);
       expect(resumeCount, 0);
+    });
+  });
+
+  group('CastPlaybackController remote track end', () {
+    late bool userWantsPlaying;
+    late int endedCount;
+    late CastPlaybackController controller;
+
+    setUp(() {
+      userWantsPlaying = true;
+      endedCount = 0;
+      controller = CastPlaybackController(
+        engine: _FakeEngine(),
+        volumeController: _FakeVolume(),
+        playVideoIdUseCase: _FakePlayVideoId(),
+        userWantsPlaying: () => userWantsPlaying,
+        currentMediaItem: () => null,
+        lanCastUrl: (_) async => null,
+      );
+      controller.onRemoteTrackEnded = () => endedCount++;
+    });
+
+    test('playing then idle advances the queue', () {
+      controller.debugSetRemotePlayback(
+        connected: true,
+        remoteState: SessionState.playing,
+      );
+      controller.handleRemoteSessionState(SessionState.idle);
+      expect(endedCount, 1);
+    });
+
+    test('loading then idle does not advance (load handshake)', () {
+      controller.debugSetRemotePlayback(
+        connected: true,
+        remoteState: SessionState.loading,
+      );
+      controller.handleRemoteSessionState(SessionState.idle);
+      expect(endedCount, 0);
+    });
+
+    test('playing then idle is ignored when the user paused', () {
+      userWantsPlaying = false;
+      controller.debugSetRemotePlayback(
+        connected: true,
+        remoteState: SessionState.playing,
+      );
+      controller.handleRemoteSessionState(SessionState.idle);
+      expect(endedCount, 0);
     });
   });
 }

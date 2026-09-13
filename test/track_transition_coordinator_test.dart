@@ -224,6 +224,7 @@ void main() {
     setUp(() => queueController.resolving = true);
 
     test('suppresses the pointer, media item, sync and fade', () {
+      statePublisher.emittedId = 'a';
       final playlist = playlistOf(const ['a']);
       engine.playlist = playlist;
 
@@ -238,6 +239,7 @@ void main() {
     });
 
     test('does NOT suppress the resolver, which would stall look-ahead', () {
+      statePublisher.emittedId = 'b';
       final playlist = playlistOf(const ['a', 'b'], index: 1);
       engine.playlist = playlist;
 
@@ -248,12 +250,31 @@ void main() {
     });
 
     test('leaves exactly the unsuppressed resolve step', () {
+      statePublisher.emittedId = 'a';
       final playlist = playlistOf(const ['a']);
       engine.playlist = playlist;
 
       coordinator.onPlaylistChanged(playlist);
 
       expect(steps, ['resolve']);
+    });
+
+    test('still publishes a genuine track change while resolving', () {
+      statePublisher.emittedId = 'a';
+      final playlist = playlistOf(const ['a', 'b'], index: 1);
+      engine.playlist = playlist;
+
+      coordinator.onPlaylistChanged(playlist);
+
+      expect(emitted.single.id, 'b');
+      expect(steps, contains('clearTarget'));
+      expect(steps, contains('queueIndex'));
+      expect(steps, contains('persistPointer'));
+      expect(steps, contains('resetRetry'));
+      expect(steps, contains('checkLiked'));
+      expect(steps, contains('resolve'));
+      expect(steps, isNot(contains('syncQueue')));
+      expect(steps, isNot(contains('fadeIn')));
     });
   });
 
