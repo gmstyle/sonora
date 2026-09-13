@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 import 'dart:io';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'playback_engine.dart';
@@ -28,14 +30,25 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
     }
     // Recommended just_audio + audio_service defaults: interruptions,
     // session activation and Android audio attributes are handled by
-    // just_audio. AudioSessionController only configures music() and the
-    // Cast path (local engine is paused).
+    // just_audio. Call [configureSession] once at startup (music()).
     final player = AudioPlayer(
       maxSkipsOnError: 0,
       useLazyPreparation: true,
       audioPipeline: pipeline,
     );
     return JustAudioPlaybackEngine(player, androidEqualizer: eq);
+  }
+
+  /// Official `just_audio` + `audio_service` setup: configure the shared
+  /// session as music once. Do not `setActive` here — `AudioPlayer.play`
+  /// activates it. Cast is the exception (`CastPlaybackController`).
+  static Future<void> configureSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+    } catch (e) {
+      dev.log('[AudioHandler] Failed to configure audio session: $e');
+    }
   }
 
   static AudioSource toSource(EngineMedia media) {

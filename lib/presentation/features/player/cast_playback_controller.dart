@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:developer' as dev;
+
 import 'package:audio_service/audio_service.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:dart_cast/dart_cast.dart';
+import 'package:flutter/foundation.dart';
 import 'playback_engine.dart';
 import '../../../data/services/cast_service.dart';
 import '../../../domain/models/queue_track.dart';
@@ -45,10 +49,14 @@ class CastPlaybackController {
   StreamSubscription<Duration>? _castPositionSub;
   StreamSubscription<Duration>? _castDurationSub;
   StreamSubscription<SessionState>? _castSessionSub;
+  StreamSubscription<AudioInterruptionEvent>? _interruptionSub;
+  bool _playOnInterruptionEnd = false;
 
   void Function()? onTransportChanged;
   void Function(Duration position)? onCastPosition;
   void Function(Duration duration)? onCastDuration;
+  FutureOr<void> Function()? onInterruptionPause;
+  FutureOr<void> Function()? onInterruptionResume;
 
   CastPlaybackController({
     required PlaybackEngine engine,
@@ -262,5 +270,81 @@ class CastPlaybackController {
     } finally {
       await sub.cancel();
     }
+  }
+
+  /// Phone-call interruptions while casting. Local playback is owned by
+  /// `just_audio`; this is a no-op unless a Cast session is connected.
+  Future<void> listenForAudioInterruptions() async {
+    try {
+      final session = await AudioSession.instance;
+      _interruptionSub = session.interruptionEventStream.listen(
+        handleInterruption,
+      );
+    } catch (e) {
+      dev.log('[Cast] Failed to listen for audio interruptions: $e');
+    }
+  }
+
+  void cancelResumeOnInterruptionEnd() {
+    _playOnInterruptionEnd = false;
+  }
+
+  /// `just_audio` is paused while casting, so it will not activate the
+  /// session. [audio_session] documents `setActive(true)` for that case.
+  Future<void> activateAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.setActive(true);
+    } catch (e) {
+      dev.log('[Cast] Failed to activate audio session: $e');
+    }
+  }
+
+  /// Visible for tests. Local interruptions are ignored.
+  @visibleForTesting
+  void handleInterruption(AudioInterruptionEvent event) {
+    if (_castState?.connectionState != CastConnectionState.connected) return;
+    if (event.begin) {
+      switch (event.type) {
+        case AudioInterruptionType.pause:
+        case AudioInterruptionType.unknown:
+          _playOnInterruptionEnd = _userWantsPlaying() && isRemotePlaying;
+          onInterruptionPause?.call();
+          break;
+        case AudioInterruptionType.duck:
+          break;
+      }
+    } else {
+      switch (event.type) {
+        case AudioInterruptionType.pause:
+        case AudioInterruptionType.unknown:
+          if (_playOnInterruptionEnd) {
+            onInterruptionResume?.call();
+          }
+          _playOnInterruptionEnd = false;
+          break;
+        case AudioInterruptionType.duck:
+          break;
+      }
+    }
+  }
+
+  @visibleForTesting
+  void debugSetRemotePlayback({
+    required bool connected,
+    SessionState? remoteState,
+  }) {
+    _castState = CastState(
+      connectionState:
+          connected
+              ? CastConnectionState.connected
+              : CastConnectionState.disconnected,
+    );
+    _remoteSessionState = remoteState;
+  }
+
+  void dispose() {
+    _interruptionSub?.cancel();
+    _stopCastPosition();
   }
 }

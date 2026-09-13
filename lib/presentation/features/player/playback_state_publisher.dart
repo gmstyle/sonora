@@ -18,7 +18,6 @@ class PlaybackStatePublisher {
   final bool Function() _isResolving;
   final Duration Function() _savedPosition;
   final bool Function() _isLiked;
-  final bool Function() _isExplicitlyPaused;
   final void Function() _onBecameReady;
   final bool Function() _isCastConnected;
   final bool Function() _isCastSessionPlaying;
@@ -38,7 +37,6 @@ class PlaybackStatePublisher {
     required bool Function() isResolving,
     required Duration Function() savedPosition,
     required bool Function() isLiked,
-    required bool Function() isExplicitlyPaused,
     required void Function() onBecameReady,
     bool Function()? isCastConnected,
     bool Function()? isCastSessionPlaying,
@@ -50,7 +48,6 @@ class PlaybackStatePublisher {
        _isResolving = isResolving,
        _savedPosition = savedPosition,
        _isLiked = isLiked,
-       _isExplicitlyPaused = isExplicitlyPaused,
        _onBecameReady = onBecameReady,
        _isCastConnected = isCastConnected ?? _alwaysFalse,
        _isCastSessionPlaying = isCastSessionPlaying ?? _alwaysFalse,
@@ -60,7 +57,6 @@ class PlaybackStatePublisher {
   static Duration? _alwaysNullDuration() => null;
 
   bool _effectivePlaying() {
-    if (_isExplicitlyPaused()) return false;
     if (_isCastConnected()) return _isCastSessionPlaying();
     return _engine.state.playing;
   }
@@ -81,7 +77,7 @@ class PlaybackStatePublisher {
   bool get isSuppressingIdle => _isRestoring() || _isResolving();
 
   /// Forces the next [updatePlaybackState] to emit even if processing/playing
-  /// appear unchanged. Used after focus denial, cast URL swaps, etc.
+  /// appear unchanged. Used after cast URL swaps, pause/play races, etc.
   void invalidate() {
     _lastEmittedProcessingState = null;
     _lastEmittedPlaying = null;

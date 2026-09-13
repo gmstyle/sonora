@@ -151,7 +151,6 @@ lib/
         │   ├── playback_volume_controller.dart   # Crossfade, transition mute, cast-aware volume
         │   ├── playback_state_publisher.dart     # PlaybackState projection + dedupe
         │   ├── skip_navigator.dart       # Skip next/prev index + shuffle history
-        │   ├── audio_session_controller.dart     # configure(music()); Cast-only interruptions
         │   ├── player_media_controls.dart        # Notification MediaControl builder
         │   ├── like_controller.dart      # Current-track like state (song vs episode)
         │   ├── equalizer_controller.dart # AndroidEqualizer (5 Sonora bands interpolated)
@@ -342,8 +341,7 @@ The optional `settings` object uses the SharedPreferences key names from §12 (`
                     Resolver   Restore/     PlayerMedia    Controller
                                Recovery/    Controls       AndroidAuto
                                Volume/      LikeController BrowserController
-                               StatePub     AudioSession
-                                            Equalizer
+                               StatePub     Equalizer
 ```
 
 | Controller | File | Responsibility |
@@ -352,17 +350,16 @@ The optional `settings` object uses the SharedPreferences key names from §12 (`
 | `TrackUrlResolver` | `track_url_resolver.dart` | Lazy URL resolve for pending items; adaptive lookahead (`current`+`+1` immediate, `+2`/`+3` after 20s); disk pre-cache via `MediaCacheService` (audio-only) |
 | `PlaylistOpenCoordinator` | `playlist_open_coordinator.dart` | The three wholesale playlist replacements — `setQueue` (stages paused), `playNow` (resolves the first URL, opens playing; `just_audio` activates the session) and `rebuildMedia` (re-derives `EngineMedia` after a quality change). All run under the queue's FIFO lock; `shouldAbort` is evaluated after any in-flight open so the most recent caller wins |
 | `TrackTransitionCoordinator` | `track_transition_coordinator.dart` | Owns `PlaybackEngine` stream subscriptions (`setupListeners`) and the track-change cascade: queue pointer → media item → cast → resolve → queue sync → fade-in, plus duration stamping bound to playlist identity. `isResolvingItem` suppresses the pointer, media item, sync and fade but deliberately **not** the resolver. Order is locked by `test/track_transition_coordinator_test.dart` |
-| `PlaybackIntentController` | `playback_intent_controller.dart` | Single source of truth for what the *user* wants playback to be doing: `userWantsPlaying`, `isExplicitlyPaused`, and the authorised-resume window. Distinguishes an in-app pause from a notification/headset pause so Pixel Buds ear-detection PLAY is rejected while a deliberate buds tap still resumes. Full truth table in the class doc; covered by `test/playback_intent_controller_test.dart` |
+| `PlaybackIntentController` | `playback_intent_controller.dart` | Single source of truth for what the *user* wants playback to be doing (`userWantsPlaying`), as opposed to what the engine is doing. In-app and MediaSession share the same `play()` / `pause()` / `stop()` contract; PLAY is never rejected. Full truth table in the class doc; covered by `test/playback_intent_controller_test.dart` |
 | `PlaybackRestoreController` | `playback_restore_controller.dart` | Cold-start restore from Drift + warm-resume stale-URL refresh; owns `RestoreStatus` / `savedPosition` / `awaitReady` |
 | `PlaybackRecoveryController` | `playback_recovery_controller.dart` | One-shot URL retry on player error; offline/cached fallback; auto-resume on connectivity restore; `onPlayError` stream |
 | `PlaybackVolumeController` | `playback_volume_controller.dart` | Crossfade envelope, transition mute, cast-aware local volume |
 | `PlaybackStatePublisher` | `playback_state_publisher.dart` | Projects `PlaybackEngine` state → `audio_service` `PlaybackState` with emit dedupe; `invalidate()` after batch resolves; never emits `idle` during restore/resolve (Android Auto MediaSession) |
 | `SkipNavigator` | `skip_navigator.dart` | Next/previous index calculation, shuffle history, rapid-skip target index |
-| `AudioSessionController` | `audio_session_controller.dart` | `AudioSession.configure(music())` only, matching the official `just_audio` + `audio_service` example (`AudioPlayer()` defaults handle interruptions, becoming-noisy, session activation, and `USAGE_MEDIA`). The leftover from the media_kit era — manual `setActive` / duck / becoming-noisy on the local engine — is gone. Cast is the exception: local `just_audio` is paused, so `setActive(true)` and interruption pause/resume are forwarded to the remote session |
 | `PlayerMediaControls` | `player_media_controls.dart` | Pure builder for notification / MPRIS custom actions (shuffle, repeat, like, start radio) |
 | `LikeController` | `like_controller.dart` | Current-track liked flag + library toggle |
 | `EqualizerController` | `equalizer_controller.dart` | Android: interpolates 5 Sonora bands (100/300/1k/3k/10k Hz) onto `AndroidEqualizer` device bands. Linux: no-op (system EQ) |
-| `CastPlaybackController` | `cast_playback_controller.dart` | Cast connect lifecycle, `castSong` token cancellation, remote play/pause/seek sync |
+| `CastPlaybackController` | `cast_playback_controller.dart` | Cast connect lifecycle, `castSong` token cancellation, remote play/pause/seek sync. Also the documented audio-session exception: while Cast is connected the local engine is paused, so `setActive(true)` and phone-call pause/resume are forwarded to the remote session. `JustAudioPlaybackEngine.configureSession()` (`music()`) is the official local setup; interruptions, becoming-noisy and activation stay with `just_audio` |
 | `AndroidAutoBrowserController` | `android_auto_browser_controller.dart` | AA browse tree, search, `playFromMediaId` / `playFromSearch` |
 
 **What stays on the facade:** `_synchronizedOpen` (serializes `setQueue` / `playNow`), `_userWantsPlaying`, playlist listeners that orchestrate mediaItem emit → cast → resolve → sync → fade-in, and thin forwards (`updateCastState`, `setEqualizer`, AA overrides).
@@ -535,7 +532,7 @@ Sonora supports casting to **Chromecast** and **DLNA** devices (WiFi speakers, S
 When a device is connected:
 
 1. Local playback is paused; local volume is muted via `PlaybackVolumeController`. `just_audio` does not deactivate the audio session on pause, so the notification, Android Auto, and headset keep controlling the Cast session.
-2. Playback commands (`play`, `pause`, `skip`, `seek`) on `SonoraAudioHandler` forward to `SonoraCastService` when connected. Because the local engine is paused, `play()` calls `AudioSession.setActive(true)` (the documented exception when the audio plugin is not playing) then `castService.play()`.
+2. Playback commands (`play`, `pause`, `skip`, `seek`) on `SonoraAudioHandler` forward to `SonoraCastService` when connected. Because the local engine is paused, `play()` calls `CastPlaybackController.activateAudioSession()` (`AudioSession.setActive(true)` — the documented exception when the audio plugin is not playing) then `castService.play()`.
 3. Phone-call interruptions while Cast is connected are forwarded to the remote session; local interruptions stay with `just_audio`. Unplugging headphones is a no-op on Cast (`just_audio` would only pause the already-paused local engine).
 4. The queue state is synchronized in two ways:
    - **Cast Media Resolution**: The current media URL is resolved on demand and sent to the remote device via `castMedia`.
@@ -930,7 +927,7 @@ On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `
 |---|---|---|
 | `test/daos_test.dart` | 66 | All DAOs with upsert, edge cases |
 | `test/library_repository_test.dart` | 35 | Toggle, mapping, CRUD |
-| `test/playback_intent_controller_test.dart` | 27 | Buds ear-detection, Assistant interruption, becoming-noisy, cold restore |
+| `test/playback_intent_controller_test.dart` | 19 | MediaSession PLAY contract, interruptions, engine reports, cold restore |
 | `test/settings_provider_test.dart` | 30 | Settings model + setters + backup map + upgrade migration |
 | `test/track_transition_coordinator_test.dart` | 14 | Cascade order and `isResolvingItem` suppression |
 | `test/track_url_resolver_prefetch_test.dart` | 15 | Lazy resolve + adaptive lookahead |
@@ -942,7 +939,7 @@ On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `
 | `test/media_cache_uri_test.dart` | 8 | Cache URI classification |
 | `test/playback_restore_local_url_test.dart` | 6 | Restore with local / stale / audio-only cache URLs |
 | `test/just_audio_playback_engine_test.dart` | 2 | Repeat-mode + `AudioSource` tag mappings |
-| `test/audio_session_controller_test.dart` | 4 | Cast-only interruptions; local path left to `just_audio` |
+| `test/cast_playback_interruption_test.dart` | 4 | Cast-only interruptions; local path left to `just_audio` |
 | `test/equalizer_interpolation_test.dart` | 4 | 5-band → device-band gain interpolation |
 | `test/battery_prompt_provider_test.dart` | 6 | Battery-optimisation prompt state |
 | `test/downloads_notifier_test.dart` | 6 | Download progress state |

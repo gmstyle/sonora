@@ -26,7 +26,6 @@ import '../../../data/services/cast_service.dart';
 import 'android_auto_browser_controller.dart';
 import 'cast_playback_controller.dart';
 import 'equalizer_controller.dart';
-import 'audio_session_controller.dart';
 import 'like_controller.dart';
 import 'play_error.dart';
 import 'player_media_controls.dart';
@@ -62,7 +61,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final AndroidAutoBrowserController _browserController;
   late final EqualizerController _equalizerController;
   late final QueueController _queueController;
-  late final AudioSessionController _audioSessionController;
   late final LikeController _likeController;
   late final PlaybackVolumeController _volumeController;
   late final PlaybackStatePublisher _statePublisher;
@@ -209,7 +207,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isResolving: () => _queueController.isResolvingItem,
       savedPosition: () => _restoreController.savedPosition,
       isLiked: () => _likeController.isCurrentSongLiked,
-      isExplicitlyPaused: () => _intent.isExplicitlyPaused,
       onBecameReady: () => _recoveryController.resetRetryCount(),
       isCastConnected: _isCastConnected,
       isCastSessionPlaying: () => _castController.isRemotePlaying,
@@ -218,6 +215,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _castController.onTransportChanged = _onCastTransportChanged;
     _castController.onCastPosition = _onCastPosition;
     _castController.onCastDuration = _onCastDuration;
+    _castController.onInterruptionPause = _pause;
+    _castController.onInterruptionResume = play;
     _skipNavigator = SkipNavigator();
     _urlResolver = TrackUrlResolver(
       engine: _engine,
@@ -336,13 +335,6 @@ class SonoraAudioHandler extends BaseAudioHandler {
       setIsStopping: (v) => _isStopping = v,
       onRestoreReady: _notifyAndroidAutoResumption,
     );
-    _audioSessionController = AudioSessionController(
-      userWantsPlaying: () => _intent.userWantsPlaying,
-      isRemotePlaying: () => _castController.isRemotePlaying,
-      isRemotePlayback: _isCastConnected,
-      onPauseRequested: _pause,
-      onResumeRequested: play,
-    );
     _playlistOpener = PlaylistOpenCoordinator(
       engine: _engine,
       queueController: _queueController,
@@ -380,7 +372,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       skipToQueueItem: skipToQueueItem,
     );
 
-    unawaited(_audioSessionController.setup());
+    unawaited(JustAudioPlaybackEngine.configureSession());
+    unawaited(_castController.listenForAudioInterruptions());
     _transitions.setupListeners();
     _recoveryController.startListening();
     _engineUiPosSub = _engine.positionStream.listen((pos) {
@@ -466,34 +459,11 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   Stream<Duration> get positionStream => _uiPosition.stream;
 
-  /// In-app / deliberate resume entry point. Bypasses the guard that blocks
-  /// spurious MediaSession PLAY after Pixel Buds ear-detection while paused.
-  Future<void> resumeFromUser() => _intent.runAuthorizedResume(play);
-
-  /// In-app pause. Marks an explicit pause so the next MediaSession PLAY
-  /// (Pixel Buds ear-detection) is ignored; a following tap can resume.
-  /// MediaSession [pause] does not set this.
-  Future<void> pauseFromUser() async {
-    _intent.onUserPause();
-    _audioSessionController.cancelResumeOnInterruptionEnd();
-    await _pause();
-    _statePublisher.invalidate();
-    _statePublisher.updatePlaybackState();
-  }
-
   @override
   Future<void> play() async {
-    if (_intent.shouldRejectPlay(
-      engineIsPlaying: _engine.state.playing || _isCastConnected(),
-    )) {
-      _intent.onRejectedSessionPlay();
-      _statePublisher.invalidate();
-      _statePublisher.updatePlaybackState();
-      return;
-    }
     _intent.onPlayAccepted();
     _isStopping = false;
-    _audioSessionController.cancelResumeOnInterruptionEnd();
+    _castController.cancelResumeOnInterruptionEnd();
     _restoreController.clearPauseTimestamp();
 
     if (!_engine.state.playing) {
@@ -507,7 +477,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     if (_isCastConnected()) {
       // just_audio is paused while casting, so it will not activate the
       // session. audio_session documents setActive(true) for that case.
-      await _audioSessionController.requestFocus();
+      await _castController.activateAudioSession();
       await _castController.castService?.play();
       return;
     }
@@ -549,10 +519,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   @override
   Future<void> pause() async {
-    // MediaSession / buds / notification pause — deliberately not an explicit
-    // pause, so a following buds tap can call [play].
-    _intent.onSessionPause();
-    _audioSessionController.cancelResumeOnInterruptionEnd();
+    _castController.cancelResumeOnInterruptionEnd();
     await _pause();
     _statePublisher.invalidate();
     _statePublisher.updatePlaybackState();
@@ -583,7 +550,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await _castController.castService?.disconnect();
       } catch (_) {}
     }
-    _audioSessionController.cancelResumeOnInterruptionEnd();
+    _castController.cancelResumeOnInterruptionEnd();
     await _prefs.setInt(
       'last_pause_timestamp',
       DateTime.now().millisecondsSinceEpoch,
@@ -962,7 +929,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _urlResolver.cancelLookahead();
     _urlResolver.dispose();
     _recoveryController.dispose();
-    _audioSessionController.dispose();
+    _castController.dispose();
     _restoreController.dispose();
     unawaited(_engineUiPosSub?.cancel());
     unawaited(_engineUiDurSub?.cancel());

@@ -119,10 +119,6 @@ class TrackTransitionCoordinator {
   /// Subscribes to engine streams. Called once from the handler constructor.
   void setupListeners() {
     _engine.playingStream.listen((playing) {
-      if (_intent.shouldForcePause(playing: playing)) {
-        unawaited(_engine.pause());
-        return;
-      }
       _intent.onEnginePlaying(
         playing,
         suppressClear:

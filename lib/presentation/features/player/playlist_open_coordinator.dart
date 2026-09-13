@@ -122,10 +122,6 @@ class PlaylistOpenCoordinator {
     bool Function()? shouldAbort,
   }) async {
     _setIsStopping(false);
-    // playNow is an explicit user-initiated session. pauseFromUser() (called
-    // by playAlbum/playPlaylist/etc.) marks an explicit pause; leaving it set
-    // here makes playing.listen immediately pause() the new playlist.
-    _intent.onNewSessionStarted();
     _volumeController.prepareTransitionMute();
     await runExclusive(() async {
       _queueController.beginResolving();
@@ -147,7 +143,7 @@ class PlaylistOpenCoordinator {
 
         final finalMedias =
             resolvedItems.map(_queueController.toMedia).toList();
-        _intent.onSessionOpened(hasFocus: true);
+        _intent.onPlayAccepted();
         await _engine.open(finalMedias, index: initialIndex, play: true);
       } catch (e) {
         _volumeController.endTransitionMute();

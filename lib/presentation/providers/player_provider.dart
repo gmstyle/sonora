@@ -676,7 +676,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     final v = ++_operationVersion;
-    await _handler.pauseFromUser();
+    await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       await _handler.playNow(
@@ -699,7 +699,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> playAlbum(List<SongDetailed> songs, {int startIndex = 0}) async {
     final v = ++_operationVersion;
-    await _handler.pauseFromUser();
+    await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       final useCase = ref.read(playAlbumUseCaseProvider);
@@ -728,7 +728,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     int startIndex = 0,
   }) async {
     final v = ++_operationVersion;
-    await _handler.pauseFromUser();
+    await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       final useCase = ref.read(playPlaylistUseCaseProvider);
@@ -761,7 +761,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     int startIndex = 0,
   }) async {
     final v = ++_operationVersion;
-    await _handler.pauseFromUser();
+    await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       final useCase = ref.read(playPodcastUseCaseProvider);
@@ -799,7 +799,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> playSmartMix(List<dynamic> songs, {int startIndex = 0}) async {
     final v = ++_operationVersion;
-    await _handler.pauseFromUser();
+    await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
       final useCase = ref.read(playSmartMixUseCaseProvider);
@@ -980,14 +980,14 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   // ── Metodi base ───────────────────────────────────────────────
 
-  Future<void> play() => _handler.resumeFromUser();
+  Future<void> play() => _handler.play();
 
-  Future<void> pause() => _handler.pauseFromUser();
+  Future<void> pause() => _handler.pause();
 
   Future<void> togglePlayPause() async {
     if (state.isBlocked) return;
     if (state.isPlaying) {
-      await _handler.pauseFromUser();
+      await _handler.pause();
     } else {
       // When the queue is exhausted and autoplay is enabled, the engine's
       // play() would restart from index 0 (the first user track).  Delegate
@@ -1000,7 +1000,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         _isFetchingUpNext = true;
         await _fetchAutoPlayUpNext();
       } else {
-        await _handler.resumeFromUser();
+        await _handler.play();
       }
     }
   }
@@ -1025,12 +1025,12 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     final v = ++_operationVersion;
     // Pause immediately so the user hears a clean cut instead of the current
     // song continuing while the target URL is resolved.
-    await _handler.pauseFromUser();
+    await _handler.pause();
     state = state.copyWith(isSwitching: true);
     try {
       await _handler.skipToQueueItem(index);
       if (_operationVersion != v) return;
-      await _handler.resumeFromUser();
+      await _handler.play();
       if (_operationVersion != v) return;
       _clearSwitchingIfAudible();
     } catch (e) {
@@ -1052,7 +1052,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     _playDebounceTimer?.cancel();
 
     final v = ++_operationVersion;
-    await _handler.pauseFromUser();
+    await _handler.pause();
     state = state.copyWith(isSwitching: true);
 
     // Debounce rapid taps: only the last tap within 250ms triggers the
@@ -1070,7 +1070,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           item,
         ], shouldAbort: () => _operationVersion != v);
         if (_operationVersion != v) return;
-        await _handler.resumeFromUser();
+        await _handler.play();
         if (_operationVersion != v) return;
         _clearSwitchingIfAudible();
       } catch (e) {
@@ -1116,7 +1116,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     _sleepTimerDuration = duration;
     _sleepTimerStart = DateTime.now();
     _sleepTimer = Timer(duration, () {
-      _handler.pauseFromUser();
+      _handler.pause();
       _sleepTimer = null;
       _sleepTimerDuration = null;
       _sleepTimerStart = null;
