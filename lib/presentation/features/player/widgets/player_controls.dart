@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_service/audio_service.dart';
 import '../../../providers/player_provider.dart';
+import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'animated_play_pause_icon.dart';
 
@@ -16,6 +17,9 @@ class PlayerControls extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(playerStateProvider);
     final notifier = ref.read(playerStateProvider.notifier);
+    final current = playerState.currentSong;
+    final isEpisode =
+        current != null && QueueTrack.fromMediaItem(current).isEpisode;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -29,7 +33,17 @@ class PlayerControls extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildShuffleButton(context, playerState, notifier),
+                  if (isEpisode)
+                    _buildSeekButton(
+                      context,
+                      notifier,
+                      offset: const Duration(seconds: -15),
+                      label: '−15',
+                      tooltip: AppLocalizations.of(context)!.seekBack15,
+                      disabled: playerState.isBlocked,
+                    )
+                  else
+                    _buildShuffleButton(context, playerState, notifier),
                   _buildSkipButton(
                     context,
                     false,
@@ -43,13 +57,51 @@ class PlayerControls extends ConsumerWidget {
                     notifier,
                     disabled: playerState.isBlocked,
                   ),
-                  _buildRepeatButton(context, playerState, notifier),
+                  if (isEpisode)
+                    _buildSeekButton(
+                      context,
+                      notifier,
+                      offset: const Duration(seconds: 30),
+                      label: '+30',
+                      tooltip: AppLocalizations.of(context)!.seekForward30,
+                      disabled: playerState.isBlocked,
+                    )
+                  else
+                    _buildRepeatButton(context, playerState, notifier),
                 ],
               ),
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSeekButton(
+    BuildContext context,
+    PlayerNotifier notifier, {
+    required Duration offset,
+    required String label,
+    required String tooltip,
+    bool disabled = false,
+  }) {
+    return IconButton(
+      icon: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+          color: iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+      onPressed:
+          disabled
+              ? null
+              : () {
+                HapticFeedback.lightImpact();
+                notifier.seekBy(offset);
+              },
+      tooltip: tooltip,
     );
   }
 

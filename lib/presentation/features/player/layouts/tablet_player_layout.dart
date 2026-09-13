@@ -44,12 +44,15 @@ class TabletPlayerLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tight = availHeight < 600;
+    final narrow = availWidth < 720;
     final isPanelOpen = activeView != PlayerSubView.none;
+    final hPad = narrow ? 16.0 : 32.0;
+    final colGap = narrow ? 16.0 : 48.0;
 
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: 32.0,
+          horizontal: hPad,
           vertical: tight ? 4.0 : 16.0,
         ),
         child: Column(
@@ -66,13 +69,13 @@ class TabletPlayerLayout extends ConsumerWidget {
                       artUrl: artUrl,
                       size: min(
                         availHeight - (tight ? 70 : 100),
-                        availWidth / 2 - 48,
-                      ),
+                        availWidth / 2 - colGap,
+                      ).clamp(0.0, double.infinity),
                       videoId: videoId,
                       isSwitching: playerState.isSwitching,
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  SizedBox(width: colGap),
                   Expanded(
                     flex: 1,
                     child: LayoutBuilder(

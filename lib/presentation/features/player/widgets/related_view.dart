@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/player_colors.dart';
+import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/music_repository_provider.dart';
 import '../../../providers/player_provider.dart';
@@ -15,6 +16,7 @@ import '../../../shared/widgets/playlist_card.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_card.dart';
+import '../../podcast/providers/podcast_provider.dart';
 import '../player_navigation.dart';
 
 final songRelatedProvider = FutureProvider.family<List<RelatedSection>, String>(
@@ -34,6 +36,19 @@ class RelatedView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(playerStateProvider.select((s) => s.currentSong));
+    final track = current != null ? QueueTrack.fromMediaItem(current) : null;
+    if (track != null && track.isEpisode) {
+      final browseId = track.podcastBrowseId;
+      if (browseId == null || browseId.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return _PodcastEpisodesRelated(
+        key: ValueKey('podcast_related_$browseId'),
+        browseId: browseId,
+      );
+    }
+
     final relatedAsync = ref.watch(songRelatedProvider(videoId));
     final pc = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -71,6 +86,102 @@ class RelatedView extends ConsumerWidget {
           itemBuilder: (context, index) {
             final section = sections[index];
             return _RelatedSectionBlock(section: section);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _PodcastEpisodesRelated extends ConsumerWidget {
+  final String browseId;
+
+  const _PodcastEpisodesRelated({super.key, required this.browseId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final podcastAsync = ref.watch(podcastProvider(browseId));
+    final pc = PlayerColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return podcastAsync.when(
+      loading: () => const _RelatedShimmer(),
+      error:
+          (e, _) => ErrorRetryWidget(
+            message: l10n.failedToLoadRelated,
+            onRetry: () => ref.invalidate(podcastProvider(browseId)),
+          ),
+      data: (podcast) {
+        final episodes =
+            podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+        if (episodes.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.sparkles, size: 48, color: pc.labelMuted),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.noRelatedContent,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        final authorName = podcast.author?.name ?? podcast.name;
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(bottom: 24),
+          itemCount: episodes.length + 1,
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  l10n.moreFromPodcast,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: pc.titlePrimary,
+                  ),
+                ),
+              );
+            }
+            final episode = episodes[index - 1];
+            final seconds = Parser.parseDuration(episode.duration);
+            return SongTile(
+              videoId: episode.videoId,
+              title: episode.name,
+              artist: authorName,
+              artistId: podcast.author?.artistId,
+              thumbnailUrl:
+                  episode.thumbnails.isNotEmpty
+                      ? episode.thumbnails.last.url
+                      : null,
+              duration: seconds,
+              playCount: episode.date,
+              isVideo: false,
+              onTap: () async {
+                final playableIndex = episodes.indexWhere(
+                  (e) => e.videoId == episode.videoId,
+                );
+                if (playableIndex < 0) return;
+                await ref
+                    .read(playerStateProvider.notifier)
+                    .playPodcast(
+                      episodes,
+                      podcastBrowseId: browseId,
+                      podcastName: podcast.name,
+                      authorName: authorName,
+                      authorId: podcast.author?.artistId,
+                      startIndex: playableIndex,
+                    );
+              },
+            );
           },
         );
       },

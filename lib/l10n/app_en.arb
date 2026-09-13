@@ -752,5 +752,17 @@
   "goToPodcast": "Go to Podcast",
   "loadMoreEpisodes": "Load more episodes",
   "failedToLoadEpisode": "Failed to load episode",
-  "podcastListeningTime": "Podcast Listening Time"
+  "podcastListeningTime": "Podcast Listening Time",
+  "sleepEndOfEpisode": "End of episode",
+  "showNotes": "Show notes",
+  "noShowNotes": "No show notes available",
+  "seekBack15": "Seek back 15 seconds",
+  "seekForward30": "Seek forward 30 seconds",
+  "autoplayLabel": "AUTOPLAY",
+  "queueEndLabel": "QUEUE END",
+  "autoplayActive": "Autoplay is on",
+  "nextEpisode": "Next episode",
+  "noUpcomingEpisodes": "No upcoming episodes",
+  "moreFromPodcast": "More from this podcast",
+  "episodeShort": "EP"
 }

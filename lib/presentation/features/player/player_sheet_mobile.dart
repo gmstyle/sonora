@@ -35,12 +35,14 @@ class PlayerSheetMobile extends ConsumerWidget {
     final playerNotifier = ref.read(playerStateProvider.notifier);
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
     final isSwitching = playerState.isBlocked;
-    final isVideo = QueueTrack.fromMediaItem(currentSong).isVideo;
+    final track = QueueTrack.fromMediaItem(currentSong);
+    final isVideo = track.isVideo;
     final artUrl = currentSong.artUri?.toString();
 
-    final useVinylStyle = ref.watch(
+    final useVinylSetting = ref.watch(
       settingsProvider.select((s) => s.useVinylStyle),
     );
+    final useVinylStyle = useVinylSetting && !track.isEpisode;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,

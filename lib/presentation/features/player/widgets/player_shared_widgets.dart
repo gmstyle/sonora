@@ -23,9 +23,11 @@ import 'cast_button.dart';
 import '../../../providers/equalizer_provider.dart';
 import 'equalizer_panel.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../player_navigation.dart';
 import 'lyrics_view.dart';
 import 'queue_sheet.dart';
 import 'related_view.dart';
+import 'show_notes_view.dart';
 
 /// Blurred artwork + animated gradient overlay.
 ///
@@ -319,6 +321,62 @@ Widget buildTrackInfoAndLikeRow(
   // Colours from PlayerColors — always readable on the dark player background.
   final pc = PlayerColors.of(context);
 
+  VoidCallback? onTitleTap;
+  VoidCallback? onArtistTap;
+  if (track.isEpisode) {
+    onTitleTap =
+        () => closeFullPlayerAndNavigate(context, '/episode/${track.videoId}');
+    final browseId = track.podcastBrowseId;
+    if (browseId != null && browseId.isNotEmpty) {
+      onArtistTap =
+          () => closeFullPlayerAndNavigate(context, '/podcast/$browseId');
+    }
+  } else {
+    final artistId = track.artistId;
+    if (artistId != null && artistId.isNotEmpty) {
+      onArtistTap =
+          () => closeFullPlayerAndNavigate(context, '/artist/$artistId');
+    }
+  }
+
+  Widget titleText(TextStyle? titleStyle) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tp = TextPainter(
+          text: TextSpan(text: song.title, style: titleStyle),
+          maxLines: 1,
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: double.infinity);
+        if (tp.width > constraints.maxWidth) {
+          return SizedBox(
+            height: 32,
+            child: Marquee(
+              text: song.title,
+              style: titleStyle,
+              blankSpace: 48.0,
+              velocity: 40.0,
+              pauseAfterRound: const Duration(seconds: 2),
+              fadingEdgeStartFraction: 0.05,
+              fadingEdgeEndFraction: 0.1,
+            ),
+          );
+        }
+        return Text(
+          song.title,
+          style: titleStyle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      },
+    );
+  }
+
+  final titleStyle = theme.textTheme.titleLarge?.copyWith(
+    fontWeight: FontWeight.bold,
+    fontSize: 24,
+    color: pc.titlePrimary,
+  );
+
   return Row(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
@@ -330,40 +388,14 @@ Widget buildTrackInfoAndLikeRow(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Flexible(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final titleStyle = theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        color: pc.titlePrimary,
-                      );
-                      final tp = TextPainter(
-                        text: TextSpan(text: song.title, style: titleStyle),
-                        maxLines: 1,
-                        textDirection: TextDirection.ltr,
-                      )..layout(maxWidth: double.infinity);
-                      if (tp.width > constraints.maxWidth) {
-                        return SizedBox(
-                          height: 32,
-                          child: Marquee(
-                            text: song.title,
-                            style: titleStyle,
-                            blankSpace: 48.0,
-                            velocity: 40.0,
-                            pauseAfterRound: const Duration(seconds: 2),
-                            fadingEdgeStartFraction: 0.05,
-                            fadingEdgeEndFraction: 0.1,
-                          ),
-                        );
-                      }
-                      return Text(
-                        song.title,
-                        style: titleStyle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      );
-                    },
-                  ),
+                  child:
+                      onTitleTap != null
+                          ? GestureDetector(
+                            onTap: onTitleTap,
+                            behavior: HitTestBehavior.opaque,
+                            child: titleText(titleStyle),
+                          )
+                          : titleText(titleStyle),
                 ),
                 if (track.isExplicit) ...[
                   const SizedBox(width: 8),
@@ -376,11 +408,17 @@ Widget buildTrackInfoAndLikeRow(
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              song.artist ?? '',
-              style: theme.textTheme.titleMedium?.copyWith(color: pc.subtitle),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            GestureDetector(
+              onTap: onArtistTap,
+              behavior: HitTestBehavior.opaque,
+              child: Text(
+                song.artist ?? '',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: pc.subtitle,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             if (statParts.isNotEmpty) ...[
               const SizedBox(height: 2),
@@ -439,7 +477,7 @@ Widget buildProgressBar(
   );
 }
 
-/// Lyrics / related / queue panel for the full player.
+/// Lyrics / related / queue / show-notes panel for the full player.
 Widget buildPlayerSubPanel({
   required PlayerSubView activeView,
   required String videoId,
@@ -454,13 +492,15 @@ Widget buildPlayerSubPanel({
       );
     case PlayerSubView.related:
       return RelatedView(key: const ValueKey('related'), videoId: videoId);
+    case PlayerSubView.notes:
+      return ShowNotesView(key: const ValueKey('notes'), videoId: videoId);
     case PlayerSubView.queue:
     case PlayerSubView.none:
       return const QueueSheet(key: ValueKey('queue'));
   }
 }
 
-/// Row of actions: share, cast, lyrics toggle, related, queue, sleep timer.
+/// Row of actions: share, cast, lyrics/notes toggle, related, queue, sleep timer.
 Widget buildBottomActionsRow(
   BuildContext context,
   WidgetRef ref,
@@ -470,143 +510,191 @@ Widget buildBottomActionsRow(
   bool isMobile = false,
 }) {
   final theme = Theme.of(context);
-  final double iconSize = isMobile ? 18.0 : 22.0;
+  final l10n = AppLocalizations.of(context)!;
   final isVideo = ref.watch(playerStateProvider).isVideo;
   final current = ref.watch(playerStateProvider).currentSong;
-  final isEpisode =
-      current != null && QueueTrack.fromMediaItem(current).isEpisode;
-  // Mi A1 (~312px content) cannot fit 7×48 IconButtons; shrink tap targets.
-  final ButtonStyle? actionStyle =
-      isMobile
-          ? IconButton.styleFrom(
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            minimumSize: const Size(40, 40),
-            padding: const EdgeInsets.all(8),
-          )
-          : null;
+  final track = current != null ? QueueTrack.fromMediaItem(current) : null;
+  final isEpisode = track?.isEpisode == true;
+  final podcastBrowseId = track?.podcastBrowseId;
+  final showRelated =
+      !isEpisode || (podcastBrowseId != null && podcastBrowseId.isNotEmpty);
 
-  return Row(
-    mainAxisAlignment:
-        isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
-    children: [
-      IconButton(
-        style: actionStyle,
-        icon: Icon(LucideIcons.share2, size: iconSize),
-        onPressed: () {
-          final currentSong = ref.read(playerStateProvider).currentSong;
-          final vId =
-              currentSong != null
-                  ? QueueTrack.fromMediaItem(currentSong).videoId
-                  : null;
-          if (vId != null) {
-            SharePlus.instance.share(
-              ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),
-            );
-          }
-        },
-        tooltip: AppLocalizations.of(context)!.share,
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-      CastButton(
-        size: iconSize,
-        color: theme.colorScheme.onSurfaceVariant,
-        style: actionStyle,
-      ),
-      if (!isVideo && !isEpisode)
-        IconButton(
-          style: actionStyle,
-          icon: Icon(
-            LucideIcons.micVocal,
-            size: iconSize,
-            color:
-                activeView == PlayerSubView.lyrics
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurfaceVariant,
-          ),
-          onPressed: () {
-            ref
-                .read(playerSubViewProvider.notifier)
-                .set(
-                  activeView == PlayerSubView.lyrics
-                      ? PlayerSubView.none
-                      : PlayerSubView.lyrics,
+  // Tablet/landscape-split right column can be ~300px (Mi A1); 7×48 buttons
+  // overflow. Compact + FittedBox whenever width is tight, not only mobile.
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final compact = isMobile || constraints.maxWidth < 360;
+      final double iconSize = compact ? 18.0 : 22.0;
+      final ButtonStyle? actionStyle =
+          compact
+              ? IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                minimumSize: const Size(36, 36),
+                padding: const EdgeInsets.all(6),
+              )
+              : null;
+
+      final row = Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment:
+            isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+        children: [
+          IconButton(
+            style: actionStyle,
+            icon: Icon(LucideIcons.share2, size: iconSize),
+            onPressed: () {
+              final currentSong = ref.read(playerStateProvider).currentSong;
+              final vId =
+                  currentSong != null
+                      ? QueueTrack.fromMediaItem(currentSong).videoId
+                      : null;
+              if (vId != null) {
+                SharePlus.instance.share(
+                  ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),
                 );
-          },
-          tooltip: AppLocalizations.of(context)!.lyrics,
+              }
+            },
+            tooltip: l10n.share,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          CastButton(
+            size: iconSize,
+            color: theme.colorScheme.onSurfaceVariant,
+            style: actionStyle,
+          ),
+          if (!isVideo && !isEpisode)
+            IconButton(
+              style: actionStyle,
+              icon: Icon(
+                LucideIcons.micVocal,
+                size: iconSize,
+                color:
+                    activeView == PlayerSubView.lyrics
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+              ),
+              onPressed: () {
+                ref
+                    .read(playerSubViewProvider.notifier)
+                    .set(
+                      activeView == PlayerSubView.lyrics
+                          ? PlayerSubView.none
+                          : PlayerSubView.lyrics,
+                    );
+              },
+              tooltip: l10n.lyrics,
+            ),
+          if (isEpisode)
+            IconButton(
+              style: actionStyle,
+              icon: Icon(
+                LucideIcons.fileText,
+                size: iconSize,
+                color:
+                    activeView == PlayerSubView.notes
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+              ),
+              onPressed: () {
+                ref
+                    .read(playerSubViewProvider.notifier)
+                    .set(
+                      activeView == PlayerSubView.notes
+                          ? PlayerSubView.none
+                          : PlayerSubView.notes,
+                    );
+              },
+              tooltip: l10n.showNotes,
+            ),
+          if (showRelated)
+            IconButton(
+              style: actionStyle,
+              icon: Icon(
+                LucideIcons.sparkles,
+                size: iconSize,
+                color:
+                    activeView == PlayerSubView.related
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+              ),
+              onPressed: () {
+                ref
+                    .read(playerSubViewProvider.notifier)
+                    .set(
+                      activeView == PlayerSubView.related
+                          ? PlayerSubView.none
+                          : PlayerSubView.related,
+                    );
+              },
+              tooltip: l10n.related,
+            ),
+          IconButton(
+            style: actionStyle,
+            icon: Icon(
+              LucideIcons.listMusic,
+              size: iconSize,
+              color:
+                  activeView == PlayerSubView.queue
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+            ),
+            onPressed: () {
+              ref
+                  .read(playerSubViewProvider.notifier)
+                  .set(
+                    activeView == PlayerSubView.queue
+                        ? PlayerSubView.none
+                        : PlayerSubView.queue,
+                  );
+            },
+            tooltip: l10n.queue,
+          ),
+          IconButton(
+            style: actionStyle,
+            icon: Icon(
+              LucideIcons.sliders,
+              size: iconSize,
+              color:
+                  ref.watch(equalizerNotifierProvider).enabled
+                      ? Theme.of(context).colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+            ),
+            onPressed: () => EqualizerPanel.show(context),
+            tooltip: l10n.equalizer,
+          ),
+          IconButton(
+            style: actionStyle,
+            icon: Icon(
+              LucideIcons.timer,
+              size: iconSize,
+              color:
+                  hasTimer
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            onPressed: () => showPlayerTimerDialog(context, playerNotifier),
+            tooltip: hasTimer ? l10n.sleepTimerActive : l10n.sleepTimer,
+          ),
+        ],
+      );
+
+      if (isMobile) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: row.children,
+        );
+      }
+
+      return Align(
+        alignment: Alignment.centerRight,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: row,
         ),
-      IconButton(
-        style: actionStyle,
-        icon: Icon(
-          LucideIcons.sparkles,
-          size: iconSize,
-          color:
-              activeView == PlayerSubView.related
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
-        ),
-        onPressed: () {
-          ref
-              .read(playerSubViewProvider.notifier)
-              .set(
-                activeView == PlayerSubView.related
-                    ? PlayerSubView.none
-                    : PlayerSubView.related,
-              );
-        },
-        tooltip: AppLocalizations.of(context)!.related,
-      ),
-      IconButton(
-        style: actionStyle,
-        icon: Icon(
-          LucideIcons.listMusic,
-          size: iconSize,
-          color:
-              activeView == PlayerSubView.queue
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
-        ),
-        onPressed: () {
-          ref
-              .read(playerSubViewProvider.notifier)
-              .set(
-                activeView == PlayerSubView.queue
-                    ? PlayerSubView.none
-                    : PlayerSubView.queue,
-              );
-        },
-        tooltip: AppLocalizations.of(context)!.queue,
-      ),
-      IconButton(
-        style: actionStyle,
-        icon: Icon(
-          LucideIcons.sliders,
-          size: iconSize,
-          color:
-              ref.watch(equalizerNotifierProvider).enabled
-                  ? Theme.of(context).colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
-        ),
-        onPressed: () => EqualizerPanel.show(context),
-        tooltip: AppLocalizations.of(context)!.equalizer,
-      ),
-      IconButton(
-        style: actionStyle,
-        icon: Icon(
-          LucideIcons.timer,
-          size: iconSize,
-          color:
-              hasTimer
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        onPressed: () => showPlayerTimerDialog(context, playerNotifier),
-        tooltip:
-            hasTimer
-                ? AppLocalizations.of(context)!.sleepTimerActive
-                : AppLocalizations.of(context)!.sleepTimer,
-      ),
-    ],
+      );
+    },
   );
 }
 
@@ -617,6 +705,7 @@ void showPlayerTimerDialog(BuildContext context, PlayerNotifier notifier) {
   final isWide = width >= kExpandedBreakpoint;
 
   Widget buildContent(BuildContext routeCtx) {
+    final routeL10n = AppLocalizations.of(routeCtx)!;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -626,7 +715,7 @@ void showPlayerTimerDialog(BuildContext context, PlayerNotifier notifier) {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                AppLocalizations.of(routeCtx)!.sleepTimer,
+                routeL10n.sleepTimer,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -645,10 +734,20 @@ void showPlayerTimerDialog(BuildContext context, PlayerNotifier notifier) {
             ],
           ),
         ),
+        ListTile(
+          leading: const Icon(LucideIcons.circleStop),
+          title: Text(routeL10n.sleepEndOfEpisode),
+          onTap: () {
+            notifier.setSleepUntilEndOfTrack();
+            Navigator.pop(routeCtx);
+          },
+        ),
         ...options.map(
           (minutes) => ListTile(
             title: Text(
-              minutes >= 60 ? '${minutes ~/ 60} hour' : '$minutes minutes',
+              minutes >= 60
+                  ? routeL10n.hours(minutes ~/ 60)
+                  : routeL10n.minutes(minutes),
             ),
             onTap: () {
               notifier.setSleepTimer(Duration(minutes: minutes));
@@ -662,7 +761,7 @@ void showPlayerTimerDialog(BuildContext context, PlayerNotifier notifier) {
             color: Theme.of(routeCtx).colorScheme.error,
           ),
           title: Text(
-            AppLocalizations.of(routeCtx)!.cancelTimer,
+            routeL10n.cancelTimer,
             style: TextStyle(color: Theme.of(routeCtx).colorScheme.error),
           ),
           onTap: () {

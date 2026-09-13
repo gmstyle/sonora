@@ -447,7 +447,7 @@ class PlayerState {
 }
 ```
 
-Also exposes `PlayerSubView` enum (`none` / `lyrics` / `queue` / `related`) via `playerSubViewProvider`. The Related panel (`related_view.dart`) loads `MusicRepository`-backed related sections for the current track.
+Also exposes `PlayerSubView` enum (`none` / `lyrics` / `queue` / `related` / `notes`) via `playerSubViewProvider`. The Related panel (`related_view.dart`) loads `MusicRepository`-backed related sections for songs; for episodes with a `podcastBrowseId` it lists more episodes from `podcastProvider`. Show notes (`PlayerSubView.notes`) load `EpisodeFull.description` via `episodeProvider`. Sleep timer supports minute countdowns and an end-of-track mode that pauses when the current item completes.
 
 **Podcast playback:** `PlayerNotifier.playPodcast(...)` uses `PlayPodcastUseCase` to build a queue of episode `MediaItem`s with `extras['contentType'] = 'episode'` and `podcastBrowseId`. Like toggles on the full/mini player write to `liked_episodes` when `QueueTrack.isEpisode` is true; lyrics are hidden for episodes. History recording passes `contentType` / `podcastBrowseId` into `HistoryDao.recordPlay`.
 
@@ -1189,4 +1189,5 @@ Search episode taps navigate to `EpisodeScreen` (not immediate play). Podcast li
 | Moods & Genres | `getMoodCategories` / `getMoodPlaylists` | `MoodsScreen` + `MoodPlaylistsScreen`, AA `__moods__` |
 | New Releases | `getNewReleases` / `GetNewReleasesUseCase` | `NewReleasesScreen` (`/new-releases`) |
 | User channels | `getUser` / `getUserVideos` / `getUserPlaylists` | `UserScreen` + nested videos/playlists routes |
-| Related (player) | related browse via song metadata | `PlayerSubView.related` + `related_view.dart` |
+| Related (player) | related browse via song metadata; podcast episodes when `podcastBrowseId` set | `PlayerSubView.related` + `related_view.dart` |
+| Show notes (player) | `EpisodeFull.description` | `PlayerSubView.notes` + `show_notes_view.dart` |

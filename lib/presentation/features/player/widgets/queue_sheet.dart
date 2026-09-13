@@ -830,6 +830,15 @@ class _QueueItem extends StatelessWidget {
                                 borderRadius: 3,
                               ),
                             ),
+                          if (track.isEpisode)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: _EpisodeQueueBadge(
+                                label:
+                                    AppLocalizations.of(context)!.episodeShort,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -903,6 +912,32 @@ class _QueueItem extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EpisodeQueueBadge extends StatelessWidget {
+  final String label;
+
+  const _EpisodeQueueBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSecondaryContainer,
+          fontWeight: FontWeight.bold,
+          fontSize: 9,
         ),
       ),
     );

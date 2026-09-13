@@ -41,24 +41,37 @@ class TabletShell extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: NavigationRail(
-                      selectedIndex: navigationShell.currentIndex,
-                      onDestinationSelected:
-                          (index) => navigationShell.goBranch(index),
-                      labelType: NavigationRailLabelType.selected,
-                      leading: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: SonoraLogo.icon(36),
-                      ),
-                      destinations: [
-                        for (var i = 0; i < _icons.length; i++)
-                          NavigationRailDestination(
-                            icon: Icon(_icons[i]),
-                            label: Text(
-                              _getLabel(AppLocalizations.of(context)!, i),
-                            ),
-                          ),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, railConstraints) {
+                        // Short windows (split-screen / short tablet): drop
+                        // logo + labels so destinations fit without overflow.
+                        final compactRail = railConstraints.maxHeight < 280;
+                        return NavigationRail(
+                          selectedIndex: navigationShell.currentIndex,
+                          onDestinationSelected:
+                              (index) => navigationShell.goBranch(index),
+                          labelType:
+                              compactRail
+                                  ? NavigationRailLabelType.none
+                                  : NavigationRailLabelType.selected,
+                          leading:
+                              compactRail
+                                  ? null
+                                  : const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    child: SonoraLogo.icon(36),
+                                  ),
+                          destinations: [
+                            for (var i = 0; i < _icons.length; i++)
+                              NavigationRailDestination(
+                                icon: Icon(_icons[i]),
+                                label: Text(
+                                  _getLabel(AppLocalizations.of(context)!, i),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                   const _TabletSettingsEntry(),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../domain/models/queue_track.dart';
 import '../../../providers/palette_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/player_provider.dart';
@@ -35,9 +36,13 @@ class Artwork extends ConsumerWidget {
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
-    final useVinylStyle = ref.watch(
+    final useVinylSetting = ref.watch(
       settingsProvider.select((s) => s.useVinylStyle),
     );
+    final current = ref.watch(playerStateProvider.select((s) => s.currentSong));
+    final isEpisode =
+        current != null && QueueTrack.fromMediaItem(current).isEpisode;
+    final useVinylStyle = useVinylSetting && !isEpisode;
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
     final clampedSize = size.clamp(150.0, 600.0);
 

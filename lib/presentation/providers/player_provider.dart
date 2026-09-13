@@ -30,7 +30,7 @@ final playerStateProvider = NotifierProvider<PlayerNotifier, PlayerState>(
   PlayerNotifier.new,
 );
 
-enum PlayerSubView { none, lyrics, queue, related }
+enum PlayerSubView { none, lyrics, queue, related, notes }
 
 class PlayerSubViewNotifier extends Notifier<PlayerSubView> {
   @override
@@ -85,6 +85,9 @@ class PlayerState {
   final AudioServiceRepeatMode repeatMode;
   final Duration? sleepTimerRemaining;
 
+  /// When true, playback pauses when the current track finishes naturally.
+  final bool sleepUntilEndOfTrack;
+
   /// Subset of [queue] containing the user-driven entries
   /// (every item with `extras['section'] == 'user'`).
   /// Derived — kept in sync via [PlayerNotifier].
@@ -119,6 +122,7 @@ class PlayerState {
     this.shuffleMode = AudioServiceShuffleMode.none,
     this.repeatMode = AudioServiceRepeatMode.none,
     this.sleepTimerRemaining,
+    this.sleepUntilEndOfTrack = false,
     this.userQueue = const [],
     this.upNextQueue = const [],
     this.upNextStartIndex,
@@ -126,6 +130,9 @@ class PlayerState {
 
   bool get isVideo =>
       currentSong != null && QueueTrack.fromMediaItem(currentSong!).isVideo;
+
+  /// True when any sleep-timer mode (countdown or end-of-track) is active.
+  bool get hasSleepTimer => sleepTimerRemaining != null || sleepUntilEndOfTrack;
 
   /// True when the player is blocked for any reason: active restore, or a
   /// user-initiated song switch in progress.  Use this in the UI to gate all
@@ -163,6 +170,7 @@ class PlayerState {
     AudioServiceShuffleMode? shuffleMode,
     AudioServiceRepeatMode? repeatMode,
     Duration? sleepTimerRemaining,
+    bool? sleepUntilEndOfTrack,
     List<MediaItem>? userQueue,
     List<MediaItem>? upNextQueue,
     int? upNextStartIndex,
@@ -195,6 +203,10 @@ class PlayerState {
           clearSleepTimer
               ? null
               : (sleepTimerRemaining ?? this.sleepTimerRemaining),
+      sleepUntilEndOfTrack:
+          clearSleepTimer
+              ? false
+              : (sleepUntilEndOfTrack ?? this.sleepUntilEndOfTrack),
       userQueue: userQueue ?? this.userQueue,
       upNextQueue: upNextQueue ?? this.upNextQueue,
       upNextStartIndex: upNextStartIndex ?? this.upNextStartIndex,
@@ -219,6 +231,12 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Timer? _playDebounceTimer;
   DateTime? _sleepTimerStart;
   Duration? _sleepTimerDuration;
+  bool _sleepUntilEndOfTrack = false;
+  bool _sleepEndArmed = false;
+
+  /// After end-of-track sleep fires via the near-end position hook, block the
+  /// subsequent `completed` event from auto-advancing the queue.
+  bool _blockCompletedAdvanceAfterSleepEnd = false;
   bool _isReordering = false;
 
   bool _canPrefetchUpNext({
@@ -360,6 +378,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _positionSub = _handler.positionStream.listen((pos) {
         // Don't overwrite the static saved position while restoring.
         if (!state.isRestoring) state = state.copyWith(position: pos);
+        _maybeFireSleepUntilEndOfTrack(pos);
       });
 
       _playbackSub = _handler.playbackState.listen((s) {
@@ -417,6 +436,15 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         if (s.processingState == AudioProcessingState.completed &&
             !_isFetchingUpNext &&
             state.queue.isNotEmpty) {
+          if (_sleepUntilEndOfTrack || _blockCompletedAdvanceAfterSleepEnd) {
+            _blockCompletedAdvanceAfterSleepEnd = false;
+            if (_sleepUntilEndOfTrack) {
+              _fireSleepUntilEndOfTrack();
+            } else {
+              _handler.pause();
+            }
+            return;
+          }
           final v = _operationVersion;
           if (state.shuffleMode == AudioServiceShuffleMode.all) {
             final len = state.queue.length;
@@ -676,6 +704,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> playNow(List<MediaItem> items, {int initialIndex = 0}) async {
     final v = ++_operationVersion;
+    _cancelSleepUntilEndOfTrackOnSkip();
     await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
@@ -699,6 +728,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> playAlbum(List<SongDetailed> songs, {int startIndex = 0}) async {
     final v = ++_operationVersion;
+    _cancelSleepUntilEndOfTrackOnSkip();
     await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
@@ -761,6 +791,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     int startIndex = 0,
   }) async {
     final v = ++_operationVersion;
+    _cancelSleepUntilEndOfTrackOnSkip();
     await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
@@ -980,7 +1011,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   // ── Metodi base ───────────────────────────────────────────────
 
-  Future<void> play() => _handler.play();
+  Future<void> play() {
+    _blockCompletedAdvanceAfterSleepEnd = false;
+    return _handler.play();
+  }
 
   Future<void> pause() => _handler.pause();
 
@@ -989,6 +1023,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (state.isPlaying) {
       await _handler.pause();
     } else {
+      _blockCompletedAdvanceAfterSleepEnd = false;
       // When the queue is exhausted and autoplay is enabled, the engine's
       // play() would restart from index 0 (the first user track).  Delegate
       // to _fetchAutoPlayUpNext which either skips to an existing up-next
@@ -1007,21 +1042,41 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   Future<void> seek(Duration position) {
     if (state.isBlocked) return Future.value();
+    _blockCompletedAdvanceAfterSleepEnd = false;
     return _handler.seek(position);
+  }
+
+  Future<void> seekBy(Duration offset) {
+    if (state.isBlocked) return Future.value();
+    final duration = state.duration;
+    final raw = state.position + offset;
+    final clamped =
+        duration > Duration.zero
+            ? Duration(
+              milliseconds: raw.inMilliseconds.clamp(
+                0,
+                duration.inMilliseconds,
+              ),
+            )
+            : (raw.isNegative ? Duration.zero : raw);
+    return seek(clamped);
   }
 
   Future<void> skipToNext() {
     if (state.isBlocked) return Future.value();
+    _cancelSleepUntilEndOfTrackOnSkip();
     return _handler.skipToNext();
   }
 
   Future<void> skipToPrevious() {
     if (state.isBlocked) return Future.value();
+    _cancelSleepUntilEndOfTrackOnSkip();
     return _handler.skipToPrevious();
   }
 
   Future<void> skipToIndex(int index) async {
     if (state.isBlocked) return;
+    _cancelSleepUntilEndOfTrackOnSkip();
     final v = ++_operationVersion;
     // Pause immediately so the user hears a clean cut instead of the current
     // song continuing while the target URL is resolved.
@@ -1052,6 +1107,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     _playDebounceTimer?.cancel();
 
     final v = ++_operationVersion;
+    _cancelSleepUntilEndOfTrackOnSkip();
     await _handler.pause();
     state = state.copyWith(isSwitching: true);
 
@@ -1113,6 +1169,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   void setSleepTimer(Duration duration) {
     _sleepTimer?.cancel();
     _sleepTimerTick?.cancel();
+    _sleepUntilEndOfTrack = false;
+    _sleepEndArmed = false;
+    _blockCompletedAdvanceAfterSleepEnd = false;
     _sleepTimerDuration = duration;
     _sleepTimerStart = DateTime.now();
     _sleepTimer = Timer(duration, () {
@@ -1137,7 +1196,27 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       }
       state = state.copyWith(sleepTimerRemaining: remaining);
     });
-    state = state.copyWith(sleepTimerRemaining: duration);
+    state = state.copyWith(
+      sleepTimerRemaining: duration,
+      sleepUntilEndOfTrack: false,
+    );
+  }
+
+  /// Pause when the current track finishes (completion / near-end), not a
+  /// wall-clock countdown.
+  void setSleepUntilEndOfTrack() {
+    _sleepTimer?.cancel();
+    _sleepTimerTick?.cancel();
+    _sleepTimer = null;
+    _sleepTimerTick = null;
+    _sleepTimerDuration = null;
+    _sleepTimerStart = null;
+    _sleepUntilEndOfTrack = true;
+    _sleepEndArmed = false;
+    _blockCompletedAdvanceAfterSleepEnd = false;
+    // clearSleepTimer also resets sleepUntilEndOfTrack; re-set after.
+    state = state.copyWith(clearSleepTimer: true);
+    state = state.copyWith(sleepUntilEndOfTrack: true);
   }
 
   void cancelSleepTimer() {
@@ -1147,7 +1226,50 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     _sleepTimerDuration = null;
     _sleepTimerStart = null;
     _sleepTimerTick = null;
+    _sleepUntilEndOfTrack = false;
+    _sleepEndArmed = false;
+    _blockCompletedAdvanceAfterSleepEnd = false;
     state = state.copyWith(clearSleepTimer: true);
+  }
+
+  void _cancelSleepUntilEndOfTrackOnSkip() {
+    if (!_sleepUntilEndOfTrack &&
+        !state.sleepUntilEndOfTrack &&
+        !_blockCompletedAdvanceAfterSleepEnd) {
+      return;
+    }
+    _sleepUntilEndOfTrack = false;
+    _sleepEndArmed = false;
+    _blockCompletedAdvanceAfterSleepEnd = false;
+    state = state.copyWith(sleepUntilEndOfTrack: false);
+  }
+
+  void _maybeFireSleepUntilEndOfTrack(Duration pos) {
+    if (!_sleepUntilEndOfTrack) {
+      _sleepEndArmed = false;
+      return;
+    }
+    if (!state.isPlaying || state.isRestoring || state.isSwitching) return;
+    final duration = state.duration;
+    if (duration < const Duration(seconds: 2)) return;
+    final remaining = duration - pos;
+    if (remaining <= const Duration(milliseconds: 450) &&
+        remaining >= Duration.zero) {
+      if (_sleepEndArmed) return;
+      _sleepEndArmed = true;
+      _fireSleepUntilEndOfTrack();
+    } else if (remaining > const Duration(seconds: 2)) {
+      _sleepEndArmed = false;
+    }
+  }
+
+  void _fireSleepUntilEndOfTrack() {
+    if (!_sleepUntilEndOfTrack && !state.sleepUntilEndOfTrack) return;
+    _sleepUntilEndOfTrack = false;
+    _sleepEndArmed = false;
+    _blockCompletedAdvanceAfterSleepEnd = true;
+    state = state.copyWith(sleepUntilEndOfTrack: false);
+    _handler.pause();
   }
 
   Duration? get sleepTimerRemaining {

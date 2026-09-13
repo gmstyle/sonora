@@ -582,5 +582,17 @@
   "goToPodcast": "Vai al Podcast",
   "loadMoreEpisodes": "Carica altri episodi",
   "failedToLoadEpisode": "Impossibile caricare l'episodio",
-  "podcastListeningTime": "Tempo di ascolto podcast"
+  "podcastListeningTime": "Tempo di ascolto podcast",
+  "sleepEndOfEpisode": "Fine episodio",
+  "showNotes": "Note dell'episodio",
+  "noShowNotes": "Nessuna nota disponibile",
+  "seekBack15": "Indietro di 15 secondi",
+  "seekForward30": "Avanti di 30 secondi",
+  "autoplayLabel": "AUTOPLAY",
+  "queueEndLabel": "FINE CODA",
+  "autoplayActive": "Riproduzione automatica attiva",
+  "nextEpisode": "Prossimo episodio",
+  "noUpcomingEpisodes": "Nessun prossimo episodio",
+  "moreFromPodcast": "Altri episodi del podcast",
+  "episodeShort": "EP"
 }

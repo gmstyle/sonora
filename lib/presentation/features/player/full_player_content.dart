@@ -87,7 +87,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final albumName = currentSong.album;
     final theme = Theme.of(context);
     final padding = MediaQuery.of(context).viewPadding;
-    final hasSleepTimer = playerState.sleepTimerRemaining != null;
+    final hasSleepTimer = playerState.hasSleepTimer;
 
     // ── Palette ───────────────────────────────────────────────────
     final paletteMap = ref.watch(paletteNotifierProvider);
@@ -119,6 +119,8 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   availableHeight < kCompactBreakpoint);
           final showFullscreenOverlay =
               isLandscapeMobile && activeView != PlayerSubView.none;
+          final showLandscapeSplit =
+              isLandscapeMobile && activeView == PlayerSubView.none;
 
           return Stack(
             fit: StackFit.expand,
@@ -143,6 +145,21 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   bottomInset: padding.bottom,
                   activeView: activeView,
                   onClose: () => _subViewNotifier.set(PlayerSubView.none),
+                )
+              else if (showLandscapeSplit)
+                TabletPlayerLayout(
+                  artworkKey: _artworkKey,
+                  currentSong: currentSong,
+                  videoId: videoId,
+                  artUrl: artUrl,
+                  albumName: albumName,
+                  playerState: playerState,
+                  playerNotifier: playerNotifier,
+                  hasSleepTimer: hasSleepTimer,
+                  availHeight: availableHeight,
+                  availWidth: availableWidth,
+                  bottomInset: padding.bottom,
+                  activeView: activeView,
                 )
               else if (availableWidth < kCompactBreakpoint || isPortrait)
                 MobilePlayerLayout(

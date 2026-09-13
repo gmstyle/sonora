@@ -263,6 +263,7 @@ class ContextMenuSheet {
     String? podcastBrowseId,
     String? thumbnailUrl,
     String? date,
+    void Function(String podcastBrowseId)? onGoToPodcast,
   }) {
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
@@ -282,6 +283,7 @@ class ContextMenuSheet {
                     podcastBrowseId: podcastBrowseId,
                     thumbnailUrl: thumbnailUrl,
                     date: date,
+                    onGoToPodcast: onGoToPodcast,
                   ),
                 ),
               ),
@@ -299,6 +301,7 @@ class ContextMenuSheet {
             podcastBrowseId: podcastBrowseId,
             thumbnailUrl: thumbnailUrl,
             date: date,
+            onGoToPodcast: onGoToPodcast,
           ),
     );
   }
@@ -1700,7 +1703,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                   ),
                   _ActionTile(
                     icon: LucideIcons.micVocal,
-                    label: 'Go to podcast',
+                    label: AppLocalizations.of(context)!.goToPodcast,
                     onTap: () {
                       context.push('/podcast/$browseId');
                       Navigator.pop(context);
@@ -1830,6 +1833,7 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
   final String? podcastBrowseId;
   final String? thumbnailUrl;
   final String? date;
+  final void Function(String podcastBrowseId)? onGoToPodcast;
 
   const _EpisodeContextMenuSheet({
     required this.videoId,
@@ -1838,6 +1842,7 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
     this.podcastBrowseId,
     this.thumbnailUrl,
     this.date,
+    this.onGoToPodcast,
   });
 
   @override
@@ -1910,10 +1915,17 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                   if (podcastBrowseId != null)
                     _ActionTile(
                       icon: LucideIcons.micVocal,
-                      label: 'Go to podcast',
+                      label: AppLocalizations.of(context)!.goToPodcast,
                       onTap: () {
-                        context.push('/podcast/$podcastBrowseId');
-                        Navigator.pop(context);
+                        final browseId = podcastBrowseId!;
+                        final goToPodcast = onGoToPodcast;
+                        if (goToPodcast != null) {
+                          Navigator.pop(context);
+                          goToPodcast(browseId);
+                        } else {
+                          context.push('/podcast/$browseId');
+                          Navigator.pop(context);
+                        }
                       },
                     ),
                   _LikeEpisodeActionTile(

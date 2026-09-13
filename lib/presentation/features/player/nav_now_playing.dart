@@ -76,6 +76,7 @@ class _CompactDisc extends ConsumerWidget {
                 size: 44,
                 isPlaying: playerState.isPlaying,
                 compact: true,
+                isEpisode: QueueTrack.fromMediaItem(song).isEpisode,
               ),
             ),
           ),
@@ -126,6 +127,7 @@ class _ExpandedCard extends ConsumerWidget {
                         size: 56,
                         isPlaying: playerState.isPlaying,
                         compact: false,
+                        isEpisode: track.isEpisode,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -382,17 +384,21 @@ class _Artwork extends ConsumerWidget {
   final double size;
   final bool isPlaying;
   final bool compact;
+  final bool isEpisode;
 
   const _Artwork({
     required this.imageUrl,
     required this.size,
     required this.isPlaying,
     required this.compact,
+    this.isEpisode = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final useVinyl = ref.watch(settingsProvider.select((s) => s.useVinylStyle));
+    final useVinyl =
+        ref.watch(settingsProvider.select((s) => s.useVinylStyle)) &&
+        !isEpisode;
     if (useVinyl) {
       return VinylArtwork(
         imageUrl: imageUrl,

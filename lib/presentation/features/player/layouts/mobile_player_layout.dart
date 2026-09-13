@@ -196,7 +196,7 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
               buildBottomActionsRow(
                 context,
                 ref,
-                widget.playerState.sleepTimerRemaining != null,
+                widget.playerState.hasSleepTimer,
                 widget.playerNotifier,
                 widget.activeView,
                 isMobile: true,

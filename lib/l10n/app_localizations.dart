@@ -2833,6 +2833,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Podcast Listening Time'**
   String get podcastListeningTime;
+
+  /// No description provided for @sleepEndOfEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'End of episode'**
+  String get sleepEndOfEpisode;
+
+  /// No description provided for @showNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Show notes'**
+  String get showNotes;
+
+  /// No description provided for @noShowNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No show notes available'**
+  String get noShowNotes;
+
+  /// No description provided for @seekBack15.
+  ///
+  /// In en, this message translates to:
+  /// **'Seek back 15 seconds'**
+  String get seekBack15;
+
+  /// No description provided for @seekForward30.
+  ///
+  /// In en, this message translates to:
+  /// **'Seek forward 30 seconds'**
+  String get seekForward30;
+
+  /// No description provided for @autoplayLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTOPLAY'**
+  String get autoplayLabel;
+
+  /// No description provided for @queueEndLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'QUEUE END'**
+  String get queueEndLabel;
+
+  /// No description provided for @autoplayActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Autoplay is on'**
+  String get autoplayActive;
+
+  /// No description provided for @nextEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Next episode'**
+  String get nextEpisode;
+
+  /// No description provided for @noUpcomingEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming episodes'**
+  String get noUpcomingEpisodes;
+
+  /// No description provided for @moreFromPodcast.
+  ///
+  /// In en, this message translates to:
+  /// **'More from this podcast'**
+  String get moreFromPodcast;
+
+  /// No description provided for @episodeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'EP'**
+  String get episodeShort;
 }
 
 class _AppLocalizationsDelegate

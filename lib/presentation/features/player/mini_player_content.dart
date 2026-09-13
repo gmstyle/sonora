@@ -458,19 +458,34 @@ class MiniPlayerContent extends ConsumerWidget {
                                     icon: LucideIcons.moreVertical,
                                     color: cs.onSurfaceVariant,
                                     onPressed: () {
-                                      ContextMenuSheet.showForSong(
-                                        context,
-                                        videoId: track.videoId,
-                                        title: track.title,
-                                        artist: track.artist ?? '',
-                                        artistId: track.artistId,
-                                        albumId: track.albumId,
-                                        thumbnailUrl: track.artUri?.toString(),
-                                        duration: track.duration?.inSeconds,
-                                        albumName: track.album ?? '',
-                                        isVideo: track.isVideo,
-                                        isExplicit: track.isExplicit,
-                                      );
+                                      if (track.isEpisode) {
+                                        ContextMenuSheet.showForEpisode(
+                                          context,
+                                          videoId: track.videoId,
+                                          name: track.title,
+                                          podcastName: track.artist,
+                                          podcastBrowseId:
+                                              track.podcastBrowseId,
+                                          thumbnailUrl:
+                                              track.artUri?.toString(),
+                                          date: track.publishDate,
+                                        );
+                                      } else {
+                                        ContextMenuSheet.showForSong(
+                                          context,
+                                          videoId: track.videoId,
+                                          title: track.title,
+                                          artist: track.artist ?? '',
+                                          artistId: track.artistId,
+                                          albumId: track.albumId,
+                                          thumbnailUrl:
+                                              track.artUri?.toString(),
+                                          duration: track.duration?.inSeconds,
+                                          albumName: track.album ?? '',
+                                          isVideo: track.isVideo,
+                                          isExplicit: track.isExplicit,
+                                        );
+                                      }
                                     },
                                     size: 20,
                                   ),
@@ -525,9 +540,11 @@ class MiniPlayerContent extends ConsumerWidget {
     required ColorScheme cs,
     required WidgetRef ref,
   }) {
-    final useVinylStyle = ref.watch(
+    final useVinylSetting = ref.watch(
       settingsProvider.select((s) => s.useVinylStyle),
     );
+    final isEpisode = QueueTrack.fromMediaItem(currentSong).isEpisode;
+    final useVinylStyle = useVinylSetting && !isEpisode;
     if (useVinylStyle) {
       return VinylArtwork(
         imageUrl: currentSong.artUri?.toString(),

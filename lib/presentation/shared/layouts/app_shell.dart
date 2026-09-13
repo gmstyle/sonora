@@ -19,7 +19,11 @@ class AppShell extends ConsumerWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            if (constraints.maxWidth < kCompactBreakpoint) {
+            // Phones in landscape often have width ≥600 but a short side
+            // still under compact — keep MobileShell so the rail never
+            // fights a ~360px-tall window (A1 / similar).
+            final shortestSide = constraints.biggest.shortestSide;
+            if (shortestSide < kCompactBreakpoint) {
               return MobileShell(navigationShell: navigationShell);
             } else if (constraints.maxWidth < kExpandedBreakpoint) {
               return TabletShell(navigationShell: navigationShell);

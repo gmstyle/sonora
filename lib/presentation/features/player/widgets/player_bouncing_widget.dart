@@ -220,6 +220,8 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
 
     // Sleep Timer
     final remaining = playerState.sleepTimerRemaining;
+    final sleepUntilEnd = playerState.sleepUntilEndOfTrack;
+    final showTimerBadge = remaining != null || sleepUntilEnd;
 
     // Up Next — we display the first upnext item if any. The card is
     // always rendered (even when the upnext section is empty) so the
@@ -236,6 +238,10 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
 
     final nextSong = nextSongFromQueue ?? nextSongFromUpNext;
     final hasNext = nextSong != null;
+    final currentIsEpisode = QueueTrack.fromMediaItem(currentSong).isEpisode;
+    final nextIsEpisode =
+        nextSong != null && QueueTrack.fromMediaItem(nextSong).isEpisode;
+    final episodeShaped = currentIsEpisode || nextIsEpisode;
 
     final clampedSize = widget.size?.clamp(150.0, 600.0);
 
@@ -246,7 +252,7 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (remaining != null) ...[
+            if (showTimerBadge) ...[
               AnimatedBuilder(
                 animation: _entranceController,
                 builder: (context, child) {
@@ -258,7 +264,12 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                     ),
                   );
                 },
-                child: _buildTimerBadge(context, ref, remaining),
+                child: _buildTimerBadge(
+                  context,
+                  ref,
+                  remaining,
+                  untilEndOfTrack: sleepUntilEnd,
+                ),
               ),
               SizedBox(height: widget.tight ? 8 : 32),
             ],
@@ -292,7 +303,15 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                     ),
                   );
                 },
-                child: _buildUpNextCard(context, ref, nextSong, pc, hasNext),
+                child: _buildUpNextCard(
+                  context,
+                  ref,
+                  nextSong,
+                  pc,
+                  hasNext,
+                  episodeShaped: episodeShaped,
+                  nextIsEpisode: nextIsEpisode,
+                ),
               ),
             ],
           ],
@@ -339,13 +358,20 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
   Widget _buildTimerBadge(
     BuildContext context,
     WidgetRef ref,
-    Duration remaining,
-  ) {
+    Duration? remaining, {
+    bool untilEndOfTrack = false,
+  }) {
     final pc = PlayerColors.of(context);
-    final minutes = remaining.inMinutes;
-    final seconds = remaining.inSeconds % 60;
+    final l10n = AppLocalizations.of(context)!;
     final timeStr =
-        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+        untilEndOfTrack
+            ? l10n.sleepEndOfEpisode
+            : () {
+              final r = remaining!;
+              final minutes = r.inMinutes;
+              final seconds = r.inSeconds % 60;
+              return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+            }();
 
     return BouncingWidget(
       onTap:
@@ -391,8 +417,10 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     WidgetRef ref,
     MediaItem? nextSong,
     PlayerColors pc,
-    bool hasNext,
-  ) {
+    bool hasNext, {
+    bool episodeShaped = false,
+    bool nextIsEpisode = false,
+  }) {
     final theme = Theme.of(context);
     final isAutoplay = ref.watch(
       settingsProvider.select((s) => s.autoPlayUpNext),
@@ -452,6 +480,8 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                   hasNext,
                   isAutoplay,
                   theme,
+                  episodeShaped: episodeShaped,
+                  nextIsEpisode: nextIsEpisode,
                 ),
               ),
             ),
@@ -467,11 +497,16 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     PlayerColors pc,
     bool hasNext,
     bool isAutoplay,
-    ThemeData theme,
-  ) {
+    ThemeData theme, {
+    bool episodeShaped = false,
+    bool nextIsEpisode = false,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
     // We key the content based on nextSong ID to trigger transitions in AnimatedSwitcher.
     final keyString =
-        nextSong != null ? nextSong.id : 'empty_${isAutoplay}_$hasNext';
+        nextSong != null
+            ? nextSong.id
+            : 'empty_${isAutoplay}_${hasNext}_$episodeShaped';
 
     return Row(
       key: ValueKey(keyString),
@@ -511,7 +546,8 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      AppLocalizations.of(context)!.upNext.toUpperCase(),
+                      (nextIsEpisode ? l10n.nextEpisode : l10n.upNext)
+                          .toUpperCase(),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: pc.labelMuted,
                         fontWeight: FontWeight.bold,
@@ -554,7 +590,9 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              isAutoplay ? LucideIcons.infinity : LucideIcons.music,
+              episodeShaped
+                  ? LucideIcons.podcast
+                  : (isAutoplay ? LucideIcons.infinity : LucideIcons.music),
               color: pc.iconSecondary,
               size: 28,
             ),
@@ -566,7 +604,9 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isAutoplay ? 'AUTOPLAY' : 'FINE CODA',
+                  episodeShaped
+                      ? l10n.nextEpisode.toUpperCase()
+                      : (isAutoplay ? l10n.autoplayLabel : l10n.queueEndLabel),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: pc.labelMuted,
                     fontWeight: FontWeight.bold,
@@ -575,9 +615,11 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isAutoplay
-                      ? 'Riproduzione automatica attiva'
-                      : AppLocalizations.of(context)!.noUpcomingSongs,
+                  episodeShaped
+                      ? l10n.noUpcomingEpisodes
+                      : (isAutoplay
+                          ? l10n.autoplayActive
+                          : l10n.noUpcomingSongs),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -587,7 +629,7 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
               ],
             ),
           ),
-          if (!isAutoplay)
+          if (!isAutoplay && !episodeShaped)
             TextButton(
               onPressed: () {
                 ref.read(settingsProvider.notifier).setAutoPlayUpNext(true);
@@ -598,7 +640,7 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                 minimumSize: const Size(0, 32),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text(AppLocalizations.of(context)!.autoplayEnable),
+              child: Text(l10n.autoplayEnable),
             ),
         ],
       ],

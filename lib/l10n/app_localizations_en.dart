@@ -1592,4 +1592,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get podcastListeningTime => 'Podcast Listening Time';
+
+  @override
+  String get sleepEndOfEpisode => 'End of episode';
+
+  @override
+  String get showNotes => 'Show notes';
+
+  @override
+  String get noShowNotes => 'No show notes available';
+
+  @override
+  String get seekBack15 => 'Seek back 15 seconds';
+
+  @override
+  String get seekForward30 => 'Seek forward 30 seconds';
+
+  @override
+  String get autoplayLabel => 'AUTOPLAY';
+
+  @override
+  String get queueEndLabel => 'QUEUE END';
+
+  @override
+  String get autoplayActive => 'Autoplay is on';
+
+  @override
+  String get nextEpisode => 'Next episode';
+
+  @override
+  String get noUpcomingEpisodes => 'No upcoming episodes';
+
+  @override
+  String get moreFromPodcast => 'More from this podcast';
+
+  @override
+  String get episodeShort => 'EP';
 }

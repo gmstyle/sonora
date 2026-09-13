@@ -73,25 +73,43 @@ class TopBar extends ConsumerWidget {
         IconButton(
           icon: Icon(LucideIcons.moreVertical, color: pc.iconPrimary),
           onPressed: () {
-            ContextMenuSheet.showForNowPlaying(
-              context,
-              videoId: videoId,
-              title: currentSong.title,
-              artist: currentSong.artist ?? '',
-              thumbnailUrl: currentSong.artUri?.toString(),
-              duration: currentSong.duration?.inSeconds,
-              albumName: albumName,
-              isVideo: track.isVideo,
-              artistId: artistId,
-              albumId: albumId,
-              isExplicit: track.isExplicit,
-              onGoToArtist: (artistId) {
-                closeFullPlayerAndNavigate(context, '/artist/$artistId');
-              },
-              onGoToAlbum: (albumId) {
-                closeFullPlayerAndNavigate(context, '/album/$albumId');
-              },
-            );
+            if (track.isEpisode) {
+              ContextMenuSheet.showForEpisode(
+                context,
+                videoId: videoId,
+                name: currentSong.title,
+                podcastName: currentSong.artist,
+                podcastBrowseId: track.podcastBrowseId,
+                thumbnailUrl: currentSong.artUri?.toString(),
+                date: track.publishDate,
+                onGoToPodcast: (podcastBrowseId) {
+                  closeFullPlayerAndNavigate(
+                    context,
+                    '/podcast/$podcastBrowseId',
+                  );
+                },
+              );
+            } else {
+              ContextMenuSheet.showForNowPlaying(
+                context,
+                videoId: videoId,
+                title: currentSong.title,
+                artist: currentSong.artist ?? '',
+                thumbnailUrl: currentSong.artUri?.toString(),
+                duration: currentSong.duration?.inSeconds,
+                albumName: albumName,
+                isVideo: track.isVideo,
+                artistId: artistId,
+                albumId: albumId,
+                isExplicit: track.isExplicit,
+                onGoToArtist: (artistId) {
+                  closeFullPlayerAndNavigate(context, '/artist/$artistId');
+                },
+                onGoToAlbum: (albumId) {
+                  closeFullPlayerAndNavigate(context, '/album/$albumId');
+                },
+              );
+            }
           },
         ),
       ],
