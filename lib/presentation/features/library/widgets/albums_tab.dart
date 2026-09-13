@@ -32,10 +32,13 @@ class AlbumsTab extends ConsumerWidget {
           ),
       data: (albums) {
         if (albums.isEmpty) {
+          final l10n = AppLocalizations.of(context)!;
           return EmptyStateWidget(
             icon: LucideIcons.disc,
-            title: AppLocalizations.of(context)!.noLikedAlbums,
-            body: AppLocalizations.of(context)!.noLikedAlbumsHint,
+            title: l10n.noLikedAlbums,
+            body: l10n.noLikedAlbumsHint,
+            buttonLabel: l10n.goToSearch,
+            onButtonPressed: () => context.go('/search'),
           );
         }
         return RefreshIndicator(

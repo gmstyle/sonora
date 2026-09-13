@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 
 import '../widgets/favorites_tab.dart';
@@ -17,16 +18,19 @@ import '../providers/library_provider.dart';
 class LibraryMobileLayout extends ConsumerWidget {
   const LibraryMobileLayout({super.key});
 
-  List<String> _getTabs(BuildContext context) => [
-    AppLocalizations.of(context)!.favorites,
-    AppLocalizations.of(context)!.artists,
-    AppLocalizations.of(context)!.playlists,
-    AppLocalizations.of(context)!.albums,
-    AppLocalizations.of(context)!.podcasts,
-    AppLocalizations.of(context)!.history,
-    AppLocalizations.of(context)!.mixes,
-    AppLocalizations.of(context)!.stats,
-  ];
+  String _tabLabel(BuildContext context, LibraryTab tab) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (tab) {
+      LibraryTab.favorites => l10n.favorites,
+      LibraryTab.artists => l10n.artists,
+      LibraryTab.playlists => l10n.playlists,
+      LibraryTab.albums => l10n.albums,
+      LibraryTab.podcasts => l10n.podcasts,
+      LibraryTab.history => l10n.history,
+      LibraryTab.mixes => l10n.mixes,
+      LibraryTab.stats => l10n.stats,
+    };
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,12 +38,15 @@ class LibraryMobileLayout extends ConsumerWidget {
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
     final isListOrGridTab = selectedTab.supportsListGridView;
+    final l10n = AppLocalizations.of(context)!;
+    final primaryTabs = LibraryTab.primaryTabs;
+    final overflowSelected = selectedTab.isOverflow;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
-          AppLocalizations.of(context)!.library,
+          l10n.library,
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -58,18 +65,57 @@ class LibraryMobileLayout extends ConsumerWidget {
                   horizontal: 16,
                   vertical: 8,
                 ),
-                itemCount: LibraryTab.values.length,
+                itemCount: primaryTabs.length + 1,
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, i) {
-                  final tab = LibraryTab.values[i];
-                  return ChoiceChip(
-                    label: Text(_getTabs(context)[i]),
-                    selected: tab == selectedTab,
-                    onSelected: (selected) {
-                      if (selected) {
-                        ref.read(libraryActiveTabProvider.notifier).update(tab);
-                      }
+                  if (i < primaryTabs.length) {
+                    final tab = primaryTabs[i];
+                    return ChoiceChip(
+                      label: Text(_tabLabel(context, tab)),
+                      selected: tab == selectedTab,
+                      onSelected: (selected) {
+                        if (selected) {
+                          ref
+                              .read(libraryActiveTabProvider.notifier)
+                              .update(tab);
+                        }
+                      },
+                    );
+                  }
+
+                  return PopupMenuButton<LibraryTab>(
+                    tooltip: l10n.more,
+                    initialValue: overflowSelected ? selectedTab : null,
+                    onSelected: (tab) {
+                      ref.read(libraryActiveTabProvider.notifier).update(tab);
                     },
+                    itemBuilder:
+                        (context) => [
+                          for (final tab in LibraryTab.overflowTabs)
+                            CheckedPopupMenuItem<LibraryTab>(
+                              value: tab,
+                              checked: tab == selectedTab,
+                              child: Text(_tabLabel(context, tab)),
+                            ),
+                        ],
+                    child: IgnorePointer(
+                      child: ChoiceChip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              overflowSelected
+                                  ? _tabLabel(context, selectedTab)
+                                  : l10n.more,
+                            ),
+                            const SizedBox(width: 2),
+                            const Icon(LucideIcons.chevronDown, size: 16),
+                          ],
+                        ),
+                        selected: overflowSelected,
+                        onSelected: (_) {},
+                      ),
+                    ),
                   );
                 },
               ),

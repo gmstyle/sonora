@@ -30,6 +30,8 @@ class HistoryTab extends ConsumerWidget {
             icon: LucideIcons.history,
             title: l10n.noListeningHistory,
             body: l10n.noListeningHistoryHint,
+            buttonLabel: l10n.goToSearch,
+            onButtonPressed: () => context.go('/search'),
           );
         }
         return RefreshIndicator(

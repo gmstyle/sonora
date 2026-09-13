@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
@@ -32,10 +33,13 @@ class FavoritesTab extends ConsumerWidget {
           ),
       data: (songs) {
         if (songs.isEmpty) {
+          final l10n = AppLocalizations.of(context)!;
           return EmptyStateWidget(
             icon: LucideIcons.heart,
-            title: AppLocalizations.of(context)!.noFavoritesYet,
-            body: AppLocalizations.of(context)!.noFavoritesHint,
+            title: l10n.noFavoritesYet,
+            body: l10n.noFavoritesHint,
+            buttonLabel: l10n.goToSearch,
+            onButtonPressed: () => context.go('/search'),
           );
         }
         return RefreshIndicator(

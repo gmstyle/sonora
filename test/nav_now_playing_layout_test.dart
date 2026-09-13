@@ -29,6 +29,11 @@ class _ExpandedSidebar extends SidebarCollapsedNotifier {
   bool build() => false;
 }
 
+class _CollapsedSidebar extends SidebarCollapsedNotifier {
+  @override
+  bool build() => true;
+}
+
 class _FakeCast extends CastNotifier {
   @override
   Future<CastState> build() async => CastState();
@@ -280,7 +285,7 @@ void main() {
     );
   });
 
-  testWidgets('wide mini player hides artwork when sidebar is expanded', (
+  testWidgets('wide mini player hides title when sidebar is expanded', (
     tester,
   ) async {
     final prefs = await SharedPreferences.getInstance();
@@ -317,13 +322,60 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.byType(VinylArtwork), findsNothing);
     expect(
       tester
           .widget<AnimatedCrossFade>(find.byType(AnimatedCrossFade))
           .crossFadeState,
       CrossFadeState.showSecond,
     );
+    expect(find.byType(VinylArtwork), findsNothing);
+    expect(find.byType(AnimatedPlayPauseIcon), findsOneWidget);
+  });
+
+  testWidgets('wide collapsed mini player shows title', (tester) async {
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(size: Size(1600, 900)),
+        child: ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            playerStateProvider.overrideWith(_FakePlayer.new),
+            sidebarCollapsedProvider.overrideWith(_CollapsedSidebar.new),
+            likedSongProvider.overrideWith((ref, id) => Stream.value(null)),
+            castStateProvider.overrideWith(_FakeCast.new),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: MediaQuery(
+              data: const MediaQueryData(size: Size(1600, 900)),
+              child: Scaffold(
+                body: SizedBox(
+                  width: 1300,
+                  height: 72,
+                  child: MiniPlayerContent(
+                    currentSong: song,
+                    playerState: playing,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(
+      tester
+          .widget<AnimatedCrossFade>(find.byType(AnimatedCrossFade))
+          .crossFadeState,
+      CrossFadeState.showFirst,
+    );
+    expect(find.text('Above Water'), findsOneWidget);
+    expect(find.text('Jah Lil'), findsOneWidget);
+    expect(find.byType(VinylArtwork), findsNothing);
     expect(find.byType(AnimatedPlayPauseIcon), findsOneWidget);
   });
 

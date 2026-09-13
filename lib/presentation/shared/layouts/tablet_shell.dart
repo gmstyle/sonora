@@ -40,7 +40,7 @@ class TabletShell extends ConsumerWidget {
                     selectedIndex: navigationShell.currentIndex,
                     onDestinationSelected:
                         (index) => navigationShell.goBranch(index),
-                    labelType: NavigationRailLabelType.none,
+                    labelType: NavigationRailLabelType.selected,
                     leading: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       child: SonoraLogo.icon(36),

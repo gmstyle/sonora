@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
@@ -28,10 +29,13 @@ class ArtistsTab extends ConsumerWidget {
           ),
       data: (artists) {
         if (artists.isEmpty) {
+          final l10n = AppLocalizations.of(context)!;
           return EmptyStateWidget(
             icon: LucideIcons.user,
-            title: AppLocalizations.of(context)!.noFollowedArtists,
-            body: AppLocalizations.of(context)!.noFollowedArtistsHint,
+            title: l10n.noFollowedArtists,
+            body: l10n.noFollowedArtistsHint,
+            buttonLabel: l10n.goToSearch,
+            onButtonPressed: () => context.go('/search'),
           );
         }
         return RefreshIndicator(

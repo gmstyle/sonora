@@ -377,6 +377,26 @@ enum LibraryTab {
   mixes,
   stats;
 
+  /// Always-visible Library chrome tabs.
+  static const List<LibraryTab> primaryTabs = [
+    favorites,
+    artists,
+    playlists,
+    albums,
+  ];
+
+  /// Tabs reachable via the overflow ("More" / "Altro") menu.
+  static const List<LibraryTab> overflowTabs = [
+    podcasts,
+    history,
+    mixes,
+    stats,
+  ];
+
+  bool get isPrimary => primaryTabs.contains(this);
+
+  bool get isOverflow => overflowTabs.contains(this);
+
   /// Tabs that support list/grid view switching in [LibraryHeaderControls].
   bool get supportsListGridView => switch (this) {
     artists || playlists || albums || podcasts || mixes => true,

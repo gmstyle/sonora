@@ -30,10 +30,13 @@ class PodcastsTab extends ConsumerWidget {
           ),
       data: (podcasts) {
         if (podcasts.isEmpty) {
+          final l10n = AppLocalizations.of(context)!;
           return EmptyStateWidget(
             icon: LucideIcons.mic,
-            title: AppLocalizations.of(context)!.noLikedPodcasts,
-            body: AppLocalizations.of(context)!.noLikedPodcastsHint,
+            title: l10n.noLikedPodcasts,
+            body: l10n.noLikedPodcastsHint,
+            buttonLabel: l10n.goToSearch,
+            onButtonPressed: () => context.go('/search'),
           );
         }
         return RefreshIndicator(

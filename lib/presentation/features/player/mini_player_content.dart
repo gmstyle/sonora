@@ -277,12 +277,10 @@ class MiniPlayerContent extends ConsumerWidget {
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
     final activeView = ref.watch(playerSubViewProvider);
+    final isSidebarExpanded = !ref.watch(sidebarCollapsedProvider);
 
-    final width = MediaQuery.of(context).size.width;
-    final isWideScreen = width >= kExpandedBreakpoint;
-    final isSidebarExpanded =
-        isWideScreen && !ref.watch(sidebarCollapsedProvider);
-
+    // Expanded sidebar: title lives in NavNowPlaying card — hide it here.
+    // Collapsed rail: disc has no text — show title/artist in the mini bar.
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (isSwitching) return;
@@ -306,8 +304,6 @@ class MiniPlayerContent extends ConsumerWidget {
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
                     : Row(
                       children: [
-                        // LEFT — title/artist when the nav chrome does not
-                        // already show metadata (wide sidebar expanded).
                         Expanded(
                           flex: isSidebarExpanded ? 1 : 3,
                           child: AnimatedCrossFade(

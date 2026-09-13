@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/stat_format.dart';
 
 import '../../providers/library_notifier.dart';
@@ -23,6 +24,10 @@ import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import 'providers/search_provider.dart';
+
+/// Content max width for Search on wide shells (≥ [kExpandedBreakpoint]).
+const double _kSearchContentMaxWidth = 1100;
+const double _kSearchFilterColumnWidth = 168;
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -483,268 +488,402 @@ class _SearchResults extends ConsumerWidget {
     );
   }
 
+  List<String> _filterOptions(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      l10n.all,
+      l10n.songs,
+      l10n.searchArtists,
+      l10n.searchAlbums,
+      l10n.searchPlaylists,
+      l10n.searchPodcasts,
+      l10n.searchEpisodes,
+      l10n.searchProfiles,
+    ];
+  }
+
+  Widget _buildCardGrid({
+    required int itemCount,
+    required double childAspectRatio,
+    required Widget Function(BuildContext context, int index, double cardWidth)
+    itemBuilder,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 12.0;
+          final cardWidth = (constraints.maxWidth - gap) / 2;
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: gap,
+              mainAxisSpacing: gap,
+              childAspectRatio: childAspectRatio,
+            ),
+            itemCount: itemCount,
+            itemBuilder:
+                (context, index) => itemBuilder(context, index, cardWidth),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildArtistsShelf(
+    BuildContext context,
+    List<ArtistDetailed> artists, {
+    required bool dense,
+  }) {
+    final count = artists.length > 8 ? 8 : artists.length;
+    if (dense) {
+      return _buildCardGrid(
+        itemCount: count,
+        childAspectRatio: 0.78,
+        itemBuilder: (context, idx, cardWidth) {
+          final a = artists[idx];
+          return ArtistCard(
+            artistId: a.artistId,
+            name: a.name,
+            thumbnailUrl:
+                a.thumbnails.isNotEmpty ? a.thumbnails.last.url : null,
+            monthlyListeners: a.monthlyListeners,
+            cardWidth: cardWidth,
+          );
+        },
+      );
+    }
+    return SizedBox(
+      height: 155,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: count,
+        itemBuilder: (context, idx) {
+          final a = artists[idx];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: ArtistCard(
+              artistId: a.artistId,
+              name: a.name,
+              thumbnailUrl:
+                  a.thumbnails.isNotEmpty ? a.thumbnails.last.url : null,
+              monthlyListeners: a.monthlyListeners,
+              cardWidth: 100,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAlbumsShelf(
+    BuildContext context,
+    List<AlbumDetailed> albums, {
+    required bool dense,
+  }) {
+    final count = albums.length > 8 ? 8 : albums.length;
+    if (dense) {
+      return _buildCardGrid(
+        itemCount: count,
+        childAspectRatio: 0.72,
+        itemBuilder: (context, idx, cardWidth) {
+          final al = albums[idx];
+          return AlbumCard(
+            albumId: al.albumId,
+            name: al.name,
+            artist: al.artist.name,
+            artistId: al.artist.artistId,
+            thumbnailUrl:
+                al.thumbnails.isNotEmpty ? al.thumbnails.last.url : null,
+            year: al.year,
+            cardWidth: cardWidth,
+            heroTag: 'search_album_${al.albumId}',
+          );
+        },
+      );
+    }
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: count,
+        itemBuilder: (context, idx) {
+          final al = albums[idx];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: AlbumCard(
+              albumId: al.albumId,
+              name: al.name,
+              artist: al.artist.name,
+              artistId: al.artist.artistId,
+              thumbnailUrl:
+                  al.thumbnails.isNotEmpty ? al.thumbnails.last.url : null,
+              year: al.year,
+              cardWidth: 120,
+              heroTag: 'search_album_${al.albumId}',
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlaylistsShelf(
+    BuildContext context,
+    List<PlaylistDetailed> playlists, {
+    required bool dense,
+  }) {
+    final count = playlists.length > 8 ? 8 : playlists.length;
+    if (dense) {
+      return _buildCardGrid(
+        itemCount: count,
+        childAspectRatio: 0.68,
+        itemBuilder: (context, idx, cardWidth) {
+          final pl = playlists[idx];
+          return PlaylistCard(
+            playlistId: pl.playlistId,
+            name: pl.name,
+            artist: pl.artist.name,
+            thumbnailUrl:
+                pl.thumbnails.isNotEmpty ? pl.thumbnails.last.url : null,
+            cardWidth: cardWidth,
+            heroTag: 'search_playlist_${pl.playlistId}',
+          );
+        },
+      );
+    }
+    return SizedBox(
+      height: 230,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: count,
+        itemBuilder: (context, idx) {
+          final pl = playlists[idx];
+          return Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: PlaylistCard(
+              playlistId: pl.playlistId,
+              name: pl.name,
+              artist: pl.artist.name,
+              thumbnailUrl:
+                  pl.thumbnails.isNotEmpty ? pl.thumbnails.last.url : null,
+              cardWidth: 120,
+              heroTag: 'search_playlist_${pl.playlistId}',
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildResultsContent(
+    BuildContext context,
+    WidgetRef ref, {
+    required int filter,
+    required AsyncValue<List<SearchResult>> resultsAsync,
+    required bool denseAllSections,
+  }) {
+    return resultsAsync.when(
+      loading:
+          () => ListView.builder(
+            itemCount: 6,
+            itemBuilder:
+                (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
+          ),
+      error:
+          (e, _) => ErrorRetryWidget(
+            message: AppLocalizations.of(context)!.searchFailed,
+            onRetry: () => ref.invalidate(searchResultsProvider),
+          ),
+      data: (results) {
+        if (results.isEmpty) {
+          return EmptyStateWidget(
+            icon: LucideIcons.searchX,
+            title: AppLocalizations.of(context)!.noResults,
+            body: AppLocalizations.of(context)!.noResultsHint,
+          );
+        }
+
+        if (filter > 0) {
+          return ListView.builder(
+            padding: EdgeInsets.only(
+              top: 4,
+              bottom: MediaQuery.of(context).padding.bottom + 16,
+            ),
+            itemCount: results.length,
+            itemBuilder:
+                (context, index) =>
+                    _buildResultItem(context, ref, results[index]),
+          );
+        }
+
+        final songs = results.whereType<SongDetailed>().toList();
+        final videos = results.whereType<VideoDetailed>().toList();
+        final artists = results.whereType<ArtistDetailed>().toList();
+        final albums = results.whereType<AlbumDetailed>().toList();
+        final playlists = results.whereType<PlaylistDetailed>().toList();
+        final podcasts = results.whereType<PodcastDetailed>().toList();
+        final episodes = results.whereType<EpisodeDetailed>().toList();
+        final profiles = results.whereType<ProfileDetailed>().toList();
+
+        return ListView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom + 24,
+          ),
+          children: [
+            _buildSectionHeader(
+              context,
+              title: AppLocalizations.of(context)!.topResult,
+            ),
+            _buildTopResultCard(context, ref, results.first),
+
+            if (songs.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.songs,
+                onSeeAll:
+                    () => ref.read(searchFilterProvider.notifier).update(1),
+              ),
+              ...songs.take(4).map((s) => _buildResultItem(context, ref, s)),
+            ],
+
+            if (videos.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.videos,
+              ),
+              ...videos.take(3).map((v) => _buildResultItem(context, ref, v)),
+            ],
+
+            if (artists.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.searchArtists,
+                onSeeAll:
+                    () => ref.read(searchFilterProvider.notifier).update(2),
+              ),
+              _buildArtistsShelf(context, artists, dense: denseAllSections),
+            ],
+
+            if (albums.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.searchAlbums,
+                onSeeAll:
+                    () => ref.read(searchFilterProvider.notifier).update(3),
+              ),
+              _buildAlbumsShelf(context, albums, dense: denseAllSections),
+            ],
+
+            if (playlists.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.searchPlaylists,
+                onSeeAll:
+                    () => ref.read(searchFilterProvider.notifier).update(4),
+              ),
+              _buildPlaylistsShelf(context, playlists, dense: denseAllSections),
+            ],
+
+            if (podcasts.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.podcasts,
+                onSeeAll:
+                    () => ref.read(searchFilterProvider.notifier).update(5),
+              ),
+              ...podcasts.take(4).map((p) => _buildResultItem(context, ref, p)),
+            ],
+
+            if (episodes.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.episodes,
+                onSeeAll:
+                    () => ref.read(searchFilterProvider.notifier).update(6),
+              ),
+              ...episodes.take(4).map((e) => _buildResultItem(context, ref, e)),
+            ],
+
+            if (profiles.isNotEmpty) ...[
+              _buildSectionHeader(
+                context,
+                title: AppLocalizations.of(context)!.profiles,
+                onSeeAll:
+                    () => ref.read(searchFilterProvider.notifier).update(7),
+              ),
+              ...profiles.take(4).map((p) => _buildResultItem(context, ref, p)),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(searchFilterProvider);
     final resultsAsync = ref.watch(searchResultsProvider);
+    final options = _filterOptions(context);
 
-    return Column(
-      children: [
-        FilterChipBar(
-          options: [
-            AppLocalizations.of(context)!.all,
-            AppLocalizations.of(context)!.songs,
-            AppLocalizations.of(context)!.searchArtists,
-            AppLocalizations.of(context)!.searchAlbums,
-            AppLocalizations.of(context)!.searchPlaylists,
-            AppLocalizations.of(context)!.searchPodcasts,
-            AppLocalizations.of(context)!.searchEpisodes,
-            AppLocalizations.of(context)!.searchProfiles,
-          ],
-          selectedIndex: filter,
-          onSelected:
-              (index) => ref.read(searchFilterProvider.notifier).update(index),
-        ),
-        Expanded(
-          child: resultsAsync.when(
-            loading:
-                () => ListView.builder(
-                  itemCount: 6,
-                  itemBuilder:
-                      (_, _) =>
-                          const ShimmerLoading(variant: ShimmerVariant.tile),
-                ),
-            error:
-                (e, _) => ErrorRetryWidget(
-                  message: AppLocalizations.of(context)!.searchFailed,
-                  onRetry: () => ref.invalidate(searchResultsProvider),
-                ),
-            data: (results) {
-              if (results.isEmpty) {
-                return EmptyStateWidget(
-                  icon: LucideIcons.searchX,
-                  title: AppLocalizations.of(context)!.noResults,
-                  body: AppLocalizations.of(context)!.noResultsHint,
-                );
-              }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= kExpandedBreakpoint;
+        final resultsContent = _buildResultsContent(
+          context,
+          ref,
+          filter: filter,
+          resultsAsync: resultsAsync,
+          denseAllSections: isWide,
+        );
 
-              if (filter > 0) {
-                // Return a flat list when a specific category is selected
-                return ListView.builder(
-                  padding: EdgeInsets.only(
-                    top: 4,
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
-                  ),
-                  itemCount: results.length,
-                  itemBuilder:
-                      (context, index) =>
-                          _buildResultItem(context, ref, results[index]),
-                );
-              }
-
-              // Categorized structure for the "All" (Tutto) tab:
-              final songs = results.whereType<SongDetailed>().toList();
-              final videos = results.whereType<VideoDetailed>().toList();
-              final artists = results.whereType<ArtistDetailed>().toList();
-              final albums = results.whereType<AlbumDetailed>().toList();
-              final playlists = results.whereType<PlaylistDetailed>().toList();
-              final podcasts = results.whereType<PodcastDetailed>().toList();
-              final episodes = results.whereType<EpisodeDetailed>().toList();
-              final profiles = results.whereType<ProfileDetailed>().toList();
-
-              return ListView(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).padding.bottom + 24,
-                ),
+        if (isWide) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: _kSearchContentMaxWidth,
+                maxHeight: constraints.maxHeight,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 1. Top Result
-                  _buildSectionHeader(
-                    context,
-                    title: AppLocalizations.of(context)!.topResult,
+                  SizedBox(
+                    width: _kSearchFilterColumnWidth,
+                    child: FilterChipBar(
+                      direction: Axis.vertical,
+                      options: options,
+                      selectedIndex: filter,
+                      onSelected:
+                          (index) => ref
+                              .read(searchFilterProvider.notifier)
+                              .update(index),
+                    ),
                   ),
-                  _buildTopResultCard(context, ref, results.first),
-
-                  // 2. Songs
-                  if (songs.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.songs,
-                      onSeeAll:
-                          () =>
-                              ref.read(searchFilterProvider.notifier).update(1),
-                    ),
-                    ...songs
-                        .take(4)
-                        .map((s) => _buildResultItem(context, ref, s)),
-                  ],
-
-                  // 3. Videos
-                  if (videos.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.videos,
-                    ),
-                    ...videos
-                        .take(3)
-                        .map((v) => _buildResultItem(context, ref, v)),
-                  ],
-
-                  // 4. Artists
-                  if (artists.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.searchArtists,
-                      onSeeAll:
-                          () =>
-                              ref.read(searchFilterProvider.notifier).update(2),
-                    ),
-                    SizedBox(
-                      height: 155,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: artists.length > 8 ? 8 : artists.length,
-                        itemBuilder: (context, idx) {
-                          final a = artists[idx];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: ArtistCard(
-                              artistId: a.artistId,
-                              name: a.name,
-                              thumbnailUrl:
-                                  a.thumbnails.isNotEmpty
-                                      ? a.thumbnails.last.url
-                                      : null,
-                              monthlyListeners: a.monthlyListeners,
-                              cardWidth: 100,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-
-                  // 5. Albums
-                  if (albums.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.searchAlbums,
-                      onSeeAll:
-                          () =>
-                              ref.read(searchFilterProvider.notifier).update(3),
-                    ),
-                    SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: albums.length > 8 ? 8 : albums.length,
-                        itemBuilder: (context, idx) {
-                          final al = albums[idx];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: AlbumCard(
-                              albumId: al.albumId,
-                              name: al.name,
-                              artist: al.artist.name,
-                              artistId: al.artist.artistId,
-                              thumbnailUrl:
-                                  al.thumbnails.isNotEmpty
-                                      ? al.thumbnails.last.url
-                                      : null,
-                              year: al.year,
-                              cardWidth: 120,
-                              heroTag: 'search_album_${al.albumId}',
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-
-                  // 6. Playlists
-                  if (playlists.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.searchPlaylists,
-                      onSeeAll:
-                          () =>
-                              ref.read(searchFilterProvider.notifier).update(4),
-                    ),
-                    SizedBox(
-                      height: 230,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: playlists.length > 8 ? 8 : playlists.length,
-                        itemBuilder: (context, idx) {
-                          final pl = playlists[idx];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 16),
-                            child: PlaylistCard(
-                              playlistId: pl.playlistId,
-                              name: pl.name,
-                              artist: pl.artist.name,
-                              thumbnailUrl:
-                                  pl.thumbnails.isNotEmpty
-                                      ? pl.thumbnails.last.url
-                                      : null,
-                              cardWidth: 120,
-                              heroTag: 'search_playlist_${pl.playlistId}',
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-
-                  // 7. Podcasts
-                  if (podcasts.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.podcasts,
-                      onSeeAll:
-                          () =>
-                              ref.read(searchFilterProvider.notifier).update(5),
-                    ),
-                    ...podcasts
-                        .take(4)
-                        .map((p) => _buildResultItem(context, ref, p)),
-                  ],
-
-                  // 8. Episodes
-                  if (episodes.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.episodes,
-                      onSeeAll:
-                          () =>
-                              ref.read(searchFilterProvider.notifier).update(6),
-                    ),
-                    ...episodes
-                        .take(4)
-                        .map((e) => _buildResultItem(context, ref, e)),
-                  ],
-
-                  // 9. Profiles
-                  if (profiles.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      context,
-                      title: AppLocalizations.of(context)!.profiles,
-                      onSeeAll:
-                          () =>
-                              ref.read(searchFilterProvider.notifier).update(7),
-                    ),
-                    ...profiles
-                        .take(4)
-                        .map((p) => _buildResultItem(context, ref, p)),
-                  ],
+                  Expanded(child: resultsContent),
                 ],
-              );
-            },
-          ),
-        ),
-      ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            FilterChipBar(
+              options: options,
+              selectedIndex: filter,
+              onSelected:
+                  (index) =>
+                      ref.read(searchFilterProvider.notifier).update(index),
+            ),
+            Expanded(child: resultsContent),
+          ],
+        );
+      },
     );
   }
 

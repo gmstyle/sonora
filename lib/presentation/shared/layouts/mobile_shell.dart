@@ -50,7 +50,7 @@ class MobileShell extends ConsumerWidget {
       elevation: 0,
       height: navBarIntrinsic,
       selectedIndex: navigationShell.currentIndex,
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
       onDestinationSelected: (index) => navigationShell.goBranch(index),
       destinations: [
         for (var i = 0; i < _icons.length; i++)

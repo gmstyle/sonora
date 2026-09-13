@@ -20,54 +20,117 @@ class _TabItem {
   final String Function(BuildContext) getTitle;
   final IconData icon;
 
-  _TabItem(this.getTitle, this.icon);
+  const _TabItem(this.getTitle, this.icon);
 }
 
-final _tabs = [
-  _TabItem(
-    (context) => AppLocalizations.of(context)!.favorites,
-    LucideIcons.heart,
-  ),
-  _TabItem(
-    (context) => AppLocalizations.of(context)!.artists,
-    LucideIcons.users,
-  ),
-  _TabItem(
-    (context) => AppLocalizations.of(context)!.playlists,
-    LucideIcons.listMusic,
-  ),
-  _TabItem((context) => AppLocalizations.of(context)!.albums, LucideIcons.disc),
-  _TabItem(
-    (context) => AppLocalizations.of(context)!.podcasts,
-    LucideIcons.mic,
-  ),
-  _TabItem(
-    (context) => AppLocalizations.of(context)!.history,
-    LucideIcons.history,
-  ),
-  _TabItem(
-    (context) => AppLocalizations.of(context)!.mixes,
-    LucideIcons.sparkles,
-  ),
-  _TabItem(
-    (context) => AppLocalizations.of(context)!.stats,
-    LucideIcons.barChart2,
-  ),
-];
+_TabItem _tabMeta(LibraryTab tab) {
+  return switch (tab) {
+    LibraryTab.favorites => _TabItem(
+      (context) => AppLocalizations.of(context)!.favorites,
+      LucideIcons.heart,
+    ),
+    LibraryTab.artists => _TabItem(
+      (context) => AppLocalizations.of(context)!.artists,
+      LucideIcons.users,
+    ),
+    LibraryTab.playlists => _TabItem(
+      (context) => AppLocalizations.of(context)!.playlists,
+      LucideIcons.listMusic,
+    ),
+    LibraryTab.albums => _TabItem(
+      (context) => AppLocalizations.of(context)!.albums,
+      LucideIcons.disc,
+    ),
+    LibraryTab.podcasts => _TabItem(
+      (context) => AppLocalizations.of(context)!.podcasts,
+      LucideIcons.mic,
+    ),
+    LibraryTab.history => _TabItem(
+      (context) => AppLocalizations.of(context)!.history,
+      LucideIcons.history,
+    ),
+    LibraryTab.mixes => _TabItem(
+      (context) => AppLocalizations.of(context)!.mixes,
+      LucideIcons.sparkles,
+    ),
+    LibraryTab.stats => _TabItem(
+      (context) => AppLocalizations.of(context)!.stats,
+      LucideIcons.barChart2,
+    ),
+  };
+}
 
 class LibrarySplitLayout extends ConsumerWidget {
   const LibrarySplitLayout({super.key});
+
+  Widget _navRow({
+    required BuildContext context,
+    required ThemeData theme,
+    required bool isSelected,
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Widget? trailing,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ScaleButton(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color:
+                isSelected
+                    ? theme.colorScheme.secondaryContainer.withValues(
+                      alpha: 0.4,
+                    )
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color:
+                    isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    color:
+                        isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isWide = size.width >= 1200; // kExpandedBreakpoint
+    final l10n = AppLocalizations.of(context)!;
 
     final selectedTab = ref.watch(libraryActiveTabProvider);
     final query = ref.watch(librarySearchQueryProvider);
     final isSearchActive = query.trim().isNotEmpty;
     final isListOrGridTab = selectedTab.supportsListGridView;
+    final overflowSelected = selectedTab.isOverflow;
 
     Widget mainRow = Row(
       children: [
@@ -80,76 +143,74 @@ class LibrarySplitLayout extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                 child: Text(
-                  AppLocalizations.of(context)!.library,
+                  l10n.library,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: ListView(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
-                  itemCount: LibraryTab.values.length,
-                  itemBuilder: (context, index) {
-                    final tab = LibraryTab.values[index];
-                    final tabMeta = _tabs[index];
-                    final isSelected = tab == selectedTab;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: ScaleButton(
+                  children: [
+                    for (final tab in LibraryTab.primaryTabs)
+                      _navRow(
+                        context: context,
+                        theme: theme,
+                        isSelected: tab == selectedTab,
+                        icon: _tabMeta(tab).icon,
+                        title: _tabMeta(tab).getTitle(context),
                         onTap: () {
                           ref
                               .read(libraryActiveTabProvider.notifier)
                               .update(tab);
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
+                      ),
+                    PopupMenuButton<LibraryTab>(
+                      tooltip: l10n.more,
+                      initialValue: overflowSelected ? selectedTab : null,
+                      offset: const Offset(200, 0),
+                      onSelected: (tab) {
+                        ref.read(libraryActiveTabProvider.notifier).update(tab);
+                      },
+                      itemBuilder:
+                          (context) => [
+                            for (final tab in LibraryTab.overflowTabs)
+                              CheckedPopupMenuItem<LibraryTab>(
+                                value: tab,
+                                checked: tab == selectedTab,
+                                child: Text(_tabMeta(tab).getTitle(context)),
+                              ),
+                          ],
+                      child: IgnorePointer(
+                        child: _navRow(
+                          context: context,
+                          theme: theme,
+                          isSelected: overflowSelected,
+                          icon:
+                              overflowSelected
+                                  ? _tabMeta(selectedTab).icon
+                                  : LucideIcons.ellipsis,
+                          title:
+                              overflowSelected
+                                  ? _tabMeta(selectedTab).getTitle(context)
+                                  : l10n.more,
+                          onTap: () {},
+                          trailing: Icon(
+                            LucideIcons.chevronDown,
+                            size: 18,
                             color:
-                                isSelected
-                                    ? theme.colorScheme.secondaryContainer
-                                        .withValues(alpha: 0.4)
-                                    : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                tabMeta.icon,
-                                color:
-                                    isSelected
-                                        ? theme.colorScheme.primary
-                                        : theme.colorScheme.onSurfaceVariant,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  tabMeta.getTitle(context),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight:
-                                        isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                    color:
-                                        isSelected
-                                            ? theme.colorScheme.primary
-                                            : theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                            ],
+                                overflowSelected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
             ],
