@@ -249,6 +249,34 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     _resetAndCenterForOpen();
   }
 
+  Future<void> _confirmClearQueue(
+    BuildContext context,
+    PlayerNotifier notifier,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text(l10n.clearQueueConfirmTitle),
+            content: Text(l10n.clearQueueConfirmMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.clearQueue),
+              ),
+            ],
+          ),
+    );
+    if (confirmed == true) {
+      await notifier.clearQueue();
+    }
+  }
+
   /// Track change while the queue is open: follow only if user is not browsing.
   void _onCurrentTrackChanged(String? songId, int index) {
     final changed = songId != _lastTrackId || index != _lastTrackIndex;
@@ -370,6 +398,10 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                     count: userQueue.length,
                     pc: pc,
                     theme: theme,
+                    onClear:
+                        userQueue.isEmpty
+                            ? null
+                            : () => _confirmClearQueue(context, notifier),
                   ),
                 ),
                 if (userQueue.isNotEmpty)
@@ -613,6 +645,7 @@ class _SectionHeader extends StatelessWidget {
   final ThemeData theme;
   final bool? autoplayEnabled;
   final VoidCallback? onAutoplayToggle;
+  final VoidCallback? onClear;
 
   const _SectionHeader({
     required this.icon,
@@ -622,6 +655,7 @@ class _SectionHeader extends StatelessWidget {
     required this.theme,
     this.autoplayEnabled,
     this.onAutoplayToggle,
+    this.onClear,
   });
 
   @override
@@ -660,6 +694,17 @@ class _SectionHeader extends StatelessWidget {
               ),
             ],
             const Spacer(),
+            if (onClear != null && count > 0)
+              TextButton(
+                onPressed: onClear,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(AppLocalizations.of(context)!.clearQueue),
+              ),
             if (autoplayEnabled != null && onAutoplayToggle != null)
               IconButton(
                 tooltip:

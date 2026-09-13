@@ -567,6 +567,9 @@
   "autoplayEnable": "Enable",
   "autoplayDisable": "Disable autoplay",
   "queueNowPlayingChip": "Now playing",
+  "clearQueue": "Clear",
+  "clearQueueConfirmTitle": "Clear queue?",
+  "clearQueueConfirmMessage": "Queued tracks will be removed. The current track and Up Next stay.",
 
   "@@sectionMeta": {
     "contextMenu": "Context Menu"
@@ -651,6 +654,15 @@
   },
   "castToDevice": "Cast to a device",
   "searchingDevices": "Searching for devices…",
+  "castNoDevices": "No devices found",
+  "castNoDevicesHint": "Make sure your TV or speaker is on and on the same Wi‑Fi network, then try again.",
+  "castScanAgain": "Scan again",
+  "castConnectedTo": "Connected to {name}",
+  "@castConnectedTo": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
   "disconnect": "Disconnect",
   "alexaBluetooth": "Amazon Alexa (Bluetooth)",
   "alexaBluetoothInstructions": "Say \"Alexa, connect Bluetooth\" and pair from your device's panel.",
@@ -674,6 +686,7 @@
   "offlineMode": "Offline Mode",
   "offlineModeHint": "Only show downloaded content and local playlists",
   "offlineModeActiveMessage": "You are in offline mode. Displaying local content.",
+  "goToDownloads": "Go to Downloads",
   "offlineModeDisabled": "Offline mode disabled",
   "noConnectionMessage": "No internet connection. Check your network.",
   "importPlaylist": "Import Playlist",

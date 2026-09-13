@@ -12,6 +12,7 @@ import '../../../shared/widgets/artist_card.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/playlist_card.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_card.dart';
 import '../player_navigation.dart';
@@ -38,7 +39,7 @@ class RelatedView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return relatedAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const _RelatedShimmer(),
       error:
           (e, _) => ErrorRetryWidget(
             message: l10n.failedToLoadRelated,
@@ -264,5 +265,31 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
       );
     }
     return const SizedBox.shrink();
+  }
+}
+
+class _RelatedShimmer extends StatelessWidget {
+  const _RelatedShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      children: const [
+        SizedBox(height: 8),
+        ShimmerLoading(variant: ShimmerVariant.tile),
+        ShimmerLoading(variant: ShimmerVariant.tile),
+        ShimmerLoading(variant: ShimmerVariant.tile),
+        ShimmerLoading(variant: ShimmerVariant.tile),
+        SizedBox(height: 16),
+        ShimmerLoading(variant: ShimmerVariant.carousel),
+        SizedBox(height: 16),
+        ShimmerLoading(variant: ShimmerVariant.tile),
+        ShimmerLoading(variant: ShimmerVariant.tile),
+        ShimmerLoading(variant: ShimmerVariant.tile),
+        SizedBox(height: 16),
+        ShimmerLoading(variant: ShimmerVariant.carousel),
+      ],
+    );
   }
 }

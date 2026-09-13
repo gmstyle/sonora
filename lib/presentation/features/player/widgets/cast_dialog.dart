@@ -127,8 +127,35 @@ class _CastDialogState extends ConsumerState<CastDialog> {
                 children: [
                   if (state.discoveredDevices.isEmpty && !state.isDiscovering)
                     Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(l10n.noResults),
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.castNoDevices,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.castNoDevicesHint,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            icon: const Icon(LucideIcons.refreshCw, size: 18),
+                            label: Text(l10n.castScanAgain),
+                            onPressed:
+                                () =>
+                                    ref
+                                        .read(castStateProvider.notifier)
+                                        .startDiscovery(),
+                          ),
+                        ],
+                      ),
                     ),
                   ...state.discoveredDevices.map((device) {
                     final isConnected =

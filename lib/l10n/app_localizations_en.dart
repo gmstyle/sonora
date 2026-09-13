@@ -1167,6 +1167,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get queueNowPlayingChip => 'Now playing';
 
   @override
+  String get clearQueue => 'Clear';
+
+  @override
+  String get clearQueueConfirmTitle => 'Clear queue?';
+
+  @override
+  String get clearQueueConfirmMessage =>
+      'Queued tracks will be removed. The current track and Up Next stay.';
+
+  @override
   String get playNow => 'Play Now';
 
   @override
@@ -1335,6 +1345,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get castToDevice => 'Cast to a device';
 
   @override
+  String get castNoDevices => 'No devices found';
+
+  @override
+  String get castNoDevicesHint =>
+      'Make sure your TV or speaker is on and on the same Wi‑Fi network, then try again.';
+
+  @override
+  String get castScanAgain => 'Scan again';
+
+  @override
+  String castConnectedTo(String name) {
+    return 'Connected to $name';
+  }
+
+  @override
   String get disconnect => 'Disconnect';
 
   @override
@@ -1380,6 +1405,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get offlineModeActiveMessage =>
       'You are in offline mode. Displaying local content.';
+
+  @override
+  String get goToDownloads => 'Go to Downloads';
 
   @override
   String get offlineModeDisabled => 'Offline mode disabled';

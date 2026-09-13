@@ -422,6 +422,9 @@
   "autoplayEnable": "Attiva",
   "autoplayDisable": "Disattiva autoplay",
   "queueNowPlayingChip": "In riproduzione",
+  "clearQueue": "Svuota",
+  "clearQueueConfirmTitle": "Svuotare la coda?",
+  "clearQueueConfirmMessage": "I brani in coda verranno rimossi. Il brano corrente e Up Next restano.",
 
   "@@sectionMeta": {
     "contextMenu": "Menu Contestuale"
@@ -496,6 +499,10 @@
   },
   "castToDevice": "Invia a un dispositivo",
   "searchingDevices": "Ricerca dispositivi…",
+  "castNoDevices": "Nessun dispositivo",
+  "castNoDevicesHint": "Assicurati che TV o speaker siano accesi e sulla stessa rete Wi‑Fi, poi riprova.",
+  "castScanAgain": "Scansiona di nuovo",
+  "castConnectedTo": "Connesso a {name}",
   "disconnect": "Disconnetti",
   "alexaBluetooth": "Amazon Alexa (Bluetooth)",
   "alexaBluetoothInstructions": "Dì \"Alexa, connetti Bluetooth\" ed esegui l'accoppiamento dal pannello del tuo dispositivo.",
@@ -509,6 +516,7 @@
   "offlineMode": "Modalità offline",
   "offlineModeHint": "Mostra solo i contenuti scaricati e le playlist locali",
   "offlineModeActiveMessage": "Sei in modalità offline. Visualizzazione dei contenuti locali.",
+  "goToDownloads": "Vai a Downloads",
   "offlineModeDisabled": "Modalità offline disattivata",
   "noConnectionMessage": "Connessione assente. Controlla la rete.",
   "importPlaylist": "Importa Playlist",

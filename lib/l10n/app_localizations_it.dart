@@ -1175,6 +1175,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get queueNowPlayingChip => 'In riproduzione';
 
   @override
+  String get clearQueue => 'Svuota';
+
+  @override
+  String get clearQueueConfirmTitle => 'Svuotare la coda?';
+
+  @override
+  String get clearQueueConfirmMessage =>
+      'I brani in coda verranno rimossi. Il brano corrente e Up Next restano.';
+
+  @override
   String get playNow => 'Riproduci Ora';
 
   @override
@@ -1343,6 +1353,21 @@ class AppLocalizationsIt extends AppLocalizations {
   String get castToDevice => 'Invia a un dispositivo';
 
   @override
+  String get castNoDevices => 'Nessun dispositivo';
+
+  @override
+  String get castNoDevicesHint =>
+      'Assicurati che TV o speaker siano accesi e sulla stessa rete Wi‑Fi, poi riprova.';
+
+  @override
+  String get castScanAgain => 'Scansiona di nuovo';
+
+  @override
+  String castConnectedTo(String name) {
+    return 'Connesso a $name';
+  }
+
+  @override
   String get disconnect => 'Disconnetti';
 
   @override
@@ -1389,6 +1414,9 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get offlineModeActiveMessage =>
       'Sei in modalità offline. Visualizzazione dei contenuti locali.';
+
+  @override
+  String get goToDownloads => 'Vai a Downloads';
 
   @override
   String get offlineModeDisabled => 'Modalità offline disattivata';

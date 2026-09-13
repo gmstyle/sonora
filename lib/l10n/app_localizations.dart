@@ -2030,6 +2030,24 @@ abstract class AppLocalizations {
   /// **'Now playing'**
   String get queueNowPlayingChip;
 
+  /// No description provided for @clearQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearQueue;
+
+  /// No description provided for @clearQueueConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear queue?'**
+  String get clearQueueConfirmTitle;
+
+  /// No description provided for @clearQueueConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued tracks will be removed. The current track and Up Next stay.'**
+  String get clearQueueConfirmMessage;
+
   /// No description provided for @playNow.
   ///
   /// In en, this message translates to:
@@ -2354,6 +2372,30 @@ abstract class AppLocalizations {
   /// **'Cast to a device'**
   String get castToDevice;
 
+  /// No description provided for @castNoDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No devices found'**
+  String get castNoDevices;
+
+  /// No description provided for @castNoDevicesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure your TV or speaker is on and on the same Wi‑Fi network, then try again.'**
+  String get castNoDevicesHint;
+
+  /// No description provided for @castScanAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan again'**
+  String get castScanAgain;
+
+  /// No description provided for @castConnectedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}'**
+  String castConnectedTo(String name);
+
   /// No description provided for @disconnect.
   ///
   /// In en, this message translates to:
@@ -2431,6 +2473,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You are in offline mode. Displaying local content.'**
   String get offlineModeActiveMessage;
+
+  /// No description provided for @goToDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Downloads'**
+  String get goToDownloads;
 
   /// No description provided for @offlineModeDisabled.
   ///

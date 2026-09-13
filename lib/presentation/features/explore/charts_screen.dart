@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/playlist_card.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import 'providers/explore_provider.dart';
 
 class ChartsScreen extends ConsumerWidget {
@@ -27,7 +28,7 @@ class ChartsScreen extends ConsumerWidget {
         ),
       ),
       body: chartsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _ChartsShimmer(),
         error:
             (e, _) => ErrorRetryWidget(
               message: l10n.failedToLoadExplore,
@@ -183,6 +184,50 @@ class ChartsScreen extends ConsumerWidget {
         ),
       ),
     ];
+  }
+}
+
+class _ChartsShimmer extends StatelessWidget {
+  const _ChartsShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount =
+        width < kCompactBreakpoint
+            ? 2
+            : width < kExpandedBreakpoint
+            ? 4
+            : 6;
+    final cardWidth = (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+
+    return CustomScrollView(
+      slivers: [
+        for (var section = 0; section < 2; section++) ...[
+          const SliverToBoxAdapter(
+            child: ShimmerLoading(variant: ShimmerVariant.zoneHeader),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.62,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (_, _) => ShimmerLoading(
+                  variant: ShimmerVariant.card,
+                  cardWidth: cardWidth,
+                ),
+                childCount: crossAxisCount * 2,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 

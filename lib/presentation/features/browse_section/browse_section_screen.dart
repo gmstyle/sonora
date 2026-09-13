@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/playlist_card.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_card.dart';
 import 'providers/browse_section_provider.dart';
 
@@ -38,7 +39,7 @@ class BrowseSectionScreen extends ConsumerWidget {
         ),
       ),
       body: resultAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _BrowseSectionShimmer(),
         error:
             (err, _) => ErrorRetryWidget(
               message: AppLocalizations.of(context)!.failedToLoadHomeFeed,
@@ -153,5 +154,42 @@ class BrowseSectionScreen extends ConsumerWidget {
       );
     }
     return const SizedBox.shrink();
+  }
+}
+
+class _BrowseSectionShimmer extends StatelessWidget {
+  const _BrowseSectionShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount =
+        width < kCompactBreakpoint
+            ? 2
+            : width < kExpandedBreakpoint
+            ? 4
+            : 6;
+    final cardWidth = (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+
+    return GridView.builder(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        MediaQuery.of(context).padding.bottom + 16,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.72,
+      ),
+      itemCount: crossAxisCount * 3,
+      itemBuilder:
+          (_, _) => ShimmerLoading(
+            variant: ShimmerVariant.card,
+            cardWidth: cardWidth,
+          ),
+    );
   }
 }

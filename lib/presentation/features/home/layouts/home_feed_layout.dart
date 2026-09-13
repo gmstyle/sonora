@@ -319,35 +319,46 @@ class _OfflineBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: metrics.horizontalPadding,
         vertical: 8,
       ),
       child: Card(
-        color: Theme.of(context).colorScheme.surfaceContainer,
+        color: theme.colorScheme.surfaceContainer,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
-            spacing: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                LucideIcons.wifiOff,
-                color: Theme.of(context).colorScheme.primary,
+              Row(
+                spacing: 16,
+                children: [
+                  Icon(LucideIcons.wifiOff, color: theme.colorScheme.primary),
+                  Expanded(
+                    child: Text(
+                      l10n.offlineModeActiveMessage,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context)!.offlineModeActiveMessage,
-                  style: Theme.of(context).textTheme.bodyMedium,
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonal(
+                  onPressed: () => context.go('/downloads'),
+                  child: Text(l10n.goToDownloads),
                 ),
               ),
             ],

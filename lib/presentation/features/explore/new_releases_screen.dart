@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/release_card.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/video_card.dart';
 import 'providers/explore_provider.dart';
 
@@ -26,7 +27,7 @@ class NewReleasesScreen extends ConsumerWidget {
         ),
       ),
       body: releasesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _NewReleasesShimmer(),
         error:
             (e, _) => ErrorRetryWidget(
               message: l10n.failedToLoadExplore,
@@ -141,6 +142,51 @@ class NewReleasesScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _NewReleasesShimmer extends StatelessWidget {
+  const _NewReleasesShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount =
+        width < kCompactBreakpoint
+            ? 2
+            : width < kExpandedBreakpoint
+            ? 4
+            : 6;
+    final cardWidth = (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.62,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (_, _) => ShimmerLoading(
+                variant: ShimmerVariant.card,
+                cardWidth: cardWidth,
+              ),
+              childCount: crossAxisCount * 3,
+            ),
+          ),
+        ),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(top: 24),
+            child: ShimmerLoading(variant: ShimmerVariant.carousel),
+          ),
+        ),
+      ],
     );
   }
 }

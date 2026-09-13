@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../providers/cast_provider.dart';
 import 'cast_dialog.dart';
 
@@ -20,14 +21,34 @@ class CastButton extends ConsumerWidget {
         final isConnected =
             state.connectionState == CastConnectionState.connected;
         final theme = Theme.of(context);
+        final l10n = AppLocalizations.of(context);
+        final deviceName = state.activeDevice?.name;
+        final iconSize = size ?? 24.0;
+        final tooltip =
+            isConnected && deviceName != null && l10n != null
+                ? l10n.castConnectedTo(deviceName)
+                : null;
 
         return IconButton(
           style: style,
-          icon: Icon(
-            isConnected ? LucideIcons.cast : LucideIcons.cast,
-            color: isConnected ? theme.colorScheme.primary : color,
-            size: size,
-          ),
+          tooltip: tooltip,
+          icon:
+              isConnected
+                  ? Badge(
+                    backgroundColor: theme.colorScheme.primary,
+                    padding: const EdgeInsets.all(2),
+                    label: Icon(
+                      LucideIcons.check,
+                      size: 10,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                    child: Icon(
+                      LucideIcons.cast,
+                      color: theme.colorScheme.primary,
+                      size: iconSize,
+                    ),
+                  )
+                  : Icon(LucideIcons.cast, color: color, size: iconSize),
           onPressed: () {
             CastDialog.show(context);
           },

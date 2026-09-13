@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/playlist_card.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import '../../../core/constants/app_constants.dart';
 import 'providers/explore_provider.dart';
 
@@ -26,7 +27,7 @@ class MoodsScreen extends ConsumerWidget {
         ),
       ),
       body: categoriesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _MoodCategoriesShimmer(),
         error:
             (e, _) => ErrorRetryWidget(
               message: l10n.failedToLoadExplore,
@@ -111,7 +112,7 @@ class MoodPlaylistsScreen extends ConsumerWidget {
         ),
       ),
       body: playlistsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _MoodPlaylistsShimmer(),
         error:
             (e, _) => ErrorRetryWidget(
               message: l10n.failedToLoadExplore,
@@ -163,6 +164,60 @@ class MoodPlaylistsScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _MoodCategoriesShimmer extends StatelessWidget {
+  const _MoodCategoriesShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
+      children: List.generate(
+        4,
+        (_) => const ShimmerLoading(variant: ShimmerVariant.exploreChips),
+      ),
+    );
+  }
+}
+
+class _MoodPlaylistsShimmer extends StatelessWidget {
+  const _MoodPlaylistsShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount =
+        width < kCompactBreakpoint
+            ? 2
+            : width < kExpandedBreakpoint
+            ? 4
+            : 6;
+    final cardWidth = (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+
+    return GridView.builder(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        MediaQuery.of(context).padding.bottom + 16,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.62,
+      ),
+      itemCount: crossAxisCount * 3,
+      itemBuilder:
+          (_, _) => ShimmerLoading(
+            variant: ShimmerVariant.card,
+            cardWidth: cardWidth,
+          ),
     );
   }
 }

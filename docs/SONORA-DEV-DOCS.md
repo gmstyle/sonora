@@ -620,7 +620,7 @@ Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.
 | 2 | `/library` | LibraryScreen | — (tabs: favorites, artists, playlists, albums, **podcasts**, history, mixes, stats) |
 | 3 | `/downloads` | DownloadsScreen | — |
 
-`/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear `IconButton` on the Home AppBar and in the wide sidebar header (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
+`/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear on the Home AppBar (mobile), between the tablet `NavigationRail` and `NavNowPlaying`, and in the wide sidebar header (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
 
 The player overlay sits **above** the shell and is not a route. Mobile fuses the mini player with the NavigationBar as one glass dock. Tablet and wide keep a floating mini player as the only transport surface. Now-playing identity lives in the nav chrome (`NavNowPlaying`: compact disc on the rail / collapsed sidebar; expanded sidebar shows an identity row plus catalog context for the album, artist, or podcast — no play/skip). Opening the full player is a slide-up push of `FullPlayerContent`. Tapping catalog context navigates to the album, artist, or podcast screen.
 

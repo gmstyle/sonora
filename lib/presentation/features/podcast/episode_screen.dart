@@ -18,6 +18,7 @@ import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import 'providers/episode_provider.dart';
 
 class EpisodeScreen extends ConsumerWidget {
@@ -51,9 +52,7 @@ class _EpisodeMobileLayout extends ConsumerWidget {
     final episodeAsync = ref.watch(episodeProvider(videoId));
 
     return episodeAsync.when(
-      loading:
-          () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: _EpisodeShimmer()),
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
@@ -76,9 +75,7 @@ class _EpisodeTabletLayout extends ConsumerWidget {
     final episodeAsync = ref.watch(episodeProvider(videoId));
 
     return episodeAsync.when(
-      loading:
-          () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: _EpisodeShimmer()),
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
@@ -101,9 +98,7 @@ class _EpisodeWideLayout extends ConsumerWidget {
     final episodeAsync = ref.watch(episodeProvider(videoId));
 
     return episodeAsync.when(
-      loading:
-          () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: _EpisodeShimmer()),
       error:
           (e, _) => Scaffold(
             body: ErrorRetryWidget(
@@ -719,6 +714,51 @@ class _SaveEpisodeButton extends ConsumerWidget {
         date: episode.date,
         addedAt: DateTime.now(),
       ),
+    );
+  }
+}
+
+class _EpisodeShimmer extends StatelessWidget {
+  const _EpisodeShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 280,
+          flexibleSpace: FlexibleSpaceBar(
+            background: Container(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
+                    SizedBox(width: 12),
+                    const Expanded(
+                      child: ShimmerLoading(variant: ShimmerVariant.tile),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...List.generate(
+                  4,
+                  (_) => const ShimmerLoading(variant: ShimmerVariant.tile),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
