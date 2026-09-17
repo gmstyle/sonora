@@ -87,11 +87,13 @@ class LibraryNotifier extends Notifier<void> {
     String videoId, {
     String? artistId,
     String? albumId,
+    String? artistsJson,
   }) async {
     await _repo.updateLikedSongMetadata(
       videoId,
       artistId: artistId,
       albumId: albumId,
+      artistsJson: artistsJson,
     );
   }
 

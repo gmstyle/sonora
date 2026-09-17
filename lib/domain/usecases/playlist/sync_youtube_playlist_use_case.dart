@@ -1,5 +1,6 @@
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class SyncYoutubePlaylistUseCase {
   final MusicRepository _musicRepository;
@@ -32,7 +33,7 @@ class SyncYoutubePlaylistUseCase {
     // 4. Add each video as an entry in the playlist
     for (var i = 0; i < videos.length; i++) {
       final video = videos[i];
-      final artistName = video.artist.name;
+      final artistName = displayArtists(video.artists);
       final thumbUrl =
           video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null;
 

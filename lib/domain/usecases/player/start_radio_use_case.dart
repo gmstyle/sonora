@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class RadioResult {
   final MediaItem firstItem;
@@ -74,10 +75,11 @@ class StartRadioUseCase {
       needsUrl: true,
       isVideo: item.type == 'VIDEO',
       isExplicit: item.isExplicit,
-      artistId: item.artists.artistId,
+      artistId: primaryArtistId(item.artists),
       albumId: item.album?.albumId,
+      artistsJson: encodeArtistsJson(item.artists),
       title: item.title,
-      artist: item.artists.name,
+      artist: displayArtists(item.artists),
       album: item.album?.name,
       duration: Duration(seconds: item.duration),
       artUri:
@@ -94,10 +96,11 @@ class StartRadioUseCase {
       url: url,
       isVideo: item.type == 'VIDEO',
       isExplicit: item.isExplicit,
-      artistId: item.artists.artistId,
+      artistId: primaryArtistId(item.artists),
       albumId: item.album?.albumId,
+      artistsJson: encodeArtistsJson(item.artists),
       title: item.title,
-      artist: item.artists.name,
+      artist: displayArtists(item.artists),
       album: item.album?.name,
       duration: Duration(seconds: item.duration),
       artUri:
@@ -113,7 +116,7 @@ class StartRadioUseCase {
       type: 'SONG',
       videoId: track.videoId,
       title: track.title,
-      artists: track.artist,
+      artists: track.artists,
       album: track.album,
       duration: track.duration,
       thumbnails: track.thumbnails,

@@ -10,6 +10,8 @@ class LikedSongModel {
   final String? thumbnailUrl;
   final String? artistId;
   final String? albumId;
+  /// JSON array of credited artists when length > 1; null for single-artist rows.
+  final String? artistsJson;
   final DateTime addedAt;
   final bool isVideo;
   final int? duration;
@@ -22,6 +24,7 @@ class LikedSongModel {
     this.thumbnailUrl,
     this.artistId,
     this.albumId,
+    this.artistsJson,
     required this.addedAt,
     this.isVideo = false,
     this.duration,
@@ -165,6 +168,8 @@ class DownloadModel {
   final String videoId;
   final String title;
   final String artist;
+  /// JSON array of credited artists when length > 1; null for single-artist rows.
+  final String? artistsJson;
   final String? thumbnailUrl;
   final String? localPath;
   final String? format;
@@ -178,6 +183,7 @@ class DownloadModel {
     required this.videoId,
     required this.title,
     required this.artist,
+    this.artistsJson,
     this.thumbnailUrl,
     this.localPath,
     this.format,

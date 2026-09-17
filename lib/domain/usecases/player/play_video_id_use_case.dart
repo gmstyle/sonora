@@ -6,6 +6,7 @@ import '../../../core/utils/connectivity_utils.dart';
 import '../../models/queue_track.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
+import '../../../core/utils/artists_utils.dart';
 
 /// Resolves a [videoId] to a fully populated [MediaItem] ready for playback.
 ///
@@ -83,6 +84,7 @@ class PlayVideoIdUseCase {
     String? publishDate;
     String? artistId;
     String? albumId;
+    String? artistsJson;
     bool isExplicit = false;
 
     try {
@@ -90,28 +92,30 @@ class PlayVideoIdUseCase {
           .getSong(videoId)
           .timeout(const Duration(seconds: 10));
       title = song.name;
-      artist = song.artist.name;
+      artist = displayArtists(song.artists);
       durationSec = song.duration;
       thumbnailUrl = song.thumbnails.isNotEmpty ? song.thumbnails.last.url : '';
       isVideo = isVideoHint ?? (song.type == 'VIDEO');
       viewCount = song.viewCount;
       publishDate = song.publishDate;
-      artistId = song.artist.artistId;
+      artistId = primaryArtistId(song.artists);
       albumId = song.album?.albumId;
+      artistsJson = encodeArtistsJson(song.artists);
       isExplicit = isExplicitHint ?? song.isExplicit;
     } catch (_) {
       final video = await _repo
           .getVideo(videoId)
           .timeout(const Duration(seconds: 10));
       title = video.name;
-      artist = video.artist.name;
+      artist = displayArtists(video.artists);
       durationSec = video.duration;
       thumbnailUrl =
           video.thumbnails.isNotEmpty ? video.thumbnails.last.url : '';
       isVideo = true;
       viewCount = video.viewCount;
       publishDate = video.publishDate;
-      artistId = video.artist.artistId;
+      artistId = primaryArtistId(video.artists);
+      artistsJson = encodeArtistsJson(video.artists);
       isExplicit = isExplicitHint ?? video.isExplicit;
     }
 
@@ -130,6 +134,7 @@ class PlayVideoIdUseCase {
       isExplicit: isExplicit,
       artistId: artistId,
       albumId: albumId,
+      artistsJson: artistsJson,
       viewCount: viewCount,
       publishDate: publishDate,
       title: title,

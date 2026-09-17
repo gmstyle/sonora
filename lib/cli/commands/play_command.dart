@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 
 import '../cli_output.dart';
 import '../sonora_cli_provider.dart';
+import '../../core/utils/artists_utils.dart';
 
 class PlayCommand {
   final SonoraCliProvider _provider;
@@ -24,7 +25,7 @@ class PlayCommand {
       stderr.writeln('Resolving "$videoId"...');
       final song = await _provider.musicRepo.getSong(videoId);
       final title = song.name;
-      final artist = song.artist.name;
+      final artist = displayArtists(song.artists);
       final url = await _provider.musicRepo.getStreamUrl(videoId);
 
       stderr.writeln('$title — $artist');

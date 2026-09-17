@@ -95,6 +95,7 @@ class TopBar extends ConsumerWidget {
                 videoId: videoId,
                 title: currentSong.title,
                 artist: currentSong.artist ?? '',
+                artistsJson: track.artistsJson,
                 thumbnailUrl: currentSong.artUri?.toString(),
                 duration: currentSong.duration?.inSeconds,
                 albumName: albumName,

@@ -285,6 +285,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                   videoId: videoId,
                   title: title,
                   artist: artist,
+                  artistsJson: track.artistsJson,
                   thumbnailUrl: thumbnailUrl,
                   addedAt: DateTime.now(),
                   duration: song.duration?.inSeconds,

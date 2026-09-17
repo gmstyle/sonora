@@ -8,6 +8,7 @@ import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../../core/constants/app_constants.dart';
 import 'providers/explore_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class MoodsScreen extends ConsumerWidget {
   const MoodsScreen({super.key});
@@ -152,7 +153,7 @@ class MoodPlaylistsScreen extends ConsumerWidget {
               return PlaylistCard(
                 playlistId: playlist.playlistId,
                 name: playlist.name,
-                artist: playlist.artist.name,
+                artist: displayArtists(playlist.artists),
                 thumbnailUrl:
                     playlist.thumbnails.isNotEmpty
                         ? playlist.thumbnails.last.url

@@ -18,6 +18,7 @@ import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_card.dart';
 import '../../podcast/providers/podcast_provider.dart';
 import '../player_navigation.dart';
+import '../../../../core/utils/artists_utils.dart';
 
 final songRelatedProvider = FutureProvider.family<List<RelatedSection>, String>(
   (ref, videoId) async {
@@ -274,8 +275,9 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
             (song) => SongTile(
               videoId: song.videoId,
               title: song.name,
-              artist: song.artist.name,
-              artistId: song.artist.artistId,
+              artist: displayArtists(song.artists),
+        artists: song.artists,
+              artistId: primaryArtistId(song.artists),
               albumId: song.album?.albumId,
               thumbnailUrl:
                   song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
@@ -317,8 +319,8 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
       return AlbumCard(
         albumId: item.albumId,
         name: item.name,
-        artist: item.artist.name,
-        artistId: item.artist.artistId,
+        artist: displayArtists(item.artists),
+        artistId: primaryArtistId(item.artists),
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,
@@ -352,7 +354,7 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
       return PlaylistCard(
         playlistId: item.playlistId,
         name: item.name,
-        artist: item.artist.name,
+        artist: displayArtists(item.artists),
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         cardWidth: cardWidth,
@@ -368,10 +370,11 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
       return VideoCard(
         videoId: item.videoId,
         title: item.name,
-        artist: item.artist.name,
+        artist: displayArtists(item.artists),
+        artists: item.artists,
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
-        artistId: item.artist.artistId,
+        artistId: primaryArtistId(item.artists),
         isExplicit: item.isExplicit,
       );
     }

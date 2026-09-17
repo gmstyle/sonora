@@ -28,6 +28,7 @@ import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shelf_card_layout.dart';
 import '../layouts/home_layout_metrics.dart';
 import 'home_zone_header.dart';
+import '../../../../core/utils/artists_utils.dart';
 
 /// True when async list data is loaded and non-empty (loading/error → false).
 bool asyncListHasContent<T>(AsyncValue<List<T>> async) {
@@ -506,7 +507,7 @@ class _HeroCarouselState extends State<_HeroCarousel> {
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         title: item.name,
-        subtitle: item.artist.name,
+        subtitle: displayArtists(item.artists),
         heroHeight: widget.heroHeight,
         onTap: () => context.push('/album/${item.albumId}'),
       );
@@ -516,7 +517,7 @@ class _HeroCarouselState extends State<_HeroCarousel> {
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         title: item.name,
-        subtitle: item.artist.name,
+        subtitle: displayArtists(item.artists),
         heroHeight: widget.heroHeight,
         onTap: () => context.push('/playlist/${item.playlistId}'),
       );
@@ -726,11 +727,12 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         title: item.name,
-        artist: item.artist.name,
+        artist: displayArtists(item.artists),
         duration: item.duration,
         playCount: item.playCount,
-        artistId: item.artist.artistId,
+        artistId: primaryArtistId(item.artists),
         albumId: item.album?.albumId,
+        artists: item.artists,
         cardWidth: cardWidth,
         isVideo: item.type == 'VIDEO',
         isExplicit: item.isExplicit,
@@ -742,11 +744,12 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         title: item.name,
-        artist: item.artist.name,
+        artist: displayArtists(item.artists),
         duration: item.duration,
         cardWidth: cardWidth,
         isVideo: true,
-        artistId: item.artist.artistId,
+        artistId: primaryArtistId(item.artists),
+        artists: item.artists,
         isExplicit: item.isExplicit,
       );
     }
@@ -754,8 +757,8 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
       return AlbumCard(
         albumId: item.albumId,
         name: item.name,
-        artist: item.artist.name,
-        artistId: item.artist.artistId,
+        artist: displayArtists(item.artists),
+        artistId: primaryArtistId(item.artists),
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,
@@ -767,7 +770,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
       return PlaylistCard(
         playlistId: item.playlistId,
         name: item.name,
-        artist: item.artist.name,
+        artist: displayArtists(item.artists),
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         cardWidth: cardWidth,
@@ -1296,8 +1299,8 @@ class HomeNewReleases extends StatelessWidget {
             return ReleaseCard(
               albumId: album.albumId,
               name: album.name,
-              artist: album.artist.name,
-              artistId: album.artist.artistId,
+              artist: displayArtists(album.artists),
+              artistId: primaryArtistId(album.artists),
               thumbnailUrl:
                   album.thumbnails.isNotEmpty
                       ? album.thumbnails.last.url
@@ -1348,10 +1351,11 @@ class HomeDiscover extends StatelessWidget {
               thumbnailUrl:
                   song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
               title: song.title,
-              artist: song.artists.name,
+              artist: displayArtists(song.artists),
               duration: song.duration,
-              artistId: song.artists.artistId,
+              artistId: primaryArtistId(song.artists),
               albumId: song.album?.albumId,
+              artists: song.artists,
               cardWidth: cardWidth,
               isVideo: song.type == 'VIDEO',
               isExplicit: song.isExplicit,

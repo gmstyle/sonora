@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
+import '../../../core/utils/artists_utils.dart';
 
 /// Builds a [List<MediaItem>] from an album's song list.
 ///
@@ -47,10 +48,11 @@ class PlayAlbumUseCase {
       url: url,
       isVideo: false,
       isExplicit: s.isExplicit,
-      artistId: s.artist.artistId,
+      artistId: primaryArtistId(s.artists),
       albumId: s.album?.albumId,
+      artistsJson: encodeArtistsJson(s.artists),
       title: s.name,
-      artist: s.artist.name,
+      artist: displayArtists(s.artists),
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
       artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,
@@ -64,10 +66,11 @@ class PlayAlbumUseCase {
       needsUrl: true,
       isVideo: false,
       isExplicit: s.isExplicit,
-      artistId: s.artist.artistId,
+      artistId: primaryArtistId(s.artists),
       albumId: s.album?.albumId,
+      artistsJson: encodeArtistsJson(s.artists),
       title: s.name,
-      artist: s.artist.name,
+      artist: displayArtists(s.artists),
       album: s.album?.name,
       duration: Duration(seconds: s.duration ?? 0),
       artUri: s.thumbnails.isNotEmpty ? Uri.parse(s.thumbnails.last.url) : null,

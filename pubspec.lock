@@ -326,10 +326,10 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "0cf79a135b7be2bfbd6ae3617b47e8d5887213f1"
+      resolved-ref: "356b3730b4211e9baefae101623eed062def3cb6"
       url: "https://github.com/gmstyle/dart_ytmusic_api.git"
     source: git
-    version: "1.7.1"
+    version: "1.8.0"
   dbus:
     dependency: transitive
     description:

@@ -1,3 +1,4 @@
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -21,6 +22,8 @@ class SongCard extends ConsumerWidget {
   final String? playCount;
   final String? artistId;
   final String? albumId;
+  final List<ArtistBasic>? artists;
+  final String? artistsJson;
   final double cardWidth;
   final bool isVideo;
   final bool isExplicit;
@@ -35,6 +38,8 @@ class SongCard extends ConsumerWidget {
     this.playCount,
     this.artistId,
     this.albumId,
+    this.artists,
+    this.artistsJson,
     this.cardWidth = 150,
     this.isVideo = false,
     this.isExplicit = false,
@@ -66,6 +71,8 @@ class SongCard extends ConsumerWidget {
             isVideo: isVideo,
             artistId: artistId,
             albumId: albumId,
+            artists: artists,
+            artistsJson: artistsJson,
             playCount: playCount,
             isExplicit: isExplicit,
           ),

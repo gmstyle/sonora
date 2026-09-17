@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../cli_output.dart';
 import '../sonora_cli_provider.dart';
+import '../../core/utils/artists_utils.dart';
 
 class DownloadCommand {
   final SonoraCliProvider _provider;
@@ -32,7 +33,7 @@ class DownloadCommand {
     try {
       final song = await _provider.musicRepo.getSong(videoId);
       resolvedTitle = title ?? song.name;
-      resolvedArtist = artist ?? song.artist.name;
+      resolvedArtist = artist ?? displayArtists(song.artists);
     } catch (_) {
       if (title != null) {
         resolvedTitle = title;

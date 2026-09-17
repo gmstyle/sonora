@@ -63,6 +63,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
           thumbnailUrl: Value(song.thumbnailUrl),
           artistId: Value(song.artistId),
           albumId: Value(song.albumId),
+          artistsJson: Value(song.artistsJson),
           addedAt: song.addedAt,
           isVideo: Value(song.isVideo),
           duration: Value(song.duration),
@@ -82,6 +83,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         thumbnailUrl: Value(song.thumbnailUrl),
         artistId: Value(song.artistId),
         albumId: Value(song.albumId),
+        artistsJson: Value(song.artistsJson),
         addedAt: song.addedAt,
         isVideo: Value(song.isVideo),
         duration: Value(song.duration),
@@ -99,10 +101,12 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String videoId, {
     String? artistId,
     String? albumId,
+    String? artistsJson,
   }) => _libraryDao.updateLikedSongMetadata(
     videoId,
     artistId: artistId,
     albumId: albumId,
+    artistsJson: artistsJson,
   );
 
   @override
@@ -574,6 +578,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       videoId: row.videoId,
       title: row.title ?? '',
       artist: row.artist ?? '',
+      artistsJson: row.artistsJson,
       thumbnailUrl: row.thumbnailUrl,
       localPath: row.localPath,
       format: row.format,
@@ -621,6 +626,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     required String title,
     required String artist,
     required String status,
+    String? artistsJson,
     String? thumbnailUrl,
     String? localPath,
     String? format,
@@ -633,6 +639,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       videoId: videoId,
       title: Value<String?>(title),
       artist: Value<String?>(artist),
+      artistsJson: Value(artistsJson),
       thumbnailUrl: Value(thumbnailUrl),
       status: status,
       localPath: Value(localPath),
@@ -786,6 +793,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     thumbnailUrl: r.thumbnailUrl,
     artistId: r.artistId,
     albumId: r.albumId,
+    artistsJson: r.artistsJson,
     addedAt: r.addedAt,
     isVideo: r.isVideo,
     duration: r.duration,
