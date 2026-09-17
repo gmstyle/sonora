@@ -68,6 +68,8 @@ List<ArtistBasic> artistsFromPrimary({String? artist, String? artistId}) {
 ///
 /// Order: API/passed list → [artistsJson] → primary [artist]/[artistId] →
 /// enrichment list (e.g. from [SongFull]).
+/// A source with names but no [ArtistBasic.artistId] yields to a later source
+/// that has navigable ids, so SongFull enrichment can power Go to Artist.
 List<ArtistBasic> resolveArtistsList({
   List<ArtistBasic>? artists,
   String? artistsJson,
@@ -75,11 +77,24 @@ List<ArtistBasic> resolveArtistsList({
   String? artistId,
   List<ArtistBasic>? enrichment,
 }) {
-  if (artists != null && artists.isNotEmpty) return artists;
+  final sources = <List<ArtistBasic>>[];
+  if (artists != null && artists.isNotEmpty) {
+    sources.add(artists);
+  }
   final fromJson = decodeArtistsJson(artistsJson);
-  if (fromJson.isNotEmpty) return fromJson;
+  if (fromJson.isNotEmpty) {
+    sources.add(fromJson);
+  }
   final fromPrimary = artistsFromPrimary(artist: artist, artistId: artistId);
-  if (fromPrimary.isNotEmpty) return fromPrimary;
-  if (enrichment != null && enrichment.isNotEmpty) return enrichment;
-  return const [];
+  if (fromPrimary.isNotEmpty) {
+    sources.add(fromPrimary);
+  }
+  if (enrichment != null && enrichment.isNotEmpty) {
+    sources.add(enrichment);
+  }
+  if (sources.isEmpty) return const [];
+  return sources.firstWhere(
+    (source) => navigableArtists(source).isNotEmpty,
+    orElse: () => sources.first,
+  );
 }
