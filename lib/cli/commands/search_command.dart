@@ -108,7 +108,9 @@ class SearchCommand {
     for (var i = 0; i < items.length; i++) {
       final a = items[i];
       final year = a.year != null ? ' (${a.year})' : '';
-      buf.writeln('  ${i + 1}. ${a.name} \u2014 ${displayArtists(a.artists)}$year');
+      buf.writeln(
+        '  ${i + 1}. ${a.name} \u2014 ${displayArtists(a.artists)}$year',
+      );
       buf.writeln('     ID: ${a.albumId}');
     }
     return CliOutput(buf.toString(), data: data);
@@ -193,7 +195,9 @@ class SearchCommand {
     for (var i = 0; i < items.length; i++) {
       final v = items[i];
       final views = v.viewCount != null ? ' (${v.viewCount} views)' : '';
-      buf.writeln('  ${i + 1}. ${v.name} \u2014 ${displayArtists(v.artists)}$views');
+      buf.writeln(
+        '  ${i + 1}. ${v.name} \u2014 ${displayArtists(v.artists)}$views',
+      );
       buf.writeln('     ID: ${v.videoId}');
     }
     return CliOutput(buf.toString(), data: data);

@@ -17,6 +17,7 @@ class QueueTrack {
   final bool isExplicit;
   final String? artistId;
   final String? albumId;
+
   /// JSON array of credited artists when length > 1; null for single-artist rows.
   final String? artistsJson;
   final int? viewCount;
@@ -93,8 +94,7 @@ class QueueTrack {
       isExplicit: isExplicit ?? this.isExplicit,
       artistId: clearArtistId ? null : (artistId ?? this.artistId),
       albumId: clearAlbumId ? null : (albumId ?? this.albumId),
-      artistsJson:
-          clearArtistsJson ? null : (artistsJson ?? this.artistsJson),
+      artistsJson: clearArtistsJson ? null : (artistsJson ?? this.artistsJson),
       viewCount: clearViewCount ? null : (viewCount ?? this.viewCount),
       publishDate: clearPublishDate ? null : (publishDate ?? this.publishDate),
       contentType: contentType ?? this.contentType,

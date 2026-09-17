@@ -113,7 +113,7 @@ class _ArtistVideosBody extends ConsumerWidget {
                   videoId: video.videoId,
                   title: video.name,
                   artist: displayArtists(video.artists),
-        artists: video.artists,
+                  artists: video.artists,
                   artistId: primaryArtistId(video.artists),
                   thumbnailUrl:
                       video.thumbnails.isNotEmpty

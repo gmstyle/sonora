@@ -276,7 +276,7 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
               videoId: song.videoId,
               title: song.name,
               artist: displayArtists(song.artists),
-        artists: song.artists,
+              artists: song.artists,
               artistId: primaryArtistId(song.artists),
               albumId: song.album?.albumId,
               thumbnailUrl:

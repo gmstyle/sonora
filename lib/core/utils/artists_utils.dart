@@ -51,10 +51,7 @@ List<ArtistBasic> decodeArtistsJson(String? json) {
 }
 
 /// Build a one-element list from primary display/id when no JSON list exists.
-List<ArtistBasic> artistsFromPrimary({
-  String? artist,
-  String? artistId,
-}) {
+List<ArtistBasic> artistsFromPrimary({String? artist, String? artistId}) {
   final name = artist?.trim() ?? '';
   if (name.isEmpty && (artistId == null || artistId.isEmpty)) {
     return const [];

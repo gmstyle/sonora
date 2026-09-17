@@ -1132,7 +1132,7 @@ class _VideoTracklist extends ConsumerWidget {
             videoId: videos[i].videoId,
             title: videos[i].name,
             artist: displayArtists(videos[i].artists),
-        artists: videos[i].artists,
+            artists: videos[i].artists,
             artistId: primaryArtistId(videos[i].artists),
             thumbnailUrl:
                 videos[i].thumbnails.isNotEmpty

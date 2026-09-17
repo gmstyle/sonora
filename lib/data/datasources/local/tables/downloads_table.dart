@@ -4,6 +4,7 @@ class Downloads extends Table {
   TextColumn get videoId => text()();
   TextColumn get title => text().nullable()();
   TextColumn get artist => text().nullable()();
+
   /// JSON array of credited artists when length > 1; null for single-artist rows.
   TextColumn get artistsJson => text().nullable()();
   TextColumn get thumbnailUrl => text().nullable()();

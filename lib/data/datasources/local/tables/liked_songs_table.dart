@@ -7,6 +7,7 @@ class LikedSongs extends Table {
   TextColumn get thumbnailUrl => text().nullable()();
   TextColumn get artistId => text().nullable()();
   TextColumn get albumId => text().nullable()();
+
   /// JSON array of credited artists when length > 1; null for single-artist rows.
   TextColumn get artistsJson => text().nullable()();
   DateTimeColumn get addedAt => dateTime()();

@@ -330,7 +330,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               videoId: video.videoId,
                               title: video.name,
                               artist: displayArtists(video.artists),
-        artists: video.artists,
+                              artists: video.artists,
                               thumbnailUrl:
                                   video.thumbnails.isNotEmpty
                                       ? video.thumbnails.last.url
@@ -459,7 +459,7 @@ class _ArtistTopSongsSectionState
             videoId: entry.value.videoId,
             title: entry.value.name,
             artist: displayArtists(entry.value.artists),
-        artists: entry.value.artists,
+            artists: entry.value.artists,
             thumbnailUrl:
                 entry.value.thumbnails.isNotEmpty
                     ? entry.value.thumbnails.last.url
