@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.4+65] - 2026-09-17
+
+### Features
+
+- **library**: Stabilize import playlist overlay across breakpoints
+- **library**: Persist multi-artist credits on imported playlists
+- Multi-artist credits from dart_ytmusic_api 1.8.0
+- **library**: Import public Spotify playlists
+
+### Bug Fixes
+
+- **library**: Keep the import playlist sheet usable above the keyboard
+
 ## [1.8.3+64] - 2026-09-13
 
 ### Features
