@@ -20,12 +20,13 @@ void main() {
     required String title,
     required String artist,
     int duration = 180,
+    List<ArtistBasic>? artists,
   }) {
     return SongDetailed(
       type: 'SONG',
       videoId: id,
       name: title,
-      artist: ArtistBasic(name: artist),
+      artists: artists ?? [ArtistBasic(name: artist)],
       duration: duration,
       thumbnails: const [],
     );
@@ -99,6 +100,50 @@ void main() {
     expect(library.entries.map((e) => e.videoId), ['vid_someone', 'vid_fray']);
     expect(library.entries.first.title, 'Someone You Loved');
   });
+
+  test(
+    'persists artistsJson when YouTube Music credits multiple artists',
+    () async {
+      const snapshot = SpotifyPlaylistSnapshot(
+        id: 'collabcollabcollabcoll1',
+        name: 'feats',
+        tracks: [
+          SpotifyPlaylistTrack(
+            title: "It Wasn't Me",
+            subtitle: 'Shaggy, Rik Rok',
+            durationMs: 227600,
+          ),
+        ],
+      );
+      final useCase = ImportSpotifyPlaylistUseCase(
+        (_) async => snapshot,
+        _FakeMusicRepository({
+          "It Wasn't Me Shaggy": [
+            song(
+              id: 'vid_shaggy',
+              title: "It Wasn't Me",
+              artist: 'Shaggy',
+              duration: 227,
+              artists: [
+                ArtistBasic(name: 'Shaggy', artistId: 'UC_shaggy'),
+                ArtistBasic(name: 'Rik Rok', artistId: 'UC_rikrok'),
+              ],
+            ),
+          ],
+        }),
+        library,
+        searchSpacing: Duration.zero,
+      );
+
+      await useCase.execute(snapshot.id);
+      expect(library.entries, hasLength(1));
+      expect(library.entries.first.artistsJson, isNotNull);
+      expect(library.entries.first.artistsJson, contains('Shaggy'));
+      expect(library.entries.first.artistsJson, contains('Rik Rok'));
+      expect(library.entries.first.artistsJson, contains('UC_shaggy'));
+      expect(library.entries.first.artist, contains('Shaggy'));
+    },
+  );
 
   test(
     'skips duplicate YouTube ids so the playlist PK is not violated',
@@ -249,6 +294,7 @@ class _FakeLibraryRepository extends Fake implements LibraryRepository {
     int position, {
     String? title,
     String? artist,
+    String? artistsJson,
     String? thumbnailUrl,
     int? duration,
     bool isVideo = false,
@@ -261,6 +307,7 @@ class _FakeLibraryRepository extends Fake implements LibraryRepository {
         position: position,
         title: title,
         artist: artist,
+        artistsJson: artistsJson,
         thumbnailUrl: thumbnailUrl,
         duration: duration,
         isVideo: isVideo,

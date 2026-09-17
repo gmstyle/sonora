@@ -79,6 +79,7 @@ abstract class LibraryRepository {
     int position, {
     String? title,
     String? artist,
+    String? artistsJson,
     String? thumbnailUrl,
     int? duration,
     bool isVideo = false,

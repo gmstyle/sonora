@@ -7,6 +7,9 @@ class PlaylistEntries extends Table {
   IntColumn get position => integer()();
   TextColumn? get title => text().nullable()();
   TextColumn? get artist => text().nullable()();
+
+  /// JSON array of credited artists when length > 1; null for single-artist rows.
+  TextColumn get artistsJson => text().nullable()();
   TextColumn? get thumbnailUrl => text().nullable()();
   BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
   IntColumn? get duration => integer().nullable()();

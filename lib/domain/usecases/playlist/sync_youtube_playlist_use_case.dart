@@ -46,6 +46,7 @@ class SyncYoutubePlaylistUseCase {
         i, // position
         title: video.name,
         artist: artistName,
+        artistsJson: encodeArtistsJson(video.artists),
         thumbnailUrl: thumbUrl,
         duration: video.duration,
         isVideo: false,

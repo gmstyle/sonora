@@ -66,6 +66,7 @@ class ImportedTrackCandidate {
   final String videoId;
   final String title;
   final String artist;
+  final String? artistsJson;
   final int? durationSec;
   final String? thumbnailUrl;
   final bool isExplicit;
@@ -74,6 +75,7 @@ class ImportedTrackCandidate {
     required this.videoId,
     required this.title,
     required this.artist,
+    this.artistsJson,
     this.durationSec,
     this.thumbnailUrl,
     this.isExplicit = false,

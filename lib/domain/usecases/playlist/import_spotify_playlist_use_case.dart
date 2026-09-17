@@ -1,5 +1,6 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
+import '../../../core/utils/artists_utils.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
@@ -77,6 +78,7 @@ class ImportSpotifyPlaylistUseCase {
         i,
         title: song.title,
         artist: song.artist,
+        artistsJson: song.artistsJson,
         thumbnailUrl: song.thumbnailUrl,
         duration: song.durationSec,
         isVideo: false,
@@ -117,7 +119,8 @@ class ImportSpotifyPlaylistUseCase {
     return ImportedTrackCandidate(
       videoId: song.videoId,
       title: song.name,
-      artist: song.artist.name,
+      artist: displayArtists(song.artists),
+      artistsJson: encodeArtistsJson(song.artists),
       durationSec: song.duration,
       thumbnailUrl:
           song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,

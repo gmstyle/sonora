@@ -289,6 +289,7 @@ class MergeLibraryUseCase {
             nextPosition++,
             title: e['title'] as String?,
             artist: e['artist'] as String?,
+            artistsJson: e['artistsJson'] as String?,
             thumbnailUrl: e['thumbnailUrl'] as String?,
             duration: e['duration'] as int?,
             isVideo: e['isVideo'] as bool? ?? false,

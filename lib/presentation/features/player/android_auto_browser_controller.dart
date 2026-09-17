@@ -1080,6 +1080,9 @@ class AndroidAutoBrowserController {
         videoId: entry.videoId,
         needsUrl: true,
         isVideo: likedByVideoId[entry.videoId]?.isVideo ?? entry.isVideo,
+        artistId: likedByVideoId[entry.videoId]?.artistId,
+        artistsJson:
+            likedByVideoId[entry.videoId]?.artistsJson ?? entry.artistsJson,
         title: title,
         artist: artist,
         artUri: thumbUrl != null ? Uri.tryParse(thumbUrl) : null,

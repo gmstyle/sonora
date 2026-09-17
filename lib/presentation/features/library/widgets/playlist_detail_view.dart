@@ -326,6 +326,7 @@ class _PlaylistDetailContentState
                         isVideo: entry.isVideo,
                         artistId: liked?.artistId,
                         albumId: liked?.albumId,
+                        artistsJson: liked?.artistsJson ?? entry.artistsJson,
                         onTap: () => _playSong(displayEntries, index),
                         leadingOverride: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -550,6 +551,7 @@ class _PlaylistDetailContentState
         videoId: entry.videoId,
         title: title,
         artist: artist,
+        artistsJson: liked?.artistsJson ?? entry.artistsJson,
         thumbnailUrl: thumbnailUrl,
         subdirectory: widget.playlist.name,
         isExplicit: isExplicit,
