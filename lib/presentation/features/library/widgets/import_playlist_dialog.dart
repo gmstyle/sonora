@@ -197,52 +197,67 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
   Widget _buildSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardOpen = bottomInset > 0;
+    // Android adjustResize already laid this sheet above the IME.
+    final imePadding =
+        Theme.of(context).platform == TargetPlatform.android
+            ? 0.0
+            : bottomInset;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
+      padding: EdgeInsets.only(bottom: imePadding),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l10n?.importPlaylist ?? 'Import Playlist',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _buildBody(context, l10n),
-              if (!_isLoading) ...[
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(l10n?.cancel ?? 'Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () => _submit(l10n),
-                        child: Text(l10n?.import ?? 'Import'),
-                      ),
-                    ),
-                  ],
+        top: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: 1,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(24, 4, 24, keyboardOpen ? 8 : 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n?.importPlaylist ?? 'Import Playlist',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
+                SizedBox(height: keyboardOpen ? 8 : 16),
+                _buildBody(context, l10n, compact: keyboardOpen),
+                if (!_isLoading) ...[
+                  SizedBox(height: keyboardOpen ? 8 : 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(l10n?.cancel ?? 'Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => _submit(l10n),
+                          child: Text(l10n?.import ?? 'Import'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, AppLocalizations? l10n) {
+  Widget _buildBody(
+    BuildContext context,
+    AppLocalizations? l10n, {
+    bool compact = false,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     final progressLabel =
         _progressTotal > 0
@@ -252,7 +267,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
 
     if (_isLoading) {
       return SizedBox(
-        height: 120,
+        height: compact ? 72 : 120,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -274,14 +289,16 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          l10n?.importPlaylistHint ??
-              'Paste a YouTube Music or Spotify playlist link.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 16),
+        if (!compact) ...[
+          Text(
+            l10n?.importPlaylistHint ??
+                'Paste a YouTube Music or Spotify playlist link.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         TextField(
           controller: _controller,
           focusNode: _focusNode,
@@ -296,7 +313,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
                 l10n?.youtubePlaylistUrl ?? 'YouTube or Spotify playlist URL',
             prefixIcon: const Icon(LucideIcons.link2),
             errorText: _error,
-            errorMaxLines: 3,
+            errorMaxLines: compact ? 2 : 3,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onChanged: (_) {

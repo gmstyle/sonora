@@ -79,6 +79,35 @@ void main() {
       await tester.pump();
       expect(_dialogCardSize(tester).width, closeTo(emptyWidth, 0.5));
     });
+
+    testWidgets('compact sheet stays shrink-wrapped above the keyboard', (
+      tester,
+    ) async {
+      const screen = Size(390, 844);
+      const keyboardHeight = 336.0;
+      await _open(tester, screen);
+
+      tester.view.physicalSize = Size(
+        screen.width,
+        screen.height - keyboardHeight,
+      );
+      tester.view.viewInsets = const FakeViewPadding(bottom: keyboardHeight);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Import Playlist'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+
+      final remaining = screen.height - keyboardHeight;
+      final sheet = tester.getSize(find.byType(BottomSheet));
+      expect(sheet.height, lessThan(remaining * 0.75));
+
+      final field = tester.getRect(find.byType(TextField));
+      expect(field.height, greaterThan(40));
+      expect(field.top, greaterThanOrEqualTo(0));
+      expect(field.bottom, lessThanOrEqualTo(remaining + 0.5));
+    });
   });
 }
 
