@@ -3,6 +3,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
 import '../cli_output.dart';
 import '../sonora_cli_provider.dart';
+import '../../core/utils/artists_utils.dart';
 
 class SearchCommand {
   final SonoraCliProvider _provider;
@@ -66,7 +67,7 @@ class SearchCommand {
                 (s) => {
                   'videoId': s.videoId,
                   'title': s.name,
-                  'artist': s.artist.name,
+                  'artist': displayArtists(s.artists),
                   'album': s.album?.name,
                   'duration': s.duration,
                 },
@@ -77,7 +78,7 @@ class SearchCommand {
     final buf = StringBuffer()..writeln('Songs:');
     for (var i = 0; i < items.length; i++) {
       buf.writeln(
-        '  ${i + 1}. ${items[i].name} \u2014 ${items[i].artist.name}',
+        '  ${i + 1}. ${items[i].name} \u2014 ${displayArtists(items[i].artists)}',
       );
       buf.writeln('     ID: ${items[i].videoId}');
     }
@@ -96,7 +97,7 @@ class SearchCommand {
                 (a) => {
                   'albumId': a.albumId,
                   'title': a.name,
-                  'artist': a.artist.name,
+                  'artist': displayArtists(a.artists),
                   'year': a.year,
                 },
               )
@@ -107,7 +108,7 @@ class SearchCommand {
     for (var i = 0; i < items.length; i++) {
       final a = items[i];
       final year = a.year != null ? ' (${a.year})' : '';
-      buf.writeln('  ${i + 1}. ${a.name} \u2014 ${a.artist.name}$year');
+      buf.writeln('  ${i + 1}. ${a.name} \u2014 ${displayArtists(a.artists)}$year');
       buf.writeln('     ID: ${a.albumId}');
     }
     return CliOutput(buf.toString(), data: data);
@@ -154,7 +155,7 @@ class SearchCommand {
                 (p) => {
                   'playlistId': p.playlistId,
                   'title': p.name,
-                  'artist': p.artist.name,
+                  'artist': displayArtists(p.artists),
                 },
               )
               .toList(),
@@ -163,7 +164,7 @@ class SearchCommand {
     final buf = StringBuffer()..writeln('Playlists:');
     for (var i = 0; i < items.length; i++) {
       buf.writeln(
-        '  ${i + 1}. ${items[i].name} \u2014 ${items[i].artist.name}',
+        '  ${i + 1}. ${items[i].name} \u2014 ${displayArtists(items[i].artists)}',
       );
       buf.writeln('     ID: ${items[i].playlistId}');
     }
@@ -181,7 +182,7 @@ class SearchCommand {
                 (v) => {
                   'videoId': v.videoId,
                   'title': v.name,
-                  'artist': v.artist.name,
+                  'artist': displayArtists(v.artists),
                   'views': v.viewCount,
                 },
               )
@@ -192,7 +193,7 @@ class SearchCommand {
     for (var i = 0; i < items.length; i++) {
       final v = items[i];
       final views = v.viewCount != null ? ' (${v.viewCount} views)' : '';
-      buf.writeln('  ${i + 1}. ${v.name} \u2014 ${v.artist.name}$views');
+      buf.writeln('  ${i + 1}. ${v.name} \u2014 ${displayArtists(v.artists)}$views');
       buf.writeln('     ID: ${v.videoId}');
     }
     return CliOutput(buf.toString(), data: data);

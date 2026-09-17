@@ -24,6 +24,7 @@ import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import 'providers/playlist_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class PlaylistScreen extends ConsumerWidget {
   final String playlistId;
@@ -450,7 +451,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    playlist.artist.name,
+                    displayArtists(playlist.artists),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colors.titleSecondary,
                     ),
@@ -588,7 +589,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        playlist.artist.name,
+                        displayArtists(playlist.artists),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: colors.titleSecondary,
@@ -691,7 +692,7 @@ class _PlaylistActions extends ConsumerWidget {
                       context,
                       playlistId: playlist.playlistId,
                       name: playlist.name,
-                      artist: playlist.artist.name,
+                      artist: displayArtists(playlist.artists),
                       thumbnailUrl:
                           playlist.thumbnails.isNotEmpty
                               ? playlist.thumbnails.last.url
@@ -952,7 +953,8 @@ class _PlaylistActions extends ConsumerWidget {
           await notifier.startDownload(
             videoId: video.videoId,
             title: video.name,
-            artist: video.artist.name,
+            artist: displayArtists(video.artists),
+            artistsJson: encodeArtistsJson(video.artists),
             thumbnailUrl:
                 video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
             subdirectory: playlist.name,
@@ -1129,8 +1131,9 @@ class _VideoTracklist extends ConsumerWidget {
           SongTile(
             videoId: videos[i].videoId,
             title: videos[i].name,
-            artist: videos[i].artist.name,
-            artistId: videos[i].artist.artistId,
+            artist: displayArtists(videos[i].artists),
+        artists: videos[i].artists,
+            artistId: primaryArtistId(videos[i].artists),
             thumbnailUrl:
                 videos[i].thumbnails.isNotEmpty
                     ? videos[i].thumbnails.last.url

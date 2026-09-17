@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -14,6 +15,8 @@ class VideoCard extends ConsumerWidget {
   final String artist;
   final String? thumbnailUrl;
   final String? artistId;
+  final List<ArtistBasic>? artists;
+  final String? artistsJson;
   final bool isExplicit;
   final double cardWidth;
 
@@ -24,6 +27,8 @@ class VideoCard extends ConsumerWidget {
     required this.artist,
     this.thumbnailUrl,
     this.artistId,
+    this.artists,
+    this.artistsJson,
     this.isExplicit = false,
     this.cardWidth = 200,
   });
@@ -47,6 +52,8 @@ class VideoCard extends ConsumerWidget {
             thumbnailUrl: thumbnailUrl,
             isVideo: true,
             artistId: artistId,
+            artists: artists,
+            artistsJson: artistsJson,
             isExplicit: isExplicit,
           ),
       child: SizedBox(

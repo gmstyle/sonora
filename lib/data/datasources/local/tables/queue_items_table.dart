@@ -12,6 +12,8 @@ class QueueItems extends Table {
   TextColumn get streamUrl => text().nullable()();
   TextColumn get artistId => text().nullable()();
   TextColumn get albumId => text().nullable()();
+  /// JSON array of credited artists when length > 1; null for single-artist rows.
+  TextColumn get artistsJson => text().nullable()();
   BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
 
   /// Queue section this item belongs to: `'user'` or `'upnext'`.

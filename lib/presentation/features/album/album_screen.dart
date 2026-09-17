@@ -25,6 +25,7 @@ import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import 'providers/album_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class AlbumScreen extends ConsumerWidget {
   final String albumId;
@@ -286,8 +287,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                             return AlbumCard(
                               albumId: release.albumId,
                               name: release.name,
-                              artist: release.artist.name,
-                              artistId: release.artist.artistId,
+                              artist: displayArtists(release.artists),
+                              artistId: primaryArtistId(release.artists),
                               thumbnailUrl:
                                   release.thumbnails.isNotEmpty
                                       ? release.thumbnails.last.url
@@ -336,7 +337,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                   child: SongTile(
                     videoId: widget.album.songs[i].videoId,
                     title: widget.album.songs[i].name,
-                    artist: widget.album.songs[i].artist.name,
+                    artist: displayArtists(widget.album.songs[i].artists),
+                    artists: widget.album.songs[i].artists,
                     thumbnailUrl:
                         widget.album.songs[i].thumbnails.isNotEmpty
                             ? widget.album.songs[i].thumbnails.last.url
@@ -345,8 +347,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                     albumName: widget.album.name,
                     albumId: widget.album.albumId,
                     artistId:
-                        widget.album.songs[i].artist.artistId ??
-                        widget.album.artist.artistId,
+                        primaryArtistId(widget.album.songs[i].artists) ??
+                        primaryArtistId(widget.album.artists),
                     playCount: widget.album.songs[i].playCount,
                     isExplicit: widget.album.songs[i].isExplicit,
                     onTap: () => _playSong(context, ref, i),
@@ -506,7 +508,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.album.artist.name,
+                    displayArtists(widget.album.artists),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: PlayerColors.of(context).titleSecondary,
                     ),
@@ -651,7 +653,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        widget.album.artist.name,
+                        displayArtists(widget.album.artists),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: colors.titleSecondary,
@@ -749,8 +751,8 @@ class _AlbumActions extends ConsumerWidget {
                       context,
                       albumId: album.albumId,
                       name: album.name,
-                      artist: album.artist.name,
-                      artistId: album.artist.artistId,
+                      artist: displayArtists(album.artists),
+                      artistId: primaryArtistId(album.artists),
                       thumbnailUrl:
                           album.thumbnails.isNotEmpty
                               ? album.thumbnails.last.url
@@ -966,7 +968,8 @@ class _AlbumActions extends ConsumerWidget {
           await notifier.startDownload(
             videoId: song.videoId,
             title: song.name,
-            artist: song.artist.name,
+            artist: displayArtists(song.artists),
+            artistsJson: encodeArtistsJson(song.artists),
             thumbnailUrl:
                 song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
             subdirectory: album.name,
@@ -1012,8 +1015,8 @@ class _LikeAlbumButton extends ConsumerWidget {
                 LikedAlbumModel(
                   albumId: album.albumId,
                   name: album.name,
-                  artistName: album.artist.name,
-                  artistId: album.artist.artistId,
+                  artistName: displayArtists(album.artists),
+                  artistId: primaryArtistId(album.artists),
                   thumbnailUrl:
                       album.thumbnails.isNotEmpty
                           ? album.thumbnails.last.url
@@ -1035,8 +1038,8 @@ class _LikeAlbumButton extends ConsumerWidget {
               LikedAlbumModel(
                 albumId: album.albumId,
                 name: album.name,
-                artistName: album.artist.name,
-                artistId: album.artist.artistId,
+                artistName: displayArtists(album.artists),
+                artistId: primaryArtistId(album.artists),
                 thumbnailUrl:
                     album.thumbnails.isNotEmpty
                         ? album.thumbnails.last.url

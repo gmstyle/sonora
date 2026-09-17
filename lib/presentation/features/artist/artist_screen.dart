@@ -27,6 +27,7 @@ import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import 'providers/artist_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class ArtistScreen extends ConsumerWidget {
   final String artistId;
@@ -250,13 +251,13 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                             return ReleaseCard(
                               albumId: album.albumId,
                               name: album.name,
-                              artist: album.artist.name,
+                              artist: displayArtists(album.artists),
                               thumbnailUrl:
                                   album.thumbnails.isNotEmpty
                                       ? album.thumbnails.last.url
                                       : null,
                               year: album.year,
-                              artistId: album.artist.artistId,
+                              artistId: primaryArtistId(album.artists),
                               type: ReleaseType.album,
                               heroTag: 'artist_album_${album.albumId}',
                             );
@@ -285,13 +286,13 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                             return ReleaseCard(
                               albumId: single.albumId,
                               name: single.name,
-                              artist: single.artist.name,
+                              artist: displayArtists(single.artists),
                               thumbnailUrl:
                                   single.thumbnails.isNotEmpty
                                       ? single.thumbnails.last.url
                                       : null,
                               year: single.year,
-                              artistId: single.artist.artistId,
+                              artistId: primaryArtistId(single.artists),
                               type: ReleaseType.single,
                               heroTag: 'artist_single_${single.albumId}',
                             );
@@ -328,12 +329,13 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                             return VideoCard(
                               videoId: video.videoId,
                               title: video.name,
-                              artist: video.artist.name,
+                              artist: displayArtists(video.artists),
+        artists: video.artists,
                               thumbnailUrl:
                                   video.thumbnails.isNotEmpty
                                       ? video.thumbnails.last.url
                                       : null,
-                              artistId: video.artist.artistId,
+                              artistId: primaryArtistId(video.artists),
                               isExplicit: video.isExplicit,
                             );
                           },
@@ -363,7 +365,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                             return PlaylistCard(
                               playlistId: playlist.playlistId,
                               name: playlist.name,
-                              artist: playlist.artist.name,
+                              artist: displayArtists(playlist.artists),
                               thumbnailUrl:
                                   playlist.thumbnails.isNotEmpty
                                       ? playlist.thumbnails.last.url
@@ -456,7 +458,8 @@ class _ArtistTopSongsSectionState
             index: entry.key + 1,
             videoId: entry.value.videoId,
             title: entry.value.name,
-            artist: entry.value.artist.name,
+            artist: displayArtists(entry.value.artists),
+        artists: entry.value.artists,
             thumbnailUrl:
                 entry.value.thumbnails.isNotEmpty
                     ? entry.value.thumbnails.last.url
@@ -464,7 +467,7 @@ class _ArtistTopSongsSectionState
             duration: entry.value.duration,
             isVideo: entry.value.type == 'VIDEO',
             albumName: entry.value.album?.name,
-            artistId: entry.value.artist.artistId,
+            artistId: primaryArtistId(entry.value.artists),
             albumId: entry.value.album?.albumId,
             playCount: entry.value.playCount,
             isExplicit: entry.value.isExplicit,

@@ -24,6 +24,7 @@ import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import 'providers/search_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 /// Content max width for Search on wide shells (≥ [kExpandedBreakpoint]).
 const double _kSearchContentMaxWidth = 1100;
@@ -310,7 +311,7 @@ class _SearchResults extends ConsumerWidget {
 
     if (result is SongDetailed) {
       title = result.name;
-      subtitle = result.artist.name;
+      subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.songs;
       imageUrl =
           result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
@@ -324,7 +325,7 @@ class _SearchResults extends ConsumerWidget {
               );
     } else if (result is VideoDetailed) {
       title = result.name;
-      subtitle = result.artist.name;
+      subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.videos;
       imageUrl =
           result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
@@ -348,14 +349,14 @@ class _SearchResults extends ConsumerWidget {
       onTap = () => context.push('/artist/${result.artistId}');
     } else if (result is AlbumDetailed) {
       title = result.name;
-      subtitle = result.artist.name;
+      subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.searchAlbums;
       imageUrl =
           result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
       onTap = () => context.push('/album/${result.albumId}');
     } else if (result is PlaylistDetailed) {
       title = result.name;
-      subtitle = result.artist.name;
+      subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.searchPlaylists;
       imageUrl =
           result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
@@ -594,8 +595,8 @@ class _SearchResults extends ConsumerWidget {
           return AlbumCard(
             albumId: al.albumId,
             name: al.name,
-            artist: al.artist.name,
-            artistId: al.artist.artistId,
+            artist: displayArtists(al.artists),
+            artistId: primaryArtistId(al.artists),
             thumbnailUrl:
                 al.thumbnails.isNotEmpty ? al.thumbnails.last.url : null,
             year: al.year,
@@ -618,8 +619,8 @@ class _SearchResults extends ConsumerWidget {
             child: AlbumCard(
               albumId: al.albumId,
               name: al.name,
-              artist: al.artist.name,
-              artistId: al.artist.artistId,
+              artist: displayArtists(al.artists),
+              artistId: primaryArtistId(al.artists),
               thumbnailUrl:
                   al.thumbnails.isNotEmpty ? al.thumbnails.last.url : null,
               year: al.year,
@@ -647,7 +648,7 @@ class _SearchResults extends ConsumerWidget {
           return PlaylistCard(
             playlistId: pl.playlistId,
             name: pl.name,
-            artist: pl.artist.name,
+            artist: displayArtists(pl.artists),
             thumbnailUrl:
                 pl.thumbnails.isNotEmpty ? pl.thumbnails.last.url : null,
             cardWidth: cardWidth,
@@ -669,7 +670,7 @@ class _SearchResults extends ConsumerWidget {
             child: PlaylistCard(
               playlistId: pl.playlistId,
               name: pl.name,
-              artist: pl.artist.name,
+              artist: displayArtists(pl.artists),
               thumbnailUrl:
                   pl.thumbnails.isNotEmpty ? pl.thumbnails.last.url : null,
               cardWidth: 120,
@@ -896,13 +897,14 @@ class _SearchResults extends ConsumerWidget {
       return SongTile(
         videoId: result.videoId,
         title: result.name,
-        artist: result.artist.name,
+        artist: displayArtists(result.artists),
+        artists: result.artists,
         thumbnailUrl:
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
         duration: result.duration,
         albumName: result.album?.name,
         albumId: result.album?.albumId,
-        artistId: result.artist.artistId,
+        artistId: primaryArtistId(result.artists),
         playCount: result.playCount,
         isExplicit: result.isExplicit,
       );
@@ -911,13 +913,14 @@ class _SearchResults extends ConsumerWidget {
       return SongTile(
         videoId: result.videoId,
         title: result.name,
-        artist: result.artist.name,
+        artist: displayArtists(result.artists),
+        artists: result.artists,
         thumbnailUrl:
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
         duration: result.duration,
         isVideo: true,
         playCount: result.viewCount,
-        artistId: result.artist.artistId,
+        artistId: primaryArtistId(result.artists),
         isExplicit: result.isExplicit,
       );
     }
@@ -934,8 +937,8 @@ class _SearchResults extends ConsumerWidget {
       return AlbumTile(
         albumId: result.albumId,
         name: result.name,
-        artist: result.artist.name,
-        artistId: result.artist.artistId,
+        artist: displayArtists(result.artists),
+        artistId: primaryArtistId(result.artists),
         thumbnailUrl:
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
         year: result.year,
@@ -945,7 +948,7 @@ class _SearchResults extends ConsumerWidget {
       return PlaylistTile(
         playlistId: result.playlistId,
         name: result.name,
-        artist: result.artist.name,
+        artist: displayArtists(result.artists),
         thumbnailUrl:
             result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
       );

@@ -10,6 +10,7 @@ import '../../providers/music_repository_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/song_tile.dart';
+import '../../../core/utils/artists_utils.dart';
 
 final artistVideosProvider = FutureProvider.family<List<VideoDetailed>, String>(
   (ref, artistId) {
@@ -111,8 +112,9 @@ class _ArtistVideosBody extends ConsumerWidget {
                 return SongTile(
                   videoId: video.videoId,
                   title: video.name,
-                  artist: video.artist.name,
-                  artistId: video.artist.artistId,
+                  artist: displayArtists(video.artists),
+        artists: video.artists,
+                  artistId: primaryArtistId(video.artists),
                   thumbnailUrl:
                       video.thumbnails.isNotEmpty
                           ? video.thumbnails.last.url

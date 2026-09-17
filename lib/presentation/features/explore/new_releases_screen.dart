@@ -8,6 +8,7 @@ import '../../shared/widgets/release_card.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/video_card.dart';
 import 'providers/explore_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class NewReleasesScreen extends ConsumerWidget {
   const NewReleasesScreen({super.key});
@@ -77,8 +78,8 @@ class NewReleasesScreen extends ConsumerWidget {
                         return ReleaseCard(
                           albumId: album.albumId,
                           name: album.name,
-                          artist: album.artist.name,
-                          artistId: album.artist.artistId,
+                          artist: displayArtists(album.artists),
+                          artistId: primaryArtistId(album.artists),
                           thumbnailUrl:
                               album.thumbnails.isNotEmpty
                                   ? album.thumbnails.last.url
@@ -119,12 +120,13 @@ class NewReleasesScreen extends ConsumerWidget {
                           return VideoCard(
                             videoId: video.videoId,
                             title: video.name,
-                            artist: video.artist.name,
+                            artist: displayArtists(video.artists),
+        artists: video.artists,
                             thumbnailUrl:
                                 video.thumbnails.isNotEmpty
                                     ? video.thumbnails.last.url
                                     : null,
-                            artistId: video.artist.artistId,
+                            artistId: primaryArtistId(video.artists),
                             isExplicit: video.isExplicit,
                           );
                         },

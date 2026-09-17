@@ -38,6 +38,7 @@ class _FakeStartDownloadUseCase extends StartDownloadUseCase {
     required String videoId,
     required String title,
     required String artist,
+    String? artistsJson,
     String? thumbnailUrl,
     bool downloadOnlyOnWifi = false,
     String? downloadPath,

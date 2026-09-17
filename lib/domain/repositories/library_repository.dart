@@ -12,6 +12,7 @@ abstract class LibraryRepository {
     String videoId, {
     String? artistId,
     String? albumId,
+    String? artistsJson,
   });
   Future<List<LikedSongModel>> getForgottenFavorites({int daysLimit = 30});
   Stream<List<LikedSongModel>> watchForgottenFavorites({int daysLimit = 30});
@@ -96,6 +97,7 @@ abstract class LibraryRepository {
     required String title,
     required String artist,
     required String status,
+    String? artistsJson,
     String? thumbnailUrl,
     String? localPath,
     String? format,

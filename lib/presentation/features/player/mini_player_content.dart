@@ -476,6 +476,7 @@ class MiniPlayerContent extends ConsumerWidget {
                                           videoId: track.videoId,
                                           title: track.title,
                                           artist: track.artist ?? '',
+                                          artistsJson: track.artistsJson,
                                           artistId: track.artistId,
                                           albumId: track.albumId,
                                           thumbnailUrl:
@@ -745,6 +746,7 @@ class MiniPlayerContent extends ConsumerWidget {
                     videoId: videoId,
                     title: title,
                     artist: artist,
+                    artistsJson: track.artistsJson,
                     thumbnailUrl: thumbnailUrl,
                     addedAt: DateTime.now(),
                     duration: currentSong.duration?.inSeconds,

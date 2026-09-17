@@ -17,6 +17,8 @@ class QueueTrack {
   final bool isExplicit;
   final String? artistId;
   final String? albumId;
+  /// JSON array of credited artists when length > 1; null for single-artist rows.
+  final String? artistsJson;
   final int? viewCount;
   final String? publishDate;
 
@@ -39,6 +41,7 @@ class QueueTrack {
     this.isExplicit = false,
     this.artistId,
     this.albumId,
+    this.artistsJson,
     this.viewCount,
     this.publishDate,
     this.contentType = 'song',
@@ -60,6 +63,7 @@ class QueueTrack {
     bool? isExplicit,
     String? artistId,
     String? albumId,
+    String? artistsJson,
     int? viewCount,
     String? publishDate,
     String? contentType,
@@ -72,6 +76,7 @@ class QueueTrack {
     bool clearUrl = false,
     bool clearArtistId = false,
     bool clearAlbumId = false,
+    bool clearArtistsJson = false,
     bool clearViewCount = false,
     bool clearPublishDate = false,
     bool clearPodcastBrowseId = false,
@@ -88,6 +93,8 @@ class QueueTrack {
       isExplicit: isExplicit ?? this.isExplicit,
       artistId: clearArtistId ? null : (artistId ?? this.artistId),
       albumId: clearAlbumId ? null : (albumId ?? this.albumId),
+      artistsJson:
+          clearArtistsJson ? null : (artistsJson ?? this.artistsJson),
       viewCount: clearViewCount ? null : (viewCount ?? this.viewCount),
       publishDate: clearPublishDate ? null : (publishDate ?? this.publishDate),
       contentType: contentType ?? this.contentType,
@@ -125,6 +132,7 @@ class QueueTrack {
       isExplicit: extras['isExplicit'] == true,
       artistId: extras['artistId'] as String?,
       albumId: extras['albumId'] as String?,
+      artistsJson: extras['artistsJson'] as String?,
       viewCount: extras['viewCount'] as int?,
       publishDate: extras['publishDate'] as String?,
       contentType: extras['contentType'] as String? ?? 'song',
@@ -205,6 +213,7 @@ class QueueTrack {
 
     if (artistId != null) extras['artistId'] = artistId;
     if (albumId != null) extras['albumId'] = albumId;
+    if (artistsJson != null) extras['artistsJson'] = artistsJson;
     if (viewCount != null) extras['viewCount'] = viewCount;
     if (publishDate != null) extras['publishDate'] = publishDate;
     if (podcastBrowseId != null) extras['podcastBrowseId'] = podcastBrowseId;
@@ -224,6 +233,7 @@ class QueueTrack {
           isExplicit == other.isExplicit &&
           artistId == other.artistId &&
           albumId == other.albumId &&
+          artistsJson == other.artistsJson &&
           viewCount == other.viewCount &&
           publishDate == other.publishDate &&
           contentType == other.contentType &&
@@ -238,6 +248,7 @@ class QueueTrack {
     isExplicit,
     artistId,
     albumId,
+    artistsJson,
     viewCount,
     publishDate,
     contentType,
