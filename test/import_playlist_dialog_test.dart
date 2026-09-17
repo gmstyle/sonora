@@ -24,8 +24,9 @@ void main() {
       expect(importPlaylistUsesSheet(1440), isFalse);
     });
 
-    test('never exceeds the screen minus insets', () {
-      expect(importPlaylistDialogWidth(600), 552);
+    test('600dp is tablet, so it locks at 480 not full width', () {
+      expect(importPlaylistDialogWidth(600), kImportPlaylistDialogTabletWidth);
+      expect(importPlaylistUsesSheet(600), isFalse);
     });
   });
 
@@ -57,15 +58,12 @@ void main() {
       expect(find.byType(Dialog), findsOneWidget);
       expect(find.byType(BottomSheet), findsNothing);
 
-      final emptyWidth = tester.getSize(find.byType(Dialog)).width;
+      final emptyWidth = _dialogCardSize(tester).width;
       expect(emptyWidth, closeTo(kImportPlaylistDialogTabletWidth, 1));
 
       await tester.enterText(find.byType(TextField), _longUrl);
       await tester.pump();
-      expect(
-        tester.getSize(find.byType(Dialog)).width,
-        closeTo(emptyWidth, 0.5),
-      );
+      expect(_dialogCardSize(tester).width, closeTo(emptyWidth, 0.5));
     });
 
     testWidgets('wide dialog stays 560dp after a long URL', (tester) async {
@@ -74,17 +72,25 @@ void main() {
       expect(find.byType(Dialog), findsOneWidget);
       expect(find.byType(BottomSheet), findsNothing);
 
-      final emptyWidth = tester.getSize(find.byType(Dialog)).width;
+      final emptyWidth = _dialogCardSize(tester).width;
       expect(emptyWidth, closeTo(kImportPlaylistDialogWideWidth, 1));
 
       await tester.enterText(find.byType(TextField), _longUrl);
       await tester.pump();
-      expect(
-        tester.getSize(find.byType(Dialog)).width,
-        closeTo(emptyWidth, 0.5),
-      );
+      expect(_dialogCardSize(tester).width, closeTo(emptyWidth, 0.5));
     });
   });
+}
+
+Size _dialogCardSize(WidgetTester tester) {
+  return tester.getSize(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Material && widget.type == MaterialType.card,
+      ),
+    ),
+  );
 }
 
 Future<void> _open(WidgetTester tester, Size size) async {
