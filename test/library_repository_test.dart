@@ -392,6 +392,26 @@ void main() {
       expect(entries.length, 1);
       expect(entries.first.videoId, 'video_2');
     });
+
+    test('addEntry stores artistsJson for multi-artist credits', () async {
+      await repo.createPlaylist('Collab');
+      final pid = (await repo.getAllPlaylists()).first.id;
+      await repo.addEntry(
+        pid,
+        'video_feat',
+        0,
+        title: "It Wasn't Me",
+        artist: 'Shaggy & Rik Rok',
+        artistsJson:
+            '[{"name":"Shaggy","artistId":"UC_shaggy"},'
+            '{"name":"Rik Rok","artistId":"UC_rikrok"}]',
+      );
+
+      final entries = await repo.getPlaylistEntries(pid);
+      expect(entries, hasLength(1));
+      expect(entries.first.artist, 'Shaggy & Rik Rok');
+      expect(entries.first.artistsJson, contains('UC_rikrok'));
+    });
   });
 
   group('Downloads', () {

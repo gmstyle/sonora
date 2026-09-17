@@ -1,3 +1,5 @@
+import '../../../core/utils/playlist_url_parser.dart';
+import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
 import '../../../core/utils/artists_utils.dart';
@@ -8,11 +10,12 @@ class SyncYoutubePlaylistUseCase {
 
   SyncYoutubePlaylistUseCase(this._musicRepository, this._libraryRepository);
 
-  Future<int> execute(String playlistUrlOrId) async {
-    final playlistId = _parsePlaylistId(playlistUrlOrId);
-    if (playlistId == null || playlistId.isEmpty) {
+  Future<PlaylistImportResult> execute(String playlistUrlOrId) async {
+    final ref = PlaylistUrlParser.parse(playlistUrlOrId);
+    if (ref == null || ref.kind != PlaylistImportKind.youtube) {
       throw ArgumentError('Invalid playlist URL or ID');
     }
+    final playlistId = ref.id;
 
     // 1. Fetch playlist metadata
     final playlistDetails = await _musicRepository.getPlaylist(playlistId);
@@ -43,6 +46,7 @@ class SyncYoutubePlaylistUseCase {
         i, // position
         title: video.name,
         artist: artistName,
+        artistsJson: encodeArtistsJson(video.artists),
         thumbnailUrl: thumbUrl,
         duration: video.duration,
         isVideo: false,
@@ -50,40 +54,12 @@ class SyncYoutubePlaylistUseCase {
       );
     }
 
-    return localPlaylistId;
-  }
-
-  String? _parsePlaylistId(String input) {
-    final trimmed = input.trim();
-    if (trimmed.isEmpty) return null;
-
-    final isUrl =
-        trimmed.startsWith('http://') ||
-        trimmed.startsWith('https://') ||
-        trimmed.contains('youtube.com') ||
-        trimmed.contains('youtu.be');
-
-    if (isUrl) {
-      // Validate that the URL belongs to a YouTube or YouTube Music domain
-      final isYoutubeDomain =
-          trimmed.contains('youtube.com') || trimmed.contains('youtu.be');
-      if (!isYoutubeDomain) return null;
-
-      // Extract the 'list' query parameter
-      final regExp = RegExp(r'[?&]list=([^#\&\?]+)');
-      final match = regExp.firstMatch(trimmed);
-      if (match != null && match.groupCount >= 1) {
-        return match.group(1);
-      }
-      return null;
-    }
-
-    // Direct ID fallback (e.g. PL..., must be alphanumeric with underscores/hyphens and at least 12 chars)
-    final isValidId = RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(trimmed);
-    if (isValidId && trimmed.length >= 12) {
-      return trimmed;
-    }
-
-    return null;
+    return PlaylistImportResult(
+      localPlaylistId: localPlaylistId,
+      name: playlistName,
+      source: PlaylistImportKind.youtube,
+      importedCount: videos.length,
+      skippedCount: 0,
+    );
   }
 }

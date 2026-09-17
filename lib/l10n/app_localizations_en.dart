@@ -1423,7 +1423,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importPlaylist => 'Import Playlist';
 
   @override
-  String get youtubePlaylistUrl => 'YouTube Playlist URL or ID';
+  String get youtubePlaylistUrl => 'YouTube or Spotify playlist URL';
 
   @override
   String get playlistUrlRequired => 'A playlist URL or ID is required';
@@ -1432,14 +1432,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistImported => 'Playlist imported successfully';
 
   @override
+  String playlistImportedPartial(int imported, int total) {
+    return 'Imported $imported of $total tracks';
+  }
+
+  @override
   String get importing => 'Importing...';
 
   @override
-  String get invalidPlaylistUrlOrId => 'Invalid YouTube playlist URL or ID';
+  String importingProgress(int current, int total) {
+    return 'Importing $current/$total…';
+  }
+
+  @override
+  String get invalidPlaylistUrlOrId =>
+      'Invalid YouTube or Spotify playlist URL';
 
   @override
   String get playlistEmptyError =>
       'The playlist is empty or could not be retrieved';
+
+  @override
+  String get playlistNoMatchesError =>
+      'No tracks from this Spotify playlist could be matched on YouTube Music';
 
   @override
   String get playlistSyncError =>

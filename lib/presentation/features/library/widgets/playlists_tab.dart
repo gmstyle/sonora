@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../domain/models/library_models.dart';
+import '../../../../domain/models/playlist_import.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/settings_provider.dart';
@@ -268,19 +269,23 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
   }
 
   Future<void> _importPlaylist() async {
-    final result = await showDialog<bool>(
+    final result = await showDialog<PlaylistImportResult>(
       context: context,
       builder: (_) => const ImportPlaylistDialog(),
     );
-    if (result == true && mounted) {
+    if (result != null && mounted) {
+      ref.invalidate(playlistsProvider);
+      final l10n = AppLocalizations.of(context);
+      final message =
+          result.skippedCount > 0
+              ? (l10n?.playlistImportedPartial(
+                    result.importedCount,
+                    result.totalCount,
+                  ) ??
+                  'Imported ${result.importedCount} of ${result.totalCount} tracks')
+              : (l10n?.playlistImported ?? 'Playlist imported successfully');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)?.playlistImported ??
-                "Playlist imported successfully",
-          ),
-          duration: const Duration(seconds: 2),
-        ),
+        SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
       );
     }
   }

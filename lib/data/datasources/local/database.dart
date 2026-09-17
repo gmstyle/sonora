@@ -37,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -268,6 +268,15 @@ class AppDatabase extends _$AppDatabase {
           (row) => row.read<String>('name') == 'artists_json',
         )) {
           await m.addColumn(downloads, downloads.artistsJson);
+        }
+      }
+      if (from < 22) {
+        final playlistEntriesInfo =
+            await customSelect('PRAGMA table_info(playlist_entries)').get();
+        if (!playlistEntriesInfo.any(
+          (row) => row.read<String>('name') == 'artists_json',
+        )) {
+          await m.addColumn(playlistEntries, playlistEntries.artistsJson);
         }
       }
     },

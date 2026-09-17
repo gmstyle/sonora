@@ -68,6 +68,7 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
     int position, {
     String? title,
     String? artist,
+    String? artistsJson,
     String? thumbnailUrl,
     int? duration,
     bool isVideo = false,
@@ -79,6 +80,7 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
       position: Value(position),
       title: Value(title),
       artist: Value(artist),
+      artistsJson: Value(artistsJson),
       thumbnailUrl: Value(thumbnailUrl),
       isVideo: Value(isVideo),
       duration: Value(duration),

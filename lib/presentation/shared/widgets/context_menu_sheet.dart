@@ -517,6 +517,8 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     );
     final navigable = navigableArtists(resolvedArtists);
     final resolvedAlbumId = albumId ?? songAsync.asData?.value.album?.albumId;
+    final resolvedArtistsJson =
+        artistsJson ?? encodeArtistsJson(resolvedArtists);
     final hasLocalArtistCredits =
         (artists != null && artists!.isNotEmpty) ||
         decodeArtistsJson(artistsJson).isNotEmpty ||
@@ -758,6 +760,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                         videoId,
                         title: title,
                         artist: artist,
+                        artistsJson: resolvedArtistsJson,
                         thumbnailUrl: thumbnailUrl,
                         isExplicit: isExplicit,
                         duration: duration,
@@ -1087,6 +1090,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         videoId,
                         title: title,
                         artist: artist,
+                        artistsJson: resolvedArtistsJson,
                         thumbnailUrl: thumbnailUrl,
                         isExplicit: isExplicit,
                         duration: duration,
@@ -1167,11 +1171,11 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         ref
                             .read(activeDownloadsProvider.notifier)
                             .startDownload(
-                                  videoId: videoId,
-                                  title: title,
-                                  artist: artist,
-                                  artistsJson: resolvedArtistsJson,
-                                  thumbnailUrl: thumbnailUrl,
+                              videoId: videoId,
+                              title: title,
+                              artist: artist,
+                              artistsJson: resolvedArtistsJson,
+                              thumbnailUrl: thumbnailUrl,
                               isExplicit: isExplicit,
                               isVideo: isVideo,
                             );
@@ -2973,9 +2977,9 @@ Future<void> _showArtistPicker(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   AppLocalizations.of(sheetContext)!.goToArtists,
-                  style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -3000,7 +3004,6 @@ Future<void> _showArtistPicker(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Playlist picker (shared by song context menu)
-// Playlist picker (shared by song context menu)
 // ─────────────────────────────────────────────────────────────────────────────
 
 Future<void> _showPlaylistPicker(
@@ -3009,6 +3012,7 @@ Future<void> _showPlaylistPicker(
   String videoId, {
   String? title,
   String? artist,
+  String? artistsJson,
   String? thumbnailUrl,
   bool isExplicit = false,
   int? duration,
@@ -3021,6 +3025,7 @@ Future<void> _showPlaylistPicker(
           videoId: videoId,
           title: title,
           artist: artist,
+          artistsJson: artistsJson,
           thumbnailUrl: thumbnailUrl,
           isExplicit: isExplicit,
           duration: duration,
@@ -3032,6 +3037,7 @@ class _PlaylistPickerSheet extends ConsumerStatefulWidget {
   final String videoId;
   final String? title;
   final String? artist;
+  final String? artistsJson;
   final String? thumbnailUrl;
   final bool isExplicit;
   final int? duration;
@@ -3040,6 +3046,7 @@ class _PlaylistPickerSheet extends ConsumerStatefulWidget {
     required this.videoId,
     this.title,
     this.artist,
+    this.artistsJson,
     this.thumbnailUrl,
     this.isExplicit = false,
     this.duration,
@@ -3070,6 +3077,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
       widget.videoId,
       title: widget.title,
       artist: widget.artist,
+      artistsJson: widget.artistsJson,
       thumbnailUrl: widget.thumbnailUrl,
       duration: widget.duration,
       isExplicit: widget.isExplicit,
@@ -3155,6 +3163,7 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                                 widget.videoId,
                                 title: widget.title,
                                 artist: widget.artist,
+                                artistsJson: widget.artistsJson,
                                 thumbnailUrl: widget.thumbnailUrl,
                                 duration: widget.duration,
                                 isExplicit: widget.isExplicit,

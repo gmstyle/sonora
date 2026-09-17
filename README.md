@@ -34,7 +34,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 **Library & offline**
 - Local library for favorites, playlists, subscribed podcasts, and saved episodes
-- YouTube playlist import/sync, smart mixes from listening history, typed history
+- YouTube and Spotify playlist import, smart mixes from listening history, typed history
 - Downloads, explicit offline mode, and a connectivity banner when the network drops
 
 **Explore**

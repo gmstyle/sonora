@@ -691,13 +691,28 @@
   "offlineModeDisabled": "Offline mode disabled",
   "noConnectionMessage": "No internet connection. Check your network.",
   "importPlaylist": "Import Playlist",
-  "youtubePlaylistUrl": "YouTube Playlist URL or ID",
+  "youtubePlaylistUrl": "YouTube or Spotify playlist URL",
   "playlistUrlRequired": "A playlist URL or ID is required",
   "playlistImported": "Playlist imported successfully",
+  "playlistImportedPartial": "Imported {imported} of {total} tracks",
+  "@playlistImportedPartial": {
+    "placeholders": {
+      "imported": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
   "importing": "Importing...",
+  "importingProgress": "Importing {current}/{total}…",
+  "@importingProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
   "import": "Import",
-  "invalidPlaylistUrlOrId": "Invalid YouTube playlist URL or ID",
+  "invalidPlaylistUrlOrId": "Invalid YouTube or Spotify playlist URL",
   "playlistEmptyError": "The playlist is empty or could not be retrieved",
+  "playlistNoMatchesError": "No tracks from this Spotify playlist could be matched on YouTube Music",
   "playlistSyncError": "An error occurred while syncing. Please check your internet connection.",
   "mixes": "Mixes",
   "mostPlayed": "Most Played",

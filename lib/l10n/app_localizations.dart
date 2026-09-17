@@ -2507,7 +2507,7 @@ abstract class AppLocalizations {
   /// No description provided for @youtubePlaylistUrl.
   ///
   /// In en, this message translates to:
-  /// **'YouTube Playlist URL or ID'**
+  /// **'YouTube or Spotify playlist URL'**
   String get youtubePlaylistUrl;
 
   /// No description provided for @playlistUrlRequired.
@@ -2522,16 +2522,28 @@ abstract class AppLocalizations {
   /// **'Playlist imported successfully'**
   String get playlistImported;
 
+  /// No description provided for @playlistImportedPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {imported} of {total} tracks'**
+  String playlistImportedPartial(int imported, int total);
+
   /// No description provided for @importing.
   ///
   /// In en, this message translates to:
   /// **'Importing...'**
   String get importing;
 
+  /// No description provided for @importingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing {current}/{total}…'**
+  String importingProgress(int current, int total);
+
   /// No description provided for @invalidPlaylistUrlOrId.
   ///
   /// In en, this message translates to:
-  /// **'Invalid YouTube playlist URL or ID'**
+  /// **'Invalid YouTube or Spotify playlist URL'**
   String get invalidPlaylistUrlOrId;
 
   /// No description provided for @playlistEmptyError.
@@ -2539,6 +2551,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The playlist is empty or could not be retrieved'**
   String get playlistEmptyError;
+
+  /// No description provided for @playlistNoMatchesError.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracks from this Spotify playlist could be matched on YouTube Music'**
+  String get playlistNoMatchesError;
 
   /// No description provided for @playlistSyncError.
   ///
