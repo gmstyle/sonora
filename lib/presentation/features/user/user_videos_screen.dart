@@ -10,6 +10,7 @@ import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/song_tile.dart';
 import 'providers/user_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class UserVideosScreen extends ConsumerWidget {
   final String channelId;
@@ -108,8 +109,9 @@ class _UserVideosBody extends ConsumerWidget {
                 return SongTile(
                   videoId: video.videoId,
                   title: video.name,
-                  artist: video.artist.name,
-                  artistId: video.artist.artistId,
+                  artist: displayArtists(video.artists),
+        artists: video.artists,
+                  artistId: primaryArtistId(video.artists),
                   thumbnailUrl:
                       video.thumbnails.isNotEmpty
                           ? video.thumbnails.last.url

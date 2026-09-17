@@ -2,6 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
+import '../../../core/utils/artists_utils.dart';
 
 /// Builds a [List<MediaItem>] from a playlist's video list.
 ///
@@ -46,9 +47,10 @@ class PlayPlaylistUseCase {
       url: url,
       isVideo: true,
       isExplicit: v.isExplicit,
-      artistId: v.artist.artistId,
+      artistId: primaryArtistId(v.artists),
+      artistsJson: encodeArtistsJson(v.artists),
       title: v.name,
-      artist: v.artist.name,
+      artist: displayArtists(v.artists),
       duration: Duration(seconds: v.duration ?? 0),
       artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
     );
@@ -61,9 +63,10 @@ class PlayPlaylistUseCase {
       needsUrl: true,
       isVideo: true,
       isExplicit: v.isExplicit,
-      artistId: v.artist.artistId,
+      artistId: primaryArtistId(v.artists),
+      artistsJson: encodeArtistsJson(v.artists),
       title: v.name,
-      artist: v.artist.name,
+      artist: displayArtists(v.artists),
       duration: Duration(seconds: v.duration ?? 0),
       artUri: v.thumbnails.isNotEmpty ? Uri.parse(v.thumbnails.last.url) : null,
     );

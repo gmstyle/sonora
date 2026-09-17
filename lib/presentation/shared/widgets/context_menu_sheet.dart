@@ -35,6 +35,7 @@ import '../../features/library/widgets/playlist_detail_view.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'explicit_badge.dart';
+import '../../../core/utils/artists_utils.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Song data provider (lazy enrichment for context menu)
@@ -68,6 +69,8 @@ class ContextMenuSheet {
     String? albumName,
     String? artistId,
     String? albumId,
+    List<ArtistBasic>? artists,
+    String? artistsJson,
     String? playCount,
     int? viewCount,
     bool isExplicit = false,
@@ -93,6 +96,8 @@ class ContextMenuSheet {
                     albumName: albumName,
                     artistId: artistId,
                     albumId: albumId,
+                    artists: artists,
+                    artistsJson: artistsJson,
                     playCount: playCount,
                     viewCount: viewCount,
                     isExplicit: isExplicit,
@@ -116,6 +121,8 @@ class ContextMenuSheet {
             albumName: albumName,
             artistId: artistId,
             albumId: albumId,
+            artists: artists,
+            artistsJson: artistsJson,
             playCount: playCount,
             viewCount: viewCount,
             isExplicit: isExplicit,
@@ -395,6 +402,8 @@ class ContextMenuSheet {
     String? albumName,
     String? artistId,
     String? albumId,
+    List<ArtistBasic>? artists,
+    String? artistsJson,
     required void Function(String artistId) onGoToArtist,
     required void Function(String albumId) onGoToAlbum,
     bool isExplicit = false,
@@ -420,6 +429,8 @@ class ContextMenuSheet {
                     albumName: albumName,
                     artistId: artistId,
                     albumId: albumId,
+                    artists: artists,
+                    artistsJson: artistsJson,
                     onGoToArtist: onGoToArtist,
                     onGoToAlbum: onGoToAlbum,
                     isExplicit: isExplicit,
@@ -443,6 +454,8 @@ class ContextMenuSheet {
             albumName: albumName,
             artistId: artistId,
             albumId: albumId,
+            artists: artists,
+            artistsJson: artistsJson,
             onGoToArtist: onGoToArtist,
             onGoToAlbum: onGoToAlbum,
             isExplicit: isExplicit,
@@ -465,6 +478,8 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
   final String? albumName;
   final String? artistId;
   final String? albumId;
+  final List<ArtistBasic>? artists;
+  final String? artistsJson;
   final void Function(String artistId) onGoToArtist;
   final void Function(String albumId) onGoToAlbum;
   final bool isExplicit;
@@ -479,6 +494,8 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     this.albumName,
     this.artistId,
     this.albumId,
+    this.artists,
+    this.artistsJson,
     required this.onGoToArtist,
     required this.onGoToAlbum,
     this.isExplicit = false,
@@ -490,20 +507,32 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
-    final hasExplicitIds = artistId != null || albumId != null;
     final songAsync = ref.watch(_songFullProvider(videoId));
-    final resolvedArtistId =
-        artistId ?? songAsync.asData?.value.artist.artistId;
+    final resolvedArtists = resolveArtistsList(
+      artists: artists,
+      artistsJson: artistsJson,
+      artist: artist,
+      artistId: artistId,
+      enrichment: songAsync.asData?.value.artists,
+    );
+    final navigable = navigableArtists(resolvedArtists);
     final resolvedAlbumId = albumId ?? songAsync.asData?.value.album?.albumId;
-    final isLoadingFallback = !hasExplicitIds && songAsync.isLoading;
+    final hasLocalArtistCredits =
+        (artists != null && artists!.isNotEmpty) ||
+        decodeArtistsJson(artistsJson).isNotEmpty ||
+        artistId != null;
+    final isLoadingArtists =
+        !hasLocalArtistCredits && navigable.isEmpty && songAsync.isLoading;
+    final isLoadingAlbum = albumId == null && songAsync.isLoading;
 
     ref.listen(_songFullProvider(videoId), (_, next) {
       if (next is AsyncData) {
         final data = next.value;
         if (data == null) return;
-        final fullId = data.artist.artistId;
+        final fullId = primaryArtistId(data.artists);
         final fullAlbumId = data.album?.albumId;
-        if (fullId != null || fullAlbumId != null) {
+        final fullJson = encodeArtistsJson(data.artists);
+        if (fullId != null || fullAlbumId != null || fullJson != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ref
                 .read(libraryNotifierProvider.notifier)
@@ -511,6 +540,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                   videoId,
                   artistId: fullId,
                   albumId: fullAlbumId,
+                  artistsJson: fullJson,
                 );
           });
         }
@@ -577,21 +607,36 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isLoadingFallback)
+                  if (isLoadingArtists)
                     _LoadingTile(
                       icon: LucideIcons.user,
                       label: AppLocalizations.of(context)!.goToArtist,
                     ),
-                  if (resolvedArtistId != null)
+                  if (!isLoadingArtists && navigable.length == 1)
                     _ActionTile(
                       icon: LucideIcons.user,
                       label: AppLocalizations.of(context)!.goToArtist,
                       onTap: () {
                         Navigator.pop(context);
-                        onGoToArtist(resolvedArtistId);
+                        onGoToArtist(navigable.first.artistId!);
                       },
                     ),
-                  if (isLoadingFallback)
+                  if (!isLoadingArtists && navigable.length > 1)
+                    _ActionTile(
+                      icon: LucideIcons.users,
+                      label: AppLocalizations.of(context)!.goToArtists,
+                      onTap: () {
+                        _showArtistPicker(
+                          context,
+                          navigable,
+                          onSelect: (id) {
+                            Navigator.pop(context);
+                            onGoToArtist(id);
+                          },
+                        );
+                      },
+                    ),
+                  if (isLoadingAlbum)
                     _LoadingTile(
                       icon: LucideIcons.disc,
                       label: AppLocalizations.of(context)!.goToAlbum,
@@ -669,6 +714,9 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                                   videoId: videoId,
                                   title: title,
                                   artist: artist,
+                                  artistsJson:
+                                      artistsJson ??
+                                      encodeArtistsJson(resolvedArtists),
                                   thumbnailUrl: thumbnailUrl,
                                   isExplicit: isExplicit,
                                   isVideo: isVideo,
@@ -682,6 +730,9 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                               videoId: videoId,
                               title: title,
                               artist: artist,
+                              artistsJson:
+                                  artistsJson ??
+                                  encodeArtistsJson(resolvedArtists),
                               thumbnailUrl: thumbnailUrl,
                               isExplicit: isExplicit,
                               isVideo: isVideo,
@@ -755,6 +806,8 @@ class _SongContextMenuSheet extends ConsumerWidget {
   final String? albumName;
   final String? artistId;
   final String? albumId;
+  final List<ArtistBasic>? artists;
+  final String? artistsJson;
   final String? playCount;
   final int? viewCount;
   final bool isExplicit;
@@ -769,6 +822,8 @@ class _SongContextMenuSheet extends ConsumerWidget {
     this.albumName,
     this.artistId,
     this.albumId,
+    this.artists,
+    this.artistsJson,
     this.playCount,
     this.viewCount,
     this.isExplicit = false,
@@ -788,24 +843,35 @@ class _SongContextMenuSheet extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
-    final hasExplicitIds = artistId != null || albumId != null;
-    // Lazy enrichment: if artistId/albumId weren't saved (e.g. old liked songs),
-    // fetch the full song data to recover them and persist back to DB.
-    // TODO: remove once enrichment backfill is complete — resolvedArtistId
-    //       will always equal artistId (the constructor field).
     final songAsync = ref.watch(_songFullProvider(videoId));
-    final resolvedArtistId =
-        artistId ?? songAsync.asData?.value.artist.artistId;
+    final resolvedArtists = resolveArtistsList(
+      artists: artists,
+      artistsJson: artistsJson,
+      artist: artist,
+      artistId: artistId,
+      enrichment: songAsync.asData?.value.artists,
+    );
+    final navigable = navigableArtists(resolvedArtists);
+    final resolvedArtistId = primaryArtistId(resolvedArtists) ?? artistId;
     final resolvedAlbumId = albumId ?? songAsync.asData?.value.album?.albumId;
-    final isLoadingFallback = !hasExplicitIds && songAsync.isLoading;
-    // TODO: remove ref.listen block once enrichment backfill is complete.
+    final resolvedArtistsJson =
+        artistsJson ?? encodeArtistsJson(resolvedArtists);
+    final hasLocalArtistCredits =
+        (artists != null && artists!.isNotEmpty) ||
+        decodeArtistsJson(artistsJson).isNotEmpty ||
+        artistId != null;
+    final isLoadingArtists =
+        !hasLocalArtistCredits && navigable.isEmpty && songAsync.isLoading;
+    final isLoadingAlbum = albumId == null && songAsync.isLoading;
     ref.listen(_songFullProvider(videoId), (_, next) {
-      if (next is AsyncData && (artistId == null || albumId == null)) {
+      if (next is AsyncData &&
+          (artistId == null || albumId == null || artistsJson == null)) {
         final data = next.value;
         if (data == null) return;
-        final fullId = data.artist.artistId;
+        final fullId = primaryArtistId(data.artists);
         final fullAlbumId = data.album?.albumId;
-        if (fullId != null || fullAlbumId != null) {
+        final fullJson = encodeArtistsJson(data.artists);
+        if (fullId != null || fullAlbumId != null || fullJson != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!context.mounted) return;
             ref
@@ -814,6 +880,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                   videoId,
                   artistId: artistId ?? fullId,
                   albumId: albumId ?? fullAlbumId,
+                  artistsJson: artistsJson ?? fullJson,
                 );
           });
         }
@@ -953,21 +1020,36 @@ class _SongContextMenuSheet extends ConsumerWidget {
                       );
                     },
                   ),
-                  if (isLoadingFallback)
+                  if (isLoadingArtists)
                     _LoadingTile(
                       icon: LucideIcons.user,
                       label: AppLocalizations.of(context)!.goToArtist,
                     ),
-                  if (resolvedArtistId != null)
+                  if (!isLoadingArtists && navigable.length == 1)
                     _ActionTile(
                       icon: LucideIcons.user,
                       label: AppLocalizations.of(context)!.goToArtist,
                       onTap: () {
-                        context.push('/artist/$resolvedArtistId');
+                        context.push('/artist/${navigable.first.artistId}');
                         Navigator.pop(context);
                       },
                     ),
-                  if (isLoadingFallback)
+                  if (!isLoadingArtists && navigable.length > 1)
+                    _ActionTile(
+                      icon: LucideIcons.users,
+                      label: AppLocalizations.of(context)!.goToArtists,
+                      onTap: () {
+                        _showArtistPicker(
+                          context,
+                          navigable,
+                          onSelect: (id) {
+                            context.push('/artist/$id');
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  if (isLoadingAlbum)
                     _LoadingTile(
                       icon: LucideIcons.disc,
                       label: AppLocalizations.of(context)!.goToAlbum,
@@ -1018,6 +1100,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                     artistId: resolvedArtistId,
                     albumId: resolvedAlbumId,
+                    artistsJson: resolvedArtistsJson,
                     isVideo: isVideo,
                     isExplicit: isExplicit,
                     duration: duration,
@@ -1073,6 +1156,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                                   videoId: videoId,
                                   title: title,
                                   artist: artist,
+                                  artistsJson: resolvedArtistsJson,
                                   thumbnailUrl: thumbnailUrl,
                                   isExplicit: isExplicit,
                                   isVideo: isVideo,
@@ -1083,10 +1167,11 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         ref
                             .read(activeDownloadsProvider.notifier)
                             .startDownload(
-                              videoId: videoId,
-                              title: title,
-                              artist: artist,
-                              thumbnailUrl: thumbnailUrl,
+                                  videoId: videoId,
+                                  title: title,
+                                  artist: artist,
+                                  artistsJson: resolvedArtistsJson,
+                                  thumbnailUrl: thumbnailUrl,
                               isExplicit: isExplicit,
                               isVideo: isVideo,
                             );
@@ -2626,6 +2711,7 @@ class _LikeActionTile extends ConsumerWidget {
   final String? thumbnailUrl;
   final String? artistId;
   final String? albumId;
+  final String? artistsJson;
   final bool isVideo;
   final bool isExplicit;
   final int? duration;
@@ -2637,6 +2723,7 @@ class _LikeActionTile extends ConsumerWidget {
     this.thumbnailUrl,
     this.artistId,
     this.albumId,
+    this.artistsJson,
     this.isVideo = false,
     this.isExplicit = false,
     this.duration,
@@ -2677,6 +2764,7 @@ class _LikeActionTile extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                     artistId: artistId,
                     albumId: albumId,
+                    artistsJson: artistsJson,
                     addedAt: DateTime.now(),
                     isVideo: isVideo,
                     isExplicit: isExplicit,
@@ -2863,6 +2951,55 @@ class _LikePlaylistActionTile extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Artist picker (multi-artist go-to)
+// ─────────────────────────────────────────────────────────────────────────────
+
+Future<void> _showArtistPicker(
+  BuildContext context,
+  List<ArtistBasic> artists, {
+  required void Function(String artistId) onSelect,
+}) {
+  return showModalBottomSheet(
+    context: context,
+    useRootNavigator: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  AppLocalizations.of(sheetContext)!.goToArtists,
+                  style: Theme.of(sheetContext).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const Divider(),
+            for (final a in artists)
+              ListTile(
+                leading: const Icon(LucideIcons.user),
+                title: Text(a.name),
+                dense: true,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onSelect(a.artistId!);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Playlist picker (shared by song context menu)
 // Playlist picker (shared by song context menu)
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -26,8 +26,14 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
     String videoId, {
     required String? artistId,
     required String? albumId,
+    String? artistsJson,
   }) => (update(db.likedSongs)..where((t) => t.videoId.equals(videoId))).write(
-    LikedSongsCompanion(artistId: Value(artistId), albumId: Value(albumId)),
+    LikedSongsCompanion(
+      artistId: Value(artistId),
+      albumId: Value(albumId),
+      artistsJson:
+          artistsJson != null ? Value(artistsJson) : const Value.absent(),
+    ),
   );
 
   Future<List<FollowedArtist>> getAllFollowedArtists() =>

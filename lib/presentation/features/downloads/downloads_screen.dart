@@ -799,6 +799,7 @@ class _CompletedDownloadTile extends StatelessWidget {
                 videoId: download.videoId,
                 title: download.title,
                 artist: download.artist,
+                artistsJson: download.artistsJson,
                 thumbnailUrl: download.thumbnailUrl,
                 isVideo: download.isVideo,
                 isExplicit: download.isExplicit,

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
+import '../../core/utils/artists_utils.dart';
 
 final metadataSyncServiceProvider = Provider<MetadataSyncService>((ref) {
   final service = MetadataSyncService(ref);
@@ -130,7 +131,7 @@ class MetadataSyncService {
                 .getAlbum(albumId)
                 .timeout(const Duration(seconds: 10));
 
-            final artistId = album.artist.artistId;
+            final artistId = primaryArtistId(album.artists);
             if (artistId != null) {
               await libraryRepo.updateAlbumArtistId(albumId, artistId);
               debugPrint(

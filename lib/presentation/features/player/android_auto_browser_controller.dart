@@ -19,6 +19,7 @@ import '../../../domain/usecases/player/play_smart_mix_use_case.dart';
 import '../../../domain/usecases/home/get_discover_suggestions_use_case.dart';
 import '../../../domain/usecases/home/get_new_releases_use_case.dart';
 import '../../../domain/usecases/home/get_similar_artists_suggestions_use_case.dart';
+import '../../../core/utils/artists_utils.dart';
 
 /// Owns the Android Auto browse tree, search, and play-from-media-id flows.
 ///
@@ -642,7 +643,7 @@ class AndroidAutoBrowserController {
                     (a) => MediaItem(
                       id: '$_homeAlbumPrefix${a.albumId}',
                       title: a.name,
-                      artist: a.artist.name,
+                      artist: displayArtists(a.artists),
                       artUri:
                           a.thumbnails.isNotEmpty
                               ? Uri.tryParse(a.thumbnails.last.url)
@@ -685,7 +686,7 @@ class AndroidAutoBrowserController {
                   isVideo: song.type == 'VIDEO',
                   isExplicit: song.isExplicit,
                   title: song.title,
-                  artist: song.artists.name,
+                  artist: displayArtists(song.artists),
                   duration: Duration(seconds: song.duration),
                   artUri:
                       song.thumbnails.isNotEmpty
@@ -790,7 +791,7 @@ class AndroidAutoBrowserController {
         needsUrl: true,
         isVideo: content.type == 'VIDEO',
         title: content.name,
-        artist: content.artist.name,
+        artist: displayArtists(content.artists),
         album: content.album?.name,
         duration: Duration(seconds: content.duration ?? 0),
         artUri:
@@ -809,7 +810,7 @@ class AndroidAutoBrowserController {
         needsUrl: true,
         isVideo: true,
         title: content.name,
-        artist: content.artist.name,
+        artist: displayArtists(content.artists),
         duration: Duration(seconds: content.duration ?? 0),
         artUri:
             content.thumbnails.isNotEmpty
@@ -826,7 +827,7 @@ class AndroidAutoBrowserController {
         MediaItem(
           id: '$_homeAlbumPrefix${content.albumId}',
           title: content.name,
-          artist: content.artist.name,
+          artist: displayArtists(content.artists),
           artUri:
               content.thumbnails.isNotEmpty
                   ? Uri.tryParse(content.thumbnails.last.url)
@@ -1208,7 +1209,7 @@ class AndroidAutoBrowserController {
         (a) => MediaItem(
           id: '$_homeAlbumPrefix${a.albumId}',
           title: a.name,
-          artist: a.artist.name,
+          artist: displayArtists(a.artists),
           artUri:
               a.thumbnails.isNotEmpty
                   ? Uri.tryParse(a.thumbnails.last.url)
@@ -1227,7 +1228,7 @@ class AndroidAutoBrowserController {
           isVideo: true,
           isExplicit: v.isExplicit,
           title: v.name,
-          artist: v.artist.name,
+          artist: displayArtists(v.artists),
           duration: Duration(seconds: v.duration ?? 0),
           artUri:
               v.thumbnails.isNotEmpty
@@ -1363,7 +1364,7 @@ class AndroidAutoBrowserController {
           (p) => MediaItem(
             id: '$_homePlaylistPrefix${p.playlistId}',
             title: p.name,
-            artist: p.artist.name,
+            artist: displayArtists(p.artists),
             artUri:
                 p.thumbnails.isNotEmpty
                     ? Uri.tryParse(p.thumbnails.last.url)
@@ -1387,7 +1388,7 @@ class AndroidAutoBrowserController {
         isVideo: song.type == 'VIDEO',
         isExplicit: song.isExplicit,
         title: song.title,
-        artist: song.artists.name,
+        artist: displayArtists(song.artists),
         duration: Duration(seconds: song.duration),
         artUri:
             song.thumbnails.isNotEmpty
@@ -1504,7 +1505,7 @@ class AndroidAutoBrowserController {
         videoId: song.videoId,
         needsUrl: true,
         title: song.name,
-        artist: song.artist.name,
+        artist: displayArtists(song.artists),
         duration: Duration(seconds: song.duration ?? 0),
         artUri:
             song.thumbnails.isNotEmpty
@@ -1733,7 +1734,7 @@ class AndroidAutoBrowserController {
           needsUrl: true,
           isVideo: s.type == 'VIDEO',
           title: s.name,
-          artist: s.artist.name,
+          artist: displayArtists(s.artists),
           album: album.name,
           duration: Duration(seconds: s.duration ?? 0),
           artUri:
@@ -1784,7 +1785,7 @@ class AndroidAutoBrowserController {
           needsUrl: true,
           isVideo: true,
           title: v.name,
-          artist: v.artist.name,
+          artist: displayArtists(v.artists),
           duration: Duration(seconds: v.duration ?? 0),
           artUri:
               v.thumbnails.isNotEmpty
@@ -1838,8 +1839,8 @@ class AndroidAutoBrowserController {
             LikedAlbumModel(
               albumId: albumId,
               name: album.name,
-              artistName: album.artist.name,
-              artistId: album.artist.artistId,
+              artistName: displayArtists(album.artists),
+              artistId: primaryArtistId(album.artists),
               thumbnailUrl:
                   album.thumbnails.isNotEmpty
                       ? album.thumbnails.last.url
@@ -2141,7 +2142,7 @@ class AndroidAutoBrowserController {
             videoId: result.videoId,
             needsUrl: true,
             title: result.name,
-            artist: result.artist.name,
+            artist: displayArtists(result.artists),
             duration: Duration(seconds: result.duration ?? 0),
             artUri:
                 result.thumbnails.isNotEmpty
@@ -2159,7 +2160,7 @@ class AndroidAutoBrowserController {
             needsUrl: true,
             isVideo: true,
             title: result.name,
-            artist: result.artist.name,
+            artist: displayArtists(result.artists),
             duration: Duration(seconds: result.duration ?? 0),
             artUri:
                 result.thumbnails.isNotEmpty
@@ -2181,7 +2182,7 @@ class AndroidAutoBrowserController {
             MediaItem(
               id: '$_homeAlbumPrefix${result.albumId}',
               title: result.name,
-              artist: result.artist.name,
+              artist: displayArtists(result.artists),
               artUri:
                   result.thumbnails.isNotEmpty
                       ? Uri.tryParse(result.thumbnails.last.url)

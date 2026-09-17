@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/playlist_card.dart';
 import 'providers/user_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class UserPlaylistsScreen extends ConsumerWidget {
   final String channelId;
@@ -80,7 +81,7 @@ class UserPlaylistsScreen extends ConsumerWidget {
               return PlaylistCard(
                 playlistId: playlist.playlistId,
                 name: playlist.name,
-                artist: playlist.artist.name,
+                artist: displayArtists(playlist.artists),
                 thumbnailUrl:
                     playlist.thumbnails.isNotEmpty
                         ? playlist.thumbnails.last.url

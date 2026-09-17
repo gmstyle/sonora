@@ -2066,6 +2066,12 @@ abstract class AppLocalizations {
   /// **'Go to Artist'**
   String get goToArtist;
 
+  /// No description provided for @goToArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Artists'**
+  String get goToArtists;
+
   /// No description provided for @goToAlbum.
   ///
   /// In en, this message translates to:

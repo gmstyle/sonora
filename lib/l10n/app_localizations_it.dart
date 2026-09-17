@@ -1194,6 +1194,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get goToArtist => 'Vai all\'Artista';
 
   @override
+  String get goToArtists => 'Vai agli artisti';
+
+  @override
   String get goToAlbum => 'Vai all\'Album';
 
   @override

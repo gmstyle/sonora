@@ -116,6 +116,7 @@ class _DownloadRequest {
   final String videoId;
   final String title;
   final String artist;
+  final String? artistsJson;
   final String? thumbnailUrl;
   final String? subdirectory;
   final bool isExplicit;
@@ -125,6 +126,7 @@ class _DownloadRequest {
     required this.videoId,
     required this.title,
     required this.artist,
+    this.artistsJson,
     this.thumbnailUrl,
     this.subdirectory,
     this.isExplicit = false,
@@ -184,6 +186,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     required String videoId,
     required String title,
     required String artist,
+    String? artistsJson,
     String? thumbnailUrl,
     String? subdirectory,
     bool isExplicit = false,
@@ -196,6 +199,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       videoId: videoId,
       title: title,
       artist: artist,
+      artistsJson: artistsJson,
       thumbnailUrl: thumbnailUrl,
       subdirectory: subdirectory,
       isExplicit: isExplicit,
@@ -261,6 +265,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       videoId: request.videoId,
       title: request.title,
       artist: request.artist,
+      artistsJson: request.artistsJson,
       thumbnailUrl: request.thumbnailUrl,
       subdirectory: request.subdirectory,
       isExplicit: request.isExplicit,
@@ -305,6 +310,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         videoId: videoId,
         title: request.title,
         artist: request.artist,
+        artistsJson: request.artistsJson,
         thumbnailUrl: request.thumbnailUrl,
         downloadOnlyOnWifi: settings.downloadOnlyOnWifi,
         downloadPath: settings.downloadPath,

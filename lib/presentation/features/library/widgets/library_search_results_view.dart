@@ -118,6 +118,7 @@ class LibrarySearchResultsView extends ConsumerWidget {
                       videoId: s.videoId,
                       title: s.title,
                       artist: s.artist,
+                      artistsJson: s.artistsJson,
                       thumbnailUrl: s.thumbnailUrl,
                       duration: s.duration,
                       artistId: s.artistId,

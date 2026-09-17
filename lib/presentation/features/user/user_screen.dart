@@ -19,6 +19,7 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/video_card.dart';
 import 'providers/user_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class UserScreen extends ConsumerWidget {
   final String channelId;
@@ -217,12 +218,12 @@ class _UserContentState extends ConsumerState<_UserContent> {
                             return VideoCard(
                               videoId: video.videoId,
                               title: video.name,
-                              artist: video.artist.name,
+                              artist: displayArtists(video.artists),
                               thumbnailUrl:
                                   video.thumbnails.isNotEmpty
                                       ? video.thumbnails.last.url
                                       : null,
-                              artistId: video.artist.artistId,
+                              artistId: primaryArtistId(video.artists),
                               isExplicit: video.isExplicit,
                             );
                           },
@@ -263,7 +264,7 @@ class _UserContentState extends ConsumerState<_UserContent> {
                             return PlaylistCard(
                               playlistId: playlist.playlistId,
                               name: playlist.name,
-                              artist: playlist.artist.name,
+                              artist: displayArtists(playlist.artists),
                               thumbnailUrl:
                                   playlist.thumbnails.isNotEmpty
                                       ? playlist.thumbnails.last.url

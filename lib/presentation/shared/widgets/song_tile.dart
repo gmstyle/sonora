@@ -1,3 +1,4 @@
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/extensions/duration_ext.dart';
@@ -20,6 +21,8 @@ class SongTile extends ConsumerWidget {
   final String? albumName;
   final String? artistId;
   final String? albumId;
+  final List<ArtistBasic>? artists;
+  final String? artistsJson;
   final String? playCount;
   final int? viewCount;
   final bool isExplicit;
@@ -39,6 +42,8 @@ class SongTile extends ConsumerWidget {
     this.albumName,
     this.artistId,
     this.albumId,
+    this.artists,
+    this.artistsJson,
     this.playCount,
     this.viewCount,
     this.isExplicit = false,
@@ -103,6 +108,8 @@ class SongTile extends ConsumerWidget {
             albumName: albumName,
             artistId: artistId,
             albumId: albumId,
+            artists: artists,
+            artistsJson: artistsJson,
             playCount: playCount,
             viewCount: viewCount,
             isExplicit: isExplicit,

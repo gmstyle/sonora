@@ -10,6 +10,7 @@ import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_card.dart';
 import 'providers/browse_section_provider.dart';
+import '../../../core/utils/artists_utils.dart';
 
 class BrowseSectionScreen extends ConsumerWidget {
   final String browseId;
@@ -120,9 +121,10 @@ class BrowseSectionScreen extends ConsumerWidget {
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         title: item.name,
-        artist: item.artist.name,
+        artist: displayArtists(item.artists),
+        artists: item.artists,
         duration: item.duration,
-        artistId: item.artist.artistId,
+        artistId: primaryArtistId(item.artists),
         albumId: item.album?.albumId,
         cardWidth: cardWidth,
         isVideo: item.type == 'VIDEO',
@@ -133,8 +135,8 @@ class BrowseSectionScreen extends ConsumerWidget {
       return AlbumCard(
         albumId: item.albumId,
         name: item.name,
-        artist: item.artist.name,
-        artistId: item.artist.artistId,
+        artist: displayArtists(item.artists),
+        artistId: primaryArtistId(item.artists),
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         year: item.year,
@@ -146,7 +148,7 @@ class BrowseSectionScreen extends ConsumerWidget {
       return PlaylistCard(
         playlistId: item.playlistId,
         name: item.name,
-        artist: item.artist.name,
+        artist: displayArtists(item.artists),
         thumbnailUrl:
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         cardWidth: cardWidth,
