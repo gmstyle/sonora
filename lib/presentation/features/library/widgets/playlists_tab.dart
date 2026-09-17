@@ -269,10 +269,7 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
   }
 
   Future<void> _importPlaylist() async {
-    final result = await showDialog<PlaylistImportResult>(
-      context: context,
-      builder: (_) => const ImportPlaylistDialog(),
-    );
+    final result = await ImportPlaylistDialog.show(context);
     if (result != null && mounted) {
       ref.invalidate(playlistsProvider);
       final l10n = AppLocalizations.of(context);

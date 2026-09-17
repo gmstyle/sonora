@@ -2504,6 +2504,12 @@ abstract class AppLocalizations {
   /// **'Import Playlist'**
   String get importPlaylist;
 
+  /// No description provided for @importPlaylistHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a YouTube Music or Spotify playlist link.'**
+  String get importPlaylistHint;
+
   /// No description provided for @youtubePlaylistUrl.
   ///
   /// In en, this message translates to:

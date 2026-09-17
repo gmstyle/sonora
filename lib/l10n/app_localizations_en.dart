@@ -1423,6 +1423,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importPlaylist => 'Import Playlist';
 
   @override
+  String get importPlaylistHint =>
+      'Paste a YouTube Music or Spotify playlist link.';
+
+  @override
   String get youtubePlaylistUrl => 'YouTube or Spotify playlist URL';
 
   @override

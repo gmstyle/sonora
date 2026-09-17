@@ -654,6 +654,7 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 - **Local Synchronization** (`LocalSyncPanel`)
 - **Device Casting** (`CastDialog`)
 - **Sleep Timer** (`showPlayerTimerDialog` inside `PlayerSharedWidgets`)
+- **Playlist import** (`ImportPlaylistDialog`): short form, so compact (<600dp) is a full-width modal bottom sheet; tablet (600–1199dp) is a centered dialog locked at 480dp; wide (≥1200dp) is locked at 560dp. The card width is fixed up front so pasting a long YouTube/Spotify URL cannot grow the overlay.
 
 ---
 

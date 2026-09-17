@@ -691,6 +691,7 @@
   "offlineModeDisabled": "Offline mode disabled",
   "noConnectionMessage": "No internet connection. Check your network.",
   "importPlaylist": "Import Playlist",
+  "importPlaylistHint": "Paste a YouTube Music or Spotify playlist link.",
   "youtubePlaylistUrl": "YouTube or Spotify playlist URL",
   "playlistUrlRequired": "A playlist URL or ID is required",
   "playlistImported": "Playlist imported successfully",
