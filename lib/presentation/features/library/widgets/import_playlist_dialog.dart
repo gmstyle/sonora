@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../providers/sync_youtube_playlist_use_case_provider.dart';
+import '../../../providers/import_playlist_providers.dart';
 
 class ImportPlaylistDialog extends ConsumerStatefulWidget {
   const ImportPlaylistDialog({super.key});
@@ -16,6 +16,8 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
   late final FocusNode _focusNode;
   String? _error;
   bool _isLoading = false;
+  int _progressCurrent = 0;
+  int _progressTotal = 0;
 
   @override
   void initState() {
@@ -44,12 +46,26 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _progressCurrent = 0;
+      _progressTotal = 0;
     });
 
     try {
-      await ref.read(syncYoutubePlaylistUseCaseProvider).execute(input);
+      final result = await ref
+          .read(importRemotePlaylistUseCaseProvider)
+          .execute(
+            input,
+            onProgress: (current, total) {
+              if (mounted) {
+                setState(() {
+                  _progressCurrent = current;
+                  _progressTotal = total;
+                });
+              }
+            },
+          );
       if (mounted) {
-        Navigator.pop(context, true); // Success
+        Navigator.pop(context, result);
       }
     } catch (e) {
       if (mounted) {
@@ -59,7 +75,11 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
           if (e is ArgumentError) {
             _error =
                 l10n?.invalidPlaylistUrlOrId ??
-                'Invalid YouTube playlist URL or ID';
+                'Invalid YouTube or Spotify playlist URL';
+          } else if (errStr.contains('matched on YouTube Music')) {
+            _error =
+                l10n?.playlistNoMatchesError ??
+                'No tracks from this Spotify playlist could be matched on YouTube Music';
           } else if (errStr.contains('empty') ||
               errStr.contains('could not be retrieved')) {
             _error =
@@ -68,7 +88,8 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
           } else if (errStr.contains('SocketException') ||
               errStr.contains('Network') ||
               errStr.contains('HttpException') ||
-              errStr.contains('Connection')) {
+              errStr.contains('Connection') ||
+              errStr.contains('DioException')) {
             _error =
                 l10n?.playlistSyncError ??
                 'An error occurred while syncing. Please check your internet connection.';
@@ -84,6 +105,11 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
+    final progressLabel =
+        _progressTotal > 0
+            ? (l10n?.importingProgress(_progressCurrent, _progressTotal) ??
+                'Importing $_progressCurrent/$_progressTotal…')
+            : (l10n?.importing ?? 'Importing...');
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -103,7 +129,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      l10n?.importing ?? 'Importing...',
+                      progressLabel,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -118,7 +144,8 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
                 enabled: !_isLoading,
                 decoration: InputDecoration(
                   labelText:
-                      l10n?.youtubePlaylistUrl ?? 'YouTube Playlist URL or ID',
+                      l10n?.youtubePlaylistUrl ??
+                      'YouTube or Spotify playlist URL',
                   errorText: _error,
                   errorMaxLines: 3,
                   border: OutlineInputBorder(

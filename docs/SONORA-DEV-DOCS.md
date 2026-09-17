@@ -54,6 +54,7 @@ lib/
 │       ├── backup_utils.dart           # JSON serialize/deserialize (no I/O)
 │       ├── linux_tray_service.dart     # System tray for Linux
 │       ├── notification_utils.dart     # Android foreground notification for download
+│       ├── playlist_url_parser.dart    # YouTube / Spotify playlist URL → id
 │       └── platform_utils.dart         # isAndroid, isLinux helpers
 ├── data/
 │   ├── datasources/
@@ -65,6 +66,7 @@ lib/
 │   │   │   └── daos/                   # 4 DAOs (library, playlists, downloads, history)
 │   │   └── remote/
 │   │       ├── ytmusic_datasource.dart # Wrapper for dart_ytmusic_api
+│   │       ├── spotify_playlist_datasource.dart # Public Spotify embed → track list
 │   │       └── stream_datasource.dart  # youtube_explode_dart → stream URL (quality-aware)
 │   ├── repositories/
 │   │   ├── music_repository_impl.dart
@@ -80,6 +82,7 @@ lib/
 │   │   └── stream_quality_selector.dart # audioOnly (tiered) / muxed (best bitrate)
 │   ├── models/
 │   │   ├── library_models.dart         # PODO (LikedSong, FollowedArtist, LikedPodcast, LikedEpisode, History, …)
+│   │   ├── playlist_import.dart        # Spotify snapshot + PlaylistImportResult
 │   │   ├── queue_track.dart            # QueueTrack + contentType (song|video|episode) + podcastBrowseId
 │   │   └── media_quality.dart          # MediaQuality { high, mid, low }
 │   ├── repositories/
@@ -104,6 +107,11 @@ lib/
 │       │   ├── play_podcast_use_case.dart  # episode → MediaItem with contentType=episode
 │       │   ├── queue_use_case.dart
 │       │   └── start_radio_use_case.dart
+│       ├── playlist/
+│       │   ├── sync_youtube_playlist_use_case.dart
+│       │   ├── import_spotify_playlist_use_case.dart  # match Spotify tracks on YTM
+│       │   ├── import_remote_playlist_use_case.dart   # YouTube vs Spotify router
+│       │   └── ytmusic_track_matcher.dart
 │       └── update/
 │           └── check_for_updates_use_case.dart
 ├── l10n/
@@ -269,6 +277,16 @@ flutter gen-l10n
 ```
 
 Keys cover: navigation, artist, album, playlist, podcast, episode, library, downloads, search, settings, player, cast, context menu, home/explore, stats/wrapped, and common actions.
+
+### 4.6 Playlist import
+
+Library → Playlists → import accepts a YouTube Music / YouTube playlist URL (or id) **or** a public Spotify playlist URL (`open.spotify.com/playlist/…`, `spotify:playlist:…`).
+
+- **YouTube**: `SyncYoutubePlaylistUseCase` loads the playlist via `dart_ytmusic_api` and copies videos into a local playlist.
+- **Spotify**: `SpotifyPlaylistDatasource` reads the public embed page (`/embed/playlist/{id}`) `__NEXT_DATA__` JSON (no Spotify API key). Each track is resolved on YouTube Music with `searchSongs` + `YtMusicTrackMatcher` (title/artist/duration score). Unmatched tracks are skipped; duplicate YouTube ids in the same playlist are skipped because `playlist_entries` is keyed on `(playlistId, videoId)`.
+- Private Spotify playlists and the embed ~100-track cap are limitations of the public embed, not of the official Spotify Web API.
+
+`ImportRemotePlaylistUseCase` chooses the path from `PlaylistUrlParser`.
 
 ---
 

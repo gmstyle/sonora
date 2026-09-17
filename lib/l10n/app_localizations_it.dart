@@ -1428,7 +1428,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get importPlaylist => 'Importa Playlist';
 
   @override
-  String get youtubePlaylistUrl => 'URL o ID playlist YouTube';
+  String get youtubePlaylistUrl => 'URL playlist YouTube o Spotify';
 
   @override
   String get playlistUrlRequired => 'Un URL o ID playlist è richiesto';
@@ -1437,14 +1437,29 @@ class AppLocalizationsIt extends AppLocalizations {
   String get playlistImported => 'Playlist importata con successo';
 
   @override
+  String playlistImportedPartial(int imported, int total) {
+    return 'Importati $imported di $total brani';
+  }
+
+  @override
   String get importing => 'Importazione in corso...';
 
   @override
-  String get invalidPlaylistUrlOrId => 'URL o ID playlist YouTube non valido';
+  String importingProgress(int current, int total) {
+    return 'Importazione $current/$total…';
+  }
+
+  @override
+  String get invalidPlaylistUrlOrId =>
+      'URL playlist YouTube o Spotify non valido';
 
   @override
   String get playlistEmptyError =>
       'La playlist è vuota o non è stato possibile recuperarla';
+
+  @override
+  String get playlistNoMatchesError =>
+      'Nessun brano di questa playlist Spotify è stato trovato su YouTube Music';
 
   @override
   String get playlistSyncError =>
