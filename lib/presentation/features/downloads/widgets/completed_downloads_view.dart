@@ -102,8 +102,9 @@ class CompletedDownloadsSliver extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final groups = ref.watch(downloadGroupsProvider);
     final sort = ref.watch(downloadsSortProvider);
-    if (groups.isEmpty)
+    if (groups.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
     return _MobileCompletedDownloads(groups: groups, sort: sort);
   }
 }

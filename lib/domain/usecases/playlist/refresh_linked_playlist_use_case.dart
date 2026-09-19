@@ -285,7 +285,7 @@ class RefreshLinkedPlaylistUseCase {
             artist: artistName.isNotEmpty ? artistName : e.artist,
             artistsJson: encodeArtistsJson(song.artists) ?? e.artistsJson,
             thumbnailUrl: thumb,
-            duration: song.duration ?? e.duration,
+            duration: song.duration,
             isVideo: e.isVideo,
             isExplicit: song.isExplicit,
           ),
