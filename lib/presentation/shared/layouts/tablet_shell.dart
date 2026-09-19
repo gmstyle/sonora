@@ -5,9 +5,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/nav_now_playing.dart';
 import '../../features/player/player_sheet.dart';
+import '../../providers/download_provider.dart';
 import '../../providers/player_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
+import '../widgets/download_progress_banner.dart';
 import '../widgets/player_error_listener.dart';
 import '../widgets/sonora_logo.dart';
 
@@ -90,10 +92,22 @@ class TabletShell extends ConsumerWidget {
             child: Stack(
               children: [
                 Padding(
-                  padding: EdgeInsets.only(bottom: isPlayerActive ? 72.0 : 0.0),
+                  padding: EdgeInsets.only(
+                    bottom: isPlayerActive
+                        ? 72.0
+                        : (ref.watch(downloadBannerSummaryProvider) != null
+                            ? 52.0
+                            : 0.0),
+                  ),
                   child: BranchFadeTransition(navigationShell: navigationShell),
                 ),
                 const PlayerSheet(),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: isPlayerActive ? 72 : 0,
+                  child: const DownloadProgressBanner(),
+                ),
                 const PlayerErrorListener(),
                 const ActionFeedbackListener(),
               ],

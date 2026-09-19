@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet_mobile.dart';
+import '../../providers/download_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
+import '../widgets/download_progress_banner.dart';
 import '../widgets/player_error_listener.dart';
 
 final _icons = [
@@ -60,9 +62,12 @@ class MobileShell extends ConsumerWidget {
       ],
     );
 
+    final hasDownloads = ref.watch(downloadBannerSummaryProvider) != null;
+
     Widget dock = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (hasDownloads) const DownloadProgressBanner(),
         if (showPlayer) ...[
           const PlayerSheetMobile(),
           Divider(

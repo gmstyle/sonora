@@ -4,15 +4,14 @@ import 'dart:io';
 import 'dart:ui' show PlatformDispatcher;
 
 import 'package:dio/dio.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
-import '../../core/utils/notification_utils.dart';
 import '../../domain/models/library_models.dart';
 import '../../domain/usecases/download/download_exceptions.dart';
 import '../../l10n/app_localizations.dart';
 import 'delete_download_use_case_provider.dart';
+import 'download_notification_service.dart';
 import 'library_repository_provider.dart';
 import 'settings_provider.dart';
 import 'start_download_use_case_provider.dart';
@@ -23,6 +22,9 @@ enum DownloadStatus { pending, downloading, completed, error }
 
 enum DownloadError { wifiRestricted, network, storage, unknown }
 
+enum DownloadBannerAction { cancelItem, cancelBatch, cancelAll }
+
+/// Immutable snapshot of one in-flight / queued / just-finished download.
 class ActiveDownload {
   final String videoId;
   final String title;
@@ -33,6 +35,9 @@ class ActiveDownload {
   final int totalBytes;
   final double? speedBytesPerSec;
   final DownloadError? error;
+  final String? batchId;
+  final String? batchName;
+  final int? batchTotal;
 
   const ActiveDownload({
     required this.videoId,
@@ -44,6 +49,9 @@ class ActiveDownload {
     this.totalBytes = 0,
     this.speedBytesPerSec,
     this.error,
+    this.batchId,
+    this.batchName,
+    this.batchTotal,
   });
 
   double get progress =>
@@ -76,8 +84,45 @@ class ActiveDownload {
       speedBytesPerSec:
           clearSpeed ? null : (speedBytesPerSec ?? this.speedBytesPerSec),
       error: error ?? this.error,
+      batchId: batchId,
+      batchName: batchName,
+      batchTotal: batchTotal,
     );
   }
+}
+
+/// Session progress for a bulk enqueue (album / playlist / podcast).
+class DownloadBatchProgress {
+  final String id;
+  final String name;
+  final int total;
+  final int completed;
+
+  const DownloadBatchProgress({
+    required this.id,
+    required this.name,
+    required this.total,
+    required this.completed,
+  });
+
+  int get remaining => (total - completed).clamp(0, total);
+}
+
+/// Derived UI model for the persistent in-app download banner.
+class DownloadBannerSummary {
+  final String title;
+  final String? subtitle;
+  final DownloadBannerAction action;
+  final String? targetId;
+  final double? progress;
+
+  const DownloadBannerSummary({
+    required this.title,
+    this.subtitle,
+    required this.action,
+    this.targetId,
+    this.progress,
+  });
 }
 
 // ── Providers ─────────────────────────────────────────────────────────────
@@ -91,9 +136,74 @@ final activeDownloadsProvider =
       DownloadsNotifier.new,
     );
 
+/// Completed counts for active batches (survives per-item flash removal).
+final downloadBatchesProvider = Provider<Map<String, DownloadBatchProgress>>((
+  ref,
+) {
+  // Rebuild whenever queue items change; batch counters live on the notifier.
+  ref.watch(activeDownloadsProvider);
+  return ref.read(activeDownloadsProvider.notifier).batchProgress;
+});
+
 final downloadedIdsProvider = Provider<Set<String>>((ref) {
   final allDownloads = ref.watch(allDownloadsProvider);
   return allDownloads.asData?.value.map((d) => d.videoId).toSet() ?? {};
+});
+
+/// Aggregate banner state — presentation-only, derived from the notifier.
+final downloadBannerSummaryProvider = Provider<DownloadBannerSummary?>((ref) {
+  final active = ref.watch(activeDownloadsProvider);
+  final batches = ref.watch(downloadBatchesProvider);
+  final working =
+      active.values
+          .where(
+            (d) =>
+                d.status == DownloadStatus.pending ||
+                d.status == DownloadStatus.downloading ||
+                d.status == DownloadStatus.error,
+          )
+          .toList();
+  if (working.isEmpty) return null;
+
+  final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
+  final batchIds =
+      working.map((d) => d.batchId).whereType<String>().toSet();
+  final hasSingles = working.any((d) => d.batchId == null);
+
+  if (working.length == 1) {
+    final item = working.first;
+    final downloading = item.status == DownloadStatus.downloading;
+    return DownloadBannerSummary(
+      title:
+          downloading
+              ? '${item.title} · ${(item.progress * 100).round()}%'
+              : '${item.title} · ${l10n.downloadQueued}',
+      subtitle: l10n.tapToOpenDownloads,
+      action: DownloadBannerAction.cancelItem,
+      targetId: item.videoId,
+      progress: downloading ? item.progress : null,
+    );
+  }
+
+  if (!hasSingles && batchIds.length == 1) {
+    final batchId = batchIds.first;
+    final batch = batches[batchId];
+    final name = batch?.name ?? working.first.batchName ?? '';
+    final total = batch?.total ?? working.first.batchTotal ?? working.length;
+    final done = batch?.completed ?? 0;
+    return DownloadBannerSummary(
+      title: l10n.downloadingBatchProgress(name, done, total),
+      subtitle: l10n.tapToOpenDownloads,
+      action: DownloadBannerAction.cancelBatch,
+      targetId: batchId,
+    );
+  }
+
+  return DownloadBannerSummary(
+    title: l10n.downloadsInProgress(working.length),
+    subtitle: l10n.tapToOpenDownloads,
+    action: DownloadBannerAction.cancelAll,
+  );
 });
 
 enum DownloadsSort { newest, title, largest }
@@ -121,6 +231,9 @@ class _DownloadRequest {
   final String? subdirectory;
   final bool isExplicit;
   final bool isVideo;
+  final String? batchId;
+  final String? batchName;
+  final int? batchTotal;
 
   const _DownloadRequest({
     required this.videoId,
@@ -131,6 +244,9 @@ class _DownloadRequest {
     this.subdirectory,
     this.isExplicit = false,
     this.isVideo = false,
+    this.batchId,
+    this.batchName,
+    this.batchTotal,
   });
 }
 
@@ -164,6 +280,7 @@ class _SpeedSampler {
 
 class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
   static const _uiUpdateInterval = Duration(milliseconds: 200);
+  static const _notificationUpdateInterval = Duration(milliseconds: 500);
 
   final Map<String, _DownloadRequest> _requests = {};
   final Map<String, CancelToken> _cancelTokens = {};
@@ -171,17 +288,38 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
   final Map<String, _SpeedSampler> _samplers = {};
   final Map<String, DateTime> _lastUiUpdate = {};
   final Map<String, int> _enqueueOrder = {};
+  final Map<String, DownloadBatchProgress> _batches = {};
   int _nextOrder = 0;
+  DateTime? _lastNotificationUpdate;
+  Timer? _completionDismissTimer;
+
+  /// Exposed for [downloadBatchesProvider] without duplicating mutable state.
+  Map<String, DownloadBatchProgress> get batchProgress =>
+      Map.unmodifiable(_batches);
 
   @override
-  Map<String, ActiveDownload> build() => {};
+  Map<String, ActiveDownload> build() {
+    ref.onDispose(() {
+      _completionDismissTimer?.cancel();
+    });
+    return {};
+  }
 
   bool isDownloading(String videoId) => state.containsKey(videoId);
 
-  /// Enqueues a download and completes when that item reaches a terminal
-  /// state (completed, error or cancelled). Errors are never thrown to the
-  /// caller: they are surfaced through [ActiveDownload.error] so a failing
-  /// item does not abort bulk download loops.
+  bool isBatchActive(String batchId) {
+    return state.values.any(
+      (d) =>
+          d.batchId == batchId &&
+          (d.status == DownloadStatus.pending ||
+              d.status == DownloadStatus.downloading ||
+              d.status == DownloadStatus.error),
+    );
+  }
+
+  /// Enqueues a download. The returned future completes when that item
+  /// reaches a terminal state. Bulk callers should fire-and-forget so the
+  /// whole collection enters the queue immediately.
   Future<void> startDownload({
     required String videoId,
     required String title,
@@ -191,6 +329,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     String? subdirectory,
     bool isExplicit = false,
     bool isVideo = false,
+    String? batchId,
+    String? batchName,
+    int? batchTotal,
   }) {
     final existingCompleter = _completers[videoId];
     if (existingCompleter != null) return existingCompleter.future;
@@ -204,8 +345,23 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       subdirectory: subdirectory,
       isExplicit: isExplicit,
       isVideo: isVideo,
+      batchId: batchId,
+      batchName: batchName,
+      batchTotal: batchTotal,
     );
     _requests[videoId] = request;
+
+    if (batchId != null && batchName != null && batchTotal != null) {
+      final existing = _batches[batchId];
+      _batches[batchId] = DownloadBatchProgress(
+        id: batchId,
+        name: batchName,
+        total: existing == null
+            ? batchTotal
+            : (existing.total > batchTotal ? existing.total : batchTotal),
+        completed: existing?.completed ?? 0,
+      );
+    }
 
     final completer = Completer<void>();
     _completers[videoId] = completer;
@@ -218,10 +374,14 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         title: title,
         artist: artist,
         thumbnailUrl: thumbnailUrl,
+        batchId: batchId,
+        batchName: batchName,
+        batchTotal: batchTotal,
       ),
     };
 
     _pump();
+    _syncNotification();
     return completer.future;
   }
 
@@ -237,7 +397,39 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       }
     }
     _remove(videoId);
+    _cleanupEmptyBatch(download.batchId);
     _pump();
+    _syncNotification();
+  }
+
+  Future<void> cancelBatch(String batchId) async {
+    final ids =
+        state.entries
+            .where(
+              (e) =>
+                  e.value.batchId == batchId &&
+                  e.value.status != DownloadStatus.completed,
+            )
+            .map((e) => e.key)
+            .toList();
+    for (final id in ids) {
+      await cancelDownload(id);
+    }
+    _batches.remove(batchId);
+    _syncNotification();
+  }
+
+  Future<void> cancelAll() async {
+    final ids =
+        state.entries
+            .where((e) => e.value.status != DownloadStatus.completed)
+            .map((e) => e.key)
+            .toList();
+    for (final id in ids) {
+      await cancelDownload(id);
+    }
+    _batches.clear();
+    await _notifications.dismiss();
   }
 
   Future<void> deleteDownload(String videoId) async {
@@ -246,8 +438,11 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     }
     await ref.read(deleteDownloadUseCaseProvider).execute(videoId);
     if (state.containsKey(videoId)) {
+      final batchId = state[videoId]?.batchId;
       _remove(videoId);
+      _cleanupEmptyBatch(batchId);
       _pump();
+      _syncNotification();
     }
   }
 
@@ -270,8 +465,17 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       subdirectory: request.subdirectory,
       isExplicit: request.isExplicit,
       isVideo: request.isVideo,
+      batchId: request.batchId,
+      batchName: request.batchName,
+      batchTotal: request.batchTotal,
     );
   }
+
+  DownloadNotificationService get _notifications =>
+      ref.read(downloadNotificationServiceProvider);
+
+  AppLocalizations get _l10n =>
+      lookupAppLocalizations(PlatformDispatcher.instance.locale);
 
   int get _activeCount =>
       state.values.where((d) => d.status == DownloadStatus.downloading).length;
@@ -301,6 +505,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     _samplers[videoId] = _SpeedSampler();
 
     _update(videoId, (d) => d.copyWith(status: DownloadStatus.downloading));
+    _syncNotification(force: true);
 
     try {
       final useCase = ref.read(startDownloadUseCaseProvider);
@@ -347,6 +552,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         speedBytesPerSec: speed,
       ),
     );
+    _syncNotification();
   }
 
   void _finishSuccess(String videoId) {
@@ -364,24 +570,31 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
           clearSpeed: true,
         ),
       );
-      _showCompletionNotification(videoId, download.title);
+      _incrementBatchCompleted(download.batchId);
     }
 
     _completeItem(videoId);
     _pump();
+    _syncNotification(force: true);
 
     Future.delayed(const Duration(seconds: 3), () {
       try {
         if (state[videoId]?.status == DownloadStatus.completed) {
+          final batchId = state[videoId]?.batchId;
           _remove(videoId);
+          _cleanupEmptyBatch(batchId);
+          _syncNotification(force: true);
         }
       } catch (_) {}
     });
   }
 
   void _finishCancelled(String videoId) {
+    final batchId = state[videoId]?.batchId;
     _remove(videoId);
+    _cleanupEmptyBatch(batchId);
     _pump();
+    _syncNotification(force: true);
   }
 
   void _finishError(String videoId, DownloadError error) {
@@ -398,6 +611,34 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     );
     _completeItem(videoId);
     _pump();
+    _syncNotification(force: true);
+  }
+
+  void _incrementBatchCompleted(String? batchId) {
+    if (batchId == null) return;
+    final batch = _batches[batchId];
+    if (batch == null) return;
+    _batches[batchId] = DownloadBatchProgress(
+      id: batch.id,
+      name: batch.name,
+      total: batch.total,
+      completed: batch.completed + 1,
+    );
+  }
+
+  void _cleanupEmptyBatch(String? batchId) {
+    if (batchId == null) return;
+    final stillActive = state.values.any(
+      (d) =>
+          d.batchId == batchId &&
+          (d.status == DownloadStatus.pending ||
+              d.status == DownloadStatus.downloading ||
+              d.status == DownloadStatus.error ||
+              d.status == DownloadStatus.completed),
+    );
+    if (!stillActive) {
+      _batches.remove(batchId);
+    }
   }
 
   void _update(
@@ -434,21 +675,114 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     return DownloadError.unknown;
   }
 
-  Future<void> _showCompletionNotification(String videoId, String title) async {
+  List<ActiveDownload> get _working =>
+      state.values
+          .where(
+            (d) =>
+                d.status == DownloadStatus.pending ||
+                d.status == DownloadStatus.downloading ||
+                d.status == DownloadStatus.error,
+          )
+          .toList();
+
+  Future<void> _syncNotification({bool force = false}) async {
+    final now = DateTime.now();
+    if (!force &&
+        _lastNotificationUpdate != null &&
+        now.difference(_lastNotificationUpdate!) <
+            _notificationUpdateInterval) {
+      return;
+    }
+    _lastNotificationUpdate = now;
+
+    final working = _working;
+    final l10n = _l10n;
+
+    if (working.isEmpty) {
+      final justCompleted =
+          state.values
+              .where((d) => d.status == DownloadStatus.completed)
+              .toList();
+      if (justCompleted.isEmpty && _batches.isEmpty) {
+        _completionDismissTimer?.cancel();
+        return;
+      }
+
+      final completedFromBatches = _batches.values.fold<int>(
+        0,
+        (sum, b) => sum + b.completed,
+      );
+      final totalDone =
+          justCompleted.length > completedFromBatches
+              ? justCompleted.length
+              : completedFromBatches;
+
+      try {
+        if (totalDone <= 1 && justCompleted.isNotEmpty) {
+          await _notifications.showCompleted(
+            title: l10n.downloadComplete,
+            body: l10n.songDownloaded(justCompleted.first.title),
+          );
+        } else if (totalDone > 0) {
+          await _notifications.showCompleted(
+            title: l10n.downloadComplete,
+            body: l10n.songsDownloadedCount(totalDone),
+          );
+        }
+      } catch (_) {}
+
+      _completionDismissTimer?.cancel();
+      _completionDismissTimer = Timer(const Duration(seconds: 4), () async {
+        try {
+          await _notifications.dismiss();
+        } catch (_) {}
+      });
+      return;
+    }
+
+    _completionDismissTimer?.cancel();
+
+    final batchIds =
+        working.map((d) => d.batchId).whereType<String>().toSet();
+    final hasSingles = working.any((d) => d.batchId == null);
+
+    String body;
+    int progress;
+    int maxProgress;
+
+    if (working.length == 1) {
+      final item = working.first;
+      body =
+          item.status == DownloadStatus.downloading
+              ? '${item.title} · ${(item.progress * 100).round()}%'
+              : '${item.title} · ${l10n.downloadQueued}';
+      progress = (item.progress * 100).round();
+      maxProgress = 100;
+    } else if (!hasSingles && batchIds.length == 1) {
+      final batchId = batchIds.first;
+      final batch = _batches[batchId];
+      final name = batch?.name ?? working.first.batchName ?? '';
+      final total = batch?.total ?? working.first.batchTotal ?? working.length;
+      final done = batch?.completed ?? 0;
+      body = l10n.downloadingBatchProgress(name, done, total);
+      progress = done;
+      maxProgress = total <= 0 ? 1 : total;
+    } else {
+      body = l10n.downloadsInProgress(working.length);
+      final sessionTotal = state.length;
+      final done = state.values
+          .where((d) => d.status == DownloadStatus.completed)
+          .length;
+      progress = done;
+      maxProgress = sessionTotal <= 0 ? working.length : sessionTotal;
+    }
+
     try {
-      final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
-      await flutterLocalNotificationsPlugin.show(
-        id: videoId.hashCode,
-        title: l10n.downloadComplete,
-        body: title,
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'sonora_downloads',
-            'Sonora Downloads',
-            importance: Importance.defaultImportance,
-          ),
-          linux: LinuxNotificationDetails(defaultActionName: 'Open Sonora'),
-        ),
+      await _notifications.showProgress(
+        title: l10n.downloadInProgress,
+        body: body,
+        progress: progress,
+        maxProgress: maxProgress,
       );
     } catch (_) {}
   }

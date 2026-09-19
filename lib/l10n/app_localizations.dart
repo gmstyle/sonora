@@ -782,6 +782,54 @@ abstract class AppLocalizations {
   /// **'Cancel download'**
   String get cancelDownload;
 
+  /// No description provided for @cancelAllDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel all'**
+  String get cancelAllDownloads;
+
+  /// No description provided for @cancelBatchDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelBatchDownload;
+
+  /// No description provided for @downloadInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Download in progress'**
+  String get downloadInProgress;
+
+  /// No description provided for @downloadsInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 download in progress} other{{count} downloads in progress}}'**
+  String downloadsInProgress(int count);
+
+  /// No description provided for @downloadingBatchProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {done}/{total}'**
+  String downloadingBatchProgress(String name, int done, int total);
+
+  /// No description provided for @songsDownloadedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 song downloaded} other{{count} songs downloaded}}'**
+  String songsDownloadedCount(int count);
+
+  /// No description provided for @songDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} downloaded'**
+  String songDownloaded(String title);
+
+  /// No description provided for @tapToOpenDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open Downloads'**
+  String get tapToOpenDownloads;
+
   /// No description provided for @downloadErrorWifi.
   ///
   /// In en, this message translates to:

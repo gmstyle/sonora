@@ -205,28 +205,129 @@ class _ActiveDownloadsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final batches = ref.watch(downloadBatchesProvider);
+    final groups = _groupActive(activeDownloads, batches);
+    final showCancelAll = groups.length > 1;
+
     return SliverMainAxisGroup(
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, isTablet ? 4 : 8),
+          padding: EdgeInsets.fromLTRB(16, 16, 8, isTablet ? 4 : 8),
           sliver: SliverToBoxAdapter(
-            child: Text(
-              AppLocalizations.of(context)!.activeDownloads,
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.activeDownloads,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (showCancelAll)
+                  TextButton(
+                    onPressed:
+                        () =>
+                            ref
+                                .read(activeDownloadsProvider.notifier)
+                                .cancelAll(),
+                    child: Text(l10n.cancelAllDownloads),
+                  ),
+              ],
             ),
           ),
         ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final d = activeDownloads[index];
-            return _ActiveDownloadTile(download: d, ref: ref);
-          }, childCount: activeDownloads.length),
-        ),
+        for (final group in groups) ...[
+          if (group.batchId != null)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        group.title,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed:
+                          () => ref
+                              .read(activeDownloadsProvider.notifier)
+                              .cancelBatch(group.batchId!),
+                      child: Text(l10n.cancelBatchDownload),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final d = group.items[index];
+              return _ActiveDownloadTile(download: d, ref: ref);
+            }, childCount: group.items.length),
+          ),
+        ],
       ],
     );
   }
+
+  List<_ActiveGroup> _groupActive(
+    List<ActiveDownload> items,
+    Map<String, DownloadBatchProgress> batches,
+  ) {
+    final ordered = <_ActiveGroup>[];
+    final indexByKey = <String, int>{};
+
+    for (final item in items) {
+      final key = item.batchId ?? 'single:${item.videoId}';
+      final existingIndex = indexByKey[key];
+      if (existingIndex != null) {
+        ordered[existingIndex].items.add(item);
+        continue;
+      }
+
+      final String title;
+      if (item.batchId != null) {
+        final batch = batches[item.batchId!];
+        final name = batch?.name ?? item.batchName ?? '';
+        final done = batch?.completed ?? 0;
+        final total = batch?.total ?? item.batchTotal ?? 0;
+        title = '$name · $done/$total';
+      } else {
+        title = item.title;
+      }
+
+      indexByKey[key] = ordered.length;
+      ordered.add(
+        _ActiveGroup(
+          key: key,
+          batchId: item.batchId,
+          title: title,
+          items: [item],
+        ),
+      );
+    }
+    return ordered;
+  }
+}
+
+class _ActiveGroup {
+  final String key;
+  final String? batchId;
+  final String title;
+  final List<ActiveDownload> items;
+
+  _ActiveGroup({
+    required this.key,
+    required this.batchId,
+    required this.title,
+    required this.items,
+  });
 }
 
 class _ActiveDownloadTile extends StatelessWidget {

@@ -142,6 +142,36 @@
   "unknownSize": "dimensione sconosciuta",
   "downloadQueued": "In coda",
   "cancelDownload": "Annulla download",
+  "cancelAllDownloads": "Annulla tutto",
+  "cancelBatchDownload": "Annulla",
+  "downloadInProgress": "Download in corso",
+  "downloadsInProgress": "{count, plural, =1{1 download in corso} other{{count} download in corso}}",
+  "@downloadsInProgress": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "downloadingBatchProgress": "{name} · {done}/{total}",
+  "@downloadingBatchProgress": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "songsDownloadedCount": "{count, plural, =1{1 brano scaricato} other{{count} brani scaricati}}",
+  "@songsDownloadedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "songDownloaded": "{title} scaricato",
+  "@songDownloaded": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "tapToOpenDownloads": "Tocca per aprire Download",
   "downloadErrorWifi": "Download consentito solo su Wi-Fi",
   "downloadErrorNetwork": "Errore di rete. Controlla la connessione.",
   "downloadErrorStorage": "Errore di archiviazione durante il download",

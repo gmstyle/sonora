@@ -422,6 +422,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancelDownload => 'Cancel download';
 
   @override
+  String get cancelAllDownloads => 'Cancel all';
+
+  @override
+  String get cancelBatchDownload => 'Cancel';
+
+  @override
+  String get downloadInProgress => 'Download in progress';
+
+  @override
+  String downloadsInProgress(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count downloads in progress',
+      one: '1 download in progress',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String downloadingBatchProgress(String name, int done, int total) {
+    return '$name · $done/$total';
+  }
+
+  @override
+  String songsDownloadedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs downloaded',
+      one: '1 song downloaded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String songDownloaded(String title) {
+    return '$title downloaded';
+  }
+
+  @override
+  String get tapToOpenDownloads => 'Tap to open Downloads';
+
+  @override
   String get downloadErrorWifi => 'Wi-Fi required to download';
 
   @override

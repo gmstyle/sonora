@@ -17,6 +17,7 @@ import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/repositories/library_repository.dart';
 import 'package:sonora/domain/usecases/download/download_exceptions.dart';
 import 'package:sonora/domain/usecases/download/start_download_use_case.dart';
+import 'package:sonora/presentation/providers/download_notification_service.dart';
 import 'package:sonora/presentation/providers/download_provider.dart';
 import 'package:sonora/presentation/providers/library_repository_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
@@ -91,6 +92,9 @@ void main() {
         startDownloadUseCaseProvider.overrideWithValue(fakeUseCase),
         libraryRepositoryProvider.overrideWithValue(repo),
         sharedPreferencesProvider.overrideWithValue(prefs),
+        downloadNotificationServiceProvider.overrideWithValue(
+          const NoOpDownloadNotificationService(),
+        ),
       ],
     );
   });
@@ -103,14 +107,23 @@ void main() {
   Map<String, ActiveDownload> state() =>
       container.read(activeDownloadsProvider);
 
-  Future<void> enqueue(String videoId) {
-    return container
-        .read(activeDownloadsProvider.notifier)
-        .startDownload(
-          videoId: videoId,
-          title: 'Title $videoId',
-          artist: 'Artist $videoId',
-        );
+  DownloadsNotifier notifier() =>
+      container.read(activeDownloadsProvider.notifier);
+
+  Future<void> enqueue(
+    String videoId, {
+    String? batchId,
+    String? batchName,
+    int? batchTotal,
+  }) {
+    return notifier().startDownload(
+      videoId: videoId,
+      title: 'Title $videoId',
+      artist: 'Artist $videoId',
+      batchId: batchId,
+      batchName: batchName,
+      batchTotal: batchTotal,
+    );
   }
 
   group('DownloadsNotifier queue', () {
@@ -167,9 +180,7 @@ void main() {
           for (var i = 0; i < 4; i++) 'v$i': enqueue('v$i'),
         };
 
-        await container
-            .read(activeDownloadsProvider.notifier)
-            .cancelDownload('v3');
+        await notifier().cancelDownload('v3');
 
         expect(state().containsKey('v3'), isFalse);
         await expectLater(futures['v3'], completes);
@@ -183,9 +194,7 @@ void main() {
           for (var i = 0; i < 4; i++) 'v$i': enqueue('v$i'),
         };
 
-        await container
-            .read(activeDownloadsProvider.notifier)
-            .cancelDownload('v0');
+        await notifier().cancelDownload('v0');
 
         expect(state().containsKey('v0'), isFalse);
         expect(state()['v3']!.status, DownloadStatus.downloading);
@@ -199,14 +208,98 @@ void main() {
       expect(state()['v0']!.status, DownloadStatus.error);
 
       fakeUseCase.failIds.remove('v0');
-      final retryFuture = container
-          .read(activeDownloadsProvider.notifier)
-          .retry('v0');
+      final retryFuture = notifier().retry('v0');
 
       expect(state()['v0']!.status, DownloadStatus.downloading);
 
       fakeUseCase.gateFor('v0').complete();
       await retryFuture;
+    });
+  });
+
+  group('DownloadsNotifier batches', () {
+    test('enqueues entire batch immediately without waiting', () async {
+      for (var i = 0; i < 6; i++) {
+        unawaited(
+          enqueue(
+            'v$i',
+            batchId: 'album:1',
+            batchName: 'Album',
+            batchTotal: 6,
+          ),
+        );
+      }
+
+      expect(state().length, 6);
+      expect(
+        state().values.where((d) => d.status == DownloadStatus.pending).length,
+        3,
+      );
+      expect(notifier().batchProgress['album:1']?.total, 6);
+      expect(notifier().batchProgress['album:1']?.name, 'Album');
+    });
+
+    test('cancelBatch removes pending and active items of that batch only', () async {
+      final albumFutures = <Future<void>>[
+        for (var i = 0; i < 4; i++)
+          enqueue(
+            'a$i',
+            batchId: 'album:a',
+            batchName: 'A',
+            batchTotal: 4,
+          ),
+      ];
+      unawaited(enqueue('solo'));
+
+      await notifier().cancelBatch('album:a');
+      await Future.wait(albumFutures);
+
+      expect(
+        state().keys.where((k) => k.startsWith('a')),
+        isEmpty,
+      );
+      expect(state().containsKey('solo'), isTrue);
+    });
+
+    test('cancelAll clears the whole queue', () async {
+      final futures = <Future<void>>[
+        for (var i = 0; i < 4; i++) enqueue('v$i'),
+      ];
+
+      await notifier().cancelAll();
+      await Future.wait(futures);
+
+      expect(
+        state().values.where(
+          (d) =>
+              d.status == DownloadStatus.pending ||
+              d.status == DownloadStatus.downloading,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('one item error does not block the rest of the batch', () async {
+      fakeUseCase.failIds.add('v0');
+
+      final futures = <Future<void>>[
+        for (var i = 0; i < 4; i++)
+          enqueue(
+            'v$i',
+            batchId: 'album:1',
+            batchName: 'Album',
+            batchTotal: 4,
+          ),
+      ];
+
+      await futures[0];
+      expect(state()['v0']!.status, DownloadStatus.error);
+      expect(state()['v3']!.status, DownloadStatus.downloading);
+
+      for (var i = 1; i < 4; i++) {
+        fakeUseCase.gateFor('v$i').complete();
+      }
+      await Future.wait(futures.skip(1));
     });
   });
 }

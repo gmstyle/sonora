@@ -739,13 +739,6 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                               isExplicit: isExplicit,
                               isVideo: isVideo,
                             );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppLocalizations.of(context)!.downloadStarted,
-                            ),
-                          ),
-                        );
                       }
                     },
                   ),
@@ -1179,13 +1172,6 @@ class _SongContextMenuSheet extends ConsumerWidget {
                               isExplicit: isExplicit,
                               isVideo: isVideo,
                             );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppLocalizations.of(context)!.downloadStarted,
-                            ),
-                          ),
-                        );
                       }
                     },
                   ),

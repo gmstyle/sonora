@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -522,6 +523,7 @@ class _PlaylistDetailContentState
     final toDownload =
         entries
             .where((e) => !alreadyDownloadedIds.contains(e.videoId))
+            .where((e) => !notifier.isDownloading(e.videoId))
             .toList();
 
     if (toDownload.isEmpty) {
@@ -532,14 +534,8 @@ class _PlaylistDetailContentState
       return;
     }
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          l10n.downloadingSongs(toDownload.length, widget.playlist.name),
-        ),
-      ),
-    );
+    final batchId = 'localPlaylist:${widget.playlist.id}';
+    final batchTotal = toDownload.length;
 
     for (final entry in toDownload) {
       final liked = _findLiked(likedSongs, entry.videoId);
@@ -547,15 +543,20 @@ class _PlaylistDetailContentState
       final artist = liked?.artist ?? entry.artist ?? '';
       final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
       final isExplicit = liked?.isExplicit ?? entry.isExplicit;
-      await notifier.startDownload(
-        videoId: entry.videoId,
-        title: title,
-        artist: artist,
-        artistsJson: liked?.artistsJson ?? entry.artistsJson,
-        thumbnailUrl: thumbnailUrl,
-        subdirectory: widget.playlist.name,
-        isExplicit: isExplicit,
-        isVideo: liked?.isVideo ?? entry.isVideo,
+      unawaited(
+        notifier.startDownload(
+          videoId: entry.videoId,
+          title: title,
+          artist: artist,
+          artistsJson: liked?.artistsJson ?? entry.artistsJson,
+          thumbnailUrl: thumbnailUrl,
+          subdirectory: widget.playlist.name,
+          isExplicit: isExplicit,
+          isVideo: liked?.isVideo ?? entry.isVideo,
+          batchId: batchId,
+          batchName: widget.playlist.name,
+          batchTotal: batchTotal,
+        ),
       );
     }
   }

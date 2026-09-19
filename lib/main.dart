@@ -38,6 +38,8 @@ import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
 import 'presentation/providers/database_provider.dart';
+import 'presentation/providers/download_notification_service.dart';
+import 'presentation/providers/download_provider.dart';
 import 'presentation/providers/library_repository_provider.dart';
 import 'presentation/providers/music_repository_provider.dart';
 import 'presentation/providers/metadata_sync_service.dart';
@@ -52,6 +54,7 @@ import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
 import 'presentation/providers/ytmusic_provider.dart';
 import 'presentation/shared/widgets/release_notes_view.dart';
+import 'package:go_router/go_router.dart';
 
 LinuxTrayService? _trayService;
 
@@ -71,6 +74,9 @@ Future<void> main() async {
       android: androidSettings,
       linux: linuxSettings,
     ),
+    onDidReceiveNotificationResponse: handleDownloadNotificationResponse,
+    onDidReceiveBackgroundNotificationResponse:
+        handleDownloadNotificationResponseBackground,
   );
 
   await YTMusic().initialize();
@@ -189,6 +195,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       windowManager.addListener(this);
       windowManager.setPreventClose(true);
     }
+    downloadNotificationActionHandler = _onDownloadNotificationAction;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
       _requestNotificationPermission();
@@ -197,8 +204,24 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
 
   @override
   void dispose() {
+    if (downloadNotificationActionHandler == _onDownloadNotificationAction) {
+      downloadNotificationActionHandler = null;
+    }
     if (isLinux) windowManager.removeListener(this);
     super.dispose();
+  }
+
+  void _onDownloadNotificationAction(String actionId) {
+    if (actionId == kDownloadCancelAllActionId) {
+      ref.read(activeDownloadsProvider.notifier).cancelAll();
+      return;
+    }
+    if (actionId == kDownloadOpenActionId) {
+      final ctx = rootNavigatorKey.currentContext;
+      if (ctx != null) {
+        ctx.go('/downloads');
+      }
+    }
   }
 
   // Intercept the window close button: hide to tray instead of quitting.

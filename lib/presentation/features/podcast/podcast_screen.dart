@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -710,7 +711,6 @@ class _PodcastActions extends ConsumerWidget {
     WidgetRef ref,
     PodcastFull podcast,
   ) async {
-    const batchSize = 3;
     final notifier = ref.read(activeDownloadsProvider.notifier);
     final episodes = podcast.episodes.where((e) => e.videoId.isNotEmpty);
     final toDownload =
@@ -764,38 +764,30 @@ class _PodcastActions extends ConsumerWidget {
       if (proceed != true || !context.mounted) return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(
-            context,
-          )!.downloadingSongs(toDownload.length, podcast.name),
-        ),
-      ),
-    );
-
     final alreadyDownloadedIds =
         alreadyDownloaded.map((d) => d.videoId).toSet();
+    final batchId = 'podcast:${podcast.browseId}';
+    final batchTotal = toDownload.length;
 
-    for (var i = 0; i < toDownload.length; i += batchSize) {
-      final batch = toDownload.skip(i).take(batchSize);
-      await Future.wait(
-        batch.map((episode) async {
-          if (alreadyDownloadedIds.contains(episode.videoId)) {
-            await notifier.deleteDownload(episode.videoId);
-          }
-          await notifier.startDownload(
-            videoId: episode.videoId,
-            title: episode.name,
-            artist: podcast.author?.name ?? podcast.name,
-            thumbnailUrl:
-                episode.thumbnails.isNotEmpty
-                    ? episode.thumbnails.last.url
-                    : null,
-            subdirectory: podcast.name,
-            isVideo: false,
-          );
-        }),
+    for (final episode in toDownload) {
+      if (alreadyDownloadedIds.contains(episode.videoId)) {
+        await notifier.deleteDownload(episode.videoId);
+      }
+      unawaited(
+        notifier.startDownload(
+          videoId: episode.videoId,
+          title: episode.name,
+          artist: podcast.author?.name ?? podcast.name,
+          thumbnailUrl:
+              episode.thumbnails.isNotEmpty
+                  ? episode.thumbnails.last.url
+                  : null,
+          subdirectory: podcast.name,
+          isVideo: false,
+          batchId: batchId,
+          batchName: podcast.name,
+          batchTotal: batchTotal,
+        ),
       );
     }
   }
@@ -886,36 +878,54 @@ class _DownloadPodcastButton extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final playableEpisodes =
         podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+    final batchId = 'podcast:${podcast.browseId}';
+    final batchActive = ref.watch(activeDownloadsProvider).values.any(
+      (d) =>
+          d.batchId == batchId &&
+          (d.status == DownloadStatus.pending ||
+              d.status == DownloadStatus.downloading ||
+              d.status == DownloadStatus.error),
+    );
+    final batches = ref.watch(downloadBatchesProvider);
+    final batch = batches[batchId];
     final downloadedCount =
         playableEpisodes.where((e) => downloadedIds.contains(e.videoId)).length;
     final totalCount = playableEpisodes.length;
     final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
 
+    final IconData icon;
+    final String label;
+    if (batchActive) {
+      icon = LucideIcons.loader;
+      final done = batch?.completed ?? downloadedCount;
+      label = l10n.downloadedCount(done, batch?.total ?? totalCount);
+    } else if (allDownloaded) {
+      icon = LucideIcons.checkCircle;
+      label = l10n.downloadedCount(downloadedCount, totalCount);
+    } else if (downloadedCount > 0) {
+      icon = LucideIcons.download;
+      label = l10n.downloadedCount(downloadedCount, totalCount);
+    } else {
+      icon = LucideIcons.download;
+      label = l10n.downloadPodcast;
+    }
+
     if (iconOnly) {
       return IconButton(
-        onPressed: onDownload,
-        icon: Icon(
-          allDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
-        ),
+        onPressed: batchActive ? null : onDownload,
+        icon: Icon(icon),
         color:
-            downloadedCount > 0 ? Theme.of(context).colorScheme.primary : null,
-        tooltip:
-            downloadedCount > 0
-                ? l10n.downloadedCount(downloadedCount, totalCount)
-                : l10n.downloadPodcast,
+            downloadedCount > 0 || batchActive
+                ? Theme.of(context).colorScheme.primary
+                : null,
+        tooltip: label,
       );
     }
 
     return FilledButton.tonalIcon(
-      onPressed: onDownload,
-      icon: Icon(
-        allDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
-      ),
-      label: Text(
-        downloadedCount > 0
-            ? l10n.downloadedCount(downloadedCount, totalCount)
-            : l10n.downloadPodcast,
-      ),
+      onPressed: batchActive ? null : onDownload,
+      icon: Icon(icon),
+      label: Text(label),
     );
   }
 }

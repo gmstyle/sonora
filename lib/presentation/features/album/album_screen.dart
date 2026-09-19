@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
@@ -900,14 +901,17 @@ class _AlbumActions extends ConsumerWidget {
     WidgetRef ref,
     AlbumFull album,
   ) async {
-    const batchSize = 3;
     final notifier = ref.read(activeDownloadsProvider.notifier);
     final toDownload =
         album.songs.where((s) => !notifier.isDownloading(s.videoId)).toList();
     if (toDownload.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All songs already downloading')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.allSongsAlreadyDownloading,
+            ),
+          ),
         );
       }
       return;
@@ -922,24 +926,26 @@ class _AlbumActions extends ConsumerWidget {
             .toList() ??
         [];
     if (alreadyDownloaded.isNotEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       final proceed = await showDialog<bool>(
         context: context,
         builder:
             (ctx) => AlertDialog(
-              title: const Text('Already downloaded'),
+              title: Text(l10n.alreadyDownloaded),
               content: Text(
-                '${alreadyDownloaded.length} song${alreadyDownloaded.length > 1 ? 's' : ''} '
-                'from ${album.name} ${alreadyDownloaded.length > 1 ? 'are' : 'is'} already downloaded. '
-                'Downloading again will overwrite existing files. Continue?',
+                l10n.alreadyDownloadedSongs(
+                  alreadyDownloaded.length,
+                  album.name,
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Continue'),
+                  child: Text(l10n.continueAction),
                 ),
               ],
             ),
@@ -947,35 +953,29 @@ class _AlbumActions extends ConsumerWidget {
       if (proceed != true || !context.mounted) return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Downloading ${toDownload.length} songs from ${album.name}…',
-        ),
-      ),
-    );
-
     final alreadyDownloadedIds =
         alreadyDownloaded.map((d) => d.videoId).toSet();
+    final batchId = 'album:${album.albumId}';
+    final batchTotal = toDownload.length;
 
-    for (var i = 0; i < toDownload.length; i += batchSize) {
-      final batch = toDownload.skip(i).take(batchSize);
-      await Future.wait(
-        batch.map((song) async {
-          if (alreadyDownloadedIds.contains(song.videoId)) {
-            await notifier.deleteDownload(song.videoId);
-          }
-          await notifier.startDownload(
-            videoId: song.videoId,
-            title: song.name,
-            artist: displayArtists(song.artists),
-            artistsJson: encodeArtistsJson(song.artists),
-            thumbnailUrl:
-                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
-            subdirectory: album.name,
-            isExplicit: song.isExplicit,
-          );
-        }),
+    for (final song in toDownload) {
+      if (alreadyDownloadedIds.contains(song.videoId)) {
+        await notifier.deleteDownload(song.videoId);
+      }
+      unawaited(
+        notifier.startDownload(
+          videoId: song.videoId,
+          title: song.name,
+          artist: displayArtists(song.artists),
+          artistsJson: encodeArtistsJson(song.artists),
+          thumbnailUrl:
+              song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+          subdirectory: album.name,
+          isExplicit: song.isExplicit,
+          batchId: batchId,
+          batchName: album.name,
+          batchTotal: batchTotal,
+        ),
       );
     }
   }
@@ -1078,36 +1078,54 @@ class _DownloadAlbumButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final downloadedIds = ref.watch(downloadedIdsProvider);
+    final batchId = 'album:${album.albumId}';
+    final batchActive = ref.watch(activeDownloadsProvider).values.any(
+      (d) =>
+          d.batchId == batchId &&
+          (d.status == DownloadStatus.pending ||
+              d.status == DownloadStatus.downloading ||
+              d.status == DownloadStatus.error),
+    );
+    final batches = ref.watch(downloadBatchesProvider);
+    final batch = batches[batchId];
     final downloadedCount =
         album.songs.where((s) => downloadedIds.contains(s.videoId)).length;
     final totalCount = album.songs.length;
     final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
 
+    final IconData icon;
+    final String label;
+    if (batchActive) {
+      icon = LucideIcons.loader;
+      final done = batch?.completed ?? downloadedCount;
+      label = l10n.downloadedCount(done, batch?.total ?? totalCount);
+    } else if (allDownloaded) {
+      icon = LucideIcons.checkCircle;
+      label = l10n.downloadedCount(downloadedCount, totalCount);
+    } else if (downloadedCount > 0) {
+      icon = LucideIcons.download;
+      label = l10n.downloadedCount(downloadedCount, totalCount);
+    } else {
+      icon = LucideIcons.download;
+      label = l10n.downloadAlbum;
+    }
+
     if (iconOnly) {
       return IconButton(
-        onPressed: onDownload,
-        icon: Icon(
-          allDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
-        ),
+        onPressed: batchActive ? null : onDownload,
+        icon: Icon(icon),
         color:
-            downloadedCount > 0 ? Theme.of(context).colorScheme.primary : null,
-        tooltip:
-            downloadedCount > 0
-                ? l10n.downloadedCount(downloadedCount, totalCount)
-                : l10n.downloadAlbum,
+            downloadedCount > 0 || batchActive
+                ? Theme.of(context).colorScheme.primary
+                : null,
+        tooltip: label,
       );
     }
 
     return FilledButton.tonalIcon(
-      onPressed: onDownload,
-      icon: Icon(
-        allDownloaded ? LucideIcons.checkCircle : LucideIcons.download,
-      ),
-      label: Text(
-        downloadedCount > 0
-            ? l10n.downloadedCount(downloadedCount, totalCount)
-            : l10n.downloadAlbum,
-      ),
+      onPressed: batchActive ? null : onDownload,
+      icon: Icon(icon),
+      label: Text(label),
     );
   }
 }

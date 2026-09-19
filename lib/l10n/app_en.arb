@@ -237,6 +237,36 @@
   "unknownSize": "unknown size",
   "downloadQueued": "Queued",
   "cancelDownload": "Cancel download",
+  "cancelAllDownloads": "Cancel all",
+  "cancelBatchDownload": "Cancel",
+  "downloadInProgress": "Download in progress",
+  "downloadsInProgress": "{count, plural, =1{1 download in progress} other{{count} downloads in progress}}",
+  "@downloadsInProgress": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "downloadingBatchProgress": "{name} · {done}/{total}",
+  "@downloadingBatchProgress": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "done": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "songsDownloadedCount": "{count, plural, =1{1 song downloaded} other{{count} songs downloaded}}",
+  "@songsDownloadedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "songDownloaded": "{title} downloaded",
+  "@songDownloaded": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "tapToOpenDownloads": "Tap to open Downloads",
   "downloadErrorWifi": "Wi-Fi required to download",
   "downloadErrorNetwork": "Network error. Check your connection.",
   "downloadErrorStorage": "Storage error during download",
