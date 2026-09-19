@@ -2039,7 +2039,7 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
     ActionFeedbackNotifier feedback,
   ) async {
     try {
-      final url = await useCase.resolveStreamUrl(videoId);
+      final url = await useCase.resolveUrl(videoId);
       final track = QueueTrack(
         videoId: videoId,
         url: url,

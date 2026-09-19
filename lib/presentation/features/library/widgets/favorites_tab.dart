@@ -6,11 +6,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../domain/models/queue_track.dart';
-import '../../../../domain/repositories/music_repository.dart';
+import '../../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../providers/action_feedback_provider.dart';
-import '../../../providers/music_repository_provider.dart';
+import '../../../providers/play_video_id_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -82,7 +82,7 @@ class FavoritesTab extends ConsumerWidget {
     WidgetRef ref,
     List<LikedSongModel> songs,
   ) async {
-    final repo = ref.read(musicRepositoryProvider);
+    final useCase = ref.read(playVideoIdUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
     ref
         .read(actionFeedbackProvider.notifier)
@@ -90,7 +90,7 @@ class FavoritesTab extends ConsumerWidget {
           'Playing ${songs.length} ${AppLocalizations.of(context)!.songs}…',
         );
     try {
-      final items = await _buildItems(repo, songs);
+      final items = await _buildItems(useCase, songs);
       if (items.isNotEmpty) {
         await player.playNow(items, initialIndex: 0);
       }
@@ -112,7 +112,7 @@ class FavoritesTab extends ConsumerWidget {
     WidgetRef ref,
     List<LikedSongModel> songs,
   ) async {
-    final repo = ref.read(musicRepositoryProvider);
+    final useCase = ref.read(playVideoIdUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
     ref
         .read(actionFeedbackProvider.notifier)
@@ -121,7 +121,7 @@ class FavoritesTab extends ConsumerWidget {
         );
     try {
       final shuffled = List<LikedSongModel>.from(songs)..shuffle();
-      final items = await _buildItems(repo, shuffled);
+      final items = await _buildItems(useCase, shuffled);
       if (items.isNotEmpty) {
         await player.playNow(items);
       }
@@ -139,14 +139,14 @@ class FavoritesTab extends ConsumerWidget {
   }
 
   Future<List<MediaItem>> _buildItems(
-    MusicRepository repo,
+    PlayVideoIdUseCase useCase,
     List<LikedSongModel> songs,
   ) async {
     if (songs.isEmpty) return [];
 
     String? firstUrl;
     try {
-      firstUrl = await repo.getStreamUrl(songs.first.videoId);
+      firstUrl = await useCase.resolveUrl(songs.first.videoId);
     } catch (_) {}
 
     return [

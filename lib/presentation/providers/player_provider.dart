@@ -872,10 +872,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
-      final streamUrl = await useCase.resolveStreamUrl(videoId);
+      final url = await useCase.resolveUrl(videoId);
       final track = QueueTrack(
         videoId: videoId,
-        url: streamUrl,
+        url: url,
         isVideo: isVideo,
         isExplicit: isExplicit,
         artistId: artistId,
@@ -913,10 +913,10 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   }) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     try {
-      final streamUrl = await useCase.resolveStreamUrl(videoId);
+      final url = await useCase.resolveUrl(videoId);
       final track = QueueTrack(
         videoId: videoId,
-        url: streamUrl,
+        url: url,
         isVideo: isVideo,
         isExplicit: isExplicit,
         artistId: artistId,

@@ -2,13 +2,16 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
 import '../../models/queue_track.dart';
-import '../../repositories/music_repository.dart';
+import 'play_video_id_use_case.dart';
 
 /// Builds a [List<MediaItem>] from podcast episodes with episode metadata.
+///
+/// The episode at [playIndex] is resolved via [PlayVideoIdUseCase.resolveUrl]
+/// so a completed download is used instead of a live stream.
 class PlayPodcastUseCase {
-  final MusicRepository _repo;
+  final PlayVideoIdUseCase _playVideoId;
 
-  PlayPodcastUseCase(this._repo);
+  PlayPodcastUseCase(this._playVideoId);
 
   Future<List<MediaItem>> execute(
     List<PodcastEpisode> episodes, {
@@ -29,7 +32,9 @@ class PlayPodcastUseCase {
     String? firstUrl;
     if (playIndex >= 0) {
       try {
-        firstUrl = await _repo.getStreamUrl(playable[resolvedIndex].videoId);
+        firstUrl = await _playVideoId.resolveUrl(
+          playable[resolvedIndex].videoId,
+        );
       } catch (_) {}
     }
 

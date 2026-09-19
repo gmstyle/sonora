@@ -144,7 +144,7 @@ sonora search "jazz" --type album --limit 10 --json
 
 ### `play`
 
-Play a song from YouTube Music using an external player (or print the stream URL).
+Play a song using an external player (or print the URL). If a completed download exists for the `videoId`, the local file is used instead of a live stream.
 
 ```
 sonora play <videoId> [--player auto|mpv|ffplay|vlc|url]

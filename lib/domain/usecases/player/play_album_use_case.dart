@@ -1,15 +1,16 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import '../../models/queue_track.dart';
-import '../../repositories/music_repository.dart';
 import '../../../core/utils/artists_utils.dart';
+import 'play_video_id_use_case.dart';
 
 /// Builds a [List<MediaItem>] from an album's song list.
 ///
-/// Only resolves the stream URL for the track at [playIndex] (default 0),
-/// which will play first. All other tracks are added as pending
-/// ([needsUrl]) — the player resolves their URLs lazily when they are
-/// about to play.
+/// Only resolves the URL for the track at [playIndex] (default 0),
+/// which will play first — via [PlayVideoIdUseCase.resolveUrl] so a
+/// completed download or audio cache hit is used instead of a live stream.
+/// All other tracks are added as pending ([needsUrl]) — the player
+/// resolves their URLs lazily when they are about to play.
 ///
 /// Pass [playIndex] = -1 to skip URL resolution entirely (e.g. when
 /// adding to queue without immediate playback).
@@ -17,9 +18,9 @@ import '../../../core/utils/artists_utils.dart';
 /// Pass a pre-shuffled list when shuffle play is desired — the use case
 /// does not shuffle internally.
 class PlayAlbumUseCase {
-  final MusicRepository _repo;
+  final PlayVideoIdUseCase _playVideoId;
 
-  PlayAlbumUseCase(this._repo);
+  PlayAlbumUseCase(this._playVideoId);
 
   Future<List<MediaItem>> execute(
     List<SongDetailed> songs, {
@@ -30,7 +31,7 @@ class PlayAlbumUseCase {
     String? firstUrl;
     if (playIndex >= 0 && playIndex < songs.length) {
       try {
-        firstUrl = await _repo.getStreamUrl(songs[playIndex].videoId);
+        firstUrl = await _playVideoId.resolveUrl(songs[playIndex].videoId);
       } catch (_) {}
     }
 

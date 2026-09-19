@@ -3,6 +3,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
 import '../../../core/utils/artists_utils.dart';
+import 'play_video_id_use_case.dart';
 
 class RadioResult {
   final MediaItem firstItem;
@@ -13,8 +14,9 @@ class RadioResult {
 
 class StartRadioUseCase {
   final MusicRepository _musicRepository;
+  final PlayVideoIdUseCase _playVideoId;
 
-  StartRadioUseCase(this._musicRepository);
+  StartRadioUseCase(this._musicRepository, this._playVideoId);
 
   /// Starts a radio / watch queue from a seed video and/or playlist id.
   ///
@@ -53,7 +55,7 @@ class StartRadioUseCase {
     final first = upNexts.first;
     final MediaItem firstItem;
     if (resolveFirstUrl) {
-      final firstUrl = await _musicRepository.getStreamUrl(first.videoId);
+      final firstUrl = await _playVideoId.resolveUrl(first.videoId);
       firstItem = _mapToMediaItem(first, firstUrl);
     } else {
       firstItem = _toPendingMediaItem(first);

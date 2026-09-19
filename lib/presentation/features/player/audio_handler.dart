@@ -141,7 +141,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
        _prefs = prefs,
        _queueRepo = queueRepo,
        _proxyServer = proxyServer {
-    _startRadioUseCase = StartRadioUseCase(musicRepo);
+    _startRadioUseCase = StartRadioUseCase(musicRepo, playVideoIdUseCase);
 
     _likeController = LikeController(
       libraryRepo: libraryRepo,

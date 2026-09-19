@@ -1,12 +1,12 @@
 import 'package:audio_service/audio_service.dart';
 import '../../../domain/models/library_models.dart';
 import '../../models/queue_track.dart';
-import '../../repositories/music_repository.dart';
+import 'play_video_id_use_case.dart';
 
 class PlaySmartMixUseCase {
-  final MusicRepository _repo;
+  final PlayVideoIdUseCase _playVideoId;
 
-  PlaySmartMixUseCase(this._repo);
+  PlaySmartMixUseCase(this._playVideoId);
 
   Future<List<MediaItem>> execute({
     required List<dynamic> songs,
@@ -18,7 +18,7 @@ class PlaySmartMixUseCase {
     if (playIndex >= 0 && playIndex < songs.length) {
       try {
         final videoId = _getVideoId(songs[playIndex]);
-        startUrl = await _repo.getStreamUrl(videoId);
+        startUrl = await _playVideoId.resolveUrl(videoId);
       } catch (_) {}
     }
 
