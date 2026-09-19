@@ -185,6 +185,13 @@ class DownloadModel {
   final bool isVideo;
   final bool isExplicit;
 
+  /// Collection id without type prefix (e.g. album browse id).
+  final String? collectionId;
+
+  /// `album` | `playlist` | `podcast` | `localPlaylist`
+  final String? collectionType;
+  final String? collectionName;
+
   const DownloadModel({
     required this.videoId,
     required this.title,
@@ -198,6 +205,9 @@ class DownloadModel {
     required this.status,
     this.isVideo = false,
     this.isExplicit = false,
+    this.collectionId,
+    this.collectionType,
+    this.collectionName,
   });
 }
 

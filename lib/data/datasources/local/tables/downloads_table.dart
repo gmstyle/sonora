@@ -16,6 +16,14 @@ class Downloads extends Table {
   BoolColumn get isVideo => boolean().withDefault(const Constant(false))();
   BoolColumn get isExplicit => boolean().withDefault(const Constant(false))();
 
+  /// Stable collection id (album/playlist/podcast/local playlist), without type prefix.
+  TextColumn get collectionId => text().nullable()();
+
+  /// `album` | `playlist` | `podcast` | `localPlaylist`
+  TextColumn get collectionType => text().nullable()();
+
+  TextColumn get collectionName => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {videoId};
 }

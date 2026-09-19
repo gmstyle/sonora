@@ -139,6 +139,24 @@
   "activeDownloads": "Download Attivi",
   "downloadFailed": "Download fallito",
   "downloadedSongs": "Brani Scaricati",
+  "downloadCollections": "Libreria",
+  "downloadGroupFolders": "Cartelle",
+  "downloadSingles": "Singoli",
+  "deleteDownloadCollection": "Elimina collezione",
+  "deleteDownloadCollectionConfirm": "Eliminare tutti i {count} brani scaricati in \"{name}\"?",
+  "@deleteDownloadCollectionConfirm": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "name": {"type": "String"}
+    }
+  },
+  "selectDownloadCollection": "Seleziona una collezione",
+  "downloadGroupTrackStats": "{count, plural, =1{1 brano} other{{count} brani}}",
+  "@downloadGroupTrackStats": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "unknownSize": "dimensione sconosciuta",
   "downloadQueued": "In coda",
   "cancelDownload": "Annulla download",

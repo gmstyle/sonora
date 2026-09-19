@@ -5,16 +5,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/duration_ext.dart';
-import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
-import '../../providers/player_provider.dart';
-import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_retry_widget.dart';
-import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
+import 'widgets/completed_downloads_view.dart';
 
 class DownloadsScreen extends ConsumerWidget {
   const DownloadsScreen({super.key});
@@ -71,22 +68,42 @@ class DownloadsScreen extends ConsumerWidget {
                       d.status == DownloadStatus.error)
                     d,
               ];
-              final sort = ref.watch(downloadsSortProvider);
-              final sortedCompleted = _sortCompleted(completed, sort);
 
-              return CustomScrollView(
-                slivers: [
+              if (isCompact) {
+                return CustomScrollView(
+                  slivers: [
+                    if (hasActive)
+                      _ActiveDownloadsSection(
+                        activeDownloads: activeItems,
+                        isTablet: isTablet,
+                        ref: ref,
+                      ),
+                    if (hasCompleted) const CompletedDownloadsSliver(),
+                  ],
+                );
+              }
+
+              // Tablet / wide: actives full-width above master–detail split.
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   if (hasActive)
-                    _ActiveDownloadsSection(
-                      activeDownloads: activeItems,
-                      isTablet: isTablet,
-                      ref: ref,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
+                      child: CustomScrollView(
+                        shrinkWrap: true,
+                        slivers: [
+                          _ActiveDownloadsSection(
+                            activeDownloads: activeItems,
+                            isTablet: isTablet,
+                            ref: ref,
+                          ),
+                        ],
+                      ),
                     ),
                   if (hasCompleted)
-                    _CompletedDownloadsSection(
-                      completed: sortedCompleted,
-                      sort: sort,
-                      ref: ref,
+                    Expanded(
+                      child: CompletedDownloadsView(isCompact: false),
                     ),
                 ],
               );
@@ -158,38 +175,10 @@ class DownloadsScreen extends ConsumerWidget {
       },
     );
   }
-
-  List<DownloadModel> _sortCompleted(
-    List<DownloadModel> items,
-    DownloadsSort sort,
-  ) {
-    final sorted = List<DownloadModel>.of(items);
-    switch (sort) {
-      case DownloadsSort.newest:
-        sorted.sort(
-          (a, b) => (b.downloadedAt ?? DateTime(0)).compareTo(
-            a.downloadedAt ?? DateTime(0),
-          ),
-        );
-      case DownloadsSort.title:
-        sorted.sort(
-          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
-        );
-      case DownloadsSort.largest:
-        sorted.sort((a, b) => (b.fileSize ?? 0).compareTo(a.fileSize ?? 0));
-    }
-    return sorted;
-  }
 }
 
 String _formatBytes(int? bytes) {
-  if (bytes == null || bytes <= 0) return '';
-  if (bytes < 1024) return '$bytes B';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-  if (bytes < 1024 * 1024 * 1024) {
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  return formatDownloadBytes(bytes);
 }
 
 class _ActiveDownloadsSection extends StatelessWidget {
@@ -566,345 +555,6 @@ class _ThumbnailOverlay extends StatelessWidget {
         child: ColoredBox(
           color: scrim ?? Colors.black.withValues(alpha: 0.55),
           child: Icon(icon, size: 20, color: iconColor),
-        ),
-      ),
-    );
-  }
-}
-
-class _CompletedDownloadsSection extends StatelessWidget {
-  final List<DownloadModel> completed;
-  final DownloadsSort sort;
-  final WidgetRef ref;
-
-  const _CompletedDownloadsSection({
-    required this.completed,
-    required this.sort,
-    required this.ref,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final totalBytes = completed.fold<int>(
-      0,
-      (sum, d) => sum + (d.fileSize ?? 0),
-    );
-
-    return SliverMainAxisGroup(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-          sliver: SliverToBoxAdapter(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.downloadedSongs,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        [
-                          l10n.downloadsStats(completed.length),
-                          if (totalBytes > 0) _formatBytes(totalBytes),
-                        ].join(' · '),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _SortMenu(currentSort: sort, ref: ref),
-              ],
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final d = completed[index];
-              return _CompletedDownloadTile(download: d, ref: ref);
-            }, childCount: completed.length),
-          ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).padding.bottom + 16,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SortMenu extends StatelessWidget {
-  final DownloadsSort currentSort;
-  final WidgetRef ref;
-
-  const _SortMenu({required this.currentSort, required this.ref});
-
-  Map<DownloadsSort, String> _options(AppLocalizations l10n) => {
-    DownloadsSort.newest: l10n.sortNewest,
-    DownloadsSort.title: l10n.sortByTitle,
-    DownloadsSort.largest: l10n.sortBySize,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final label = _options(l10n)[currentSort]!;
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
-    final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
-      color: Theme.of(context).colorScheme.primary,
-      fontWeight: FontWeight.w600,
-    );
-
-    if (isMobile) {
-      return TextButton.icon(
-        onPressed: () => _showSortBottomSheet(context),
-        icon: const Icon(LucideIcons.arrowUpDown, size: 16),
-        label: Text(label, style: labelStyle),
-      );
-    }
-
-    return PopupMenuButton<DownloadsSort>(
-      tooltip: l10n.sortDownloads,
-      initialValue: currentSort,
-      onSelected:
-          (value) => ref.read(downloadsSortProvider.notifier).update(value),
-      itemBuilder:
-          (context) => [
-            for (final entry in _options(l10n).entries)
-              PopupMenuItem<DownloadsSort>(
-                value: entry.key,
-                child: Text(entry.value),
-              ),
-          ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(LucideIcons.arrowUpDown, size: 16),
-            const SizedBox(width: 8),
-            Text(label, style: labelStyle),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSortBottomSheet(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final options = _options(l10n);
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  l10n.sortBy,
-                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              RadioGroup<DownloadsSort>(
-                groupValue: currentSort,
-                onChanged: (value) {
-                  if (value == null) return;
-                  ref.read(downloadsSortProvider.notifier).update(value);
-                  Navigator.pop(sheetContext);
-                },
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final entry in options.entries)
-                      _SortOptionTile(
-                        value: entry.key,
-                        label: entry.value,
-                        activeSort: currentSort,
-                        onSelected: (value) {
-                          ref
-                              .read(downloadsSortProvider.notifier)
-                              .update(value);
-                          Navigator.pop(sheetContext);
-                        },
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SortOptionTile extends StatelessWidget {
-  final DownloadsSort value;
-  final String label;
-  final DownloadsSort activeSort;
-  final ValueChanged<DownloadsSort> onSelected;
-
-  const _SortOptionTile({
-    required this.value,
-    required this.label,
-    required this.activeSort,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = value == activeSort;
-    final theme = Theme.of(context);
-    return ListTile(
-      leading: Icon(
-        isSelected ? LucideIcons.check : null,
-        color: theme.colorScheme.primary,
-      ),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? theme.colorScheme.primary : null,
-        ),
-      ),
-      trailing: Radio<DownloadsSort>(value: value),
-      onTap: () => onSelected(value),
-    );
-  }
-}
-
-class _CompletedDownloadTile extends StatelessWidget {
-  final DownloadModel download;
-  final WidgetRef ref;
-
-  const _CompletedDownloadTile({required this.download, required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
-    final subtitleParts = [
-      download.artist,
-      if (download.fileSize != null) _formatBytes(download.fileSize),
-      if (download.downloadedAt != null)
-        MaterialLocalizations.of(
-          context,
-        ).formatMediumDate(download.downloadedAt!),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: Card(
-        child: ListTile(
-          leading: ThumbnailWidget(
-            imageUrl: download.thumbnailUrl,
-            size: 48,
-            shape: ThumbnailShape.rounded,
-          ),
-          title: RichText(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
-              children: [
-                if (download.isExplicit)
-                  const WidgetSpan(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: 6.0),
-                      child: ExplicitBadge(),
-                    ),
-                    alignment: PlaceholderAlignment.middle,
-                  ),
-                TextSpan(text: download.title),
-              ],
-            ),
-          ),
-          subtitle: Text(
-            subtitleParts.join(' · '),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: IconButton(
-            icon: Icon(
-              LucideIcons.trash2,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder:
-                    (ctx) => AlertDialog(
-                      title: Text(l10n.deleteDownload),
-                      content: Text(l10n.deleteDownloadConfirm(download.title)),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: Text(l10n.cancel),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: Text(l10n.delete),
-                        ),
-                      ],
-                    ),
-              );
-              if (confirm == true) {
-                await ref
-                    .read(activeDownloadsProvider.notifier)
-                    .deleteDownload(download.videoId);
-              }
-            },
-          ),
-          onTap: () {
-            ref
-                .read(playerStateProvider.notifier)
-                .playVideoId(
-                  download.videoId,
-                  isVideo: download.isVideo,
-                  isExplicit: download.isExplicit,
-                );
-          },
-          onLongPress:
-              () => ContextMenuSheet.showForSong(
-                context,
-                videoId: download.videoId,
-                title: download.title,
-                artist: download.artist,
-                artistsJson: download.artistsJson,
-                thumbnailUrl: download.thumbnailUrl,
-                isVideo: download.isVideo,
-                isExplicit: download.isExplicit,
-              ),
         ),
       ),
     );

@@ -7,8 +7,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../domain/models/download_group.dart';
 import '../../domain/models/library_models.dart';
 import '../../domain/usecases/download/download_exceptions.dart';
+import '../../domain/utils/download_grouping.dart';
 import '../../l10n/app_localizations.dart';
 import 'delete_download_use_case_provider.dart';
 import 'download_notification_service.dart';
@@ -131,6 +133,12 @@ final allDownloadsProvider = StreamProvider<List<DownloadModel>>((ref) {
   return ref.watch(libraryRepositoryProvider).watchCompletedDownloads();
 });
 
+/// Completed downloads grouped by collection / inferred folder / Singles.
+final downloadGroupsProvider = Provider<List<DownloadGroup>>((ref) {
+  final downloads = ref.watch(allDownloadsProvider).asData?.value ?? const [];
+  return groupCompletedDownloads(downloads);
+});
+
 final activeDownloadsProvider =
     NotifierProvider<DownloadsNotifier, Map<String, ActiveDownload>>(
       DownloadsNotifier.new,
@@ -234,6 +242,9 @@ class _DownloadRequest {
   final String? batchId;
   final String? batchName;
   final int? batchTotal;
+  final String? collectionId;
+  final String? collectionType;
+  final String? collectionName;
 
   const _DownloadRequest({
     required this.videoId,
@@ -247,6 +258,9 @@ class _DownloadRequest {
     this.batchId,
     this.batchName,
     this.batchTotal,
+    this.collectionId,
+    this.collectionType,
+    this.collectionName,
   });
 }
 
@@ -336,6 +350,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     final existingCompleter = _completers[videoId];
     if (existingCompleter != null) return existingCompleter.future;
 
+    final parsed = parseDownloadBatchId(batchId);
     final request = _DownloadRequest(
       videoId: videoId,
       title: title,
@@ -348,6 +363,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       batchId: batchId,
       batchName: batchName,
       batchTotal: batchTotal,
+      collectionId: parsed?.collectionId,
+      collectionType: parsed?.collectionType,
+      collectionName: batchName,
     );
     _requests[videoId] = request;
 
@@ -522,6 +540,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         subdirectory: request.subdirectory,
         isExplicit: request.isExplicit,
         isVideo: request.isVideo,
+        collectionId: request.collectionId,
+        collectionType: request.collectionType,
+        collectionName: request.collectionName,
         quality: settings.downloadQuality,
         cancelToken: cancelToken,
         onProgress: (received, total) {

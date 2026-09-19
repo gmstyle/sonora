@@ -171,7 +171,7 @@ lib/
         ├── library/                      # LibraryScreen + layouts + Podcasts tab + PlaylistDetailView
         │   ├── layouts/                  # library_mobile_layout.dart, library_split_layout.dart
         │   └── widgets/                  # Tab views + podcasts_tab, stats_tab, sonora_wrapped_view
-        ├── downloads/                    # DownloadsScreen (adaptive layout)
+        ├── downloads/                    # DownloadsScreen: active batches + completed groups (mobile accordion / tablet–wide split)
         └── settings/                     # SettingsScreen + 3 layouts + local_sync_panel.dart
 ```
 
@@ -304,7 +304,7 @@ Library → Playlists → import accepts a YouTube Music / YouTube playlist URL 
 | `liked_episodes` | videoId | browseId, name, podcastName, podcastBrowseId, thumbnailUrl, durationSec, date, addedAt | **v20: new** — saved episodes |
 | `local_playlists` | id (auto) | name, description, createdAt | |
 | `playlist_entries` | (playlistId, videoId) | position, title, artist, **artistsJson**, thumbnailUrl, isVideo, duration | v9: +title/artist/thumbnailUrl, v12: +isVideo, v16: +duration, **v22: +artistsJson** |
-| `downloads` | videoId | title, artist, **artistsJson**, thumbnailUrl, localPath, format, fileSize, downloadedAt, status, isVideo | v5/v6: +title/artist/thumbnailUrl, v11: +isVideo, **v21: +artistsJson** |
+| `downloads` | videoId | title, artist, **artistsJson**, thumbnailUrl, localPath, format, fileSize, downloadedAt, status, isVideo, isExplicit, **collectionId**, **collectionType**, **collectionName** | v5/v6: +title/artist/thumbnailUrl, v11: +isVideo, v15: +isExplicit, **v21: +artistsJson**, **v23: +collection\*** |
 | `history` | id (auto) | videoId, title, artist, thumbnailUrl, playedAt, playCount, isVideo, duration, **contentType**, **podcastBrowseId** | v4: +thumbnailUrl, v11: +isVideo, v14: +duration, **v20: +contentType (`song`\|`video`\|`episode`) + podcastBrowseId** |
 | `search_history` | id (auto) | query, searchedAt | |
 | `queue_items` | position (auto) | videoId, title, artist, albumTitle, thumbnailUrl, durationSec, isVideo, streamUrl, artistId, albumId, **artistsJson**, **section** | v3: +streamUrl, v10: +artistId/albumId, v18: +section, **v21: +artistsJson** |
@@ -424,7 +424,7 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
   - `StreamDatasource` caches playback plans by `videoId|audioQ` and exposes `clearUrlCache()` when stream audio quality changes.
 
 - **Dual-Path Playback Architecture:**
-  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` directory) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely.
+  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` or `/Sonora/<collection>/`) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata and optional `collectionId` / `collectionType` / `collectionName` from bulk `batchId`). Re-downloads that change `localPath` delete the previous file best-effort (no orphan files). `PlayVideoIdUseCase` routes these directly via native `file:///` URIs, bypassing the proxy entirely. Completed downloads are grouped in the UI via `downloadGroupsProvider` (persisted collection → inferred folder → Singles).
   - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback (audio-only). Saved to temporary cache (`sonora_media_cache`) with a user-configurable LRU size cap. Routed via local proxy loopback URLs; `file://` audio-only cache hits also bypass the proxy in `QueueController.toMedia`.
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:

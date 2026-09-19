@@ -106,6 +106,9 @@ abstract class LibraryRepository {
     DateTime? downloadedAt,
     bool isVideo = false,
     bool isExplicit = false,
+    String? collectionId,
+    String? collectionType,
+    String? collectionName,
   });
   Future<void> deleteDownload(String videoId);
 

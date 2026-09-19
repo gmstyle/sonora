@@ -764,6 +764,48 @@ abstract class AppLocalizations {
   /// **'Downloaded Songs'**
   String get downloadedSongs;
 
+  /// No description provided for @downloadCollections.
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get downloadCollections;
+
+  /// No description provided for @downloadGroupFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'Folders'**
+  String get downloadGroupFolders;
+
+  /// No description provided for @downloadSingles.
+  ///
+  /// In en, this message translates to:
+  /// **'Singles'**
+  String get downloadSingles;
+
+  /// No description provided for @deleteDownloadCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete collection'**
+  String get deleteDownloadCollection;
+
+  /// No description provided for @deleteDownloadCollectionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all {count} downloaded tracks in \"{name}\"?'**
+  String deleteDownloadCollectionConfirm(int count, String name);
+
+  /// No description provided for @selectDownloadCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a collection'**
+  String get selectDownloadCollection;
+
+  /// No description provided for @downloadGroupTrackStats.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 track} other{{count} tracks}}'**
+  String downloadGroupTrackStats(int count);
+
   /// No description provided for @unknownSize.
   ///
   /// In en, this message translates to:

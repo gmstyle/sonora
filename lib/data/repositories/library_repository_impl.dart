@@ -591,6 +591,9 @@ class LibraryRepositoryImpl implements LibraryRepository {
       status: row.status,
       isVideo: row.isVideo,
       isExplicit: row.isExplicit,
+      collectionId: row.collectionId,
+      collectionType: row.collectionType,
+      collectionName: row.collectionName,
     );
   }
 
@@ -638,6 +641,9 @@ class LibraryRepositoryImpl implements LibraryRepository {
     DateTime? downloadedAt,
     bool isVideo = false,
     bool isExplicit = false,
+    String? collectionId,
+    String? collectionType,
+    String? collectionName,
   }) => _downloadsDao.insertDownload(
     DownloadsCompanion.insert(
       videoId: videoId,
@@ -652,6 +658,9 @@ class LibraryRepositoryImpl implements LibraryRepository {
       downloadedAt: Value(downloadedAt),
       isVideo: Value(isVideo),
       isExplicit: Value(isExplicit),
+      collectionId: Value(collectionId),
+      collectionType: Value(collectionType),
+      collectionName: Value(collectionName),
     ),
   );
 

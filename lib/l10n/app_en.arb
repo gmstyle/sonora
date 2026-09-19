@@ -234,6 +234,24 @@
   "activeDownloads": "Active Downloads",
   "downloadFailed": "Download failed",
   "downloadedSongs": "Downloaded Songs",
+  "downloadCollections": "Library",
+  "downloadGroupFolders": "Folders",
+  "downloadSingles": "Singles",
+  "deleteDownloadCollection": "Delete collection",
+  "deleteDownloadCollectionConfirm": "Delete all {count} downloaded tracks in \"{name}\"?",
+  "@deleteDownloadCollectionConfirm": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "name": {"type": "String"}
+    }
+  },
+  "selectDownloadCollection": "Select a collection",
+  "downloadGroupTrackStats": "{count, plural, =1{1 track} other{{count} tracks}}",
+  "@downloadGroupTrackStats": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "unknownSize": "unknown size",
   "downloadQueued": "Queued",
   "cancelDownload": "Cancel download",

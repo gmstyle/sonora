@@ -413,6 +413,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadedSongs => 'Downloaded Songs';
 
   @override
+  String get downloadCollections => 'Library';
+
+  @override
+  String get downloadGroupFolders => 'Folders';
+
+  @override
+  String get downloadSingles => 'Singles';
+
+  @override
+  String get deleteDownloadCollection => 'Delete collection';
+
+  @override
+  String deleteDownloadCollectionConfirm(int count, String name) {
+    return 'Delete all $count downloaded tracks in \"$name\"?';
+  }
+
+  @override
+  String get selectDownloadCollection => 'Select a collection';
+
+  @override
+  String downloadGroupTrackStats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tracks',
+      one: '1 track',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get unknownSize => 'unknown size';
 
   @override

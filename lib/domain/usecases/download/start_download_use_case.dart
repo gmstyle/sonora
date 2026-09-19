@@ -33,6 +33,9 @@ class StartDownloadUseCase {
     String? subdirectory,
     bool isVideo = false,
     bool isExplicit = false,
+    String? collectionId,
+    String? collectionType,
+    String? collectionName,
     MediaQuality quality = MediaQuality.high,
     CancelToken? cancelToken,
     required void Function(int received, int total) onProgress,
@@ -56,6 +59,8 @@ class StartDownloadUseCase {
     final safeName = _sanitizeFilename(title);
     final filePath = '${downloadDir.path}/$safeName-$videoId.$ext';
 
+    await _deletePreviousFileIfNeeded(videoId, filePath);
+
     await _libraryRepository.insertDownload(
       videoId: videoId,
       title: title,
@@ -67,6 +72,9 @@ class StartDownloadUseCase {
       format: ext,
       isVideo: isVideo,
       isExplicit: isExplicit,
+      collectionId: collectionId,
+      collectionType: collectionType,
+      collectionName: collectionName,
     );
 
     try {
@@ -105,9 +113,27 @@ class StartDownloadUseCase {
       downloadedAt: DateTime.now(),
       isVideo: isVideo,
       isExplicit: isExplicit,
+      collectionId: collectionId,
+      collectionType: collectionType,
+      collectionName: collectionName,
     );
 
     return filePath;
+  }
+
+  /// Removes a previous on-disk file when re-downloading to a new path
+  /// (e.g. single absorbed into an album folder).
+  Future<void> _deletePreviousFileIfNeeded(
+    String videoId,
+    String newPath,
+  ) async {
+    try {
+      final existing = await _libraryRepository.getDownload(videoId);
+      final oldPath = existing?.localPath;
+      if (oldPath == null || oldPath.isEmpty || oldPath == newPath) return;
+      final oldFile = File(oldPath);
+      if (await oldFile.exists()) await oldFile.delete();
+    } catch (_) {}
   }
 
   StreamInfo _selectDownloadStream(

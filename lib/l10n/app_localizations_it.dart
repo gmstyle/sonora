@@ -416,6 +416,37 @@ class AppLocalizationsIt extends AppLocalizations {
   String get downloadedSongs => 'Brani Scaricati';
 
   @override
+  String get downloadCollections => 'Libreria';
+
+  @override
+  String get downloadGroupFolders => 'Cartelle';
+
+  @override
+  String get downloadSingles => 'Singoli';
+
+  @override
+  String get deleteDownloadCollection => 'Elimina collezione';
+
+  @override
+  String deleteDownloadCollectionConfirm(int count, String name) {
+    return 'Eliminare tutti i $count brani scaricati in \"$name\"?';
+  }
+
+  @override
+  String get selectDownloadCollection => 'Seleziona una collezione';
+
+  @override
+  String downloadGroupTrackStats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brani',
+      one: '1 brano',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get unknownSize => 'dimensione sconosciuta';
 
   @override
