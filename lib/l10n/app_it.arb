@@ -593,6 +593,49 @@
   "playlistEmptyError": "La playlist è vuota o non è stato possibile recuperarla",
   "playlistNoMatchesError": "Nessun brano di questa playlist Spotify è stato trovato su YouTube Music",
   "playlistSyncError": "Errore durante la sincronizzazione. Controlla la connessione internet.",
+  "linkedBadge": "Collegata",
+  "linkedToSpotify": "Collegata a Spotify",
+  "linkedToYouTube": "Collegata a YouTube",
+  "syncFromSpotify": "Sincronizza da Spotify",
+  "syncFromYouTube": "Sincronizza da YouTube",
+  "syncFromRemote": "Sincronizza da remoto",
+  "syncingPlaylist": "Sincronizzazione…",
+  "unlinkPlaylist": "Scollega",
+  "unlinkPlaylistConfirm": "Scollegare \"{name}\"? Resterà una playlist locale e non si sincronizzerà più.",
+  "@unlinkPlaylistConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "playlistUnlinked": "Playlist scollegata",
+  "playlistAlreadyImported": "Già importata come \"{name}\". Sincronizzare?",
+  "@playlistAlreadyImported": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "syncInstead": "Sincronizza",
+  "playlistSyncNoChanges": "Già aggiornata",
+  "playlistSyncSpotifyLagHint": "Spotify non pubblica subito le modifiche sui link pubblici — possono servire ore",
+  "playlistSyncSpotifyUnstable": "Spotify sta ancora aggiornando questa playlist. Riprova più tardi — i brani locali non sono stati modificati.",
+  "playlistSyncSpotifyCooldown": "Il sync da Spotify è limitato a una volta ogni 12 ore (i link pubblici si aggiornano lentamente)",
+  "playlistSyncSpotifyRateLimitHint": "I link pubblici di Spotify si aggiornano lentamente. Puoi sincronizzare al massimo una volta ogni 12 ore.",
+  "playlistSyncResult": "{added} aggiunti · {removed} rimossi{reorderPart}{skipPart}",
+  "@playlistSyncResult": {
+    "placeholders": {
+      "added": {"type": "int"},
+      "removed": {"type": "int"},
+      "reorderPart": {"type": "String"},
+      "skipPart": {"type": "String"}
+    }
+  },
+  "playlistSyncReorderPart": " · ordine aggiornato",
+  "playlistSyncSkipPart": " · {count} saltati",
+  "@playlistSyncSkipPart": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "mixes": "Mix",
   "mostPlayed": "I più ascoltati",
   "mostPlayedDesc": "I brani che hai ascoltato più spesso",

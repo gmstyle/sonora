@@ -1540,6 +1540,83 @@ class AppLocalizationsEn extends AppLocalizations {
       'An error occurred while syncing. Please check your internet connection.';
 
   @override
+  String get linkedBadge => 'Linked';
+
+  @override
+  String get linkedToSpotify => 'Linked to Spotify';
+
+  @override
+  String get linkedToYouTube => 'Linked to YouTube';
+
+  @override
+  String get syncFromSpotify => 'Sync from Spotify';
+
+  @override
+  String get syncFromYouTube => 'Sync from YouTube';
+
+  @override
+  String get syncFromRemote => 'Sync from remote';
+
+  @override
+  String get syncingPlaylist => 'Syncing…';
+
+  @override
+  String get unlinkPlaylist => 'Unlink';
+
+  @override
+  String unlinkPlaylistConfirm(String name) {
+    return 'Unlink \"$name\"? It stays as a local playlist and will no longer sync.';
+  }
+
+  @override
+  String get playlistUnlinked => 'Playlist unlinked';
+
+  @override
+  String playlistAlreadyImported(String name) {
+    return 'Already imported as \"$name\". Sync instead?';
+  }
+
+  @override
+  String get syncInstead => 'Sync';
+
+  @override
+  String get playlistSyncNoChanges => 'Already up to date';
+
+  @override
+  String get playlistSyncSpotifyLagHint =>
+      'Spotify does not publish playlist changes to public links immediately — updates can take hours';
+
+  @override
+  String get playlistSyncSpotifyUnstable =>
+      'Spotify is still updating this playlist. Try again later — local tracks were left unchanged.';
+
+  @override
+  String get playlistSyncSpotifyCooldown =>
+      'Spotify sync is limited to once every 12 hours (public links update slowly)';
+
+  @override
+  String get playlistSyncSpotifyRateLimitHint =>
+      'Spotify public links update slowly. Sync is available at most once every 12 hours.';
+
+  @override
+  String playlistSyncResult(
+    int added,
+    int removed,
+    String reorderPart,
+    String skipPart,
+  ) {
+    return '$added added · $removed removed$reorderPart$skipPart';
+  }
+
+  @override
+  String get playlistSyncReorderPart => ' · order updated';
+
+  @override
+  String playlistSyncSkipPart(int count) {
+    return ' · $count skipped';
+  }
+
+  @override
   String get mixes => 'Mixes';
 
   @override

@@ -100,3 +100,54 @@ class PlaylistImportResult {
 
   int get totalCount => importedCount + skippedCount;
 }
+
+/// Thrown when importing a remote playlist that is already linked locally.
+class PlaylistAlreadyLinkedException implements Exception {
+  final int localPlaylistId;
+  final String name;
+  final PlaylistImportKind source;
+  final String remoteId;
+
+  const PlaylistAlreadyLinkedException({
+    required this.localPlaylistId,
+    required this.name,
+    required this.source,
+    required this.remoteId,
+  });
+
+  @override
+  String toString() =>
+      'PlaylistAlreadyLinkedException($source:$remoteId → #$localPlaylistId $name)';
+}
+
+/// Spotify's public embed CDN often returns oscillating stale snapshots.
+/// Sync aborts instead of applying an unstable track list.
+class SpotifyEmbedUnstableException implements Exception {
+  @override
+  String toString() =>
+      'Spotify playlist data is still updating. Try sync again in a few seconds.';
+}
+
+/// Outcome of a manual pull-sync for a linked playlist.
+class PlaylistSyncResult {
+  final int localPlaylistId;
+  final String name;
+  final int added;
+  final int removed;
+  final bool reordered;
+  final int skipped;
+  final bool nameUpdated;
+
+  const PlaylistSyncResult({
+    required this.localPlaylistId,
+    required this.name,
+    required this.added,
+    required this.removed,
+    required this.reordered,
+    required this.skipped,
+    this.nameUpdated = false,
+  });
+
+  bool get hadChanges =>
+      added > 0 || removed > 0 || reordered || skipped > 0 || nameUpdated;
+}

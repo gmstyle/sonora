@@ -195,6 +195,10 @@ class LibraryNotifier extends Notifier<void> {
     await _repo.updatePlaylist(id, name: name);
   }
 
+  Future<void> unlinkPlaylist(int id) async {
+    await _repo.unlinkPlaylist(id);
+  }
+
   // ── Playlist entries ─────────────────────────────────────────────────────────
 
   /// Adds [videoId] to playlist, automatically computing the next position.

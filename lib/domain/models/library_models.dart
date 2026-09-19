@@ -127,18 +127,41 @@ class LikedEpisodeModel {
   });
 }
 
+/// Link state for a local playlist relative to a remote Spotify/YouTube source.
+class PlaylistLinkStatus {
+  static const local = 'local';
+  static const linked = 'linked';
+  static const unlinked = 'unlinked';
+}
+
 class LocalPlaylistModel {
   final int id;
   final String name;
   final String? description;
   final DateTime createdAt;
+  final String? sourceKind;
+  final String? remoteId;
+  final String? remoteName;
+  final DateTime? lastSyncedAt;
+  final String linkStatus;
 
   const LocalPlaylistModel({
     required this.id,
     required this.name,
     this.description,
     required this.createdAt,
+    this.sourceKind,
+    this.remoteId,
+    this.remoteName,
+    this.lastSyncedAt,
+    this.linkStatus = PlaylistLinkStatus.local,
   });
+
+  bool get isLinked =>
+      linkStatus == PlaylistLinkStatus.linked &&
+      remoteId != null &&
+      remoteId!.isNotEmpty &&
+      sourceKind != null;
 }
 
 class PlaylistEntryModel {

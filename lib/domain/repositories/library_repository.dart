@@ -63,13 +63,41 @@ abstract class LibraryRepository {
 
   Future<List<LocalPlaylistModel>> getAllPlaylists();
   Stream<List<LocalPlaylistModel>> watchAllPlaylists();
-  Future<int> createPlaylist(String name, {String? description});
+  Future<LocalPlaylistModel?> getPlaylist(int id);
+  Future<LocalPlaylistModel?> findLinkedPlaylist(
+    String sourceKind,
+    String remoteId,
+  );
+  Future<int> createPlaylist(
+    String name, {
+    String? description,
+    String? sourceKind,
+    String? remoteId,
+    String? remoteName,
+    String linkStatus = 'local',
+    DateTime? lastSyncedAt,
+  });
   Future<int> createPlaylistWithDate(
     String name, {
     String? description,
     required DateTime createdAt,
+    String? sourceKind,
+    String? remoteId,
+    String? remoteName,
+    String linkStatus = 'local',
+    DateTime? lastSyncedAt,
   });
-  Future<void> updatePlaylist(int id, {String? name, String? description});
+  Future<void> updatePlaylist(
+    int id, {
+    String? name,
+    String? description,
+    String? sourceKind,
+    String? remoteId,
+    String? remoteName,
+    String? linkStatus,
+    DateTime? lastSyncedAt,
+  });
+  Future<void> unlinkPlaylist(int id);
   Future<void> deletePlaylist(int id);
   Future<List<PlaylistEntryModel>> getPlaylistEntries(int playlistId);
   Stream<List<PlaylistEntryModel>> watchPlaylistEntries(int playlistId);
@@ -85,8 +113,20 @@ abstract class LibraryRepository {
     bool isVideo = false,
     bool isExplicit = false,
   });
+  Future<void> replacePlaylistEntries(
+    int playlistId,
+    List<PlaylistEntryModel> entries,
+  );
   Future<void> removeEntry(int playlistId, String videoId);
   Future<void> reorderEntries(int playlistId, List<String> videoIds);
+
+  Future<PlaylistEntryModel?> getCachedSpotifyMatch(String spotifyTrackUri);
+  Future<void> upsertSpotifyMatch({
+    required String spotifyTrackUri,
+    required String videoId,
+    String? title,
+    double? score,
+  });
 
   Future<List<DownloadModel>> getAllDownloads();
   Stream<List<DownloadModel>> watchCompletedDownloads();

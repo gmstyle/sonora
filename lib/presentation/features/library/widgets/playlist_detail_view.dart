@@ -20,7 +20,9 @@ import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_badge.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
+import '../../../providers/spotify_sync_cooldown_provider.dart';
 import 'create_playlist_dialog.dart';
+import 'linked_playlist_actions.dart';
 import '../providers/library_provider.dart';
 
 // ── Top-level responsive dispatcher ───────────────────────────────────────────
@@ -235,7 +237,7 @@ class _PlaylistDetailContentState
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: _LocalPlaylistActions(
-                playlist: widget.playlist,
+                playlist: freshPlaylist,
                 entries: entries,
                 likedSongs: likedSongs,
                 onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
@@ -243,6 +245,14 @@ class _PlaylistDetailContentState
                 onAddToQueue: entries.isNotEmpty ? () => _addToQueue() : null,
                 onDownload: entries.isNotEmpty ? () => _downloadAll() : null,
                 onRename: () => _renamePlaylist(),
+                onSync:
+                    freshPlaylist.isLinked
+                        ? () => _syncPlaylist(freshPlaylist)
+                        : null,
+                onUnlink:
+                    freshPlaylist.isLinked
+                        ? () => _unlinkPlaylist(freshPlaylist)
+                        : null,
                 isTabletOrWide: widget.isTablet || widget.isWide,
               ),
             ),
@@ -585,6 +595,26 @@ class _PlaylistDetailContentState
     }
   }
 
+  Future<void> _syncPlaylist(LocalPlaylistModel playlist) async {
+    final l10n = AppLocalizations.of(context)!;
+    // Use ProviderScope.containerOf so invalidation survives list rebuilds
+    // that dispose the PlaylistCard which passed [widget.onUpdated].
+    final container = ProviderScope.containerOf(context);
+    await syncLinkedPlaylist(context, container, l10n, playlist);
+  }
+
+  Future<void> _unlinkPlaylist(LocalPlaylistModel playlist) async {
+    final container = ProviderScope.containerOf(context);
+    final unlinked = await confirmAndUnlinkPlaylist(
+      container,
+      context,
+      playlist,
+    );
+    if (unlinked && mounted) {
+      widget.onUpdated();
+    }
+  }
+
   Future<void> _removeEntry(PlaylistEntryModel entry) async {
     await ref
         .read(libraryNotifierProvider.notifier)
@@ -799,7 +829,24 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (playlist.description != null &&
+                  if (playlist.isLinked) ...[
+                    const SizedBox(height: 6),
+                    LinkedPlaylistBadge(playlist: playlist),
+                    if (playlist.sourceKind == 'spotify') ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.playlistSyncSpotifyRateLimitHint,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.labelMuted,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ] else if (playlist.description != null &&
                       playlist.description!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
@@ -905,7 +952,11 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        'PLAYLIST',
+                        playlist.isLinked
+                            ? AppLocalizations.of(
+                              context,
+                            )!.linkedBadge.toUpperCase()
+                            : 'PLAYLIST',
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           letterSpacing: 2.5,
@@ -926,7 +977,23 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 10),
-                      if (playlist.description != null &&
+                      if (playlist.isLinked) ...[
+                        LinkedPlaylistBadge(playlist: playlist),
+                        if (playlist.sourceKind == 'spotify') ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.playlistSyncSpotifyRateLimitHint,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.labelMuted,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(height: 6),
+                      ] else if (playlist.description != null &&
                           playlist.description!.isNotEmpty) ...[
                         Text(
                           playlist.description!,
@@ -973,7 +1040,7 @@ Widget _artworkTopScrim(BuildContext context) {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-class _LocalPlaylistActions extends ConsumerWidget {
+class _LocalPlaylistActions extends StatelessWidget {
   final LocalPlaylistModel playlist;
   final List<PlaylistEntryModel> entries;
   final List<LikedSongModel> likedSongs;
@@ -982,6 +1049,8 @@ class _LocalPlaylistActions extends ConsumerWidget {
   final VoidCallback? onAddToQueue;
   final VoidCallback? onDownload;
   final VoidCallback? onRename;
+  final VoidCallback? onSync;
+  final VoidCallback? onUnlink;
   final bool isTabletOrWide;
 
   const _LocalPlaylistActions({
@@ -993,11 +1062,21 @@ class _LocalPlaylistActions extends ConsumerWidget {
     this.onAddToQueue,
     this.onDownload,
     this.onRename,
+    this.onSync,
+    this.onUnlink,
     this.isTabletOrWide = false,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final coolingDown = isSpotifySyncCoolingDown(playlist);
+    final syncEnabled = onSync != null && !coolingDown;
+    final syncTooltip =
+        coolingDown
+            ? l10n.playlistSyncSpotifyCooldown
+            : syncActionLabel(l10n, playlist);
+
     if (!isTabletOrWide) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1010,23 +1089,35 @@ class _LocalPlaylistActions extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(LucideIcons.download),
                   onPressed: onDownload,
-                  tooltip: AppLocalizations.of(context)!.downloadPlaylist,
+                  tooltip: l10n.downloadPlaylist,
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.listMusic),
                   onPressed: onAddToQueue,
-                  tooltip: AppLocalizations.of(context)!.addToQueue,
+                  tooltip: l10n.addToQueue,
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.shuffle),
                   onPressed: onShuffle,
-                  tooltip: AppLocalizations.of(context)!.shuffle,
+                  tooltip: l10n.shuffle,
                 ),
                 IconButton(
                   icon: const Icon(LucideIcons.pencil),
                   onPressed: onRename,
-                  tooltip: AppLocalizations.of(context)!.renamePlaylist,
+                  tooltip: l10n.renamePlaylist,
                 ),
+                if (onSync != null)
+                  IconButton(
+                    icon: const Icon(LucideIcons.refreshCw),
+                    onPressed: syncEnabled ? onSync : null,
+                    tooltip: syncTooltip,
+                  ),
+                if (onUnlink != null)
+                  IconButton(
+                    icon: const Icon(LucideIcons.unlink),
+                    onPressed: onUnlink,
+                    tooltip: l10n.unlinkPlaylist,
+                  ),
               ],
             ),
             SizedBox(
@@ -1053,28 +1144,43 @@ class _LocalPlaylistActions extends ConsumerWidget {
         FilledButton.icon(
           onPressed: onPlayAll,
           icon: const Icon(LucideIcons.play),
-          label: Text(AppLocalizations.of(context)!.playAll),
+          label: Text(l10n.playAll),
         ),
         FilledButton.icon(
           onPressed: onShuffle,
           icon: const Icon(LucideIcons.shuffle),
-          label: Text(AppLocalizations.of(context)!.shufflePlay),
+          label: Text(l10n.shufflePlay),
         ),
         FilledButton.tonalIcon(
           onPressed: onAddToQueue,
           icon: const Icon(LucideIcons.listMusic),
-          label: Text(AppLocalizations.of(context)!.addToQueue),
+          label: Text(l10n.addToQueue),
         ),
         FilledButton.tonalIcon(
           onPressed: onDownload,
           icon: const Icon(LucideIcons.download),
-          label: Text(AppLocalizations.of(context)!.downloadPlaylist),
+          label: Text(l10n.downloadPlaylist),
         ),
         FilledButton.tonalIcon(
           onPressed: onRename,
           icon: const Icon(LucideIcons.pencil),
-          label: Text(AppLocalizations.of(context)!.renamePlaylist),
+          label: Text(l10n.renamePlaylist),
         ),
+        if (onSync != null)
+          Tooltip(
+            message: syncTooltip,
+            child: FilledButton.tonalIcon(
+              onPressed: syncEnabled ? onSync : null,
+              icon: const Icon(LucideIcons.refreshCw),
+              label: Text(syncActionLabel(l10n, playlist)),
+            ),
+          ),
+        if (onUnlink != null)
+          FilledButton.tonalIcon(
+            onPressed: onUnlink,
+            icon: const Icon(LucideIcons.unlink),
+            label: Text(l10n.unlinkPlaylist),
+          ),
       ],
     );
   }

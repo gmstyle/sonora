@@ -278,19 +278,32 @@ flutter gen-l10n
 
 Keys cover: navigation, artist, album, playlist, podcast, episode, library, downloads, search, settings, player, cast, context menu, home/explore, stats/wrapped, and common actions.
 
-### 4.6 Playlist import
+### 4.6 Playlist import & linked sync
 
 Library → Playlists → import accepts a YouTube Music / YouTube playlist URL (or id) **or** a public Spotify playlist URL (`open.spotify.com/playlist/…`, `spotify:playlist:…`).
 
-- **YouTube**: `SyncYoutubePlaylistUseCase` loads the playlist via `dart_ytmusic_api` and copies videos into a local playlist, writing `displayArtists` plus `artistsJson` when YouTube Music credits more than one artist.
-- **Spotify**: `SpotifyPlaylistDatasource` reads the public embed page (`/embed/playlist/{id}`) `__NEXT_DATA__` JSON (no Spotify API key). Each track is resolved on YouTube Music with `searchSongs` + `YtMusicTrackMatcher` (title/artist/duration score). Unmatched tracks are skipped; duplicate YouTube ids in the same playlist are skipped because `playlist_entries` is keyed on `(playlistId, videoId)`. Matched hits persist the YouTube Music `artists` list as `artistsJson` so the library context menu can show **Go to Artist** vs **Go to Artists**.
+- **YouTube**: `SyncYoutubePlaylistUseCase` loads the playlist via `dart_ytmusic_api` and copies videos into a **linked** local playlist, writing `displayArtists` plus `artistsJson` when YouTube Music credits more than one artist.
+- **Spotify**: `SpotifyPlaylistDatasource` reads the public embed page (`/embed/playlist/{id}`) `__NEXT_DATA__` JSON (no Spotify API key). Each track is resolved on YouTube Music with `searchSongs` + `YtMusicTrackMatcher` (title/artist/duration score). Unmatched tracks are skipped; duplicate YouTube ids in the same playlist are skipped because `playlist_entries` is keyed on `(playlistId, videoId)`. Matched hits persist the YouTube Music `artists` list as `artistsJson` so the library context menu can show **Go to Artist** vs **Go to Artists**. Successful Spotify→YTM matches are stored in `spotify_match_cache` (keyed by Spotify track URI) for faster re-sync.
 - Private Spotify playlists and the embed ~100-track cap are limitations of the public embed, not of the official Spotify Web API.
 
 `ImportRemotePlaylistUseCase` chooses the path from `PlaylistUrlParser`.
 
+#### Linked playlists (manual pull sync)
+
+Imported playlists stay **linked** to the remote source (`linkStatus = linked`, plus `sourceKind` / `remoteId` / `remoteName` / `lastSyncedAt` on `local_playlists`).
+
+| Action | Behavior |
+|---|---|
+| **Sync** | Blocking dialog (spinner + progress, same UX for YouTube and Spotify). `RefreshLinkedPlaylistUseCase` fetches the remote snapshot, resolves tracks (YouTube directly; Spotify via match cache + matcher), then `replacePlaylistEntries` (transactional delete+insert). Remote wins on membership and order. Local name is preserved if the user renamed it (local name ≠ `remoteName`); otherwise the name updates to the remote title. Returns `PlaylistSyncResult` (`added` / `removed` / `reordered` / `skipped`). |
+| **Spotify rate limit** | Public Spotify embed CDN lags the app by hours. After import and after each **successful** sync, Sync stays disabled for **12 hours** (`lastSyncedAt` + `kSpotifySyncCooldown`). Button label stays static (no countdown). YouTube has no rate limit. |
+| **Unlink** | Clears link fields and sets `linkStatus = unlinked` — local fork, no further sync. |
+| **Re-import same URL** | Dedupes on `(sourceKind, remoteId)` and offers sync instead of creating a duplicate (`PlaylistAlreadyLinkedException`). Same 12h Spotify gate applies. |
+
+Sync is **manual only** (detail actions + custom-playlist context menu). Sonora never pushes changes back to Spotify/YouTube. Legacy imports are backfilled on migration to schema v24 by parsing description text (`Synced from YouTube (ID: …)` / `Imported from Spotify (ID: …)`).
+
 ---
 
-## 5. Drift Database — Schema v22
+## 5. Drift Database — Schema v24
 
 ### 5.1 Tables
 
@@ -302,8 +315,9 @@ Library → Playlists → import accepts a YouTube Music / YouTube playlist URL 
 | `liked_playlists` | playlistId | name, thumbnailUrl, videoCount, addedAt | v7: new |
 | `liked_podcasts` | browseId | name, authorName, authorId, thumbnailUrl, episodeCount, addedAt | **v20: new** — subscribed podcasts |
 | `liked_episodes` | videoId | browseId, name, podcastName, podcastBrowseId, thumbnailUrl, durationSec, date, addedAt | **v20: new** — saved episodes |
-| `local_playlists` | id (auto) | name, description, createdAt | |
+| `local_playlists` | id (auto) | name, description, createdAt, **sourceKind**, **remoteId**, **remoteName**, **lastSyncedAt**, **linkStatus** | **v24: link meta** (`local`\|`linked`\|`unlinked`; sourceKind `youtube`\|`spotify`) |
 | `playlist_entries` | (playlistId, videoId) | position, title, artist, **artistsJson**, thumbnailUrl, isVideo, duration | v9: +title/artist/thumbnailUrl, v12: +isVideo, v16: +duration, **v22: +artistsJson** |
+| `spotify_match_cache` | spotifyTrackUri | videoId, title, matchedAt, score | **v24: new** — Spotify URI → YTM videoId |
 | `downloads` | videoId | title, artist, **artistsJson**, thumbnailUrl, localPath, format, fileSize, downloadedAt, status, isVideo, isExplicit, **collectionId**, **collectionType**, **collectionName** | v5/v6: +title/artist/thumbnailUrl, v11: +isVideo, v15: +isExplicit, **v21: +artistsJson**, **v23: +collection\*** |
 | `history` | id (auto) | videoId, title, artist, thumbnailUrl, playedAt, playCount, isVideo, duration, **contentType**, **podcastBrowseId** | v4: +thumbnailUrl, v11: +isVideo, v14: +duration, **v20: +contentType (`song`\|`video`\|`episode`) + podcastBrowseId** |
 | `search_history` | id (auto) | query, searchedAt | |

@@ -475,23 +475,84 @@ class LibraryRepositoryImpl implements LibraryRepository {
   }
 
   @override
-  Future<int> createPlaylist(String name, {String? description}) =>
-      _playlistsDao.createPlaylist(name, description: description);
+  Future<LocalPlaylistModel?> getPlaylist(int id) async {
+    final row = await _playlistsDao.getPlaylist(id);
+    return row == null ? null : _mapPlaylist(row);
+  }
+
+  @override
+  Future<LocalPlaylistModel?> findLinkedPlaylist(
+    String sourceKind,
+    String remoteId,
+  ) async {
+    final row = await _playlistsDao.findLinkedPlaylist(sourceKind, remoteId);
+    return row == null ? null : _mapPlaylist(row);
+  }
+
+  @override
+  Future<int> createPlaylist(
+    String name, {
+    String? description,
+    String? sourceKind,
+    String? remoteId,
+    String? remoteName,
+    String linkStatus = 'local',
+    DateTime? lastSyncedAt,
+  }) => _playlistsDao.createPlaylist(
+    name,
+    description: description,
+    sourceKind: sourceKind,
+    remoteId: remoteId,
+    remoteName: remoteName,
+    linkStatus: linkStatus,
+    lastSyncedAt: lastSyncedAt,
+  );
 
   @override
   Future<int> createPlaylistWithDate(
     String name, {
     String? description,
     required DateTime createdAt,
+    String? sourceKind,
+    String? remoteId,
+    String? remoteName,
+    String linkStatus = 'local',
+    DateTime? lastSyncedAt,
   }) => _playlistsDao.createPlaylistWithDate(
     name,
     description: description,
     createdAt: createdAt,
+    sourceKind: sourceKind,
+    remoteId: remoteId,
+    remoteName: remoteName,
+    linkStatus: linkStatus,
+    lastSyncedAt: lastSyncedAt,
   );
 
   @override
-  Future<void> updatePlaylist(int id, {String? name, String? description}) =>
-      _playlistsDao.updatePlaylist(id, name: name, description: description);
+  Future<void> updatePlaylist(
+    int id, {
+    String? name,
+    String? description,
+    String? sourceKind,
+    String? remoteId,
+    String? remoteName,
+    String? linkStatus,
+    DateTime? lastSyncedAt,
+  }) => _playlistsDao.updatePlaylist(
+    id,
+    name: name,
+    description: description,
+    sourceKind: sourceKind,
+    remoteId: remoteId,
+    remoteName: remoteName,
+    linkStatus: linkStatus,
+    lastSyncedAt: lastSyncedAt,
+  );
+
+  @override
+  Future<void> unlinkPlaylist(int id) =>
+      _playlistsDao.updatePlaylist(id, clearLink: true);
 
   @override
   Future<void> deletePlaylist(int id) => _playlistsDao.deletePlaylist(id);
@@ -568,12 +629,61 @@ class LibraryRepositoryImpl implements LibraryRepository {
   );
 
   @override
+  Future<void> replacePlaylistEntries(
+    int playlistId,
+    List<PlaylistEntryModel> entries,
+  ) => _playlistsDao.replacePlaylistEntries(
+    playlistId,
+    entries
+        .map(
+          (e) => (
+            videoId: e.videoId,
+            title: e.title,
+            artist: e.artist,
+            artistsJson: e.artistsJson,
+            thumbnailUrl: e.thumbnailUrl,
+            duration: e.duration,
+            isVideo: e.isVideo,
+            isExplicit: e.isExplicit,
+          ),
+        )
+        .toList(),
+  );
+
+  @override
   Future<void> removeEntry(int playlistId, String videoId) =>
       _playlistsDao.removeEntry(playlistId, videoId);
 
   @override
   Future<void> reorderEntries(int playlistId, List<String> videoIds) =>
       _playlistsDao.reorderEntries(playlistId, videoIds);
+
+  @override
+  Future<PlaylistEntryModel?> getCachedSpotifyMatch(
+    String spotifyTrackUri,
+  ) async {
+    final row = await _playlistsDao.getCachedSpotifyMatch(spotifyTrackUri);
+    if (row == null) return null;
+    return PlaylistEntryModel(
+      playlistId: 0,
+      videoId: row.videoId,
+      position: 0,
+      title: row.title,
+    );
+  }
+
+  @override
+  Future<void> upsertSpotifyMatch({
+    required String spotifyTrackUri,
+    required String videoId,
+    String? title,
+    double? score,
+  }) => _playlistsDao.upsertSpotifyMatch(
+    spotifyTrackUri: spotifyTrackUri,
+    videoId: videoId,
+    title: title,
+    score: score,
+  );
 
   // ── Downloads ─────────────────────────────────────────────────
 
@@ -826,6 +936,11 @@ class LibraryRepositoryImpl implements LibraryRepository {
     name: r.name,
     description: r.description,
     createdAt: r.createdAt,
+    sourceKind: r.sourceKind,
+    remoteId: r.remoteId,
+    remoteName: r.remoteName,
+    lastSyncedAt: r.lastSyncedAt,
+    linkStatus: r.linkStatus,
   );
 
   LikedAlbumModel _mapLikedAlbum(LikedAlbum r) => LikedAlbumModel(

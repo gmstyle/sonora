@@ -8,11 +8,13 @@ import 'tables/liked_podcasts_table.dart';
 import 'tables/liked_episodes_table.dart';
 import 'tables/local_playlists_table.dart';
 import 'tables/playlist_entries_table.dart';
+import 'tables/spotify_match_cache_table.dart';
 import 'tables/downloads_table.dart';
 import 'tables/history_table.dart';
 import 'tables/search_history_table.dart';
 import 'tables/queue_items_table.dart';
 import 'tables/queue_meta_table.dart';
+import '../../../core/utils/playlist_link_parser.dart';
 
 part 'database.g.dart';
 
@@ -26,6 +28,7 @@ part 'database.g.dart';
     LikedEpisodes,
     LocalPlaylists,
     PlaylistEntries,
+    SpotifyMatchCache,
     Downloads,
     History,
     SearchHistory,
@@ -37,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -298,8 +301,57 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(downloads, downloads.collectionName);
         }
       }
+      if (from < 24) {
+        final playlistsInfo =
+            await customSelect('PRAGMA table_info(local_playlists)').get();
+        if (!playlistsInfo.any(
+          (row) => row.read<String>('name') == 'source_kind',
+        )) {
+          await m.addColumn(localPlaylists, localPlaylists.sourceKind);
+        }
+        if (!playlistsInfo.any(
+          (row) => row.read<String>('name') == 'remote_id',
+        )) {
+          await m.addColumn(localPlaylists, localPlaylists.remoteId);
+        }
+        if (!playlistsInfo.any(
+          (row) => row.read<String>('name') == 'remote_name',
+        )) {
+          await m.addColumn(localPlaylists, localPlaylists.remoteName);
+        }
+        if (!playlistsInfo.any(
+          (row) => row.read<String>('name') == 'last_synced_at',
+        )) {
+          await m.addColumn(localPlaylists, localPlaylists.lastSyncedAt);
+        }
+        if (!playlistsInfo.any(
+          (row) => row.read<String>('name') == 'link_status',
+        )) {
+          await m.addColumn(localPlaylists, localPlaylists.linkStatus);
+        }
+        await m.createTable(spotifyMatchCache);
+        await _backfillPlaylistLinkMeta();
+      }
     },
   );
+
+  /// Best-effort parse of legacy import descriptions into link columns.
+  Future<void> _backfillPlaylistLinkMeta() async {
+    final rows = await select(localPlaylists).get();
+    for (final row in rows) {
+      final parsed = parsePlaylistLinkFromDescription(row.description);
+      if (parsed == null) continue;
+      if (row.linkStatus == 'linked' && row.remoteId != null) continue;
+      await (update(localPlaylists)..where((t) => t.id.equals(row.id))).write(
+        LocalPlaylistsCompanion(
+          sourceKind: Value(parsed.sourceKind),
+          remoteId: Value(parsed.remoteId),
+          remoteName: Value(row.name),
+          linkStatus: const Value('linked'),
+        ),
+      );
+    }
+  }
 
   Future<void> updateSongMetadata(
     String videoId,

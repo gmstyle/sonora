@@ -42,7 +42,11 @@ class SpotifyPlaylistDatasource {
     try {
       final response = await _dio.get<String>(
         'https://open.spotify.com/embed/playlist/$playlistId',
-        options: Options(responseType: ResponseType.plain),
+        queryParameters: {'_': DateTime.now().millisecondsSinceEpoch},
+        options: Options(
+          responseType: ResponseType.plain,
+          headers: const {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'},
+        ),
       );
       final status = response.statusCode ?? 0;
       final html = response.data;

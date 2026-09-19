@@ -1,6 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
 import '../../../core/utils/artists_utils.dart';
+import '../../models/library_models.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
@@ -29,6 +30,19 @@ class ImportSpotifyPlaylistUseCase {
     String playlistId, {
     void Function(int current, int total)? onProgress,
   }) async {
+    final existing = await _libraryRepository.findLinkedPlaylist(
+      'spotify',
+      playlistId,
+    );
+    if (existing != null) {
+      throw PlaylistAlreadyLinkedException(
+        localPlaylistId: existing.id,
+        name: existing.name,
+        source: PlaylistImportKind.spotify,
+        remoteId: playlistId,
+      );
+    }
+
     final snapshot = await _fetchPlaylist(playlistId);
     final tracks = snapshot.tracks;
     if (tracks.isEmpty) {
@@ -51,6 +65,14 @@ class ImportSpotifyPlaylistUseCase {
         skipped++;
       } else {
         matched.add(candidate);
+        final uri = tracks[i].uri;
+        if (uri != null && uri.isNotEmpty) {
+          await _libraryRepository.upsertSpotifyMatch(
+            spotifyTrackUri: uri,
+            videoId: candidate.videoId,
+            title: candidate.title,
+          );
+        }
       }
       onProgress?.call(i + 1, tracks.length);
     }
@@ -65,9 +87,15 @@ class ImportSpotifyPlaylistUseCase {
         snapshot.truncated
             ? ' — first ${tracks.length} tracks from the public embed'
             : '';
+    final now = DateTime.now();
     final localPlaylistId = await _libraryRepository.createPlaylist(
       snapshot.name,
       description: 'Imported from Spotify (ID: ${snapshot.id})$truncatedNote',
+      sourceKind: 'spotify',
+      remoteId: snapshot.id,
+      remoteName: snapshot.name,
+      linkStatus: PlaylistLinkStatus.linked,
+      lastSyncedAt: now,
     );
 
     for (var i = 0; i < matched.length; i++) {

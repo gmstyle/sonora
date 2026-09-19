@@ -1548,6 +1548,83 @@ class AppLocalizationsIt extends AppLocalizations {
       'Errore durante la sincronizzazione. Controlla la connessione internet.';
 
   @override
+  String get linkedBadge => 'Collegata';
+
+  @override
+  String get linkedToSpotify => 'Collegata a Spotify';
+
+  @override
+  String get linkedToYouTube => 'Collegata a YouTube';
+
+  @override
+  String get syncFromSpotify => 'Sincronizza da Spotify';
+
+  @override
+  String get syncFromYouTube => 'Sincronizza da YouTube';
+
+  @override
+  String get syncFromRemote => 'Sincronizza da remoto';
+
+  @override
+  String get syncingPlaylist => 'Sincronizzazione…';
+
+  @override
+  String get unlinkPlaylist => 'Scollega';
+
+  @override
+  String unlinkPlaylistConfirm(String name) {
+    return 'Scollegare \"$name\"? Resterà una playlist locale e non si sincronizzerà più.';
+  }
+
+  @override
+  String get playlistUnlinked => 'Playlist scollegata';
+
+  @override
+  String playlistAlreadyImported(String name) {
+    return 'Già importata come \"$name\". Sincronizzare?';
+  }
+
+  @override
+  String get syncInstead => 'Sincronizza';
+
+  @override
+  String get playlistSyncNoChanges => 'Già aggiornata';
+
+  @override
+  String get playlistSyncSpotifyLagHint =>
+      'Spotify non pubblica subito le modifiche sui link pubblici — possono servire ore';
+
+  @override
+  String get playlistSyncSpotifyUnstable =>
+      'Spotify sta ancora aggiornando questa playlist. Riprova più tardi — i brani locali non sono stati modificati.';
+
+  @override
+  String get playlistSyncSpotifyCooldown =>
+      'Il sync da Spotify è limitato a una volta ogni 12 ore (i link pubblici si aggiornano lentamente)';
+
+  @override
+  String get playlistSyncSpotifyRateLimitHint =>
+      'I link pubblici di Spotify si aggiornano lentamente. Puoi sincronizzare al massimo una volta ogni 12 ore.';
+
+  @override
+  String playlistSyncResult(
+    int added,
+    int removed,
+    String reorderPart,
+    String skipPart,
+  ) {
+    return '$added aggiunti · $removed rimossi$reorderPart$skipPart';
+  }
+
+  @override
+  String get playlistSyncReorderPart => ' · ordine aggiornato';
+
+  @override
+  String playlistSyncSkipPart(int count) {
+    return ' · $count saltati';
+  }
+
+  @override
   String get mixes => 'Mix';
 
   @override

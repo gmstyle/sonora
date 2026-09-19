@@ -2660,6 +2660,131 @@ abstract class AppLocalizations {
   /// **'An error occurred while syncing. Please check your internet connection.'**
   String get playlistSyncError;
 
+  /// No description provided for @linkedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked'**
+  String get linkedBadge;
+
+  /// No description provided for @linkedToSpotify.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked to Spotify'**
+  String get linkedToSpotify;
+
+  /// No description provided for @linkedToYouTube.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked to YouTube'**
+  String get linkedToYouTube;
+
+  /// No description provided for @syncFromSpotify.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync from Spotify'**
+  String get syncFromSpotify;
+
+  /// No description provided for @syncFromYouTube.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync from YouTube'**
+  String get syncFromYouTube;
+
+  /// No description provided for @syncFromRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync from remote'**
+  String get syncFromRemote;
+
+  /// No description provided for @syncingPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing…'**
+  String get syncingPlaylist;
+
+  /// No description provided for @unlinkPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get unlinkPlaylist;
+
+  /// No description provided for @unlinkPlaylistConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink \"{name}\"? It stays as a local playlist and will no longer sync.'**
+  String unlinkPlaylistConfirm(String name);
+
+  /// No description provided for @playlistUnlinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist unlinked'**
+  String get playlistUnlinked;
+
+  /// No description provided for @playlistAlreadyImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Already imported as \"{name}\". Sync instead?'**
+  String playlistAlreadyImported(String name);
+
+  /// No description provided for @syncInstead.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get syncInstead;
+
+  /// No description provided for @playlistSyncNoChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Already up to date'**
+  String get playlistSyncNoChanges;
+
+  /// No description provided for @playlistSyncSpotifyLagHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotify does not publish playlist changes to public links immediately — updates can take hours'**
+  String get playlistSyncSpotifyLagHint;
+
+  /// No description provided for @playlistSyncSpotifyUnstable.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotify is still updating this playlist. Try again later — local tracks were left unchanged.'**
+  String get playlistSyncSpotifyUnstable;
+
+  /// No description provided for @playlistSyncSpotifyCooldown.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotify sync is limited to once every 12 hours (public links update slowly)'**
+  String get playlistSyncSpotifyCooldown;
+
+  /// No description provided for @playlistSyncSpotifyRateLimitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotify public links update slowly. Sync is available at most once every 12 hours.'**
+  String get playlistSyncSpotifyRateLimitHint;
+
+  /// No description provided for @playlistSyncResult.
+  ///
+  /// In en, this message translates to:
+  /// **'{added} added · {removed} removed{reorderPart}{skipPart}'**
+  String playlistSyncResult(
+    int added,
+    int removed,
+    String reorderPart,
+    String skipPart,
+  );
+
+  /// No description provided for @playlistSyncReorderPart.
+  ///
+  /// In en, this message translates to:
+  /// **' · order updated'**
+  String get playlistSyncReorderPart;
+
+  /// No description provided for @playlistSyncSkipPart.
+  ///
+  /// In en, this message translates to:
+  /// **' · {count} skipped'**
+  String playlistSyncSkipPart(int count);
+
   /// No description provided for @mixes.
   ///
   /// In en, this message translates to:

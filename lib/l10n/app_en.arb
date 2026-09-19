@@ -763,6 +763,49 @@
   "playlistEmptyError": "The playlist is empty or could not be retrieved",
   "playlistNoMatchesError": "No tracks from this Spotify playlist could be matched on YouTube Music",
   "playlistSyncError": "An error occurred while syncing. Please check your internet connection.",
+  "linkedBadge": "Linked",
+  "linkedToSpotify": "Linked to Spotify",
+  "linkedToYouTube": "Linked to YouTube",
+  "syncFromSpotify": "Sync from Spotify",
+  "syncFromYouTube": "Sync from YouTube",
+  "syncFromRemote": "Sync from remote",
+  "syncingPlaylist": "Syncing…",
+  "unlinkPlaylist": "Unlink",
+  "unlinkPlaylistConfirm": "Unlink \"{name}\"? It stays as a local playlist and will no longer sync.",
+  "@unlinkPlaylistConfirm": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "playlistUnlinked": "Playlist unlinked",
+  "playlistAlreadyImported": "Already imported as \"{name}\". Sync instead?",
+  "@playlistAlreadyImported": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "syncInstead": "Sync",
+  "playlistSyncNoChanges": "Already up to date",
+  "playlistSyncSpotifyLagHint": "Spotify does not publish playlist changes to public links immediately — updates can take hours",
+  "playlistSyncSpotifyUnstable": "Spotify is still updating this playlist. Try again later — local tracks were left unchanged.",
+  "playlistSyncSpotifyCooldown": "Spotify sync is limited to once every 12 hours (public links update slowly)",
+  "playlistSyncSpotifyRateLimitHint": "Spotify public links update slowly. Sync is available at most once every 12 hours.",
+  "playlistSyncResult": "{added} added · {removed} removed{reorderPart}{skipPart}",
+  "@playlistSyncResult": {
+    "placeholders": {
+      "added": {"type": "int"},
+      "removed": {"type": "int"},
+      "reorderPart": {"type": "String"},
+      "skipPart": {"type": "String"}
+    }
+  },
+  "playlistSyncReorderPart": " · order updated",
+  "playlistSyncSkipPart": " · {count} skipped",
+  "@playlistSyncSkipPart": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "mixes": "Mixes",
   "mostPlayed": "Most Played",
   "mostPlayedDesc": "Your most played tracks",

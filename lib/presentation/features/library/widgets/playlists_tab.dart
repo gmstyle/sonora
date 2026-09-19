@@ -16,6 +16,7 @@ import '../../../shared/widgets/thumbnail_widget.dart';
 import '../providers/library_provider.dart';
 import 'create_playlist_dialog.dart';
 import 'import_playlist_dialog.dart';
+import 'linked_playlist_actions.dart';
 import 'playlist_detail_view.dart';
 
 class PlaylistsTab extends ConsumerStatefulWidget {
@@ -128,7 +129,10 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   localPlaylistId: p.id,
                   localPlaylist: p,
                   name: p.name,
-                  artist: p.description,
+                  artist:
+                      p.isLinked
+                          ? linkedSourceLabel(AppLocalizations.of(context)!, p)
+                          : p.description,
                   heroTag: 'library_local_playlist_${p.id}',
                 );
               }, childCount: playlists.length),
@@ -336,16 +340,33 @@ class _LocalPlaylistTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final subtitle =
+        playlist.isLinked
+            ? linkedSourceLabel(l10n, playlist)
+            : (playlist.description != null && playlist.description!.isNotEmpty
+                ? playlist.description!
+                : null);
     return ListTile(
       leading: _PlaylistCoverBuilder(playlistId: playlist.id, size: 48),
-      title: Text(playlist.name),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              playlist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (playlist.isLinked) ...[
+            const SizedBox(width: 8),
+            LinkedPlaylistBadge(playlist: playlist, compact: true),
+          ],
+        ],
+      ),
       subtitle:
-          playlist.description != null && playlist.description!.isNotEmpty
-              ? Text(
-                playlist.description!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              )
+          subtitle != null
+              ? Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis)
               : null,
       trailing: const Icon(LucideIcons.chevronRight),
       onTap: onTap,

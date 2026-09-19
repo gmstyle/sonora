@@ -19,6 +19,7 @@ import '../../features/artist/providers/artist_provider.dart';
 import '../../features/library/providers/library_provider.dart';
 import '../../features/playlist/providers/playlist_provider.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/spotify_sync_cooldown_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/music_repository_provider.dart';
@@ -31,6 +32,7 @@ import 'thumbnail_widget.dart';
 
 import 'package:shimmer/shimmer.dart';
 import '../../features/library/widgets/create_playlist_dialog.dart';
+import '../../features/library/widgets/linked_playlist_actions.dart';
 import '../../features/library/widgets/playlist_detail_view.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -2393,7 +2395,9 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Playlist',
+                        playlist.isLinked
+                            ? linkedSourceLabel(l10n, playlist)
+                            : 'Playlist',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -2507,6 +2511,50 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       }
                     },
                   ),
+                  if (playlist.isLinked) ...[
+                    _ActionTile(
+                      icon: LucideIcons.refreshCw,
+                      label: syncActionLabel(l10n, playlist),
+                      enabled: !isSpotifySyncCoolingDown(playlist),
+                      onTap: () async {
+                        final container = ProviderScope.containerOf(context);
+                        final strings = l10n;
+                        final dialogContext =
+                            Navigator.of(context, rootNavigator: true).context;
+                        if (isSpotifySyncCoolingDown(playlist)) {
+                          ref
+                              .read(actionFeedbackProvider.notifier)
+                              .report(strings.playlistSyncSpotifyCooldown);
+                          Navigator.pop(context);
+                          return;
+                        }
+                        Navigator.pop(context);
+                        if (!dialogContext.mounted) return;
+                        await syncLinkedPlaylist(
+                          dialogContext,
+                          container,
+                          strings,
+                          playlist,
+                        );
+                      },
+                    ),
+                    _ActionTile(
+                      icon: LucideIcons.unlink,
+                      label: l10n.unlinkPlaylist,
+                      onTap: () async {
+                        final container = ProviderScope.containerOf(context);
+                        final unlinked = await confirmAndUnlinkPlaylist(
+                          container,
+                          context,
+                          playlist,
+                        );
+                        if (unlinked && context.mounted) {
+                          Navigator.pop(context);
+                          onUpdated();
+                        }
+                      },
+                    ),
+                  ],
                   _ActionTile(
                     icon: LucideIcons.trash2,
                     label: l10n.deletePlaylist,
@@ -2645,11 +2693,13 @@ class _ActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool enabled;
 
   const _ActionTile({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.enabled = true,
   });
 
   @override
@@ -2657,7 +2707,8 @@ class _ActionTile extends StatelessWidget {
     return ListTile(
       leading: Icon(icon),
       title: Text(label),
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
+      enabled: enabled,
       dense: true,
     );
   }

@@ -5,9 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../domain/models/library_models.dart';
 import '../../../../domain/models/playlist_import.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/import_playlist_providers.dart';
+import '../../../providers/refresh_linked_playlist_use_case_provider.dart';
+import '../../../providers/spotify_sync_cooldown_provider.dart';
+import '../providers/library_provider.dart';
 
 /// Horizontal inset used on tablet/wide so the card stays centered.
 const double kImportPlaylistDialogInset = 24;
@@ -116,6 +120,87 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
           );
       if (mounted) {
         Navigator.pop(context, result);
+      }
+    } on PlaylistAlreadyLinkedException catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      final sync = await showDialog<bool>(
+        context: context,
+        builder:
+            (ctx) => AlertDialog(
+              title: Text(l10n?.importPlaylist ?? 'Import Playlist'),
+              content: Text(
+                l10n?.playlistAlreadyImported(e.name) ??
+                    'Already imported as "${e.name}". Sync instead?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(l10n?.cancel ?? 'Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(l10n?.syncInstead ?? 'Sync'),
+                ),
+              ],
+            ),
+      );
+      if (sync == true && mounted) {
+        final playlists = await ref.read(playlistsProvider.future);
+        LocalPlaylistModel? existing;
+        for (final p in playlists) {
+          if (p.id == e.localPlaylistId) {
+            existing = p;
+            break;
+          }
+        }
+        if (existing != null && isSpotifySyncCoolingDown(existing)) {
+          setState(() {
+            _error =
+                l10n?.playlistSyncSpotifyCooldown ??
+                'Spotify sync is limited to once every 12 hours';
+          });
+          return;
+        }
+        setState(() {
+          _isLoading = true;
+          _progressCurrent = 0;
+          _progressTotal = 0;
+        });
+        try {
+          final syncResult = await ref
+              .read(refreshLinkedPlaylistUseCaseProvider)
+              .execute(
+                e.localPlaylistId,
+                onProgress: (current, total) {
+                  if (mounted) {
+                    setState(() {
+                      _progressCurrent = current;
+                      _progressTotal = total;
+                    });
+                  }
+                },
+              );
+          if (mounted) {
+            Navigator.pop(
+              context,
+              PlaylistImportResult(
+                localPlaylistId: syncResult.localPlaylistId,
+                name: syncResult.name,
+                source: e.source,
+                importedCount: syncResult.added,
+                skippedCount: syncResult.skipped,
+              ),
+            );
+          }
+        } catch (syncError) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _error = syncError.toString().replaceAll('Exception: ', '');
+            });
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
