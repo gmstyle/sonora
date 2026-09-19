@@ -879,13 +879,16 @@ class _DownloadPodcastButton extends ConsumerWidget {
     final playableEpisodes =
         podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
     final batchId = 'podcast:${podcast.browseId}';
-    final batchActive = ref.watch(activeDownloadsProvider).values.any(
-      (d) =>
-          d.batchId == batchId &&
-          (d.status == DownloadStatus.pending ||
-              d.status == DownloadStatus.downloading ||
-              d.status == DownloadStatus.error),
-    );
+    final batchActive = ref
+        .watch(activeDownloadsProvider)
+        .values
+        .any(
+          (d) =>
+              d.batchId == batchId &&
+              (d.status == DownloadStatus.pending ||
+                  d.status == DownloadStatus.downloading ||
+                  d.status == DownloadStatus.error),
+        );
     final batches = ref.watch(downloadBatchesProvider);
     final batch = batches[batchId];
     final downloadedCount =

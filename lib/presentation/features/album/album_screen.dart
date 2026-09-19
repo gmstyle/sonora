@@ -1079,13 +1079,16 @@ class _DownloadAlbumButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final batchId = 'album:${album.albumId}';
-    final batchActive = ref.watch(activeDownloadsProvider).values.any(
-      (d) =>
-          d.batchId == batchId &&
-          (d.status == DownloadStatus.pending ||
-              d.status == DownloadStatus.downloading ||
-              d.status == DownloadStatus.error),
-    );
+    final batchActive = ref
+        .watch(activeDownloadsProvider)
+        .values
+        .any(
+          (d) =>
+              d.batchId == batchId &&
+              (d.status == DownloadStatus.pending ||
+                  d.status == DownloadStatus.downloading ||
+                  d.status == DownloadStatus.error),
+        );
     final batches = ref.watch(downloadBatchesProvider);
     final batch = batches[batchId];
     final downloadedCount =

@@ -102,9 +102,7 @@ class DownloadsScreen extends ConsumerWidget {
                       ),
                     ),
                   if (hasCompleted)
-                    Expanded(
-                      child: CompletedDownloadsView(isCompact: false),
-                    ),
+                    Expanded(child: CompletedDownloadsView(isCompact: false)),
                 ],
               );
             },

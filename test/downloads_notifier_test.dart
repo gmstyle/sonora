@@ -224,12 +224,7 @@ void main() {
     test('enqueues entire batch immediately without waiting', () async {
       for (var i = 0; i < 6; i++) {
         unawaited(
-          enqueue(
-            'v$i',
-            batchId: 'album:1',
-            batchName: 'Album',
-            batchTotal: 6,
-          ),
+          enqueue('v$i', batchId: 'album:1', batchName: 'Album', batchTotal: 6),
         );
       }
 
@@ -242,27 +237,22 @@ void main() {
       expect(notifier().batchProgress['album:1']?.name, 'Album');
     });
 
-    test('cancelBatch removes pending and active items of that batch only', () async {
-      final albumFutures = <Future<void>>[
-        for (var i = 0; i < 4; i++)
-          enqueue(
-            'a$i',
-            batchId: 'album:a',
-            batchName: 'A',
-            batchTotal: 4,
-          ),
-      ];
-      unawaited(enqueue('solo'));
+    test(
+      'cancelBatch removes pending and active items of that batch only',
+      () async {
+        final albumFutures = <Future<void>>[
+          for (var i = 0; i < 4; i++)
+            enqueue('a$i', batchId: 'album:a', batchName: 'A', batchTotal: 4),
+        ];
+        unawaited(enqueue('solo'));
 
-      await notifier().cancelBatch('album:a');
-      await Future.wait(albumFutures);
+        await notifier().cancelBatch('album:a');
+        await Future.wait(albumFutures);
 
-      expect(
-        state().keys.where((k) => k.startsWith('a')),
-        isEmpty,
-      );
-      expect(state().containsKey('solo'), isTrue);
-    });
+        expect(state().keys.where((k) => k.startsWith('a')), isEmpty);
+        expect(state().containsKey('solo'), isTrue);
+      },
+    );
 
     test('cancelAll clears the whole queue', () async {
       final futures = <Future<void>>[
@@ -287,12 +277,7 @@ void main() {
 
       final futures = <Future<void>>[
         for (var i = 0; i < 4; i++)
-          enqueue(
-            'v$i',
-            batchId: 'album:1',
-            batchName: 'Album',
-            batchTotal: 4,
-          ),
+          enqueue('v$i', batchId: 'album:1', batchName: 'Album', batchTotal: 4),
       ];
 
       await futures[0];

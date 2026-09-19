@@ -1061,13 +1061,16 @@ class _DownloadPlaylistButton extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final videos = videosAsync.asData?.value ?? [];
     final batchId = 'playlist:${playlist.playlistId}';
-    final batchActive = ref.watch(activeDownloadsProvider).values.any(
-      (d) =>
-          d.batchId == batchId &&
-          (d.status == DownloadStatus.pending ||
-              d.status == DownloadStatus.downloading ||
-              d.status == DownloadStatus.error),
-    );
+    final batchActive = ref
+        .watch(activeDownloadsProvider)
+        .values
+        .any(
+          (d) =>
+              d.batchId == batchId &&
+              (d.status == DownloadStatus.pending ||
+                  d.status == DownloadStatus.downloading ||
+                  d.status == DownloadStatus.error),
+        );
     final batches = ref.watch(downloadBatchesProvider);
     final batch = batches[batchId];
     final downloadedCount =

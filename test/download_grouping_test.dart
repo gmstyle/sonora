@@ -29,14 +29,14 @@ DownloadModel _dl({
 void main() {
   group('parseDownloadBatchId', () {
     test('parses known prefixes', () {
-      expect(
-        parseDownloadBatchId('album:MPREb_abc'),
-        (collectionId: 'MPREb_abc', collectionType: 'album'),
-      );
-      expect(
-        parseDownloadBatchId('localPlaylist:42'),
-        (collectionId: '42', collectionType: 'localPlaylist'),
-      );
+      expect(parseDownloadBatchId('album:MPREb_abc'), (
+        collectionId: 'MPREb_abc',
+        collectionType: 'album',
+      ));
+      expect(parseDownloadBatchId('localPlaylist:42'), (
+        collectionId: '42',
+        collectionType: 'localPlaylist',
+      ));
     });
 
     test('rejects invalid values', () {
@@ -50,14 +50,8 @@ void main() {
   group('groupCompletedDownloads', () {
     test('puts root Sonora files in Singles', () {
       final groups = groupCompletedDownloads([
-        _dl(
-          videoId: 'a',
-          localPath: '/storage/Downloads/Sonora/Song-a.m4a',
-        ),
-        _dl(
-          videoId: 'b',
-          localPath: '/storage/Downloads/Sonora/Song-b.m4a',
-        ),
+        _dl(videoId: 'a', localPath: '/storage/Downloads/Sonora/Song-a.m4a'),
+        _dl(videoId: 'b', localPath: '/storage/Downloads/Sonora/Song-b.m4a'),
       ]);
       expect(groups, hasLength(1));
       expect(groups.single.kind, DownloadGroupKind.singles);
@@ -89,7 +83,10 @@ void main() {
         ),
       ]);
       expect(groups, hasLength(2));
-      expect(groups.map((g) => g.name), containsAll(['After Hours', 'Dawn FM']));
+      expect(
+        groups.map((g) => g.name),
+        containsAll(['After Hours', 'Dawn FM']),
+      );
       expect(groups.every((g) => g.kind == DownloadGroupKind.album), isTrue);
     });
 
@@ -103,10 +100,7 @@ void main() {
           collectionName: 'After Hours',
           localPath: '/storage/Downloads/Sonora/After Hours/shared.m4a',
         ),
-        _dl(
-          videoId: 'solo',
-          localPath: '/storage/Downloads/Sonora/solo.m4a',
-        ),
+        _dl(videoId: 'solo', localPath: '/storage/Downloads/Sonora/solo.m4a'),
       ]);
       expect(groups, hasLength(2));
       final album = groups.firstWhere((g) => g.kind == DownloadGroupKind.album);
@@ -127,10 +121,7 @@ void main() {
           videoId: '2',
           localPath: '/storage/Downloads/Sonora/Late Night/2.m4a',
         ),
-        _dl(
-          videoId: '3',
-          localPath: '/storage/Downloads/Sonora/3.m4a',
-        ),
+        _dl(videoId: '3', localPath: '/storage/Downloads/Sonora/3.m4a'),
       ]);
       expect(groups, hasLength(2));
       final inferred = groups.firstWhere(
@@ -146,10 +137,7 @@ void main() {
 
     test('orders sections album before playlist before singles', () {
       final groups = groupCompletedDownloads([
-        _dl(
-          videoId: 's',
-          localPath: '/storage/Downloads/Sonora/s.m4a',
-        ),
+        _dl(videoId: 's', localPath: '/storage/Downloads/Sonora/s.m4a'),
         _dl(
           videoId: 'p',
           collectionId: 'pl1',

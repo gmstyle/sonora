@@ -93,11 +93,12 @@ class TabletShell extends ConsumerWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.only(
-                    bottom: isPlayerActive
-                        ? 72.0
-                        : (ref.watch(downloadBannerSummaryProvider) != null
-                            ? 52.0
-                            : 0.0),
+                    bottom:
+                        isPlayerActive
+                            ? 72.0
+                            : (ref.watch(downloadBannerSummaryProvider) != null
+                                ? 52.0
+                                : 0.0),
                   ),
                   child: BranchFadeTransition(navigationShell: navigationShell),
                 ),

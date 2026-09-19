@@ -174,8 +174,7 @@ final downloadBannerSummaryProvider = Provider<DownloadBannerSummary?>((ref) {
   if (working.isEmpty) return null;
 
   final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
-  final batchIds =
-      working.map((d) => d.batchId).whereType<String>().toSet();
+  final batchIds = working.map((d) => d.batchId).whereType<String>().toSet();
   final hasSingles = working.any((d) => d.batchId == null);
 
   if (working.length == 1) {
@@ -374,9 +373,10 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       _batches[batchId] = DownloadBatchProgress(
         id: batchId,
         name: batchName,
-        total: existing == null
-            ? batchTotal
-            : (existing.total > batchTotal ? existing.total : batchTotal),
+        total:
+            existing == null
+                ? batchTotal
+                : (existing.total > batchTotal ? existing.total : batchTotal),
         completed: existing?.completed ?? 0,
       );
     }
@@ -763,8 +763,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
 
     _completionDismissTimer?.cancel();
 
-    final batchIds =
-        working.map((d) => d.batchId).whereType<String>().toSet();
+    final batchIds = working.map((d) => d.batchId).whereType<String>().toSet();
     final hasSingles = working.any((d) => d.batchId == null);
 
     String body;
@@ -791,9 +790,10 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     } else {
       body = l10n.downloadsInProgress(working.length);
       final sessionTotal = state.length;
-      final done = state.values
-          .where((d) => d.status == DownloadStatus.completed)
-          .length;
+      final done =
+          state.values
+              .where((d) => d.status == DownloadStatus.completed)
+              .length;
       progress = done;
       maxProgress = sessionTotal <= 0 ? working.length : sessionTotal;
     }

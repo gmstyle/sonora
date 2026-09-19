@@ -26,7 +26,10 @@ final selectedDownloadGroupKeyProvider =
       SelectedDownloadGroupKeyNotifier.new,
     );
 
-String downloadGroupSectionTitle(AppLocalizations l10n, DownloadGroupKind kind) {
+String downloadGroupSectionTitle(
+  AppLocalizations l10n,
+  DownloadGroupKind kind,
+) {
   return switch (kind) {
     DownloadGroupKind.album => l10n.albums,
     DownloadGroupKind.playlist => l10n.playlists,
@@ -99,7 +102,8 @@ class CompletedDownloadsSliver extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final groups = ref.watch(downloadGroupsProvider);
     final sort = ref.watch(downloadsSortProvider);
-    if (groups.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    if (groups.isEmpty)
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
     return _MobileCompletedDownloads(groups: groups, sort: sort);
   }
 }

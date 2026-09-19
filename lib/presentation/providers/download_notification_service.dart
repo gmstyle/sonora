@@ -28,15 +28,13 @@ abstract class DownloadNotificationService {
     required int maxProgress,
   });
 
-  Future<void> showCompleted({
-    required String title,
-    required String body,
-  });
+  Future<void> showCompleted({required String title, required String body});
 
   Future<void> dismiss();
 }
 
-class FlutterDownloadNotificationService implements DownloadNotificationService {
+class FlutterDownloadNotificationService
+    implements DownloadNotificationService {
   const FlutterDownloadNotificationService();
 
   @override
