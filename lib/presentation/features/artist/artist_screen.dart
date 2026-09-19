@@ -26,6 +26,7 @@ import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
+import '../../shared/widgets/detail_actions_bar.dart';
 import 'providers/artist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -898,110 +899,62 @@ class _ArtistActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final hasSongs = artist.topSongs.isNotEmpty;
     final canShuffle =
         hasSongs || (artist.shuffleId != null && artist.shuffleId!.isNotEmpty);
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < kCompactBreakpoint;
 
-    if (isMobile) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _FollowButton(artist: artist, iconOnly: true),
-                IconButton(
-                  icon: const Icon(LucideIcons.shuffle),
-                  onPressed:
-                      canShuffle
-                          ? () => _shufflePlay(context, ref, artist)
-                          : null,
-                  tooltip: AppLocalizations.of(context)!.shuffle,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.share2),
-                  tooltip: AppLocalizations.of(context)!.share,
-                  onPressed: () {
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text:
-                            'https://music.youtube.com/channel/${artist.artistId}',
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.moreVertical),
-                  tooltip: AppLocalizations.of(context)!.more,
-                  onPressed: () {
-                    ContextMenuSheet.showForArtist(
-                      context,
-                      artistId: artist.artistId,
-                      name: artist.name,
-                      thumbnailUrl:
-                          artist.thumbnails.isNotEmpty
-                              ? artist.thumbnails.last.url
-                              : null,
-                      monthlyListeners: artist.monthlyListeners,
-                    );
-                  },
-                ),
-              ],
+    final secondary = rankDetailActions([
+      DetailAction(
+        id: DetailActionId.save,
+        icon: LucideIcons.userPlus,
+        label: l10n.follow,
+        tooltip: l10n.follow,
+        buildControl:
+            (context, compact) =>
+                _FollowButton(artist: artist, iconOnly: compact),
+      ),
+      DetailAction(
+        id: DetailActionId.share,
+        icon: LucideIcons.share2,
+        label: l10n.share,
+        tooltip: l10n.share,
+        onPressed: () {
+          SharePlus.instance.share(
+            ShareParams(
+              text: 'https://music.youtube.com/channel/${artist.artistId}',
             ),
-            SizedBox(
-              width: 56,
-              height: 56,
-              child: FilledButton(
-                onPressed:
-                    hasSongs
-                        ? () => _playSequential(context, ref, artist)
-                        : null,
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Icon(LucideIcons.play, size: 28),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+          );
+        },
+      ),
+      DetailAction(
+        id: DetailActionId.radio,
+        icon: LucideIcons.radio,
+        label: l10n.artistRadio,
+        tooltip: l10n.artistRadio,
+        buildControl: (context, compact) => _ArtistRadioButton(artist: artist),
+      ),
+    ]);
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        FilledButton.icon(
-          onPressed:
-              hasSongs ? () => _playSequential(context, ref, artist) : null,
-          icon: const Icon(LucideIcons.play),
-          label: Text(AppLocalizations.of(context)!.playTopSongs),
-        ),
-        FilledButton.tonalIcon(
-          onPressed:
-              canShuffle ? () => _shufflePlay(context, ref, artist) : null,
-          icon: const Icon(LucideIcons.shuffle),
-          label: Text(AppLocalizations.of(context)!.shuffle),
-        ),
-        _FollowButton(artist: artist),
-        _ArtistRadioButton(artist: artist),
-        IconButton(
-          icon: const Icon(LucideIcons.share2),
-          tooltip: AppLocalizations.of(context)!.share,
-          onPressed: () {
-            SharePlus.instance.share(
-              ShareParams(
-                text: 'https://music.youtube.com/channel/${artist.artistId}',
-              ),
-            );
-          },
-        ),
-      ],
+    return DetailActionsBar(
+      secondary: secondary,
+      onPlay: hasSongs ? () => _playSequential(context, ref, artist) : null,
+      playLabel: l10n.playTopSongs,
+      onShuffle: canShuffle ? () => _shufflePlay(context, ref, artist) : null,
+      shuffleLabel: l10n.shuffle,
+      alwaysShowOverflow: true,
+      onOverflow: () {
+        ContextMenuSheet.showForArtist(
+          context,
+          artistId: artist.artistId,
+          name: artist.name,
+          thumbnailUrl:
+              artist.thumbnails.isNotEmpty
+                  ? artist.thumbnails.last.url
+                  : null,
+          monthlyListeners: artist.monthlyListeners,
+        );
+      },
     );
   }
 

@@ -21,6 +21,7 @@ import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_badge.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../providers/spotify_sync_cooldown_provider.dart';
+import '../../../shared/widgets/detail_actions_bar.dart';
 import 'create_playlist_dialog.dart';
 import 'linked_playlist_actions.dart';
 import '../providers/library_provider.dart';
@@ -253,7 +254,6 @@ class _PlaylistDetailContentState
                     freshPlaylist.isLinked
                         ? () => _unlinkPlaylist(freshPlaylist)
                         : null,
-                isTabletOrWide: widget.isTablet || widget.isWide,
               ),
             ),
           ),
@@ -1051,7 +1051,6 @@ class _LocalPlaylistActions extends StatelessWidget {
   final VoidCallback? onRename;
   final VoidCallback? onSync;
   final VoidCallback? onUnlink;
-  final bool isTabletOrWide;
 
   const _LocalPlaylistActions({
     required this.playlist,
@@ -1064,7 +1063,6 @@ class _LocalPlaylistActions extends StatelessWidget {
     this.onRename,
     this.onSync,
     this.onUnlink,
-    this.isTabletOrWide = false,
   });
 
   @override
@@ -1077,111 +1075,52 @@ class _LocalPlaylistActions extends StatelessWidget {
             ? l10n.playlistSyncSpotifyCooldown
             : syncActionLabel(l10n, playlist);
 
-    if (!isTabletOrWide) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(LucideIcons.download),
-                  onPressed: onDownload,
-                  tooltip: l10n.downloadPlaylist,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.listMusic),
-                  onPressed: onAddToQueue,
-                  tooltip: l10n.addToQueue,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.shuffle),
-                  onPressed: onShuffle,
-                  tooltip: l10n.shuffle,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.pencil),
-                  onPressed: onRename,
-                  tooltip: l10n.renamePlaylist,
-                ),
-                if (onSync != null)
-                  IconButton(
-                    icon: const Icon(LucideIcons.refreshCw),
-                    onPressed: syncEnabled ? onSync : null,
-                    tooltip: syncTooltip,
-                  ),
-                if (onUnlink != null)
-                  IconButton(
-                    icon: const Icon(LucideIcons.unlink),
-                    onPressed: onUnlink,
-                    tooltip: l10n.unlinkPlaylist,
-                  ),
-              ],
-            ),
-            SizedBox(
-              width: 56,
-              height: 56,
-              child: FilledButton(
-                onPressed: onPlayAll,
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Icon(LucideIcons.play, size: 28),
-              ),
-            ),
-          ],
+    final secondary = rankDetailActions([
+      DetailAction(
+        id: DetailActionId.download,
+        icon: LucideIcons.download,
+        label: l10n.downloadPlaylist,
+        tooltip: l10n.downloadPlaylist,
+        onPressed: onDownload,
+      ),
+      DetailAction(
+        id: DetailActionId.queue,
+        icon: LucideIcons.listMusic,
+        label: l10n.addToQueue,
+        tooltip: l10n.addToQueue,
+        onPressed: onAddToQueue,
+      ),
+      DetailAction(
+        id: DetailActionId.rename,
+        icon: LucideIcons.pencil,
+        label: l10n.renamePlaylist,
+        tooltip: l10n.renamePlaylist,
+        onPressed: onRename,
+      ),
+      if (onSync != null)
+        DetailAction(
+          id: DetailActionId.sync,
+          icon: LucideIcons.refreshCw,
+          label: syncActionLabel(l10n, playlist),
+          tooltip: syncTooltip,
+          onPressed: syncEnabled ? onSync : null,
         ),
-      );
-    }
+      if (onUnlink != null)
+        DetailAction(
+          id: DetailActionId.unlink,
+          icon: LucideIcons.unlink,
+          label: l10n.unlinkPlaylist,
+          tooltip: l10n.unlinkPlaylist,
+          onPressed: onUnlink,
+        ),
+    ]);
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        FilledButton.icon(
-          onPressed: onPlayAll,
-          icon: const Icon(LucideIcons.play),
-          label: Text(l10n.playAll),
-        ),
-        FilledButton.icon(
-          onPressed: onShuffle,
-          icon: const Icon(LucideIcons.shuffle),
-          label: Text(l10n.shufflePlay),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: onAddToQueue,
-          icon: const Icon(LucideIcons.listMusic),
-          label: Text(l10n.addToQueue),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: onDownload,
-          icon: const Icon(LucideIcons.download),
-          label: Text(l10n.downloadPlaylist),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: onRename,
-          icon: const Icon(LucideIcons.pencil),
-          label: Text(l10n.renamePlaylist),
-        ),
-        if (onSync != null)
-          Tooltip(
-            message: syncTooltip,
-            child: FilledButton.tonalIcon(
-              onPressed: syncEnabled ? onSync : null,
-              icon: const Icon(LucideIcons.refreshCw),
-              label: Text(syncActionLabel(l10n, playlist)),
-            ),
-          ),
-        if (onUnlink != null)
-          FilledButton.tonalIcon(
-            onPressed: onUnlink,
-            icon: const Icon(LucideIcons.unlink),
-            label: Text(l10n.unlinkPlaylist),
-          ),
-      ],
+    return DetailActionsBar(
+      secondary: secondary,
+      onPlay: onPlayAll,
+      playLabel: l10n.playAll,
+      onShuffle: onShuffle,
+      shuffleLabel: l10n.shufflePlay,
     );
   }
 }

@@ -39,6 +39,16 @@ import '../../../l10n/app_localizations.dart';
 import 'explicit_badge.dart';
 import '../../../core/utils/artists_utils.dart';
 
+/// Whether [context] is already showing the entity identified by [paramKey]/[id]
+/// (e.g. `artistId` / `albumId` on the current go_router match).
+bool _isOnEntityPage(BuildContext context, String paramKey, String id) {
+  try {
+    return GoRouterState.of(context).pathParameters[paramKey] == id;
+  } catch (_) {
+    return false;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Song data provider (lazy enrichment for context menu)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,6 +149,7 @@ class ContextMenuSheet {
     String? thumbnailUrl,
     String? monthlyListeners,
   }) {
+    final hideGoToArtist = _isOnEntityPage(context, 'artistId', artistId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
         context: context,
@@ -155,6 +166,7 @@ class ContextMenuSheet {
                     name: name,
                     thumbnailUrl: thumbnailUrl,
                     monthlyListeners: monthlyListeners,
+                    hideGoToArtist: hideGoToArtist,
                   ),
                 ),
               ),
@@ -170,6 +182,7 @@ class ContextMenuSheet {
             name: name,
             thumbnailUrl: thumbnailUrl,
             monthlyListeners: monthlyListeners,
+            hideGoToArtist: hideGoToArtist,
           ),
     );
   }
@@ -183,6 +196,7 @@ class ContextMenuSheet {
     String? thumbnailUrl,
     int? year,
   }) {
+    final hideGoToAlbum = _isOnEntityPage(context, 'albumId', albumId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
         context: context,
@@ -201,6 +215,7 @@ class ContextMenuSheet {
                     artistId: artistId,
                     thumbnailUrl: thumbnailUrl,
                     year: year,
+                    hideGoToAlbum: hideGoToAlbum,
                   ),
                 ),
               ),
@@ -218,6 +233,7 @@ class ContextMenuSheet {
             artistId: artistId,
             thumbnailUrl: thumbnailUrl,
             year: year,
+            hideGoToAlbum: hideGoToAlbum,
           ),
     );
   }
@@ -229,6 +245,7 @@ class ContextMenuSheet {
     String? author,
     String? thumbnailUrl,
   }) {
+    final hideGoToPodcast = _isOnEntityPage(context, 'browseId', browseId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
         context: context,
@@ -245,6 +262,7 @@ class ContextMenuSheet {
                     name: name,
                     author: author,
                     thumbnailUrl: thumbnailUrl,
+                    hideGoToPodcast: hideGoToPodcast,
                   ),
                 ),
               ),
@@ -260,6 +278,7 @@ class ContextMenuSheet {
             name: name,
             author: author,
             thumbnailUrl: thumbnailUrl,
+            hideGoToPodcast: hideGoToPodcast,
           ),
     );
   }
@@ -274,6 +293,9 @@ class ContextMenuSheet {
     String? date,
     void Function(String podcastBrowseId)? onGoToPodcast,
   }) {
+    final hideGoToPodcast =
+        podcastBrowseId != null &&
+        _isOnEntityPage(context, 'browseId', podcastBrowseId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
         context: context,
@@ -293,6 +315,7 @@ class ContextMenuSheet {
                     thumbnailUrl: thumbnailUrl,
                     date: date,
                     onGoToPodcast: onGoToPodcast,
+                    hideGoToPodcast: hideGoToPodcast,
                   ),
                 ),
               ),
@@ -311,6 +334,7 @@ class ContextMenuSheet {
             thumbnailUrl: thumbnailUrl,
             date: date,
             onGoToPodcast: onGoToPodcast,
+            hideGoToPodcast: hideGoToPodcast,
           ),
     );
   }
@@ -322,6 +346,7 @@ class ContextMenuSheet {
     String? artist,
     String? thumbnailUrl,
   }) {
+    final hideGoToPlaylist = _isOnEntityPage(context, 'playlistId', playlistId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
         context: context,
@@ -338,6 +363,7 @@ class ContextMenuSheet {
                     name: name,
                     artist: artist,
                     thumbnailUrl: thumbnailUrl,
+                    hideGoToPlaylist: hideGoToPlaylist,
                   ),
                 ),
               ),
@@ -353,6 +379,7 @@ class ContextMenuSheet {
             name: name,
             artist: artist,
             thumbnailUrl: thumbnailUrl,
+            hideGoToPlaylist: hideGoToPlaylist,
           ),
     );
   }
@@ -1226,12 +1253,14 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
   final String name;
   final String? thumbnailUrl;
   final String? monthlyListeners;
+  final bool hideGoToArtist;
 
   const _ArtistContextMenuSheet({
     required this.artistId,
     required this.name,
     this.thumbnailUrl,
     this.monthlyListeners,
+    this.hideGoToArtist = false,
   });
 
   @override
@@ -1335,14 +1364,15 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                       );
                     },
                   ),
-                  _ActionTile(
-                    icon: LucideIcons.user,
-                    label: AppLocalizations.of(context)!.goToArtist,
-                    onTap: () {
-                      context.push('/artist/$artistId');
-                      Navigator.pop(context);
-                    },
-                  ),
+                  if (!hideGoToArtist)
+                    _ActionTile(
+                      icon: LucideIcons.user,
+                      label: AppLocalizations.of(context)!.goToArtist,
+                      onTap: () {
+                        context.push('/artist/$artistId');
+                        Navigator.pop(context);
+                      },
+                    ),
                   _FollowArtistActionTile(
                     artistId: artistId,
                     name: name,
@@ -1472,6 +1502,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
   final String? artistId;
   final String? thumbnailUrl;
   final int? year;
+  final bool hideGoToAlbum;
 
   const _AlbumContextMenuSheet({
     required this.albumId,
@@ -1480,6 +1511,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
     this.artistId,
     this.thumbnailUrl,
     this.year,
+    this.hideGoToAlbum = false,
   });
 
   @override
@@ -1584,14 +1616,15 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                       _addAlbumToQueue(albumFuture, useCase, player, feedback);
                     },
                   ),
-                  _ActionTile(
-                    icon: LucideIcons.disc,
-                    label: AppLocalizations.of(context)!.goToAlbum,
-                    onTap: () {
-                      context.push('/album/$albumId');
-                      Navigator.pop(context);
-                    },
-                  ),
+                  if (!hideGoToAlbum)
+                    _ActionTile(
+                      icon: LucideIcons.disc,
+                      label: AppLocalizations.of(context)!.goToAlbum,
+                      onTap: () {
+                        context.push('/album/$albumId');
+                        Navigator.pop(context);
+                      },
+                    ),
                   if (artistId != null)
                     _ActionTile(
                       icon: LucideIcons.user,
@@ -1703,12 +1736,14 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
   final String name;
   final String? author;
   final String? thumbnailUrl;
+  final bool hideGoToPodcast;
 
   const _PodcastContextMenuSheet({
     required this.browseId,
     required this.name,
     this.author,
     this.thumbnailUrl,
+    this.hideGoToPodcast = false,
   });
 
   @override
@@ -1778,14 +1813,15 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                       _playPodcast(repo, player, feedback);
                     },
                   ),
-                  _ActionTile(
-                    icon: LucideIcons.micVocal,
-                    label: AppLocalizations.of(context)!.goToPodcast,
-                    onTap: () {
-                      context.push('/podcast/$browseId');
-                      Navigator.pop(context);
-                    },
-                  ),
+                  if (!hideGoToPodcast)
+                    _ActionTile(
+                      icon: LucideIcons.micVocal,
+                      label: AppLocalizations.of(context)!.goToPodcast,
+                      onTap: () {
+                        context.push('/podcast/$browseId');
+                        Navigator.pop(context);
+                      },
+                    ),
                   _LikePodcastActionTile(
                     browseId: browseId,
                     name: name,
@@ -1911,6 +1947,7 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
   final String? thumbnailUrl;
   final String? date;
   final void Function(String podcastBrowseId)? onGoToPodcast;
+  final bool hideGoToPodcast;
 
   const _EpisodeContextMenuSheet({
     required this.videoId,
@@ -1920,6 +1957,7 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
     this.thumbnailUrl,
     this.date,
     this.onGoToPodcast,
+    this.hideGoToPodcast = false,
   });
 
   @override
@@ -1989,7 +2027,7 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                       _playEpisode(useCase, player, feedback);
                     },
                   ),
-                  if (podcastBrowseId != null)
+                  if (podcastBrowseId != null && !hideGoToPodcast)
                     _ActionTile(
                       icon: LucideIcons.micVocal,
                       label: AppLocalizations.of(context)!.goToPodcast,
@@ -2137,12 +2175,14 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
   final String name;
   final String? artist;
   final String? thumbnailUrl;
+  final bool hideGoToPlaylist;
 
   const _PlaylistContextMenuSheet({
     required this.playlistId,
     required this.name,
     this.artist,
     this.thumbnailUrl,
+    this.hideGoToPlaylist = false,
   });
 
   @override
@@ -2262,14 +2302,15 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                       );
                     },
                   ),
-                  _ActionTile(
-                    icon: LucideIcons.listVideo,
-                    label: AppLocalizations.of(context)!.goToPlaylist,
-                    onTap: () {
-                      context.push('/playlist/$playlistId');
-                      Navigator.pop(context);
-                    },
-                  ),
+                  if (!hideGoToPlaylist)
+                    _ActionTile(
+                      icon: LucideIcons.listVideo,
+                      label: AppLocalizations.of(context)!.goToPlaylist,
+                      onTap: () {
+                        context.push('/playlist/$playlistId');
+                        Navigator.pop(context);
+                      },
+                    ),
                   _LikePlaylistActionTile(
                     playlistId: playlistId,
                     name: name,

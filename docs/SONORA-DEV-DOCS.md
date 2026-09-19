@@ -641,6 +641,18 @@ const double kExpandedBreakpoint  = 1200.0;  // → WideShell (NavigationDrawer)
 - 600–1200dp → `TabletShell` (NavigationRail collapsed)
 - Every complex feature screen has separate layouts: `*_mobile_layout.dart`, `*_tablet_layout.dart`, `*_wide_layout.dart`
 
+### 7.1.1 Detail header actions
+
+Album, YouTube playlist, artist, podcast, and local playlist detail screens share [`DetailActionsBar`](lib/presentation/shared/widgets/detail_actions_bar.dart):
+
+| Layout | Chrome |
+|---|---|
+| Compact (<600) | Up to 2 secondary icons + Shuffle + ⋮ + circular Play |
+| Tablet (600–1199) | Play + Shuffle + up to **2** secondary labeled + ⋮ |
+| Wide (≥1200) | Play + Shuffle + up to **3** secondary labeled + ⋮ |
+
+Secondary actions are ranked (save → download → queue → share → entity-specific). Overflow opens `ContextMenuSheet` (remote entities) or a simple action sheet (local playlist). Rare actions (Sync, Unlink, Rename, Radio when over budget) stay in ⋮.
+
 ### 7.2 Navigation
 
 Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.

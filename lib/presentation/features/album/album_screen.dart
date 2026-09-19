@@ -25,6 +25,7 @@ import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
+import '../../shared/widgets/detail_actions_bar.dart';
 import 'providers/album_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -703,128 +704,76 @@ class _AlbumActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < kCompactBreakpoint;
-
-    if (isMobile) {
-      final hasSongs = album.songs.isNotEmpty;
-      final l10n = AppLocalizations.of(context)!;
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _LikeAlbumButton(album: album, iconOnly: true),
-                _DownloadAlbumButton(
-                  album: album,
-                  onDownload:
-                      hasSongs
-                          ? () => _downloadAlbum(context, ref, album)
-                          : null,
-                  iconOnly: true,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.shuffle),
-                  onPressed:
-                      hasSongs ? () => _shufflePlay(context, ref, album) : null,
-                  tooltip: l10n.shuffle,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.share2),
-                  tooltip: l10n.share,
-                  onPressed: () {
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text:
-                            'https://music.youtube.com/playlist?list=${album.albumId}',
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.moreVertical),
-                  tooltip: l10n.more,
-                  onPressed: () {
-                    ContextMenuSheet.showForAlbum(
-                      context,
-                      albumId: album.albumId,
-                      name: album.name,
-                      artist: displayArtists(album.artists),
-                      artistId: primaryArtistId(album.artists),
-                      thumbnailUrl:
-                          album.thumbnails.isNotEmpty
-                              ? album.thumbnails.last.url
-                              : null,
-                      year: album.year,
-                    );
-                  },
-                ),
-              ],
-            ),
-            SizedBox(
-              width: 56,
-              height: 56,
-              child: FilledButton(
-                onPressed:
-                    hasSongs
-                        ? () => _playSequential(context, ref, album)
-                        : null,
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Icon(LucideIcons.play, size: 28),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+    final l10n = AppLocalizations.of(context)!;
     final hasSongs = album.songs.isNotEmpty;
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        FilledButton.icon(
-          onPressed:
-              hasSongs ? () => _playSequential(context, ref, album) : null,
-          icon: const Icon(LucideIcons.play),
-          label: Text(AppLocalizations.of(context)!.playAll),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: hasSongs ? () => _shufflePlay(context, ref, album) : null,
-          icon: const Icon(LucideIcons.shuffle),
-          label: Text(AppLocalizations.of(context)!.shufflePlay),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: hasSongs ? () => _addToQueue(context, ref, album) : null,
-          icon: const Icon(LucideIcons.listMusic),
-          label: Text(AppLocalizations.of(context)!.addToQueue),
-        ),
-        _DownloadAlbumButton(
-          album: album,
-          onDownload:
-              hasSongs ? () => _downloadAlbum(context, ref, album) : null,
-        ),
-        _LikeAlbumButton(album: album),
-        IconButton(
-          icon: const Icon(LucideIcons.share2),
-          tooltip: AppLocalizations.of(context)!.share,
-          onPressed: () {
-            SharePlus.instance.share(
-              ShareParams(
-                text:
-                    'https://music.youtube.com/playlist?list=${album.albumId}',
-              ),
-            );
-          },
-        ),
-      ],
+    final secondary = rankDetailActions([
+      DetailAction(
+        id: DetailActionId.save,
+        icon: LucideIcons.heart,
+        label: l10n.like,
+        tooltip: l10n.like,
+        buildControl:
+            (context, compact) =>
+                _LikeAlbumButton(album: album, iconOnly: compact),
+      ),
+      DetailAction(
+        id: DetailActionId.download,
+        icon: LucideIcons.download,
+        label: l10n.download,
+        tooltip: l10n.download,
+        buildControl:
+            (context, compact) => _DownloadAlbumButton(
+              album: album,
+              onDownload:
+                  hasSongs
+                      ? () => _downloadAlbum(context, ref, album)
+                      : null,
+              iconOnly: compact,
+            ),
+      ),
+      DetailAction(
+        id: DetailActionId.queue,
+        icon: LucideIcons.listMusic,
+        label: l10n.addToQueue,
+        tooltip: l10n.addToQueue,
+        onPressed: hasSongs ? () => _addToQueue(context, ref, album) : null,
+      ),
+      DetailAction(
+        id: DetailActionId.share,
+        icon: LucideIcons.share2,
+        label: l10n.share,
+        tooltip: l10n.share,
+        onPressed: () {
+          SharePlus.instance.share(
+            ShareParams(
+              text:
+                  'https://music.youtube.com/playlist?list=${album.albumId}',
+            ),
+          );
+        },
+      ),
+    ]);
+
+    return DetailActionsBar(
+      secondary: secondary,
+      onPlay: hasSongs ? () => _playSequential(context, ref, album) : null,
+      playLabel: l10n.playAll,
+      onShuffle: hasSongs ? () => _shufflePlay(context, ref, album) : null,
+      shuffleLabel: l10n.shufflePlay,
+      alwaysShowOverflow: true,
+      onOverflow: () {
+        ContextMenuSheet.showForAlbum(
+          context,
+          albumId: album.albumId,
+          name: album.name,
+          artist: displayArtists(album.artists),
+          artistId: primaryArtistId(album.artists),
+          thumbnailUrl:
+              album.thumbnails.isNotEmpty ? album.thumbnails.last.url : null,
+          year: album.year,
+        );
+      },
     );
   }
 

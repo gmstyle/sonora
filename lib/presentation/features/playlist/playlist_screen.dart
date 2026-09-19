@@ -24,6 +24,7 @@ import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
+import '../../shared/widgets/detail_actions_bar.dart';
 import 'providers/playlist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -636,136 +637,83 @@ class _PlaylistActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < kCompactBreakpoint;
+    final l10n = AppLocalizations.of(context)!;
     final videos = videosAsync.asData?.value;
     final hasVideos = videos != null && videos.isNotEmpty;
 
-    if (isMobile) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _LikePlaylistButton(
-                  playlist: playlist,
-                  videosAsync: videosAsync,
-                  iconOnly: true,
-                ),
-                _DownloadPlaylistButton(
-                  playlist: playlist,
-                  videosAsync: videosAsync,
-                  onDownload:
-                      hasVideos
-                          ? () =>
-                              _downloadPlaylist(context, ref, playlist, videos)
-                          : null,
-                  iconOnly: true,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.shuffle),
-                  onPressed:
-                      hasVideos
-                          ? () => _shufflePlay(context, ref, videos)
-                          : null,
-                  tooltip: AppLocalizations.of(context)!.shuffle,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.share2),
-                  tooltip: AppLocalizations.of(context)!.share,
-                  onPressed: () {
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text:
-                            'https://music.youtube.com/playlist?list=${playlist.playlistId}',
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.moreVertical),
-                  tooltip: AppLocalizations.of(context)!.more,
-                  onPressed: () {
-                    ContextMenuSheet.showForPlaylist(
-                      context,
-                      playlistId: playlist.playlistId,
-                      name: playlist.name,
-                      artist: displayArtists(playlist.artists),
-                      thumbnailUrl:
-                          playlist.thumbnails.isNotEmpty
-                              ? playlist.thumbnails.last.url
-                              : null,
-                    );
-                  },
-                ),
-              ],
+    final secondary = rankDetailActions([
+      DetailAction(
+        id: DetailActionId.save,
+        icon: LucideIcons.heart,
+        label: l10n.like,
+        tooltip: l10n.like,
+        buildControl:
+            (context, compact) => _LikePlaylistButton(
+              playlist: playlist,
+              videosAsync: videosAsync,
+              iconOnly: compact,
             ),
-            SizedBox(
-              width: 56,
-              height: 56,
-              child: FilledButton(
-                onPressed:
-                    hasVideos
-                        ? () => _playSequential(context, ref, videos)
-                        : null,
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Icon(LucideIcons.play, size: 28),
-              ),
+      ),
+      DetailAction(
+        id: DetailActionId.download,
+        icon: LucideIcons.download,
+        label: l10n.download,
+        tooltip: l10n.download,
+        buildControl:
+            (context, compact) => _DownloadPlaylistButton(
+              playlist: playlist,
+              videosAsync: videosAsync,
+              onDownload:
+                  hasVideos
+                      ? () =>
+                          _downloadPlaylist(context, ref, playlist, videos)
+                      : null,
+              iconOnly: compact,
             ),
-          ],
-        ),
-      );
-    }
+      ),
+      DetailAction(
+        id: DetailActionId.queue,
+        icon: LucideIcons.listMusic,
+        label: l10n.addToQueue,
+        tooltip: l10n.addToQueue,
+        onPressed:
+            hasVideos ? () => _addToQueue(context, ref, videos) : null,
+      ),
+      DetailAction(
+        id: DetailActionId.share,
+        icon: LucideIcons.share2,
+        label: l10n.share,
+        tooltip: l10n.share,
+        onPressed: () {
+          SharePlus.instance.share(
+            ShareParams(
+              text:
+                  'https://music.youtube.com/playlist?list=${playlist.playlistId}',
+            ),
+          );
+        },
+      ),
+    ]);
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        FilledButton.icon(
-          onPressed:
-              hasVideos ? () => _playSequential(context, ref, videos) : null,
-          icon: const Icon(LucideIcons.play),
-          label: Text(AppLocalizations.of(context)!.playAll),
-        ),
-        FilledButton.tonalIcon(
-          onPressed:
-              hasVideos ? () => _shufflePlay(context, ref, videos) : null,
-          icon: const Icon(LucideIcons.shuffle),
-          label: Text(AppLocalizations.of(context)!.shufflePlay),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: hasVideos ? () => _addToQueue(context, ref, videos) : null,
-          icon: const Icon(LucideIcons.listMusic),
-          label: Text(AppLocalizations.of(context)!.addToQueue),
-        ),
-        _DownloadPlaylistButton(
-          playlist: playlist,
-          videosAsync: videosAsync,
-          onDownload:
-              hasVideos
-                  ? () => _downloadPlaylist(context, ref, playlist, videos)
+    return DetailActionsBar(
+      secondary: secondary,
+      onPlay: hasVideos ? () => _playSequential(context, ref, videos) : null,
+      playLabel: l10n.playAll,
+      onShuffle: hasVideos ? () => _shufflePlay(context, ref, videos) : null,
+      shuffleLabel: l10n.shufflePlay,
+      alwaysShowOverflow: true,
+      onOverflow: () {
+        ContextMenuSheet.showForPlaylist(
+          context,
+          playlistId: playlist.playlistId,
+          name: playlist.name,
+          artist: displayArtists(playlist.artists),
+          thumbnailUrl:
+              playlist.thumbnails.isNotEmpty
+                  ? playlist.thumbnails.last.url
                   : null,
-        ),
-        _LikePlaylistButton(playlist: playlist, videosAsync: videosAsync),
-        IconButton(
-          icon: const Icon(LucideIcons.share2),
-          tooltip: AppLocalizations.of(context)!.share,
-          onPressed: () {
-            SharePlus.instance.share(
-              ShareParams(
-                text:
-                    'https://music.youtube.com/playlist?list=${playlist.playlistId}',
-              ),
-            );
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 

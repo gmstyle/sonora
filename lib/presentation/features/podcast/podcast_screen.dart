@@ -21,6 +21,8 @@ import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
+import '../../shared/widgets/context_menu_sheet.dart';
+import '../../shared/widgets/detail_actions_bar.dart';
 import 'providers/podcast_provider.dart';
 
 /// Index of [episodeIndex] within the subset of episodes that have a
@@ -554,100 +556,68 @@ class _PodcastActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < kCompactBreakpoint;
+    final l10n = AppLocalizations.of(context)!;
     final hasEpisodes = podcast.episodes.any((e) => e.videoId.isNotEmpty);
 
-    if (isMobile) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _SubscribePodcastButton(podcast: podcast, iconOnly: true),
-                _DownloadPodcastButton(
-                  podcast: podcast,
-                  onDownload:
-                      hasEpisodes
-                          ? () => _downloadPodcast(context, ref, podcast)
-                          : null,
-                  iconOnly: true,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.shuffle),
-                  onPressed:
-                      hasEpisodes ? () => _shufflePlay(context, ref) : null,
-                  tooltip: AppLocalizations.of(context)!.shuffle,
-                ),
-                IconButton(
-                  icon: const Icon(LucideIcons.share2),
-                  tooltip: AppLocalizations.of(context)!.share,
-                  onPressed: () {
-                    SharePlus.instance.share(
-                      ShareParams(
-                        text:
-                            'https://music.youtube.com/browse/${podcast.browseId}',
-                      ),
-                    );
-                  },
-                ),
-              ],
+    final secondary = rankDetailActions([
+      DetailAction(
+        id: DetailActionId.save,
+        icon: LucideIcons.heart,
+        label: l10n.subscribe,
+        tooltip: l10n.subscribe,
+        buildControl:
+            (context, compact) =>
+                _SubscribePodcastButton(podcast: podcast, iconOnly: compact),
+      ),
+      DetailAction(
+        id: DetailActionId.download,
+        icon: LucideIcons.download,
+        label: l10n.download,
+        tooltip: l10n.download,
+        buildControl:
+            (context, compact) => _DownloadPodcastButton(
+              podcast: podcast,
+              onDownload:
+                  hasEpisodes
+                      ? () => _downloadPodcast(context, ref, podcast)
+                      : null,
+              iconOnly: compact,
             ),
-            SizedBox(
-              width: 56,
-              height: 56,
-              child: FilledButton(
-                onPressed:
-                    hasEpisodes ? () => _playSequential(context, ref) : null,
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Icon(LucideIcons.play, size: 28),
-              ),
+      ),
+      DetailAction(
+        id: DetailActionId.share,
+        icon: LucideIcons.share2,
+        label: l10n.share,
+        tooltip: l10n.share,
+        onPressed: () {
+          SharePlus.instance.share(
+            ShareParams(
+              text: 'https://music.youtube.com/browse/${podcast.browseId}',
             ),
-          ],
-        ),
-      );
-    }
+          );
+        },
+      ),
+    ]);
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        FilledButton.icon(
-          onPressed: hasEpisodes ? () => _playSequential(context, ref) : null,
-          icon: const Icon(LucideIcons.play),
-          label: Text(AppLocalizations.of(context)!.playAll),
-        ),
-        FilledButton.tonalIcon(
-          onPressed: hasEpisodes ? () => _shufflePlay(context, ref) : null,
-          icon: const Icon(LucideIcons.shuffle),
-          label: Text(AppLocalizations.of(context)!.shufflePlay),
-        ),
-        _DownloadPodcastButton(
-          podcast: podcast,
-          onDownload:
-              hasEpisodes
-                  ? () => _downloadPodcast(context, ref, podcast)
+    return DetailActionsBar(
+      secondary: secondary,
+      onPlay: hasEpisodes ? () => _playSequential(context, ref) : null,
+      playLabel: l10n.playAll,
+      onShuffle: hasEpisodes ? () => _shufflePlay(context, ref) : null,
+      shuffleLabel: l10n.shufflePlay,
+      alwaysShowOverflow: true,
+      onOverflow: () {
+        ContextMenuSheet.showForPodcast(
+          context,
+          browseId: podcast.browseId,
+          name: podcast.name,
+          author: podcast.author?.name,
+          thumbnailUrl:
+              podcast.thumbnails.isNotEmpty
+                  ? podcast.thumbnails.last.url
                   : null,
-        ),
-        _SubscribePodcastButton(podcast: podcast),
-        IconButton(
-          icon: const Icon(LucideIcons.share2),
-          tooltip: AppLocalizations.of(context)!.share,
-          onPressed: () {
-            SharePlus.instance.share(
-              ShareParams(
-                text: 'https://music.youtube.com/browse/${podcast.browseId}',
-              ),
-            );
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 
