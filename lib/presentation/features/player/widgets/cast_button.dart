@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/cast_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import 'cast_dialog.dart';
 
 class CastButton extends ConsumerWidget {
@@ -15,6 +16,7 @@ class CastButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final castStateAsync = ref.watch(castStateProvider);
+    final isOffline = ref.watch(isOfflineProvider);
 
     return castStateAsync.maybeWhen(
       data: (state) {
@@ -25,9 +27,11 @@ class CastButton extends ConsumerWidget {
         final deviceName = state.activeDevice?.name;
         final iconSize = size ?? 24.0;
         final tooltip =
-            isConnected && deviceName != null && l10n != null
-                ? l10n.castConnectedTo(deviceName)
-                : null;
+            isOffline
+                ? (l10n?.noConnectionMessage)
+                : (isConnected && deviceName != null && l10n != null
+                    ? l10n.castConnectedTo(deviceName)
+                    : null);
 
         return IconButton(
           style: style,
@@ -49,9 +53,12 @@ class CastButton extends ConsumerWidget {
                     ),
                   )
                   : Icon(LucideIcons.cast, color: color, size: iconSize),
-          onPressed: () {
-            CastDialog.show(context);
-          },
+          onPressed:
+              isOffline
+                  ? null
+                  : () {
+                    CastDialog.show(context);
+                  },
         );
       },
       orElse:

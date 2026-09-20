@@ -16,6 +16,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../../shared/widgets/detail_affinity_button.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/explicit_badge.dart';
@@ -522,6 +523,7 @@ Widget buildBottomActionsRow(
   final podcastBrowseId = track?.podcastBrowseId;
   final showRelated =
       !isEpisode || (podcastBrowseId != null && podcastBrowseId.isNotEmpty);
+  final isOffline = ref.watch(isOfflineProvider);
 
   // Tablet/landscape-split right column can be ~300px (Mi A1); 7×48 buttons
   // overflow. Compact + FittedBox whenever width is tight, not only mobile.
@@ -622,15 +624,18 @@ Widget buildBottomActionsRow(
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
               ),
-              onPressed: () {
-                ref
-                    .read(playerSubViewProvider.notifier)
-                    .set(
-                      activeView == PlayerSubView.related
-                          ? PlayerSubView.none
-                          : PlayerSubView.related,
-                    );
-              },
+              onPressed:
+                  isOffline
+                      ? null
+                      : () {
+                        ref
+                            .read(playerSubViewProvider.notifier)
+                            .set(
+                              activeView == PlayerSubView.related
+                                  ? PlayerSubView.none
+                                  : PlayerSubView.related,
+                            );
+                      },
               tooltip: l10n.related,
             ),
           IconButton(

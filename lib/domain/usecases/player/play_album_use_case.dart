@@ -30,9 +30,9 @@ class PlayAlbumUseCase {
 
     String? firstUrl;
     if (playIndex >= 0 && playIndex < songs.length) {
-      try {
-        firstUrl = await _playVideoId.resolveUrl(songs[playIndex].videoId);
-      } catch (_) {}
+      // Do not swallow failures: playNow rejects a placeholder lead track.
+      // resolveUrl returns a completed download file:// when present.
+      firstUrl = await _playVideoId.resolveUrl(songs[playIndex].videoId);
     }
 
     return [

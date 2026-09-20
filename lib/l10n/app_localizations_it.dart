@@ -1487,11 +1487,19 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get offlineModeHint =>
-      'Mostra solo i contenuti scaricati e le playlist locali';
+      'Riproduci solo i brani scaricati e disabilita le azioni di rete';
 
   @override
   String get offlineModeActiveMessage =>
-      'Sei in modalità offline. Visualizzazione dei contenuti locali.';
+      'Modalità offline attiva. Puoi riprodurre solo i brani scaricati.';
+
+  @override
+  String get offlineModeKeepCurrentHint =>
+      'Modalità offline attiva. Questo brano finirà; il successivo parte solo se scaricato.';
+
+  @override
+  String get noConnectionActiveMessage =>
+      'Nessuna connessione internet. Lo streaming potrebbe fallire — i brani scaricati funzionano ancora.';
 
   @override
   String get goToDownloads => 'Vai a Downloads';

@@ -299,22 +299,27 @@ class QueueController {
   /// Assigns queueId if missing and tags as user section.
   ///
   /// Local `file://` URLs (library downloads and media-cache files) bypass
-  /// the proxy so offline playback works. Settings `offlineMode` also maps
-  /// non-local tracks to the silent placeholder so the engine never hits
-  /// YouTube. Cast still uses [MediaItem] extras, not the engine source.
+  /// the proxy so offline playback works. Settings `offlineMode` allows only
+  /// library downloads (not transparent media-cache) and maps everything else
+  /// to the silent placeholder so the engine never hits YouTube. Cast still
+  /// uses [MediaItem] extras, not the engine source.
   EngineMedia toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
     final isCache = MediaCacheService.isMediaCacheUri(track.url);
+    // Forced offline: completed library downloads only (no media-cache).
+    if (_isForcedOffline()) {
+      if (track.isLocalFile && !isCache) {
+        return EngineMedia(uri: track.url!, mediaItem: tagged);
+      }
+      final dummy = '$kPlaceholderAudioUriPrefix${track.videoId}.wav';
+      return EngineMedia(uri: dummy, mediaItem: tagged);
+    }
     final useLocal =
         track.isLocalFile &&
         (!isCache || MediaCacheService.isPlayableCacheUri(track.url));
     if (useLocal) {
       return EngineMedia(uri: track.url!, mediaItem: tagged);
-    }
-    if (_isForcedOffline()) {
-      final dummy = '$kPlaceholderAudioUriPrefix${track.videoId}.wav';
-      return EngineMedia(uri: dummy, mediaItem: tagged);
     }
     if (_proxyServer != null &&
         _proxyServer.isRunning &&

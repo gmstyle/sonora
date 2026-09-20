@@ -29,6 +29,7 @@ import '../../features/library/widgets/playlist_detail_view.dart';
 import '../../features/playlist/providers/playlist_provider.dart';
 import '../../features/podcast/providers/podcast_provider.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/music_repository_provider.dart';
@@ -562,6 +563,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     final player = ref.read(playerStateProvider.notifier);
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
+    final isOffline = ref.watch(isOfflineProvider);
 
     final songAsync = ref.watch(_songFullProvider(videoId));
     final resolvedArtists = resolveArtistsList(
@@ -711,6 +713,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                   _ActionTile(
                     icon: LucideIcons.radio,
                     label: AppLocalizations.of(context)!.startRadio,
+                    enabled: !isOffline,
                     onTap: () {
                       final useCase = ref.read(startRadioUseCaseProvider);
                       final feedback = ref.read(
@@ -730,6 +733,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                         isDownloaded
                             ? AppLocalizations.of(context)!.downloaded
                             : AppLocalizations.of(context)!.download,
+                    enabled: !isOffline,
                     onTap: () {
                       Navigator.pop(context);
                       if (isDownloaded) {
@@ -894,6 +898,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
     final player = ref.read(playerStateProvider.notifier);
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
+    final isOffline = ref.watch(isOfflineProvider);
 
     final songAsync = ref.watch(_songFullProvider(videoId));
     final resolvedArtists = resolveArtistsList(
@@ -1118,6 +1123,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                   _ActionTile(
                     icon: LucideIcons.radio,
                     label: AppLocalizations.of(context)!.startRadio,
+                    enabled: !isOffline,
                     onTap: () {
                       final useCase = ref.read(startRadioUseCaseProvider);
                       final feedback = ref.read(
@@ -1167,6 +1173,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         isDownloaded
                             ? AppLocalizations.of(context)!.downloaded
                             : AppLocalizations.of(context)!.download,
+                    enabled: !isOffline,
                     onTap: () {
                       Navigator.pop(context);
                       if (isDownloaded) {
@@ -1294,6 +1301,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isOffline = ref.watch(isOfflineProvider);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1438,6 +1446,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.radio,
                       label: AppLocalizations.of(context)!.artistRadio,
+                      enabled: !isOffline,
                       onTap: () {
                         final artistFuture = ref.read(
                           artistProvider(artistId).future,
@@ -1596,6 +1605,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isOffline = ref.watch(isOfflineProvider);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1647,6 +1657,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.play,
                       label: AppLocalizations.of(context)!.playAll,
+                      enabled: !isOffline,
                       onTap: () {
                         final albumFuture = ref.read(
                           albumProvider(albumId).future,
@@ -1669,6 +1680,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.shuffle,
                       label: AppLocalizations.of(context)!.shufflePlay,
+                      enabled: !isOffline,
                       onTap: () {
                         final albumFuture = ref.read(
                           albumProvider(albumId).future,
@@ -1740,6 +1752,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.download,
                       label: AppLocalizations.of(context)!.download,
+                      enabled: !isOffline,
                       onTap: () {
                         final albumFuture = ref.read(
                           albumProvider(albumId).future,
@@ -1950,6 +1963,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isOffline = ref.watch(isOfflineProvider);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -2006,6 +2020,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.play,
                       label: AppLocalizations.of(context)!.playAll,
+                      enabled: !isOffline,
                       onTap: () {
                         final repo = ref.read(musicRepositoryProvider);
                         final player = ref.read(playerStateProvider.notifier);
@@ -2020,6 +2035,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.shuffle,
                       label: AppLocalizations.of(context)!.shufflePlay,
+                      enabled: !isOffline,
                       onTap: () {
                         final repo = ref.read(musicRepositoryProvider);
                         final player = ref.read(playerStateProvider.notifier);
@@ -2065,6 +2081,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.download,
                       label: AppLocalizations.of(context)!.download,
+                      enabled: !isOffline,
                       onTap: () {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
@@ -2575,6 +2592,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isOffline = ref.watch(isOfflineProvider);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -2631,6 +2649,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.play,
                       label: AppLocalizations.of(context)!.playAll,
+                      enabled: !isOffline,
                       onTap: () {
                         final videosFuture = ref.read(
                           playlistVideosProvider(playlistId).future,
@@ -2653,6 +2672,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.shuffle,
                       label: AppLocalizations.of(context)!.shufflePlay,
+                      enabled: !isOffline,
                       onTap: () {
                         final videosFuture = ref.read(
                           playlistVideosProvider(playlistId).future,
@@ -2712,6 +2732,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     _ActionTile(
                       icon: LucideIcons.download,
                       label: AppLocalizations.of(context)!.download,
+                      enabled: !isOffline,
                       onTap: () {
                         final videosFuture = ref.read(
                           playlistVideosProvider(playlistId).future,
@@ -2913,6 +2934,7 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final isOffline = ref.watch(isOfflineProvider);
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -3066,7 +3088,8 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       _ActionTile(
                         icon: LucideIcons.refreshCw,
                         label: syncActionLabel(l10n, playlist),
-                        enabled: !isSpotifySyncCoolingDown(playlist),
+                        enabled:
+                            !isOffline && !isSpotifySyncCoolingDown(playlist),
                         onTap: () async {
                           final container = ProviderScope.containerOf(context);
                           final strings = l10n;

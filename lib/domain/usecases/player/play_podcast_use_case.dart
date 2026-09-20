@@ -31,11 +31,7 @@ class PlayPodcastUseCase {
 
     String? firstUrl;
     if (playIndex >= 0) {
-      try {
-        firstUrl = await _playVideoId.resolveUrl(
-          playable[resolvedIndex].videoId,
-        );
-      } catch (_) {}
+      firstUrl = await _playVideoId.resolveUrl(playable[resolvedIndex].videoId);
     }
 
     return [

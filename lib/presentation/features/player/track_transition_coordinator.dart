@@ -78,6 +78,8 @@ class TrackTransitionCoordinator {
   final bool Function() _isRepeatOne;
   final Future<void> Function()? _skipToNext;
   final Future<void> Function(int index)? _skipToQueueItem;
+  final bool Function() _isForcedOffline;
+  final Future<void> Function(int index)? _enforceForcedOfflineAt;
   int? _previousPlaylistIndex;
   bool _shuffleEndArmed = false;
 
@@ -101,6 +103,8 @@ class TrackTransitionCoordinator {
     bool Function()? isRepeatOne,
     Future<void> Function()? skipToNext,
     Future<void> Function(int index)? skipToQueueItem,
+    bool Function()? isForcedOffline,
+    Future<void> Function(int index)? enforceForcedOfflineAt,
   }) : _engine = engine,
        _intent = intent,
        _queueController = queueController,
@@ -119,7 +123,9 @@ class TrackTransitionCoordinator {
        _isShuffleAll = isShuffleAll ?? (() => false),
        _isRepeatOne = isRepeatOne ?? (() => false),
        _skipToNext = skipToNext,
-       _skipToQueueItem = skipToQueueItem;
+       _skipToQueueItem = skipToQueueItem,
+       _isForcedOffline = isForcedOffline ?? (() => false),
+       _enforceForcedOfflineAt = enforceForcedOfflineAt;
 
   /// Subscribes to engine streams. Called once from the handler constructor.
   void setupListeners() {
@@ -269,6 +275,20 @@ class TrackTransitionCoordinator {
 
     if (publishNow && index >= 0 && index < playlist.medias.length) {
       _publishMediaItem(playlist.medias[index]);
+    }
+
+    // Engine auto-advance (or any index change) while offline mode is on:
+    // only library downloads may continue; otherwise stop after this track.
+    if (trackChanged && !_isRestoring() && _isForcedOffline() && index >= 0) {
+      final enforce = _enforceForcedOfflineAt;
+      if (enforce != null) {
+        unawaited(
+          enforce(index).catchError(
+            (Object e) =>
+                dev.log('[AudioHandler] enforceForcedOfflineAt error: $e'),
+          ),
+        );
+      }
     }
 
     // Look-ahead is the resolver's driver and is not gated by isResolvingItem.

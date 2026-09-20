@@ -52,6 +52,57 @@ void main() {
     await proxy.stop();
   });
 
+  test('toMedia rejects media-cache when forced offline', () {
+    final offlineController = QueueController(
+      engine: FakePlaybackEngine(),
+      queueRepo: _FakeQueueRepository(),
+      getQueue: () => <MediaItem>[],
+      getShuffleMode: () => AudioServiceShuffleMode.none,
+      getRepeatMode: () => AudioServiceRepeatMode.none,
+      updateQueueStream: (_) {},
+      proxyServer: proxy,
+      isForcedOffline: () => true,
+    );
+    const cacheUrl = 'file:///tmp/sonora_media_cache/vidCache.webm';
+    final item =
+        const QueueTrack(
+          videoId: 'vidCache',
+          title: 'Cached',
+          artist: 'A',
+          url: cacheUrl,
+        ).toFreshMediaItem();
+
+    final media = offlineController.toMedia(item);
+
+    expect(isPlaceholderAudioUri(media.uri), isTrue);
+  });
+
+  test('toMedia keeps library download file when forced offline', () {
+    final offlineController = QueueController(
+      engine: FakePlaybackEngine(),
+      queueRepo: _FakeQueueRepository(),
+      getQueue: () => <MediaItem>[],
+      getShuffleMode: () => AudioServiceShuffleMode.none,
+      getRepeatMode: () => AudioServiceRepeatMode.none,
+      updateQueueStream: (_) {},
+      proxyServer: proxy,
+      isForcedOffline: () => true,
+    );
+    const fileUrl = 'file:///data/Sonora/vidDl.mp3';
+    final item =
+        const QueueTrack(
+          videoId: 'vidDl',
+          title: 'Downloaded',
+          artist: 'A',
+          url: fileUrl,
+        ).toFreshMediaItem();
+
+    final media = offlineController.toMedia(item);
+
+    expect(isPlaceholderAudioUri(media.uri), isFalse);
+    expect(media.uri == fileUrl || media.uri.contains('vidDl'), isTrue);
+  });
+
   test('toMedia prefers file:// over proxy when proxy is running', () {
     expect(proxy.isRunning, isTrue);
     const fileUrl = 'file:///data/vid1.mp3';

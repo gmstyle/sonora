@@ -438,7 +438,7 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
   - `StreamDatasource` caches playback plans by `videoId|audioQ` and exposes `clearUrlCache()` when stream audio quality changes.
 
 - **Dual-Path Playback Architecture:**
-  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` or `/Sonora/<collection>/`) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata and optional `collectionId` / `collectionType` / `collectionName` from bulk `batchId`). Re-downloads write to a `.part` staging file; the previous completed file and SQLite row are replaced only after the new file is fully written (`DownloadReplacement`). A failed replacement restores the previous completed row. `PlayVideoIdUseCase.resolveUrl` is the single playback URL entry point (album, playlist, podcast, smart mix, radio, Play All favorites, play-next / add-to-queue, CLI `play`): completed downloads and audio-cache hits become native `file:///` URIs and bypass the proxy. CLI `play` resolves a completed download via `resolveCompletedDownloadUrl` before Innertube init, so offline play never contacts YouTube Music. Completed downloads are grouped in the UI via `downloadGroupsProvider` (persisted collection → inferred folder → Singles).
+  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` or `/Sonora/<collection>/`) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata and optional `collectionId` / `collectionType` / `collectionName` from bulk `batchId`). Re-downloads write to a `.part` staging file; the previous completed file and SQLite row are replaced only after the new file is fully written (`DownloadReplacement`). A failed replacement restores the previous completed row. `PlayVideoIdUseCase.resolveUrl` is the **single playback URL entry point** for all play paths (album, playlist, podcast, smart mix, radio, favorites, local playlists, Android Auto downloads browse, Play All download groups, play-next / add-to-queue, CLI `play`, skip/restore/recovery): order is completed library download → audio-only media-cache hit → live stream. Cast, library download acquisition, and `LocalAudioProxyServer` still resolve YouTube streams separately via `resolveStreamUrl` / `getStreamUrl`. Completed downloads are grouped in the UI via `downloadGroupsProvider` (persisted collection → inferred folder → Singles).
   - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback (audio-only). Saved to temporary cache (`sonora_media_cache`) with a user-configurable LRU size cap. Routed via local proxy loopback URLs; `file://` audio-only cache hits also bypass the proxy in `QueueController.toMedia`.
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
@@ -602,22 +602,33 @@ Supports search via keyboard or Google Assistant voice commands (`playFromSearch
 
 ### 6.7 Internet Connectivity & Offline Playback
 
-Sonora monitors network state globally using `connectivity_plus` and local user settings override to handle offline scenarios gracefully.
+Sonora monitors network state globally using `connectivity_plus` and Settings `offlineMode` to handle offline scenarios gracefully. There are **two distinct modes**:
 
-- **Connectivity Providers** (`lib/presentation/providers/connectivity_provider.dart`):
-  - `connectivityStatusProvider`: Streams connectivity status (`isConnected` / `isDisconnected`) by listening to `Connectivity().onConnectivityChanged`.
-  - `isOfflineProvider`: Checks if `offlineMode` setting is active (explicit offline mode) or if there is no physical network connectivity.
+| Mode | Trigger | Playback | UI |
+|---|---|---|---|
+| **Offline mode** (Settings) | `offlineMode == true` | **Completed library downloads only** (no transparent media-cache, no streaming) | Network CTAs disabled; Home shows local sections + offline-mode copy |
+| **Physical disconnect** | No network interface | Downloads OK; media-cache OK if queue already has metadata | Banner warning; Home uses no-connection copy; same CTA disable via `isOfflineProvider` |
+
+- **Shared connectivity** (`ConnectivityUtils.connectivity`): one `Connectivity` instance for UI (`connectivity_provider`), player recovery, and DNS probes. Avoids duplicate platform-channel subscriptions.
+  - **UI offline** (`isOfflineProvider`): Settings offline **or** interface-only disconnect (`ConnectivityResult.none`). Does **not** DNS-probe.
+  - **Playback fail-fast** (`ConnectivityUtils.isOffline` / `isOnline`): interface check + DNS lookup to `google.com` (1.5s) so captive portals fail streaming early.
 - **Offline Playback Guard in `PlayVideoIdUseCase`**:
-  - Checks if the requested track is downloaded local-first. If yes, builds `MediaItem` directly from `DownloadModel` metadata, bypassing all network metadata calls.
-  - If a download doesn't exist and the device is offline **or Settings `offlineMode` is on**, it throws a fast `SocketException` immediately (`PlayVideoIdUseCase` reads `offlineMode` via an injected callback). Explicit offline mode also skips the transparent media cache, so only completed library downloads play.
-  - `QueueController.toMedia` maps non-download tracks to the silent placeholder (not the local HTTP proxy) while `offlineMode` is on, so media_kit never probes YouTube. `LocalAudioProxyServer` also refuses remote fetches and cache writes in that mode.
+  - **Single play URL path**: all playback goes through `resolveUrl` (download → audio media-cache → stream). Exceptions: cast, download acquisition, and the local audio proxy (they call `resolveStreamUrl` / `getStreamUrl`).
+  - Local-first: completed download → `file://` with DB metadata when available.
+  - Settings `offlineMode`: `resolveUrl` skips transparent media-cache and throws if not a download.
+  - Physical offline: `resolveUrl` may still return a media-cache hit; `execute()` without a download/cache still fails.
+  - `QueueController.toMedia`: in forced offline, only non-cache `file://` (library downloads) play; media-cache and remotes become the silent placeholder. Proxy is never used.
+  - `LocalAudioProxyServer`: returns 503 while forced offline (before serving disk cache).
+  - `PlaybackRecoveryController.advancePastUnplayable`: in forced offline, advances only to library downloads (not cache, not already-resolved remote URLs).
+  - Mid-session toggle ON: keeps the **current** track playing (even if streaming); cancels in-flight media-cache prefetch for other slots. On skip / engine auto-advance, `_enforceForcedOfflineAt` / `skipToQueueItem` always re-resolve via `resolveUrl` — only a library download may continue; otherwise playback **stops** (no hunting for a later download). Toggle OFF: resolve/proxy resume normally from the current queue position; no forced rebuild.
+  - Android Auto `_isOffline()` ORs Settings `offlineMode` with physical disconnect.
   - `PlaylistOpenCoordinator.playNow` refuses to start if the initial engine URI is still a placeholder after resolve.
-  - All remote metadata and streaming URL requests are bounded by a `10-second` timeout threshold to recover gracefully from weak/slow connections.
+- **Network CTA gating**: when `isOfflineProvider` is true, UI disables radio/download/cast/search submit/autoplay/related/sync entry points (context menus, CastButton, search field, queue autoplay, settings local-sync open, etc.). Local library actions (like/follow/subscribe, local playlists) stay enabled.
 - **Offline Banner & Cards**:
-  - `OfflineBanner` is a global glassmorphic pill located in `AppShell`. It slides in from the top of the viewport when offline, displaying a warning message.
-  - Home layouts show a friendly descriptive notice informing the user that local cached database sections are displayed while connection is overridden.
+  - `OfflineBanner` in `AppShell`: manual offline vs physical offline messaging; tap disables offline mode when manual.
+  - Home offline card: `offlineModeActiveMessage` vs `noConnectionActiveMessage`.
 - **Error Interception**:
-  - `PlayerErrorListener` and `ErrorRetryWidget` intercept raw socket/timeout exceptions and format them into localized user-friendly messages (`weakConnectionError`).
+  - `PlayerErrorListener` and `ErrorRetryWidget` map socket/timeout errors to `weakConnectionError`.
 
 ### 6.8 5-Band Equalizer
 
@@ -967,7 +978,7 @@ Produces:
 | `isLibraryGridView` | bool | false | yes | Library layout |
 | `useVinylStyle` | bool | true | yes | Player artwork style |
 | `reduceEffects` | bool | false | yes | Reduced motion / effects |
-| `offlineMode` | bool | false | yes | Overrides network state to restrict online calls |
+| `offlineMode` | bool | false | yes | Downloads-only playback + disable network CTAs |
 | `localSyncEnabled` | bool | false | yes | P2P sync server |
 | `localSyncAutoEnabled` | bool | false | yes | Auto-start local sync |
 | `playlistConflictStrategy` | String | `merge` | yes | Local playlist merge strategy |

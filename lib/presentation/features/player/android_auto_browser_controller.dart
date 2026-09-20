@@ -39,6 +39,7 @@ class AndroidAutoBrowserController {
   _getSimilarArtistsSuggestionsUseCase;
   // Injected by the caller so no extra Connectivity instance is created.
   final Connectivity _connectivity;
+  final bool Function() _isForcedOffline;
   final List<MediaItem> Function() _userQueue;
   final List<MediaItem> Function() _upNextQueue;
   final MediaItem? Function() _currentMediaItem;
@@ -111,6 +112,7 @@ class AndroidAutoBrowserController {
     required LibraryRepository libraryRepo,
     required PlayVideoIdUseCase playVideoIdUseCase,
     required Connectivity connectivity,
+    bool Function()? isForcedOffline,
     required List<MediaItem> Function() userQueue,
     required List<MediaItem> Function() upNextQueue,
     required MediaItem? Function() currentMediaItem,
@@ -131,6 +133,7 @@ class AndroidAutoBrowserController {
        _getSimilarArtistsSuggestionsUseCase =
            GetSimilarArtistsSuggestionsUseCase(musicRepo, libraryRepo),
        _connectivity = connectivity,
+       _isForcedOffline = isForcedOffline ?? (() => false),
        _userQueue = userQueue,
        _upNextQueue = upNextQueue,
        _currentMediaItem = currentMediaItem,
@@ -244,6 +247,7 @@ class AndroidAutoBrowserController {
   }
 
   Future<bool> _isOffline() async {
+    if (_isForcedOffline()) return true;
     final results = await _connectivity.checkConnectivity();
     return results.length == 1 && results.contains(ConnectivityResult.none);
   }
@@ -957,9 +961,10 @@ class AndroidAutoBrowserController {
     return downloads
         .where((d) => d.status == 'completed' && d.localPath != null)
         .map((d) {
+          // URL resolved via PlayVideoIdUseCase.resolveUrl at play time.
           final track = QueueTrack(
             videoId: d.videoId,
-            url: Uri.file(d.localPath!).toString(),
+            needsUrl: true,
             isVideo: d.isVideo,
             isExplicit: d.isExplicit,
             title: d.title,
@@ -1978,15 +1983,13 @@ class AndroidAutoBrowserController {
         if (localId != null) {
           var items = await _localPlaylistToMediaItems(localId);
           if (items.isNotEmpty) {
-            try {
-              final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-              final track = QueueTrack.fromMediaItem(
-                items.first,
-              ).copyWith(url: url, needsUrl: false);
-              items = [track.toMediaItem(items.first), ...items.skip(1)];
-            } catch (_) {}
+            final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
+            final track = QueueTrack.fromMediaItem(
+              items.first,
+            ).copyWith(url: url, needsUrl: false);
+            items = [track.toMediaItem(items.first), ...items.skip(1)];
+            await _playNow(items);
           }
-          await _playNow(items);
         } else {
           final videos = await _musicRepo.getPlaylistVideos(playlistId);
           final items = await _playPlaylistUseCase.execute(videos);
@@ -2001,15 +2004,13 @@ class AndroidAutoBrowserController {
           var items = await _localPlaylistToMediaItems(localId);
           if (items.isNotEmpty) {
             items = List<MediaItem>.from(items)..shuffle();
-            try {
-              final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-              final track = QueueTrack.fromMediaItem(
-                items.first,
-              ).copyWith(url: url, needsUrl: false);
-              items[0] = track.toMediaItem(items.first);
-            } catch (_) {}
+            final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
+            final track = QueueTrack.fromMediaItem(
+              items.first,
+            ).copyWith(url: url, needsUrl: false);
+            items[0] = track.toMediaItem(items.first);
+            await _playNow(items);
           }
-          await _playNow(items);
         } else {
           final videos = await _musicRepo.getPlaylistVideos(playlistId);
           final shuffled = List<VideoDetailed>.from(videos)..shuffle();
@@ -2065,17 +2066,27 @@ class AndroidAutoBrowserController {
 
       // ── Downloads actions ────────────────────────────────────────
       if (mediaId.startsWith(_actionPlayDownloads)) {
-        final items = await _buildDownloadMediaItems();
+        var items = await _buildDownloadMediaItems();
         if (items.isNotEmpty) {
+          final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
+          final track = QueueTrack.fromMediaItem(
+            items.first,
+          ).copyWith(url: url, needsUrl: false);
+          items = [track.toMediaItem(items.first), ...items.skip(1)];
           await _playNow(items);
         }
         return;
       }
       if (mediaId.startsWith(_actionShuffleDownloads)) {
-        final items = await _buildDownloadMediaItems();
+        var items = await _buildDownloadMediaItems();
         if (items.isNotEmpty) {
-          final shuffled = List<MediaItem>.from(items)..shuffle();
-          await _playNow(shuffled);
+          items = List<MediaItem>.from(items)..shuffle();
+          final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
+          final track = QueueTrack.fromMediaItem(
+            items.first,
+          ).copyWith(url: url, needsUrl: false);
+          items[0] = track.toMediaItem(items.first);
+          await _playNow(items);
         }
         return;
       }

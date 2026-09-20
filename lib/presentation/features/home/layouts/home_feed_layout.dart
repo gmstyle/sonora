@@ -9,6 +9,7 @@ import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/app_lifecycle_provider.dart';
 import '../../../providers/connectivity_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../shared/widgets/sonora_logo.dart';
@@ -312,15 +313,20 @@ class HomeFeedLayout extends ConsumerWidget {
   }
 }
 
-class _OfflineBanner extends StatelessWidget {
+class _OfflineBanner extends ConsumerWidget {
   final HomeLayoutMetrics metrics;
 
   const _OfflineBanner({required this.metrics});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isManualOffline = ref.watch(settingsProvider).offlineMode;
+    final message =
+        isManualOffline
+            ? l10n.offlineModeActiveMessage
+            : l10n.noConnectionActiveMessage;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -346,10 +352,7 @@ class _OfflineBanner extends StatelessWidget {
                 children: [
                   Icon(LucideIcons.wifiOff, color: theme.colorScheme.primary),
                   Expanded(
-                    child: Text(
-                      l10n.offlineModeActiveMessage,
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                    child: Text(message, style: theme.textTheme.bodyMedium),
                   ),
                 ],
               ),

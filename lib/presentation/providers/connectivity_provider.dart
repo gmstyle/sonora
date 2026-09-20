@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/utils/connectivity_utils.dart';
 import 'settings_provider.dart';
 
 enum ConnectivityStatus { isConnected, isDisconnected }
@@ -10,7 +11,7 @@ class ConnectivityNotifier extends Notifier<ConnectivityStatus> {
 
   @override
   ConnectivityStatus build() {
-    final connectivity = Connectivity();
+    final connectivity = ConnectivityUtils.connectivity;
 
     _subscription = connectivity.onConnectivityChanged.listen((results) {
       state = _mapResultsToStatus(results);
@@ -43,6 +44,9 @@ final connectivityStatusProvider =
       ConnectivityNotifier.new,
     );
 
+/// True when Settings offline mode is on, or the device has no network interface.
+/// Does not run a DNS probe — use [ConnectivityUtils.isOffline] for playback
+/// fail-fast against captive portals.
 final isOfflineProvider = Provider<bool>((ref) {
   final manualOffline = ref.watch(settingsProvider).offlineMode;
   if (manualOffline) return true;

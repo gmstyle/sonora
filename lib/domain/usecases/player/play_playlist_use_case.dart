@@ -29,9 +29,7 @@ class PlayPlaylistUseCase {
 
     String? firstUrl;
     if (playIndex >= 0 && playIndex < videos.length) {
-      try {
-        firstUrl = await _playVideoId.resolveUrl(videos[playIndex].videoId);
-      } catch (_) {}
+      firstUrl = await _playVideoId.resolveUrl(videos[playIndex].videoId);
     }
 
     return [

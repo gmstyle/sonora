@@ -10,6 +10,7 @@ import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
@@ -243,7 +244,10 @@ class _PlaylistDetailContentState
                 onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
                 onShuffle: entries.isNotEmpty ? () => _shufflePlay() : null,
                 onAddToQueue: entries.isNotEmpty ? () => _addToQueue() : null,
-                onDownload: entries.isNotEmpty ? () => _downloadAll() : null,
+                onDownload:
+                    entries.isNotEmpty && !ref.watch(isOfflineProvider)
+                        ? () => _downloadAll()
+                        : null,
                 onUpdated: widget.onUpdated,
               ),
             ),

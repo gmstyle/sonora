@@ -303,10 +303,9 @@ class LibraryNotifier extends Notifier<void> {
     final items = <MediaItem>[];
     String? firstUrl;
     if (playIndex >= 0 && playIndex < entries.length) {
-      try {
-        final useCase = ref.read(playVideoIdUseCaseProvider);
-        firstUrl = await useCase.resolveUrl(entries[playIndex].videoId);
-      } catch (_) {}
+      // Do not swallow failures: playNow rejects a placeholder lead track.
+      final useCase = ref.read(playVideoIdUseCaseProvider);
+      firstUrl = await useCase.resolveUrl(entries[playIndex].videoId);
     }
 
     for (int i = 0; i < entries.length; i++) {

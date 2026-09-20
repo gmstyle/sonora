@@ -2561,14 +2561,26 @@ abstract class AppLocalizations {
   /// No description provided for @offlineModeHint.
   ///
   /// In en, this message translates to:
-  /// **'Only show downloaded content and local playlists'**
+  /// **'Play only downloaded tracks and disable network actions'**
   String get offlineModeHint;
 
   /// No description provided for @offlineModeActiveMessage.
   ///
   /// In en, this message translates to:
-  /// **'You are in offline mode. Displaying local content.'**
+  /// **'Offline mode is on. Only downloaded tracks can play.'**
   String get offlineModeActiveMessage;
+
+  /// No description provided for @offlineModeKeepCurrentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline mode on. This track will finish; next plays only if downloaded.'**
+  String get offlineModeKeepCurrentHint;
+
+  /// No description provided for @noConnectionActiveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Streaming may fail — downloaded tracks still play.'**
+  String get noConnectionActiveMessage;
 
   /// No description provided for @goToDownloads.
   ///

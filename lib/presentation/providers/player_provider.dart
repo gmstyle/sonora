@@ -590,6 +590,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         // immediately and skip any in-flight fetch.
         unawaited(_handler.setAutoplayEnabled(false));
       }
+      if (prev?.offlineMode != true && next.offlineMode == true) {
+        unawaited(_handler.onForcedOfflineActivated());
+      }
     });
 
     return initialState;

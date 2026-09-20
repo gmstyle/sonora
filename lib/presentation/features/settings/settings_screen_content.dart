@@ -18,6 +18,7 @@ import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/update_notifier.dart';
 import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
@@ -465,7 +466,18 @@ class _ConnectionSection extends StatelessWidget {
           title: l10n.offlineMode,
           subtitle: l10n.offlineModeHint,
           value: settings.offlineMode,
-          onChanged: notifier.setOfflineMode,
+          onChanged: (value) async {
+            await notifier.setOfflineMode(value);
+            if (!context.mounted) return;
+            if (value) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.offlineModeKeepCurrentHint),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          },
           icon: LucideIcons.wifiOff,
         ),
       ],
@@ -801,6 +813,7 @@ class _LocalSyncSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsProvider);
+    final isOffline = ref.watch(isOfflineProvider);
 
     return SettingsSection(
       title: l10n.localSync,
@@ -851,7 +864,7 @@ class _LocalSyncSection extends StatelessWidget {
           title: l10n.localSync,
           subtitle: l10n.syncNowHint,
           icon: LucideIcons.refreshCw,
-          onPressed: () => LocalSyncPanel.show(context),
+          onPressed: isOffline ? null : () => LocalSyncPanel.show(context),
         ),
         if (settings.localSyncEnabled) ...[
           const Divider(height: 1),

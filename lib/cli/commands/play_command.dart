@@ -26,11 +26,14 @@ class PlayCommand {
 
     try {
       stderr.writeln('Resolving "$videoId"...');
-      var url = await resolveCompletedDownloadUrl(
-        videoId,
-        _provider.libraryRepo,
-      );
-      if (url == null) {
+      // Single playback URL path (download → cache → stream).
+      String url;
+      try {
+        url = await PlayVideoIdUseCase(
+          _provider.musicRepo,
+          _provider.libraryRepo,
+        ).resolveUrl(videoId);
+      } catch (_) {
         await _provider.initializeRemote();
         url = await PlayVideoIdUseCase(
           _provider.musicRepo,

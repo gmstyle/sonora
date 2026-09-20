@@ -44,47 +44,46 @@ class PlayVideoIdUseCase {
     bool? isVideoHint,
     bool? isExplicitHint,
   }) async {
-    // 1. Check if we have a local download first
-    if (_libraryRepo != null) {
+    // Single playback URL entry point (download → media-cache → stream).
+    final url = await resolveUrl(videoId).timeout(streamUrlTimeout);
+
+    // Prefer library-download metadata when the resolved URI is that file.
+    if (_libraryRepo != null &&
+        url.startsWith('file://') &&
+        !MediaCacheService.isMediaCacheUri(url)) {
       try {
         final download = await _libraryRepo.getDownload(videoId);
-        if (download != null &&
-            download.status == 'completed' &&
-            download.localPath != null) {
-          final file = File(download.localPath!);
-          if (await file.exists()) {
-            final url = file.uri.toString();
-            final track = QueueTrack(
-              videoId: videoId,
-              url: url,
-              isVideo: download.isVideo,
-              isExplicit: download.isExplicit,
-              title: download.title,
-              artist: download.artist,
-              artUri:
-                  download.thumbnailUrl != null &&
-                          download.thumbnailUrl!.isNotEmpty
-                      ? Uri.parse(download.thumbnailUrl!)
-                      : null,
-            );
-            return track.toFreshMediaItem();
-          }
+        if (download != null && download.status == 'completed') {
+          return QueueTrack(
+            videoId: videoId,
+            url: url,
+            isVideo: download.isVideo,
+            isExplicit: download.isExplicit,
+            title: download.title,
+            artist: download.artist,
+            artistsJson: download.artistsJson,
+            artUri:
+                download.thumbnailUrl != null &&
+                        download.thumbnailUrl!.isNotEmpty
+                    ? Uri.parse(download.thumbnailUrl!)
+                    : null,
+          ).toFreshMediaItem();
         }
       } catch (_) {}
     }
 
-    // 2. If not downloaded, fail fast if offline
+    // Cache-only / offline: playable URI without catalog metadata.
     final forcedOffline = _isForcedOffline();
     final physicalOffline = await ConnectivityUtils.isOffline();
-    final offline = forcedOffline || physicalOffline;
-    if (offline) {
-      throw const SocketException(
-        'Offline: internet connection is required to stream music.',
-      );
+    if (forcedOffline || physicalOffline) {
+      return QueueTrack(
+        videoId: videoId,
+        url: url,
+        isVideo: isVideoHint ?? false,
+        isExplicit: isExplicitHint ?? false,
+        title: videoId,
+      ).toFreshMediaItem();
     }
-
-    // Pre-warm: start stream URL resolution in parallel with metadata fetch.
-    final urlFuture = resolveUrl(videoId).timeout(streamUrlTimeout);
 
     String title, artist, thumbnailUrl;
     int durationSec;
@@ -128,8 +127,6 @@ class PlayVideoIdUseCase {
       isExplicit = isExplicitHint ?? video.isExplicit;
     }
 
-    final url = await urlFuture;
-
     if (_libraryRepo != null && durationSec > 0) {
       _libraryRepo
           .updateSongMetadata(videoId, durationSec, isExplicit)
@@ -154,12 +151,11 @@ class PlayVideoIdUseCase {
     return track.toFreshMediaItem();
   }
 
-  /// Returns a local file URI if a completed download exists and the file
-  /// is still on disk (cleans up stale downloads), otherwise resolves the
-  /// stream URL from [MusicRepository].
+  /// Single playback URL entry point for the app (except cast / download /
+  /// proxy stream acquisition).
   ///
-  /// Reuses a completed library download or an audio-only media-cache hit,
-  /// otherwise resolves a stream URL from [MusicRepository].
+  /// Order: completed library download → audio-only media-cache hit →
+  /// live stream via [resolveStreamUrl].
   Future<String> resolveUrl(String videoId) async {
     final local = await resolveCompletedDownloadUrl(videoId, _libraryRepo);
     if (local != null) {
@@ -187,8 +183,8 @@ class PlayVideoIdUseCase {
     return await resolveStreamUrl(videoId);
   }
 
-  /// Resolves the stream URL for [videoId].
-  /// Used when metadata (title, artist, etc.) is already available from the UI.
+  /// Resolves the YouTube stream URL only (no download / cache). Used by cast
+  /// and callers that already know they need a remote stream.
   Future<String> resolveStreamUrl(String videoId) async {
     return _repo.getStreamUrl(videoId).timeout(streamUrlTimeout);
   }

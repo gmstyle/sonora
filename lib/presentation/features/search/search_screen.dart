@@ -9,6 +9,7 @@ import '../../../core/extensions/stat_format.dart';
 
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/artist_card.dart';
@@ -53,6 +54,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _submitSearch(String query) {
+    if (ref.read(isOfflineProvider)) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n?.noConnectionMessage ??
+                'No internet connection. Check your network.',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     _searchController.text = query;
     _searchController.selection = TextSelection.fromPosition(
       TextPosition(offset: query.length),
@@ -73,6 +87,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final query = ref.watch(searchQueryProvider);
     final activeQuery = ref.watch(activeSearchQueryProvider);
+    final isOffline = ref.watch(isOfflineProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -83,8 +99,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             controller: _searchController,
             focusNode: _focusNode,
             autofocus: false,
+            readOnly: isOffline,
             decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)!.searchHint,
+              hintText:
+                  isOffline
+                      ? (l10n?.noConnectionMessage ?? l10n?.searchHint)
+                      : l10n!.searchHint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide.none,
@@ -105,8 +125,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       : null,
             ),
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: _onSearchChanged,
-            onSubmitted: _submitSearch,
+            onChanged: isOffline ? null : _onSearchChanged,
+            onSubmitted: isOffline ? null : _submitSearch,
           ),
         ),
       ),

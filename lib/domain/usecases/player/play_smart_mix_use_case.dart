@@ -16,10 +16,9 @@ class PlaySmartMixUseCase {
 
     String? startUrl;
     if (playIndex >= 0 && playIndex < songs.length) {
-      try {
-        final videoId = _getVideoId(songs[playIndex]);
-        startUrl = await _playVideoId.resolveUrl(videoId);
-      } catch (_) {}
+      // Do not swallow failures: playNow rejects a placeholder lead track.
+      final videoId = _getVideoId(songs[playIndex]);
+      startUrl = await _playVideoId.resolveUrl(videoId);
     }
 
     return [

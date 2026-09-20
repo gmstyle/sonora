@@ -144,10 +144,8 @@ class FavoritesTab extends ConsumerWidget {
   ) async {
     if (songs.isEmpty) return [];
 
-    String? firstUrl;
-    try {
-      firstUrl = await useCase.resolveUrl(songs.first.videoId);
-    } catch (_) {}
+    // Do not swallow failures: playNow rejects a placeholder lead track.
+    final firstUrl = await useCase.resolveUrl(songs.first.videoId);
 
     return [
       for (int i = 0; i < songs.length; i++)

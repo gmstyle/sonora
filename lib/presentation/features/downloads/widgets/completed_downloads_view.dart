@@ -1,4 +1,4 @@
-import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -6,8 +6,10 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../domain/models/download_group.dart';
 import '../../../../domain/models/library_models.dart';
+import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/download_provider.dart';
+import '../../../providers/play_video_id_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/explicit_badge.dart';
@@ -678,29 +680,36 @@ class _CompletedTrackTile extends ConsumerWidget {
 
 Future<void> playDownloadGroup(WidgetRef ref, DownloadGroup group) async {
   if (group.tracks.isEmpty) return;
-  final songs =
-      group.tracks
-          .map(
-            (d) => SongDetailed(
-              type: 'SONG',
-              videoId: d.videoId,
-              name: d.title,
-              artists: [ArtistBasic(name: d.artist)],
-              thumbnails:
-                  d.thumbnailUrl != null && d.thumbnailUrl!.isNotEmpty
-                      ? [
-                        ThumbnailFull(
-                          url: d.thumbnailUrl!,
-                          width: 120,
-                          height: 120,
-                        ),
-                      ]
-                      : const <ThumbnailFull>[],
-              isExplicit: d.isExplicit,
-            ),
-          )
-          .toList();
-  await ref.read(playerStateProvider.notifier).playAlbum(songs);
+
+  final resolve = ref.read(playVideoIdUseCaseProvider);
+  final items = <MediaItem>[];
+  for (final d in group.tracks) {
+    // Single URL entry point: local download if present, else stream (throws
+    // offline when neither is available).
+    final String url;
+    try {
+      url = await resolve.resolveUrl(d.videoId);
+    } catch (_) {
+      continue;
+    }
+    items.add(
+      QueueTrack(
+        videoId: d.videoId,
+        url: url,
+        isVideo: d.isVideo,
+        isExplicit: d.isExplicit,
+        artistsJson: d.artistsJson,
+        title: d.title,
+        artist: d.artist,
+        artUri:
+            d.thumbnailUrl != null && d.thumbnailUrl!.isNotEmpty
+                ? Uri.parse(d.thumbnailUrl!)
+                : null,
+      ).toFreshMediaItem(),
+    );
+  }
+  if (items.isEmpty) return;
+  await ref.read(playerStateProvider.notifier).playNow(items);
 }
 
 Future<void> confirmDeleteDownloadGroup(

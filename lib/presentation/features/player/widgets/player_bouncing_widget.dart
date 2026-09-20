@@ -11,6 +11,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../providers/palette_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../../../domain/models/queue_track.dart';
 import 'player_shared_widgets.dart';
 
@@ -631,9 +632,14 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
           ),
           if (!isAutoplay && !episodeShaped)
             TextButton(
-              onPressed: () {
-                ref.read(settingsProvider.notifier).setAutoPlayUpNext(true);
-              },
+              onPressed:
+                  ref.watch(isOfflineProvider)
+                      ? null
+                      : () {
+                        ref
+                            .read(settingsProvider.notifier)
+                            .setAutoPlayUpNext(true);
+                      },
               style: TextButton.styleFrom(
                 foregroundColor: pc.iconPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 8),

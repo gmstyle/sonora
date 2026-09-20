@@ -9,6 +9,7 @@ import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../../shared/widgets/explicit_badge.dart';
 import '../../../shared/widgets/feedback_toast.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
@@ -479,11 +480,14 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                     pc: pc,
                     theme: theme,
                     autoplayEnabled: autoplayEnabled,
-                    onAutoplayToggle: () {
-                      ref
-                          .read(settingsProvider.notifier)
-                          .setAutoPlayUpNext(!autoplayEnabled);
-                    },
+                    onAutoplayToggle:
+                        ref.watch(isOfflineProvider)
+                            ? null
+                            : () {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .setAutoPlayUpNext(!autoplayEnabled);
+                            },
                   ),
                 ),
                 if (upNextQueue.isNotEmpty)

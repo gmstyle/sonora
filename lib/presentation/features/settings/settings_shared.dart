@@ -151,7 +151,7 @@ class SettingsDropdownTile extends StatelessWidget {
 class SettingsButtonTile extends StatelessWidget {
   final String title;
   final String? subtitle;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
   final Widget? trailing;
 
@@ -172,6 +172,7 @@ class SettingsButtonTile extends StatelessWidget {
       leading: icon != null ? Icon(icon) : null,
       trailing: trailing ?? const Icon(LucideIcons.chevronRight),
       onTap: onPressed,
+      enabled: onPressed != null,
     );
   }
 }

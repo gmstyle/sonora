@@ -9,10 +9,12 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_service_platform_interface/audio_service_platform_interface.dart';
 import 'package:collection/collection.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../../core/utils/connectivity_utils.dart';
 import 'just_audio_playback_engine.dart';
 import 'playback_engine.dart';
 import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
+import '../../../data/services/media_cache_service.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
 import '../../../domain/repositories/music_repository.dart';
@@ -78,7 +80,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
-  static final Connectivity _sharedConnectivity = Connectivity();
+  static Connectivity get _sharedConnectivity => ConnectivityUtils.connectivity;
 
   PlaybackEngine get engine => _engine;
 
@@ -92,6 +94,104 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _queueController.updateStreamPrefs(streamAudioQuality: streamAudioQuality);
     if (audioChanged) {
       unawaited(_playlistOpener.rebuildMedia());
+    }
+  }
+
+  /// When true, [skipToQueueItem] landed on a track while the user was paused;
+  /// [_enforceForcedOfflineAt] must not auto-resume.
+  bool _offlineSkipStayPaused = false;
+
+  /// Called when Settings offline mode turns on mid-session.
+  ///
+  /// Keeps the current track playing (stream or download). Subsequent
+  /// skips / auto-advance enforce downloads-only via [skipToQueueItem] and
+  /// [TrackTransitionCoordinator] — no queue prune, no mid-track interrupt.
+  Future<void> onForcedOfflineActivated() async {
+    // Prefetch / resolve already honor isForcedOffline on the next look-ahead.
+    // In-flight transparent cache writes are cancelled so we stop touching the
+    // network for upcoming tracks while the current one finishes.
+    final playlist = _engine.state.playlist;
+    final index = playlist.index;
+    for (var i = 0; i < playlist.medias.length; i++) {
+      if (i == index) continue;
+      final item = playlist.medias[i].mediaItem;
+      if (item == null) continue;
+      final videoId = QueueTrack.fromMediaItem(item).videoId;
+      if (videoId.isNotEmpty) {
+        MediaCacheService.instance.cancelDownload(videoId);
+      }
+    }
+  }
+
+  /// Stops playback when offline mode cannot play [videoId] (not a download).
+  Future<void> _stopForForcedOfflineUnplayable({
+    required String videoId,
+    required String title,
+  }) async {
+    _intent.setUserWantsPlaying(false);
+    await _engine.stop();
+    _recoveryController.reportPlayError(
+      videoId,
+      title,
+      kind: PlayErrorKind.network,
+      skippedToNext: false,
+    );
+  }
+
+  /// After an auto-advance (or index change) in offline mode: keep playing only
+  /// if the new current slot is a library download (resolve from DB if needed).
+  Future<void> _enforceForcedOfflineAt(int index) async {
+    if (!(_prefs.getBool(kOfflineModeKey) ?? false)) return;
+    final playlist = _engine.state.playlist;
+    if (index < 0 || index >= playlist.medias.length) return;
+    if (_engine.state.playlist.index != index) return;
+
+    final media = playlist.medias[index];
+    final item = media.mediaItem;
+    if (item == null) return;
+    final track = QueueTrack.fromMediaItem(item);
+    final videoId = track.videoId;
+    final title = item.title;
+    final stayPaused = _offlineSkipStayPaused;
+    _offlineSkipStayPaused = false;
+
+    String fileUrl;
+    try {
+      // Always go through the single playback URL entry point.
+      fileUrl = await _playVideoIdUseCase.resolveUrl(videoId);
+    } catch (_) {
+      if (_engine.state.playlist.index != index) return;
+      await _stopForForcedOfflineUnplayable(videoId: videoId, title: title);
+      return;
+    }
+
+    if (_engine.state.playlist.index != index) return;
+
+    final engineUri = _engine.state.playlist.medias[index].uri;
+    final engineIsDownloadFile =
+        engineUri.startsWith('file://') &&
+        !MediaCacheService.isMediaCacheUri(engineUri);
+    final needsSwap = !engineIsDownloadFile || engineUri != fileUrl;
+
+    if (needsSwap) {
+      final updatedItem = track
+          .copyWith(url: fileUrl, needsUrl: false)
+          .toMediaItem(item);
+      await _queueController.replaceAt(
+        index,
+        _queueController.toMedia(updatedItem),
+      );
+      if (_engine.state.playlist.index != index) return;
+      await _engine.jump(index);
+    }
+
+    // Natural auto-advance often clears [userWantsPlaying] on a brief
+    // playing=false gap; still resume when the next slot is a download.
+    // Explicit pause + skip sets [stayPaused] so we leave the player paused.
+    if (stayPaused) return;
+    if (!_engine.state.playing) {
+      _intent.setUserWantsPlaying(true);
+      await play();
     }
   }
 
@@ -176,6 +276,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       libraryRepo: libraryRepo,
       playVideoIdUseCase: playVideoIdUseCase,
       connectivity: _sharedConnectivity,
+      isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
       userQueue: () => _queueController.userQueue,
       upNextQueue: () => _queueController.upNextQueue,
       currentMediaItem: () => mediaItem.valueOrNull,
@@ -274,6 +375,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       statePublisher: _statePublisher,
       urlResolver: _urlResolver,
       connectivity: _sharedConnectivity,
+      isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
       userWantsPlaying: () => _intent.userWantsPlaying,
       isStopping: () => _isStopping,
       requestPlay: play,
@@ -373,6 +475,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
           () => playbackState.value.repeatMode == AudioServiceRepeatMode.one,
       skipToNext: skipToNext,
       skipToQueueItem: skipToQueueItem,
+      isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
+      enforceForcedOfflineAt: _enforceForcedOfflineAt,
     );
 
     unawaited(JustAudioPlaybackEngine.configureSession());
@@ -712,6 +816,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     final playlist = _engine.state.playlist;
     if (index < 0 || index >= playlist.medias.length) return;
 
+    // Remember pause intent before the jump so offline enforce does not resume.
+    _offlineSkipStayPaused = !_intent.userWantsPlaying;
+
     _volumeController.prepareTransitionMute();
 
     try {
@@ -723,9 +830,42 @@ class SonoraAudioHandler extends BaseAudioHandler {
         _skipNavigator.recordForwardSkip(currentIndex);
       }
 
-      final media = playlist.medias[index];
-      final item = media.mediaItem;
-      final track = item != null ? QueueTrack.fromMediaItem(item) : null;
+      var media = playlist.medias[index];
+      var item = media.mediaItem;
+      var track = item != null ? QueueTrack.fromMediaItem(item) : null;
+
+      // Offline mode: only the target track may play, and only if resolveUrl
+      // returns a library download (throws otherwise). Do not hunt further.
+      if (_prefs.getBool(kOfflineModeKey) ?? false) {
+        final videoId = track?.videoId ?? item?.id ?? '';
+        final title = item?.title ?? 'Track';
+        if (videoId.isEmpty) {
+          _offlineSkipStayPaused = false;
+          _volumeController.endTransitionMute();
+          await _stopForForcedOfflineUnplayable(videoId: '', title: title);
+          return;
+        }
+        try {
+          final url = await _playVideoIdUseCase.resolveUrl(videoId);
+          final base = track ?? QueueTrack.fromMediaItem(item!);
+          final updatedItem = base
+              .copyWith(url: url, needsUrl: false)
+              .toMediaItem(item!);
+          await _queueController.replaceAt(
+            index,
+            _queueController.toMedia(updatedItem),
+          );
+          media = _engine.state.playlist.medias[index];
+          item = media.mediaItem;
+          track = item != null ? QueueTrack.fromMediaItem(item) : null;
+        } catch (_) {
+          _offlineSkipStayPaused = false;
+          _volumeController.endTransitionMute();
+          await _stopForForcedOfflineUnplayable(videoId: videoId, title: title);
+          return;
+        }
+      }
+
       // Proxy/file URIs are already playable even when extras still say
       // needsUrl. Waiting on YouTube resolve here is what made shuffled
       // skips take 1–2s — lookahead only prefetches sequential +1/+2/+3.
@@ -749,6 +889,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
             index < refreshed.medias.length ? refreshed.medias[index] : null;
         if (refreshedMedia == null ||
             isPlaceholderAudioUri(refreshedMedia.uri)) {
+          _offlineSkipStayPaused = false;
           _volumeController.endTransitionMute();
           // Resolve failed while playlist.index may still be the previous
           // track (treatAsCurrent resolve before jump), so the resolver's
@@ -775,6 +916,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         await play();
       }
     } catch (e) {
+      _offlineSkipStayPaused = false;
       _volumeController.endTransitionMute();
       rethrow;
     }
@@ -849,6 +991,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     bool Function()? shouldAbort,
   }) {
     _urlResolver.resetSession();
+    // A new play session is an explicit play request — do not inherit a
+    // prior "skip while paused" latch from offline enforce.
+    _offlineSkipStayPaused = false;
     return _playlistOpener.playNow(
       items,
       initialIndex: initialIndex,
@@ -1125,6 +1270,10 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> startRadio(String videoId) async {
+    if (_prefs.getBool(kOfflineModeKey) ?? false) {
+      dev.log('[AudioHandler] startRadio blocked: offline mode');
+      return;
+    }
     try {
       final result = await _startRadioUseCase.execute(videoId);
       final firstItem = result.firstItem;

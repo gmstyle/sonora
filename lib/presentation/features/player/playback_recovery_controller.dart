@@ -36,6 +36,7 @@ class PlaybackRecoveryController {
   final PlaybackStatePublisher _statePublisher;
   final TrackUrlResolver _urlResolver;
   final Connectivity _connectivity;
+  final bool Function() _isForcedOffline;
   final bool Function() _userWantsPlaying;
   final bool Function() _isStopping;
   final Future<void> Function() _requestPlay;
@@ -92,6 +93,7 @@ class PlaybackRecoveryController {
     required PlaybackStatePublisher statePublisher,
     required TrackUrlResolver urlResolver,
     required Connectivity connectivity,
+    bool Function()? isForcedOffline,
     required bool Function() userWantsPlaying,
     required bool Function() isStopping,
     required Future<void> Function() requestPlay,
@@ -115,6 +117,7 @@ class PlaybackRecoveryController {
        _statePublisher = statePublisher,
        _urlResolver = urlResolver,
        _connectivity = connectivity,
+       _isForcedOffline = isForcedOffline ?? (() => false),
        _userWantsPlaying = userWantsPlaying,
        _isStopping = isStopping,
        _requestPlay = requestPlay,
@@ -124,6 +127,11 @@ class PlaybackRecoveryController {
        _castMedia = castMedia,
        _waitForCastPlaying = waitForCastPlaying,
        _castPause = castPause;
+
+  /// True when [track] is a completed library download on disk (not media-cache).
+  static bool isLibraryDownloadTrack(QueueTrack track) {
+    return track.isLocalFile && !MediaCacheService.isMediaCacheUri(track.url);
+  }
 
   /// Resets the per-track error retry counter (e.g. on track change or ready).
   void resetRetryCount() => _retryCount = 0;
@@ -157,8 +165,12 @@ class PlaybackRecoveryController {
     );
   }
 
-  /// Skips forward from [failedIndex] to the next already-playable queue item
-  /// (has URL / cached / local). Does not mark a network interruption.
+  /// Skips forward from [failedIndex] to the next already-playable queue item.
+  ///
+  /// In Settings offline mode: does **not** hunt the queue — stops immediately
+  /// (the next track was already rejected; keep current position semantics).
+  /// Otherwise: local file, transparent media-cache hit, or already-resolved URL.
+  /// Does not mark a network interruption.
   ///
   /// Always emits a [PlayErrorEvent] when [videoId] and [title] are provided.
   Future<void> advancePastUnplayable(
@@ -171,18 +183,30 @@ class PlaybackRecoveryController {
     final playlist = _engine.state.playlist;
     if (failedIndex < 0) return;
 
+    // Forced offline: stop rather than scanning for a later download.
+    if (_isForcedOffline()) {
+      if (stopIfNone) {
+        dev.log(
+          '[AudioHandler] Offline mode: stopping after unplayable at $failedIndex.',
+        );
+        await _engine.stop();
+      }
+      if (videoId != null && title != null) {
+        reportPlayError(videoId, title, kind: kind, skippedToNext: false);
+      }
+      return;
+    }
+
     int targetIndex = -1;
     for (int i = failedIndex + 1; i < playlist.medias.length; i++) {
       final mediaItem = playlist.medias[i].mediaItem;
       if (mediaItem == null) continue;
       final track = QueueTrack.fromMediaItem(mediaItem);
 
-      bool isCached = false;
       final cachedUri = await MediaCacheService.instance.getCachedFileUri(
         track.videoId,
       );
-      isCached = cachedUri != null;
-
+      final isCached = cachedUri != null;
       final isUsableLocal = track.isLocalFile;
 
       if (isUsableLocal || isCached || !track.needsUrl) {
