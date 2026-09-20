@@ -42,6 +42,7 @@ class TrackUrlResolver {
   final bool Function() _userWantsPlaying;
   final bool Function() _isStopping;
   final bool Function() _isRestoring;
+  final bool Function() _isForcedOffline;
   final Future<void> Function() _requestPlay;
   final Future<void> Function(String videoId, String title, PlayErrorKind kind)
   _onResolveFailed;
@@ -100,6 +101,7 @@ class TrackUrlResolver {
     castMedia,
     required Future<void> Function() waitForCastPlaying,
     required Future<void> Function() castPause,
+    bool Function()? isForcedOffline,
   }) : _engine = engine,
        _playVideoIdUseCase = playVideoIdUseCase,
        _streamDatasource = streamDatasource,
@@ -110,6 +112,7 @@ class TrackUrlResolver {
        _userWantsPlaying = userWantsPlaying,
        _isStopping = isStopping,
        _isRestoring = isRestoring,
+       _isForcedOffline = isForcedOffline ?? (() => false),
        _requestPlay = requestPlay,
        _onResolveFailed = onResolveFailed,
        _emitMediaItem = emitMediaItem,
@@ -173,6 +176,9 @@ class TrackUrlResolver {
 
   /// Kicks off a disk cache download for [index] using a fresh playlist read.
   void _prefetchDiskCacheAt(int index) {
+    if (_isForcedOffline()) {
+      return;
+    }
     final playlist = _engine.state.playlist;
     if (index < 0 || index >= playlist.medias.length) return;
     final media = playlist.medias[index];

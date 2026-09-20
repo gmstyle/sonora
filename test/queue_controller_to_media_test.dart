@@ -7,6 +7,7 @@ import 'package:sonora/data/services/local_audio_proxy_server.dart';
 import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/domain/models/queue_track.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
+import 'package:sonora/presentation/features/player/playback_engine.dart';
 import 'package:sonora/presentation/features/player/queue_controller.dart';
 import 'helpers/fake_playback_engine.dart';
 
@@ -111,6 +112,32 @@ void main() {
     expect(media.uri, isNot(contains('v=1')));
     expect(media.uri, isNot(contains('qv=')));
     expect(media.uri, isNot(contains('kind=')));
+  });
+
+  test('toMedia uses placeholder instead of proxy when offline', () {
+    expect(proxy.isRunning, isTrue);
+    final offlineController = QueueController(
+      engine: FakePlaybackEngine(),
+      queueRepo: _FakeQueueRepository(),
+      getQueue: () => <MediaItem>[],
+      getShuffleMode: () => AudioServiceShuffleMode.none,
+      getRepeatMode: () => AudioServiceRepeatMode.none,
+      updateQueueStream: (_) {},
+      proxyServer: proxy,
+      isForcedOffline: () => true,
+    );
+    final item =
+        const QueueTrack(
+          videoId: 'vidOff',
+          title: 'Remote',
+          artist: 'A',
+          needsUrl: true,
+        ).toFreshMediaItem();
+
+    final media = offlineController.toMedia(item);
+
+    expect(media.uri.contains('/stream?videoId='), isFalse);
+    expect(isPlaceholderAudioUri(media.uri), isTrue);
   });
 
   test('toMedia rejects muxed media-cache mp4 for catalog video tracks', () {

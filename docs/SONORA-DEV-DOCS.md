@@ -609,7 +609,9 @@ Sonora monitors network state globally using `connectivity_plus` and local user 
   - `isOfflineProvider`: Checks if `offlineMode` setting is active (explicit offline mode) or if there is no physical network connectivity.
 - **Offline Playback Guard in `PlayVideoIdUseCase`**:
   - Checks if the requested track is downloaded local-first. If yes, builds `MediaItem` directly from `DownloadModel` metadata, bypassing all network metadata calls.
-  - If a download doesn't exist and the device is offline, it throws a fast `SocketException` immediately to prevent pending network queries.
+  - If a download doesn't exist and the device is offline **or Settings `offlineMode` is on**, it throws a fast `SocketException` immediately (`PlayVideoIdUseCase` reads `offlineMode` via an injected callback). Explicit offline mode also skips the transparent media cache, so only completed library downloads play.
+  - `QueueController.toMedia` maps non-download tracks to the silent placeholder (not the local HTTP proxy) while `offlineMode` is on, so media_kit never probes YouTube. `LocalAudioProxyServer` also refuses remote fetches and cache writes in that mode.
+  - `PlaylistOpenCoordinator.playNow` refuses to start if the initial engine URI is still a placeholder after resolve.
   - All remote metadata and streaming URL requests are bounded by a `10-second` timeout threshold to recover gracefully from weak/slow connections.
 - **Offline Banner & Cards**:
   - `OfflineBanner` is a global glassmorphic pill located in `AppShell`. It slides in from the top of the viewport when offline, displaying a warning message.

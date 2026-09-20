@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 
 import '../../../domain/models/queue_track.dart';
@@ -143,6 +145,12 @@ class PlaylistOpenCoordinator {
 
         final finalMedias =
             resolvedItems.map(_queueController.toMedia).toList();
+        if (initialIndex >= 0 &&
+            initialIndex < finalMedias.length &&
+            isPlaceholderAudioUri(finalMedias[initialIndex].uri)) {
+          _volumeController.endTransitionMute();
+          throw const SocketException('Offline: cannot resolve stream URL.');
+        }
         _intent.onPlayAccepted();
         await _engine.open(finalMedias, index: initialIndex, play: true);
       } catch (e) {

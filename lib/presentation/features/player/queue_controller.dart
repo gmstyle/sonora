@@ -35,6 +35,7 @@ class QueueController {
   final AudioServiceRepeatMode Function() _getRepeatMode;
   final void Function(List<MediaItem>) _updateQueueStream;
   final LocalAudioProxyServer? _proxyServer;
+  final bool Function() _isForcedOffline;
 
   /// Current stream audio quality preference (updated from settings).
   MediaQuality streamAudioQuality;
@@ -60,6 +61,7 @@ class QueueController {
     required AudioServiceRepeatMode Function() getRepeatMode,
     required void Function(List<MediaItem>) updateQueueStream,
     LocalAudioProxyServer? proxyServer,
+    bool Function()? isForcedOffline,
     this.streamAudioQuality = MediaQuality.high,
     this.onResolvingIdle,
   }) : _engine = engine,
@@ -68,7 +70,8 @@ class QueueController {
        _getShuffleMode = getShuffleMode,
        _getRepeatMode = getRepeatMode,
        _updateQueueStream = updateQueueStream,
-       _proxyServer = proxyServer;
+       _proxyServer = proxyServer,
+       _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// HTTP URL a Chromecast on the LAN can fetch (phone proxy, not loopback).
   Future<String?> lanCastUrlFor(QueueTrack track) async {
@@ -296,8 +299,9 @@ class QueueController {
   /// Assigns queueId if missing and tags as user section.
   ///
   /// Local `file://` URLs (library downloads and media-cache files) bypass
-  /// the proxy so offline playback works. Cast still uses [MediaItem] extras,
-  /// not the engine source.
+  /// the proxy so offline playback works. Settings `offlineMode` also maps
+  /// non-local tracks to the silent placeholder so the engine never hits
+  /// YouTube. Cast still uses [MediaItem] extras, not the engine source.
   EngineMedia toMedia(MediaItem item) {
     final tagged = tagUser(ensureQueueId(item));
     final track = QueueTrack.fromMediaItem(tagged);
@@ -307,6 +311,10 @@ class QueueController {
         (!isCache || MediaCacheService.isPlayableCacheUri(track.url));
     if (useLocal) {
       return EngineMedia(uri: track.url!, mediaItem: tagged);
+    }
+    if (_isForcedOffline()) {
+      final dummy = '$kPlaceholderAudioUriPrefix${track.videoId}.wav';
+      return EngineMedia(uri: dummy, mediaItem: tagged);
     }
     if (_proxyServer != null &&
         _proxyServer.isRunning &&

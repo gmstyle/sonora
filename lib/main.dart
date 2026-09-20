@@ -94,7 +94,10 @@ Future<void> main() async {
         () => MediaQuality.fromStorage(readStreamAudioQualityPref(prefs)),
   );
 
-  final proxyServer = LocalAudioProxyServer(streamDatasource: streamDs);
+  final proxyServer = LocalAudioProxyServer(
+    streamDatasource: streamDs,
+    isForcedOffline: () => prefs.getBool(kOfflineModeKey) ?? false,
+  );
   await proxyServer.start();
 
   final libraryRepo = LibraryRepositoryImpl(
@@ -109,7 +112,11 @@ Future<void> main() async {
   await CleanupIncompleteDownloadsUseCase(libraryRepo).execute();
 
   final musicRepo = MusicRepositoryImpl(ytmusicDs, streamDs);
-  final playVideoIdUseCase = PlayVideoIdUseCase(musicRepo, libraryRepo);
+  final playVideoIdUseCase = PlayVideoIdUseCase(
+    musicRepo,
+    libraryRepo,
+    () => prefs.getBool(kOfflineModeKey) ?? false,
+  );
 
   final queueRepo = QueueRepositoryImpl(db);
 

@@ -160,6 +160,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       getRepeatMode: () => playbackState.value.repeatMode,
       updateQueueStream: (items) => queue.add(items),
       proxyServer: _proxyServer,
+      isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
       streamAudioQuality: MediaQuality.fromStorage(
         readStreamAudioQualityPref(_prefs),
       ),
@@ -263,6 +264,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       castPause: () async {
         await _castController.castService?.pause();
       },
+      isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
     );
     _recoveryController = PlaybackRecoveryController(
       engine: _engine,

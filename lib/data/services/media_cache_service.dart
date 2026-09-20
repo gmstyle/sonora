@@ -128,7 +128,9 @@ class MediaCacheService {
         } catch (_) {}
         audioHit = null;
       }
-      if (audioHit == null) return null;
+      if (audioHit == null) {
+        return null;
+      }
 
       final chosen = MediaCacheHit(primaryUri: audioHit.uri.toString());
       await _touchUri(chosen.primaryUri);

@@ -22,14 +22,17 @@ import 'media_cache_service.dart';
 class LocalAudioProxyServer {
   final StreamDatasource _streamDatasource;
   final MediaCacheService _mediaCacheService;
+  final bool Function() _isForcedOffline;
 
   HttpServer? _server;
 
   LocalAudioProxyServer({
     required StreamDatasource streamDatasource,
     MediaCacheService? mediaCacheService,
+    bool Function()? isForcedOffline,
   }) : _streamDatasource = streamDatasource,
-       _mediaCacheService = mediaCacheService ?? MediaCacheService.instance;
+       _mediaCacheService = mediaCacheService ?? MediaCacheService.instance,
+       _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// Active port allocated by the OS, or 0 if not running.
   int get port => _server?.port ?? 0;
@@ -148,6 +151,13 @@ class LocalAudioProxyServer {
 
     final audioQuality = _audioQualityFromQuery(request.url.queryParameters);
     final rangeHeaderStr = request.headers['range'];
+
+    if (_isForcedOffline()) {
+      return Response(
+        HttpStatus.serviceUnavailable,
+        body: 'Offline: remote stream proxy disabled',
+      );
+    }
 
     try {
       final cachedUri = await _mediaCacheService.getCachedFileUri(videoId);

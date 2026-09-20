@@ -102,5 +102,29 @@ void main() {
       expect(res.statusCode, equals(400));
       expect(body, contains('Missing videoId parameter'));
     });
+
+    test(
+      'offline mode refuses remote stream without contacting YouTube',
+      () async {
+        await proxyServer.stop();
+        proxyServer = LocalAudioProxyServer(
+          streamDatasource: mockStreamDs,
+          isForcedOffline: () => true,
+        );
+        await proxyServer.start();
+
+        final req = await httpClient.getUrl(
+          Uri.parse(
+            'http://127.0.0.1:${proxyServer.port}/stream?videoId=offlineVid',
+          ),
+        );
+        final res = await req.close();
+        final body = await res.transform(utf8.decoder).join();
+
+        expect(res.statusCode, equals(HttpStatus.serviceUnavailable));
+        expect(body, contains('Offline'));
+        expect(mockStreamDs.lastAudioQuality, isNull);
+      },
+    );
   });
 }

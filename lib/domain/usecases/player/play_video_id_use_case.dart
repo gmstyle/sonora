@@ -16,8 +16,15 @@ import '../../../core/utils/artists_utils.dart';
 class PlayVideoIdUseCase {
   final MusicRepository _repo;
   final LibraryRepository? _libraryRepo;
+  final bool Function() _isForcedOffline;
 
-  PlayVideoIdUseCase(this._repo, [this._libraryRepo]);
+  PlayVideoIdUseCase(
+    this._repo, [
+    this._libraryRepo,
+    bool Function()? isForcedOffline,
+  ]) : _isForcedOffline = isForcedOffline ?? _neverForcedOffline;
+
+  static bool _neverForcedOffline() => false;
 
   /// Upper bound for a single stream-URL resolution.
   ///
@@ -67,7 +74,9 @@ class PlayVideoIdUseCase {
     }
 
     // 2. If not downloaded, fail fast if offline
-    final offline = await ConnectivityUtils.isOffline();
+    final forcedOffline = _isForcedOffline();
+    final physicalOffline = await ConnectivityUtils.isOffline();
+    final offline = forcedOffline || physicalOffline;
     if (offline) {
       throw const SocketException(
         'Offline: internet connection is required to stream music.',
@@ -153,7 +162,14 @@ class PlayVideoIdUseCase {
   /// otherwise resolves a stream URL from [MusicRepository].
   Future<String> resolveUrl(String videoId) async {
     final local = await resolveCompletedDownloadUrl(videoId, _libraryRepo);
-    if (local != null) return local;
+    if (local != null) {
+      return local;
+    }
+
+    final forcedOffline = _isForcedOffline();
+    if (forcedOffline) {
+      throw const SocketException('Offline: cannot resolve stream URL.');
+    }
 
     try {
       final hit = await MediaCacheService.instance.getCachedHit(videoId);
