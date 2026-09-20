@@ -1,11 +1,19 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 
+/// Vertical clearance reserved for a compact mini-dock seek strip.
+///
+/// Content (artwork / title / play) should start below this so it never
+/// overlaps the seek hit target. Keep in sync with
+/// [ProgressBarDensity.compact] hit extent.
+const double kMiniPlayerSeekClearance = 8.0;
+
 /// Track thickness and whether times sit beside or below the bar.
 enum ProgressBarDensity {
-  /// Dock / rail / sidebar: 2px fill, no thumb at rest, no times.
+  /// Dock / rail / sidebar: 2px fill flush to the top edge, no thumb at rest.
   compact,
 
   /// Wide mini: 3px track, times beside, thumb on hover/scrub.
@@ -84,15 +92,17 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget>
       ProgressBarDensity.expanded => 5.0,
     };
     final activeThumb = switch (widget.density) {
-      ProgressBarDensity.compact => 4.0,
+      ProgressBarDensity.compact => 3.0,
       ProgressBarDensity.comfortable => 8.0,
       ProgressBarDensity.expanded => 10.0,
     };
     final barHeight = switch (widget.density) {
-      ProgressBarDensity.compact => widget.seekable ? 16.0 : 6.0,
+      ProgressBarDensity.compact =>
+        widget.seekable ? kMiniPlayerSeekClearance : 4.0,
       ProgressBarDensity.comfortable => 20.0,
       ProgressBarDensity.expanded => 24.0,
     };
+    final alignTrackToTop = widget.density == ProgressBarDensity.compact;
 
     final bar = AnimatedBuilder(
       animation: _scrub,
@@ -107,6 +117,7 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget>
             trackHeight: trackHeight,
             thumbRadius: thumb,
             thumbFill: cs.onPrimary,
+            alignToTop: alignTrackToTop,
           ),
         );
       },
@@ -236,6 +247,7 @@ class _SeekTrackPainter extends CustomPainter {
   final double trackHeight;
   final double thumbRadius;
   final Color thumbFill;
+  final bool alignToTop;
 
   _SeekTrackPainter({
     required this.progress,
@@ -244,13 +256,17 @@ class _SeekTrackPainter extends CustomPainter {
     required this.trackHeight,
     required this.thumbRadius,
     required this.thumbFill,
+    this.alignToTop = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
-    final y = size.height / 2;
     if (w <= 0) return;
+
+    // Compact mini docks: pin the 2px track to the top edge; otherwise center.
+    final y =
+        alignToTop ? math.max(trackHeight / 2, thumbRadius) : size.height / 2;
 
     final inset = thumbRadius;
     final left = inset;
@@ -295,6 +311,7 @@ class _SeekTrackPainter extends CustomPainter {
         trackColor != oldDelegate.trackColor ||
         trackHeight != oldDelegate.trackHeight ||
         thumbRadius != oldDelegate.thumbRadius ||
-        thumbFill != oldDelegate.thumbFill;
+        thumbFill != oldDelegate.thumbFill ||
+        alignToTop != oldDelegate.alignToTop;
   }
 }

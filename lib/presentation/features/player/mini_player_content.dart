@@ -87,56 +87,64 @@ class MiniPlayerContent extends ConsumerWidget {
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-                    : Row(
-                      children: [
-                        const SizedBox(width: 12),
-                        _artwork(size: 56, radius: 8, cs: cs, ref: ref),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      track.title,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyLarge,
-                                      maxLines: 1,
+                    : Padding(
+                      padding: const EdgeInsets.only(
+                        top: kMiniPlayerSeekClearance,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const SizedBox(width: 12),
+                          _artwork(size: 52, radius: 8, cs: cs, ref: ref),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        track.title,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodyLarge
+                                            ?.copyWith(height: 1.15),
+                                        maxLines: 1,
+                                      ),
                                     ),
-                                  ),
-                                  if (track.isExplicit)
-                                    const ExplicitBadge(
-                                      leading: SizedBox(width: 6),
-                                    ),
-                                  if (track.isVideo)
-                                    const VideoBadge(
-                                      leading: SizedBox(width: 6),
-                                    ),
-                                ],
-                              ),
-                              Text(
-                                track.artist ?? '',
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: cs.onSurfaceVariant,
+                                    if (track.isExplicit)
+                                      const ExplicitBadge(
+                                        leading: SizedBox(width: 6),
+                                      ),
+                                    if (track.isVideo)
+                                      const VideoBadge(
+                                        leading: SizedBox(width: 6),
+                                      ),
+                                  ],
                                 ),
-                                maxLines: 1,
-                              ),
-                            ],
+                                Text(
+                                  track.artist ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                    height: 1.15,
+                                  ),
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        _playPauseButton(cs),
-                        _iconButton(
-                          icon: LucideIcons.skipForward,
-                          color: cs.onSurfaceVariant,
-                          onPressed: onSkipNext,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
+                          _playPauseButton(cs),
+                          _iconButton(
+                            icon: LucideIcons.skipForward,
+                            color: cs.onSurfaceVariant,
+                            onPressed: onSkipNext,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
                     ),
           ),
           if (!isSwitching)
@@ -144,6 +152,7 @@ class MiniPlayerContent extends ConsumerWidget {
               top: 0,
               left: 0,
               right: 0,
+              height: kMiniPlayerSeekClearance,
               child: ProgressBarWidget(
                 position: playerState.position,
                 duration: playerState.duration,
@@ -190,66 +199,74 @@ class MiniPlayerContent extends ConsumerWidget {
             child:
                 isSwitching
                     ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-                    : Row(
-                      children: [
-                        if (!hideMetadata) ...[
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        track.title,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodyLarge,
-                                        maxLines: 1,
+                    : Padding(
+                      padding: const EdgeInsets.only(
+                        top: kMiniPlayerSeekClearance,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (!hideMetadata) ...[
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          track.title,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(height: 1.15),
+                                          maxLines: 1,
+                                        ),
                                       ),
-                                    ),
-                                    if (track.isExplicit)
-                                      const ExplicitBadge(
-                                        leading: SizedBox(width: 6),
-                                      ),
-                                    if (track.isVideo)
-                                      const VideoBadge(
-                                        leading: SizedBox(width: 6),
-                                      ),
-                                  ],
-                                ),
-                                Text(
-                                  track.artist ?? '',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: cs.onSurfaceVariant,
+                                      if (track.isExplicit)
+                                        const ExplicitBadge(
+                                          leading: SizedBox(width: 6),
+                                        ),
+                                      if (track.isVideo)
+                                        const VideoBadge(
+                                          leading: SizedBox(width: 6),
+                                        ),
+                                    ],
                                   ),
-                                  maxLines: 1,
-                                ),
-                              ],
+                                  Text(
+                                    track.artist ?? '',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                      height: 1.15,
+                                    ),
+                                    maxLines: 1,
+                                  ),
+                                ],
+                              ),
                             ),
+                          ] else
+                            const Spacer(),
+                          _iconButton(
+                            icon: LucideIcons.skipBack,
+                            color: cs.onSurfaceVariant,
+                            onPressed: onSkipPrevious,
+                            size: 20,
                           ),
-                        ] else
-                          const Spacer(),
-                        _iconButton(
-                          icon: LucideIcons.skipBack,
-                          color: cs.onSurfaceVariant,
-                          onPressed: onSkipPrevious,
-                          size: 20,
-                        ),
-                        _playPauseButton(cs),
-                        _iconButton(
-                          icon: LucideIcons.skipForward,
-                          color: cs.onSurfaceVariant,
-                          onPressed: onSkipNext,
-                          size: 20,
-                        ),
-                        if (hideMetadata) const Spacer(),
-                        _likeButton(context, ref, cs),
-                        CastButton(size: 20, color: cs.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                      ],
+                          _playPauseButton(cs),
+                          _iconButton(
+                            icon: LucideIcons.skipForward,
+                            color: cs.onSurfaceVariant,
+                            onPressed: onSkipNext,
+                            size: 20,
+                          ),
+                          if (hideMetadata) const Spacer(),
+                          _likeButton(context, ref, cs),
+                          CastButton(size: 20, color: cs.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
                     ),
           ),
           if (!isSwitching)
@@ -257,6 +274,7 @@ class MiniPlayerContent extends ConsumerWidget {
               top: 0,
               left: 0,
               right: 0,
+              height: kMiniPlayerSeekClearance,
               child: ProgressBarWidget(
                 position: playerState.position,
                 duration: playerState.duration,
