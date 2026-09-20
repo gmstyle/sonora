@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.6+67] - 2026-09-20
+
+### Features
+
+- **library**: Confirm before linked playlist sync
+- **ui**: Unify detail affinity icons and download states
+- **ui**: Share detail action bar with cap/overflow and hide self-nav
+- **library**: Add linked playlist pull-sync with Spotify 12h gate
+- **downloads**: Organize completed downloads by collection
+- **downloads**: Improve download UX with batch cancel and grouped progress
+
+### Bug Fixes
+
+- **player**: Soft offline transition and single resolveUrl path
+- **player**: Honor Settings offline mode for streams and cache
+- **cli**: Play completed downloads without Innertube init
+- **downloads**: Keep completed files until a re-download succeeds
+- **player**: Separate mini seek strip from play controls
+- **ui**: Fix detail action bar alignment and More duplicates
+- **ui**: Use adaptive ContextMenuSheet for local playlist More
+- **player**: Play downloaded tracks from local files on all play paths
+
 ## [1.8.5+66] - 2026-09-17
 
 ### Bug Fixes
