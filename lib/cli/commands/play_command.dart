@@ -26,14 +26,21 @@ class PlayCommand {
 
     try {
       stderr.writeln('Resolving "$videoId"...');
-      final url = await PlayVideoIdUseCase(
-        _provider.musicRepo,
+      var url = await resolveCompletedDownloadUrl(
+        videoId,
         _provider.libraryRepo,
-      ).resolveUrl(videoId);
+      );
+      if (url == null) {
+        await _provider.initializeRemote();
+        url = await PlayVideoIdUseCase(
+          _provider.musicRepo,
+          _provider.libraryRepo,
+        ).resolveUrl(videoId);
+      }
       final meta = await resolveCliPlayMetadata(
         videoId: videoId,
         libraryRepo: _provider.libraryRepo,
-        musicRepo: _provider.musicRepo,
+        musicRepo: _provider.isRemoteReady ? _provider.musicRepo : null,
       );
       final title = meta.title;
       final artist = meta.artist;
@@ -128,7 +135,7 @@ class _Player {
 Future<({String title, String artist})> resolveCliPlayMetadata({
   required String videoId,
   required LibraryRepository libraryRepo,
-  required MusicRepository musicRepo,
+  MusicRepository? musicRepo,
 }) async {
   try {
     final download = await libraryRepo.getDownload(videoId);
@@ -138,6 +145,10 @@ Future<({String title, String artist})> resolveCliPlayMetadata({
       return (title: download.title, artist: download.artist);
     }
   } catch (_) {}
+
+  if (musicRepo == null) {
+    return (title: videoId, artist: '');
+  }
 
   try {
     final song = await musicRepo.getSong(videoId);

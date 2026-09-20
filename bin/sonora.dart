@@ -106,10 +106,15 @@ Future<void> main(List<String> arguments) async {
   final provider = SonoraCliProvider();
   try {
     stderr.writeln('Initializing...');
-    await provider.initialize();
+    if (_commandNeedsRemote(command)) {
+      await provider.initializeRemote();
+    } else {
+      await provider.initializeLocal();
+    }
     stderr.writeln('Ready.\n');
   } catch (e) {
     stderr.writeln('Initialization failed: $e');
+    await provider.dispose();
     exitCode = 1;
     return;
   }
@@ -143,6 +148,9 @@ Future<void> main(List<String> arguments) async {
   await provider.dispose();
   exitCode = output.exitCode;
 }
+
+bool _commandNeedsRemote(String command) =>
+    command == 'search' || command == 'download';
 
 void _printUsage(ArgParser parser, Map<String, ArgParser> subcommands) {
   stderr.writeln('Usage: sonora <command> [options]\n');

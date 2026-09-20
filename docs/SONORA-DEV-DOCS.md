@@ -187,12 +187,12 @@ A standalone headless CLI shares the same data layer as the GUI, usable from the
 
 ### 3.2 Dependency injection
 
-**`lib/cli/sonora_cli_provider.dart`** initialises all dependencies without Flutter:
+**`lib/cli/sonora_cli_provider.dart`** initialises dependencies without Flutter, in two stages:
 
-- `YTMusic` + `YtmusicDatasource` for YouTube Music API
-- `AppDatabase` via `NativeDatabase` (Drift's pure-Dart VM driver, `drift_flutter` not needed)
-- `MusicRepositoryImpl`, `LibraryRepositoryImpl`
-- `Dio` for downloads
+- `initializeLocal()` — `AppDatabase` via `NativeDatabase` (Drift's pure-Dart VM driver) + `LibraryRepositoryImpl`. Used by `play` (completed downloads), `library`, and `history`. No Innertube contact.
+- `initializeRemote()` — local store plus `YTMusic` / `YtmusicDatasource`, `MusicRepositoryImpl`, `StreamDatasource`, and `Dio`. Used by `search`, `download`, and `play` only when the `videoId` is not already downloaded.
+
+`bin/sonora.dart` picks the stage from the command; `play` can upgrade to remote mid-command if `resolveCompletedDownloadUrl` finds nothing.
 
 ### 3.3 Command classes
 
@@ -201,7 +201,7 @@ Each command in `lib/cli/commands/` implements a single `execute(ArgResults)` me
 | Command | File | Description |
 |---------|------|-------------|
 | `search` | `search_command.dart` | Search songs, albums, artists, playlists, videos |
-| `play` | `play_command.dart` | Stream audio via mpv/ffplay/vlc or print URL |
+| `play` | `play_command.dart` | Play a completed local download (offline) or stream via mpv/ffplay/vlc; `--player url` prints the URI |
 | `download` | `download_command.dart` | Download song with Dio progress bar |
 | `library` | `library_command.dart` | List/add/remove library items |
 | `history` | `history_command.dart` | View or clear listening history |
@@ -438,7 +438,7 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
   - `StreamDatasource` caches playback plans by `videoId|audioQ` and exposes `clearUrlCache()` when stream audio quality changes.
 
 - **Dual-Path Playback Architecture:**
-  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` or `/Sonora/<collection>/`) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata and optional `collectionId` / `collectionType` / `collectionName` from bulk `batchId`). Re-downloads write to a `.part` staging file; the previous completed file and SQLite row are replaced only after the new file is fully written (`DownloadReplacement`). A failed replacement restores the previous completed row. `PlayVideoIdUseCase.resolveUrl` is the single playback URL entry point (album, playlist, podcast, smart mix, radio, Play All favorites, play-next / add-to-queue, CLI `play`): completed downloads and audio-cache hits become native `file:///` URIs and bypass the proxy. CLI `play` resolves the URL before fetching Innertube metadata, so a completed download plays offline. Completed downloads are grouped in the UI via `downloadGroupsProvider` (persisted collection → inferred folder → Singles).
+  - **Explicit User Downloads** (`StartDownloadUseCase`): Triggered by user action. Selects an audio stream via `StreamQualitySelector` using `downloadQuality` (never muxed/video). Files are saved permanently to disk (`/Sonora/` or `/Sonora/<collection>/`) and recorded in SQLite (`DownloadsTable`, including catalog `isVideo` metadata and optional `collectionId` / `collectionType` / `collectionName` from bulk `batchId`). Re-downloads write to a `.part` staging file; the previous completed file and SQLite row are replaced only after the new file is fully written (`DownloadReplacement`). A failed replacement restores the previous completed row. `PlayVideoIdUseCase.resolveUrl` is the single playback URL entry point (album, playlist, podcast, smart mix, radio, Play All favorites, play-next / add-to-queue, CLI `play`): completed downloads and audio-cache hits become native `file:///` URIs and bypass the proxy. CLI `play` resolves a completed download via `resolveCompletedDownloadUrl` before Innertube init, so offline play never contacts YouTube Music. Completed downloads are grouped in the UI via `downloadGroupsProvider` (persisted collection → inferred folder → Singles).
   - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback (audio-only). Saved to temporary cache (`sonora_media_cache`) with a user-configurable LRU size cap. Routed via local proxy loopback URLs; `file://` audio-only cache hits also bypass the proxy in `QueueController.toMedia`.
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:

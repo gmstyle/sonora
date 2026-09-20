@@ -74,4 +74,15 @@ void main() {
       expect(musicRepo.getSongCalls, 1);
     },
   );
+
+  test('skips getSong entirely when musicRepo is omitted', () async {
+    final meta = await resolveCliPlayMetadata(
+      videoId: 'vid3',
+      libraryRepo: repo,
+    );
+
+    expect(meta.title, 'vid3');
+    expect(meta.artist, '');
+    expect(musicRepo.getSongCalls, 0);
+  });
 }

@@ -144,7 +144,7 @@ sonora search "jazz" --type album --limit 10 --json
 
 ### `play`
 
-Play a song using an external player (or print the URL). If a completed download exists for the `videoId`, the local file is used instead of a live stream — including when you are offline.
+Play a song using an external player (or print the URL). If a completed download exists for the `videoId`, the local file is used instead of a live stream — including when you are offline. Offline play opens only the local SQLite store; YouTube Music is contacted only when that `videoId` is not already downloaded.
 
 ```
 sonora play <videoId> [--player auto|mpv|ffplay|vlc|url]
@@ -206,7 +206,7 @@ sonora download "mQER0A0ej0M" --title "Hey Jude" --artist "The Beatles"
 
 ### `library`
 
-Manage your local library (shared with the GUI).
+Manage your local library (shared with the GUI). List/add/remove work offline; they do not contact YouTube Music.
 
 ```
 sonora library list [--type songs|albums|artists|playlists] [--json]
@@ -263,7 +263,7 @@ sonora library remove --type artist --id "UC..."
 
 ### `history`
 
-View or clear listening history.
+View or clear listening history. Works offline; it does not contact YouTube Music.
 
 ```
 sonora history [--limit N] [--clear] [--json]
@@ -336,6 +336,7 @@ This means:
 - Songs added to the library via CLI are visible in the GUI and vice versa
 - Listening history is unified
 - Downloads are tracked consistently
+- `play` (completed downloads), `library`, and `history` can run with no internet; `search` and `download` still need YouTube Music at startup
 
 ---
 
@@ -378,7 +379,7 @@ sonora history --json --limit 100 > history.json
 |---------|-------|----------|
 | `dart: command not found` | Dart SDK not installed | Install Flutter SDK or standalone Dart |
 | `sonora: command not found` | Command not activated globally | Use `dart run bin/sonora.dart` or run `dart pub global activate` |
-| `Initialization failed` | No internet or YouTube Music API unreachable | Check your internet connection |
+| `Initialization failed` | No internet while running `search`/`download`, or YouTube Music is unreachable | Check your internet connection. `play` of a completed download, `library`, and `history` do not need the network |
 | `Playback failed` while offline | No completed download for that `videoId` | Download the song first, or go online to stream |
 | `Player not found` | No audio player installed | Install `mpv` or use `--player url` |
 | `Illegal instruction` | Old CPU without AVX support | Use an external player with `--player url` |

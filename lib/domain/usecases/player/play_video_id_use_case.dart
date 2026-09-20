@@ -152,20 +152,8 @@ class PlayVideoIdUseCase {
   /// Reuses a completed library download or an audio-only media-cache hit,
   /// otherwise resolves a stream URL from [MusicRepository].
   Future<String> resolveUrl(String videoId) async {
-    if (_libraryRepo != null) {
-      try {
-        final download = await _libraryRepo.getDownload(videoId);
-        if (download != null &&
-            download.status == 'completed' &&
-            download.localPath != null) {
-          final file = File(download.localPath!);
-          if (await file.exists()) {
-            return file.uri.toString();
-          }
-          await _libraryRepo.deleteDownload(videoId);
-        }
-      } catch (_) {}
-    }
+    final local = await resolveCompletedDownloadUrl(videoId, _libraryRepo);
+    if (local != null) return local;
 
     try {
       final hit = await MediaCacheService.instance.getCachedHit(videoId);
@@ -188,4 +176,26 @@ class PlayVideoIdUseCase {
   Future<String> resolveStreamUrl(String videoId) async {
     return _repo.getStreamUrl(videoId).timeout(streamUrlTimeout);
   }
+}
+
+/// Returns a `file://` URI when [videoId] has a completed download still on
+/// disk. Removes the library row if the file is gone.
+Future<String?> resolveCompletedDownloadUrl(
+  String videoId,
+  LibraryRepository? libraryRepo,
+) async {
+  if (libraryRepo == null) return null;
+  try {
+    final download = await libraryRepo.getDownload(videoId);
+    if (download != null &&
+        download.status == 'completed' &&
+        download.localPath != null) {
+      final file = File(download.localPath!);
+      if (await file.exists()) {
+        return file.uri.toString();
+      }
+      await libraryRepo.deleteDownload(videoId);
+    }
+  } catch (_) {}
+  return null;
 }

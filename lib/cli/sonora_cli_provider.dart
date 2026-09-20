@@ -18,47 +18,79 @@ import '../domain/repositories/library_repository.dart';
 import '../domain/repositories/music_repository.dart';
 
 class SonoraCliProvider {
-  late final YtmusicDatasource ytmusicDs;
-  late final StreamDatasource streamDs;
-  late final AppDatabase database;
-  late final MusicRepository musicRepo;
-  late final LibraryRepository libraryRepo;
-  late final Dio dio;
+  SonoraCliProvider({String? databasePath}) : _databasePath = databasePath;
 
-  Future<void> initialize() async {
-    await YTMusic().initialize();
+  final String? _databasePath;
 
-    ytmusicDs = YtmusicDatasource();
-    await ytmusicDs.initialize();
+  YtmusicDatasource? _ytmusicDs;
+  StreamDatasource? _streamDs;
+  AppDatabase? _database;
+  MusicRepository? _musicRepo;
+  LibraryRepository? _libraryRepo;
+  Dio? _dio;
+  bool _localReady = false;
+  bool _remoteReady = false;
 
-    streamDs = StreamDatasource();
+  bool get isLocalReady => _localReady;
+  bool get isRemoteReady => _remoteReady;
 
-    final dbPath = _dbPath();
+  YtmusicDatasource get ytmusicDs => _require(_ytmusicDs, remote: true);
+  StreamDatasource get streamDs => _require(_streamDs, remote: true);
+  AppDatabase get database => _require(_database);
+  MusicRepository get musicRepo => _require(_musicRepo, remote: true);
+  LibraryRepository get libraryRepo => _require(_libraryRepo);
+  Dio get dio => _require(_dio, remote: true);
+
+  /// Opens the shared SQLite store. No Innertube / YouTube Music contact.
+  Future<void> initializeLocal() async {
+    if (_localReady) return;
+
+    final dbPath = _databasePath ?? _defaultDbPath();
     final dbDir = Directory(p.dirname(dbPath));
     if (!dbDir.existsSync()) dbDir.createSync(recursive: true);
-    database = AppDatabase(NativeDatabase(File(dbPath)));
+    _database = AppDatabase(NativeDatabase(File(dbPath)));
 
-    final libraryDao = LibraryDao(database);
-    final playlistsDao = PlaylistsDao(database);
-    final downloadsDao = DownloadsDao(database);
-    final historyDao = HistoryDao(database);
-
-    libraryRepo = LibraryRepositoryImpl(
-      libraryDao,
-      playlistsDao,
-      downloadsDao,
-      historyDao,
+    _libraryRepo = LibraryRepositoryImpl(
+      LibraryDao(_database!),
+      PlaylistsDao(_database!),
+      DownloadsDao(_database!),
+      HistoryDao(_database!),
     );
-    musicRepo = MusicRepositoryImpl(ytmusicDs, streamDs);
-    dio = Dio();
+    _localReady = true;
   }
+
+  /// Connects YouTube Music (Innertube) and stream/download clients.
+  Future<void> initializeRemote() async {
+    await initializeLocal();
+    if (_remoteReady) return;
+
+    await YTMusic().initialize();
+    _ytmusicDs = YtmusicDatasource();
+    await _ytmusicDs!.initialize();
+    _streamDs = StreamDatasource();
+    _musicRepo = MusicRepositoryImpl(_ytmusicDs!, _streamDs!);
+    _dio = Dio();
+    _remoteReady = true;
+  }
+
+  /// Full init for commands that always need Innertube (`search`, `download`).
+  Future<void> initialize() => initializeRemote();
 
   Future<void> dispose() async {
-    streamDs.dispose();
-    await database.close();
+    _streamDs?.dispose();
+    await _database?.close();
   }
 
-  String _dbPath() {
+  T _require<T>(T? value, {bool remote = false}) {
+    if (value != null) return value;
+    throw StateError(
+      remote
+          ? 'CLI remote services are not initialized.'
+          : 'CLI local store is not initialized.',
+    );
+  }
+
+  String _defaultDbPath() {
     final home = Platform.environment['HOME'] ?? '/tmp';
     return p.join(home, '.local', 'share', 'sonora', 'sonora.sqlite');
   }
