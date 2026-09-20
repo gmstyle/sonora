@@ -949,9 +949,7 @@ class _ArtistActions extends ConsumerWidget {
           artistId: artist.artistId,
           name: artist.name,
           thumbnailUrl:
-              artist.thumbnails.isNotEmpty
-                  ? artist.thumbnails.last.url
-                  : null,
+              artist.thumbnails.isNotEmpty ? artist.thumbnails.last.url : null,
           monthlyListeners: artist.monthlyListeners,
         );
       },

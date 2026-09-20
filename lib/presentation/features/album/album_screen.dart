@@ -726,9 +726,7 @@ class _AlbumActions extends ConsumerWidget {
             (context, compact) => _DownloadAlbumButton(
               album: album,
               onDownload:
-                  hasSongs
-                      ? () => _downloadAlbum(context, ref, album)
-                      : null,
+                  hasSongs ? () => _downloadAlbum(context, ref, album) : null,
               iconOnly: compact,
             ),
       ),
@@ -747,8 +745,7 @@ class _AlbumActions extends ConsumerWidget {
         onPressed: () {
           SharePlus.instance.share(
             ShareParams(
-              text:
-                  'https://music.youtube.com/playlist?list=${album.albumId}',
+              text: 'https://music.youtube.com/playlist?list=${album.albumId}',
             ),
           );
         },

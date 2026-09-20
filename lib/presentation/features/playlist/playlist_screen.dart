@@ -665,8 +665,7 @@ class _PlaylistActions extends ConsumerWidget {
               videosAsync: videosAsync,
               onDownload:
                   hasVideos
-                      ? () =>
-                          _downloadPlaylist(context, ref, playlist, videos)
+                      ? () => _downloadPlaylist(context, ref, playlist, videos)
                       : null,
               iconOnly: compact,
             ),
@@ -676,8 +675,7 @@ class _PlaylistActions extends ConsumerWidget {
         icon: LucideIcons.listMusic,
         label: l10n.addToQueue,
         tooltip: l10n.addToQueue,
-        onPressed:
-            hasVideos ? () => _addToQueue(context, ref, videos) : null,
+        onPressed: hasVideos ? () => _addToQueue(context, ref, videos) : null,
       ),
       DetailAction(
         id: DetailActionId.share,

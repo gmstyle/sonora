@@ -155,8 +155,7 @@ class DetailActionsBar extends StatelessWidget {
             icon: const Icon(LucideIcons.shuffle),
             label: Text(shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle'),
           ),
-          for (final action in visibleSecondary)
-            _WideSecondary(action: action),
+          for (final action in visibleSecondary) _WideSecondary(action: action),
           if (showMore)
             IconButton(
               icon: const Icon(LucideIcons.moreVertical),
@@ -173,30 +172,53 @@ class DetailActionsBar extends StatelessWidget {
     List<DetailAction> actions,
   ) {
     final l10n = AppLocalizations.of(context);
+    final wide = MediaQuery.sizeOf(context).width >= kExpandedBreakpoint;
+
+    Widget buildBody(BuildContext ctx) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final action in actions)
+              ListTile(
+                leading: Icon(action.icon),
+                title: Text(action.label),
+                enabled:
+                    action.onPressed != null || action.buildControl != null,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  action.onPressed?.call();
+                },
+              ),
+            if (actions.isEmpty) ListTile(title: Text(l10n?.more ?? 'More')),
+          ],
+        ),
+      );
+    }
+
+    // Match ContextMenuSheet / §7.3: dialog on wide, sheet below.
+    if (wide) {
+      return showDialog<void>(
+        context: context,
+        useRootNavigator: true,
+        builder:
+            (ctx) => Center(
+              child: SizedBox(
+                width: 360,
+                child: Card(
+                  elevation: 8,
+                  clipBehavior: Clip.hardEdge,
+                  child: buildBody(ctx),
+                ),
+              ),
+            ),
+      );
+    }
     return showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       showDragHandle: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final action in actions)
-                ListTile(
-                  leading: Icon(action.icon),
-                  title: Text(action.label),
-                  enabled: action.onPressed != null || action.buildControl != null,
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    action.onPressed?.call();
-                  },
-                ),
-              if (actions.isEmpty)
-                ListTile(title: Text(l10n?.more ?? 'More')),
-            ],
-          ),
-        );
-      },
+      builder: buildBody,
     );
   }
 }
@@ -296,6 +318,8 @@ class _WideSecondary extends StatelessWidget {
 /// Sort [actions] by [DetailActionId.rankOrder], keeping unknown ids last.
 List<DetailAction> rankDetailActions(Iterable<DetailAction> actions) {
   final list = actions.toList();
-  list.sort((a, b) => DetailActionId.rank(a.id).compareTo(DetailActionId.rank(b.id)));
+  list.sort(
+    (a, b) => DetailActionId.rank(a.id).compareTo(DetailActionId.rank(b.id)),
+  );
   return list;
 }

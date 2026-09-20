@@ -651,7 +651,7 @@ Album, YouTube playlist, artist, podcast, and local playlist detail screens shar
 | Tablet (600–1199) | Play + Shuffle + up to **2** secondary labeled + ⋮ |
 | Wide (≥1200) | Play + Shuffle + up to **3** secondary labeled + ⋮ |
 
-Secondary actions are ranked (save → download → queue → share → entity-specific). Overflow opens `ContextMenuSheet` (remote entities) or a simple action sheet (local playlist). Rare actions (Sync, Unlink, Rename, Radio when over budget) stay in ⋮.
+Secondary actions are ranked (save → download → queue → share → entity-specific). Overflow opens `ContextMenuSheet` (dialog on wide ≥1200dp, bottom sheet below — same as Album/Artist/YT playlist). Rare actions (Sync, Unlink, Rename, Radio when over budget) stay in ⋮.
 
 ### 7.2 Navigation
 

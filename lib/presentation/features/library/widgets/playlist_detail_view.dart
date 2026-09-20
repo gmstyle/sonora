@@ -22,6 +22,7 @@ import '../../../shared/widgets/video_badge.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../providers/spotify_sync_cooldown_provider.dart';
 import '../../../shared/widgets/detail_actions_bar.dart';
+import '../../../shared/widgets/context_menu_sheet.dart';
 import 'create_playlist_dialog.dart';
 import 'linked_playlist_actions.dart';
 import '../providers/library_provider.dart';
@@ -254,6 +255,7 @@ class _PlaylistDetailContentState
                     freshPlaylist.isLinked
                         ? () => _unlinkPlaylist(freshPlaylist)
                         : null,
+                onUpdated: widget.onUpdated,
               ),
             ),
           ),
@@ -1051,11 +1053,13 @@ class _LocalPlaylistActions extends StatelessWidget {
   final VoidCallback? onRename;
   final VoidCallback? onSync;
   final VoidCallback? onUnlink;
+  final VoidCallback onUpdated;
 
   const _LocalPlaylistActions({
     required this.playlist,
     required this.entries,
     required this.likedSongs,
+    required this.onUpdated,
     this.onPlayAll,
     this.onShuffle,
     this.onAddToQueue,
@@ -1121,6 +1125,15 @@ class _LocalPlaylistActions extends StatelessWidget {
       playLabel: l10n.playAll,
       onShuffle: onShuffle,
       shuffleLabel: l10n.shufflePlay,
+      alwaysShowOverflow: true,
+      onOverflow: () {
+        ContextMenuSheet.showForCustomPlaylist(
+          context,
+          playlist: playlist,
+          onUpdated: onUpdated,
+          hideGoToPlaylist: true,
+        );
+      },
     );
   }
 }

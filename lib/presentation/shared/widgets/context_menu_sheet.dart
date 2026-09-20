@@ -388,6 +388,7 @@ class ContextMenuSheet {
     BuildContext context, {
     required LocalPlaylistModel playlist,
     required VoidCallback onUpdated,
+    bool hideGoToPlaylist = false,
   }) {
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
@@ -403,6 +404,7 @@ class ContextMenuSheet {
                   child: _CustomPlaylistContextMenuSheet(
                     playlist: playlist,
                     onUpdated: onUpdated,
+                    hideGoToPlaylist: hideGoToPlaylist,
                   ),
                 ),
               ),
@@ -416,6 +418,7 @@ class ContextMenuSheet {
           (_) => _CustomPlaylistContextMenuSheet(
             playlist: playlist,
             onUpdated: onUpdated,
+            hideGoToPlaylist: hideGoToPlaylist,
           ),
     );
   }
@@ -2399,10 +2402,12 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
 class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
   final LocalPlaylistModel playlist;
   final VoidCallback onUpdated;
+  final bool hideGoToPlaylist;
 
   const _CustomPlaylistContextMenuSheet({
     required this.playlist,
     required this.onUpdated,
+    this.hideGoToPlaylist = false,
   });
 
   @override
@@ -2632,23 +2637,24 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       }
                     },
                   ),
-                  _ActionTile(
-                    icon: LucideIcons.listVideo,
-                    label: l10n.goToPlaylist,
-                    onTap: () {
-                      final nav = Navigator.of(context, rootNavigator: true);
-                      Navigator.pop(context);
-                      nav.push(
-                        MaterialPageRoute(
-                          builder:
-                              (_) => PlaylistDetailView(
-                                playlist: playlist,
-                                onUpdated: onUpdated,
-                              ),
-                        ),
-                      );
-                    },
-                  ),
+                  if (!hideGoToPlaylist)
+                    _ActionTile(
+                      icon: LucideIcons.listVideo,
+                      label: l10n.goToPlaylist,
+                      onTap: () {
+                        final nav = Navigator.of(context, rootNavigator: true);
+                        Navigator.pop(context);
+                        nav.push(
+                          MaterialPageRoute(
+                            builder:
+                                (_) => PlaylistDetailView(
+                                  playlist: playlist,
+                                  onUpdated: onUpdated,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
