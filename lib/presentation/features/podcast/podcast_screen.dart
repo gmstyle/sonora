@@ -6,8 +6,6 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -16,6 +14,7 @@ import '../../providers/action_feedback_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/play_podcast_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
@@ -561,6 +560,13 @@ class _PodcastActions extends ConsumerWidget {
 
     final secondary = rankDetailActions([
       DetailAction(
+        id: DetailActionId.queue,
+        icon: LucideIcons.listMusic,
+        label: l10n.addToQueue,
+        tooltip: l10n.addToQueue,
+        onPressed: hasEpisodes ? () => _addToQueue(context, ref) : null,
+      ),
+      DetailAction(
         id: DetailActionId.save,
         icon: LucideIcons.heart,
         label: l10n.subscribe,
@@ -568,34 +574,6 @@ class _PodcastActions extends ConsumerWidget {
         buildControl:
             (context, compact) =>
                 _SubscribePodcastButton(podcast: podcast, iconOnly: compact),
-      ),
-      DetailAction(
-        id: DetailActionId.download,
-        icon: LucideIcons.download,
-        label: l10n.download,
-        tooltip: l10n.download,
-        buildControl:
-            (context, compact) => _DownloadPodcastButton(
-              podcast: podcast,
-              onDownload:
-                  hasEpisodes
-                      ? () => _downloadPodcast(context, ref, podcast)
-                      : null,
-              iconOnly: compact,
-            ),
-      ),
-      DetailAction(
-        id: DetailActionId.share,
-        icon: LucideIcons.share2,
-        label: l10n.share,
-        tooltip: l10n.share,
-        onPressed: () {
-          SharePlus.instance.share(
-            ShareParams(
-              text: 'https://music.youtube.com/browse/${podcast.browseId}',
-            ),
-          );
-        },
       ),
     ]);
 
@@ -616,9 +594,53 @@ class _PodcastActions extends ConsumerWidget {
               podcast.thumbnails.isNotEmpty
                   ? podcast.thumbnails.last.url
                   : null,
+          omitActionIds: {
+            DetailActionId.play,
+            DetailActionId.shuffle,
+            DetailActionId.queue,
+            DetailActionId.save,
+          },
         );
       },
     );
+  }
+
+  Future<void> _addToQueue(BuildContext context, WidgetRef ref) async {
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playPodcastUseCaseProvider);
+    try {
+      final episodes =
+          podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+      if (episodes.isEmpty) return;
+      final items = await useCase.execute(
+        episodes,
+        podcastBrowseId: podcast.browseId,
+        podcastName: podcast.name,
+        authorName: podcast.author?.name,
+        authorId: podcast.author?.artistId,
+        playIndex: -1,
+      );
+      if (items.isNotEmpty) await player.addAllToQueue(items);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.addedToQueue(items.length),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToAddToQueue(e.toString()),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _playSequential(BuildContext context, WidgetRef ref) async {
@@ -676,6 +698,7 @@ class _PodcastActions extends ConsumerWidget {
     }
   }
 
+  // ignore: unused_element
   Future<void> _downloadPodcast(
     BuildContext context,
     WidgetRef ref,
@@ -831,6 +854,7 @@ class _SubscribePodcastButton extends ConsumerWidget {
   }
 }
 
+// ignore: unused_element
 class _DownloadPodcastButton extends ConsumerWidget {
   final PodcastFull podcast;
   final VoidCallback? onDownload;
@@ -839,6 +863,7 @@ class _DownloadPodcastButton extends ConsumerWidget {
   const _DownloadPodcastButton({
     required this.podcast,
     required this.onDownload,
+    // ignore: unused_element_parameter
     this.iconOnly = false,
   });
 

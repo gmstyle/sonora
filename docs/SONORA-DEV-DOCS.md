@@ -643,15 +643,25 @@ const double kExpandedBreakpoint  = 1200.0;  // → WideShell (NavigationDrawer)
 
 ### 7.1.1 Detail header actions
 
-Album, YouTube playlist, artist, podcast, and local playlist detail screens share [`DetailActionsBar`](lib/presentation/shared/widgets/detail_actions_bar.dart):
+Album, YouTube playlist, artist, podcast, and local playlist detail screens share [`DetailActionsBar`](lib/presentation/shared/widgets/detail_actions_bar.dart).
+
+Chrome is **fixed on all breakpoints** (no per-width secondary budget):
 
 | Layout | Chrome |
 |---|---|
-| Compact (<600) | Up to 2 secondary icons + Shuffle + ⋮ + circular Play |
-| Tablet (600–1199) | Play + Shuffle + up to **2** secondary labeled + ⋮ |
-| Wide (≥1200) | Play + Shuffle + up to **3** secondary labeled + ⋮ |
+| Compact (&lt;600) | Queue + Save icons + Shuffle + ⋮ + circular Play |
+| Tablet / wide | Play + Shuffle + Queue + Save (labeled) + ⋮ |
 
-Secondary actions are ranked (save → download → queue → share → entity-specific). Overflow opens `ContextMenuSheet` (dialog on wide ≥1200dp, bottom sheet below — same as Album/Artist/YT playlist). Rare actions (Sync, Unlink, Rename, Radio when over budget) stay in ⋮.
+Primary slots (play-centric + affinity):
+
+| Entity | In bar | In More (⋮ → `ContextMenuSheet`) |
+|---|---|---|
+| Album / YT playlist | Play, Shuffle, Queue, Like | Download, Share, Go to artist (album) |
+| Artist | Play, Shuffle, Queue, Follow | Radio, Share |
+| Podcast | Play, Shuffle, Queue, Subscribe | Download, Share |
+| Local playlist | Play, Shuffle, Queue, Download | Rename, Sync, Unlink, Delete |
+
+Header `onOverflow` passes `omitActionIds` for the four bar actions so More does not duplicate them. Long-press / list context menus keep the full sheet (empty omit set). Self-navigation tiles still use `hideGoTo*` when already on that entity page.
 
 ### 7.2 Navigation
 

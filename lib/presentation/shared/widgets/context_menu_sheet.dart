@@ -1,43 +1,47 @@
+import 'dart:async';
+
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
 
-import '../../../core/extensions/stat_format.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/extensions/stat_format.dart';
+import '../../../core/utils/artists_utils.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/repositories/music_repository.dart';
 import '../../../domain/usecases/player/play_album_use_case.dart';
 import '../../../domain/usecases/player/play_playlist_use_case.dart';
+import '../../../domain/usecases/player/play_podcast_use_case.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../../domain/usecases/player/start_radio_use_case.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../features/artist/providers/artist_provider.dart';
 import '../../features/library/providers/library_provider.dart';
+import '../../features/library/widgets/create_playlist_dialog.dart';
+import '../../features/library/widgets/linked_playlist_actions.dart';
+import '../../features/library/widgets/playlist_detail_view.dart';
 import '../../features/playlist/providers/playlist_provider.dart';
+import '../../features/podcast/providers/podcast_provider.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../providers/spotify_sync_cooldown_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/music_repository_provider.dart';
 import '../../providers/play_album_use_case_provider.dart';
+import '../../providers/play_podcast_use_case_provider.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/play_video_id_use_case_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/spotify_sync_cooldown_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
-import 'thumbnail_widget.dart';
-
-import 'package:shimmer/shimmer.dart';
-import '../../features/library/widgets/create_playlist_dialog.dart';
-import '../../features/library/widgets/linked_playlist_actions.dart';
-import '../../features/library/widgets/playlist_detail_view.dart';
-
-import '../../../l10n/app_localizations.dart';
+import 'detail_actions_bar.dart';
 import 'explicit_badge.dart';
-import '../../../core/utils/artists_utils.dart';
+import 'thumbnail_widget.dart';
 
 /// Whether [context] is already showing the entity identified by [paramKey]/[id]
 /// (e.g. `artistId` / `albumId` on the current go_router match).
@@ -48,6 +52,10 @@ bool _isOnEntityPage(BuildContext context, String paramKey, String id) {
     return false;
   }
 }
+
+/// Whether an action should appear given [omitActionIds] from a detail header.
+bool _showAction(Set<String> omitActionIds, String id) =>
+    !omitActionIds.contains(id);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Song data provider (lazy enrichment for context menu)
@@ -148,6 +156,7 @@ class ContextMenuSheet {
     required String name,
     String? thumbnailUrl,
     String? monthlyListeners,
+    Set<String> omitActionIds = const {},
   }) {
     final hideGoToArtist = _isOnEntityPage(context, 'artistId', artistId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
@@ -167,6 +176,7 @@ class ContextMenuSheet {
                     thumbnailUrl: thumbnailUrl,
                     monthlyListeners: monthlyListeners,
                     hideGoToArtist: hideGoToArtist,
+                    omitActionIds: omitActionIds,
                   ),
                 ),
               ),
@@ -183,6 +193,7 @@ class ContextMenuSheet {
             thumbnailUrl: thumbnailUrl,
             monthlyListeners: monthlyListeners,
             hideGoToArtist: hideGoToArtist,
+            omitActionIds: omitActionIds,
           ),
     );
   }
@@ -195,6 +206,7 @@ class ContextMenuSheet {
     String? artistId,
     String? thumbnailUrl,
     int? year,
+    Set<String> omitActionIds = const {},
   }) {
     final hideGoToAlbum = _isOnEntityPage(context, 'albumId', albumId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
@@ -216,6 +228,7 @@ class ContextMenuSheet {
                     thumbnailUrl: thumbnailUrl,
                     year: year,
                     hideGoToAlbum: hideGoToAlbum,
+                    omitActionIds: omitActionIds,
                   ),
                 ),
               ),
@@ -234,6 +247,7 @@ class ContextMenuSheet {
             thumbnailUrl: thumbnailUrl,
             year: year,
             hideGoToAlbum: hideGoToAlbum,
+            omitActionIds: omitActionIds,
           ),
     );
   }
@@ -244,6 +258,7 @@ class ContextMenuSheet {
     required String name,
     String? author,
     String? thumbnailUrl,
+    Set<String> omitActionIds = const {},
   }) {
     final hideGoToPodcast = _isOnEntityPage(context, 'browseId', browseId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
@@ -263,6 +278,7 @@ class ContextMenuSheet {
                     author: author,
                     thumbnailUrl: thumbnailUrl,
                     hideGoToPodcast: hideGoToPodcast,
+                    omitActionIds: omitActionIds,
                   ),
                 ),
               ),
@@ -279,6 +295,7 @@ class ContextMenuSheet {
             author: author,
             thumbnailUrl: thumbnailUrl,
             hideGoToPodcast: hideGoToPodcast,
+            omitActionIds: omitActionIds,
           ),
     );
   }
@@ -345,6 +362,7 @@ class ContextMenuSheet {
     required String name,
     String? artist,
     String? thumbnailUrl,
+    Set<String> omitActionIds = const {},
   }) {
     final hideGoToPlaylist = _isOnEntityPage(context, 'playlistId', playlistId);
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
@@ -364,6 +382,7 @@ class ContextMenuSheet {
                     artist: artist,
                     thumbnailUrl: thumbnailUrl,
                     hideGoToPlaylist: hideGoToPlaylist,
+                    omitActionIds: omitActionIds,
                   ),
                 ),
               ),
@@ -380,6 +399,7 @@ class ContextMenuSheet {
             artist: artist,
             thumbnailUrl: thumbnailUrl,
             hideGoToPlaylist: hideGoToPlaylist,
+            omitActionIds: omitActionIds,
           ),
     );
   }
@@ -389,6 +409,7 @@ class ContextMenuSheet {
     required LocalPlaylistModel playlist,
     required VoidCallback onUpdated,
     bool hideGoToPlaylist = false,
+    Set<String> omitActionIds = const {},
   }) {
     if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
       return showDialog(
@@ -405,6 +426,7 @@ class ContextMenuSheet {
                     playlist: playlist,
                     onUpdated: onUpdated,
                     hideGoToPlaylist: hideGoToPlaylist,
+                    omitActionIds: omitActionIds,
                   ),
                 ),
               ),
@@ -419,6 +441,7 @@ class ContextMenuSheet {
             playlist: playlist,
             onUpdated: onUpdated,
             hideGoToPlaylist: hideGoToPlaylist,
+            omitActionIds: omitActionIds,
           ),
     );
   }
@@ -1257,6 +1280,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
   final String? thumbnailUrl;
   final String? monthlyListeners;
   final bool hideGoToArtist;
+  final Set<String> omitActionIds;
 
   const _ArtistContextMenuSheet({
     required this.artistId,
@@ -1264,6 +1288,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
     this.thumbnailUrl,
     this.monthlyListeners,
     this.hideGoToArtist = false,
+    this.omitActionIds = const {},
   });
 
   @override
@@ -1321,52 +1346,78 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionTile(
-                    icon: LucideIcons.play,
-                    label: AppLocalizations.of(context)!.playTopSongs,
-                    onTap: () {
-                      final artistFuture = ref.read(
-                        artistProvider(artistId).future,
-                      );
-                      final repo = ref.read(musicRepositoryProvider);
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playAlbumUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _playTopSongs(
-                        artistFuture,
-                        repo,
-                        useCase,
-                        player,
-                        feedback,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.shuffle,
-                    label: AppLocalizations.of(context)!.shuffle,
-                    onTap: () {
-                      final artistFuture = ref.read(
-                        artistProvider(artistId).future,
-                      );
-                      final repo = ref.read(musicRepositoryProvider);
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playAlbumUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _shufflePlay(
-                        artistFuture,
-                        repo,
-                        useCase,
-                        player,
-                        feedback,
-                      );
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.play))
+                    _ActionTile(
+                      icon: LucideIcons.play,
+                      label: AppLocalizations.of(context)!.playTopSongs,
+                      onTap: () {
+                        final artistFuture = ref.read(
+                          artistProvider(artistId).future,
+                        );
+                        final repo = ref.read(musicRepositoryProvider);
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playAlbumUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _playTopSongs(
+                          artistFuture,
+                          repo,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.shuffle))
+                    _ActionTile(
+                      icon: LucideIcons.shuffle,
+                      label: AppLocalizations.of(context)!.shuffle,
+                      onTap: () {
+                        final artistFuture = ref.read(
+                          artistProvider(artistId).future,
+                        );
+                        final repo = ref.read(musicRepositoryProvider);
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playAlbumUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _shufflePlay(
+                          artistFuture,
+                          repo,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.queue))
+                    _ActionTile(
+                      icon: LucideIcons.listMusic,
+                      label: AppLocalizations.of(context)!.addToQueue,
+                      onTap: () {
+                        final artistFuture = ref.read(
+                          artistProvider(artistId).future,
+                        );
+                        final repo = ref.read(musicRepositoryProvider);
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playAlbumUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _addTopSongsToQueue(
+                          artistFuture,
+                          repo,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
                   if (!hideGoToArtist)
                     _ActionTile(
                       icon: LucideIcons.user,
@@ -1376,39 +1427,42 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                         Navigator.pop(context);
                       },
                     ),
-                  _FollowArtistActionTile(
-                    artistId: artistId,
-                    name: name,
-                    thumbnailUrl: thumbnailUrl,
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.radio,
-                    label: AppLocalizations.of(context)!.artistRadio,
-                    onTap: () {
-                      final artistFuture = ref.read(
-                        artistProvider(artistId).future,
-                      );
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(startRadioUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _startRadio(artistFuture, useCase, player, feedback);
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      Navigator.pop(context);
-                      SharePlus.instance.share(
-                        ShareParams(
-                          text: 'https://music.youtube.com/channel/$artistId',
-                        ),
-                      );
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.save))
+                    _FollowArtistActionTile(
+                      artistId: artistId,
+                      name: name,
+                      thumbnailUrl: thumbnailUrl,
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.radio))
+                    _ActionTile(
+                      icon: LucideIcons.radio,
+                      label: AppLocalizations.of(context)!.artistRadio,
+                      onTap: () {
+                        final artistFuture = ref.read(
+                          artistProvider(artistId).future,
+                        );
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(startRadioUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _startRadio(artistFuture, useCase, player, feedback);
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.share))
+                    _ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        Navigator.pop(context);
+                        SharePlus.instance.share(
+                          ShareParams(
+                            text: 'https://music.youtube.com/channel/$artistId',
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -1473,6 +1527,26 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
     }
   }
 
+  Future<void> _addTopSongsToQueue(
+    Future<ArtistFull> artistFuture,
+    MusicRepository repo,
+    PlayAlbumUseCase useCase,
+    PlayerNotifier player,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      final songs = await _fetchAllTopSongs(artistFuture, repo);
+      if (songs.isEmpty) return;
+      final items = await useCase.execute(songs, playIndex: -1);
+      if (items.isNotEmpty) {
+        await player.addAllToQueue(items);
+        feedback.report('Added ${items.length} songs to queue');
+      }
+    } catch (e) {
+      feedback.report('Failed to add to queue: $e');
+    }
+  }
+
   Future<void> _startRadio(
     Future<ArtistFull> artistFuture,
     StartRadioUseCase useCase,
@@ -1506,6 +1580,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
   final String? thumbnailUrl;
   final int? year;
   final bool hideGoToAlbum;
+  final Set<String> omitActionIds;
 
   const _AlbumContextMenuSheet({
     required this.albumId,
@@ -1515,6 +1590,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
     this.thumbnailUrl,
     this.year,
     this.hideGoToAlbum = false,
+    this.omitActionIds = const {},
   });
 
   @override
@@ -1566,59 +1642,72 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionTile(
-                    icon: LucideIcons.play,
-                    label: AppLocalizations.of(context)!.playAll,
-                    onTap: () {
-                      final albumFuture = ref.read(
-                        albumProvider(albumId).future,
-                      );
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playAlbumUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _playAlbumSequential(
-                        albumFuture,
-                        useCase,
-                        player,
-                        feedback,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.shuffle,
-                    label: AppLocalizations.of(context)!.shufflePlay,
-                    onTap: () {
-                      final albumFuture = ref.read(
-                        albumProvider(albumId).future,
-                      );
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playAlbumUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _shuffleAlbumPlay(albumFuture, useCase, player, feedback);
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.listMusic,
-                    label: AppLocalizations.of(context)!.addToQueue,
-                    onTap: () {
-                      final albumFuture = ref.read(
-                        albumProvider(albumId).future,
-                      );
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playAlbumUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _addAlbumToQueue(albumFuture, useCase, player, feedback);
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.play))
+                    _ActionTile(
+                      icon: LucideIcons.play,
+                      label: AppLocalizations.of(context)!.playAll,
+                      onTap: () {
+                        final albumFuture = ref.read(
+                          albumProvider(albumId).future,
+                        );
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playAlbumUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _playAlbumSequential(
+                          albumFuture,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.shuffle))
+                    _ActionTile(
+                      icon: LucideIcons.shuffle,
+                      label: AppLocalizations.of(context)!.shufflePlay,
+                      onTap: () {
+                        final albumFuture = ref.read(
+                          albumProvider(albumId).future,
+                        );
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playAlbumUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _shuffleAlbumPlay(
+                          albumFuture,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.queue))
+                    _ActionTile(
+                      icon: LucideIcons.listMusic,
+                      label: AppLocalizations.of(context)!.addToQueue,
+                      onTap: () {
+                        final albumFuture = ref.read(
+                          albumProvider(albumId).future,
+                        );
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playAlbumUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _addAlbumToQueue(
+                          albumFuture,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
                   if (!hideGoToAlbum)
                     _ActionTile(
                       icon: LucideIcons.disc,
@@ -1637,27 +1726,46 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                         Navigator.pop(context);
                       },
                     ),
-                  _LikeAlbumActionTile(
-                    albumId: albumId,
-                    name: name,
-                    artistName: artist,
-                    artistId: artistId,
-                    thumbnailUrl: thumbnailUrl,
-                    year: year,
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      Navigator.pop(context);
-                      SharePlus.instance.share(
-                        ShareParams(
-                          text:
-                              'https://music.youtube.com/playlist?list=$albumId',
-                        ),
-                      );
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.save))
+                    _LikeAlbumActionTile(
+                      albumId: albumId,
+                      name: name,
+                      artistName: artist,
+                      artistId: artistId,
+                      thumbnailUrl: thumbnailUrl,
+                      year: year,
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.download))
+                    _ActionTile(
+                      icon: LucideIcons.download,
+                      label: AppLocalizations.of(context)!.download,
+                      onTap: () {
+                        final albumFuture = ref.read(
+                          albumProvider(albumId).future,
+                        );
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        final rootContext =
+                            Navigator.of(context, rootNavigator: true).context;
+                        Navigator.pop(context);
+                        _downloadAlbum(rootContext, ref, albumFuture, feedback);
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.share))
+                    _ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        Navigator.pop(context);
+                        SharePlus.instance.share(
+                          ShareParams(
+                            text:
+                                'https://music.youtube.com/playlist?list=$albumId',
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -1728,6 +1836,94 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
       feedback.report('Failed to add to queue: $e');
     }
   }
+
+  Future<void> _downloadAlbum(
+    BuildContext context,
+    WidgetRef ref,
+    Future<AlbumFull> albumFuture,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      final album = await albumFuture;
+      if (album.songs.isEmpty) return;
+      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final toDownload =
+          album.songs.where((s) => !notifier.isDownloading(s.videoId)).toList();
+      if (toDownload.isEmpty) {
+        feedback.report(
+          context.mounted
+              ? (AppLocalizations.of(context)?.allSongsAlreadyDownloading ??
+                  'Already downloading')
+              : 'Already downloading',
+        );
+        return;
+      }
+
+      final alreadyDownloaded =
+          ref
+              .read(allDownloadsProvider)
+              .asData
+              ?.value
+              .where((d) => toDownload.any((s) => s.videoId == d.videoId))
+              .toList() ??
+          [];
+      if (alreadyDownloaded.isNotEmpty && context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: Text(l10n.alreadyDownloaded),
+                content: Text(
+                  l10n.alreadyDownloadedSongs(
+                    alreadyDownloaded.length,
+                    album.name,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l10n.cancel),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l10n.continueAction),
+                  ),
+                ],
+              ),
+        );
+        if (proceed != true) return;
+      }
+
+      final alreadyDownloadedIds =
+          alreadyDownloaded.map((d) => d.videoId).toSet();
+      final batchId = 'album:${album.albumId}';
+      final batchTotal = toDownload.length;
+
+      for (final song in toDownload) {
+        if (alreadyDownloadedIds.contains(song.videoId)) {
+          await notifier.deleteDownload(song.videoId);
+        }
+        unawaited(
+          notifier.startDownload(
+            videoId: song.videoId,
+            title: song.name,
+            artist: displayArtists(song.artists),
+            artistsJson: encodeArtistsJson(song.artists),
+            thumbnailUrl:
+                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+            subdirectory: album.name,
+            isExplicit: song.isExplicit,
+            batchId: batchId,
+            batchName: album.name,
+            batchTotal: batchTotal,
+          ),
+        );
+      }
+    } catch (e) {
+      feedback.report('Failed to download: $e');
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1740,6 +1936,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
   final String? author;
   final String? thumbnailUrl;
   final bool hideGoToPodcast;
+  final Set<String> omitActionIds;
 
   const _PodcastContextMenuSheet({
     required this.browseId,
@@ -1747,6 +1944,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
     this.author,
     this.thumbnailUrl,
     this.hideGoToPodcast = false,
+    this.omitActionIds = const {},
   });
 
   @override
@@ -1803,19 +2001,49 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionTile(
-                    icon: LucideIcons.play,
-                    label: AppLocalizations.of(context)!.playAll,
-                    onTap: () {
-                      final repo = ref.read(musicRepositoryProvider);
-                      final player = ref.read(playerStateProvider.notifier);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _playPodcast(repo, player, feedback);
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.play))
+                    _ActionTile(
+                      icon: LucideIcons.play,
+                      label: AppLocalizations.of(context)!.playAll,
+                      onTap: () {
+                        final repo = ref.read(musicRepositoryProvider);
+                        final player = ref.read(playerStateProvider.notifier);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _playPodcast(repo, player, feedback);
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.shuffle))
+                    _ActionTile(
+                      icon: LucideIcons.shuffle,
+                      label: AppLocalizations.of(context)!.shufflePlay,
+                      onTap: () {
+                        final repo = ref.read(musicRepositoryProvider);
+                        final player = ref.read(playerStateProvider.notifier);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _shufflePodcast(repo, player, feedback);
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.queue))
+                    _ActionTile(
+                      icon: LucideIcons.listMusic,
+                      label: AppLocalizations.of(context)!.addToQueue,
+                      onTap: () {
+                        final repo = ref.read(musicRepositoryProvider);
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playPodcastUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _addPodcastToQueue(repo, useCase, player, feedback);
+                      },
+                    ),
                   if (!hideGoToPodcast)
                     _ActionTile(
                       icon: LucideIcons.micVocal,
@@ -1825,24 +2053,40 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                         Navigator.pop(context);
                       },
                     ),
-                  _LikePodcastActionTile(
-                    browseId: browseId,
-                    name: name,
-                    authorName: author,
-                    thumbnailUrl: thumbnailUrl,
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      Navigator.pop(context);
-                      SharePlus.instance.share(
-                        ShareParams(
-                          text: 'https://music.youtube.com/browse/$browseId',
-                        ),
-                      );
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.save))
+                    _LikePodcastActionTile(
+                      browseId: browseId,
+                      name: name,
+                      authorName: author,
+                      thumbnailUrl: thumbnailUrl,
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.download))
+                    _ActionTile(
+                      icon: LucideIcons.download,
+                      label: AppLocalizations.of(context)!.download,
+                      onTap: () {
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        final rootContext =
+                            Navigator.of(context, rootNavigator: true).context;
+                        Navigator.pop(context);
+                        _downloadPodcast(rootContext, ref, feedback);
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.share))
+                    _ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        Navigator.pop(context);
+                        SharePlus.instance.share(
+                          ShareParams(
+                            text: 'https://music.youtube.com/browse/$browseId',
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -1871,6 +2115,144 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
       );
     } catch (e) {
       feedback.report('Failed to play: $e');
+    }
+  }
+
+  Future<void> _shufflePodcast(
+    MusicRepository repo,
+    PlayerNotifier player,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      feedback.report('Shuffling $name…');
+      final podcast = await repo.getPodcast(browseId);
+      if (podcast.episodes.isEmpty) return;
+      final shuffled = List.of(podcast.episodes)..shuffle();
+      await player.playPodcast(
+        shuffled,
+        podcastBrowseId: browseId,
+        podcastName: name,
+        authorName: author ?? podcast.author?.name,
+        authorId: podcast.author?.artistId,
+      );
+    } catch (e) {
+      feedback.report('Failed to play: $e');
+    }
+  }
+
+  Future<void> _addPodcastToQueue(
+    MusicRepository repo,
+    PlayPodcastUseCase useCase,
+    PlayerNotifier player,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      final podcast = await repo.getPodcast(browseId);
+      final episodes =
+          podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+      if (episodes.isEmpty) return;
+      final items = await useCase.execute(
+        episodes,
+        podcastBrowseId: browseId,
+        podcastName: name,
+        authorName: author ?? podcast.author?.name,
+        authorId: podcast.author?.artistId,
+        playIndex: -1,
+      );
+      if (items.isNotEmpty) {
+        await player.addAllToQueue(items);
+        feedback.report('Added ${items.length} episodes to queue');
+      }
+    } catch (e) {
+      feedback.report('Failed to add to queue: $e');
+    }
+  }
+
+  Future<void> _downloadPodcast(
+    BuildContext context,
+    WidgetRef ref,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      final podcast = await ref.read(podcastProvider(browseId).future);
+      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final episodes = podcast.episodes.where((e) => e.videoId.isNotEmpty);
+      final toDownload =
+          episodes.where((e) => !notifier.isDownloading(e.videoId)).toList();
+      if (toDownload.isEmpty) {
+        feedback.report(
+          context.mounted
+              ? (AppLocalizations.of(context)?.allSongsAlreadyDownloading ??
+                  'Already downloading')
+              : 'Already downloading',
+        );
+        return;
+      }
+
+      final alreadyDownloaded =
+          ref
+              .read(allDownloadsProvider)
+              .asData
+              ?.value
+              .where((d) => toDownload.any((e) => e.videoId == d.videoId))
+              .toList() ??
+          [];
+      if (alreadyDownloaded.isNotEmpty && context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: Text(l10n.alreadyDownloaded),
+                content: Text(
+                  l10n.alreadyDownloadedSongs(
+                    alreadyDownloaded.length,
+                    podcast.name,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l10n.cancel),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l10n.continueAction),
+                  ),
+                ],
+              ),
+        );
+        if (proceed != true) return;
+      }
+
+      final alreadyDownloadedIds =
+          alreadyDownloaded.map((d) => d.videoId).toSet();
+      final batchId = 'podcast:${podcast.browseId}';
+      final batchTotal = toDownload.length;
+
+      for (final episode in toDownload) {
+        if (alreadyDownloadedIds.contains(episode.videoId)) {
+          await notifier.deleteDownload(episode.videoId);
+        }
+        unawaited(
+          notifier.startDownload(
+            videoId: episode.videoId,
+            title: episode.name,
+            artist: podcast.author?.name ?? podcast.name,
+            thumbnailUrl:
+                episode.thumbnails.isNotEmpty
+                    ? episode.thumbnails.last.url
+                    : null,
+            subdirectory: podcast.name,
+            isVideo: false,
+            batchId: batchId,
+            batchName: podcast.name,
+            batchTotal: batchTotal,
+          ),
+        );
+      }
+    } catch (e) {
+      feedback.report('Failed to download: $e');
     }
   }
 }
@@ -2179,6 +2561,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
   final String? artist;
   final String? thumbnailUrl;
   final bool hideGoToPlaylist;
+  final Set<String> omitActionIds;
 
   const _PlaylistContextMenuSheet({
     required this.playlistId,
@@ -2186,6 +2569,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
     this.artist,
     this.thumbnailUrl,
     this.hideGoToPlaylist = false,
+    this.omitActionIds = const {},
   });
 
   @override
@@ -2242,69 +2626,72 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionTile(
-                    icon: LucideIcons.play,
-                    label: AppLocalizations.of(context)!.playAll,
-                    onTap: () {
-                      final videosFuture = ref.read(
-                        playlistVideosProvider(playlistId).future,
-                      );
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playPlaylistUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _playPlaylistSequential(
-                        videosFuture,
-                        useCase,
-                        player,
-                        feedback,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.shuffle,
-                    label: AppLocalizations.of(context)!.shufflePlay,
-                    onTap: () {
-                      final videosFuture = ref.read(
-                        playlistVideosProvider(playlistId).future,
-                      );
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playPlaylistUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _shufflePlaylistPlay(
-                        videosFuture,
-                        useCase,
-                        player,
-                        feedback,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.listMusic,
-                    label: AppLocalizations.of(context)!.addToQueue,
-                    onTap: () {
-                      final videosFuture = ref.read(
-                        playlistVideosProvider(playlistId).future,
-                      );
-                      final player = ref.read(playerStateProvider.notifier);
-                      final useCase = ref.read(playPlaylistUseCaseProvider);
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _addPlaylistToQueue(
-                        videosFuture,
-                        useCase,
-                        player,
-                        feedback,
-                      );
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.play))
+                    _ActionTile(
+                      icon: LucideIcons.play,
+                      label: AppLocalizations.of(context)!.playAll,
+                      onTap: () {
+                        final videosFuture = ref.read(
+                          playlistVideosProvider(playlistId).future,
+                        );
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playPlaylistUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _playPlaylistSequential(
+                          videosFuture,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.shuffle))
+                    _ActionTile(
+                      icon: LucideIcons.shuffle,
+                      label: AppLocalizations.of(context)!.shufflePlay,
+                      onTap: () {
+                        final videosFuture = ref.read(
+                          playlistVideosProvider(playlistId).future,
+                        );
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playPlaylistUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _shufflePlaylistPlay(
+                          videosFuture,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.queue))
+                    _ActionTile(
+                      icon: LucideIcons.listMusic,
+                      label: AppLocalizations.of(context)!.addToQueue,
+                      onTap: () {
+                        final videosFuture = ref.read(
+                          playlistVideosProvider(playlistId).future,
+                        );
+                        final player = ref.read(playerStateProvider.notifier);
+                        final useCase = ref.read(playPlaylistUseCaseProvider);
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _addPlaylistToQueue(
+                          videosFuture,
+                          useCase,
+                          player,
+                          feedback,
+                        );
+                      },
+                    ),
                   if (!hideGoToPlaylist)
                     _ActionTile(
                       icon: LucideIcons.listVideo,
@@ -2314,24 +2701,48 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         Navigator.pop(context);
                       },
                     ),
-                  _LikePlaylistActionTile(
-                    playlistId: playlistId,
-                    name: name,
-                    thumbnailUrl: thumbnailUrl,
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      Navigator.pop(context);
-                      SharePlus.instance.share(
-                        ShareParams(
-                          text:
-                              'https://music.youtube.com/playlist?list=$playlistId',
-                        ),
-                      );
-                    },
-                  ),
+                  if (_showAction(omitActionIds, DetailActionId.save))
+                    _LikePlaylistActionTile(
+                      playlistId: playlistId,
+                      name: name,
+                      thumbnailUrl: thumbnailUrl,
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.download))
+                    _ActionTile(
+                      icon: LucideIcons.download,
+                      label: AppLocalizations.of(context)!.download,
+                      onTap: () {
+                        final videosFuture = ref.read(
+                          playlistVideosProvider(playlistId).future,
+                        );
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        final rootContext =
+                            Navigator.of(context, rootNavigator: true).context;
+                        Navigator.pop(context);
+                        _downloadPlaylist(
+                          rootContext,
+                          ref,
+                          videosFuture,
+                          feedback,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.share))
+                    _ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        Navigator.pop(context);
+                        SharePlus.instance.share(
+                          ShareParams(
+                            text:
+                                'https://music.youtube.com/playlist?list=$playlistId',
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -2393,6 +2804,92 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       feedback.report('Failed to add to queue: $e');
     }
   }
+
+  Future<void> _downloadPlaylist(
+    BuildContext context,
+    WidgetRef ref,
+    Future<List<VideoDetailed>> videosFuture,
+    ActionFeedbackNotifier feedback,
+  ) async {
+    try {
+      final videos = await videosFuture;
+      if (videos.isEmpty) return;
+      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final toDownload =
+          videos.where((v) => !notifier.isDownloading(v.videoId)).toList();
+      if (toDownload.isEmpty) {
+        feedback.report(
+          context.mounted
+              ? (AppLocalizations.of(context)?.allSongsAlreadyDownloading ??
+                  'Already downloading')
+              : 'Already downloading',
+        );
+        return;
+      }
+
+      final alreadyDownloaded =
+          ref
+              .read(allDownloadsProvider)
+              .asData
+              ?.value
+              .where((d) => toDownload.any((v) => v.videoId == d.videoId))
+              .toList() ??
+          [];
+      if (alreadyDownloaded.isNotEmpty && context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: Text(l10n.alreadyDownloaded),
+                content: Text(
+                  l10n.alreadyDownloadedSongs(alreadyDownloaded.length, name),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l10n.cancel),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l10n.continueAction),
+                  ),
+                ],
+              ),
+        );
+        if (proceed != true) return;
+      }
+
+      final alreadyDownloadedIds =
+          alreadyDownloaded.map((d) => d.videoId).toSet();
+      final batchId = 'playlist:$playlistId';
+      final batchTotal = toDownload.length;
+
+      for (final video in toDownload) {
+        if (alreadyDownloadedIds.contains(video.videoId)) {
+          await notifier.deleteDownload(video.videoId);
+        }
+        unawaited(
+          notifier.startDownload(
+            videoId: video.videoId,
+            title: video.name,
+            artist: displayArtists(video.artists),
+            artistsJson: encodeArtistsJson(video.artists),
+            thumbnailUrl:
+                video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
+            subdirectory: name,
+            isExplicit: video.isExplicit,
+            isVideo: true,
+            batchId: batchId,
+            batchName: name,
+            batchTotal: batchTotal,
+          ),
+        );
+      }
+    } catch (e) {
+      feedback.report('Failed to download: $e');
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2403,11 +2900,13 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
   final LocalPlaylistModel playlist;
   final VoidCallback onUpdated;
   final bool hideGoToPlaylist;
+  final Set<String> omitActionIds;
 
   const _CustomPlaylistContextMenuSheet({
     required this.playlist,
     required this.onUpdated,
     this.hideGoToPlaylist = false,
+    this.omitActionIds = const {},
   });
 
   @override
@@ -2462,144 +2961,153 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionTile(
-                    icon: LucideIcons.play,
-                    label: l10n.playAll,
-                    onTap: () {
-                      final player = ref.read(playerStateProvider.notifier);
-                      final notifier = ref.read(
-                        libraryNotifierProvider.notifier,
-                      );
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _playAll(
-                        ref,
-                        playlist.id,
-                        player,
-                        notifier,
-                        feedback,
-                        l10n,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.shuffle,
-                    label: l10n.shufflePlay,
-                    onTap: () {
-                      final player = ref.read(playerStateProvider.notifier);
-                      final notifier = ref.read(
-                        libraryNotifierProvider.notifier,
-                      );
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _shufflePlay(
-                        ref,
-                        playlist.id,
-                        player,
-                        notifier,
-                        feedback,
-                        l10n,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.listMusic,
-                    label: l10n.addToQueue,
-                    onTap: () {
-                      final player = ref.read(playerStateProvider.notifier);
-                      final notifier = ref.read(
-                        libraryNotifierProvider.notifier,
-                      );
-                      final feedback = ref.read(
-                        actionFeedbackProvider.notifier,
-                      );
-                      Navigator.pop(context);
-                      _addToQueue(
-                        ref,
-                        playlist.id,
-                        player,
-                        notifier,
-                        feedback,
-                        l10n,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.pencil,
-                    label: l10n.renamePlaylist,
-                    onTap: () async {
-                      final result = await showDialog<String>(
-                        context: context,
-                        builder:
-                            (_) => CreatePlaylistDialog(
-                              initialName: playlist.name,
-                              title: l10n.renamePlaylist,
-                            ),
-                      );
-                      if (result != null &&
-                          result.isNotEmpty &&
-                          result != playlist.name) {
-                        if (!context.mounted) return;
+                  if (_showAction(omitActionIds, DetailActionId.play))
+                    _ActionTile(
+                      icon: LucideIcons.play,
+                      label: l10n.playAll,
+                      onTap: () {
+                        final player = ref.read(playerStateProvider.notifier);
                         final notifier = ref.read(
                           libraryNotifierProvider.notifier,
                         );
-                        Navigator.pop(context);
-                        await notifier.updatePlaylist(
-                          playlist.id,
-                          name: result,
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
                         );
-                        ref.invalidate(playlistsProvider);
-                        onUpdated();
-                      }
-                    },
-                  ),
-                  if (playlist.isLinked) ...[
-                    _ActionTile(
-                      icon: LucideIcons.refreshCw,
-                      label: syncActionLabel(l10n, playlist),
-                      enabled: !isSpotifySyncCoolingDown(playlist),
-                      onTap: () async {
-                        final container = ProviderScope.containerOf(context);
-                        final strings = l10n;
-                        final dialogContext =
-                            Navigator.of(context, rootNavigator: true).context;
-                        if (isSpotifySyncCoolingDown(playlist)) {
-                          ref
-                              .read(actionFeedbackProvider.notifier)
-                              .report(strings.playlistSyncSpotifyCooldown);
-                          Navigator.pop(context);
-                          return;
-                        }
                         Navigator.pop(context);
-                        if (!dialogContext.mounted) return;
-                        await syncLinkedPlaylist(
-                          dialogContext,
-                          container,
-                          strings,
-                          playlist,
+                        _playAll(
+                          ref,
+                          playlist.id,
+                          player,
+                          notifier,
+                          feedback,
+                          l10n,
                         );
                       },
                     ),
+                  if (_showAction(omitActionIds, DetailActionId.shuffle))
                     _ActionTile(
-                      icon: LucideIcons.unlink,
-                      label: l10n.unlinkPlaylist,
-                      onTap: () async {
-                        final container = ProviderScope.containerOf(context);
-                        final unlinked = await confirmAndUnlinkPlaylist(
-                          container,
-                          context,
-                          playlist,
+                      icon: LucideIcons.shuffle,
+                      label: l10n.shufflePlay,
+                      onTap: () {
+                        final player = ref.read(playerStateProvider.notifier);
+                        final notifier = ref.read(
+                          libraryNotifierProvider.notifier,
                         );
-                        if (unlinked && context.mounted) {
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _shufflePlay(
+                          ref,
+                          playlist.id,
+                          player,
+                          notifier,
+                          feedback,
+                          l10n,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.queue))
+                    _ActionTile(
+                      icon: LucideIcons.listMusic,
+                      label: l10n.addToQueue,
+                      onTap: () {
+                        final player = ref.read(playerStateProvider.notifier);
+                        final notifier = ref.read(
+                          libraryNotifierProvider.notifier,
+                        );
+                        final feedback = ref.read(
+                          actionFeedbackProvider.notifier,
+                        );
+                        Navigator.pop(context);
+                        _addToQueue(
+                          ref,
+                          playlist.id,
+                          player,
+                          notifier,
+                          feedback,
+                          l10n,
+                        );
+                      },
+                    ),
+                  if (_showAction(omitActionIds, DetailActionId.rename))
+                    _ActionTile(
+                      icon: LucideIcons.pencil,
+                      label: l10n.renamePlaylist,
+                      onTap: () async {
+                        final result = await showDialog<String>(
+                          context: context,
+                          builder:
+                              (_) => CreatePlaylistDialog(
+                                initialName: playlist.name,
+                                title: l10n.renamePlaylist,
+                              ),
+                        );
+                        if (result != null &&
+                            result.isNotEmpty &&
+                            result != playlist.name) {
+                          if (!context.mounted) return;
+                          final notifier = ref.read(
+                            libraryNotifierProvider.notifier,
+                          );
                           Navigator.pop(context);
+                          await notifier.updatePlaylist(
+                            playlist.id,
+                            name: result,
+                          );
+                          ref.invalidate(playlistsProvider);
                           onUpdated();
                         }
                       },
                     ),
+                  if (playlist.isLinked) ...[
+                    if (_showAction(omitActionIds, DetailActionId.sync))
+                      _ActionTile(
+                        icon: LucideIcons.refreshCw,
+                        label: syncActionLabel(l10n, playlist),
+                        enabled: !isSpotifySyncCoolingDown(playlist),
+                        onTap: () async {
+                          final container = ProviderScope.containerOf(context);
+                          final strings = l10n;
+                          final dialogContext =
+                              Navigator.of(
+                                context,
+                                rootNavigator: true,
+                              ).context;
+                          if (isSpotifySyncCoolingDown(playlist)) {
+                            ref
+                                .read(actionFeedbackProvider.notifier)
+                                .report(strings.playlistSyncSpotifyCooldown);
+                            Navigator.pop(context);
+                            return;
+                          }
+                          Navigator.pop(context);
+                          if (!dialogContext.mounted) return;
+                          await syncLinkedPlaylist(
+                            dialogContext,
+                            container,
+                            strings,
+                            playlist,
+                          );
+                        },
+                      ),
+                    if (_showAction(omitActionIds, DetailActionId.unlink))
+                      _ActionTile(
+                        icon: LucideIcons.unlink,
+                        label: l10n.unlinkPlaylist,
+                        onTap: () async {
+                          final container = ProviderScope.containerOf(context);
+                          final unlinked = await confirmAndUnlinkPlaylist(
+                            container,
+                            context,
+                            playlist,
+                          );
+                          if (unlinked && context.mounted) {
+                            Navigator.pop(context);
+                            onUpdated();
+                          }
+                        },
+                      ),
                   ],
                   _ActionTile(
                     icon: LucideIcons.trash2,

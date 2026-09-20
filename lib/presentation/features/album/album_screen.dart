@@ -5,8 +5,6 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -258,6 +256,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
             padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
             sliver: SliverToBoxAdapter(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _AlbumActions(album: widget.album),
                   if (widget.album.description != null &&
@@ -709,28 +708,6 @@ class _AlbumActions extends ConsumerWidget {
 
     final secondary = rankDetailActions([
       DetailAction(
-        id: DetailActionId.save,
-        icon: LucideIcons.heart,
-        label: l10n.like,
-        tooltip: l10n.like,
-        buildControl:
-            (context, compact) =>
-                _LikeAlbumButton(album: album, iconOnly: compact),
-      ),
-      DetailAction(
-        id: DetailActionId.download,
-        icon: LucideIcons.download,
-        label: l10n.download,
-        tooltip: l10n.download,
-        buildControl:
-            (context, compact) => _DownloadAlbumButton(
-              album: album,
-              onDownload:
-                  hasSongs ? () => _downloadAlbum(context, ref, album) : null,
-              iconOnly: compact,
-            ),
-      ),
-      DetailAction(
         id: DetailActionId.queue,
         icon: LucideIcons.listMusic,
         label: l10n.addToQueue,
@@ -738,17 +715,13 @@ class _AlbumActions extends ConsumerWidget {
         onPressed: hasSongs ? () => _addToQueue(context, ref, album) : null,
       ),
       DetailAction(
-        id: DetailActionId.share,
-        icon: LucideIcons.share2,
-        label: l10n.share,
-        tooltip: l10n.share,
-        onPressed: () {
-          SharePlus.instance.share(
-            ShareParams(
-              text: 'https://music.youtube.com/playlist?list=${album.albumId}',
-            ),
-          );
-        },
+        id: DetailActionId.save,
+        icon: LucideIcons.heart,
+        label: l10n.like,
+        tooltip: l10n.like,
+        buildControl:
+            (context, compact) =>
+                _LikeAlbumButton(album: album, iconOnly: compact),
       ),
     ]);
 
@@ -769,6 +742,12 @@ class _AlbumActions extends ConsumerWidget {
           thumbnailUrl:
               album.thumbnails.isNotEmpty ? album.thumbnails.last.url : null,
           year: album.year,
+          omitActionIds: {
+            DetailActionId.play,
+            DetailActionId.shuffle,
+            DetailActionId.queue,
+            DetailActionId.save,
+          },
         );
       },
     );
@@ -842,6 +821,8 @@ class _AlbumActions extends ConsumerWidget {
     }
   }
 
+  // Kept for potential reuse; download lives in ContextMenuSheet More menu.
+  // ignore: unused_element
   Future<void> _downloadAlbum(
     BuildContext context,
     WidgetRef ref,
@@ -1009,6 +990,7 @@ class _LikeAlbumButton extends ConsumerWidget {
   }
 }
 
+// ignore: unused_element
 class _DownloadAlbumButton extends ConsumerWidget {
   final AlbumFull album;
   final VoidCallback? onDownload;
@@ -1017,6 +999,7 @@ class _DownloadAlbumButton extends ConsumerWidget {
   const _DownloadAlbumButton({
     required this.album,
     required this.onDownload,
+    // ignore: unused_element_parameter
     this.iconOnly = false,
   });
 

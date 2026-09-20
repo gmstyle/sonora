@@ -5,8 +5,6 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -643,6 +641,13 @@ class _PlaylistActions extends ConsumerWidget {
 
     final secondary = rankDetailActions([
       DetailAction(
+        id: DetailActionId.queue,
+        icon: LucideIcons.listMusic,
+        label: l10n.addToQueue,
+        tooltip: l10n.addToQueue,
+        onPressed: hasVideos ? () => _addToQueue(context, ref, videos) : null,
+      ),
+      DetailAction(
         id: DetailActionId.save,
         icon: LucideIcons.heart,
         label: l10n.like,
@@ -653,43 +658,6 @@ class _PlaylistActions extends ConsumerWidget {
               videosAsync: videosAsync,
               iconOnly: compact,
             ),
-      ),
-      DetailAction(
-        id: DetailActionId.download,
-        icon: LucideIcons.download,
-        label: l10n.download,
-        tooltip: l10n.download,
-        buildControl:
-            (context, compact) => _DownloadPlaylistButton(
-              playlist: playlist,
-              videosAsync: videosAsync,
-              onDownload:
-                  hasVideos
-                      ? () => _downloadPlaylist(context, ref, playlist, videos)
-                      : null,
-              iconOnly: compact,
-            ),
-      ),
-      DetailAction(
-        id: DetailActionId.queue,
-        icon: LucideIcons.listMusic,
-        label: l10n.addToQueue,
-        tooltip: l10n.addToQueue,
-        onPressed: hasVideos ? () => _addToQueue(context, ref, videos) : null,
-      ),
-      DetailAction(
-        id: DetailActionId.share,
-        icon: LucideIcons.share2,
-        label: l10n.share,
-        tooltip: l10n.share,
-        onPressed: () {
-          SharePlus.instance.share(
-            ShareParams(
-              text:
-                  'https://music.youtube.com/playlist?list=${playlist.playlistId}',
-            ),
-          );
-        },
       ),
     ]);
 
@@ -710,6 +678,12 @@ class _PlaylistActions extends ConsumerWidget {
               playlist.thumbnails.isNotEmpty
                   ? playlist.thumbnails.last.url
                   : null,
+          omitActionIds: {
+            DetailActionId.play,
+            DetailActionId.shuffle,
+            DetailActionId.queue,
+            DetailActionId.save,
+          },
         );
       },
     );
@@ -819,6 +793,7 @@ class _PlaylistActions extends ConsumerWidget {
     }
   }
 
+  // ignore: unused_element
   Future<void> _downloadPlaylist(
     BuildContext context,
     WidgetRef ref,
@@ -988,6 +963,7 @@ class _LikePlaylistButton extends ConsumerWidget {
   }
 }
 
+// ignore: unused_element
 class _DownloadPlaylistButton extends ConsumerWidget {
   final PlaylistFull playlist;
   final AsyncValue<List<VideoDetailed>> videosAsync;
@@ -998,6 +974,7 @@ class _DownloadPlaylistButton extends ConsumerWidget {
     required this.playlist,
     required this.videosAsync,
     required this.onDownload,
+    // ignore: unused_element_parameter
     this.iconOnly = false,
   });
 

@@ -8,21 +8,22 @@ import '../../../l10n/app_localizations.dart';
 abstract final class DetailActionId {
   static const play = 'play';
   static const shuffle = 'shuffle';
+  static const queue = 'queue';
   static const save = 'save';
   static const download = 'download';
-  static const queue = 'queue';
   static const share = 'share';
   static const radio = 'radio';
   static const rename = 'rename';
   static const sync = 'sync';
   static const unlink = 'unlink';
 
+  /// Play-centric header order: queue + save in bar; download/radio/share in More.
   static const List<String> rankOrder = [
     play,
     shuffle,
+    queue,
     save,
     download,
-    queue,
     share,
     radio,
     rename,
@@ -60,18 +61,17 @@ class DetailAction {
   });
 }
 
-/// Shared detail-header action chrome (Cap + overflow).
+/// Shared detail-header action chrome: Play + Shuffle + 2 secondary + More.
 ///
-/// - Mobile (&lt;600): up to [kMobileSecondaryIconBudget] secondary icons +
-///   shuffle + ⋮ + circular Play.
-/// - Tablet (600–1199): Play + Shuffle + up to 2 secondary labeled + ⋮.
-/// - Wide (≥1200): Play + Shuffle + up to 3 secondary labeled + ⋮.
+/// Fixed on all breakpoints (no per-width budget):
+/// - Compact (&lt;600): 2 secondary icons + shuffle + ⋮ + circular Play
+/// - Tablet / wide: Play + Shuffle + 2 secondary labeled + ⋮
 ///
-/// [secondary] should already be ranked (save → download → queue → …).
-/// Overflowed items open via [onOverflow] when set; otherwise a simple sheet
-/// of the overflowed [DetailAction]s.
+/// Pass exactly the two in-bar secondaries via [secondary] (typically queue +
+/// save, or queue + download for local playlists). Overflow / extras open via
+/// [onOverflow] (usually [ContextMenuSheet] with [omitActionIds]).
 class DetailActionsBar extends StatelessWidget {
-  /// Secondary actions after Play/Shuffle (already ranked).
+  /// The two secondary actions after Play/Shuffle (queue + save, etc.).
   final List<DetailAction> secondary;
 
   final VoidCallback? onPlay;
@@ -79,18 +79,16 @@ class DetailActionsBar extends StatelessWidget {
   final VoidCallback? onShuffle;
   final String? shuffleLabel;
 
-  /// Opens entity context menu / custom sheet. When non-null, ⋮ is shown
-  /// whenever there is overflow **or** this callback is provided (for menus
-  /// that include extras beyond the action list).
+  /// Opens entity context menu. When non-null, ⋮ is shown whenever there is
+  /// overflow **or** [alwaysShowOverflow] is true (e.g. “Go to artist”).
   final VoidCallback? onOverflow;
 
   /// When true and [onOverflow] is set, always show ⋮ even if nothing
-  /// overflowed the budget (e.g. album sheet with “Go to artist”).
+  /// overflowed the secondary budget.
   final bool alwaysShowOverflow;
 
-  static const int kMobileSecondaryIconBudget = 2;
-  static const int kTabletSecondaryBudget = 2;
-  static const int kWideSecondaryBudget = 3;
+  /// Always show at most two secondary controls in the bar.
+  static const int kSecondaryBudget = 2;
 
   const DetailActionsBar({
     super.key,
@@ -107,14 +105,9 @@ class DetailActionsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isCompact = width < kCompactBreakpoint;
-    final isWide = width >= kExpandedBreakpoint;
-    final secondaryBudget =
-        isCompact
-            ? kMobileSecondaryIconBudget
-            : (isWide ? kWideSecondaryBudget : kTabletSecondaryBudget);
 
-    final visibleSecondary = secondary.take(secondaryBudget).toList();
-    final overflowed = secondary.skip(secondaryBudget).toList();
+    final visibleSecondary = secondary.take(kSecondaryBudget).toList();
+    final overflowed = secondary.skip(kSecondaryBudget).toList();
     final showMore =
         overflowed.isNotEmpty || (onOverflow != null && alwaysShowOverflow);
 
@@ -138,31 +131,35 @@ class DetailActionsBar extends StatelessWidget {
     }
 
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          FilledButton.icon(
-            onPressed: onPlay,
-            icon: const Icon(LucideIcons.play),
-            label: Text(playLabel),
-          ),
-          FilledButton.tonalIcon(
-            onPressed: onShuffle,
-            icon: const Icon(LucideIcons.shuffle),
-            label: Text(shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle'),
-          ),
-          for (final action in visibleSecondary) _WideSecondary(action: action),
-          if (showMore)
-            IconButton(
-              icon: const Icon(LucideIcons.moreVertical),
-              tooltip: l10n?.more ?? 'More',
-              onPressed: openOverflow,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            FilledButton.icon(
+              onPressed: onPlay,
+              icon: const Icon(LucideIcons.play),
+              label: Text(playLabel),
             ),
-        ],
+            FilledButton.tonalIcon(
+              onPressed: onShuffle,
+              icon: const Icon(LucideIcons.shuffle),
+              label: Text(shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle'),
+            ),
+            for (final action in visibleSecondary)
+              _WideSecondary(action: action),
+            if (showMore)
+              IconButton(
+                icon: const Icon(LucideIcons.moreVertical),
+                tooltip: l10n?.more ?? 'More',
+                onPressed: openOverflow,
+              ),
+          ],
+        ),
       ),
     );
   }

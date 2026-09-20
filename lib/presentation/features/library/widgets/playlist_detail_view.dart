@@ -20,10 +20,8 @@ import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_badge.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
-import '../../../providers/spotify_sync_cooldown_provider.dart';
 import '../../../shared/widgets/detail_actions_bar.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
-import 'create_playlist_dialog.dart';
 import 'linked_playlist_actions.dart';
 import '../providers/library_provider.dart';
 
@@ -240,21 +238,10 @@ class _PlaylistDetailContentState
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: _LocalPlaylistActions(
                 playlist: freshPlaylist,
-                entries: entries,
-                likedSongs: likedSongs,
                 onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
                 onShuffle: entries.isNotEmpty ? () => _shufflePlay() : null,
                 onAddToQueue: entries.isNotEmpty ? () => _addToQueue() : null,
                 onDownload: entries.isNotEmpty ? () => _downloadAll() : null,
-                onRename: () => _renamePlaylist(),
-                onSync:
-                    freshPlaylist.isLinked
-                        ? () => _syncPlaylist(freshPlaylist)
-                        : null,
-                onUnlink:
-                    freshPlaylist.isLinked
-                        ? () => _unlinkPlaylist(freshPlaylist)
-                        : null,
                 onUpdated: widget.onUpdated,
               ),
             ),
@@ -570,50 +557,6 @@ class _PlaylistDetailContentState
           batchTotal: batchTotal,
         ),
       );
-    }
-  }
-
-  Future<void> _renamePlaylist() async {
-    final allPlaylists =
-        ref.read(playlistsProvider).asData?.value ?? <LocalPlaylistModel>[];
-    final fresh =
-        allPlaylists.where((p) => p.id == widget.playlist.id).firstOrNull ??
-        widget.playlist;
-
-    final result = await showDialog<String>(
-      context: context,
-      builder:
-          (_) => CreatePlaylistDialog(
-            initialName: fresh.name,
-            title: AppLocalizations.of(context)!.renamePlaylist,
-          ),
-    );
-    if (result != null && result.isNotEmpty && result != fresh.name) {
-      await ref
-          .read(libraryNotifierProvider.notifier)
-          .updatePlaylist(widget.playlist.id, name: result);
-      ref.invalidate(playlistsProvider);
-      widget.onUpdated();
-    }
-  }
-
-  Future<void> _syncPlaylist(LocalPlaylistModel playlist) async {
-    final l10n = AppLocalizations.of(context)!;
-    // Use ProviderScope.containerOf so invalidation survives list rebuilds
-    // that dispose the PlaylistCard which passed [widget.onUpdated].
-    final container = ProviderScope.containerOf(context);
-    await syncLinkedPlaylist(context, container, l10n, playlist);
-  }
-
-  Future<void> _unlinkPlaylist(LocalPlaylistModel playlist) async {
-    final container = ProviderScope.containerOf(context);
-    final unlinked = await confirmAndUnlinkPlaylist(
-      container,
-      context,
-      playlist,
-    );
-    if (unlinked && mounted) {
-      widget.onUpdated();
     }
   }
 
@@ -1044,49 +987,26 @@ Widget _artworkTopScrim(BuildContext context) {
 
 class _LocalPlaylistActions extends StatelessWidget {
   final LocalPlaylistModel playlist;
-  final List<PlaylistEntryModel> entries;
-  final List<LikedSongModel> likedSongs;
   final VoidCallback? onPlayAll;
   final VoidCallback? onShuffle;
   final VoidCallback? onAddToQueue;
   final VoidCallback? onDownload;
-  final VoidCallback? onRename;
-  final VoidCallback? onSync;
-  final VoidCallback? onUnlink;
   final VoidCallback onUpdated;
 
   const _LocalPlaylistActions({
     required this.playlist,
-    required this.entries,
-    required this.likedSongs,
     required this.onUpdated,
     this.onPlayAll,
     this.onShuffle,
     this.onAddToQueue,
     this.onDownload,
-    this.onRename,
-    this.onSync,
-    this.onUnlink,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final coolingDown = isSpotifySyncCoolingDown(playlist);
-    final syncEnabled = onSync != null && !coolingDown;
-    final syncTooltip =
-        coolingDown
-            ? l10n.playlistSyncSpotifyCooldown
-            : syncActionLabel(l10n, playlist);
 
     final secondary = rankDetailActions([
-      DetailAction(
-        id: DetailActionId.download,
-        icon: LucideIcons.download,
-        label: l10n.downloadPlaylist,
-        tooltip: l10n.downloadPlaylist,
-        onPressed: onDownload,
-      ),
       DetailAction(
         id: DetailActionId.queue,
         icon: LucideIcons.listMusic,
@@ -1095,28 +1015,12 @@ class _LocalPlaylistActions extends StatelessWidget {
         onPressed: onAddToQueue,
       ),
       DetailAction(
-        id: DetailActionId.rename,
-        icon: LucideIcons.pencil,
-        label: l10n.renamePlaylist,
-        tooltip: l10n.renamePlaylist,
-        onPressed: onRename,
+        id: DetailActionId.download,
+        icon: LucideIcons.download,
+        label: l10n.downloadPlaylist,
+        tooltip: l10n.downloadPlaylist,
+        onPressed: onDownload,
       ),
-      if (onSync != null)
-        DetailAction(
-          id: DetailActionId.sync,
-          icon: LucideIcons.refreshCw,
-          label: syncActionLabel(l10n, playlist),
-          tooltip: syncTooltip,
-          onPressed: syncEnabled ? onSync : null,
-        ),
-      if (onUnlink != null)
-        DetailAction(
-          id: DetailActionId.unlink,
-          icon: LucideIcons.unlink,
-          label: l10n.unlinkPlaylist,
-          tooltip: l10n.unlinkPlaylist,
-          onPressed: onUnlink,
-        ),
     ]);
 
     return DetailActionsBar(
@@ -1132,6 +1036,12 @@ class _LocalPlaylistActions extends StatelessWidget {
           playlist: playlist,
           onUpdated: onUpdated,
           hideGoToPlaylist: true,
+          omitActionIds: {
+            DetailActionId.play,
+            DetailActionId.shuffle,
+            DetailActionId.queue,
+            DetailActionId.download,
+          },
         );
       },
     );

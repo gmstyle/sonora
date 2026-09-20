@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
@@ -13,6 +12,7 @@ import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/music_repository_provider.dart';
+import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -906,6 +906,13 @@ class _ArtistActions extends ConsumerWidget {
 
     final secondary = rankDetailActions([
       DetailAction(
+        id: DetailActionId.queue,
+        icon: LucideIcons.listMusic,
+        label: l10n.addToQueue,
+        tooltip: l10n.addToQueue,
+        onPressed: hasSongs ? () => _addToQueue(context, ref, artist) : null,
+      ),
+      DetailAction(
         id: DetailActionId.save,
         icon: LucideIcons.userPlus,
         label: l10n.follow,
@@ -913,26 +920,6 @@ class _ArtistActions extends ConsumerWidget {
         buildControl:
             (context, compact) =>
                 _FollowButton(artist: artist, iconOnly: compact),
-      ),
-      DetailAction(
-        id: DetailActionId.share,
-        icon: LucideIcons.share2,
-        label: l10n.share,
-        tooltip: l10n.share,
-        onPressed: () {
-          SharePlus.instance.share(
-            ShareParams(
-              text: 'https://music.youtube.com/channel/${artist.artistId}',
-            ),
-          );
-        },
-      ),
-      DetailAction(
-        id: DetailActionId.radio,
-        icon: LucideIcons.radio,
-        label: l10n.artistRadio,
-        tooltip: l10n.artistRadio,
-        buildControl: (context, compact) => _ArtistRadioButton(artist: artist),
       ),
     ]);
 
@@ -951,9 +938,49 @@ class _ArtistActions extends ConsumerWidget {
           thumbnailUrl:
               artist.thumbnails.isNotEmpty ? artist.thumbnails.last.url : null,
           monthlyListeners: artist.monthlyListeners,
+          omitActionIds: {
+            DetailActionId.play,
+            DetailActionId.shuffle,
+            DetailActionId.queue,
+            DetailActionId.save,
+          },
         );
       },
     );
+  }
+
+  Future<void> _addToQueue(
+    BuildContext context,
+    WidgetRef ref,
+    ArtistFull artist,
+  ) async {
+    if (artist.topSongs.isEmpty) return;
+    final player = ref.read(playerStateProvider.notifier);
+    final useCase = ref.read(playAlbumUseCaseProvider);
+    try {
+      final songs = await _resolveAllTopSongs(ref, artist);
+      final items = await useCase.execute(songs, playIndex: -1);
+      if (items.isNotEmpty) await player.addAllToQueue(items);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.addedToQueue(items.length),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToAddToQueue(e.toString()),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _playSequential(
@@ -1129,6 +1156,7 @@ class _FollowButton extends ConsumerWidget {
   }
 }
 
+// ignore: unused_element
 class _ArtistRadioButton extends ConsumerWidget {
   final ArtistFull artist;
 
