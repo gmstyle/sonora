@@ -663,6 +663,16 @@ Primary slots (play-centric + affinity):
 
 Header `onOverflow` passes `omitActionIds` for the four bar actions so More does not duplicate them. Long-press / list context menus keep the full sheet (empty omit set). Self-navigation tiles still use `hideGoTo*` when already on that entity page.
 
+Affinity icons (shared [`DetailAffinityButton`](lib/presentation/shared/widgets/detail_affinity_button.dart)):
+
+| Action | Idle → Active | Active color | Surfaces |
+|---|---|---|---|
+| Like (album, YT playlist, song) | Material `favorite_border` → `favorite` | `colorScheme.error` | Detail bar, context sheet, player |
+| Follow (artist) | Lucide `userPlus` → `userCheck` | `colorScheme.primary` | Detail bar, context sheet |
+| Subscribe (podcast) / save episode | Lucide `bookmark` → `bookmarkCheck` | `colorScheme.primary` | Detail bar, context sheet, player (episodes) |
+
+Local playlist download in-bar uses [`DetailDownloadButton`](lib/presentation/shared/widgets/detail_download_button.dart) (loader / check / count + primary tint when in progress or partial).
+
 ### 7.2 Navigation
 
 Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.

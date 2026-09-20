@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
@@ -10,7 +9,6 @@ import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/player_provider.dart';
@@ -23,6 +21,7 @@ import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/playlist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -649,7 +648,7 @@ class _PlaylistActions extends ConsumerWidget {
       ),
       DetailAction(
         id: DetailActionId.save,
-        icon: LucideIcons.heart,
+        icon: Icons.favorite_border,
         label: l10n.like,
         tooltip: l10n.like,
         buildControl:
@@ -792,92 +791,6 @@ class _PlaylistActions extends ConsumerWidget {
       }
     }
   }
-
-  // ignore: unused_element
-  Future<void> _downloadPlaylist(
-    BuildContext context,
-    WidgetRef ref,
-    PlaylistFull playlist,
-    List<VideoDetailed> videos,
-  ) async {
-    final notifier = ref.read(activeDownloadsProvider.notifier);
-    final toDownload =
-        videos.where((v) => !notifier.isDownloading(v.videoId)).toList();
-    if (toDownload.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.allSongsAlreadyDownloading,
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    final alreadyDownloaded =
-        ref
-            .read(allDownloadsProvider)
-            .asData
-            ?.value
-            .where((d) => toDownload.any((v) => v.videoId == d.videoId))
-            .toList() ??
-        [];
-    if (alreadyDownloaded.isNotEmpty) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(AppLocalizations.of(context)!.alreadyDownloaded),
-              content: Text(
-                AppLocalizations.of(context)!.alreadyDownloadedSongs(
-                  alreadyDownloaded.length,
-                  playlist.name,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(AppLocalizations.of(context)!.cancel),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(AppLocalizations.of(context)!.continueAction),
-                ),
-              ],
-            ),
-      );
-      if (proceed != true || !context.mounted) return;
-    }
-
-    final alreadyDownloadedIds =
-        alreadyDownloaded.map((d) => d.videoId).toSet();
-    final batchId = 'playlist:${playlist.playlistId}';
-    final batchTotal = toDownload.length;
-
-    for (final video in toDownload) {
-      if (alreadyDownloadedIds.contains(video.videoId)) {
-        await notifier.deleteDownload(video.videoId);
-      }
-      unawaited(
-        notifier.startDownload(
-          videoId: video.videoId,
-          title: video.name,
-          artist: displayArtists(video.artists),
-          artistsJson: encodeArtistsJson(video.artists),
-          thumbnailUrl:
-              video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
-          subdirectory: playlist.name,
-          isExplicit: video.isExplicit,
-          isVideo: true,
-          batchId: batchId,
-          batchName: playlist.name,
-          batchTotal: batchTotal,
-        ),
-      );
-    }
-  }
 }
 
 class _LikePlaylistButton extends ConsumerWidget {
@@ -897,143 +810,45 @@ class _LikePlaylistButton extends ConsumerWidget {
     final likedAsync = ref.watch(likedPlaylistProvider(playlist.playlistId));
     return likedAsync.when(
       loading:
-          () =>
-              iconOnly
-                  ? const IconButton(
-                    onPressed: null,
-                    icon: Icon(LucideIcons.heart),
-                  )
-                  : FilledButton.tonalIcon(
-                    onPressed: null,
-                    icon: const Icon(LucideIcons.heart),
-                    label: Text(l10n.like),
-                  ),
+          () => DetailAffinityButton(
+            iconOnly: iconOnly,
+            isActive: false,
+            enabled: false,
+            idleIcon: DetailAffinityButton.likeIdle,
+            activeIcon: DetailAffinityButton.likeActive,
+            idleLabel: l10n.like,
+            activeLabel: l10n.liked,
+            onPressed: null,
+          ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
-        if (iconOnly) {
-          return IconButton(
-            onPressed: () async {
-              final notifier = ref.read(libraryNotifierProvider.notifier);
-              await notifier.toggleLikedPlaylist(
-                LikedPlaylistModel(
-                  playlistId: playlist.playlistId,
-                  name: playlist.name,
-                  thumbnailUrl:
-                      playlist.thumbnails.isNotEmpty
-                          ? playlist.thumbnails.last.url
-                          : null,
-                  videoCount: playlist.videoCount,
-                  addedAt: DateTime.now(),
-                ),
-              );
-            },
-            icon: const Icon(LucideIcons.heart),
-            color: isLiked ? Theme.of(context).colorScheme.primary : null,
-            tooltip: isLiked ? l10n.liked : l10n.like,
-          );
-        }
-        return FilledButton.tonalIcon(
+        return DetailAffinityButton(
+          iconOnly: iconOnly,
+          isActive: isLiked,
+          idleIcon: DetailAffinityButton.likeIdle,
+          activeIcon: DetailAffinityButton.likeActive,
+          idleLabel: l10n.like,
+          activeLabel: l10n.liked,
+          activeColor: Theme.of(context).colorScheme.error,
           onPressed: () async {
-            final notifier = ref.read(libraryNotifierProvider.notifier);
-            await notifier.toggleLikedPlaylist(
-              LikedPlaylistModel(
-                playlistId: playlist.playlistId,
-                name: playlist.name,
-                thumbnailUrl:
-                    playlist.thumbnails.isNotEmpty
-                        ? playlist.thumbnails.last.url
-                        : null,
-                videoCount: playlist.videoCount,
-                addedAt: DateTime.now(),
-              ),
-            );
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedPlaylist(
+                  LikedPlaylistModel(
+                    playlistId: playlist.playlistId,
+                    name: playlist.name,
+                    thumbnailUrl:
+                        playlist.thumbnails.isNotEmpty
+                            ? playlist.thumbnails.last.url
+                            : null,
+                    videoCount: playlist.videoCount,
+                    addedAt: DateTime.now(),
+                  ),
+                );
           },
-          icon: const Icon(LucideIcons.heart),
-          label: Text(isLiked ? l10n.liked : l10n.like),
-          style:
-              isLiked
-                  ? FilledButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  )
-                  : null,
         );
       },
-    );
-  }
-}
-
-// ignore: unused_element
-class _DownloadPlaylistButton extends ConsumerWidget {
-  final PlaylistFull playlist;
-  final AsyncValue<List<VideoDetailed>> videosAsync;
-  final VoidCallback? onDownload;
-  final bool iconOnly;
-
-  const _DownloadPlaylistButton({
-    required this.playlist,
-    required this.videosAsync,
-    required this.onDownload,
-    // ignore: unused_element_parameter
-    this.iconOnly = false,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final downloadedIds = ref.watch(downloadedIdsProvider);
-    final videos = videosAsync.asData?.value ?? [];
-    final batchId = 'playlist:${playlist.playlistId}';
-    final batchActive = ref
-        .watch(activeDownloadsProvider)
-        .values
-        .any(
-          (d) =>
-              d.batchId == batchId &&
-              (d.status == DownloadStatus.pending ||
-                  d.status == DownloadStatus.downloading ||
-                  d.status == DownloadStatus.error),
-        );
-    final batches = ref.watch(downloadBatchesProvider);
-    final batch = batches[batchId];
-    final downloadedCount =
-        videos.where((v) => downloadedIds.contains(v.videoId)).length;
-    final totalCount = videos.length;
-    final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
-
-    final IconData icon;
-    final String label;
-    if (batchActive) {
-      icon = LucideIcons.loader;
-      final done = batch?.completed ?? downloadedCount;
-      label = l10n.downloadedCount(done, batch?.total ?? totalCount);
-    } else if (allDownloaded) {
-      icon = LucideIcons.checkCircle;
-      label = l10n.downloadedCount(downloadedCount, totalCount);
-    } else if (downloadedCount > 0) {
-      icon = LucideIcons.download;
-      label = l10n.downloadedCount(downloadedCount, totalCount);
-    } else {
-      icon = LucideIcons.download;
-      label = l10n.downloadPlaylist;
-    }
-
-    if (iconOnly) {
-      return IconButton(
-        onPressed: batchActive ? null : onDownload,
-        icon: Icon(icon),
-        color:
-            downloadedCount > 0 || batchActive
-                ? Theme.of(context).colorScheme.primary
-                : null,
-        tooltip: label,
-      );
-    }
-
-    return FilledButton.tonalIcon(
-      onPressed: batchActive ? null : onDownload,
-      icon: Icon(icon),
-      label: Text(label),
     );
   }
 }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,7 +10,6 @@ import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/play_podcast_use_case_provider.dart';
@@ -22,6 +20,7 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/podcast_provider.dart';
 
 /// Index of [episodeIndex] within the subset of episodes that have a
@@ -568,7 +567,7 @@ class _PodcastActions extends ConsumerWidget {
       ),
       DetailAction(
         id: DetailActionId.save,
-        icon: LucideIcons.heart,
+        icon: LucideIcons.bookmark,
         label: l10n.subscribe,
         tooltip: l10n.subscribe,
         buildControl:
@@ -697,93 +696,6 @@ class _PodcastActions extends ConsumerWidget {
       }
     }
   }
-
-  // ignore: unused_element
-  Future<void> _downloadPodcast(
-    BuildContext context,
-    WidgetRef ref,
-    PodcastFull podcast,
-  ) async {
-    final notifier = ref.read(activeDownloadsProvider.notifier);
-    final episodes = podcast.episodes.where((e) => e.videoId.isNotEmpty);
-    final toDownload =
-        episodes.where((e) => !notifier.isDownloading(e.videoId)).toList();
-    if (toDownload.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.allSongsAlreadyDownloading,
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    final alreadyDownloaded =
-        ref
-            .read(allDownloadsProvider)
-            .asData
-            ?.value
-            .where((d) => toDownload.any((e) => e.videoId == d.videoId))
-            .toList() ??
-        [];
-    if (alreadyDownloaded.isNotEmpty) {
-      final l10n = AppLocalizations.of(context)!;
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(l10n.alreadyDownloaded),
-              content: Text(
-                l10n.alreadyDownloadedSongs(
-                  alreadyDownloaded.length,
-                  podcast.name,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(l10n.cancel),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(l10n.continueAction),
-                ),
-              ],
-            ),
-      );
-      if (proceed != true || !context.mounted) return;
-    }
-
-    final alreadyDownloadedIds =
-        alreadyDownloaded.map((d) => d.videoId).toSet();
-    final batchId = 'podcast:${podcast.browseId}';
-    final batchTotal = toDownload.length;
-
-    for (final episode in toDownload) {
-      if (alreadyDownloadedIds.contains(episode.videoId)) {
-        await notifier.deleteDownload(episode.videoId);
-      }
-      unawaited(
-        notifier.startDownload(
-          videoId: episode.videoId,
-          title: episode.name,
-          artist: podcast.author?.name ?? podcast.name,
-          thumbnailUrl:
-              episode.thumbnails.isNotEmpty
-                  ? episode.thumbnails.last.url
-                  : null,
-          subdirectory: podcast.name,
-          isVideo: false,
-          batchId: batchId,
-          batchName: podcast.name,
-          batchTotal: batchTotal,
-        ),
-      );
-    }
-  }
 }
 
 class _SubscribePodcastButton extends ConsumerWidget {
@@ -798,132 +710,47 @@ class _SubscribePodcastButton extends ConsumerWidget {
     final likedAsync = ref.watch(likedPodcastProvider(podcast.browseId));
     return likedAsync.when(
       loading:
-          () =>
-              iconOnly
-                  ? const IconButton(
-                    onPressed: null,
-                    icon: Icon(LucideIcons.heart),
-                  )
-                  : FilledButton.tonalIcon(
-                    onPressed: null,
-                    icon: const Icon(LucideIcons.heart),
-                    label: Text(l10n.subscribe),
-                  ),
+          () => DetailAffinityButton(
+            iconOnly: iconOnly,
+            isActive: false,
+            enabled: false,
+            idleIcon: LucideIcons.bookmark,
+            activeIcon: LucideIcons.bookmarkCheck,
+            idleLabel: l10n.subscribe,
+            activeLabel: l10n.subscribed,
+            onPressed: null,
+          ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSubscribed = liked != null;
-        Future<void> toggle() async {
-          final notifier = ref.read(libraryNotifierProvider.notifier);
-          await notifier.toggleLikedPodcast(
-            LikedPodcastModel(
-              browseId: podcast.browseId,
-              name: podcast.name,
-              authorName: podcast.author?.name,
-              authorId: podcast.author?.artistId,
-              thumbnailUrl:
-                  podcast.thumbnails.isNotEmpty
-                      ? podcast.thumbnails.last.url
-                      : null,
-              episodeCount: podcast.episodes.length,
-              addedAt: DateTime.now(),
-            ),
-          );
-        }
-
-        if (iconOnly) {
-          return IconButton(
-            onPressed: toggle,
-            icon: const Icon(LucideIcons.heart),
-            color: isSubscribed ? Theme.of(context).colorScheme.primary : null,
-            tooltip: isSubscribed ? l10n.subscribed : l10n.subscribe,
-          );
-        }
-        return FilledButton.tonalIcon(
-          onPressed: toggle,
-          icon: const Icon(LucideIcons.heart),
-          label: Text(isSubscribed ? l10n.subscribed : l10n.subscribe),
-          style:
-              isSubscribed
-                  ? FilledButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  )
-                  : null,
+        return DetailAffinityButton(
+          iconOnly: iconOnly,
+          isActive: isSubscribed,
+          idleIcon: LucideIcons.bookmark,
+          activeIcon: LucideIcons.bookmarkCheck,
+          idleLabel: l10n.subscribe,
+          activeLabel: l10n.subscribed,
+          activeColor: Theme.of(context).colorScheme.primary,
+          onPressed: () async {
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedPodcast(
+                  LikedPodcastModel(
+                    browseId: podcast.browseId,
+                    name: podcast.name,
+                    authorName: podcast.author?.name,
+                    authorId: podcast.author?.artistId,
+                    thumbnailUrl:
+                        podcast.thumbnails.isNotEmpty
+                            ? podcast.thumbnails.last.url
+                            : null,
+                    episodeCount: podcast.episodes.length,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+          },
         );
       },
-    );
-  }
-}
-
-// ignore: unused_element
-class _DownloadPodcastButton extends ConsumerWidget {
-  final PodcastFull podcast;
-  final VoidCallback? onDownload;
-  final bool iconOnly;
-
-  const _DownloadPodcastButton({
-    required this.podcast,
-    required this.onDownload,
-    // ignore: unused_element_parameter
-    this.iconOnly = false,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final downloadedIds = ref.watch(downloadedIdsProvider);
-    final playableEpisodes =
-        podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
-    final batchId = 'podcast:${podcast.browseId}';
-    final batchActive = ref
-        .watch(activeDownloadsProvider)
-        .values
-        .any(
-          (d) =>
-              d.batchId == batchId &&
-              (d.status == DownloadStatus.pending ||
-                  d.status == DownloadStatus.downloading ||
-                  d.status == DownloadStatus.error),
-        );
-    final batches = ref.watch(downloadBatchesProvider);
-    final batch = batches[batchId];
-    final downloadedCount =
-        playableEpisodes.where((e) => downloadedIds.contains(e.videoId)).length;
-    final totalCount = playableEpisodes.length;
-    final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
-
-    final IconData icon;
-    final String label;
-    if (batchActive) {
-      icon = LucideIcons.loader;
-      final done = batch?.completed ?? downloadedCount;
-      label = l10n.downloadedCount(done, batch?.total ?? totalCount);
-    } else if (allDownloaded) {
-      icon = LucideIcons.checkCircle;
-      label = l10n.downloadedCount(downloadedCount, totalCount);
-    } else if (downloadedCount > 0) {
-      icon = LucideIcons.download;
-      label = l10n.downloadedCount(downloadedCount, totalCount);
-    } else {
-      icon = LucideIcons.download;
-      label = l10n.downloadPodcast;
-    }
-
-    if (iconOnly) {
-      return IconButton(
-        onPressed: batchActive ? null : onDownload,
-        icon: Icon(icon),
-        color:
-            downloadedCount > 0 || batchActive
-                ? Theme.of(context).colorScheme.primary
-                : null,
-        tooltip: label,
-      );
-    }
-
-    return FilledButton.tonalIcon(
-      onPressed: batchActive ? null : onDownload,
-      icon: Icon(icon),
-      label: Text(label),
     );
   }
 }

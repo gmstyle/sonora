@@ -40,6 +40,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/spotify_sync_cooldown_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import 'detail_actions_bar.dart';
+import 'detail_affinity_button.dart';
 import 'explicit_badge.dart';
 import 'thumbnail_widget.dart';
 
@@ -2277,7 +2278,7 @@ class _LikePodcastActionTile extends ConsumerWidget {
       loading:
           () => ListTile(
             leading: const Icon(LucideIcons.bookmark),
-            title: Text(AppLocalizations.of(context)!.follow),
+            title: Text(AppLocalizations.of(context)!.subscribe),
             enabled: false,
             dense: true,
           ),
@@ -2291,8 +2292,8 @@ class _LikePodcastActionTile extends ConsumerWidget {
           ),
           title: Text(
             isSubscribed
-                ? AppLocalizations.of(context)!.following
-                : AppLocalizations.of(context)!.follow,
+                ? AppLocalizations.of(context)!.subscribed
+                : AppLocalizations.of(context)!.subscribe,
           ),
           onTap: () async {
             if (isSubscribed) {
@@ -3331,7 +3332,7 @@ class _LikeActionTile extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => ListTile(
-            leading: Icon(LucideIcons.heart),
+            leading: const Icon(DetailAffinityButton.likeIdle),
             title: Text(AppLocalizations.of(context)!.like),
             enabled: false,
             dense: true,
@@ -3341,7 +3342,9 @@ class _LikeActionTile extends ConsumerWidget {
         final isLiked = liked != null;
         return ListTile(
           leading: Icon(
-            isLiked ? LucideIcons.heart : LucideIcons.heart,
+            isLiked
+                ? DetailAffinityButton.likeActive
+                : DetailAffinityButton.likeIdle,
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(
@@ -3402,8 +3405,8 @@ class _FollowArtistActionTile extends ConsumerWidget {
         final isFollowing = followed != null;
         return ListTile(
           leading: Icon(
-            isFollowing ? LucideIcons.userMinus : LucideIcons.userPlus,
-            color: isFollowing ? Theme.of(context).colorScheme.error : null,
+            isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
+            color: isFollowing ? Theme.of(context).colorScheme.primary : null,
           ),
           title: Text(
             isFollowing
@@ -3452,7 +3455,7 @@ class _LikeAlbumActionTile extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => ListTile(
-            leading: Icon(LucideIcons.heart),
+            leading: const Icon(DetailAffinityButton.likeIdle),
             title: Text(AppLocalizations.of(context)!.like),
             enabled: false,
             dense: true,
@@ -3462,7 +3465,9 @@ class _LikeAlbumActionTile extends ConsumerWidget {
         final isLiked = liked != null;
         return ListTile(
           leading: Icon(
-            isLiked ? LucideIcons.heart : LucideIcons.heart,
+            isLiked
+                ? DetailAffinityButton.likeActive
+                : DetailAffinityButton.likeIdle,
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(
@@ -3509,7 +3514,7 @@ class _LikePlaylistActionTile extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => ListTile(
-            leading: Icon(LucideIcons.heart),
+            leading: const Icon(DetailAffinityButton.likeIdle),
             title: Text(AppLocalizations.of(context)!.like),
             enabled: false,
             dense: true,
@@ -3519,7 +3524,9 @@ class _LikePlaylistActionTile extends ConsumerWidget {
         final isLiked = liked != null;
         return ListTile(
           leading: Icon(
-            isLiked ? LucideIcons.heart : LucideIcons.heart,
+            isLiked
+                ? DetailAffinityButton.likeActive
+                : DetailAffinityButton.likeIdle,
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
           title: Text(

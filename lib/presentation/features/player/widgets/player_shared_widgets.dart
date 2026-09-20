@@ -16,6 +16,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
+import '../../../shared/widgets/detail_affinity_button.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/explicit_badge.dart';
 import 'progress_bar_widget.dart';
@@ -214,8 +215,8 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
   if (track.isEpisode) {
     final likedAsync = ref.watch(likedEpisodeProvider(videoId));
     return likedAsync.when(
-      loading: () => const Icon(LucideIcons.heart, size: 28),
-      error: (_, _) => const Icon(LucideIcons.heart, size: 28),
+      loading: () => const Icon(LucideIcons.bookmark, size: 28),
+      error: (_, _) => const Icon(LucideIcons.bookmark, size: 28),
       data: (liked) {
         final isLiked = liked != null;
         return IconButton(
@@ -227,10 +228,10 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                   child: FadeTransition(opacity: anim, child: child),
                 ),
             child: Icon(
-              LucideIcons.heart,
+              isLiked ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
               key: ValueKey(isLiked),
               size: 28,
-              color: isLiked ? Theme.of(context).colorScheme.error : null,
+              color: isLiked ? Theme.of(context).colorScheme.primary : null,
             ),
           ),
           onPressed: () {
@@ -257,8 +258,8 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
 
   final likedAsync = ref.watch(likedSongProvider(videoId));
   return likedAsync.when(
-    loading: () => const Icon(LucideIcons.heart, size: 28),
-    error: (_, _) => const Icon(LucideIcons.heart, size: 28),
+    loading: () => const Icon(DetailAffinityButton.likeIdle, size: 28),
+    error: (_, _) => const Icon(DetailAffinityButton.likeIdle, size: 28),
     data: (liked) {
       final isLiked = liked != null;
       return IconButton(
@@ -270,7 +271,9 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                 child: FadeTransition(opacity: anim, child: child),
               ),
           child: Icon(
-            LucideIcons.heart,
+            isLiked
+                ? DetailAffinityButton.likeActive
+                : DetailAffinityButton.likeIdle,
             key: ValueKey(isLiked),
             size: 28,
             color: isLiked ? Theme.of(context).colorScheme.error : null,

@@ -21,6 +21,7 @@ import '../../../shared/widgets/song_tile.dart';
 import '../../../shared/widgets/video_badge.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../shared/widgets/detail_actions_bar.dart';
+import '../../../shared/widgets/detail_download_button.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import 'linked_playlist_actions.dart';
 import '../providers/library_provider.dart';
@@ -238,6 +239,7 @@ class _PlaylistDetailContentState
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: _LocalPlaylistActions(
                 playlist: freshPlaylist,
+                entryVideoIds: entries.map((e) => e.videoId).toList(),
                 onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
                 onShuffle: entries.isNotEmpty ? () => _shufflePlay() : null,
                 onAddToQueue: entries.isNotEmpty ? () => _addToQueue() : null,
@@ -987,6 +989,7 @@ Widget _artworkTopScrim(BuildContext context) {
 
 class _LocalPlaylistActions extends StatelessWidget {
   final LocalPlaylistModel playlist;
+  final List<String> entryVideoIds;
   final VoidCallback? onPlayAll;
   final VoidCallback? onShuffle;
   final VoidCallback? onAddToQueue;
@@ -995,6 +998,7 @@ class _LocalPlaylistActions extends StatelessWidget {
 
   const _LocalPlaylistActions({
     required this.playlist,
+    required this.entryVideoIds,
     required this.onUpdated,
     this.onPlayAll,
     this.onShuffle,
@@ -1020,6 +1024,14 @@ class _LocalPlaylistActions extends StatelessWidget {
         label: l10n.downloadPlaylist,
         tooltip: l10n.downloadPlaylist,
         onPressed: onDownload,
+        buildControl:
+            (context, compact) => _LocalPlaylistDownloadButton(
+              playlistId: playlist.id,
+              entryVideoIds: entryVideoIds,
+              idleLabel: l10n.downloadPlaylist,
+              onDownload: onDownload,
+              iconOnly: compact,
+            ),
       ),
     ]);
 
@@ -1044,6 +1056,60 @@ class _LocalPlaylistActions extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _LocalPlaylistDownloadButton extends ConsumerWidget {
+  final int playlistId;
+  final List<String> entryVideoIds;
+  final String idleLabel;
+  final VoidCallback? onDownload;
+  final bool iconOnly;
+
+  const _LocalPlaylistDownloadButton({
+    required this.playlistId,
+    required this.entryVideoIds,
+    required this.idleLabel,
+    required this.onDownload,
+    required this.iconOnly,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final downloadedIds = ref.watch(downloadedIdsProvider);
+    final batchId = 'localPlaylist:$playlistId';
+    final batchActive = ref
+        .watch(activeDownloadsProvider)
+        .values
+        .any(
+          (d) =>
+              d.batchId == batchId &&
+              (d.status == DownloadStatus.pending ||
+                  d.status == DownloadStatus.downloading ||
+                  d.status == DownloadStatus.error),
+        );
+    final batch = ref.watch(downloadBatchesProvider)[batchId];
+    final downloadedCount = entryVideoIds.where(downloadedIds.contains).length;
+    final totalCount = entryVideoIds.length;
+    final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
+    final state = DetailDownloadButton.resolveState(
+      batchActive: batchActive,
+      allDownloaded: allDownloaded,
+      downloadedCount: downloadedCount,
+      totalCount: totalCount,
+      batchCompleted: batch?.completed,
+      batchTotal: batch?.total,
+      idleLabel: idleLabel,
+      countLabel: l10n.downloadedCount,
+    );
+    return DetailDownloadButton(
+      iconOnly: iconOnly,
+      icon: state.icon,
+      label: state.label,
+      emphasize: state.emphasize,
+      onPressed: state.busy ? null : onDownload,
     );
   }
 }

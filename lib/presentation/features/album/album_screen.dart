@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
@@ -10,7 +9,6 @@ import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
@@ -24,6 +22,7 @@ import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/album_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -716,7 +715,7 @@ class _AlbumActions extends ConsumerWidget {
       ),
       DetailAction(
         id: DetailActionId.save,
-        icon: LucideIcons.heart,
+        icon: Icons.favorite_border,
         label: l10n.like,
         tooltip: l10n.like,
         buildControl:
@@ -820,92 +819,6 @@ class _AlbumActions extends ConsumerWidget {
       }
     }
   }
-
-  // Kept for potential reuse; download lives in ContextMenuSheet More menu.
-  // ignore: unused_element
-  Future<void> _downloadAlbum(
-    BuildContext context,
-    WidgetRef ref,
-    AlbumFull album,
-  ) async {
-    final notifier = ref.read(activeDownloadsProvider.notifier);
-    final toDownload =
-        album.songs.where((s) => !notifier.isDownloading(s.videoId)).toList();
-    if (toDownload.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.allSongsAlreadyDownloading,
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    final alreadyDownloaded =
-        ref
-            .read(allDownloadsProvider)
-            .asData
-            ?.value
-            .where((d) => toDownload.any((s) => s.videoId == d.videoId))
-            .toList() ??
-        [];
-    if (alreadyDownloaded.isNotEmpty) {
-      final l10n = AppLocalizations.of(context)!;
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(l10n.alreadyDownloaded),
-              content: Text(
-                l10n.alreadyDownloadedSongs(
-                  alreadyDownloaded.length,
-                  album.name,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(l10n.cancel),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(l10n.continueAction),
-                ),
-              ],
-            ),
-      );
-      if (proceed != true || !context.mounted) return;
-    }
-
-    final alreadyDownloadedIds =
-        alreadyDownloaded.map((d) => d.videoId).toSet();
-    final batchId = 'album:${album.albumId}';
-    final batchTotal = toDownload.length;
-
-    for (final song in toDownload) {
-      if (alreadyDownloadedIds.contains(song.videoId)) {
-        await notifier.deleteDownload(song.videoId);
-      }
-      unawaited(
-        notifier.startDownload(
-          videoId: song.videoId,
-          title: song.name,
-          artist: displayArtists(song.artists),
-          artistsJson: encodeArtistsJson(song.artists),
-          thumbnailUrl:
-              song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
-          subdirectory: album.name,
-          isExplicit: song.isExplicit,
-          batchId: batchId,
-          batchName: album.name,
-          batchTotal: batchTotal,
-        ),
-      );
-    }
-  }
 }
 
 class _LikeAlbumButton extends ConsumerWidget {
@@ -920,144 +833,47 @@ class _LikeAlbumButton extends ConsumerWidget {
     final likedAsync = ref.watch(likedAlbumProvider(album.albumId));
     return likedAsync.when(
       loading:
-          () =>
-              iconOnly
-                  ? const IconButton(
-                    onPressed: null,
-                    icon: Icon(LucideIcons.heart),
-                  )
-                  : FilledButton.tonalIcon(
-                    onPressed: null,
-                    icon: const Icon(LucideIcons.heart),
-                    label: Text(l10n.like),
-                  ),
+          () => DetailAffinityButton(
+            iconOnly: iconOnly,
+            isActive: false,
+            enabled: false,
+            idleIcon: DetailAffinityButton.likeIdle,
+            activeIcon: DetailAffinityButton.likeActive,
+            idleLabel: l10n.like,
+            activeLabel: l10n.liked,
+            onPressed: null,
+          ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
-        if (iconOnly) {
-          return IconButton(
-            onPressed: () async {
-              final notifier = ref.read(libraryNotifierProvider.notifier);
-              await notifier.toggleLikedAlbum(
-                LikedAlbumModel(
-                  albumId: album.albumId,
-                  name: album.name,
-                  artistName: displayArtists(album.artists),
-                  artistId: primaryArtistId(album.artists),
-                  thumbnailUrl:
-                      album.thumbnails.isNotEmpty
-                          ? album.thumbnails.last.url
-                          : null,
-                  year: album.year,
-                  addedAt: DateTime.now(),
-                ),
-              );
-            },
-            icon: const Icon(LucideIcons.heart),
-            color: isLiked ? Theme.of(context).colorScheme.primary : null,
-            tooltip: isLiked ? l10n.liked : l10n.like,
-          );
-        }
-        return FilledButton.tonalIcon(
+        return DetailAffinityButton(
+          iconOnly: iconOnly,
+          isActive: isLiked,
+          idleIcon: DetailAffinityButton.likeIdle,
+          activeIcon: DetailAffinityButton.likeActive,
+          idleLabel: l10n.like,
+          activeLabel: l10n.liked,
+          activeColor: Theme.of(context).colorScheme.error,
           onPressed: () async {
-            final notifier = ref.read(libraryNotifierProvider.notifier);
-            await notifier.toggleLikedAlbum(
-              LikedAlbumModel(
-                albumId: album.albumId,
-                name: album.name,
-                artistName: displayArtists(album.artists),
-                artistId: primaryArtistId(album.artists),
-                thumbnailUrl:
-                    album.thumbnails.isNotEmpty
-                        ? album.thumbnails.last.url
-                        : null,
-                year: album.year,
-                addedAt: DateTime.now(),
-              ),
-            );
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedAlbum(
+                  LikedAlbumModel(
+                    albumId: album.albumId,
+                    name: album.name,
+                    artistName: displayArtists(album.artists),
+                    artistId: primaryArtistId(album.artists),
+                    thumbnailUrl:
+                        album.thumbnails.isNotEmpty
+                            ? album.thumbnails.last.url
+                            : null,
+                    year: album.year,
+                    addedAt: DateTime.now(),
+                  ),
+                );
           },
-          icon: const Icon(LucideIcons.heart),
-          label: Text(isLiked ? l10n.liked : l10n.like),
-          style:
-              isLiked
-                  ? FilledButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  )
-                  : null,
         );
       },
-    );
-  }
-}
-
-// ignore: unused_element
-class _DownloadAlbumButton extends ConsumerWidget {
-  final AlbumFull album;
-  final VoidCallback? onDownload;
-  final bool iconOnly;
-
-  const _DownloadAlbumButton({
-    required this.album,
-    required this.onDownload,
-    // ignore: unused_element_parameter
-    this.iconOnly = false,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final downloadedIds = ref.watch(downloadedIdsProvider);
-    final batchId = 'album:${album.albumId}';
-    final batchActive = ref
-        .watch(activeDownloadsProvider)
-        .values
-        .any(
-          (d) =>
-              d.batchId == batchId &&
-              (d.status == DownloadStatus.pending ||
-                  d.status == DownloadStatus.downloading ||
-                  d.status == DownloadStatus.error),
-        );
-    final batches = ref.watch(downloadBatchesProvider);
-    final batch = batches[batchId];
-    final downloadedCount =
-        album.songs.where((s) => downloadedIds.contains(s.videoId)).length;
-    final totalCount = album.songs.length;
-    final allDownloaded = totalCount > 0 && downloadedCount == totalCount;
-
-    final IconData icon;
-    final String label;
-    if (batchActive) {
-      icon = LucideIcons.loader;
-      final done = batch?.completed ?? downloadedCount;
-      label = l10n.downloadedCount(done, batch?.total ?? totalCount);
-    } else if (allDownloaded) {
-      icon = LucideIcons.checkCircle;
-      label = l10n.downloadedCount(downloadedCount, totalCount);
-    } else if (downloadedCount > 0) {
-      icon = LucideIcons.download;
-      label = l10n.downloadedCount(downloadedCount, totalCount);
-    } else {
-      icon = LucideIcons.download;
-      label = l10n.downloadAlbum;
-    }
-
-    if (iconOnly) {
-      return IconButton(
-        onPressed: batchActive ? null : onDownload,
-        icon: Icon(icon),
-        color:
-            downloadedCount > 0 || batchActive
-                ? Theme.of(context).colorScheme.primary
-                : null,
-        tooltip: label,
-      );
-    }
-
-    return FilledButton.tonalIcon(
-      onPressed: batchActive ? null : onDownload,
-      icon: Icon(icon),
-      label: Text(label),
     );
   }
 }

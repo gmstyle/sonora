@@ -27,6 +27,7 @@ import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/artist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -1076,51 +1077,31 @@ class _FollowButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final followedAsync = ref.watch(followedArtistProvider(artist.artistId));
     return followedAsync.when(
       loading:
-          () =>
-              iconOnly
-                  ? const IconButton(
-                    onPressed: null,
-                    icon: Icon(LucideIcons.userPlus),
-                  )
-                  : FilledButton.tonalIcon(
-                    onPressed: null,
-                    icon: const Icon(LucideIcons.userPlus),
-                    label: Text(AppLocalizations.of(context)!.follow),
-                  ),
+          () => DetailAffinityButton(
+            iconOnly: iconOnly,
+            isActive: false,
+            enabled: false,
+            idleIcon: LucideIcons.userPlus,
+            activeIcon: LucideIcons.userCheck,
+            idleLabel: l10n.follow,
+            activeLabel: l10n.following,
+            onPressed: null,
+          ),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
         final isFollowing = followed != null;
-        if (iconOnly) {
-          return IconButton(
-            onPressed: () async {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .toggleFollowedArtist(
-                    FollowedArtistModel(
-                      artistId: artist.artistId,
-                      name: artist.name,
-                      thumbnailUrl:
-                          artist.thumbnails.isNotEmpty
-                              ? artist.thumbnails.last.url
-                              : null,
-                      addedAt: DateTime.now(),
-                    ),
-                  );
-            },
-            icon: Icon(
-              isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
-            ),
-            color: isFollowing ? Theme.of(context).colorScheme.primary : null,
-            tooltip:
-                isFollowing
-                    ? AppLocalizations.of(context)!.following
-                    : AppLocalizations.of(context)!.follow,
-          );
-        }
-        return FilledButton.tonalIcon(
+        return DetailAffinityButton(
+          iconOnly: iconOnly,
+          isActive: isFollowing,
+          idleIcon: LucideIcons.userPlus,
+          activeIcon: LucideIcons.userCheck,
+          idleLabel: l10n.follow,
+          activeLabel: l10n.following,
+          activeColor: Theme.of(context).colorScheme.primary,
           onPressed: () async {
             await ref
                 .read(libraryNotifierProvider.notifier)
@@ -1136,74 +1117,9 @@ class _FollowButton extends ConsumerWidget {
                   ),
                 );
           },
-          icon: Icon(
-            isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
-          ),
-          label: Text(
-            isFollowing
-                ? AppLocalizations.of(context)!.following
-                : AppLocalizations.of(context)!.follow,
-          ),
-          style:
-              isFollowing
-                  ? FilledButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  )
-                  : null,
         );
       },
     );
-  }
-}
-
-// ignore: unused_element
-class _ArtistRadioButton extends ConsumerWidget {
-  final ArtistFull artist;
-
-  const _ArtistRadioButton({required this.artist});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final canStart = artist.radioId != null || artist.topSongs.isNotEmpty;
-
-    return FilledButton.tonalIcon(
-      onPressed: canStart ? () => _startArtistRadio(context, ref) : null,
-      icon: const Icon(LucideIcons.radio),
-      label: Text(AppLocalizations.of(context)!.artistRadio),
-    );
-  }
-
-  Future<void> _startArtistRadio(BuildContext context, WidgetRef ref) async {
-    final player = ref.read(playerStateProvider.notifier);
-    final useCase = ref.read(startRadioUseCaseProvider);
-    final seedVideoId =
-        artist.topSongs.isNotEmpty ? artist.topSongs.first.videoId : '';
-
-    try {
-      final result = await useCase.execute(
-        seedVideoId,
-        playlistId: artist.radioId,
-        radio: artist.radioId == null,
-      );
-      await player.playNow([result.firstItem]);
-
-      if (result.remaining.isNotEmpty) {
-        final pendingItems = useCase.toPendingItems(result.remaining);
-        player.addAllToQueue(pendingItems);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(
-                context,
-              )!.failedToStartArtistRadio(e.toString()),
-            ),
-          ),
-        );
-      }
-    }
   }
 }
 

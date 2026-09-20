@@ -9,6 +9,7 @@ import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
+import '../../shared/widgets/detail_affinity_button.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/vinyl_artwork.dart';
@@ -645,14 +646,14 @@ class MiniPlayerContent extends ConsumerWidget {
       return likedAsync.when(
         loading:
             () => _iconButton(
-              icon: LucideIcons.heart,
+              icon: LucideIcons.bookmark,
               color: cs.onSurfaceVariant,
               onPressed: null,
               size: 20,
             ),
         error:
             (_, _) => _iconButton(
-              icon: LucideIcons.heart,
+              icon: LucideIcons.bookmark,
               color: cs.onSurfaceVariant,
               onPressed: null,
               size: 20,
@@ -668,13 +669,13 @@ class MiniPlayerContent extends ConsumerWidget {
                     child: FadeTransition(opacity: anim, child: child),
                   ),
               child: Icon(
-                LucideIcons.heart,
+                isLiked ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
                 key: ValueKey(isLiked),
-                color: isLiked ? cs.error : cs.onSurfaceVariant,
+                color: isLiked ? cs.primary : cs.onSurfaceVariant,
                 size: 20,
               ),
             ),
-            color: isLiked ? cs.error : cs.onSurfaceVariant,
+            color: isLiked ? cs.primary : cs.onSurfaceVariant,
             onPressed: () {
               HapticFeedback.lightImpact();
               ref
@@ -707,14 +708,14 @@ class MiniPlayerContent extends ConsumerWidget {
     return likedAsync.when(
       loading:
           () => _iconButton(
-            icon: LucideIcons.heart,
+            icon: DetailAffinityButton.likeIdle,
             color: cs.onSurfaceVariant,
             onPressed: null,
             size: 20,
           ),
       error:
           (_, _) => _iconButton(
-            icon: LucideIcons.heart,
+            icon: DetailAffinityButton.likeIdle,
             color: cs.onSurfaceVariant,
             onPressed: null,
             size: 20,
@@ -730,7 +731,9 @@ class MiniPlayerContent extends ConsumerWidget {
                   child: FadeTransition(opacity: anim, child: child),
                 ),
             child: Icon(
-              LucideIcons.heart,
+              isLiked
+                  ? DetailAffinityButton.likeActive
+                  : DetailAffinityButton.likeIdle,
               key: ValueKey(isLiked),
               color: isLiked ? cs.error : cs.onSurfaceVariant,
               size: 20,
