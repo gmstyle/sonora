@@ -10,6 +10,7 @@ import '../../models/media_quality.dart';
 import '../../repositories/library_repository.dart';
 import '../../../data/datasources/remote/stream_datasource.dart';
 import 'download_exceptions.dart';
+import 'download_replacement.dart';
 
 class StartDownloadUseCase {
   final StreamDatasource _streamDatasource;
@@ -58,8 +59,10 @@ class StartDownloadUseCase {
     final ext = stream.container.name;
     final safeName = _sanitizeFilename(title);
     final filePath = '${downloadDir.path}/$safeName-$videoId.$ext';
-
-    await _deletePreviousFileIfNeeded(videoId, filePath);
+    final partPath = downloadPartPath(filePath);
+    final replacement = DownloadReplacement.capture(
+      await _libraryRepository.getDownload(videoId),
+    );
 
     await _libraryRepository.insertDownload(
       videoId: videoId,
@@ -80,22 +83,35 @@ class StartDownloadUseCase {
     try {
       await _streamDatasource.downloadStreamToFile(
         stream,
-        filePath,
+        partPath,
         cancelToken: cancelToken,
         onProgress: onProgress,
       );
       if (cancelToken?.isCancelled ?? false) {
         throw const DownloadCancelledException();
       }
+      await replacement.promoteOnSuccess(filePath);
     } on DownloadCancelledException {
-      await _cleanupOnFailure(videoId, filePath);
+      await replacement.revertOnFailure(
+        library: _libraryRepository,
+        videoId: videoId,
+        newFilePath: filePath,
+      );
       rethrow;
     } on DioException catch (e) {
-      await _cleanupOnFailure(videoId, filePath);
+      await replacement.revertOnFailure(
+        library: _libraryRepository,
+        videoId: videoId,
+        newFilePath: filePath,
+      );
       if (CancelToken.isCancel(e)) throw const DownloadCancelledException();
       rethrow;
     } catch (_) {
-      await _cleanupOnFailure(videoId, filePath);
+      await replacement.revertOnFailure(
+        library: _libraryRepository,
+        videoId: videoId,
+        newFilePath: filePath,
+      );
       rethrow;
     }
 
@@ -121,21 +137,6 @@ class StartDownloadUseCase {
     return filePath;
   }
 
-  /// Removes a previous on-disk file when re-downloading to a new path
-  /// (e.g. single absorbed into an album folder).
-  Future<void> _deletePreviousFileIfNeeded(
-    String videoId,
-    String newPath,
-  ) async {
-    try {
-      final existing = await _libraryRepository.getDownload(videoId);
-      final oldPath = existing?.localPath;
-      if (oldPath == null || oldPath.isEmpty || oldPath == newPath) return;
-      final oldFile = File(oldPath);
-      if (await oldFile.exists()) await oldFile.delete();
-    } catch (_) {}
-  }
-
   StreamInfo _selectDownloadStream(
     StreamManifest manifest, {
     required MediaQuality quality,
@@ -151,16 +152,6 @@ class StartDownloadUseCase {
       }
       rethrow;
     }
-  }
-
-  Future<void> _cleanupOnFailure(String videoId, String filePath) async {
-    try {
-      final file = File(filePath);
-      if (await file.exists()) await file.delete();
-    } catch (_) {}
-    try {
-      await _libraryRepository.deleteDownload(videoId);
-    } catch (_) {}
   }
 
   Future<Directory> _resolveDownloadDir(

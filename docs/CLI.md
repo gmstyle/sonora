@@ -144,7 +144,7 @@ sonora search "jazz" --type album --limit 10 --json
 
 ### `play`
 
-Play a song using an external player (or print the URL). If a completed download exists for the `videoId`, the local file is used instead of a live stream.
+Play a song using an external player (or print the URL). If a completed download exists for the `videoId`, the local file is used instead of a live stream — including when you are offline.
 
 ```
 sonora play <videoId> [--player auto|mpv|ffplay|vlc|url]
@@ -379,6 +379,7 @@ sonora history --json --limit 100 > history.json
 | `dart: command not found` | Dart SDK not installed | Install Flutter SDK or standalone Dart |
 | `sonora: command not found` | Command not activated globally | Use `dart run bin/sonora.dart` or run `dart pub global activate` |
 | `Initialization failed` | No internet or YouTube Music API unreachable | Check your internet connection |
+| `Playback failed` while offline | No completed download for that `videoId` | Download the song first, or go online to stream |
 | `Player not found` | No audio player installed | Install `mpv` or use `--player url` |
 | `Illegal instruction` | Old CPU without AVX support | Use an external player with `--player url` |
 | Compile error `/usr/lib64/ccache` | `ccache` uninstalled but still in PATH | `sudo dnf install ccache` |

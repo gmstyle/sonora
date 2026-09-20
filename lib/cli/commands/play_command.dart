@@ -5,6 +5,8 @@ import 'package:args/args.dart';
 import '../cli_output.dart';
 import '../sonora_cli_provider.dart';
 import '../../core/utils/artists_utils.dart';
+import '../../domain/repositories/library_repository.dart';
+import '../../domain/repositories/music_repository.dart';
 import '../../domain/usecases/player/play_video_id_use_case.dart';
 
 class PlayCommand {
@@ -24,13 +26,17 @@ class PlayCommand {
 
     try {
       stderr.writeln('Resolving "$videoId"...');
-      final song = await _provider.musicRepo.getSong(videoId);
-      final title = song.name;
-      final artist = displayArtists(song.artists);
       final url = await PlayVideoIdUseCase(
         _provider.musicRepo,
         _provider.libraryRepo,
       ).resolveUrl(videoId);
+      final meta = await resolveCliPlayMetadata(
+        videoId: videoId,
+        libraryRepo: _provider.libraryRepo,
+        musicRepo: _provider.musicRepo,
+      );
+      final title = meta.title;
+      final artist = meta.artist;
 
       stderr.writeln('$title — $artist');
       stderr.writeln();
@@ -114,4 +120,29 @@ class _Player {
   final List<String> args;
 
   const _Player(this.name, this.path, this.args);
+}
+
+/// Title/artist for `sonora play`. Prefers a completed download so playback
+/// can stay offline after [PlayVideoIdUseCase.resolveUrl] has already
+/// succeeded with a local file.
+Future<({String title, String artist})> resolveCliPlayMetadata({
+  required String videoId,
+  required LibraryRepository libraryRepo,
+  required MusicRepository musicRepo,
+}) async {
+  try {
+    final download = await libraryRepo.getDownload(videoId);
+    if (download != null &&
+        download.status == 'completed' &&
+        download.title.isNotEmpty) {
+      return (title: download.title, artist: download.artist);
+    }
+  } catch (_) {}
+
+  try {
+    final song = await musicRepo.getSong(videoId);
+    return (title: song.name, artist: displayArtists(song.artists));
+  } catch (_) {
+    return (title: videoId, artist: '');
+  }
 }
