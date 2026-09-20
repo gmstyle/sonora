@@ -32,6 +32,20 @@ String syncActionLabel(AppLocalizations l10n, LocalPlaylistModel playlist) {
   }
 }
 
+String syncSourceShortLabel(
+  AppLocalizations l10n,
+  LocalPlaylistModel playlist,
+) {
+  switch (playlist.sourceKind) {
+    case 'spotify':
+      return 'Spotify';
+    case 'youtube':
+      return 'YouTube';
+    default:
+      return l10n.linkedBadge;
+  }
+}
+
 String formatPlaylistSyncResult(
   AppLocalizations l10n,
   PlaylistSyncResult result, {
@@ -59,11 +73,44 @@ String formatPlaylistSyncResult(
   );
 }
 
+/// Confirm before pull-sync (remote wins on tracks/order; rename kept).
+Future<bool> confirmSyncLinkedPlaylist(
+  BuildContext context,
+  LocalPlaylistModel playlist,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: Text(syncActionLabel(l10n, playlist)),
+          content: Text(
+            l10n.playlistSyncConfirm(
+              playlist.name,
+              syncSourceShortLabel(l10n, playlist),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.syncInstead),
+            ),
+          ],
+        ),
+  );
+  return confirm == true;
+}
+
 /// Sync using a [ProviderContainer] that outlives dialogs/sheets (capture
 /// before [Navigator.pop]). Prefer this over a sheet's [WidgetRef].
 ///
-/// Shows a blocking [SyncLinkedPlaylistDialog] (identical for Spotify and
-/// YouTube). Spotify-only: rejects when [isSpotifySyncCoolingDown].
+/// Shows a confirm dialog, then a blocking [SyncLinkedPlaylistDialog]
+/// (identical for Spotify and YouTube). Spotify-only: rejects when
+/// [isSpotifySyncCoolingDown].
 Future<PlaylistSyncResult?> syncLinkedPlaylist(
   BuildContext context,
   ProviderContainer container,
@@ -78,6 +125,9 @@ Future<PlaylistSyncResult?> syncLinkedPlaylist(
   }
 
   if (!context.mounted) return null;
+  final confirmed = await confirmSyncLinkedPlaylist(context, playlist);
+  if (!confirmed || !context.mounted) return null;
+
   final result = await SyncLinkedPlaylistDialog.show(context, playlist);
   if (result == null) return null;
 

@@ -777,8 +777,15 @@
       "name": {"type": "String"}
     }
   },
+  "playlistSyncConfirm": "Sync \"{name}\" from {source}? Local track and order changes will be replaced by the remote playlist. A custom name is kept.",
+  "@playlistSyncConfirm": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "source": {"type": "String"}
+    }
+  },
   "playlistUnlinked": "Playlist unlinked",
-  "playlistAlreadyImported": "Already imported as \"{name}\". Sync instead?",
+  "playlistAlreadyImported": "Already imported as \"{name}\". Sync and replace the local track list with the remote playlist?",
   "@playlistAlreadyImported": {
     "placeholders": {
       "name": {"type": "String"}

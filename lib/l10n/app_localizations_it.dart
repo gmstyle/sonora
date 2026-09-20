@@ -1577,11 +1577,16 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String playlistSyncConfirm(String name, String source) {
+    return 'Sincronizzare \"$name\" da $source? Le modifiche locali a brani e ordine verranno sostituite dalla playlist remota. Il nome personalizzato resta.';
+  }
+
+  @override
   String get playlistUnlinked => 'Playlist scollegata';
 
   @override
   String playlistAlreadyImported(String name) {
-    return 'Già importata come \"$name\". Sincronizzare?';
+    return 'Già importata come \"$name\". Sincronizzare e sostituire la tracklist locale con quella remota?';
   }
 
   @override

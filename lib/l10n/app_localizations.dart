@@ -2714,6 +2714,12 @@ abstract class AppLocalizations {
   /// **'Unlink \"{name}\"? It stays as a local playlist and will no longer sync.'**
   String unlinkPlaylistConfirm(String name);
 
+  /// No description provided for @playlistSyncConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync \"{name}\" from {source}? Local track and order changes will be replaced by the remote playlist. A custom name is kept.'**
+  String playlistSyncConfirm(String name, String source);
+
   /// No description provided for @playlistUnlinked.
   ///
   /// In en, this message translates to:
@@ -2723,7 +2729,7 @@ abstract class AppLocalizations {
   /// No description provided for @playlistAlreadyImported.
   ///
   /// In en, this message translates to:
-  /// **'Already imported as \"{name}\". Sync instead?'**
+  /// **'Already imported as \"{name}\". Sync and replace the local track list with the remote playlist?'**
   String playlistAlreadyImported(String name);
 
   /// No description provided for @syncInstead.

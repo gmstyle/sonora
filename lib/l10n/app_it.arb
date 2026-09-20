@@ -607,8 +607,15 @@
       "name": {"type": "String"}
     }
   },
+  "playlistSyncConfirm": "Sincronizzare \"{name}\" da {source}? Le modifiche locali a brani e ordine verranno sostituite dalla playlist remota. Il nome personalizzato resta.",
+  "@playlistSyncConfirm": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "source": {"type": "String"}
+    }
+  },
   "playlistUnlinked": "Playlist scollegata",
-  "playlistAlreadyImported": "Già importata come \"{name}\". Sincronizzare?",
+  "playlistAlreadyImported": "Già importata come \"{name}\". Sincronizzare e sostituire la tracklist locale con quella remota?",
   "@playlistAlreadyImported": {
     "placeholders": {
       "name": {"type": "String"}

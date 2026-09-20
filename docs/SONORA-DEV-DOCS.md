@@ -294,7 +294,7 @@ Imported playlists stay **linked** to the remote source (`linkStatus = linked`, 
 
 | Action | Behavior |
 |---|---|
-| **Sync** | Blocking dialog (spinner + progress, same UX for YouTube and Spotify). `RefreshLinkedPlaylistUseCase` fetches the remote snapshot, resolves tracks (YouTube directly; Spotify via match cache + matcher), then `replacePlaylistEntries` (transactional delete+insert). Remote wins on membership and order. Local name is preserved if the user renamed it (local name ≠ `remoteName`); otherwise the name updates to the remote title. Returns `PlaylistSyncResult` (`added` / `removed` / `reordered` / `skipped`). |
+| **Sync** | Confirm dialog (remote wins on tracks/order; custom name kept), then blocking progress dialog. `RefreshLinkedPlaylistUseCase` fetches the remote snapshot, resolves tracks (YouTube directly; Spotify via match cache + matcher), then `replacePlaylistEntries` (transactional delete+insert). Returns `PlaylistSyncResult` (`added` / `removed` / `reordered` / `skipped`). |
 | **Spotify rate limit** | Public Spotify embed CDN lags the app by hours. After import and after each **successful** sync, Sync stays disabled for **12 hours** (`lastSyncedAt` + `kSpotifySyncCooldown`). Button label stays static (no countdown). YouTube has no rate limit. |
 | **Unlink** | Clears link fields and sets `linkStatus = unlinked` — local fork, no further sync. |
 | **Re-import same URL** | Dedupes on `(sourceKind, remoteId)` and offers sync instead of creating a duplicate (`PlaylistAlreadyLinkedException`). Same 12h Spotify gate applies. |

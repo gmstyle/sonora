@@ -1569,11 +1569,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String playlistSyncConfirm(String name, String source) {
+    return 'Sync \"$name\" from $source? Local track and order changes will be replaced by the remote playlist. A custom name is kept.';
+  }
+
+  @override
   String get playlistUnlinked => 'Playlist unlinked';
 
   @override
   String playlistAlreadyImported(String name) {
-    return 'Already imported as \"$name\". Sync instead?';
+    return 'Already imported as \"$name\". Sync and replace the local track list with the remote playlist?';
   }
 
   @override
