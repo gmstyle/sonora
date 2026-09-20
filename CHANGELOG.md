@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.5+66] - 2026-09-17
+
+### Bug Fixes
+
+- **library**: Show Go to Artist on imported playlist tracks
+
 ## [1.8.4+65] - 2026-09-17
 
 ### Features
