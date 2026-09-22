@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.7+68] - 2026-09-22
+
+### Bug Fixes
+
+- **downloads**: Capture context-menu song download before sheet close
+- **downloads**: Keep context-menu collection downloads after sheet close
+
 ## [1.8.6+67] - 2026-09-20
 
 ### Features
