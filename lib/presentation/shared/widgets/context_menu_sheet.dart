@@ -1760,10 +1760,16 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final container = ProviderScope.containerOf(context);
                         final rootContext =
                             Navigator.of(context, rootNavigator: true).context;
                         Navigator.pop(context);
-                        _downloadAlbum(rootContext, ref, albumFuture, feedback);
+                        _downloadAlbum(
+                          rootContext,
+                          container,
+                          albumFuture,
+                          feedback,
+                        );
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.share))
@@ -1853,14 +1859,14 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
 
   Future<void> _downloadAlbum(
     BuildContext context,
-    WidgetRef ref,
+    ProviderContainer container,
     Future<AlbumFull> albumFuture,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
       final album = await albumFuture;
       if (album.songs.isEmpty) return;
-      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final notifier = container.read(activeDownloadsProvider.notifier);
       final toDownload =
           album.songs.where((s) => !notifier.isDownloading(s.videoId)).toList();
       if (toDownload.isEmpty) {
@@ -1874,7 +1880,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
       }
 
       final alreadyDownloaded =
-          ref
+          container
               .read(allDownloadsProvider)
               .asData
               ?.value
@@ -2083,13 +2089,22 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                       label: AppLocalizations.of(context)!.download,
                       enabled: !isOffline,
                       onTap: () {
+                        final podcastFuture = ref.read(
+                          podcastProvider(browseId).future,
+                        );
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final container = ProviderScope.containerOf(context);
                         final rootContext =
                             Navigator.of(context, rootNavigator: true).context;
                         Navigator.pop(context);
-                        _downloadPodcast(rootContext, ref, feedback);
+                        _downloadPodcast(
+                          rootContext,
+                          container,
+                          podcastFuture,
+                          feedback,
+                        );
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.share))
@@ -2188,12 +2203,13 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
 
   Future<void> _downloadPodcast(
     BuildContext context,
-    WidgetRef ref,
+    ProviderContainer container,
+    Future<PodcastFull> podcastFuture,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
-      final podcast = await ref.read(podcastProvider(browseId).future);
-      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final podcast = await podcastFuture;
+      final notifier = container.read(activeDownloadsProvider.notifier);
       final episodes = podcast.episodes.where((e) => e.videoId.isNotEmpty);
       final toDownload =
           episodes.where((e) => !notifier.isDownloading(e.videoId)).toList();
@@ -2208,7 +2224,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
       }
 
       final alreadyDownloaded =
-          ref
+          container
               .read(allDownloadsProvider)
               .asData
               ?.value
@@ -2740,12 +2756,13 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final container = ProviderScope.containerOf(context);
                         final rootContext =
                             Navigator.of(context, rootNavigator: true).context;
                         Navigator.pop(context);
                         _downloadPlaylist(
                           rootContext,
-                          ref,
+                          container,
                           videosFuture,
                           feedback,
                         );
@@ -2829,14 +2846,14 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
 
   Future<void> _downloadPlaylist(
     BuildContext context,
-    WidgetRef ref,
+    ProviderContainer container,
     Future<List<VideoDetailed>> videosFuture,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
       final videos = await videosFuture;
       if (videos.isEmpty) return;
-      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final notifier = container.read(activeDownloadsProvider.notifier);
       final toDownload =
           videos.where((v) => !notifier.isDownloading(v.videoId)).toList();
       if (toDownload.isEmpty) {
@@ -2850,7 +2867,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       }
 
       final alreadyDownloaded =
-          ref
+          container
               .read(allDownloadsProvider)
               .asData
               ?.value
