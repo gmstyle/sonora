@@ -322,11 +322,13 @@ class _OfflineBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isManualOffline = ref.watch(settingsProvider).offlineMode;
     final message =
         isManualOffline
             ? l10n.offlineModeActiveMessage
             : l10n.noConnectionActiveMessage;
+    final mark = isManualOffline ? colorScheme.tertiary : colorScheme.error;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -334,13 +336,11 @@ class _OfflineBanner extends ConsumerWidget {
         vertical: 8,
       ),
       child: Card(
-        color: theme.colorScheme.surfaceContainer,
+        color: colorScheme.surfaceContainerHigh,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colorScheme.outlineVariant),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -348,21 +348,43 @@ class _OfflineBanner extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
-                spacing: 16,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(LucideIcons.wifiOff, color: theme.colorScheme.primary),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: mark,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(message, style: theme.textTheme.bodyMedium),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.tonal(
-                  onPressed: () => context.go('/downloads'),
-                  child: Text(l10n.goToDownloads),
-                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (isManualOffline)
+                    OutlinedButton(
+                      onPressed:
+                          () => ref
+                              .read(settingsProvider.notifier)
+                              .setOfflineMode(false),
+                      child: Text(l10n.disableOfflineMode),
+                    ),
+                  FilledButton.tonal(
+                    onPressed: () => context.go('/downloads'),
+                    child: Text(l10n.goToDownloads),
+                  ),
+                ],
               ),
             ],
           ),

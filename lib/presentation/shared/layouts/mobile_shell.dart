@@ -64,10 +64,9 @@ class MobileShell extends ConsumerWidget {
 
     final hasDownloads = ref.watch(downloadBannerSummaryProvider) != null;
 
-    Widget dock = Column(
+    Widget dockBody = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (hasDownloads) const DownloadProgressBanner(),
         if (showPlayer) ...[
           const PlayerSheetMobile(),
           Divider(
@@ -80,18 +79,23 @@ class MobileShell extends ConsumerWidget {
       ],
     );
 
-    dock = ClipRRect(
+    dockBody = ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       child:
           reduceEffects
-              ? ColoredBox(color: cs.surfaceContainerHigh, child: dock)
+              ? ColoredBox(color: cs.surfaceContainerHigh, child: dockBody)
               : BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
                 child: ColoredBox(
                   color: cs.surfaceContainerHigh.withValues(alpha: 0.82),
-                  child: dock,
+                  child: dockBody,
                 ),
               ),
+    );
+
+    final dock = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [if (hasDownloads) const DownloadProgressBanner(), dockBody],
     );
 
     return Scaffold(

@@ -624,9 +624,10 @@ Sonora monitors network state globally using `connectivity_plus` and Settings `o
   - Android Auto `_isOffline()` ORs Settings `offlineMode` with physical disconnect.
   - `PlaylistOpenCoordinator.playNow` refuses to start if the initial engine URI is still a placeholder after resolve.
 - **Network CTA gating**: when `isOfflineProvider` is true, UI disables radio/download/cast/search submit/autoplay/related/sync entry points (context menus, CastButton, search field, queue autoplay, settings local-sync open, etc.). Local library actions (like/follow/subscribe, local playlists) stay enabled.
-- **Offline Banner & Cards**:
-  - `OfflineBanner` in `AppShell`: manual offline vs physical offline messaging; tap disables offline mode when manual.
-  - Home offline card: `offlineModeActiveMessage` vs `noConnectionActiveMessage`.
+- **Status chips** (same surface language as `FeedbackToast`: `surfaceContainerHigh`, radius 20, role mark):
+  - `OfflineBanner` in `AppShell`: top-right on all layouts (not in the wide sidebar). Manual offline → tap calls `setOfflineMode(false)`; physical offline is informational; connection restored auto-dismisses after 2 s.
+  - Home offline card: role mark + `offlineModeActiveMessage` / `noConnectionActiveMessage`; when manual offline, also `disableOfflineMode`; always offers `goToDownloads`.
+  - `DownloadProgressBanner`: floating progress chip above the dock (hidden on `/downloads`); batch downloads expose aggregate `progress` so the bar keeps moving.
 - **Error Interception**:
   - `PlayerErrorListener` and `ErrorRetryWidget` map socket/timeout errors to `weakConnectionError`.
 
@@ -1115,7 +1116,7 @@ final actionFeedbackProvider =
 
 `ActionFeedbackListener` (mounted in mobile / tablet / wide shells) listens and renders via `FeedbackToast`: an overlay chip at the top using `surfaceContainerHigh`, `onSurface`, radius 20, and an 8px role mark (`primary` or `error`). Duration is 2 s for confirm and 4 s for error. Copy must come from `AppLocalizations`; exception details go to `debugPrint`, not the chip.
 
-`OfflineBanner` remains a separate persistent status surface and does not emit a second transient message on tap.
+`OfflineBanner` remains a separate persistent status chip (top-right; tap disables manual offline) and does not emit a second transient message on tap. `DownloadProgressBanner` is the matching persistent progress chip above the dock.
 
 ---
 

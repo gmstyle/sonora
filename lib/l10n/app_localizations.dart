@@ -2549,7 +2549,7 @@ abstract class AppLocalizations {
   /// No description provided for @offlineNotification.
   ///
   /// In en, this message translates to:
-  /// **'You are offline. Downloaded tracks only'**
+  /// **'You\'re offline'**
   String get offlineNotification;
 
   /// No description provided for @connectionRestored.
@@ -2617,6 +2617,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Downloads'**
   String get goToDownloads;
+
+  /// No description provided for @disableOfflineMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off offline'**
+  String get disableOfflineMode;
 
   /// No description provided for @offlineModeDisabled.
   ///

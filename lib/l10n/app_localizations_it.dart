@@ -1487,8 +1487,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get openBluetoothSettings => 'Apri impostazioni Bluetooth';
 
   @override
-  String get offlineNotification =>
-      'Sei offline. Puoi riprodurre solo i brani scaricati';
+  String get offlineNotification => 'Sei offline';
 
   @override
   String get connectionRestored => 'Connessione ripristinata';
@@ -1531,6 +1530,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get goToDownloads => 'Vai a Downloads';
+
+  @override
+  String get disableOfflineMode => 'Disattiva offline';
 
   @override
   String get offlineModeDisabled => 'Modalità offline disattivata';

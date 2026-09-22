@@ -198,11 +198,15 @@ final downloadBannerSummaryProvider = Provider<DownloadBannerSummary?>((ref) {
     final name = batch?.name ?? working.first.batchName ?? '';
     final total = batch?.total ?? working.first.batchTotal ?? working.length;
     final done = batch?.completed ?? 0;
+    final inFlight = working.fold<double>(0, (sum, d) => sum + d.progress);
+    final progress =
+        total > 0 ? ((done + inFlight) / total).clamp(0.0, 1.0) : null;
     return DownloadBannerSummary(
       title: l10n.downloadingBatchProgress(name, done, total),
       subtitle: l10n.tapToOpenDownloads,
       action: DownloadBannerAction.cancelBatch,
       targetId: batchId,
+      progress: progress,
     );
   }
 

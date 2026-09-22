@@ -1,14 +1,14 @@
 import 'dart:async';
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../providers/connectivity_provider.dart';
 import '../../providers/settings_provider.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 
+/// Persistent offline status chip (top-right). Same surface language as
+/// [FeedbackToast] / download chip; not a transient toast.
 class OfflineBanner extends ConsumerStatefulWidget {
   const OfflineBanner({super.key});
 
@@ -89,158 +89,78 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner>
 
     if (!_showBanner) return const SizedBox.shrink();
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < kCompactBreakpoint;
-    final isTablet =
-        screenWidth >= kCompactBreakpoint && screenWidth < kExpandedBreakpoint;
-    final isWide = screenWidth >= kExpandedBreakpoint;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
-    final colorScheme = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context);
-
-    final bgColor =
-        _connectionRestored
-            ? colorScheme.primary.withValues(alpha: 0.9)
-            : (isManualOffline
-                ? colorScheme.tertiary.withValues(alpha: 0.9)
-                : colorScheme.error.withValues(alpha: 0.9));
-
-    final textColor =
-        _connectionRestored
-            ? colorScheme.onPrimary
-            : (isManualOffline ? colorScheme.onTertiary : colorScheme.onError);
-
-    final icon =
-        _connectionRestored
-            ? LucideIcons.wifi
-            : (isManualOffline ? LucideIcons.wifiOff : LucideIcons.wifiOff);
-
-    // Placement configurations
-    double? top;
-    double? bottom;
-    double? left;
-    double? right;
-
-    bool isCollapsedSidebar = false;
-    if (isWide) {
-      isCollapsedSidebar = ref.watch(sidebarCollapsedProvider);
-    }
-
-    if (isMobile) {
-      top = MediaQuery.of(context).padding.top + 8;
-      right = 16;
-    } else if (isTablet) {
-      top = MediaQuery.of(context).padding.top + 8;
-      right = 24;
-    } else {
-      bottom = 24;
-      if (isCollapsedSidebar) {
-        // Center inside the 72px sidebar
-        left = 16;
-      } else {
-        // Place beautifully inside the 240px wide sidebar
-        left = 24;
-      }
-    }
-
-    Widget content;
+    final Color mark;
+    final String label;
     if (_connectionRestored) {
-      content = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 6),
-          Text(
-            l10n?.connectionRestored ?? "Connessione ripristinata",
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      );
-    } else if (isMobile || (isWide && isCollapsedSidebar)) {
-      // Circle badge for mobile or collapsed wide sidebar
-      content = Tooltip(
-        message:
-            isManualOffline
-                ? (l10n?.offlineMode ?? "Offline Mode")
-                : (l10n?.offlineNotification ?? "Offline"),
-        child: Icon(icon, size: 16, color: textColor),
-      );
+      mark = colorScheme.primary;
+      label = l10n.connectionRestored;
+    } else if (isManualOffline) {
+      mark = colorScheme.tertiary;
+      label = l10n.offlineMode;
     } else {
-      // Capsule with text for tablet or expanded wide sidebar
-      final text =
-          isManualOffline
-              ? (l10n?.offlineMode ?? "Offline Mode")
-              : (l10n?.offlineNotification ?? "Offline");
-      content = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      );
+      mark = colorScheme.error;
+      label = l10n.offlineNotification;
     }
 
-    final isRound =
-        (isMobile || (isWide && isCollapsedSidebar)) && !_connectionRestored;
+    final canTap = isManualOffline && !_connectionRestored;
+    final top = MediaQuery.of(context).padding.top + 8;
 
     return Positioned(
       top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
+      right: 12,
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          final slideOffset =
-              isWide ? -_slideAnimation.value : _slideAnimation.value;
           return Transform.translate(
-            offset: Offset(0, slideOffset),
+            offset: Offset(0, _slideAnimation.value),
             child: Opacity(opacity: _opacityAnimation.value, child: child),
           );
         },
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => _handleTap(isManualOffline),
-            borderRadius: BorderRadius.circular(32),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(32),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isRound ? 12 : 16,
-                    vertical: isRound ? 12 : 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(
-                      color: textColor.withValues(alpha: 0.2),
-                      width: 1.0,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+            onTap: canTap ? () => _handleTap(isManualOffline) : null,
+            borderRadius: BorderRadius.circular(20),
+            child: Ink(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: mark,
+                        shape: BoxShape.circle,
                       ),
-                    ],
-                  ),
-                  child: content,
+                    ),
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

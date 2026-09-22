@@ -141,7 +141,7 @@ class _WideShellState extends ConsumerState<WideShell> {
                         isPlayerActive
                             ? 72.0
                             : (ref.watch(downloadBannerSummaryProvider) != null
-                                ? 52.0
+                                ? 72.0
                                 : 0.0),
                   ),
                   child: BranchFadeTransition(
