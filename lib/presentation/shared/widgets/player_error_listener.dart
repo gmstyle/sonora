@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/player_provider.dart';
-import 'feedback_toast.dart';
 
 class PlayerErrorListener extends ConsumerStatefulWidget {
   const PlayerErrorListener({super.key});
@@ -57,7 +57,9 @@ class _PlayerErrorListenerState extends ConsumerState<PlayerErrorListener> {
         }
       }
 
-      FeedbackToast.show(context, displayMessage);
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(displayMessage, kind: FeedbackKind.error);
     });
     return const SizedBox.shrink();
   }

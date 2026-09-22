@@ -10,8 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/connectivity_provider.dart';
+import '../../../providers/action_feedback_provider.dart';
 import '../../../shared/widgets/explicit_badge.dart';
-import '../../../shared/widgets/feedback_toast.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/video_badge.dart';
 
@@ -449,10 +449,12 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                                   ? () {
                                     final l10n = AppLocalizations.of(context);
                                     if (l10n != null) {
-                                      FeedbackToast.show(
-                                        context,
-                                        l10n.trackUnplayable(item.title),
-                                      );
+                                      ref
+                                          .read(actionFeedbackProvider.notifier)
+                                          .report(
+                                            l10n.trackUnplayable(item.title),
+                                            kind: FeedbackKind.error,
+                                          );
                                     }
                                   }
                                   : () => notifier.skipToIndex(index),
@@ -513,10 +515,12 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                                 ? () {
                                   final l10n = AppLocalizations.of(context);
                                   if (l10n != null) {
-                                    FeedbackToast.show(
-                                      context,
-                                      l10n.trackUnplayable(item.title),
-                                    );
+                                    ref
+                                        .read(actionFeedbackProvider.notifier)
+                                        .report(
+                                          l10n.trackUnplayable(item.title),
+                                          kind: FeedbackKind.error,
+                                        );
                                   }
                                 }
                                 : () => notifier.skipToIndex(globalIndex),

@@ -155,11 +155,10 @@ class _UserVideosBody extends ConsumerWidget {
           .read(playerStateProvider.notifier)
           .playPlaylist(videos, startIndex: startIndex);
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.failedToPlay(e.toString()))),
-        );
-      }
+      debugPrint('Failed to play user videos: $e');
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -176,11 +175,10 @@ class _UserVideosBody extends ConsumerWidget {
           .read(playerStateProvider.notifier)
           .playPlaylist(shuffled, startIndex: 0);
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.failedToPlay(e.toString()))),
-        );
-      }
+      debugPrint('Failed to shuffle play user videos: $e');
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 }

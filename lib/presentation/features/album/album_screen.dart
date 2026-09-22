@@ -370,10 +370,14 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     try {
       await player.playAlbum(widget.album.songs, startIndex: startIndex);
     } catch (e) {
+      debugPrint('Failed to play album: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play album: $e')));
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToPlay,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -764,19 +768,19 @@ class _AlbumActions extends ConsumerWidget {
       final items = await useCase.execute(album.songs, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Added ${items.length} song${items.length == 1 ? '' : 's'} to queue',
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(AppLocalizations.of(context)!.addedToQueue(items.length));
       }
     } catch (e) {
+      debugPrint('Failed to add to queue: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to add to queue: $e')));
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToAddToQueue,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -786,15 +790,19 @@ class _AlbumActions extends ConsumerWidget {
     WidgetRef ref,
     AlbumFull album,
   ) async {
-    ref.read(actionFeedbackProvider.notifier).report('Playing ${album.name}…');
+    final l10n = AppLocalizations.of(context)!;
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(l10n.playingPlaylist(album.name));
     final player = ref.read(playerStateProvider.notifier);
     try {
       await player.playAlbum(album.songs, startIndex: 0);
     } catch (e) {
+      debugPrint('Failed to play album: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play album: $e')));
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToPlay, kind: FeedbackKind.error);
       }
     }
   }
@@ -804,18 +812,20 @@ class _AlbumActions extends ConsumerWidget {
     WidgetRef ref,
     AlbumFull album,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     ref
         .read(actionFeedbackProvider.notifier)
-        .report('Shuffling ${album.name}…');
+        .report(l10n.shufflingPlaylist(album.name));
     final player = ref.read(playerStateProvider.notifier);
     final shuffled = List<SongDetailed>.from(album.songs)..shuffle();
     try {
       await player.playAlbum(shuffled, startIndex: 0);
     } catch (e) {
+      debugPrint('Failed to play album: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to play album: $e')));
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToPlay, kind: FeedbackKind.error);
       }
     }
   }

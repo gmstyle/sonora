@@ -449,10 +449,10 @@ class _PlaylistDetailContentState
       );
       await _buildMediaItemsAndPlay(entries, startIndex: 0);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.failedToPlayPlaylist(e.toString()))),
-      );
+      debugPrint('Failed to play local playlist: $e');
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.failedToPlayPlaylist, kind: FeedbackKind.error);
     }
   }
 
@@ -468,10 +468,10 @@ class _PlaylistDetailContentState
       final shuffled = List<PlaylistEntryModel>.from(entries)..shuffle();
       await _buildMediaItemsAndPlay(shuffled, startIndex: 0);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.failedToPlayPlaylist(e.toString()))),
-      );
+      debugPrint('Failed to shuffle play local playlist: $e');
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.failedToPlayPlaylist, kind: FeedbackKind.error);
     }
   }
 
@@ -486,10 +486,10 @@ class _PlaylistDetailContentState
         isExplicit: entry.isExplicit,
       );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.failedToPlay(e.toString()))));
+      debugPrint('Failed to play playlist song: $e');
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -504,15 +504,14 @@ class _PlaylistDetailContentState
           .read(libraryNotifierProvider.notifier)
           .buildLocalPlaylistItems(entries, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.addedToQueue(items.length))));
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.addedToQueue(items.length));
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.failedToAddToQueue(e.toString()))),
-      );
+      debugPrint('Failed to add local playlist to queue: $e');
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
     }
   }
 
@@ -532,10 +531,9 @@ class _PlaylistDetailContentState
             .toList();
 
     if (toDownload.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.allSongsAlreadyDownloading)));
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.allSongsAlreadyDownloading);
       return;
     }
 

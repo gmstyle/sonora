@@ -256,9 +256,9 @@ No widget ever directly calls `ref.read(*repositoryProvider)`. Allowed paths:
 The domain layer uses `sealed class Failure` for typed errors (Server, Cache, Network, Unknown). The presentation layer uses:
 
 - `ErrorRetryWidget` for inline error states
-- `SnackBar` / `FeedbackToast` for contextual errors
-- `PlayerNotifier.hasError` / `errorMessage` for playback errors
-- `ActionFeedbackNotifier` for transient toast messages
+- `ActionFeedbackNotifier` / `FeedbackToast` for transient confirm and error messages
+- `OfflineBanner` for persistent offline / connection state
+- `PlayerNotifier.hasError` / `errorMessage` for playback errors (surfaced via action feedback)
 
 ### 4.4 Stat Formatting
 
@@ -1102,14 +1102,20 @@ final paletteNotifierProvider =
 
 ## 17. Action Feedback
 
-`action_feedback_provider.dart` provides transient toast-like messages for user actions (e.g., "Added to queue", "Download started"):
+`action_feedback_provider.dart` is the single entry point for transient UI messages (e.g. "Added to queue", play/shuffle started, soft errors):
 
 ```dart
+enum FeedbackKind { confirm, error }
+
+void report(String message, {FeedbackKind kind = FeedbackKind.confirm});
+
 final actionFeedbackProvider =
     NotifierProvider<ActionFeedbackNotifier, ActionFeedback?>();
 ```
 
-Consumed by `action_feedback_listener.dart` and `feedback_toast.dart` widgets.
+`ActionFeedbackListener` (mounted in mobile / tablet / wide shells) listens and renders via `FeedbackToast`: an overlay chip at the top using `surfaceContainerHigh`, `onSurface`, radius 20, and an 8px role mark (`primary` or `error`). Duration is 2 s for confirm and 4 s for error. Copy must come from `AppLocalizations`; exception details go to `debugPrint`, not the chip.
+
+`OfflineBanner` remains a separate persistent status surface and does not emit a second transient message on tap.
 
 ---
 

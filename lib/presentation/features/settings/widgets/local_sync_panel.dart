@@ -7,6 +7,7 @@ import '../../../../data/services/sync_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/sync_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../providers/action_feedback_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 
 class LocalSyncPanel extends ConsumerStatefulWidget {
@@ -97,9 +98,7 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
       if (err.contains('socketexception') || err.contains('host unreachable')) {
         friendlyError = l10n.weakConnectionError;
       } else if (err.contains('permission denied')) {
-        friendlyError = l10n.failedToPlay(
-          'Network permission denied. Please check app permissions.',
-        );
+        friendlyError = l10n.networkPermissionDenied;
       }
     }
 
@@ -508,9 +507,9 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
 
             await ref.read(syncNotifierProvider.notifier).clearPairedDevices();
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.resetPairedDevicesSuccess)),
-              );
+              ref
+                  .read(actionFeedbackProvider.notifier)
+                  .report(l10n.resetPairedDevicesSuccess);
             }
           },
         ),

@@ -51,28 +51,9 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner>
     super.dispose();
   }
 
-  void _handleTap(BuildContext context, bool isManualOffline) {
+  void _handleTap(bool isManualOffline) {
     if (isManualOffline) {
       ref.read(settingsProvider.notifier).setOfflineMode(false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)?.offlineModeDisabled ??
-                "Offline mode disabled",
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)?.noConnectionMessage ??
-                "No internet connection. Check your network.",
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
     }
   }
 
@@ -232,7 +213,7 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner>
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => _handleTap(context, isManualOffline),
+            onTap: () => _handleTap(isManualOffline),
             borderRadius: BorderRadius.circular(32),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(32),

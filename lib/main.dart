@@ -48,6 +48,7 @@ import 'presentation/providers/player_provider.dart';
 import 'presentation/providers/settings_provider.dart';
 import 'presentation/providers/sync_provider.dart';
 import 'presentation/providers/cast_provider.dart';
+import 'presentation/providers/action_feedback_provider.dart';
 import 'presentation/providers/stream_datasource_provider.dart';
 
 import 'presentation/providers/theme_provider.dart';
@@ -580,15 +581,15 @@ class _PairingPinDialogState extends State<_PairingPinDialog> {
       }
     });
 
-    final messenger = ScaffoldMessenger.maybeOf(widget.navContext);
+    final messengerContainer = ProviderScope.containerOf(widget.navContext);
 
     widget.request.completer.future.then((paired) {
       if (mounted) {
         Navigator.of(context).pop();
-        if (paired == true && messenger != null) {
-          messenger.showSnackBar(
-            SnackBar(content: Text(widget.pairingSuccessText)),
-          );
+        if (paired == true) {
+          messengerContainer
+              .read(actionFeedbackProvider.notifier)
+              .report(widget.pairingSuccessText);
         }
       }
     });

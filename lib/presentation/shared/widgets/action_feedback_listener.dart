@@ -18,7 +18,7 @@ class _ActionFeedbackListenerState
   Widget build(BuildContext context) {
     ref.listen<ActionFeedback?>(actionFeedbackProvider, (prev, next) {
       if (next != null && prev?.message != next.message) {
-        FeedbackToast.show(context, next.message);
+        FeedbackToast.show(context, next.message, kind: next.kind);
         ref.read(actionFeedbackProvider.notifier).clear();
       }
     });

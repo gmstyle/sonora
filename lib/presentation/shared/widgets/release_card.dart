@@ -49,15 +49,19 @@ class _ReleaseCardState extends ConsumerState<ReleaseCard> {
   bool _isHovered = false;
 
   Future<void> _play() async {
-    ref.read(actionFeedbackProvider.notifier).report('Playing ${widget.name}…');
+    final l10n = AppLocalizations.of(context)!;
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(l10n.playingPlaylist(widget.name));
     try {
       final album = await ref.read(albumProvider(widget.albumId).future);
       final player = ref.read(playerStateProvider.notifier);
       await player.playAlbum(album.songs, startIndex: 0);
     } catch (e) {
+      debugPrint('Failed to play release: $e');
       ref
           .read(actionFeedbackProvider.notifier)
-          .report('Failed to play release: $e');
+          .report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 

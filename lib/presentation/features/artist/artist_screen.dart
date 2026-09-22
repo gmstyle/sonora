@@ -520,15 +520,15 @@ class _ArtistTopSongsSectionState
         _loading = false;
       });
     } catch (e) {
+      debugPrint('Failed to load songs: $e');
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.failedToLoadSongs(e.toString()),
-          ),
-        ),
-      );
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(
+            AppLocalizations.of(context)!.failedToLoadSongs,
+            kind: FeedbackKind.error,
+          );
     }
   }
 }
@@ -963,23 +963,19 @@ class _ArtistActions extends ConsumerWidget {
       final items = await useCase.execute(songs, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.addedToQueue(items.length),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(AppLocalizations.of(context)!.addedToQueue(items.length));
       }
     } catch (e) {
+      debugPrint('Failed to add to queue: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToAddToQueue(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToAddToQueue,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -990,20 +986,20 @@ class _ArtistActions extends ConsumerWidget {
     ArtistFull artist,
   ) async {
     if (artist.topSongs.isEmpty) return;
-    ref.read(actionFeedbackProvider.notifier).report('Playing ${artist.name}…');
+    final l10n = AppLocalizations.of(context)!;
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(l10n.playingArtist(artist.name));
     final player = ref.read(playerStateProvider.notifier);
     try {
       final songs = await _resolveAllTopSongs(ref, artist);
       await player.playAlbum(songs, startIndex: 0);
     } catch (e) {
+      debugPrint('Failed to play artist: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlay(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToPlay, kind: FeedbackKind.error);
       }
     }
   }
@@ -1013,9 +1009,10 @@ class _ArtistActions extends ConsumerWidget {
     WidgetRef ref,
     ArtistFull artist,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     ref
         .read(actionFeedbackProvider.notifier)
-        .report('Shuffling ${artist.name}…');
+        .report(l10n.shufflingArtist(artist.name));
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(startRadioUseCaseProvider);
 
@@ -1041,14 +1038,11 @@ class _ArtistActions extends ConsumerWidget {
       final shuffled = List<SongDetailed>.from(songs)..shuffle();
       await player.playAlbum(shuffled, startIndex: 0);
     } catch (e) {
+      debugPrint('Failed to play artist: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlay(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToPlay, kind: FeedbackKind.error);
       }
     }
   }

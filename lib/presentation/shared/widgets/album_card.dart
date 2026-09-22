@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -42,15 +43,19 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
   bool _isHovered = false;
 
   Future<void> _play() async {
-    ref.read(actionFeedbackProvider.notifier).report('Playing ${widget.name}…');
+    final l10n = AppLocalizations.of(context)!;
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(l10n.playingPlaylist(widget.name));
     try {
       final album = await ref.read(albumProvider(widget.albumId).future);
       final player = ref.read(playerStateProvider.notifier);
       await player.playAlbum(album.songs, startIndex: 0);
     } catch (e) {
+      debugPrint('Failed to play album: $e');
       ref
           .read(actionFeedbackProvider.notifier)
-          .report('Failed to play album: $e');
+          .report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 

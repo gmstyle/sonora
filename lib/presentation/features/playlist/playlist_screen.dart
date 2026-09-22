@@ -700,23 +700,19 @@ class _PlaylistActions extends ConsumerWidget {
       final items = await useCase.execute(videos, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.addedToQueue(items.length),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(AppLocalizations.of(context)!.addedToQueue(items.length));
       }
     } catch (e) {
+      debugPrint('Failed to add playlist to queue: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToAddToQueue(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToAddToQueue,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -733,14 +729,14 @@ class _PlaylistActions extends ConsumerWidget {
     try {
       await player.playPlaylist(videos, startIndex: 0);
     } catch (e) {
+      debugPrint('Failed to play playlist: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlayPlaylist(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToPlayPlaylist,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -777,16 +773,14 @@ class _PlaylistActions extends ConsumerWidget {
       try {
         await player.playPlaylist(shuffled, startIndex: 0);
       } catch (e) {
+        debugPrint('Failed to shuffle play playlist: $e');
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(
-                  context,
-                )!.failedToPlayPlaylist(e.toString()),
-              ),
-            ),
-          );
+          ref
+              .read(actionFeedbackProvider.notifier)
+              .report(
+                AppLocalizations.of(context)!.failedToPlayPlaylist,
+                kind: FeedbackKind.error,
+              );
         }
       }
     }
@@ -904,14 +898,14 @@ class _VideoTracklist extends ConsumerWidget {
     try {
       await player.playPlaylist(videos, startIndex: startIndex);
     } catch (e) {
+      debugPrint('Failed to play playlist track: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlay(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToPlay,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }

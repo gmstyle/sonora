@@ -197,8 +197,8 @@ abstract class AppLocalizations {
   /// No description provided for @failedToLoadSongs.
   ///
   /// In en, this message translates to:
-  /// **'Failed to load songs: {error}'**
-  String failedToLoadSongs(String error);
+  /// **'Failed to load songs'**
+  String get failedToLoadSongs;
 
   /// No description provided for @playTopSongs.
   ///
@@ -233,8 +233,8 @@ abstract class AppLocalizations {
   /// No description provided for @failedToPlay.
   ///
   /// In en, this message translates to:
-  /// **'Failed to play: {error}'**
-  String failedToPlay(String error);
+  /// **'Failed to play'**
+  String get failedToPlay;
 
   /// No description provided for @shufflingArtist.
   ///
@@ -341,8 +341,8 @@ abstract class AppLocalizations {
   /// No description provided for @failedToAddToQueue.
   ///
   /// In en, this message translates to:
-  /// **'Failed to add to queue: {error}'**
-  String failedToAddToQueue(String error);
+  /// **'Failed to add to queue'**
+  String get failedToAddToQueue;
 
   /// No description provided for @playingPlaylist.
   ///
@@ -353,8 +353,32 @@ abstract class AppLocalizations {
   /// No description provided for @failedToPlayPlaylist.
   ///
   /// In en, this message translates to:
-  /// **'Failed to play playlist: {error}'**
-  String failedToPlayPlaylist(String error);
+  /// **'Failed to play playlist'**
+  String get failedToPlayPlaylist;
+
+  /// No description provided for @addedEpisodesToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {count, plural, =1{1 episode} other{{count} episodes}} to queue'**
+  String addedEpisodesToQueue(int count);
+
+  /// No description provided for @noSongsInMix.
+  ///
+  /// In en, this message translates to:
+  /// **'No songs in this mix'**
+  String get noSongsInMix;
+
+  /// No description provided for @playingSongsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing {count, plural, =1{1 song} other{{count} songs}}…'**
+  String playingSongsCount(int count);
+
+  /// No description provided for @shufflingSongsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffling {count, plural, =1{1 song} other{{count} songs}}…'**
+  String shufflingSongsCount(int count);
 
   /// No description provided for @shufflingPlaylist.
   ///
@@ -1319,8 +1343,8 @@ abstract class AppLocalizations {
   /// No description provided for @exportFailed.
   ///
   /// In en, this message translates to:
-  /// **'Export failed: {error}'**
-  String exportFailed(String error);
+  /// **'Export failed'**
+  String get exportFailed;
 
   /// No description provided for @importBackup.
   ///
@@ -1349,8 +1373,14 @@ abstract class AppLocalizations {
   /// No description provided for @importFailed.
   ///
   /// In en, this message translates to:
-  /// **'Import failed: {error}'**
-  String importFailed(String error);
+  /// **'Import failed'**
+  String get importFailed;
+
+  /// No description provided for @networkPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Network permission denied. Please check app permissions.'**
+  String get networkPermissionDenied;
 
   /// No description provided for @localSync.
   ///

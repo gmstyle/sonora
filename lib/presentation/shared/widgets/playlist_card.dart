@@ -72,10 +72,11 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
         await player.playPlaylist(songs, startIndex: 0);
       }
     } catch (e) {
+      debugPrint('Failed to play playlist: $e');
       if (!mounted) return;
       ref
           .read(actionFeedbackProvider.notifier)
-          .report(l10n.failedToPlayPlaylist(e.toString()));
+          .report(l10n.failedToPlayPlaylist, kind: FeedbackKind.error);
     }
   }
 

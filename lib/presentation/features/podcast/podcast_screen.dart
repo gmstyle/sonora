@@ -621,23 +621,19 @@ class _PodcastActions extends ConsumerWidget {
       );
       if (items.isNotEmpty) await player.addAllToQueue(items);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.addedToQueue(items.length),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(AppLocalizations.of(context)!.addedToQueue(items.length));
       }
     } catch (e) {
+      debugPrint('Failed to add podcast to queue: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToAddToQueue(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToAddToQueue,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -657,14 +653,14 @@ class _PodcastActions extends ConsumerWidget {
         startIndex: 0,
       );
     } catch (e) {
+      debugPrint('Failed to play podcast: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlay(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToPlay,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -685,14 +681,14 @@ class _PodcastActions extends ConsumerWidget {
         startIndex: 0,
       );
     } catch (e) {
+      debugPrint('Failed to shuffle play podcast: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlay(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToPlay,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -823,14 +819,14 @@ class _EpisodeTracklist extends ConsumerWidget {
         startIndex: startIndex,
       );
     } catch (e) {
+      debugPrint('Failed to play podcast episode: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlay(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToPlay,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }

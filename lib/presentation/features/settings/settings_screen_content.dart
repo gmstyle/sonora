@@ -14,6 +14,7 @@ import '../../../core/utils/platform_utils.dart';
 import '../../../domain/models/media_cache_size.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
 import '../../providers/library_notifier.dart';
@@ -138,7 +139,11 @@ class SettingsCategoryContent extends ConsumerWidget {
           children: [
             _PlaybackSection(settings: settings, notifier: notifier),
             _ContentSection(settings: settings, notifier: notifier),
-            _ConnectionSection(settings: settings, notifier: notifier),
+            _ConnectionSection(
+              settings: settings,
+              notifier: notifier,
+              ref: ref,
+            ),
           ],
         );
       case SettingsCategory.downloads:
@@ -453,8 +458,13 @@ class _DownloadSection extends StatelessWidget {
 class _ConnectionSection extends StatelessWidget {
   final Settings settings;
   final SettingsNotifier notifier;
+  final WidgetRef ref;
 
-  const _ConnectionSection({required this.settings, required this.notifier});
+  const _ConnectionSection({
+    required this.settings,
+    required this.notifier,
+    required this.ref,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -470,12 +480,9 @@ class _ConnectionSection extends StatelessWidget {
             await notifier.setOfflineMode(value);
             if (!context.mounted) return;
             if (value) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.offlineModeKeepCurrentHint),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
+              ref
+                  .read(actionFeedbackProvider.notifier)
+                  .report(l10n.offlineModeKeepCurrentHint);
             }
           },
           icon: LucideIcons.wifiOff,
@@ -593,11 +600,9 @@ class _PrivacySection extends StatelessWidget {
       await ref.read(libraryNotifierProvider.notifier).clearSearchHistory();
       if (context.mounted) {
         ref.invalidate(recentSearchesProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.searchHistoryCleared),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(AppLocalizations.of(context)!.searchHistoryCleared);
       }
     }
   }
@@ -627,13 +632,9 @@ class _PrivacySection extends StatelessWidget {
       await ref.read(libraryNotifierProvider.notifier).clearHistory();
       if (context.mounted) {
         ref.invalidate(libraryHistoryProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.listeningHistoryCleared,
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(AppLocalizations.of(context)!.listeningHistoryCleared);
       }
     }
   }
@@ -692,13 +693,9 @@ class _BackupSection extends StatelessWidget {
             '${destDir.path}/sonora-backup-${DateTime.now().millisecondsSinceEpoch}.zip';
         await file.copy(destPath);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context)!.backupSaved(destPath),
-              ),
-            ),
-          );
+          ref
+              .read(actionFeedbackProvider.notifier)
+              .report(AppLocalizations.of(context)!.backupSaved(destPath));
         }
       } else {
         await SharePlus.instance.share(
@@ -708,24 +705,20 @@ class _BackupSection extends StatelessWidget {
           ),
         );
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context)!.backupExportedSuccessfully,
-              ),
-            ),
-          );
+          ref
+              .read(actionFeedbackProvider.notifier)
+              .report(AppLocalizations.of(context)!.backupExportedSuccessfully);
         }
       }
     } catch (e) {
+      debugPrint('Export failed: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.exportFailed(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.exportFailed,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -782,23 +775,19 @@ class _BackupSection extends StatelessWidget {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.backupImportedSuccessfully,
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(AppLocalizations.of(context)!.backupImportedSuccessfully);
       }
     } catch (e) {
+      debugPrint('Import failed: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.importFailed(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.importFailed,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }
@@ -897,9 +886,9 @@ class _LocalSyncSection extends StatelessWidget {
                   .read(syncNotifierProvider.notifier)
                   .clearPairedDevices();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.resetPairedDevicesSuccess)),
-                );
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(l10n.resetPairedDevicesSuccess);
               }
             },
           ),

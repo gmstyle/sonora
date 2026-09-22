@@ -84,25 +84,21 @@ class FavoritesTab extends ConsumerWidget {
   ) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
     ref
         .read(actionFeedbackProvider.notifier)
-        .report(
-          'Playing ${songs.length} ${AppLocalizations.of(context)!.songs}…',
-        );
+        .report(l10n.playingSongsCount(songs.length));
     try {
       final items = await _buildItems(useCase, songs);
       if (items.isNotEmpty) {
         await player.playNow(items, initialIndex: 0);
       }
     } catch (e) {
+      debugPrint('Failed to load songs: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToLoadSongs('$e'),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToLoadSongs, kind: FeedbackKind.error);
       }
     }
   }
@@ -114,11 +110,10 @@ class FavoritesTab extends ConsumerWidget {
   ) async {
     final useCase = ref.read(playVideoIdUseCaseProvider);
     final player = ref.read(playerStateProvider.notifier);
+    final l10n = AppLocalizations.of(context)!;
     ref
         .read(actionFeedbackProvider.notifier)
-        .report(
-          'Shuffling ${songs.length} ${AppLocalizations.of(context)!.songs}…',
-        );
+        .report(l10n.shufflingSongsCount(songs.length));
     try {
       final shuffled = List<LikedSongModel>.from(songs)..shuffle();
       final items = await _buildItems(useCase, shuffled);
@@ -126,14 +121,11 @@ class FavoritesTab extends ConsumerWidget {
         await player.playNow(items);
       }
     } catch (e) {
+      debugPrint('Failed to load songs: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToLoadSongs('$e'),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToLoadSongs, kind: FeedbackKind.error);
       }
     }
   }

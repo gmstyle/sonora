@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:sonora/core/constants/app_constants.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -138,15 +139,14 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     final items = await useCase.execute(songs: songs, playIndex: -1);
     try {
       if (items.isNotEmpty) await player.addAllToQueue(items);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.addedToQueue(items.length))));
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.addedToQueue(items.length));
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.failedToAddToQueue(e.toString()))),
-      );
+      debugPrint('Failed to add smart mix to queue: $e');
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
     }
   }
 

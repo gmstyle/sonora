@@ -83,7 +83,9 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
   Future<void> _play() async {
     final l10n = AppLocalizations.of(context);
     final title = _getTitle(l10n!);
-    ref.read(actionFeedbackProvider.notifier).report('Playing $title…');
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(l10n.playingPlaylist(title));
 
     try {
       List<dynamic> songs = [];
@@ -105,12 +107,13 @@ class _SmartMixCardState extends ConsumerState<SmartMixCard> {
       } else {
         ref
             .read(actionFeedbackProvider.notifier)
-            .report('No songs in this mix');
+            .report(l10n.noSongsInMix, kind: FeedbackKind.error);
       }
     } catch (e) {
+      debugPrint('Failed to play mix: $e');
       ref
           .read(actionFeedbackProvider.notifier)
-          .report('Failed to play mix: $e');
+          .report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 

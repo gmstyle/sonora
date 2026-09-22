@@ -6,6 +6,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/battery_prompt_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/action_feedback_provider.dart';
 
 /// Adaptive dialog / bottom sheet inviting the user to disable Android battery
 /// optimization for uninterrupted background playback.
@@ -85,12 +86,9 @@ Future<void> showBatteryOptimizationPrompt(
                   .dismissBatteryPromptForever();
               if (routeCtx.mounted) Navigator.pop(routeCtx);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.batteryPromptDismissedHint),
-                    duration: const Duration(seconds: 5),
-                  ),
-                );
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(l10n.batteryPromptDismissedHint);
               }
             },
             child: Text(

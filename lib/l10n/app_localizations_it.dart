@@ -57,9 +57,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get showMore => 'Mostra altro';
 
   @override
-  String failedToLoadSongs(String error) {
-    return 'Impossibile caricare i brani: $error';
-  }
+  String get failedToLoadSongs => 'Impossibile caricare i brani';
 
   @override
   String get playTopSongs => 'Riproduci Brani Popolari';
@@ -79,9 +77,7 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String failedToPlay(String error) {
-    return 'Impossibile riprodurre: $error';
-  }
+  String get failedToPlay => 'Impossibile riprodurre';
 
   @override
   String shufflingArtist(String artistName) {
@@ -155,9 +151,7 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String failedToAddToQueue(String error) {
-    return 'Impossibile aggiungere alla coda: $error';
-  }
+  String get failedToAddToQueue => 'Impossibile aggiungere alla coda';
 
   @override
   String playingPlaylist(String playlistName) {
@@ -165,8 +159,42 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String failedToPlayPlaylist(String error) {
-    return 'Impossibile riprodurre la playlist: $error';
+  String get failedToPlayPlaylist => 'Impossibile riprodurre la playlist';
+
+  @override
+  String addedEpisodesToQueue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count episodi',
+      one: '1 episodio',
+    );
+    return '$_temp0 aggiunti alla coda';
+  }
+
+  @override
+  String get noSongsInMix => 'Nessun brano in questo mix';
+
+  @override
+  String playingSongsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brani',
+      one: '1 brano',
+    );
+    return 'Riproduzione di $_temp0…';
+  }
+
+  @override
+  String shufflingSongsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brani',
+      one: '1 brano',
+    );
+    return 'Riproduzione casuale di $_temp0…';
   }
 
   @override
@@ -740,9 +768,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get backupExportedSuccessfully => 'Backup esportato con successo';
 
   @override
-  String exportFailed(String error) {
-    return 'Esportazione fallita: $error';
-  }
+  String get exportFailed => 'Esportazione fallita';
 
   @override
   String get importBackup => 'Importa backup';
@@ -758,9 +784,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get backupImportedSuccessfully => 'Backup importato con successo';
 
   @override
-  String importFailed(String error) {
-    return 'Importazione fallita: $error';
-  }
+  String get importFailed => 'Importazione fallita';
+
+  @override
+  String get networkPermissionDenied =>
+      'Permesso di rete negato. Controlla i permessi dell\'app.';
 
   @override
   String get localSync => 'Sincronizzazione Locale (Wi-Fi)';

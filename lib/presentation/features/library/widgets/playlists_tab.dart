@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
@@ -284,9 +285,7 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   ) ??
                   'Imported ${result.importedCount} of ${result.totalCount} tracks')
               : (l10n?.playlistImported ?? 'Playlist imported successfully');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
-      );
+      ref.read(actionFeedbackProvider.notifier).report(message);
     }
   }
 }

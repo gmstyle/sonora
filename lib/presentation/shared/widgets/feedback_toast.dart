@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../providers/action_feedback_provider.dart';
+
 class FeedbackToast {
   static OverlayEntry? _currentEntry;
 
   FeedbackToast._();
 
-  static void show(BuildContext context, String message) {
+  static void show(
+    BuildContext context,
+    String message, {
+    FeedbackKind kind = FeedbackKind.confirm,
+  }) {
     _currentEntry?.remove();
     _currentEntry = null;
 
@@ -16,6 +22,7 @@ class FeedbackToast {
       builder:
           (_) => _FeedbackToastWidget(
             message: message,
+            kind: kind,
             onDismiss: () {
               entry.remove();
               if (_currentEntry == entry) {
@@ -37,9 +44,14 @@ class FeedbackToast {
 
 class _FeedbackToastWidget extends StatefulWidget {
   final String message;
+  final FeedbackKind kind;
   final VoidCallback onDismiss;
 
-  const _FeedbackToastWidget({required this.message, required this.onDismiss});
+  const _FeedbackToastWidget({
+    required this.message,
+    required this.kind,
+    required this.onDismiss,
+  });
 
   @override
   State<_FeedbackToastWidget> createState() => _FeedbackToastWidgetState();
@@ -50,6 +62,11 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   late AnimationController _controller;
   late Animation<double> _opacity;
   late Animation<double> _scale;
+
+  Duration get _holdDuration =>
+      widget.kind == FeedbackKind.error
+          ? const Duration(seconds: 4)
+          : const Duration(seconds: 2);
 
   @override
   void initState() {
@@ -69,7 +86,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
 
     _controller.forward();
 
-    Future.delayed(const Duration(milliseconds: 1800), () {
+    Future.delayed(_holdDuration, () {
       if (mounted) {
         _controller.reverse().then((_) {
           if (mounted) {
@@ -88,8 +105,13 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final topPadding = MediaQuery.of(context).padding.top + 12;
+    final mark =
+        widget.kind == FeedbackKind.error
+            ? colorScheme.error
+            : colorScheme.primary;
 
     return Positioned(
       top: topPadding,
@@ -102,28 +124,44 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
           child: Center(
             child: Material(
               color: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.inverseSurface,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  widget.message,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: colorScheme.onInverseSurface,
-                    fontSize: 14,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: mark,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          widget.message,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

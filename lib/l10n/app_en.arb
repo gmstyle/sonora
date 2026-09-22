@@ -25,12 +25,7 @@
   "popular": "Popular",
   "showLess": "Show less",
   "showMore": "Show more",
-  "failedToLoadSongs": "Failed to load songs: {error}",
-  "@failedToLoadSongs": {
-    "placeholders": {
-      "error": {"type": "String"}
-    }
-  },
+  "failedToLoadSongs": "Failed to load songs",
   "playTopSongs": "Play Top Songs",
   "shuffle": "Shuffle",
   "share": "Share",
@@ -41,12 +36,7 @@
       "artistName": {"type": "String"}
     }
   },
-  "failedToPlay": "Failed to play: {error}",
-  "@failedToPlay": {
-    "placeholders": {
-      "error": {"type": "String"}
-    }
-  },
+  "failedToPlay": "Failed to play",
   "shufflingArtist": "Shuffling {artistName}…",
   "@shufflingArtist": {
     "placeholders": {
@@ -88,22 +78,31 @@
       "count": {"type": "int"}
     }
   },
-  "failedToAddToQueue": "Failed to add to queue: {error}",
-  "@failedToAddToQueue": {
-    "placeholders": {
-      "error": {"type": "String"}
-    }
-  },
+  "failedToAddToQueue": "Failed to add to queue",
   "playingPlaylist": "Playing {playlistName}…",
   "@playingPlaylist": {
     "placeholders": {
       "playlistName": {"type": "String"}
     }
   },
-  "failedToPlayPlaylist": "Failed to play playlist: {error}",
-  "@failedToPlayPlaylist": {
+  "failedToPlayPlaylist": "Failed to play playlist",
+  "addedEpisodesToQueue": "Added {count, plural, =1{1 episode} other{{count} episodes}} to queue",
+  "@addedEpisodesToQueue": {
     "placeholders": {
-      "error": {"type": "String"}
+      "count": {"type": "int"}
+    }
+  },
+  "noSongsInMix": "No songs in this mix",
+  "playingSongsCount": "Playing {count, plural, =1{1 song} other{{count} songs}}…",
+  "@playingSongsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "shufflingSongsCount": "Shuffling {count, plural, =1{1 song} other{{count} songs}}…",
+  "@shufflingSongsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
     }
   },
   "shufflingPlaylist": "Shuffling {playlistName}…",
@@ -143,12 +142,6 @@
   "downloadPlaylist": "Download Playlist",
   "downloadAlbum": "Download Album",
   "playlistEmpty": "This playlist is empty",
-  "failedToPlay": "Failed to play: {error}",
-  "@failedToPlay": {
-    "placeholders": {
-      "error": {"type": "String"}
-    }
-  },
 
   "@@sectionMeta": {
     "library": "Library Screens"
@@ -382,22 +375,13 @@
     }
   },
   "backupExportedSuccessfully": "Backup exported successfully",
-  "exportFailed": "Export failed: {error}",
-  "@exportFailed": {
-    "placeholders": {
-      "error": {"type": "String"}
-    }
-  },
+  "exportFailed": "Export failed",
   "importBackup": "Import backup",
   "importBackupConfirm": "This will add backed-up songs, artists, and playlists to your existing library. No data will be overwritten.",
   "import": "Import",
   "backupImportedSuccessfully": "Backup imported successfully",
-  "importFailed": "Import failed: {error}",
-  "@importFailed": {
-    "placeholders": {
-      "error": {"type": "String"}
-    }
-  },
+  "importFailed": "Import failed",
+  "networkPermissionDenied": "Network permission denied. Please check app permissions.",
   "localSync": "Local Synchronization (Wi-Fi)",
   "localSyncEnabled": "Local Visibility",
   "localSyncEnabledHint": "Allow other Sonora devices on the local Wi-Fi to sync library data. Settings remain local.",

@@ -57,9 +57,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showMore => 'Show more';
 
   @override
-  String failedToLoadSongs(String error) {
-    return 'Failed to load songs: $error';
-  }
+  String get failedToLoadSongs => 'Failed to load songs';
 
   @override
   String get playTopSongs => 'Play Top Songs';
@@ -79,9 +77,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String failedToPlay(String error) {
-    return 'Failed to play: $error';
-  }
+  String get failedToPlay => 'Failed to play';
 
   @override
   String shufflingArtist(String artistName) {
@@ -155,9 +151,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String failedToAddToQueue(String error) {
-    return 'Failed to add to queue: $error';
-  }
+  String get failedToAddToQueue => 'Failed to add to queue';
 
   @override
   String playingPlaylist(String playlistName) {
@@ -165,8 +159,42 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String failedToPlayPlaylist(String error) {
-    return 'Failed to play playlist: $error';
+  String get failedToPlayPlaylist => 'Failed to play playlist';
+
+  @override
+  String addedEpisodesToQueue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count episodes',
+      one: '1 episode',
+    );
+    return 'Added $_temp0 to queue';
+  }
+
+  @override
+  String get noSongsInMix => 'No songs in this mix';
+
+  @override
+  String playingSongsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+    );
+    return 'Playing $_temp0…';
+  }
+
+  @override
+  String shufflingSongsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+    );
+    return 'Shuffling $_temp0…';
   }
 
   @override
@@ -734,9 +762,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupExportedSuccessfully => 'Backup exported successfully';
 
   @override
-  String exportFailed(String error) {
-    return 'Export failed: $error';
-  }
+  String get exportFailed => 'Export failed';
 
   @override
   String get importBackup => 'Import backup';
@@ -752,9 +778,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupImportedSuccessfully => 'Backup imported successfully';
 
   @override
-  String importFailed(String error) {
-    return 'Import failed: $error';
-  }
+  String get importFailed => 'Import failed';
+
+  @override
+  String get networkPermissionDenied =>
+      'Network permission denied. Please check app permissions.';
 
   @override
   String get localSync => 'Local Synchronization (Wi-Fi)';

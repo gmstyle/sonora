@@ -632,14 +632,14 @@ class _EpisodeActions extends ConsumerWidget {
         authorName: episode.podcastName,
       );
     } catch (e) {
+      debugPrint('Failed to play episode: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.failedToPlay(e.toString()),
-            ),
-          ),
-        );
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.failedToPlay,
+              kind: FeedbackKind.error,
+            );
       }
     }
   }

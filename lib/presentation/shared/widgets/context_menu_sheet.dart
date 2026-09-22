@@ -776,8 +776,9 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                         actionFeedbackProvider.notifier,
                       );
                       final currentPlayer = player;
+                      final l10n = AppLocalizations.of(context)!;
                       Navigator.pop(context);
-                      _startSongRadio(useCase, currentPlayer, feedback);
+                      _startSongRadio(useCase, currentPlayer, feedback, l10n);
                     },
                   ),
                   _ActionTile(
@@ -838,6 +839,7 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
     StartRadioUseCase useCase,
     PlayerNotifier currentPlayer,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final result = await useCase.execute(videoId);
@@ -847,7 +849,8 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
         currentPlayer.addAllToQueue(pendingItems);
       }
     } catch (e) {
-      feedback.report('Failed to start radio: $e');
+      debugPrint('Failed to start radio: $e');
+      feedback.report(l10n.failedToStartRadio, kind: FeedbackKind.error);
     }
   }
 }
@@ -1134,8 +1137,9 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         actionFeedbackProvider.notifier,
                       );
                       final currentPlayer = player;
+                      final l10n = AppLocalizations.of(context)!;
                       Navigator.pop(context);
-                      _startSongRadio(useCase, currentPlayer, feedback);
+                      _startSongRadio(useCase, currentPlayer, feedback, l10n);
                     },
                   ),
                   _ActionTile(
@@ -1219,6 +1223,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
     StartRadioUseCase useCase,
     PlayerNotifier currentPlayer,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final result = await useCase.execute(videoId);
@@ -1228,7 +1233,8 @@ class _SongContextMenuSheet extends ConsumerWidget {
         currentPlayer.addAllToQueue(pendingItems);
       }
     } catch (e) {
-      feedback.report('Failed to start radio: $e');
+      debugPrint('Failed to start radio: $e');
+      feedback.report(l10n.failedToStartRadio, kind: FeedbackKind.error);
     }
   }
 }
@@ -1324,6 +1330,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _playTopSongs(
                           artistFuture,
@@ -1331,6 +1338,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -1348,6 +1356,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _shufflePlay(
                           artistFuture,
@@ -1355,6 +1364,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -1372,6 +1382,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _addTopSongsToQueue(
                           artistFuture,
@@ -1379,6 +1390,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -1411,8 +1423,15 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
-                        _startRadio(artistFuture, useCase, player, feedback);
+                        _startRadio(
+                          artistFuture,
+                          useCase,
+                          player,
+                          feedback,
+                          l10n,
+                        );
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.share))
@@ -1463,14 +1482,16 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final songs = await _fetchAllTopSongs(artistFuture, repo);
       if (songs.isEmpty) return;
-      feedback.report('Playing $name…');
+      feedback.report(l10n.playingArtist(name));
       await player.playAlbum(songs, startIndex: 0);
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -1480,15 +1501,17 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final songs = await _fetchAllTopSongs(artistFuture, repo);
       if (songs.isEmpty) return;
-      feedback.report('Shuffling $name…');
+      feedback.report(l10n.shufflingArtist(name));
       final shuffled = List<SongDetailed>.from(songs)..shuffle();
       await player.playAlbum(shuffled, startIndex: 0);
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -1498,6 +1521,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final songs = await _fetchAllTopSongs(artistFuture, repo);
@@ -1505,10 +1529,11 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
       final items = await useCase.execute(songs, playIndex: -1);
       if (items.isNotEmpty) {
         await player.addAllToQueue(items);
-        feedback.report('Added ${items.length} songs to queue');
+        feedback.report(l10n.addedToQueue(items.length));
       }
     } catch (e) {
-      feedback.report('Failed to add to queue: $e');
+      debugPrint('Failed to add to queue: $e');
+      feedback.report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
     }
   }
 
@@ -1517,6 +1542,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
     StartRadioUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final songs = await _fetchSongs(artistFuture);
@@ -1528,7 +1554,8 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
         player.addAllToQueue(pendingItems);
       }
     } catch (e) {
-      feedback.report('Failed to start radio: $e');
+      debugPrint('Failed to start radio: $e');
+      feedback.report(l10n.failedToStartRadio, kind: FeedbackKind.error);
     }
   }
 }
@@ -1622,12 +1649,14 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _playAlbumSequential(
                           albumFuture,
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -1645,12 +1674,14 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _shuffleAlbumPlay(
                           albumFuture,
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -1667,12 +1698,14 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _addAlbumToQueue(
                           albumFuture,
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -1763,15 +1796,17 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final songs = await _fetchAlbumSongs(albumFuture);
       if (songs.isEmpty) return;
-      feedback.report('Playing $name…');
+      feedback.report(l10n.playingPlaylist(name));
       final items = await useCase.execute(songs);
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -1780,16 +1815,18 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final songs = await _fetchAlbumSongs(albumFuture);
       if (songs.isEmpty) return;
-      feedback.report('Shuffling $name…');
+      feedback.report(l10n.shufflingPlaylist(name));
       final shuffled = List<SongDetailed>.from(songs)..shuffle();
       final items = await useCase.execute(shuffled);
       if (items.isNotEmpty) await player.playNow(items);
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -1798,6 +1835,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
     PlayAlbumUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final songs = await _fetchAlbumSongs(albumFuture);
@@ -1805,10 +1843,11 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
       final items = await useCase.execute(songs, playIndex: -1);
       if (items.isNotEmpty) {
         await player.addAllToQueue(items);
-        feedback.report('Added ${items.length} songs to queue');
+        feedback.report(l10n.addedToQueue(items.length));
       }
     } catch (e) {
-      feedback.report('Failed to add to queue: $e');
+      debugPrint('Failed to add to queue: $e');
+      feedback.report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
     }
   }
 
@@ -1825,12 +1864,11 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
       final toDownload =
           album.songs.where((s) => !notifier.isDownloading(s.videoId)).toList();
       if (toDownload.isEmpty) {
-        feedback.report(
-          context.mounted
-              ? (AppLocalizations.of(context)?.allSongsAlreadyDownloading ??
-                  'Already downloading')
-              : 'Already downloading',
-        );
+        if (context.mounted) {
+          feedback.report(
+            AppLocalizations.of(context)!.allSongsAlreadyDownloading,
+          );
+        }
         return;
       }
 
@@ -1896,7 +1934,13 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
         );
       }
     } catch (e) {
-      feedback.report('Failed to download: $e');
+      debugPrint('Failed to download: $e');
+      if (context.mounted) {
+        feedback.report(
+          AppLocalizations.of(context)!.downloadFailed,
+          kind: FeedbackKind.error,
+        );
+      }
     }
   }
 }
@@ -1988,8 +2032,9 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
-                        _playPodcast(repo, player, feedback);
+                        _playPodcast(repo, player, feedback, l10n);
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.shuffle))
@@ -2003,8 +2048,9 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
-                        _shufflePodcast(repo, player, feedback);
+                        _shufflePodcast(repo, player, feedback, l10n);
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.queue))
@@ -2018,8 +2064,15 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
-                        _addPodcastToQueue(repo, useCase, player, feedback);
+                        _addPodcastToQueue(
+                          repo,
+                          useCase,
+                          player,
+                          feedback,
+                          l10n,
+                        );
                       },
                     ),
                   if (!hideGoToPodcast)
@@ -2089,9 +2142,10 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
     MusicRepository repo,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
-      feedback.report('Playing $name…');
+      feedback.report(l10n.playingPlaylist(name));
       final podcast = await repo.getPodcast(browseId);
       if (podcast.episodes.isEmpty) return;
       await player.playPodcast(
@@ -2102,7 +2156,8 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
         authorId: podcast.author?.artistId,
       );
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -2110,9 +2165,10 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
     MusicRepository repo,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
-      feedback.report('Shuffling $name…');
+      feedback.report(l10n.shufflingPlaylist(name));
       final podcast = await repo.getPodcast(browseId);
       if (podcast.episodes.isEmpty) return;
       final shuffled = List.of(podcast.episodes)..shuffle();
@@ -2124,7 +2180,8 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
         authorId: podcast.author?.artistId,
       );
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -2133,6 +2190,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
     PlayPodcastUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final podcast = await repo.getPodcast(browseId);
@@ -2149,10 +2207,11 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
       );
       if (items.isNotEmpty) {
         await player.addAllToQueue(items);
-        feedback.report('Added ${items.length} episodes to queue');
+        feedback.report(l10n.addedEpisodesToQueue(items.length));
       }
     } catch (e) {
-      feedback.report('Failed to add to queue: $e');
+      debugPrint('Failed to add to queue: $e');
+      feedback.report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
     }
   }
 
@@ -2169,12 +2228,11 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
       final toDownload =
           episodes.where((e) => !notifier.isDownloading(e.videoId)).toList();
       if (toDownload.isEmpty) {
-        feedback.report(
-          context.mounted
-              ? (AppLocalizations.of(context)?.allSongsAlreadyDownloading ??
-                  'Already downloading')
-              : 'Already downloading',
-        );
+        if (context.mounted) {
+          feedback.report(
+            AppLocalizations.of(context)!.allSongsAlreadyDownloading,
+          );
+        }
         return;
       }
 
@@ -2241,7 +2299,13 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
         );
       }
     } catch (e) {
-      feedback.report('Failed to download: $e');
+      debugPrint('Failed to download: $e');
+      if (context.mounted) {
+        feedback.report(
+          AppLocalizations.of(context)!.downloadFailed,
+          kind: FeedbackKind.error,
+        );
+      }
     }
   }
 }
@@ -2397,8 +2461,9 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                       final feedback = ref.read(
                         actionFeedbackProvider.notifier,
                       );
+                      final l10n = AppLocalizations.of(context)!;
                       Navigator.pop(context);
-                      _playEpisode(useCase, player, feedback);
+                      _playEpisode(useCase, player, feedback, l10n);
                     },
                   ),
                   if (podcastBrowseId != null && !hideGoToPodcast)
@@ -2451,6 +2516,7 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
     PlayVideoIdUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final url = await useCase.resolveUrl(videoId);
@@ -2466,7 +2532,8 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
       );
       await player.playNow([track.toFreshMediaItem()]);
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 }
@@ -2630,12 +2697,14 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _playPlaylistSequential(
                           videosFuture,
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -2653,12 +2722,14 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _shufflePlaylistPlay(
                           videosFuture,
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -2675,12 +2746,14 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final l10n = AppLocalizations.of(context)!;
                         Navigator.pop(context);
                         _addPlaylistToQueue(
                           videosFuture,
                           useCase,
                           player,
                           feedback,
+                          l10n,
                         );
                       },
                     ),
@@ -2752,14 +2825,16 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
     PlayPlaylistUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final videos = await videosFuture;
       if (videos.isEmpty) return;
-      feedback.report('Playing $name…');
+      feedback.report(l10n.playingPlaylist(name));
       await player.playPlaylist(videos, startIndex: 0);
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -2768,15 +2843,17 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
     PlayPlaylistUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final videos = await videosFuture;
       if (videos.isEmpty) return;
-      feedback.report('Shuffling $name…');
+      feedback.report(l10n.shufflingPlaylist(name));
       final shuffled = List<VideoDetailed>.from(videos)..shuffle();
       await player.playPlaylist(shuffled, startIndex: 0);
     } catch (e) {
-      feedback.report('Failed to play: $e');
+      debugPrint('Failed to play: $e');
+      feedback.report(l10n.failedToPlay, kind: FeedbackKind.error);
     }
   }
 
@@ -2785,6 +2862,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
     PlayPlaylistUseCase useCase,
     PlayerNotifier player,
     ActionFeedbackNotifier feedback,
+    AppLocalizations l10n,
   ) async {
     try {
       final videos = await videosFuture;
@@ -2792,10 +2870,11 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       final items = await useCase.execute(videos, playIndex: -1);
       if (items.isNotEmpty) {
         await player.addAllToQueue(items);
-        feedback.report('Added ${items.length} songs to queue');
+        feedback.report(l10n.addedToQueue(items.length));
       }
     } catch (e) {
-      feedback.report('Failed to add to queue: $e');
+      debugPrint('Failed to add to queue: $e');
+      feedback.report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
     }
   }
 
@@ -2812,12 +2891,11 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       final toDownload =
           videos.where((v) => !notifier.isDownloading(v.videoId)).toList();
       if (toDownload.isEmpty) {
-        feedback.report(
-          context.mounted
-              ? (AppLocalizations.of(context)?.allSongsAlreadyDownloading ??
-                  'Already downloading')
-              : 'Already downloading',
-        );
+        if (context.mounted) {
+          feedback.report(
+            AppLocalizations.of(context)!.allSongsAlreadyDownloading,
+          );
+        }
         return;
       }
 
@@ -2881,7 +2959,13 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
         );
       }
     } catch (e) {
-      feedback.report('Failed to download: $e');
+      debugPrint('Failed to download: $e');
+      if (context.mounted) {
+        feedback.report(
+          AppLocalizations.of(context)!.downloadFailed,
+          kind: FeedbackKind.error,
+        );
+      }
     }
   }
 }
@@ -3231,7 +3315,8 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
       if (items.isNotEmpty) await player.addAllToQueue(items);
       feedback.report(l10n.addedToQueue(items.length));
     } catch (e) {
-      feedback.report(l10n.failedToAddToQueue(e.toString()));
+      debugPrint('Failed to add to queue: $e');
+      feedback.report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
     }
   }
 }
@@ -3714,14 +3799,14 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                         if (name != null && name.isNotEmpty) {
                           await _createAndAdd(name);
                           if (context.mounted) {
+                            final feedback = ProviderScope.containerOf(
+                              context,
+                            ).read(actionFeedbackProvider.notifier);
+                            final message = AppLocalizations.of(
+                              context,
+                            )!.addedTo(name);
                             Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  AppLocalizations.of(context)!.addedTo(name),
-                                ),
-                              ),
-                            );
+                            feedback.report(message);
                           }
                         }
                       },
@@ -3763,16 +3848,14 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                                 isExplicit: widget.isExplicit,
                               );
                           if (context.mounted) {
+                            final feedback = ProviderScope.containerOf(
+                              context,
+                            ).read(actionFeedbackProvider.notifier);
+                            final message = AppLocalizations.of(
+                              context,
+                            )!.addedToPlaylist(playlist.name);
                             Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.addedToPlaylist(playlist.name),
-                                ),
-                              ),
-                            );
+                            feedback.report(message);
                           }
                         },
                       );

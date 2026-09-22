@@ -10,6 +10,7 @@ import '../../../core/extensions/stat_format.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/artist_card.dart';
@@ -55,16 +56,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _submitSearch(String query) {
     if (ref.read(isOfflineProvider)) {
-      final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n?.noConnectionMessage ??
-                'No internet connection. Check your network.',
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      final l10n = AppLocalizations.of(context)!;
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.noConnectionMessage, kind: FeedbackKind.error);
       return;
     }
     _searchController.text = query;
