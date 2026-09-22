@@ -131,7 +131,7 @@ void main() {
   Future<ProviderContainer> pumpMenu(
     WidgetTester tester, {
     required Future<void> Function(BuildContext context) open,
-    required List<Override> overrides,
+    required List extraOverrides,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -141,7 +141,7 @@ void main() {
             (ref) => Stream.value(const []),
           ),
           activeDownloadsProvider.overrideWith(_RecordingDownloads.new),
-          ...overrides,
+          ...extraOverrides,
         ],
         child: MaterialApp(
           locale: const Locale('en'),
@@ -193,7 +193,7 @@ void main() {
               artist: 'Artist',
               omitActionIds: _omitBusyActions,
             ),
-        overrides: [
+        extraOverrides: [
           albumProvider.overrideWith((ref, _) => gate.future),
         ],
       );
@@ -225,7 +225,7 @@ void main() {
               name: 'Mix',
               omitActionIds: _omitBusyActions,
             ),
-        overrides: [
+        extraOverrides: [
           playlistVideosProvider.overrideWith((ref, _) => gate.future),
         ],
       );
@@ -257,7 +257,7 @@ void main() {
               name: 'Cool Show',
               omitActionIds: _omitBusyActions,
             ),
-        overrides: [
+        extraOverrides: [
           podcastProvider.overrideWith((ref, _) => gate.future),
         ],
       );
