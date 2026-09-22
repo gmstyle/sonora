@@ -59,6 +59,62 @@ bool _isOnEntityPage(BuildContext context, String paramKey, String id) {
 bool _showAction(Set<String> omitActionIds, String id) =>
     !omitActionIds.contains(id);
 
+/// Close the sheet first, then download using [notifier] captured while mounted.
+void _enqueueSingleTrackDownload({
+  required BuildContext sheetContext,
+  required DownloadsNotifier notifier,
+  required bool isDownloaded,
+  required String videoId,
+  required String title,
+  required String artist,
+  String? artistsJson,
+  String? thumbnailUrl,
+  bool isExplicit = false,
+  bool isVideo = false,
+}) {
+  final l10n = AppLocalizations.of(sheetContext)!;
+  final dialogContext = Navigator.of(sheetContext, rootNavigator: true).context;
+  Navigator.pop(sheetContext);
+
+  void start() {
+    notifier.startDownload(
+      videoId: videoId,
+      title: title,
+      artist: artist,
+      artistsJson: artistsJson,
+      thumbnailUrl: thumbnailUrl,
+      isExplicit: isExplicit,
+      isVideo: isVideo,
+    );
+  }
+
+  if (!isDownloaded) {
+    start();
+    return;
+  }
+  if (!dialogContext.mounted) return;
+  showDialog<bool>(
+    context: dialogContext,
+    builder:
+        (ctx) => AlertDialog(
+          title: Text(l10n.alreadyDownloaded),
+          content: Text(l10n.alreadyDownloadedConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.continueAction),
+            ),
+          ],
+        ),
+  ).then((proceed) {
+    if (proceed == true) start();
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Song data provider (lazy enrichment for context menu)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -735,71 +791,19 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                             : AppLocalizations.of(context)!.download,
                     enabled: !isOffline,
                     onTap: () {
-                      Navigator.pop(context);
-                      if (isDownloaded) {
-                        showDialog<bool>(
-                          context: context,
-                          builder:
-                              (ctx) => AlertDialog(
-                                title: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.alreadyDownloaded,
-                                ),
-                                content: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.alreadyDownloadedConfirm,
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: Text(
-                                      AppLocalizations.of(context)!.cancel,
-                                    ),
-                                  ),
-                                  FilledButton(
-                                    onPressed: () => Navigator.pop(ctx, true),
-                                    child: Text(
-                                      AppLocalizations.of(
-                                        context,
-                                      )!.continueAction,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                        ).then((proceed) {
-                          if (proceed == true) {
-                            ref
-                                .read(activeDownloadsProvider.notifier)
-                                .startDownload(
-                                  videoId: videoId,
-                                  title: title,
-                                  artist: artist,
-                                  artistsJson:
-                                      artistsJson ??
-                                      encodeArtistsJson(resolvedArtists),
-                                  thumbnailUrl: thumbnailUrl,
-                                  isExplicit: isExplicit,
-                                  isVideo: isVideo,
-                                );
-                          }
-                        });
-                      } else {
-                        ref
-                            .read(activeDownloadsProvider.notifier)
-                            .startDownload(
-                              videoId: videoId,
-                              title: title,
-                              artist: artist,
-                              artistsJson:
-                                  artistsJson ??
-                                  encodeArtistsJson(resolvedArtists),
-                              thumbnailUrl: thumbnailUrl,
-                              isExplicit: isExplicit,
-                              isVideo: isVideo,
-                            );
-                      }
+                      _enqueueSingleTrackDownload(
+                        sheetContext: context,
+                        notifier: ref.read(activeDownloadsProvider.notifier),
+                        isDownloaded: isDownloaded,
+                        videoId: videoId,
+                        title: title,
+                        artist: artist,
+                        artistsJson:
+                            artistsJson ?? encodeArtistsJson(resolvedArtists),
+                        thumbnailUrl: thumbnailUrl,
+                        isExplicit: isExplicit,
+                        isVideo: isVideo,
+                      );
                     },
                   ),
                   _ActionTile(
@@ -1175,67 +1179,18 @@ class _SongContextMenuSheet extends ConsumerWidget {
                             : AppLocalizations.of(context)!.download,
                     enabled: !isOffline,
                     onTap: () {
-                      Navigator.pop(context);
-                      if (isDownloaded) {
-                        showDialog<bool>(
-                          context: context,
-                          builder:
-                              (ctx) => AlertDialog(
-                                title: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.alreadyDownloaded,
-                                ),
-                                content: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.alreadyDownloadedConfirm,
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: Text(
-                                      AppLocalizations.of(context)!.cancel,
-                                    ),
-                                  ),
-                                  FilledButton(
-                                    onPressed: () => Navigator.pop(ctx, true),
-                                    child: Text(
-                                      AppLocalizations.of(
-                                        context,
-                                      )!.continueAction,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                        ).then((proceed) {
-                          if (proceed == true) {
-                            ref
-                                .read(activeDownloadsProvider.notifier)
-                                .startDownload(
-                                  videoId: videoId,
-                                  title: title,
-                                  artist: artist,
-                                  artistsJson: resolvedArtistsJson,
-                                  thumbnailUrl: thumbnailUrl,
-                                  isExplicit: isExplicit,
-                                  isVideo: isVideo,
-                                );
-                          }
-                        });
-                      } else {
-                        ref
-                            .read(activeDownloadsProvider.notifier)
-                            .startDownload(
-                              videoId: videoId,
-                              title: title,
-                              artist: artist,
-                              artistsJson: resolvedArtistsJson,
-                              thumbnailUrl: thumbnailUrl,
-                              isExplicit: isExplicit,
-                              isVideo: isVideo,
-                            );
-                      }
+                      _enqueueSingleTrackDownload(
+                        sheetContext: context,
+                        notifier: ref.read(activeDownloadsProvider.notifier),
+                        isDownloaded: isDownloaded,
+                        videoId: videoId,
+                        title: title,
+                        artist: artist,
+                        artistsJson: resolvedArtistsJson,
+                        thumbnailUrl: thumbnailUrl,
+                        isExplicit: isExplicit,
+                        isVideo: isVideo,
+                      );
                     },
                   ),
                   _ActionTile(
@@ -1760,10 +1715,16 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final container = ProviderScope.containerOf(context);
                         final rootContext =
                             Navigator.of(context, rootNavigator: true).context;
                         Navigator.pop(context);
-                        _downloadAlbum(rootContext, ref, albumFuture, feedback);
+                        _downloadAlbum(
+                          rootContext,
+                          container,
+                          albumFuture,
+                          feedback,
+                        );
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.share))
@@ -1853,14 +1814,14 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
 
   Future<void> _downloadAlbum(
     BuildContext context,
-    WidgetRef ref,
+    ProviderContainer container,
     Future<AlbumFull> albumFuture,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
       final album = await albumFuture;
       if (album.songs.isEmpty) return;
-      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final notifier = container.read(activeDownloadsProvider.notifier);
       final toDownload =
           album.songs.where((s) => !notifier.isDownloading(s.videoId)).toList();
       if (toDownload.isEmpty) {
@@ -1874,7 +1835,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
       }
 
       final alreadyDownloaded =
-          ref
+          container
               .read(allDownloadsProvider)
               .asData
               ?.value
@@ -2083,13 +2044,22 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                       label: AppLocalizations.of(context)!.download,
                       enabled: !isOffline,
                       onTap: () {
+                        final podcastFuture = ref.read(
+                          podcastProvider(browseId).future,
+                        );
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final container = ProviderScope.containerOf(context);
                         final rootContext =
                             Navigator.of(context, rootNavigator: true).context;
                         Navigator.pop(context);
-                        _downloadPodcast(rootContext, ref, feedback);
+                        _downloadPodcast(
+                          rootContext,
+                          container,
+                          podcastFuture,
+                          feedback,
+                        );
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.share))
@@ -2188,12 +2158,13 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
 
   Future<void> _downloadPodcast(
     BuildContext context,
-    WidgetRef ref,
+    ProviderContainer container,
+    Future<PodcastFull> podcastFuture,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
-      final podcast = await ref.read(podcastProvider(browseId).future);
-      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final podcast = await podcastFuture;
+      final notifier = container.read(activeDownloadsProvider.notifier);
       final episodes = podcast.episodes.where((e) => e.videoId.isNotEmpty);
       final toDownload =
           episodes.where((e) => !notifier.isDownloading(e.videoId)).toList();
@@ -2208,7 +2179,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
       }
 
       final alreadyDownloaded =
-          ref
+          container
               .read(allDownloadsProvider)
               .asData
               ?.value
@@ -2740,12 +2711,13 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
+                        final container = ProviderScope.containerOf(context);
                         final rootContext =
                             Navigator.of(context, rootNavigator: true).context;
                         Navigator.pop(context);
                         _downloadPlaylist(
                           rootContext,
-                          ref,
+                          container,
                           videosFuture,
                           feedback,
                         );
@@ -2829,14 +2801,14 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
 
   Future<void> _downloadPlaylist(
     BuildContext context,
-    WidgetRef ref,
+    ProviderContainer container,
     Future<List<VideoDetailed>> videosFuture,
     ActionFeedbackNotifier feedback,
   ) async {
     try {
       final videos = await videosFuture;
       if (videos.isEmpty) return;
-      final notifier = ref.read(activeDownloadsProvider.notifier);
+      final notifier = container.read(activeDownloadsProvider.notifier);
       final toDownload =
           videos.where((v) => !notifier.isDownloading(v.videoId)).toList();
       if (toDownload.isEmpty) {
@@ -2850,7 +2822,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       }
 
       final alreadyDownloaded =
-          ref
+          container
               .read(allDownloadsProvider)
               .asData
               ?.value
