@@ -1064,10 +1064,12 @@ flutter gen-l10n
 dart_ytmusic_api:
   git:
     url: https://github.com/gmstyle/dart_ytmusic_api.git
-    ref: cursor/unplayable-collection-rows-e406 # until merged; then use `dev` or omit
+    ref: cursor/album-resolve-playable-ids-e406 # until merged; then use `dev` or omit
 ```
 
 Album, playlist and artist list rows expose `SongDetailed.isPlayable` / `VideoDetailed.isPlayable` from YouTube Music's grey-out display policy. Detail screens keep unplayable rows in the catalog list (dimmed + ban icon); `PlayAlbumUseCase` / `PlayPlaylistUseCase` drop them before building the queue. See `lib/core/utils/playable_tracks.dart`.
+
+`getAlbum` additionally resolves greyed-out tracks during load: it follows each track's YouTube Music watch-page `rel=canonical` redirect in parallel. When a replacement upload exists, `SongDetailed.videoId` becomes that id, `originalVideoId` keeps the catalog id, and `isPlayable` is set to `true`, so the album page and Play all stay aligned. Tracks with no redirect stay unplayable (UI + queue handling unchanged).
 
 To update:
 

@@ -22,7 +22,7 @@ dependencies:
   dart_ytmusic_api:
     git:
       url: https://github.com/gmstyle/dart_ytmusic_api.git
-      ref: cursor/unplayable-collection-rows-e406
+      ref: cursor/album-resolve-playable-ids-e406
 
   youtube_explode_dart:
     #path: ../youtube_explode_dart
