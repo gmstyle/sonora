@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.8+69] - 2026-09-23
+
+### Features
+
+- Dim and skip unplayable album and playlist tracks
+
 ## [1.8.7+68] - 2026-09-22
 
 ### Bug Fixes
