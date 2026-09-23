@@ -1,4 +1,5 @@
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/playable_tracks.dart';
 import '../../models/library_models.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
@@ -49,12 +50,14 @@ class RefreshLinkedPlaylistUseCase {
       final details = await _musicRepository.getPlaylist(remoteId);
       remoteName = details.name;
       final videos = await _musicRepository.getPlaylistVideos(remoteId);
-      if (videos.isEmpty) {
+      final playable = playableVideos(videos);
+      skipped = videos.length - playable.length;
+      if (playable.isEmpty) {
         throw Exception('The playlist is empty or could not be retrieved');
       }
-      onProgress?.call(videos.length, videos.length);
+      onProgress?.call(playable.length, playable.length);
       desired =
-          videos.asMap().entries.map((e) {
+          playable.asMap().entries.map((e) {
             final video = e.value;
             return PlaylistEntryModel(
               playlistId: localPlaylistId,
@@ -306,7 +309,7 @@ class RefreshLinkedPlaylistUseCase {
       try {
         final results = await _musicRepository.searchSongs(query, limit: 8);
         final candidates = results
-            .where((song) => song.videoId.isNotEmpty)
+            .where((song) => song.videoId.isNotEmpty && song.isPlayable)
             .map(
               (song) => ImportedTrackCandidate(
                 videoId: song.videoId,

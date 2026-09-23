@@ -1067,9 +1067,9 @@ dart_ytmusic_api:
     ref: cursor/album-resolve-playable-ids-e406 # until merged; then use `dev` or omit
 ```
 
-Album, playlist and artist list rows expose `SongDetailed.isPlayable` / `VideoDetailed.isPlayable` from YouTube Music's grey-out display policy. Detail screens keep unplayable rows in the catalog list (dimmed + ban icon); `PlayAlbumUseCase` / `PlayPlaylistUseCase` drop them before building the queue. See `lib/core/utils/playable_tracks.dart`.
+Album, playlist and artist list rows expose `SongDetailed.isPlayable` / `VideoDetailed.isPlayable` from YouTube Music's grey-out display policy. Detail screens and catalog cards keep unplayable rows in the list (dimmed + ban icon); the song context menu hides play / queue / radio / download / add-to-playlist / new like (unlike remains if the row was already saved). `PlayAlbumUseCase` / `PlayPlaylistUseCase` drop them before building the queue. YouTube playlist sync/refresh and Spotify import matching also skip unplayable candidates (`skippedCount` / `skipped`). See `lib/core/utils/playable_tracks.dart`.
 
-`getAlbum` additionally resolves greyed-out tracks during load: it follows each track's YouTube Music watch-page `rel=canonical` redirect in parallel. When a replacement upload exists, `SongDetailed.videoId` becomes that id, `originalVideoId` keeps the catalog id, and `isPlayable` is set to `true`, so the album page and Play all stay aligned. Tracks with no redirect stay unplayable (UI + queue handling unchanged).
+`getAlbum` additionally resolves greyed-out tracks during load: it follows each track's YouTube Music watch-page `rel=canonical` redirect in parallel. When a replacement upload exists, `SongDetailed.videoId` becomes that id, `originalVideoId` keeps the catalog id, and `isPlayable` is set to `true`, so the album page and Play all stay aligned. Tracks with no redirect stay unplayable (UI + queue handling unchanged). Local favorites and playlist entries already saved are left as-is (no purge).
 
 To update:
 

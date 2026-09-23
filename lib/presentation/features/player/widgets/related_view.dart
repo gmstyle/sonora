@@ -283,10 +283,16 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
                   song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
               duration: song.duration,
               isExplicit: song.isExplicit,
+              isPlayable: song.isPlayable,
               onTap:
-                  () => ref
-                      .read(playerStateProvider.notifier)
-                      .playVideoId(song.videoId, isExplicit: song.isExplicit),
+                  song.isPlayable
+                      ? () => ref
+                          .read(playerStateProvider.notifier)
+                          .playVideoId(
+                            song.videoId,
+                            isExplicit: song.isExplicit,
+                          )
+                      : null,
             ),
           ),
         if (hasCards)
@@ -376,6 +382,7 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
             item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
         artistId: primaryArtistId(item.artists),
         isExplicit: item.isExplicit,
+        isPlayable: item.isPlayable,
       );
     }
     return const SizedBox.shrink();

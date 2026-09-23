@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
+import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'shelf_card_layout.dart';
@@ -27,6 +29,7 @@ class SongCard extends ConsumerWidget {
   final double cardWidth;
   final bool isVideo;
   final bool isExplicit;
+  final bool isPlayable;
 
   const SongCard({
     super.key,
@@ -43,6 +46,7 @@ class SongCard extends ConsumerWidget {
     this.cardWidth = 150,
     this.isVideo = false,
     this.isExplicit = false,
+    this.isPlayable = true,
   });
 
   @override
@@ -55,11 +59,27 @@ class SongCard extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
-    return ScaleButton(
+    final card = ScaleButton(
       onTap:
-          () => ref
-              .read(playerStateProvider.notifier)
-              .playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit),
+          !isPlayable
+              ? () {
+                final l10n = AppLocalizations.of(context);
+                if (l10n != null) {
+                  ref
+                      .read(actionFeedbackProvider.notifier)
+                      .report(
+                        l10n.trackUnplayable(title),
+                        kind: FeedbackKind.error,
+                      );
+                }
+              }
+              : () => ref
+                  .read(playerStateProvider.notifier)
+                  .playVideoId(
+                    videoId,
+                    isVideo: isVideo,
+                    isExplicit: isExplicit,
+                  ),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
@@ -75,6 +95,7 @@ class SongCard extends ConsumerWidget {
             artistsJson: artistsJson,
             playCount: playCount,
             isExplicit: isExplicit,
+            isPlayable: isPlayable,
           ),
       child: ShelfCardLayout(
         cardWidth: cardWidth,
@@ -134,6 +155,16 @@ class SongCard extends ConsumerWidget {
                       borderRadius: 4,
                     ),
                   ),
+                if (!isPlayable)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Icon(
+                      LucideIcons.ban,
+                      size: 16,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
               ],
             ),
         textBlock: [
@@ -170,5 +201,8 @@ class SongCard extends ConsumerWidget {
         ],
       ),
     );
+
+    if (isPlayable) return card;
+    return Opacity(opacity: 0.5, child: card);
   }
 }

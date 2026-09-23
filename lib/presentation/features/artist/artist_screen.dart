@@ -340,6 +340,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                                       : null,
                               artistId: primaryArtistId(video.artists),
                               isExplicit: video.isExplicit,
+                              isPlayable: video.isPlayable,
                             );
                           },
                         ),

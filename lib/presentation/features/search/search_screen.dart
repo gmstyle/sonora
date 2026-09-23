@@ -922,6 +922,7 @@ class _SearchResults extends ConsumerWidget {
         artistId: primaryArtistId(result.artists),
         playCount: result.playCount,
         isExplicit: result.isExplicit,
+        isPlayable: result.isPlayable,
       );
     }
     if (result is VideoDetailed) {
@@ -937,6 +938,7 @@ class _SearchResults extends ConsumerWidget {
         playCount: result.viewCount,
         artistId: primaryArtistId(result.artists),
         isExplicit: result.isExplicit,
+        isPlayable: result.isPlayable,
       );
     }
     if (result is ArtistDetailed) {

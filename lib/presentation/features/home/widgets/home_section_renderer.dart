@@ -736,6 +736,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         cardWidth: cardWidth,
         isVideo: item.type == 'VIDEO',
         isExplicit: item.isExplicit,
+        isPlayable: item.isPlayable,
       );
     }
     if (item is VideoDetailed) {
@@ -751,6 +752,7 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         artistId: primaryArtistId(item.artists),
         artists: item.artists,
         isExplicit: item.isExplicit,
+        isPlayable: item.isPlayable,
       );
     }
     if (item is AlbumDetailed) {

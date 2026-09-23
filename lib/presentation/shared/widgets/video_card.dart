@@ -3,7 +3,9 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'video_badge.dart';
@@ -18,6 +20,7 @@ class VideoCard extends ConsumerWidget {
   final List<ArtistBasic>? artists;
   final String? artistsJson;
   final bool isExplicit;
+  final bool isPlayable;
   final double cardWidth;
 
   const VideoCard({
@@ -30,6 +33,7 @@ class VideoCard extends ConsumerWidget {
     this.artists,
     this.artistsJson,
     this.isExplicit = false,
+    this.isPlayable = true,
     this.cardWidth = 200,
   });
 
@@ -38,11 +42,23 @@ class VideoCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return ScaleButton(
+    final card = ScaleButton(
       onTap:
-          () => ref
-              .read(playerStateProvider.notifier)
-              .playVideoId(videoId, isVideo: true, isExplicit: isExplicit),
+          !isPlayable
+              ? () {
+                final l10n = AppLocalizations.of(context);
+                if (l10n != null) {
+                  ref
+                      .read(actionFeedbackProvider.notifier)
+                      .report(
+                        l10n.trackUnplayable(title),
+                        kind: FeedbackKind.error,
+                      );
+                }
+              }
+              : () => ref
+                  .read(playerStateProvider.notifier)
+                  .playVideoId(videoId, isVideo: true, isExplicit: isExplicit),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
@@ -55,6 +71,7 @@ class VideoCard extends ConsumerWidget {
             artists: artists,
             artistsJson: artistsJson,
             isExplicit: isExplicit,
+            isPlayable: isPlayable,
           ),
       child: SizedBox(
         width: cardWidth,
@@ -100,6 +117,16 @@ class VideoCard extends ConsumerWidget {
                         borderRadius: 3,
                       ),
                     ),
+                    if (!isPlayable)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Icon(
+                          LucideIcons.ban,
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -139,5 +166,8 @@ class VideoCard extends ConsumerWidget {
         ),
       ),
     );
+
+    if (isPlayable) return card;
+    return Opacity(opacity: 0.5, child: card);
   }
 }

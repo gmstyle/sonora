@@ -129,6 +129,7 @@ class BrowseSectionScreen extends ConsumerWidget {
         cardWidth: cardWidth,
         isVideo: item.type == 'VIDEO',
         isExplicit: item.isExplicit,
+        isPlayable: item.isPlayable,
       );
     }
     if (item is AlbumDetailed) {

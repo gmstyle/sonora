@@ -128,6 +128,7 @@ class NewReleasesScreen extends ConsumerWidget {
                                     : null,
                             artistId: primaryArtistId(video.artists),
                             isExplicit: video.isExplicit,
+                            isPlayable: video.isPlayable,
                           );
                         },
                       ),

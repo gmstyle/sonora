@@ -23,6 +23,7 @@ void main() {
     required String artist,
     int duration = 180,
     List<ArtistBasic>? artists,
+    bool isPlayable = true,
   }) {
     return SongDetailed(
       type: 'SONG',
@@ -31,6 +32,23 @@ void main() {
       artists: artists ?? [ArtistBasic(name: artist)],
       duration: duration,
       thumbnails: const [],
+      isPlayable: isPlayable,
+    );
+  }
+
+  VideoDetailed video({
+    required String id,
+    required String title,
+    String artist = 'Artist',
+    bool isPlayable = true,
+  }) {
+    return VideoDetailed(
+      type: 'VIDEO',
+      videoId: id,
+      name: title,
+      artists: [ArtistBasic(name: artist)],
+      thumbnails: const [],
+      isPlayable: isPlayable,
     );
   }
 
@@ -424,16 +442,155 @@ void main() {
       throwsA(isA<ArgumentError>()),
     );
   });
+
+  test('Spotify import skips unplayable search candidates', () async {
+    const snapshot = SpotifyPlaylistSnapshot(
+      id: 'pl_unplayable',
+      name: 'Unplayable Mix',
+      tracks: [
+        SpotifyPlaylistTrack(
+          title: 'Someone You Loved',
+          subtitle: 'Lewis Capaldi',
+          durationMs: 182160,
+        ),
+      ],
+    );
+
+    final music = _FakeMusicRepository({
+      'Someone You Loved Lewis Capaldi': [
+        song(
+          id: 'vid_grey',
+          title: 'Someone You Loved',
+          artist: 'Lewis Capaldi',
+          duration: 182,
+          isPlayable: false,
+        ),
+        song(
+          id: 'vid_ok',
+          title: 'Someone You Loved',
+          artist: 'Lewis Capaldi',
+          duration: 182,
+        ),
+      ],
+    });
+
+    final useCase = ImportSpotifyPlaylistUseCase(
+      (_) async => snapshot,
+      music,
+      library,
+      searchSpacing: Duration.zero,
+    );
+
+    final result = await useCase.execute('pl_unplayable');
+    expect(result.importedCount, 1);
+    expect(library.entries.single.videoId, 'vid_ok');
+  });
+
+  test('YouTube sync skips unplayable videos', () async {
+    final music = _FakeMusicRepository(
+      const {},
+      playlists: {
+        'PLabc': (
+          PlaylistFull(
+            type: 'PLAYLIST',
+            playlistId: 'PLabc',
+            name: 'YT Mix',
+            videoCount: 2,
+            thumbnails: const [],
+          ),
+          [
+            video(id: 'ok', title: 'Playable'),
+            video(id: 'grey', title: 'Greyed', isPlayable: false),
+          ],
+        ),
+      },
+    );
+
+    final result = await SyncYoutubePlaylistUseCase(
+      music,
+      library,
+    ).execute('https://music.youtube.com/playlist?list=PLabc');
+
+    expect(result.importedCount, 1);
+    expect(result.skippedCount, 1);
+    expect(library.entries.map((e) => e.videoId), ['ok']);
+  });
+
+  test('YouTube refresh skips unplayable videos', () async {
+    final playlistId = await library.createPlaylist(
+      'Local YT',
+      sourceKind: 'youtube',
+      remoteId: 'PLabc',
+      remoteName: 'Local YT',
+      linkStatus: PlaylistLinkStatus.linked,
+    );
+    await library.addEntry(playlistId, 'old', 0);
+
+    final music = _FakeMusicRepository(
+      const {},
+      playlists: {
+        'PLabc': (
+          PlaylistFull(
+            type: 'PLAYLIST',
+            playlistId: 'PLabc',
+            name: 'Local YT',
+            videoCount: 2,
+            thumbnails: const [],
+          ),
+          [
+            video(id: 'ok', title: 'Playable'),
+            video(id: 'grey', title: 'Greyed', isPlayable: false),
+          ],
+        ),
+      },
+    );
+
+    final result = await RefreshLinkedPlaylistUseCase(
+      music,
+      library,
+      searchSpacing: Duration.zero,
+    ).execute(playlistId);
+
+    expect(result.skipped, 1);
+    expect(
+      library.entries
+          .where((e) => e.playlistId == playlistId)
+          .map((e) => e.videoId),
+      ['ok'],
+    );
+  });
 }
 
 class _FakeMusicRepository extends Fake implements MusicRepository {
-  _FakeMusicRepository(this._results);
+  _FakeMusicRepository(
+    this._results, {
+    Map<String, (PlaylistFull, List<VideoDetailed>)> playlists = const {},
+  }) : _playlists = playlists;
 
   final Map<String, List<SongDetailed>> _results;
+  final Map<String, (PlaylistFull, List<VideoDetailed>)> _playlists;
 
   @override
   Future<List<SongDetailed>> searchSongs(String query, {int limit = 20}) async {
     return _results[query] ?? const [];
+  }
+
+  @override
+  Future<PlaylistFull> getPlaylist(String playlistId, {int limit = 100}) async {
+    final entry = _playlists[playlistId];
+    if (entry == null) {
+      throw StateError('Unknown playlist $playlistId');
+    }
+    return entry.$1;
+  }
+
+  @override
+  Future<List<VideoDetailed>> getPlaylistVideos(String playlistId) async {
+    final entry = _playlists[playlistId];
+    if (entry == null) {
+      throw StateError('Unknown playlist $playlistId');
+    }
+    return entry.$2;
   }
 }
 

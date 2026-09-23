@@ -1,4 +1,5 @@
 import '../../../core/utils/playlist_url_parser.dart';
+import '../../../core/utils/playable_tracks.dart';
 import '../../models/library_models.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
@@ -35,9 +36,11 @@ class SyncYoutubePlaylistUseCase {
     final playlistDetails = await _musicRepository.getPlaylist(playlistId);
     final playlistName = playlistDetails.name;
 
-    // 2. Fetch playlist videos
+    // 2. Fetch playlist videos (drop greyed-out / unplayable rows)
     final videos = await _musicRepository.getPlaylistVideos(playlistId);
-    if (videos.isEmpty) {
+    final playable = playableVideos(videos);
+    final skippedUnplayable = videos.length - playable.length;
+    if (playable.isEmpty) {
       throw Exception('The playlist is empty or could not be retrieved');
     }
 
@@ -53,9 +56,9 @@ class SyncYoutubePlaylistUseCase {
       lastSyncedAt: now,
     );
 
-    // 4. Add each video as an entry in the playlist
-    for (var i = 0; i < videos.length; i++) {
-      final video = videos[i];
+    // 4. Add each playable video as an entry in the playlist
+    for (var i = 0; i < playable.length; i++) {
+      final video = playable[i];
       final artistName = displayArtists(video.artists);
       final thumbUrl =
           video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null;
@@ -78,8 +81,8 @@ class SyncYoutubePlaylistUseCase {
       localPlaylistId: localPlaylistId,
       name: playlistName,
       source: PlaylistImportKind.youtube,
-      importedCount: videos.length,
-      skippedCount: 0,
+      importedCount: playable.length,
+      skippedCount: skippedUnplayable,
     );
   }
 }

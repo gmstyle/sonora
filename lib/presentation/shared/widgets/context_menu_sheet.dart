@@ -1151,24 +1151,25 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         _startSongRadio(useCase, currentPlayer, feedback, l10n);
                       },
                     ),
-                  _ActionTile(
-                    icon: LucideIcons.plus,
-                    label: AppLocalizations.of(context)!.addToPlaylist,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showPlaylistPicker(
-                        context,
-                        ref,
-                        videoId,
-                        title: title,
-                        artist: artist,
-                        artistsJson: resolvedArtistsJson,
-                        thumbnailUrl: thumbnailUrl,
-                        isExplicit: isExplicit,
-                        duration: duration,
-                      );
-                    },
-                  ),
+                  if (isPlayable)
+                    _ActionTile(
+                      icon: LucideIcons.plus,
+                      label: AppLocalizations.of(context)!.addToPlaylist,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showPlaylistPicker(
+                          context,
+                          ref,
+                          videoId,
+                          title: title,
+                          artist: artist,
+                          artistsJson: resolvedArtistsJson,
+                          thumbnailUrl: thumbnailUrl,
+                          isExplicit: isExplicit,
+                          duration: duration,
+                        );
+                      },
+                    ),
                   _LikeActionTile(
                     videoId: videoId,
                     title: title,
@@ -1180,6 +1181,7 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     isVideo: isVideo,
                     isExplicit: isExplicit,
                     duration: duration,
+                    isPlayable: isPlayable,
                   ),
                   if (isPlayable)
                     _ActionTile(
@@ -3406,6 +3408,7 @@ class _LikeActionTile extends ConsumerWidget {
   final bool isVideo;
   final bool isExplicit;
   final int? duration;
+  final bool isPlayable;
 
   const _LikeActionTile({
     required this.videoId,
@@ -3418,6 +3421,7 @@ class _LikeActionTile extends ConsumerWidget {
     this.isVideo = false,
     this.isExplicit = false,
     this.duration,
+    this.isPlayable = true,
   });
 
   @override
@@ -3425,15 +3429,21 @@ class _LikeActionTile extends ConsumerWidget {
     final likedAsync = ref.watch(likedSongProvider(videoId));
     return likedAsync.when(
       loading:
-          () => ListTile(
-            leading: const Icon(DetailAffinityButton.likeIdle),
-            title: Text(AppLocalizations.of(context)!.like),
-            enabled: false,
-            dense: true,
-          ),
+          () =>
+              isPlayable
+                  ? ListTile(
+                    leading: const Icon(DetailAffinityButton.likeIdle),
+                    title: Text(AppLocalizations.of(context)!.like),
+                    enabled: false,
+                    dense: true,
+                  )
+                  : const SizedBox.shrink(),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
+        // Unplayable tracks cannot be newly liked; keep unlike for rows
+        // already saved before this gate existed.
+        if (!isPlayable && !isLiked) return const SizedBox.shrink();
         return ListTile(
           leading: Icon(
             isLiked

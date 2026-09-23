@@ -131,7 +131,7 @@ class ImportSpotifyPlaylistUseCase {
       try {
         final results = await _musicRepository.searchSongs(query, limit: 8);
         final candidates = results
-            .where((song) => song.videoId.isNotEmpty)
+            .where((song) => song.videoId.isNotEmpty && song.isPlayable)
             .map(_toCandidate)
             .toList(growable: false);
         final match = _matcher.pickBest(track: track, candidates: candidates);
