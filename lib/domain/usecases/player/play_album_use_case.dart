@@ -2,15 +2,17 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import '../../models/queue_track.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/playable_tracks.dart';
 import 'play_video_id_use_case.dart';
 
 /// Builds a [List<MediaItem>] from an album's song list.
 ///
-/// Only resolves the URL for the track at [playIndex] (default 0),
-/// which will play first — via [PlayVideoIdUseCase.resolveUrl] so a
-/// completed download or audio cache hit is used instead of a live stream.
-/// All other tracks are added as pending ([needsUrl]) — the player
-/// resolves their URLs lazily when they are about to play.
+/// Drops tracks with [SongDetailed.isPlayable] == false. Only resolves the URL
+/// for the track at [playIndex] (mapped onto the playable subset), which will
+/// play first — via [PlayVideoIdUseCase.resolveUrl] so a completed download or
+/// audio cache hit is used instead of a live stream. All other tracks are
+/// added as pending ([needsUrl]) — the player resolves their URLs lazily when
+/// they are about to play.
 ///
 /// Pass [playIndex] = -1 to skip URL resolution entirely (e.g. when
 /// adding to queue without immediate playback).
@@ -26,20 +28,26 @@ class PlayAlbumUseCase {
     List<SongDetailed> songs, {
     int playIndex = 0,
   }) async {
-    if (songs.isEmpty) return [];
+    final playable = playableSongs(songs);
+    if (playable.isEmpty) return [];
+
+    final leadIndex =
+        playIndex < 0
+            ? -1
+            : playableLeadIndex(songs, playIndex, playable: playable);
 
     String? firstUrl;
-    if (playIndex >= 0 && playIndex < songs.length) {
+    if (leadIndex >= 0 && leadIndex < playable.length) {
       // Do not swallow failures: playNow rejects a placeholder lead track.
       // resolveUrl returns a completed download file:// when present.
-      firstUrl = await _playVideoId.resolveUrl(songs[playIndex].videoId);
+      firstUrl = await _playVideoId.resolveUrl(playable[leadIndex].videoId);
     }
 
     return [
-      for (int i = 0; i < songs.length; i++)
-        i == playIndex && firstUrl != null
-            ? _toMediaItem(songs[i], firstUrl)
-            : _toPendingMediaItem(songs[i]),
+      for (int i = 0; i < playable.length; i++)
+        i == leadIndex && firstUrl != null
+            ? _toMediaItem(playable[i], firstUrl)
+            : _toPendingMediaItem(playable[i]),
     ];
   }
 

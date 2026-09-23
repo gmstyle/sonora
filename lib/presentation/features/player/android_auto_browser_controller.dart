@@ -20,6 +20,7 @@ import '../../../domain/usecases/home/get_discover_suggestions_use_case.dart';
 import '../../../domain/usecases/home/get_new_releases_use_case.dart';
 import '../../../domain/usecases/home/get_similar_artists_suggestions_use_case.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/playable_tracks.dart';
 
 /// Owns the Android Auto browse tree, search, and play-from-media-id flows.
 ///
@@ -1736,7 +1737,7 @@ class AndroidAutoBrowserController {
     ];
 
     items.addAll(
-      album.songs.take(100).map((s) {
+      playableSongs(album.songs).take(100).map((s) {
         final track = QueueTrack(
           videoId: s.videoId,
           needsUrl: true,
@@ -1787,7 +1788,7 @@ class AndroidAutoBrowserController {
     ];
 
     items.addAll(
-      videos.take(100).map((v) {
+      playableVideos(videos).take(100).map((v) {
         final track = QueueTrack(
           videoId: v.videoId,
           needsUrl: true,

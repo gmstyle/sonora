@@ -715,6 +715,12 @@
       "title": {"type": "String"}
     }
   },
+  "tracksUnavailable": "{count, plural, =1{1 unavailable} other{{count} unavailable}}",
+  "@tracksUnavailable": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "connection": "Connection",
   "offlineMode": "Offline Mode",
   "offlineModeHint": "Play only downloaded tracks and disable network actions",

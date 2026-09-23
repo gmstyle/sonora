@@ -2576,6 +2576,12 @@ abstract class AppLocalizations {
   /// **'Can\'t play \"{title}\". Playing next.'**
   String trackUnplayableSkipped(String title);
 
+  /// No description provided for @tracksUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 unavailable} other{{count} unavailable}}'**
+  String tracksUnavailable(int count);
+
   /// No description provided for @connection.
   ///
   /// In en, this message translates to:

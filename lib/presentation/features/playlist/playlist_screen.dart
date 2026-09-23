@@ -24,6 +24,7 @@ import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/playlist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/playable_tracks.dart';
 
 class PlaylistScreen extends ConsumerWidget {
   final String playlistId;
@@ -636,7 +637,7 @@ class _PlaylistActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final videos = videosAsync.asData?.value;
-    final hasVideos = videos != null && videos.isNotEmpty;
+    final hasVideos = videos != null && playableVideos(videos).isNotEmpty;
 
     final secondary = rankDetailActions([
       DetailAction(
@@ -883,6 +884,7 @@ class _VideoTracklist extends ConsumerWidget {
             duration: videos[i].duration,
             isVideo: true,
             isExplicit: videos[i].isExplicit,
+            isPlayable: videos[i].isPlayable,
             onTap: () => _playFromIndex(context, ref, i),
           ),
       ],
@@ -894,6 +896,18 @@ class _VideoTracklist extends ConsumerWidget {
     WidgetRef ref,
     int startIndex,
   ) async {
+    final track = videos[startIndex];
+    if (!track.isPlayable) {
+      if (context.mounted) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.trackUnplayable(track.name),
+              kind: FeedbackKind.error,
+            );
+      }
+      return;
+    }
     final player = ref.read(playerStateProvider.notifier);
     try {
       await player.playPlaylist(videos, startIndex: startIndex);

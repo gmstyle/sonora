@@ -1,11 +1,13 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/extensions/duration_ext.dart';
 import '../../../core/extensions/stat_format.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
+import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 import 'video_badge.dart';
@@ -26,6 +28,7 @@ class SongTile extends ConsumerWidget {
   final String? playCount;
   final int? viewCount;
   final bool isExplicit;
+  final bool isPlayable;
   final int? index;
   final Widget? leadingOverride;
   final List<Widget>? trailingActions;
@@ -47,6 +50,7 @@ class SongTile extends ConsumerWidget {
     this.playCount,
     this.viewCount,
     this.isExplicit = false,
+    this.isPlayable = true,
     this.index,
     this.leadingOverride,
     this.trailingActions,
@@ -58,8 +62,9 @@ class SongTile extends ConsumerWidget {
     final statLabel = _formatStat();
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
+    final colors = Theme.of(context).colorScheme;
 
-    return ListTile(
+    final tile = ListTile(
       leading: leadingOverride ?? _buildLeading(context, isDownloaded),
       title: Text.rich(
         TextSpan(
@@ -87,15 +92,31 @@ class SongTile extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          color: colors.onSurfaceVariant,
         ),
       ),
       trailing: _buildTrailing(context),
       onTap:
-          onTap ??
-          () => ref
-              .read(playerStateProvider.notifier)
-              .playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit),
+          !isPlayable
+              ? () {
+                final l10n = AppLocalizations.of(context);
+                if (l10n != null) {
+                  ref
+                      .read(actionFeedbackProvider.notifier)
+                      .report(
+                        l10n.trackUnplayable(title),
+                        kind: FeedbackKind.error,
+                      );
+                }
+              }
+              : onTap ??
+                  () => ref
+                      .read(playerStateProvider.notifier)
+                      .playVideoId(
+                        videoId,
+                        isVideo: isVideo,
+                        isExplicit: isExplicit,
+                      ),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,
@@ -113,8 +134,12 @@ class SongTile extends ConsumerWidget {
             playCount: playCount,
             viewCount: viewCount,
             isExplicit: isExplicit,
+            isPlayable: isPlayable,
           ),
     );
+
+    if (isPlayable) return tile;
+    return Opacity(opacity: 0.5, child: tile);
   }
 
   Widget _buildLeading(BuildContext context, bool isDownloaded) {
@@ -190,8 +215,16 @@ class SongTile extends ConsumerWidget {
   Widget? _buildTrailing(BuildContext context) {
     final hasDuration = duration != null;
     final hasActions = trailingActions != null && trailingActions!.isNotEmpty;
+    final banIcon =
+        !isPlayable
+            ? Icon(
+              LucideIcons.ban,
+              size: 18,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            )
+            : null;
 
-    if (!hasDuration && !hasActions) return null;
+    if (!hasDuration && !hasActions && banIcon == null) return null;
 
     final durationWidget =
         hasDuration
@@ -203,19 +236,20 @@ class SongTile extends ConsumerWidget {
             )
             : null;
 
-    if (hasActions) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (durationWidget != null) ...[
-            durationWidget,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (durationWidget != null) durationWidget,
+        if (banIcon != null) ...[
+          if (durationWidget != null) const SizedBox(width: 8),
+          banIcon,
+        ],
+        if (hasActions) ...[
+          if (durationWidget != null || banIcon != null)
             const SizedBox(width: 8),
-          ],
           ...trailingActions!,
         ],
-      );
-    }
-
-    return durationWidget;
+      ],
+    );
   }
 }

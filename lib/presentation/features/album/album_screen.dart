@@ -25,6 +25,7 @@ import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/album_provider.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/playable_tracks.dart';
 
 class AlbumScreen extends ConsumerWidget {
   final String albumId;
@@ -191,10 +192,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
             ? widget.album.thumbnails.last.url
             : null;
 
-    final totalDuration = widget.album.songs.fold<Duration>(
-      Duration.zero,
-      (sum, song) => sum + Duration(seconds: song.duration ?? 0),
-    );
+    final totalDuration = playableDuration(widget.album.songs);
+    final unavailableCount = unplayableSongCount(widget.album.songs);
 
     // Filter out the current album and any duplicate album IDs to prevent Hero tag collisions
     final uniqueRelatedReleases = () {
@@ -246,6 +245,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                     context,
                     thumbnailUrl,
                     totalDuration,
+                    unavailableCount,
                   ),
                 ),
               ],
@@ -351,6 +351,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         primaryArtistId(widget.album.artists),
                     playCount: widget.album.songs[i].playCount,
                     isExplicit: widget.album.songs[i].isExplicit,
+                    isPlayable: widget.album.songs[i].isPlayable,
                     onTap: () => _playSong(context, ref, i),
                   ),
                 ),
@@ -366,6 +367,18 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     WidgetRef ref,
     int startIndex,
   ) async {
+    final song = widget.album.songs[startIndex];
+    if (!song.isPlayable) {
+      if (context.mounted) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(
+              AppLocalizations.of(context)!.trackUnplayable(song.name),
+              kind: FeedbackKind.error,
+            );
+      }
+      return;
+    }
     final player = ref.read(playerStateProvider.notifier);
     try {
       await player.playAlbum(widget.album.songs, startIndex: startIndex);
@@ -395,6 +408,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     BuildContext context,
     String? thumbnailUrl,
     Duration totalDuration,
+    int unavailableCount,
   ) {
     final isTabletOrWide = widget.isTablet || widget.isWide;
     if (!isTabletOrWide) {
@@ -526,6 +540,10 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       if (widget.album.year != null) '${widget.album.year}',
                       '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
                       _formatDuration(totalDuration),
+                      if (unavailableCount > 0)
+                        AppLocalizations.of(
+                          context,
+                        )!.tracksUnavailable(unavailableCount),
                     ].join(' · '),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: PlayerColors.of(context).labelMuted,
@@ -671,6 +689,10 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                           if (widget.album.year != null) '${widget.album.year}',
                           '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
                           _formatDuration(totalDuration),
+                          if (unavailableCount > 0)
+                            AppLocalizations.of(
+                              context,
+                            )!.tracksUnavailable(unavailableCount),
                         ].join(' · '),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.subtitle,
@@ -707,7 +729,7 @@ class _AlbumActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final hasSongs = album.songs.isNotEmpty;
+    final hasSongs = playableSongs(album.songs).isNotEmpty;
 
     final secondary = rankDetailActions([
       DetailAction(

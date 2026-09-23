@@ -1507,6 +1507,17 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String tracksUnavailable(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count non disponibili',
+      one: '1 non disponibile',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get connection => 'Connessione';
 
   @override
