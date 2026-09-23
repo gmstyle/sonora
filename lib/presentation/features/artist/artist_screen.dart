@@ -30,6 +30,7 @@ import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/artist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/playable_tracks.dart';
 
 class ArtistScreen extends ConsumerWidget {
   final String artistId;
@@ -473,6 +474,7 @@ class _ArtistTopSongsSectionState
             albumId: entry.value.album?.albumId,
             playCount: entry.value.playCount,
             isExplicit: entry.value.isExplicit,
+            isPlayable: entry.value.isPlayable,
           ),
         ),
         if (_loading)
@@ -901,7 +903,7 @@ class _ArtistActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final hasSongs = artist.topSongs.isNotEmpty;
+    final hasSongs = playableSongs(artist.topSongs).isNotEmpty;
     final canShuffle =
         hasSongs || (artist.shuffleId != null && artist.shuffleId!.isNotEmpty);
 

@@ -1064,7 +1064,10 @@ flutter gen-l10n
 dart_ytmusic_api:
   git:
     url: https://github.com/gmstyle/dart_ytmusic_api.git
+    ref: cursor/unplayable-collection-rows-e406 # until merged; then use `dev` or omit
 ```
+
+Album, playlist and artist list rows expose `SongDetailed.isPlayable` / `VideoDetailed.isPlayable` from YouTube Music's grey-out display policy. Detail screens keep unplayable rows in the catalog list (dimmed + ban icon); `PlayAlbumUseCase` / `PlayPlaylistUseCase` drop them before building the queue. See `lib/core/utils/playable_tracks.dart`.
 
 To update:
 

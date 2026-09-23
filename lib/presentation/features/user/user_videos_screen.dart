@@ -11,6 +11,7 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/song_tile.dart';
 import 'providers/user_provider.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/playable_tracks.dart';
 
 class UserVideosScreen extends ConsumerWidget {
   final String channelId;
@@ -96,11 +97,18 @@ class _UserVideosBody extends ConsumerWidget {
               itemCount: videos.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
+                  final canPlay = playableVideos(videos).isNotEmpty;
                   return _VideosHeader(
                     videoCount: videos.length,
                     isMobile: isMobile,
-                    onPlayAll: () => _playFromIndex(context, ref, videos, 0),
-                    onShuffle: () => _shufflePlay(context, ref, videos),
+                    onPlayAll:
+                        canPlay
+                            ? () => _playFromIndex(context, ref, videos, 0)
+                            : null,
+                    onShuffle:
+                        canPlay
+                            ? () => _shufflePlay(context, ref, videos)
+                            : null,
                   );
                 }
 
@@ -120,6 +128,7 @@ class _UserVideosBody extends ConsumerWidget {
                   playCount: video.viewCount,
                   isVideo: true,
                   isExplicit: video.isExplicit,
+                  isPlayable: video.isPlayable,
                   onTap: () => _playFromIndex(context, ref, videos, i),
                 );
               },
@@ -149,6 +158,13 @@ class _UserVideosBody extends ConsumerWidget {
     int startIndex,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    final track = videos[startIndex];
+    if (!track.isPlayable) {
+      ref
+          .read(actionFeedbackProvider.notifier)
+          .report(l10n.trackUnplayable(track.name), kind: FeedbackKind.error);
+      return;
+    }
     ref.read(actionFeedbackProvider.notifier).report(l10n.playAll);
     try {
       await ref
@@ -186,8 +202,8 @@ class _UserVideosBody extends ConsumerWidget {
 class _VideosHeader extends StatelessWidget {
   final int videoCount;
   final bool isMobile;
-  final VoidCallback onPlayAll;
-  final VoidCallback onShuffle;
+  final VoidCallback? onPlayAll;
+  final VoidCallback? onShuffle;
 
   const _VideosHeader({
     required this.videoCount,

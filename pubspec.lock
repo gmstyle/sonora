@@ -325,11 +325,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: "356b3730b4211e9baefae101623eed062def3cb6"
+      ref: "cursor/unplayable-collection-rows-e406"
+      resolved-ref: "5043e3a025142acb2c44aeb8cba78e2a63319f42"
       url: "https://github.com/gmstyle/dart_ytmusic_api.git"
     source: git
-    version: "1.8.0"
+    version: "1.9.0"
   dbus:
     dependency: transitive
     description:

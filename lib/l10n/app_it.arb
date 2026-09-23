@@ -566,6 +566,7 @@
   "weakConnectionError": "La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati.",
   "trackUnplayable": "Impossibile riprodurre \"{title}\".",
   "trackUnplayableSkipped": "Impossibile riprodurre \"{title}\". Passo al successivo.",
+  "tracksUnavailable": "{count, plural, =1{1 non disponibile} other{{count} non disponibili}}",
   "connection": "Connessione",
   "offlineMode": "Modalità offline",
   "offlineModeHint": "Riproduci solo i brani scaricati e disabilita le azioni di rete",

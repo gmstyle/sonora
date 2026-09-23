@@ -7,6 +7,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/queue_track.dart';
+import '../../core/utils/playable_tracks.dart';
 import '../features/player/audio_handler.dart';
 import 'library_notifier.dart';
 import 'play_video_id_use_case_provider.dart';
@@ -735,12 +736,28 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
+      final playable = playableSongs(songs);
+      if (playable.isEmpty) {
+        if (_operationVersion == v) {
+          state = state.copyWith(isSwitching: false);
+        }
+        return;
+      }
+      final leadIndex = playableLeadIndex(
+        songs,
+        startIndex,
+        playable: playable,
+      );
       final useCase = ref.read(playAlbumUseCaseProvider);
       final items = await useCase.execute(songs, playIndex: startIndex);
       if (_operationVersion != v) return;
+      if (items.isEmpty) {
+        state = state.copyWith(isSwitching: false);
+        return;
+      }
       await _handler.playNow(
         items,
-        initialIndex: startIndex,
+        initialIndex: leadIndex.clamp(0, items.length - 1),
         shouldAbort: () => _operationVersion != v,
       );
       if (_operationVersion != v) return;
@@ -764,12 +781,28 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     await _handler.pause();
     state = state.copyWith(isSwitching: true, clearUnplayable: true);
     try {
+      final playable = playableVideos(videos);
+      if (playable.isEmpty) {
+        if (_operationVersion == v) {
+          state = state.copyWith(isSwitching: false);
+        }
+        return;
+      }
+      final leadIndex = playableLeadIndex(
+        videos,
+        startIndex,
+        playable: playable,
+      );
       final useCase = ref.read(playPlaylistUseCaseProvider);
       final items = await useCase.execute(videos, playIndex: startIndex);
       if (_operationVersion != v) return;
+      if (items.isEmpty) {
+        state = state.copyWith(isSwitching: false);
+        return;
+      }
       await _handler.playNow(
         items,
-        initialIndex: startIndex,
+        initialIndex: leadIndex.clamp(0, items.length - 1),
         shouldAbort: () => _operationVersion != v,
       );
       if (_operationVersion != v) return;
