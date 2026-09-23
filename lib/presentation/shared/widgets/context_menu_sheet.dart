@@ -1032,65 +1032,65 @@ class _SongContextMenuSheet extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (isPlayable) ...[
-                  _ActionTile(
-                    icon: LucideIcons.play,
-                    label: AppLocalizations.of(context)!.playNow,
-                    onTap: () {
-                      Navigator.pop(context);
-                      ref
-                          .read(actionFeedbackProvider.notifier)
-                          .report(AppLocalizations.of(context)!.playNow);
-                      player.playVideoId(
-                        videoId,
-                        isVideo: isVideo,
-                        isExplicit: isExplicit,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.listVideo,
-                    label: AppLocalizations.of(context)!.playNext,
-                    onTap: () {
-                      Navigator.pop(context);
-                      ref
-                          .read(actionFeedbackProvider.notifier)
-                          .report(AppLocalizations.of(context)!.playNext);
-                      player.playNextVideoId(
-                        videoId,
-                        title: title,
-                        artist: artist,
-                        thumbnailUrl: thumbnailUrl,
-                        durationSec: duration,
-                        isVideo: isVideo,
-                        isExplicit: isExplicit,
-                        albumName: albumName,
-                        artistId: resolvedArtistId,
-                        albumId: resolvedAlbumId,
-                      );
-                    },
-                  ),
-                  _ActionTile(
-                    icon: LucideIcons.listMusic,
-                    label: AppLocalizations.of(context)!.addToQueue,
-                    onTap: () {
-                      Navigator.pop(context);
-                      ref
-                          .read(actionFeedbackProvider.notifier)
-                          .report(AppLocalizations.of(context)!.addToQueue);
-                      player.addToQueueVideoId(
-                        videoId,
-                        title: title,
-                        artist: artist,
-                        thumbnailUrl: thumbnailUrl,
-                        durationSec: duration,
-                        isVideo: isVideo,
-                        isExplicit: isExplicit,
-                        albumName: albumName,
-                        artistId: resolvedArtistId,
-                        albumId: resolvedAlbumId,
-                      );
-                    },
-                  ),
+                    _ActionTile(
+                      icon: LucideIcons.play,
+                      label: AppLocalizations.of(context)!.playNow,
+                      onTap: () {
+                        Navigator.pop(context);
+                        ref
+                            .read(actionFeedbackProvider.notifier)
+                            .report(AppLocalizations.of(context)!.playNow);
+                        player.playVideoId(
+                          videoId,
+                          isVideo: isVideo,
+                          isExplicit: isExplicit,
+                        );
+                      },
+                    ),
+                    _ActionTile(
+                      icon: LucideIcons.listVideo,
+                      label: AppLocalizations.of(context)!.playNext,
+                      onTap: () {
+                        Navigator.pop(context);
+                        ref
+                            .read(actionFeedbackProvider.notifier)
+                            .report(AppLocalizations.of(context)!.playNext);
+                        player.playNextVideoId(
+                          videoId,
+                          title: title,
+                          artist: artist,
+                          thumbnailUrl: thumbnailUrl,
+                          durationSec: duration,
+                          isVideo: isVideo,
+                          isExplicit: isExplicit,
+                          albumName: albumName,
+                          artistId: resolvedArtistId,
+                          albumId: resolvedAlbumId,
+                        );
+                      },
+                    ),
+                    _ActionTile(
+                      icon: LucideIcons.listMusic,
+                      label: AppLocalizations.of(context)!.addToQueue,
+                      onTap: () {
+                        Navigator.pop(context);
+                        ref
+                            .read(actionFeedbackProvider.notifier)
+                            .report(AppLocalizations.of(context)!.addToQueue);
+                        player.addToQueueVideoId(
+                          videoId,
+                          title: title,
+                          artist: artist,
+                          thumbnailUrl: thumbnailUrl,
+                          durationSec: duration,
+                          isVideo: isVideo,
+                          isExplicit: isExplicit,
+                          albumName: albumName,
+                          artistId: resolvedArtistId,
+                          albumId: resolvedAlbumId,
+                        );
+                      },
+                    ),
                   ],
                   if (isLoadingArtists)
                     _LoadingTile(
@@ -1872,9 +1872,9 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
       if (album.songs.isEmpty) return;
       final notifier = container.read(activeDownloadsProvider.notifier);
       final toDownload =
-          playableSongs(album.songs)
-              .where((s) => !notifier.isDownloading(s.videoId))
-              .toList();
+          playableSongs(
+            album.songs,
+          ).where((s) => !notifier.isDownloading(s.videoId)).toList();
       if (toDownload.isEmpty) {
         if (context.mounted) {
           feedback.report(
@@ -2901,9 +2901,9 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       if (videos.isEmpty) return;
       final notifier = container.read(activeDownloadsProvider.notifier);
       final toDownload =
-          playableVideos(videos)
-              .where((v) => !notifier.isDownloading(v.videoId))
-              .toList();
+          playableVideos(
+            videos,
+          ).where((v) => !notifier.isDownloading(v.videoId)).toList();
       if (toDownload.isEmpty) {
         if (context.mounted) {
           feedback.report(

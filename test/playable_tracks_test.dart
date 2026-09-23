@@ -35,8 +35,14 @@ void main() {
     ];
     final playable = playableSongs(songs);
     expect(playableLeadIndex(songs, 1, playable: playable), 0); // b
-    expect(playableLeadIndex(songs, 0, playable: playable), 0); // next after a → b
+    expect(
+      playableLeadIndex(songs, 0, playable: playable),
+      0,
+    ); // next after a → b
     expect(playableLeadIndex(songs, 3, playable: playable), 1); // d
-    expect(playableLeadIndex(songs, 2, playable: playable), 1); // next after c → d
+    expect(
+      playableLeadIndex(songs, 2, playable: playable),
+      1,
+    ); // next after c → d
   });
 }

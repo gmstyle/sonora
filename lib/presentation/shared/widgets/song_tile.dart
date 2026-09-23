@@ -91,9 +91,9 @@ class SongTile extends ConsumerWidget {
         ].join(' · '),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: colors.onSurfaceVariant,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
       ),
       trailing: _buildTrailing(context),
       onTap:
