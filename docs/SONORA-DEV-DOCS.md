@@ -726,7 +726,7 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 
 | Step | Detail |
 |---|---|
-| Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test` |
+| Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test --exclude-tags integration` |
 | Prepare | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists, writes `release-notes.md` via `scripts/generate_release_notes.py` |
 | Android build | Builds a universal `app-release.apk` plus `--split-per-abi` (`arm64-v8a`, `armeabi-v7a`); signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`); the x86_64 split is deleted before upload (emulator-only) |
 | Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
@@ -1036,7 +1036,7 @@ On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `
 | `test/youtube_request_scheduler_test.dart` | 3 | Request throttling |
 | `test/queue_repository_test.dart` | 1 | Queue persist / restore round-trip |
 
-`test/ytmusic_datasource_test.dart` hits the live YouTube Music API and can fail offline.
+`test/ytmusic_datasource_test.dart` hits the live YouTube Music API and can fail offline. CI runs `flutter test --exclude-tags integration` so these live-network tests do not gate validate/release.
 
 ### 13.2 Commands
 
@@ -1044,8 +1044,11 @@ On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `
 # Static analysis
 flutter analyze
 
-# Tests
-flutter test
+# Tests (unit / widget; same as CI)
+flutter test --exclude-tags integration
+
+# Live YouTube Music API (optional, local)
+flutter test --tags integration
 
 # Drift code generation
 dart run build_runner build --delete-conflicting-outputs

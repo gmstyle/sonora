@@ -115,7 +115,7 @@ Architecture, database, audio engine, and the release pipeline are documented in
 
 ```bash
 flutter analyze
-flutter test
+flutter test --exclude-tags integration
 dart run build_runner build --delete-conflicting-outputs
 flutter gen-l10n
 ```
