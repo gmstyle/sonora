@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.9+70] - 2026-09-26
+
+### Bug Fixes
+
+- **downloads**: Keep album and playlist tracks in source order
+- **library**: Block liking and playlist adds for unplayable tracks
+
 ## [1.8.8+69] - 2026-09-23
 
 ### Features
