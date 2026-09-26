@@ -48,6 +48,7 @@ void main() {
       collectionId: 'album1',
       collectionType: 'album',
       collectionName: 'Album',
+      collectionIndex: 2,
     );
   }
 
@@ -110,6 +111,7 @@ void main() {
       expect(restored!.status, 'completed');
       expect(restored.localPath, oldPath);
       expect(restored.collectionName, 'Album');
+      expect(restored.collectionIndex, 2);
       expect(restored.fileSize, 12);
     },
   );

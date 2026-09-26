@@ -62,6 +62,7 @@ class DownloadReplacement {
         collectionId: retained.collectionId,
         collectionType: retained.collectionType,
         collectionName: retained.collectionName,
+        collectionIndex: retained.collectionIndex,
       );
     } catch (_) {}
   }

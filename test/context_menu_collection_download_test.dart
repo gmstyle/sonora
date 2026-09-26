@@ -70,6 +70,7 @@ class _RecordingDownloads extends DownloadsNotifier {
     String? batchId,
     String? batchName,
     int? batchTotal,
+    int? collectionIndex,
   }) async {
     started.add(videoId);
   }

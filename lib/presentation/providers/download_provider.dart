@@ -40,6 +40,7 @@ class ActiveDownload {
   final String? batchId;
   final String? batchName;
   final int? batchTotal;
+  final int? collectionIndex;
 
   const ActiveDownload({
     required this.videoId,
@@ -54,6 +55,7 @@ class ActiveDownload {
     this.batchId,
     this.batchName,
     this.batchTotal,
+    this.collectionIndex,
   });
 
   double get progress =>
@@ -89,6 +91,7 @@ class ActiveDownload {
       batchId: batchId,
       batchName: batchName,
       batchTotal: batchTotal,
+      collectionIndex: collectionIndex,
     );
   }
 }
@@ -248,6 +251,7 @@ class _DownloadRequest {
   final String? collectionId;
   final String? collectionType;
   final String? collectionName;
+  final int? collectionIndex;
 
   const _DownloadRequest({
     required this.videoId,
@@ -264,6 +268,7 @@ class _DownloadRequest {
     this.collectionId,
     this.collectionType,
     this.collectionName,
+    this.collectionIndex,
   });
 }
 
@@ -349,6 +354,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     String? batchId,
     String? batchName,
     int? batchTotal,
+    int? collectionIndex,
   }) {
     final existingCompleter = _completers[videoId];
     if (existingCompleter != null) return existingCompleter.future;
@@ -369,6 +375,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       collectionId: parsed?.collectionId,
       collectionType: parsed?.collectionType,
       collectionName: batchName,
+      collectionIndex: collectionIndex,
     );
     _requests[videoId] = request;
 
@@ -399,6 +406,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         batchId: batchId,
         batchName: batchName,
         batchTotal: batchTotal,
+        collectionIndex: collectionIndex,
       ),
     };
 
@@ -490,6 +498,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       batchId: request.batchId,
       batchName: request.batchName,
       batchTotal: request.batchTotal,
+      collectionIndex: request.collectionIndex,
     );
   }
 
@@ -547,6 +556,7 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         collectionId: request.collectionId,
         collectionType: request.collectionType,
         collectionName: request.collectionName,
+        collectionIndex: request.collectionIndex,
         quality: settings.downloadQuality,
         cancelToken: cancelToken,
         onProgress: (received, total) {

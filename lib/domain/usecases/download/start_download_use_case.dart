@@ -37,6 +37,7 @@ class StartDownloadUseCase {
     String? collectionId,
     String? collectionType,
     String? collectionName,
+    int? collectionIndex,
     MediaQuality quality = MediaQuality.high,
     CancelToken? cancelToken,
     required void Function(int received, int total) onProgress,
@@ -78,6 +79,7 @@ class StartDownloadUseCase {
       collectionId: collectionId,
       collectionType: collectionType,
       collectionName: collectionName,
+      collectionIndex: collectionIndex,
     );
 
     try {
@@ -132,6 +134,7 @@ class StartDownloadUseCase {
       collectionId: collectionId,
       collectionType: collectionType,
       collectionName: collectionName,
+      collectionIndex: collectionIndex,
     );
 
     return filePath;

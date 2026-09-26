@@ -40,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -331,6 +331,15 @@ class AppDatabase extends _$AppDatabase {
         }
         await m.createTable(spotifyMatchCache);
         await _backfillPlaylistLinkMeta();
+      }
+      if (from < 25) {
+        final downloadsInfo =
+            await customSelect('PRAGMA table_info(downloads)').get();
+        if (!downloadsInfo.any(
+          (row) => row.read<String>('name') == 'collection_index',
+        )) {
+          await m.addColumn(downloads, downloads.collectionIndex);
+        }
       }
     },
   );

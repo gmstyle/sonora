@@ -49,11 +49,18 @@ List<DownloadModel> sortDownloadTracks(
   final sorted = List<DownloadModel>.of(items);
   switch (sort) {
     case DownloadsSort.newest:
-      sorted.sort(
-        (a, b) => (b.downloadedAt ?? DateTime(0)).compareTo(
+      sorted.sort((a, b) {
+        final aIndex = a.collectionIndex;
+        final bIndex = b.collectionIndex;
+        if (aIndex != null && bIndex != null) {
+          return aIndex.compareTo(bIndex);
+        }
+        if (aIndex != null) return -1;
+        if (bIndex != null) return 1;
+        return (b.downloadedAt ?? DateTime(0)).compareTo(
           a.downloadedAt ?? DateTime(0),
-        ),
-      );
+        );
+      });
     case DownloadsSort.title:
       sorted.sort(
         (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
@@ -285,7 +292,7 @@ class _CollectionAccordionTile extends ConsumerWidget {
                     IconButton(
                       tooltip: l10n.playAll,
                       icon: const Icon(LucideIcons.play, size: 20),
-                      onPressed: () => playDownloadGroup(ref, group),
+                      onPressed: () => playDownloadGroup(ref, group, sort),
                       visualDensity: VisualDensity.compact,
                     ),
                   Icon(
@@ -527,7 +534,7 @@ class _GroupDetailPane extends ConsumerWidget {
               ),
               if (group.isCollection) ...[
                 FilledButton.tonalIcon(
-                  onPressed: () => playDownloadGroup(ref, group),
+                  onPressed: () => playDownloadGroup(ref, group, sort),
                   icon: const Icon(LucideIcons.play, size: 18),
                   label: Text(l10n.playAll),
                 ),
@@ -678,12 +685,16 @@ class _CompletedTrackTile extends ConsumerWidget {
   }
 }
 
-Future<void> playDownloadGroup(WidgetRef ref, DownloadGroup group) async {
+Future<void> playDownloadGroup(
+  WidgetRef ref,
+  DownloadGroup group,
+  DownloadsSort sort,
+) async {
   if (group.tracks.isEmpty) return;
 
   final resolve = ref.read(playVideoIdUseCaseProvider);
   final items = <MediaItem>[];
-  for (final d in group.tracks) {
+  for (final d in sortDownloadTracks(group.tracks, sort)) {
     // Single URL entry point: local download if present, else stream (throws
     // offline when neither is available).
     final String url;

@@ -49,6 +49,7 @@ class _FakeStartDownloadUseCase extends StartDownloadUseCase {
     String? collectionId,
     String? collectionType,
     String? collectionName,
+    int? collectionIndex,
     MediaQuality quality = MediaQuality.high,
     CancelToken? cancelToken,
     required void Function(int received, int total) onProgress,

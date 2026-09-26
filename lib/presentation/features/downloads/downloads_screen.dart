@@ -299,6 +299,21 @@ class _ActiveDownloadsSection extends StatelessWidget {
         ),
       );
     }
+
+    for (final group in ordered) {
+      if (group.batchId == null) continue;
+      if (group.items.every((d) => d.collectionIndex == null)) continue;
+      group.items.sort((a, b) {
+        final aIndex = a.collectionIndex;
+        final bIndex = b.collectionIndex;
+        if (aIndex != null && bIndex != null) {
+          return aIndex.compareTo(bIndex);
+        }
+        if (aIndex != null) return -1;
+        if (bIndex != null) return 1;
+        return 0;
+      });
+    }
     return ordered;
   }
 }

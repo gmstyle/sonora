@@ -215,6 +215,9 @@ class DownloadModel {
   final String? collectionType;
   final String? collectionName;
 
+  /// Position in the source collection list (0-based). Null for singles.
+  final int? collectionIndex;
+
   const DownloadModel({
     required this.videoId,
     required this.title,
@@ -231,6 +234,7 @@ class DownloadModel {
     this.collectionId,
     this.collectionType,
     this.collectionName,
+    this.collectionIndex,
   });
 }
 

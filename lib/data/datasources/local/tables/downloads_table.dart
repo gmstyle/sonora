@@ -24,6 +24,9 @@ class Downloads extends Table {
 
   TextColumn get collectionName => text().nullable()();
 
+  /// Position in the source album/playlist/podcast list (0-based). Null for singles.
+  IntColumn get collectionIndex => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {videoId};
 }

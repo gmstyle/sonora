@@ -149,6 +149,7 @@ abstract class LibraryRepository {
     String? collectionId,
     String? collectionType,
     String? collectionName,
+    int? collectionIndex,
   });
   Future<void> deleteDownload(String videoId);
 

@@ -559,6 +559,7 @@ class _PlaylistDetailContentState
           batchId: batchId,
           batchName: widget.playlist.name,
           batchTotal: batchTotal,
+          collectionIndex: entry.position,
         ),
       );
     }

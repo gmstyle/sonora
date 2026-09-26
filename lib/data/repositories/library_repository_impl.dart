@@ -704,6 +704,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       collectionId: row.collectionId,
       collectionType: row.collectionType,
       collectionName: row.collectionName,
+      collectionIndex: row.collectionIndex,
     );
   }
 
@@ -754,6 +755,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
     String? collectionId,
     String? collectionType,
     String? collectionName,
+    int? collectionIndex,
   }) => _downloadsDao.insertDownload(
     DownloadsCompanion.insert(
       videoId: videoId,
@@ -771,6 +773,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
       collectionId: Value(collectionId),
       collectionType: Value(collectionType),
       collectionName: Value(collectionName),
+      collectionIndex: Value(collectionIndex),
     ),
   );
 

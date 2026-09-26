@@ -1926,6 +1926,9 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
           alreadyDownloaded.map((d) => d.videoId).toSet();
       final batchId = 'album:${album.albumId}';
       final batchTotal = toDownload.length;
+      final sourceIndex = {
+        for (var i = 0; i < album.songs.length; i++) album.songs[i].videoId: i,
+      };
 
       for (final song in toDownload) {
         if (alreadyDownloadedIds.contains(song.videoId)) {
@@ -1944,6 +1947,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
             batchId: batchId,
             batchName: album.name,
             batchTotal: batchTotal,
+            collectionIndex: sourceIndex[song.videoId],
           ),
         );
       }
@@ -2290,6 +2294,11 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
           alreadyDownloaded.map((d) => d.videoId).toSet();
       final batchId = 'podcast:${podcast.browseId}';
       final batchTotal = toDownload.length;
+      final allEpisodes = podcast.episodes.toList();
+      final sourceIndex = {
+        for (var i = 0; i < allEpisodes.length; i++)
+          if (allEpisodes[i].videoId.isNotEmpty) allEpisodes[i].videoId: i,
+      };
 
       for (final episode in toDownload) {
         if (alreadyDownloadedIds.contains(episode.videoId)) {
@@ -2309,6 +2318,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
             batchId: batchId,
             batchName: podcast.name,
             batchTotal: batchTotal,
+            collectionIndex: sourceIndex[episode.videoId],
           ),
         );
       }
@@ -2952,6 +2962,9 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
           alreadyDownloaded.map((d) => d.videoId).toSet();
       final batchId = 'playlist:$playlistId';
       final batchTotal = toDownload.length;
+      final sourceIndex = {
+        for (var i = 0; i < videos.length; i++) videos[i].videoId: i,
+      };
 
       for (final video in toDownload) {
         if (alreadyDownloadedIds.contains(video.videoId)) {
@@ -2971,6 +2984,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
             batchId: batchId,
             batchName: name,
             batchTotal: batchTotal,
+            collectionIndex: sourceIndex[video.videoId],
           ),
         );
       }
