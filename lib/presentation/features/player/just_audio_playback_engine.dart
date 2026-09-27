@@ -193,7 +193,20 @@ class JustAudioPlaybackEngine implements PlaybackEngine {
     final current = _player.currentIndex;
     final pos = _player.position;
     await _player.removeAudioSourceAt(index);
-    await _player.insertAudioSource(index, toSource(media));
+    // just_audio_media_kit concatenatingInsertAll moves from `length` (one
+    // past the last index), so the reinserted source stays at the end of the
+    // mpv playlist while just_audio's sequence looks unchanged. Look-ahead
+    // then shows track N and mpv plays N+1. Append + move uses the path that
+    // already compensates for mpv's playlist-move indexes.
+    if (Platform.isLinux) {
+      await _player.addAudioSource(toSource(media));
+      final last = _player.audioSources.length - 1;
+      if (last != index) {
+        await _player.moveAudioSource(last, index);
+      }
+    } else {
+      await _player.insertAudioSource(index, toSource(media));
+    }
     // just_audio_media_kit: removing a source *before* the current one
     // decrements currentIndex; inserting it back does not increment it,
     // so the engine silently moves to the previous track (restore x → x-1).
