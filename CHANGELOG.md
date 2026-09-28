@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.10+71] - 2026-09-28
+
+### Bug Fixes
+
+- **player**: Keep Linux queue index aligned during look-ahead
+
 ## [1.8.9+70] - 2026-09-26
 
 ### Bug Fixes
