@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.11+72] - 2026-10-01
+
+### Features
+
+- **artist**: Share the show-all grid across albums, singles, and videos
+- **artist**: Add show-all pages for albums and singles
+
 ## [1.8.10+71] - 2026-09-28
 
 ### Bug Fixes
