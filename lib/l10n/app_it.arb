@@ -210,6 +210,7 @@
   "sortDownloads": "Ordina per",
   "sortNewest": "Più recenti",
   "sortByTitle": "Titolo",
+  "sortByYear": "Anno",
   "sortBySize": "Più grandi",
   "downloadTimeLeft": "{time} rimanenti",
   "@downloadTimeLeft": {

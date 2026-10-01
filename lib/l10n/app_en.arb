@@ -304,6 +304,7 @@
   "sortDownloads": "Sort by",
   "sortNewest": "Newest first",
   "sortByTitle": "Title",
+  "sortByYear": "Year",
   "sortBySize": "Largest first",
   "downloadTimeLeft": "{time} left",
   "@downloadTimeLeft": {

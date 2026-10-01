@@ -22,6 +22,7 @@ class VideoCard extends ConsumerWidget {
   final bool isExplicit;
   final bool isPlayable;
   final double cardWidth;
+  final VoidCallback? onTap;
 
   const VideoCard({
     super.key,
@@ -35,6 +36,7 @@ class VideoCard extends ConsumerWidget {
     this.isExplicit = false,
     this.isPlayable = true,
     this.cardWidth = 200,
+    this.onTap,
   });
 
   @override
@@ -56,9 +58,14 @@ class VideoCard extends ConsumerWidget {
                       );
                 }
               }
-              : () => ref
-                  .read(playerStateProvider.notifier)
-                  .playVideoId(videoId, isVideo: true, isExplicit: isExplicit),
+              : onTap ??
+                  () => ref
+                      .read(playerStateProvider.notifier)
+                      .playVideoId(
+                        videoId,
+                        isVideo: true,
+                        isExplicit: isExplicit,
+                      ),
       onLongPress:
           () => ContextMenuSheet.showForSong(
             context,

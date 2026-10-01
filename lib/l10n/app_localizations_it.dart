@@ -587,6 +587,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get sortByTitle => 'Titolo';
 
   @override
+  String get sortByYear => 'Anno';
+
+  @override
   String get sortBySize => 'Più grandi';
 
   @override

@@ -3,6 +3,7 @@ import 'package:shimmer/shimmer.dart';
 
 enum ShimmerVariant {
   card,
+  videoCard,
   tile,
   carousel,
   miniPlayer,
@@ -68,6 +69,7 @@ class ShimmerLoading extends StatelessWidget {
       highlightColor: highlightColor,
       child: switch (variant) {
         ShimmerVariant.card => _ShimmerCard(cardWidth: cardWidth),
+        ShimmerVariant.videoCard => _ShimmerVideoCard(cardWidth: cardWidth),
         ShimmerVariant.tile => _ShimmerTile(
           horizontalPadding: horizontalPadding,
         ),
@@ -172,6 +174,40 @@ class _ShimmerCard extends StatelessWidget {
   }
 }
 
+class _ShimmerVideoCard extends StatelessWidget {
+  final double cardWidth;
+
+  const _ShimmerVideoCard({required this.cardWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: cardWidth,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ColoredBox(color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: cardWidth * 0.75,
+            height: 12,
+            child: const ColoredBox(color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: cardWidth * 0.5,
+            height: 10,
+            child: const ColoredBox(color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ShimmerTile extends StatelessWidget {
   final double horizontalPadding;
 
@@ -236,75 +272,77 @@ class _ShimmerCarousel extends StatelessWidget {
   }
 }
 
-/// Skeleton that mirrors the exact layout of the mini player row:
-/// 12px padding | 48×48 artwork | 12px gap | title + artist bars | play+skip placeholders | 4px padding
+/// Skeleton of the mini player row. Sizes from the slot it is given:
+/// 48 px under the seek strip on the mobile dock, 72 px in the glass bar.
 class _ShimmerMiniPlayer extends StatelessWidget {
+  const _ShimmerMiniPlayer();
+
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          SizedBox(width: 12),
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: ColoredBox(color: Colors.white),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: 14,
-                  width: double.infinity,
-                  child: ColoredBox(color: Colors.white),
-                ),
-                SizedBox(height: 4),
-                SizedBox(
-                  height: 12,
-                  width: 120,
-                  child: ColoredBox(color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 8),
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: Center(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : 48.0;
+        final art = height < 40 ? height : 40.0;
+        final button = height < 32 ? height : 32.0;
+        final titleH = height >= 28 ? 12.0 : height * 0.28;
+        final artistH = height >= 28 ? 8.0 : height * 0.2;
+        final gap = height >= 28 ? 4.0 : 2.0;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: art,
+                height: art,
+                child: const ColoredBox(color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: titleH,
+                      width: double.infinity,
+                      child: const ColoredBox(color: Colors.white),
+                    ),
+                    SizedBox(height: gap),
+                    FractionallySizedBox(
+                      widthFactor: 0.55,
+                      child: SizedBox(
+                        height: artistH,
+                        child: const ColoredBox(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              _ShimmerDisc(size: button),
+              _ShimmerDisc(size: button),
+            ],
           ),
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: Center(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 4),
-        ],
+        );
+      },
+    );
+  }
+}
+
+class _ShimmerDisc extends StatelessWidget {
+  final double size;
+
+  const _ShimmerDisc({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: const DecoratedBox(
+        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
       ),
     );
   }

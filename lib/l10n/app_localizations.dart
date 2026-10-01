@@ -962,6 +962,12 @@ abstract class AppLocalizations {
   /// **'Title'**
   String get sortByTitle;
 
+  /// No description provided for @sortByYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get sortByYear;
+
   /// No description provided for @sortBySize.
   ///
   /// In en, this message translates to:

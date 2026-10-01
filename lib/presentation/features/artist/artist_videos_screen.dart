@@ -9,7 +9,8 @@ import '../../providers/action_feedback_provider.dart';
 import '../../providers/music_repository_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
-import '../../shared/widgets/song_tile.dart';
+import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/video_card.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../../core/utils/playable_tracks.dart';
 
@@ -34,13 +35,10 @@ class ArtistVideosScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < kCompactBreakpoint;
-        final isWide = constraints.maxWidth >= kExpandedBreakpoint;
         return _ArtistVideosBody(
           artistId: artistId,
           artistName: artistName,
-          isMobile: isMobile,
-          isWide: isWide,
+          viewportWidth: constraints.maxWidth,
         );
       },
     );
@@ -50,14 +48,12 @@ class ArtistVideosScreen extends ConsumerWidget {
 class _ArtistVideosBody extends ConsumerWidget {
   final String artistId;
   final String? artistName;
-  final bool isMobile;
-  final bool isWide;
+  final double viewportWidth;
 
   const _ArtistVideosBody({
     required this.artistId,
     this.artistName,
-    required this.isMobile,
-    required this.isWide,
+    required this.viewportWidth,
   });
 
   @override
@@ -79,7 +75,7 @@ class _ArtistVideosBody extends ConsumerWidget {
         ),
       ),
       body: videosAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _VideosLoadingGrid(),
         error:
             (e, _) => ErrorRetryWidget(
               message: l10n.failedToLoadVideos,
@@ -90,18 +86,28 @@ class _ArtistVideosBody extends ConsumerWidget {
             return Center(child: Text(l10n.noContentAvailable));
           }
 
-          final list = RefreshIndicator(
+          final isMobile = viewportWidth < kCompactBreakpoint;
+          final isWide = viewportWidth >= kExpandedBreakpoint;
+          final contentWidth =
+              isWide && viewportWidth > 1240 ? 1240.0 : viewportWidth;
+          final columns =
+              contentWidth < kCompactBreakpoint
+                  ? 2
+                  : contentWidth < kMediumBreakpoint
+                  ? 3
+                  : contentWidth < kExpandedBreakpoint
+                  ? 4
+                  : 5;
+          final cardWidth = (contentWidth - 32 - (columns - 1) * 12) / columns;
+          final canPlay = playableVideos(videos).isNotEmpty;
+
+          final grid = RefreshIndicator(
             onRefresh: () => ref.refresh(artistVideosProvider(artistId).future),
-            child: ListView.builder(
-              padding: EdgeInsets.only(
-                bottom:
-                    MediaQuery.of(context).padding.bottom + (isWide ? 48 : 16),
-              ),
-              itemCount: videos.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  final canPlay = playableVideos(videos).isNotEmpty;
-                  return _VideosHeader(
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: _VideosHeader(
                     videoCount: videos.length,
                     isMobile: isMobile,
                     onPlayAll:
@@ -112,43 +118,53 @@ class _ArtistVideosBody extends ConsumerWidget {
                         canPlay
                             ? () => _shufflePlay(context, ref, videos)
                             : null,
-                  );
-                }
-
-                final video = videos[index - 1];
-                final i = index - 1;
-                return SongTile(
-                  videoId: video.videoId,
-                  title: video.name,
-                  artist: displayArtists(video.artists),
-                  artists: video.artists,
-                  artistId: primaryArtistId(video.artists),
-                  thumbnailUrl:
-                      video.thumbnails.isNotEmpty
-                          ? video.thumbnails.last.url
-                          : null,
-                  duration: video.duration,
-                  playCount: video.viewCount,
-                  isVideo: true,
-                  isExplicit: video.isExplicit,
-                  isPlayable: video.isPlayable,
-                  onTap: () => _playFromIndex(context, ref, videos, i),
-                );
-              },
+                  ),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    MediaQuery.paddingOf(context).bottom + (isWide ? 48 : 16),
+                  ),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: cardWidth / (cardWidth * 9 / 16 + 64),
+                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final video = videos[index];
+                      return VideoCard(
+                        videoId: video.videoId,
+                        title: video.name,
+                        artist: displayArtists(video.artists),
+                        artists: video.artists,
+                        artistId: primaryArtistId(video.artists),
+                        thumbnailUrl:
+                            video.thumbnails.isNotEmpty
+                                ? video.thumbnails.last.url
+                                : null,
+                        isExplicit: video.isExplicit,
+                        isPlayable: video.isPlayable,
+                        cardWidth: cardWidth,
+                        onTap:
+                            () => _playFromIndex(context, ref, videos, index),
+                      );
+                    }, childCount: videos.length),
+                  ),
+                ),
+              ],
             ),
           );
 
-          if (!isWide && isMobile) return list;
-
-          // Tablet / wide: same tracklist language as library detail panes,
-          // with a readable max width on large screens.
+          if (!isWide) return grid;
           return Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isWide ? 1240 : double.infinity,
-              ),
-              child: list,
+              constraints: const BoxConstraints(maxWidth: 1240),
+              child: grid,
             ),
           );
         },
@@ -276,6 +292,53 @@ class _VideosHeader extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _VideosLoadingGrid extends StatelessWidget {
+  const _VideosLoadingGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = constraints.maxWidth;
+        final isWide = viewport >= kExpandedBreakpoint;
+        final contentWidth = isWide && viewport > 1240 ? 1240.0 : viewport;
+        final columns =
+            contentWidth < kCompactBreakpoint
+                ? 2
+                : contentWidth < kMediumBreakpoint
+                ? 3
+                : contentWidth < kExpandedBreakpoint
+                ? 4
+                : 5;
+        final cardWidth = (contentWidth - 32 - (columns - 1) * 12) / columns;
+        final grid = GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
+            childAspectRatio: cardWidth / (cardWidth * 9 / 16 + 64),
+          ),
+          itemCount: columns * 3,
+          itemBuilder:
+              (_, _) => ShimmerLoading(
+                variant: ShimmerVariant.videoCard,
+                cardWidth: cardWidth,
+              ),
+        );
+        if (!isWide) return grid;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1240),
+            child: grid,
+          ),
+        );
+      },
     );
   }
 }

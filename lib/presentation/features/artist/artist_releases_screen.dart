@@ -6,11 +6,12 @@ import '../../../core/utils/artists_utils.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/release_card.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 import 'providers/artist_releases_provider.dart';
 
 export 'providers/artist_releases_provider.dart' show ArtistReleaseKind;
 
-class ArtistReleasesScreen extends ConsumerWidget {
+class ArtistReleasesScreen extends ConsumerStatefulWidget {
   final String artistId;
   final String? artistName;
   final ArtistReleaseKind kind;
@@ -22,18 +23,27 @@ class ArtistReleasesScreen extends ConsumerWidget {
     this.artistName,
   });
 
-  ArtistReleasesKey get _key => (artistId: artistId, kind: kind);
+  @override
+  ConsumerState<ArtistReleasesScreen> createState() =>
+      _ArtistReleasesScreenState();
+}
+
+class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
+  ArtistReleaseSort _sort = ArtistReleaseSort.year;
+
+  ArtistReleasesKey get _key => (artistId: widget.artistId, kind: widget.kind);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final releasesAsync = ref.watch(artistReleasesProvider(_key));
     final l10n = AppLocalizations.of(context)!;
-    final sectionTitle = switch (kind) {
+    final sectionTitle = switch (widget.kind) {
       ArtistReleaseKind.albums => l10n.albums,
       ArtistReleaseKind.singles => l10n.singles,
     };
+    final artistName = widget.artistName;
     final title =
-        artistName != null && artistName!.isNotEmpty
+        artistName != null && artistName.isNotEmpty
             ? '$sectionTitle · $artistName'
             : sectionTitle;
 
@@ -47,10 +57,10 @@ class ArtistReleasesScreen extends ConsumerWidget {
         ),
       ),
       body: releasesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _ReleasesLoadingGrid(),
         error:
             (e, _) => ErrorRetryWidget(
-              message: switch (kind) {
+              message: switch (widget.kind) {
                 ArtistReleaseKind.albums => l10n.failedToLoadAlbums,
                 ArtistReleaseKind.singles => l10n.failedToLoadSingles,
               },
@@ -61,85 +71,193 @@ class ArtistReleasesScreen extends ConsumerWidget {
             return Center(child: Text(l10n.noContentAvailable));
           }
 
-          final width = MediaQuery.sizeOf(context).width;
-          final crossAxisCount =
-              width < kCompactBreakpoint
-                  ? 2
-                  : width < kExpandedBreakpoint
-                  ? 4
-                  : 6;
-          final cardWidth =
-              (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
-          final releaseType = switch (kind) {
-            ArtistReleaseKind.albums => ReleaseType.album,
-            ArtistReleaseKind.singles => ReleaseType.single,
-          };
-          final heroPrefix = switch (kind) {
-            ArtistReleaseKind.albums => 'artist_album_all',
-            ArtistReleaseKind.singles => 'artist_single_all',
-          };
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final viewport = constraints.maxWidth;
+              final isWide = viewport >= kExpandedBreakpoint;
+              final contentWidth =
+                  isWide && viewport > 1240 ? 1240.0 : viewport;
+              final columns =
+                  contentWidth < kCompactBreakpoint
+                      ? 2
+                      : contentWidth < kMediumBreakpoint
+                      ? 3
+                      : contentWidth < kExpandedBreakpoint
+                      ? 4
+                      : 5;
+              final cardWidth =
+                  (contentWidth - 32 - (columns - 1) * 12) / columns;
+              final releaseType = switch (widget.kind) {
+                ArtistReleaseKind.albums => ReleaseType.album,
+                ArtistReleaseKind.singles => ReleaseType.single,
+              };
+              final heroPrefix = switch (widget.kind) {
+                ArtistReleaseKind.albums => 'artist_album_all',
+                ArtistReleaseKind.singles => 'artist_single_all',
+              };
+              final sorted = sortArtistReleases(releases, _sort);
 
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(artistReleasesProvider(_key).future),
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: Text(
-                      switch (kind) {
-                        ArtistReleaseKind.albums => l10n.albumCount(
-                          releases.length,
+              final grid = RefreshIndicator(
+                onRefresh:
+                    () => ref.refresh(artistReleasesProvider(_key).future),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              switch (widget.kind) {
+                                ArtistReleaseKind.albums => l10n.albumCount(
+                                  releases.length,
+                                ),
+                                ArtistReleaseKind.singles => l10n.singleCount(
+                                  releases.length,
+                                ),
+                              },
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                ChoiceChip(
+                                  label: Text(l10n.sortByYear),
+                                  selected: _sort == ArtistReleaseSort.year,
+                                  showCheckmark: false,
+                                  visualDensity: VisualDensity.compact,
+                                  onSelected:
+                                      (_) =>
+                                          _selectSort(ArtistReleaseSort.year),
+                                ),
+                                ChoiceChip(
+                                  label: Text(l10n.sortByTitle),
+                                  selected: _sort == ArtistReleaseSort.title,
+                                  showCheckmark: false,
+                                  visualDensity: VisualDensity.compact,
+                                  onSelected:
+                                      (_) =>
+                                          _selectSort(ArtistReleaseSort.title),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        ArtistReleaseKind.singles => l10n.singleCount(
-                          releases.length,
-                        ),
-                      },
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    0,
-                    16,
-                    MediaQuery.paddingOf(context).bottom + 16,
-                  ),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.62,
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        0,
+                        16,
+                        MediaQuery.paddingOf(context).bottom +
+                            (isWide ? 48 : 16),
+                      ),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: cardWidth / (cardWidth + 64),
+                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final release = sorted[index];
+                          return ReleaseCard(
+                            albumId: release.albumId,
+                            name: release.name,
+                            artist: displayArtists(release.artists),
+                            artistId: primaryArtistId(release.artists),
+                            thumbnailUrl:
+                                release.thumbnails.isNotEmpty
+                                    ? release.thumbnails.last.url
+                                    : null,
+                            year: release.year,
+                            type: releaseType,
+                            cardWidth: cardWidth,
+                            heroTag: '${heroPrefix}_${release.albumId}',
+                          );
+                        }, childCount: sorted.length),
+                      ),
                     ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final release = releases[index];
-                      return ReleaseCard(
-                        albumId: release.albumId,
-                        name: release.name,
-                        artist: displayArtists(release.artists),
-                        artistId: primaryArtistId(release.artists),
-                        thumbnailUrl:
-                            release.thumbnails.isNotEmpty
-                                ? release.thumbnails.last.url
-                                : null,
-                        year: release.year,
-                        type: releaseType,
-                        cardWidth: cardWidth,
-                        heroTag: '${heroPrefix}_${release.albumId}',
-                      );
-                    }, childCount: releases.length),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              );
+
+              if (!isWide) return grid;
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1240),
+                  child: grid,
+                ),
+              );
+            },
           );
         },
       ),
+    );
+  }
+
+  void _selectSort(ArtistReleaseSort sort) {
+    if (_sort == sort) return;
+    setState(() => _sort = sort);
+  }
+}
+
+class _ReleasesLoadingGrid extends StatelessWidget {
+  const _ReleasesLoadingGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = constraints.maxWidth;
+        final isWide = viewport >= kExpandedBreakpoint;
+        final contentWidth = isWide && viewport > 1240 ? 1240.0 : viewport;
+        final columns =
+            contentWidth < kCompactBreakpoint
+                ? 2
+                : contentWidth < kMediumBreakpoint
+                ? 3
+                : contentWidth < kExpandedBreakpoint
+                ? 4
+                : 5;
+        final cardWidth = (contentWidth - 32 - (columns - 1) * 12) / columns;
+        final grid = GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
+            childAspectRatio: cardWidth / (cardWidth + 64),
+          ),
+          itemCount: columns * 3,
+          itemBuilder:
+              (_, _) => ShimmerLoading(
+                variant: ShimmerVariant.card,
+                cardWidth: cardWidth,
+              ),
+        );
+        if (!isWide) return grid;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1240),
+            child: grid,
+          ),
+        );
+      },
     );
   }
 }
