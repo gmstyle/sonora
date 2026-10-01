@@ -39,6 +39,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 **Explore**
 - Charts, Moods & Genres, and New Releases
+- Artist pages with the full album, single, and video lists
 - Podcast and episode pages, user/channel pages, search across songs, videos, podcasts, and users
 
 **Desktop & extras**

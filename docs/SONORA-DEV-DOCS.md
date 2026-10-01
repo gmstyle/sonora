@@ -143,7 +143,7 @@ lib/
         ├── search/                       # SearchScreen + filter chips (songs/albums/…/podcasts/episodes/users)
         ├── explore/                      # ChartsScreen, MoodsScreen, MoodPlaylistsScreen, NewReleasesScreen
         ├── browse_section/               # BrowseSectionScreen (generic section browser)
-        ├── artist/                       # ArtistScreen + stats row + description + videos show-all
+        ├── artist/                       # ArtistScreen + stats row + description + albums/singles/videos show-all
         ├── album/                        # AlbumScreen + AlbumProvider
         ├── playlist/                     # PlaylistScreen + PlaylistProvider
         ├── podcast/                      # PodcastScreen + EpisodeScreen + providers
@@ -693,10 +693,12 @@ Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.
 
 | Branch | Path | Screen | Sub-routes |
 |---|---|---|---|
-| 0 | `/` | HomeScreen | `artist/:artistId`, `album/:albumId`, `playlist/:playlistId`, `browse-section/:browseId`, `charts`, `moods` (+ `moods/playlists`), `new-releases`, `podcast/:browseId`, `episode/:videoId`, `user/:channelId` (+ `videos` / `playlists`), smart-mix detail |
+| 0 | `/` | HomeScreen | `artist/:artistId` (+ `albums` / `singles` / `videos`), `album/:albumId`, `playlist/:playlistId`, `browse-section/:browseId`, `charts`, `moods` (+ `moods/playlists`), `new-releases`, `podcast/:browseId`, `episode/:videoId`, `user/:channelId` (+ `videos` / `playlists`), smart-mix detail |
 | 1 | `/search` | SearchScreen | `podcast/:browseId`, `episode/:videoId`, `user/:channelId` (+ nested videos/playlists), plus shared artist/album/playlist routes as needed |
 | 2 | `/library` | LibraryScreen | — (tabs: favorites, artists, playlists, albums, **podcasts**, history, mixes, stats) |
 | 3 | `/downloads` | DownloadsScreen | — |
+
+Artist album and single “show all” routes use `MusicRepository.getArtistAlbums` / `getArtistSingles`. Those `dart_ytmusic_api` methods return the first discography browse page (the same page YouTube Music opens from the carousel). When that call is empty or fails, the screen still lists the releases already shown on the artist page.
 
 `/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear on the Home AppBar (mobile), between the tablet `NavigationRail` and `NavNowPlaying`, and in the wide sidebar header (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
 

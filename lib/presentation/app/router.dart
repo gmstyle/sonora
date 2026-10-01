@@ -6,6 +6,7 @@ import '../features/search/search_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/downloads/downloads_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/artist/artist_releases_screen.dart';
 import '../features/artist/artist_screen.dart';
 import '../features/artist/artist_videos_screen.dart';
 import '../features/album/album_screen.dart';
@@ -74,6 +75,36 @@ final routerProvider = Provider<GoRouter>((ref) {
                           ),
                         ),
                     routes: [
+                      GoRoute(
+                        path: 'albums',
+                        pageBuilder: (context, state) {
+                          final artistId = state.pathParameters['artistId']!;
+                          final name = state.uri.queryParameters['name'];
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: ArtistReleasesScreen(
+                              artistId: artistId,
+                              artistName: name,
+                              kind: ArtistReleaseKind.albums,
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'singles',
+                        pageBuilder: (context, state) {
+                          final artistId = state.pathParameters['artistId']!;
+                          final name = state.uri.queryParameters['name'];
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: ArtistReleasesScreen(
+                              artistId: artistId,
+                              artistName: name,
+                              kind: ArtistReleaseKind.singles,
+                            ),
+                          );
+                        },
+                      ),
                       GoRoute(
                         path: 'videos',
                         pageBuilder: (context, state) {

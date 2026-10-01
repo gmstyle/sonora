@@ -236,7 +236,15 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                       artistId: artist.artistId,
                     ),
                   if (artist.topAlbums.isNotEmpty) ...[
-                    _SectionHeader(title: l10n.albums),
+                    _SectionHeader(
+                      title: l10n.albums,
+                      onShowAll: () {
+                        final name = Uri.encodeComponent(artist.name);
+                        context.push(
+                          '/artist/${artist.artistId}/albums?name=$name',
+                        );
+                      },
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
@@ -271,7 +279,15 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                     const SizedBox(height: 24),
                   ],
                   if (artist.topSingles.isNotEmpty) ...[
-                    _SectionHeader(title: l10n.singles),
+                    _SectionHeader(
+                      title: l10n.singles,
+                      onShowAll: () {
+                        final name = Uri.encodeComponent(artist.name);
+                        context.push(
+                          '/artist/${artist.artistId}/singles?name=$name',
+                        );
+                      },
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,

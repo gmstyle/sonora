@@ -114,6 +114,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadVideos => 'Failed to load videos';
 
   @override
+  String get failedToLoadSingles => 'Failed to load singles';
+
+  @override
   String get failedToLoadPodcast => 'Failed to load podcast';
 
   @override
@@ -126,6 +129,28 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count videos',
       one: '1 video',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String albumCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count albums',
+      one: '1 album',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String singleCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count singles',
+      one: '1 single',
     );
     return '$_temp0';
   }

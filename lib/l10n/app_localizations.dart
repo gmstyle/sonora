@@ -296,6 +296,12 @@ abstract class AppLocalizations {
   /// **'Failed to load videos'**
   String get failedToLoadVideos;
 
+  /// No description provided for @failedToLoadSingles.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load singles'**
+  String get failedToLoadSingles;
+
   /// No description provided for @failedToLoadPodcast.
   ///
   /// In en, this message translates to:
@@ -313,6 +319,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 video} other{{count} videos}}'**
   String videoCount(int count);
+
+  /// No description provided for @albumCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 album} other{{count} albums}}'**
+  String albumCount(int count);
+
+  /// No description provided for @singleCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 single} other{{count} singles}}'**
+  String singleCount(int count);
 
   /// No description provided for @playAll.
   ///
