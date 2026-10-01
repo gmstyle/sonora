@@ -698,7 +698,7 @@ Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.
 | 2 | `/library` | LibraryScreen | — (tabs: favorites, artists, playlists, albums, **podcasts**, history, mixes, stats) |
 | 3 | `/downloads` | DownloadsScreen | — |
 
-Artist album and single “show all” routes use `MusicRepository.getArtistAlbums` / `getArtistSingles`. Those `dart_ytmusic_api` methods return the first discography browse page (the same page YouTube Music opens from the carousel). When that call is empty or fails, the screen still lists the releases already shown on the artist page.
+Artist album and single “show all” routes use `MusicRepository.getArtistAlbums` / `getArtistSingles`. Those `dart_ytmusic_api` methods follow discography browse continuations (up to 10 pages) so the full catalog is returned when YouTube Music paginates the grid. When that call is empty or fails, the screen still lists the releases already shown on the artist page.
 
 `/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear on the Home AppBar (mobile), between the tablet `NavigationRail` and `NavNowPlaying`, and in the wide sidebar header (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
 

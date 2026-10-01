@@ -36,9 +36,10 @@ typedef ArtistReleasesKey = ({String artistId, ArtistReleaseKind kind});
 /// Full artist catalog from [MusicRepository], with the artist-page preview
 /// appended for any release the catalog call omitted.
 ///
-/// `getArtistAlbums` / `getArtistSingles` return an empty list when YouTube
-/// Music does not expose a "more" browse endpoint (the carousel already holds
-/// every release). A failed catalog call still shows that preview.
+/// `getArtistAlbums` / `getArtistSingles` follow discography continuations and
+/// return an empty list when YouTube Music does not expose a "more" browse
+/// endpoint (the carousel already holds every release). A failed catalog call
+/// still shows that preview.
 final artistReleasesProvider = FutureProvider.family<
   List<AlbumDetailed>,
   ArtistReleasesKey
