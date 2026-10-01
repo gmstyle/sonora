@@ -61,10 +61,23 @@
   },
   "failedToLoadPlaylist": "Failed to load playlist",
   "failedToLoadVideos": "Failed to load videos",
+  "failedToLoadSingles": "Failed to load singles",
   "failedToLoadPodcast": "Failed to load podcast",
   "failedToLoadUser": "Failed to load user profile",
   "videoCount": "{count, plural, =1{1 video} other{{count} videos}}",
   "@videoCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "albumCount": "{count, plural, =1{1 album} other{{count} albums}}",
+  "@albumCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "singleCount": "{count, plural, =1{1 single} other{{count} singles}}",
+  "@singleCount": {
     "placeholders": {
       "count": {"type": "int"}
     }
