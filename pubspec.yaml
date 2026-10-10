@@ -39,6 +39,7 @@ dependencies:
   audio_service_mpris: ^0.2.1
 
   # ── Linux Desktop ────────────────────────────────────────────
+  # 0.8+ rewrites onto nativeapi (breaking API). Stay on 0.5 until tray code migrates.
   tray_manager: ^0.5.2
   window_manager: any
 
@@ -50,7 +51,7 @@ dependencies:
   go_router: ^18.0.1
 
   # ── Local Database ────────────────────────────────────────────
-  drift: ^2.34.4
+  drift: ^2.35.2
   drift_flutter: ^0.3.1
 
   # ── File System & Permissions ─────────────────────────────────
@@ -66,11 +67,11 @@ dependencies:
   flutter_svg: ^2.3.0
 
   # ── Sharing ───────────────────────────────────────────────────
-  share_plus: ^13.3.0
+  share_plus: ^13.3.1
 
   # ── App Info & Update Check ───────────────────────────────────
   package_info_plus: ^10.2.1
-  url_launcher: ^6.3.1
+  url_launcher: ^6.3.3
   
 
   # ── Casting & Connectivity ──────────────────────────────────
@@ -79,14 +80,16 @@ dependencies:
 
   # ── UI-UX ────────────────────────────────────────────────────────
   shimmer: ^4.0.0
+  # 2.x / google_fonts 9.x switch to material_ui ColorScheme/TextTheme and break
+  # flutter/material.dart types until Sonora migrates (Flutter 3.47 opt-in).
   dynamic_color: ^1.9.0
   marquee: ^2.3.0
   palette_generator_master: ^1.1.0
   google_fonts: ^8.2.0
-  lucide_icons_flutter: ^3.1.17
+  lucide_icons_flutter: ^3.1.24
 
   # ── Settings ─────────────────────────────────────────────────
-  shared_preferences: ^2.5.3
+  shared_preferences: ^2.5.6
   # ── Localizzazione ────────────────────────────────────────────
   intl: any
 
@@ -109,7 +112,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.5
-  build_runner: ^2.16.0
+  build_runner: ^2.16.2
   flutter_native_splash: ^2.4.7
   flutter_launcher_icons: ^0.14.4
 
