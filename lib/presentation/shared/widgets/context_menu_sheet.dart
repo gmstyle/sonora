@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/stat_format.dart';
+import '../../../core/link/sonora_link.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../../core/utils/playable_tracks.dart';
 import '../../../domain/models/library_models.dart';
@@ -1214,9 +1214,9 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
                       Navigator.pop(context);
-                      SharePlus.instance.share(
-                        ShareParams(
-                          text: 'https://music.youtube.com/watch?v=$videoId',
+                      unawaited(
+                        shareSonoraLink(
+                          SonoraLink(kind: SonoraLinkKind.track, id: videoId),
                         ),
                       );
                     },
@@ -1452,9 +1452,12 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
                         Navigator.pop(context);
-                        SharePlus.instance.share(
-                          ShareParams(
-                            text: 'https://music.youtube.com/channel/$artistId',
+                        unawaited(
+                          shareSonoraLink(
+                            SonoraLink(
+                              kind: SonoraLinkKind.artist,
+                              id: artistId,
+                            ),
                           ),
                         );
                       },
@@ -1778,10 +1781,9 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
                         Navigator.pop(context);
-                        SharePlus.instance.share(
-                          ShareParams(
-                            text:
-                                'https://music.youtube.com/playlist?list=$albumId',
+                        unawaited(
+                          shareSonoraLink(
+                            SonoraLink(kind: SonoraLinkKind.album, id: albumId),
                           ),
                         );
                       },
@@ -2139,9 +2141,12 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
                         Navigator.pop(context);
-                        SharePlus.instance.share(
-                          ShareParams(
-                            text: 'https://music.youtube.com/browse/$browseId',
+                        unawaited(
+                          shareSonoraLink(
+                            SonoraLink(
+                              kind: SonoraLinkKind.podcast,
+                              id: browseId,
+                            ),
                           ),
                         );
                       },
@@ -2519,9 +2524,9 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
                       Navigator.pop(context);
-                      SharePlus.instance.share(
-                        ShareParams(
-                          text: 'https://music.youtube.com/watch?v=$videoId',
+                      unawaited(
+                        shareSonoraLink(
+                          SonoraLink(kind: SonoraLinkKind.episode, id: videoId),
                         ),
                       );
                     },
@@ -2826,10 +2831,12 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
                         Navigator.pop(context);
-                        SharePlus.instance.share(
-                          ShareParams(
-                            text:
-                                'https://music.youtube.com/playlist?list=$playlistId',
+                        unawaited(
+                          shareSonoraLink(
+                            SonoraLink(
+                              kind: SonoraLinkKind.playlist,
+                              id: playlistId,
+                            ),
                           ),
                         );
                       },

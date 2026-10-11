@@ -5,6 +5,12 @@
 #include <gdk/gdkx.h>
 #endif
 
+#include <errno.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 // tray_manager still links libayatana-appindicator (not -glib). The C library
@@ -19,6 +25,72 @@ static void sonora_drop_ayatana_deprecation(const gchar* log_domain,
     return;
   }
   g_log_default_handler(log_domain, log_level, message, user_data);
+}
+
+// Path must match lib/core/utils/linux_single_instance.dart.
+static gchar* sonora_instance_socket_path() {
+  const gchar* runtime_dir = g_getenv("XDG_RUNTIME_DIR");
+  if (runtime_dir != nullptr && runtime_dir[0] != '\0') {
+    return g_build_filename(runtime_dir, "sonora", "instance.sock", nullptr);
+  }
+  const gchar* home = g_get_home_dir();
+  return g_build_filename(home, ".local", "share", "sonora", "instance.sock",
+                          nullptr);
+}
+
+// Forward a sonora:// URI (or empty ping) to the Dart primary via Unix socket.
+// Needed because GtkApplication is D-Bus unique: a second xdg-open never runs
+// Dart main(), it only activates the existing process (e.g. tray).
+static gboolean sonora_forward_uri_to_primary(const gchar* uri) {
+  g_autofree gchar* path = sonora_instance_socket_path();
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd < 0) {
+    g_warning("sonora: socket() failed: %s", g_strerror(errno));
+    return FALSE;
+  }
+
+  struct sockaddr_un addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  if (g_strlcpy(addr.sun_path, path, sizeof(addr.sun_path)) >=
+      sizeof(addr.sun_path)) {
+    g_warning("sonora: socket path too long: %s", path);
+    close(fd);
+    return FALSE;
+  }
+
+  if (connect(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) !=
+      0) {
+    g_warning("sonora: connect(%s) failed: %s", path, g_strerror(errno));
+    close(fd);
+    return FALSE;
+  }
+
+  g_autofree gchar* payload = g_strdup_printf("%s\n", uri != nullptr ? uri : "");
+  const gsize len = strlen(payload);
+  gsize written = 0;
+  while (written < len) {
+    const ssize_t n = write(fd, payload + written, len - written);
+    if (n < 0) {
+      if (errno == EINTR) continue;
+      g_warning("sonora: write to primary failed: %s", g_strerror(errno));
+      close(fd);
+      return FALSE;
+    }
+    written += static_cast<gsize>(n);
+  }
+  close(fd);
+  return TRUE;
+}
+
+static const gchar* sonora_find_uri_in_args(gchar** argv) {
+  if (argv == nullptr) return nullptr;
+  for (gchar** p = argv; *p != nullptr; p++) {
+    if (g_str_has_prefix(*p, "sonora:")) {
+      return *p;
+    }
+  }
+  return nullptr;
 }
 
 struct _MyApplication {
@@ -129,6 +201,22 @@ static gboolean my_application_local_command_line(GApplication* application,
   if (!g_application_register(application, nullptr, &error)) {
     g_warning("Failed to register: %s", error->message);
     *exit_status = 1;
+    return TRUE;
+  }
+
+  // Unique GtkApplication: a second launch is remote. Activate alone only
+  // presents the window — deep-link argv never reaches Dart. Forward the URI
+  // to the primary's Unix socket (linux_single_instance.dart) first.
+  if (g_application_get_is_remote(application)) {
+    const gchar* uri = sonora_find_uri_in_args(self->dart_entrypoint_arguments);
+    if (!sonora_forward_uri_to_primary(uri)) {
+      g_warning(
+          "sonora: could not forward deep link to primary "
+          "(uri=%s)",
+          uri != nullptr ? uri : "(none)");
+    }
+    g_application_activate(application);
+    *exit_status = 0;
     return TRUE;
   }
 

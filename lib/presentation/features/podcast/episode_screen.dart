@@ -6,9 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../../core/constants/app_constants.dart';
+import '../../../core/link/sonora_link.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
@@ -601,8 +600,8 @@ class _EpisodeActions extends ConsumerWidget {
   }
 
   void _share(EpisodeFull episode) {
-    SharePlus.instance.share(
-      ShareParams(text: 'https://music.youtube.com/watch?v=${episode.videoId}'),
+    shareSonoraLink(
+      SonoraLink(kind: SonoraLinkKind.episode, id: episode.videoId),
     );
   }
 

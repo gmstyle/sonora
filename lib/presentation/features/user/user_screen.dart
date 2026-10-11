@@ -6,9 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../../core/constants/app_constants.dart';
+import '../../../core/link/sonora_link.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -350,10 +349,8 @@ class _UserSliverAppBar extends StatelessWidget {
           icon: const Icon(LucideIcons.share2),
           tooltip: l10n.share,
           onPressed: () {
-            SharePlus.instance.share(
-              ShareParams(
-                text: 'https://music.youtube.com/channel/${user.channelId}',
-              ),
+            shareSonoraLink(
+              SonoraLink(kind: SonoraLinkKind.user, id: user.channelId),
             );
           },
         ),

@@ -21,6 +21,7 @@ import '../features/user/user_screen.dart';
 import '../features/user/user_videos_screen.dart';
 import '../features/user/user_playlists_screen.dart';
 import '../features/library/widgets/smart_mix_detail_view.dart';
+import '../providers/player_provider.dart';
 import '../shared/layouts/app_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -53,6 +54,20 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: rootNavigatorKey,
     initialLocation: '/',
     routes: [
+      // Platform deep links (`sonora:///track/…`) land here via GoRouter's
+      // route information parser. Play only — no track detail screen.
+      GoRoute(
+        path: '/track/:videoId',
+        redirect: (context, state) {
+          final videoId = state.pathParameters['videoId'];
+          if (videoId != null && videoId.isNotEmpty) {
+            Future.microtask(() {
+              ref.read(playerStateProvider.notifier).playVideoId(videoId);
+            });
+          }
+          return '/';
+        },
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AppShell(navigationShell: navigationShell);

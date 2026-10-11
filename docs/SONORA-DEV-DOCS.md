@@ -50,12 +50,16 @@ lib/
 │   │   └── string_ext.dart             # String extensions
 │   ├── theme/
 │   │   └── app_theme.dart              # ThemeData light/dark/amoled + dynamic color
-│   └── utils/
-│       ├── backup_utils.dart           # JSON serialize/deserialize (no I/O)
-│       ├── linux_tray_service.dart     # System tray for Linux
-│       ├── notification_utils.dart     # Android foreground notification for download
-│       ├── playlist_url_parser.dart    # YouTube / Spotify playlist URL → id
-│       └── platform_utils.dart         # isAndroid, isLinux helpers
+│   ├── utils/
+│   │   ├── backup_utils.dart           # JSON serialize/deserialize (no I/O)
+│   │   ├── linux_single_instance.dart  # Unix-socket single-instance + argv URI forward
+│   │   ├── linux_tray_service.dart     # System tray for Linux
+│   │   ├── notification_utils.dart     # Android foreground notification for download
+│   │   ├── playlist_url_parser.dart    # YouTube / Spotify playlist URL → id
+│   │   └── platform_utils.dart         # isAndroid, isLinux helpers
+│   └── link/                           # sonora:// build/parse/share + inbound handler
+│       ├── sonora_link.dart
+│       └── sonora_link_handler.dart
 ├── data/
 │   ├── datasources/
 │   │   ├── local/
@@ -1084,17 +1088,43 @@ flutter pub upgrade dart_ytmusic_api
 
 ---
 
-## 15. Share API
+## 15. Deep Links & Share (`sonora://`)
 
-The app uses `share_plus` v12+ with the new API:
+Outbound share and inbound open use the custom scheme **`sonora://`** (no HTTPS landing page). Helpers live in `lib/core/link/`.
 
-```dart
-// Correct pattern (v12+):
-await SharePlus.instance.share(ShareParams(text: '...'));
+### URL contract
 
-// DO NOT use the old API:
-// Share.share('...');  // DEPRECATED
-```
+| Kind | Shared URL | Inbound action |
+|------|------------|----------------|
+| Track / MV | `sonora:///track/{videoId}` | `playVideoId` only (GoRouter `/track/:videoId` redirects to `/`) |
+| Episode | `sonora:///episode/{videoId}` | `go('/episode/…')` |
+| Artist | `sonora:///artist/{artistId}` | `go('/artist/…')` |
+| Album | `sonora:///album/{albumId}` | `go('/album/…')` |
+| Playlist | `sonora:///playlist/{playlistId}` | `go('/playlist/…')` |
+| Podcast | `sonora:///podcast/{browseId}` | `go('/podcast/…')` |
+| User | `sonora:///user/{channelId}` | `go('/user/…')` |
+| Browse section | `sonora:///browse-section/{browseId}?params=&title=` | `go` with query |
+
+- **Build / parse**: `buildSonoraLink` / `parseSonoraLink` in `sonora_link.dart` (safe `Uri` encoding; rejects other schemes).
+- **Share helper**: `shareSonoraLink` → `SharePlus.instance.share(ShareParams(…))` (`share_plus` v12+ API).
+- **Dispatch**: `SonoraLinkHandler` / `dispatchSonoraLink` in `sonora_link_handler.dart`. Wired from `SonoraApp` after the first frame (pending queue if `rootNavigatorKey` is not ready yet).
+- On Android (and any platform where the engine feeds the intent URI into GoRouter), `sonora:///album/…` matches existing routes; `sonora:///track/…` is handled by a top-level `/track/:videoId` redirect that calls `playVideoId` and returns `/` (avoids GoRouter `ErrorScreen`).
+
+Share call sites (context menu, player, episode screen, user screen) emit `sonora://` URLs. Backup share and Sonora Wrapped are unchanged.
+
+### Android
+
+- `AndroidManifest.xml`: `VIEW` + `BROWSABLE` + `DEFAULT` intent-filter with `android:scheme="sonora"` on `MainActivity` (`singleTop`).
+- Dependency: `app_links` — `getInitialLink()` + `uriLinkStream` in `SonoraApp` (also plays/navigates; track play is idempotent with the router redirect).
+
+### Linux single-instance
+
+- Module: `lib/core/utils/linux_single_instance.dart`.
+- Unix domain socket at `$XDG_RUNTIME_DIR/sonora/instance.sock` (fallback `~/.local/share/sonora/instance.sock`).
+- Called at the start of `main()` **before** `runApp`: secondary process forwards argv URI and `exit(0)`; primary listens and exposes `uriStream`.
+- On a forwarded URI the primary calls `windowManager.show()` + `focus()` (works when hidden in tray).
+- **GtkApplication D-Bus uniqueness**: closing the window only hides to tray, so `xdg-open sonora://…` usually hits an already-running primary. The native runner (`linux/runner/my_application.cc`) detects `g_application_get_is_remote()`, writes the URI to the same Unix socket, then activates the primary. Without that bridge, only the window is presented and Dart never sees the link.
+- Desktop packaging: `Exec=… %u`, `MimeType=x-scheme-handler/sonora;`, and best-effort `xdg-mime default com.gmstyle.sonora.desktop x-scheme-handler/sonora` in `post-install.sh` / release `install.sh`.
 
 ---
 

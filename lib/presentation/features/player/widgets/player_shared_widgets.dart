@@ -7,8 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:marquee/marquee.dart';
-import 'package:share_plus/share_plus.dart';
-
+import '../../../../core/link/sonora_link.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../domain/models/library_models.dart';
@@ -551,15 +550,18 @@ Widget buildBottomActionsRow(
             icon: Icon(LucideIcons.share2, size: iconSize),
             onPressed: () {
               final currentSong = ref.read(playerStateProvider).currentSong;
-              final vId =
-                  currentSong != null
-                      ? QueueTrack.fromMediaItem(currentSong).videoId
-                      : null;
-              if (vId != null) {
-                SharePlus.instance.share(
-                  ShareParams(text: 'https://music.youtube.com/watch?v=$vId'),
-                );
-              }
+              if (currentSong == null) return;
+              final track = QueueTrack.fromMediaItem(currentSong);
+              final vId = track.videoId;
+              shareSonoraLink(
+                SonoraLink(
+                  kind:
+                      track.isEpisode
+                          ? SonoraLinkKind.episode
+                          : SonoraLinkKind.track,
+                  id: vId,
+                ),
+              );
             },
             tooltip: l10n.share,
             color: theme.colorScheme.onSurfaceVariant,

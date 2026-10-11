@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [Unreleased]
+
+### Features
+
+- **share**: Share `sonora://` deep links that open in Sonora (play tracks; navigate album/artist/playlist/podcast/episode/user)
+
+### Bug Fixes
+
+- **linux**: Forward `sonora://` deep links into the running (tray) instance via GtkApplication remote + Unix socket
+- **android**: Open `sonora:///track/…` deep links without GoRouter ErrorScreen (play + stay on home)
+
 ## [1.8.11+72] - 2026-10-01
 
 ### Features

@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:io' show Platform;
+
+import 'package:app_links/app_links.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -15,10 +18,11 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'core/constants/app_constants.dart';
+import 'core/link/sonora_link_handler.dart';
+import 'core/utils/linux_single_instance.dart';
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
 import 'core/utils/linux_tray_service.dart';
-
 import 'data/datasources/local/database_connection.dart';
 import 'data/datasources/local/daos/downloads_dao.dart';
 import 'data/datasources/local/daos/history_dao.dart';
@@ -50,12 +54,14 @@ import 'presentation/providers/sync_provider.dart';
 import 'presentation/providers/cast_provider.dart';
 import 'presentation/providers/action_feedback_provider.dart';
 import 'presentation/providers/stream_datasource_provider.dart';
-
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
 import 'presentation/providers/ytmusic_provider.dart';
 import 'presentation/shared/widgets/release_notes_view.dart';
 import 'package:go_router/go_router.dart';
+
+/// Cold-start `sonora://` URI from Linux argv (set before [runApp]).
+String? _linuxColdStartUri;
 
 LinuxTrayService? _trayService;
 
@@ -63,6 +69,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (isLinux) {
+    _linuxColdStartUri = extractSonoraUriFromArgs(Platform.executableArguments);
+    // Secondary instances forward the URI and exit(0) — never returns.
+    await LinuxSingleInstance.ensurePrimary(onSecondaryUri: _linuxColdStartUri);
     JustAudioMediaKit.ensureInitialized(windows: false);
   }
 
@@ -196,9 +205,14 @@ class SonoraApp extends ConsumerStatefulWidget {
 }
 
 class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
+  late final SonoraLinkHandler _linkHandler;
+  StreamSubscription<Uri>? _appLinksSub;
+  StreamSubscription<String>? _linuxUriSub;
+
   @override
   void initState() {
     super.initState();
+    _linkHandler = SonoraLinkHandler(ref);
     if (isLinux) {
       windowManager.addListener(this);
       windowManager.setPreventClose(true);
@@ -207,6 +221,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
       _requestNotificationPermission();
+      _initDeepLinks();
     });
   }
 
@@ -215,8 +230,64 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     if (downloadNotificationActionHandler == _onDownloadNotificationAction) {
       downloadNotificationActionHandler = null;
     }
+    unawaited(_appLinksSub?.cancel());
+    unawaited(_linuxUriSub?.cancel());
     if (isLinux) windowManager.removeListener(this);
     super.dispose();
+  }
+
+  Future<void> _initDeepLinks() async {
+    try {
+      // Subscribe before handling cold-start so a near-simultaneous xdg-open
+      // (GtkApplication remote → Unix socket) is not dropped.
+      if (isLinux) {
+        _linuxUriSub = LinuxSingleInstance.uriStream.listen((uri) {
+          unawaited(_onIncomingLinuxUri(uri));
+        });
+      }
+
+      if (isLinux && _linuxColdStartUri != null) {
+        debugPrint('Deep link cold-start: $_linuxColdStartUri');
+        await _linkHandler.handleRaw(_linuxColdStartUri!);
+      }
+
+      if (isAndroid) {
+        final appLinks = AppLinks();
+        final initial = await appLinks.getInitialLink();
+        if (initial != null) {
+          await _linkHandler.handleRaw(initial.toString());
+        }
+        _appLinksSub = appLinks.uriLinkStream.listen((uri) {
+          unawaited(_onIncomingLink(uri.toString()));
+        });
+      }
+
+      await _linkHandler.flushPending();
+      // Router may still be mounting on the first frame; retry once.
+      if (rootNavigatorKey.currentContext == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          unawaited(_linkHandler.flushPending());
+        });
+      }
+    } catch (e) {
+      debugPrint('Deep link init failed: $e');
+    }
+  }
+
+  Future<void> _onIncomingLink(String raw) async {
+    await _linkHandler.handleRaw(raw);
+  }
+
+  Future<void> _onIncomingLinuxUri(String uri) async {
+    try {
+      await windowManager.show();
+      await windowManager.focus();
+    } catch (e) {
+      debugPrint('Failed to show/focus window for deep link: $e');
+    }
+    if (uri.isNotEmpty) {
+      await _linkHandler.handleRaw(uri);
+    }
   }
 
   void _onDownloadNotificationAction(String actionId) {

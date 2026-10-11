@@ -113,11 +113,12 @@ cat > "$STAGING_DIR/usr/share/applications/$APP_ID.desktop" << DESKTOP_EOF
 [Desktop Entry]
 Name=Sonora
 Comment=$DESCRIPTION
-Exec=/opt/$APP_NAME/sonora
+Exec=/opt/$APP_NAME/$APP_NAME %u
 Icon=/opt/$APP_NAME/sonora.png
 Terminal=false
 Type=Application
 Categories=Audio;Music;Player;
+MimeType=x-scheme-handler/sonora;
 StartupWMClass=$APP_ID
 DESKTOP_EOF
 
