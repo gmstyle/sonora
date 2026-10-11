@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.12+73] - 2026-10-11
+
+### Features
+
+- **wrapped**: Surface the listening recap from Home
+- **share**: Polish deeplink share UX and Android ingress
+- **share**: Open shared content via sonora:// deep links
+
+### Bug Fixes
+
+- **android**: Let app_links own sonora:// without GoRouter double-nav
+
 ## [1.8.11+72] - 2026-10-01
 
 ### Features
