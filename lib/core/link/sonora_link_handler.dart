@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../presentation/app/router.dart';
 import '../../presentation/providers/action_feedback_provider.dart';
+import '../../presentation/providers/connectivity_provider.dart';
+import '../../presentation/providers/download_provider.dart';
 import '../../presentation/providers/player_provider.dart';
 import 'sonora_link.dart';
 
@@ -64,6 +67,20 @@ class SonoraLinkHandler {
   }
 
   Future<void> handle(SonoraLink link) async {
+    final offline = _ref.read(isOfflineProvider);
+    final l10n = _l10n;
+
+    if (link.kind == SonoraLinkKind.track) {
+      final hasDownload = _ref.read(downloadedIdsProvider).contains(link.id);
+      if (offline && !hasDownload) {
+        _reportError(l10n?.deepLinkNeedsConnection);
+        return;
+      }
+    } else if (offline) {
+      _reportError(l10n?.deepLinkNeedsConnection);
+      return;
+    }
+
     await dispatchSonoraLink(
       link,
       playTrack: (videoId) async {
@@ -71,9 +88,7 @@ class SonoraLinkHandler {
           await _ref.read(playerStateProvider.notifier).playVideoId(videoId);
         } catch (e) {
           debugPrint('Deep link play failed: $e');
-          _ref
-              .read(actionFeedbackProvider.notifier)
-              .report('Failed to play: $e', kind: FeedbackKind.error);
+          _reportError(l10n?.deepLinkOpenFailed);
         }
       },
       navigate: (location) {
@@ -81,9 +96,23 @@ class SonoraLinkHandler {
           _ref.read(routerProvider).go(location);
         } catch (e) {
           debugPrint('Deep link navigate failed: $e');
+          _reportError(l10n?.deepLinkOpenFailed);
           enqueue(buildSonoraLink(link));
         }
       },
     );
+  }
+
+  AppLocalizations? get _l10n {
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) return null;
+    return AppLocalizations.of(context);
+  }
+
+  void _reportError(String? message) {
+    if (message == null || message.isEmpty) return;
+    _ref
+        .read(actionFeedbackProvider.notifier)
+        .report(message, kind: FeedbackKind.error);
   }
 }

@@ -29,6 +29,9 @@
   "playTopSongs": "Play Top Songs",
   "shuffle": "Shuffle",
   "share": "Share",
+  "linkCopied": "Link copied",
+  "deepLinkNeedsConnection": "Connect to the internet to open this link",
+  "deepLinkOpenFailed": "Could not open this link",
   "more": "More",
   "playingArtist": "Playing {artistName}…",
   "@playingArtist": {

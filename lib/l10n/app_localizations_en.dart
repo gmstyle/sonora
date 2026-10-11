@@ -69,6 +69,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get share => 'Share';
 
   @override
+  String get linkCopied => 'Link copied';
+
+  @override
+  String get deepLinkNeedsConnection =>
+      'Connect to the internet to open this link';
+
+  @override
+  String get deepLinkOpenFailed => 'Could not open this link';
+
+  @override
   String get more => 'More';
 
   @override

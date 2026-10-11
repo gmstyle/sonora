@@ -1,4 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../utils/platform_utils.dart';
 
 /// Kinds of in-app destinations that can be shared as `sonora://` links.
 enum SonoraLinkKind {
@@ -10,6 +13,15 @@ enum SonoraLinkKind {
   podcast,
   user,
   browseSection,
+}
+
+/// Result of [shareSonoraLink].
+enum SonoraShareResult {
+  /// Shared via the platform share sheet ([SharePlus]).
+  shared,
+
+  /// Copied to the clipboard (Linux desktop).
+  copied,
 }
 
 /// A parsed or buildable Sonora deep link.
@@ -70,6 +82,27 @@ class SonoraLink {
       'SonoraLink(kind: $kind, id: $id, params: $params, title: $title)';
 }
 
+/// Builds a one-line caption for share text, or `null` when there is no title.
+String? buildSonoraShareCaption({String? title, String? subtitle}) {
+  final t = title?.trim();
+  if (t == null || t.isEmpty) return null;
+  final s = subtitle?.trim();
+  if (s == null || s.isEmpty) return t;
+  return '$t — $s';
+}
+
+/// Full share payload: optional caption line + `sonora://` URL.
+String formatSonoraShareText(
+  SonoraLink target, {
+  String? title,
+  String? subtitle,
+}) {
+  final link = buildSonoraLink(target);
+  final caption = buildSonoraShareCaption(title: title, subtitle: subtitle);
+  if (caption == null) return link;
+  return '$caption\n$link';
+}
+
 /// Builds a `sonora://` URL for [target] using safe URI encoding.
 String buildSonoraLink(SonoraLink target) {
   final pathSegments = <String>[_kindPath(target.kind), target.id];
@@ -127,12 +160,24 @@ SonoraLink? parseSonoraLink(String raw) {
   return SonoraLink(kind: kind, id: id);
 }
 
-/// Thin [SharePlus] wrapper that shares a built Sonora link.
-Future<void> shareSonoraLink(SonoraLink target, {String? textPrefix}) async {
-  final link = buildSonoraLink(target);
-  final text =
-      textPrefix == null || textPrefix.isEmpty ? link : '$textPrefix\n$link';
+/// Shares a built Sonora link.
+///
+/// On Linux copies to the clipboard ([SonoraShareResult.copied]) instead of
+/// opening a mailto share sheet. Elsewhere uses [SharePlus].
+Future<SonoraShareResult> shareSonoraLink(
+  SonoraLink target, {
+  String? title,
+  String? subtitle,
+}) async {
+  final text = formatSonoraShareText(target, title: title, subtitle: subtitle);
+
+  if (isLinux) {
+    await Clipboard.setData(ClipboardData(text: text));
+    return SonoraShareResult.copied;
+  }
+
   await SharePlus.instance.share(ShareParams(text: text));
+  return SonoraShareResult.shared;
 }
 
 String _kindPath(SonoraLinkKind kind) {

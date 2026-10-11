@@ -87,4 +87,30 @@ void main() {
       expect(browse.location, contains('title=T'));
     });
   });
+
+  group('formatSonoraShareText', () {
+    const track = SonoraLink(kind: SonoraLinkKind.track, id: 'dQw4w9WgXcQ');
+
+    test('title and subtitle become a caption line above the URL', () {
+      final text = formatSonoraShareText(
+        track,
+        title: 'Song',
+        subtitle: 'Artist',
+      );
+      expect(text, 'Song — Artist\n${buildSonoraLink(track)}');
+    });
+
+    test('title only omits the em dash', () {
+      expect(
+        formatSonoraShareText(track, title: 'Song'),
+        'Song\n${buildSonoraLink(track)}',
+      );
+    });
+
+    test('no title yields URL only', () {
+      expect(formatSonoraShareText(track), buildSonoraLink(track));
+      expect(buildSonoraShareCaption(title: null, subtitle: 'X'), isNull);
+      expect(buildSonoraShareCaption(title: '  ', subtitle: 'X'), isNull);
+    });
+  });
 }

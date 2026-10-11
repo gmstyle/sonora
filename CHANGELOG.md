@@ -10,11 +10,13 @@ and this project adheres to [Conventional Commits](https://www.conventionalcommi
 ### Features
 
 - **share**: Share `sonora://` deep links that open in Sonora (play tracks; navigate album/artist/playlist/podcast/episode/user)
+- **share**: Include title and artist in shared text; on Linux copy the link to the clipboard with a toast
+- **share**: Show a clear error when opening a deep link offline (tracks still play from downloads)
 
 ### Bug Fixes
 
 - **linux**: Forward `sonora://` deep links into the running (tray) instance via GtkApplication remote + Unix socket
-- **android**: Open `sonora:///track/…` deep links without GoRouter ErrorScreen (play + stay on home)
+- **android**: Handle `sonora://` only via app_links (GoRouter ignores platform intent routes)
 
 ## [1.8.11+72] - 2026-10-01
 

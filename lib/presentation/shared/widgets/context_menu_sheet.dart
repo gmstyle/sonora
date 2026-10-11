@@ -46,6 +46,22 @@ import 'detail_affinity_button.dart';
 import 'explicit_badge.dart';
 import 'thumbnail_widget.dart';
 
+/// Share a Sonora link; on Linux copies to clipboard and shows a toast.
+Future<void> _shareSonoraLink(
+  WidgetRef ref,
+  BuildContext context, {
+  required SonoraLink link,
+  String? title,
+  String? subtitle,
+}) async {
+  final feedback = ref.read(actionFeedbackProvider.notifier);
+  final copiedMsg = AppLocalizations.of(context)!.linkCopied;
+  final result = await shareSonoraLink(link, title: title, subtitle: subtitle);
+  if (result == SonoraShareResult.copied) {
+    feedback.report(copiedMsg);
+  }
+}
+
 /// Whether [context] is already showing the entity identified by [paramKey]/[id]
 /// (e.g. `artistId` / `albumId` on the current go_router match).
 bool _isOnEntityPage(BuildContext context, String paramKey, String id) {
@@ -1213,12 +1229,18 @@ class _SongContextMenuSheet extends ConsumerWidget {
                     icon: LucideIcons.share2,
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
-                      Navigator.pop(context);
-                      unawaited(
-                        shareSonoraLink(
-                          SonoraLink(kind: SonoraLinkKind.track, id: videoId),
+                      final share = _shareSonoraLink(
+                        ref,
+                        context,
+                        link: SonoraLink(
+                          kind: SonoraLinkKind.track,
+                          id: videoId,
                         ),
+                        title: title,
+                        subtitle: artist,
                       );
+                      Navigator.pop(context);
+                      unawaited(share);
                     },
                   ),
                   const SizedBox(height: 8),
@@ -1451,15 +1473,17 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
-                        Navigator.pop(context);
-                        unawaited(
-                          shareSonoraLink(
-                            SonoraLink(
-                              kind: SonoraLinkKind.artist,
-                              id: artistId,
-                            ),
+                        final share = _shareSonoraLink(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.artist,
+                            id: artistId,
                           ),
+                          title: name,
                         );
+                        Navigator.pop(context);
+                        unawaited(share);
                       },
                     ),
                   const SizedBox(height: 8),
@@ -1780,12 +1804,18 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
-                        Navigator.pop(context);
-                        unawaited(
-                          shareSonoraLink(
-                            SonoraLink(kind: SonoraLinkKind.album, id: albumId),
+                        final share = _shareSonoraLink(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.album,
+                            id: albumId,
                           ),
+                          title: name,
+                          subtitle: artist,
                         );
+                        Navigator.pop(context);
+                        unawaited(share);
                       },
                     ),
                   const SizedBox(height: 8),
@@ -2140,15 +2170,18 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
-                        Navigator.pop(context);
-                        unawaited(
-                          shareSonoraLink(
-                            SonoraLink(
-                              kind: SonoraLinkKind.podcast,
-                              id: browseId,
-                            ),
+                        final share = _shareSonoraLink(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.podcast,
+                            id: browseId,
                           ),
+                          title: name,
+                          subtitle: author,
                         );
+                        Navigator.pop(context);
+                        unawaited(share);
                       },
                     ),
                   const SizedBox(height: 8),
@@ -2523,12 +2556,18 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                     icon: LucideIcons.share2,
                     label: AppLocalizations.of(context)!.share,
                     onTap: () {
-                      Navigator.pop(context);
-                      unawaited(
-                        shareSonoraLink(
-                          SonoraLink(kind: SonoraLinkKind.episode, id: videoId),
+                      final share = _shareSonoraLink(
+                        ref,
+                        context,
+                        link: SonoraLink(
+                          kind: SonoraLinkKind.episode,
+                          id: videoId,
                         ),
+                        title: name,
+                        subtitle: podcastName,
                       );
+                      Navigator.pop(context);
+                      unawaited(share);
                     },
                   ),
                   const SizedBox(height: 8),
@@ -2830,15 +2869,18 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
                       onTap: () {
-                        Navigator.pop(context);
-                        unawaited(
-                          shareSonoraLink(
-                            SonoraLink(
-                              kind: SonoraLinkKind.playlist,
-                              id: playlistId,
-                            ),
+                        final share = _shareSonoraLink(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.playlist,
+                            id: playlistId,
                           ),
+                          title: name,
+                          subtitle: artist,
                         );
+                        Navigator.pop(context);
+                        unawaited(share);
                       },
                     ),
                   const SizedBox(height: 8),

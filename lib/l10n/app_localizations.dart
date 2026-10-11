@@ -218,6 +218,24 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get share;
 
+  /// No description provided for @linkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get linkCopied;
+
+  /// No description provided for @deepLinkNeedsConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet to open this link'**
+  String get deepLinkNeedsConnection;
+
+  /// No description provided for @deepLinkOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open this link'**
+  String get deepLinkOpenFailed;
+
   /// No description provided for @more.
   ///
   /// In en, this message translates to:

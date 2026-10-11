@@ -17,6 +17,7 @@ import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/video_card.dart';
+import '../../providers/action_feedback_provider.dart';
 import 'providers/user_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -304,7 +305,7 @@ String? _userThumbnailUrl(UserFull user) {
   return null;
 }
 
-class _UserSliverAppBar extends StatelessWidget {
+class _UserSliverAppBar extends ConsumerWidget {
   final UserFull user;
   final bool isTablet;
   final bool isWide;
@@ -318,7 +319,7 @@ class _UserSliverAppBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final iconColor = Color.lerp(
@@ -348,10 +349,14 @@ class _UserSliverAppBar extends StatelessWidget {
         IconButton(
           icon: const Icon(LucideIcons.share2),
           tooltip: l10n.share,
-          onPressed: () {
-            shareSonoraLink(
+          onPressed: () async {
+            final result = await shareSonoraLink(
               SonoraLink(kind: SonoraLinkKind.user, id: user.channelId),
+              title: user.name,
             );
+            if (result == SonoraShareResult.copied && context.mounted) {
+              ref.read(actionFeedbackProvider.notifier).report(l10n.linkCopied);
+            }
           },
         ),
       ],

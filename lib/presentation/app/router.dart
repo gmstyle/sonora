@@ -21,7 +21,6 @@ import '../features/user/user_screen.dart';
 import '../features/user/user_videos_screen.dart';
 import '../features/user/user_playlists_screen.dart';
 import '../features/library/widgets/smart_mix_detail_view.dart';
-import '../providers/player_provider.dart';
 import '../shared/layouts/app_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -53,21 +52,18 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/',
+    // Inbound sonora:// is owned by app_links / SonoraLinkHandler — do not
+    // take the platform intent URI as GoRouter's initial location.
+    overridePlatformDefaultLocation: true,
+    onException: (context, state, router) {
+      // Warm-start intents may still push /track/… into the route parser;
+      // swallow instead of showing ErrorScreen. app_links handles the link.
+      debugPrint(
+        'GoRouter ignored platform route ${state.uri} '
+        '(deep links handled by SonoraLinkHandler)',
+      );
+    },
     routes: [
-      // Platform deep links (`sonora:///track/…`) land here via GoRouter's
-      // route information parser. Play only — no track detail screen.
-      GoRoute(
-        path: '/track/:videoId',
-        redirect: (context, state) {
-          final videoId = state.pathParameters['videoId'];
-          if (videoId != null && videoId.isNotEmpty) {
-            Future.microtask(() {
-              ref.read(playerStateProvider.notifier).playVideoId(videoId);
-            });
-          }
-          return '/';
-        },
-      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AppShell(navigationShell: navigationShell);

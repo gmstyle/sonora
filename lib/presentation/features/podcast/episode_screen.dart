@@ -553,7 +553,7 @@ class _EpisodeActions extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(LucideIcons.share2),
                   tooltip: l10n.share,
-                  onPressed: () => _share(episode),
+                  onPressed: () => _share(context, ref, episode),
                 ),
               ],
             ),
@@ -593,16 +593,26 @@ class _EpisodeActions extends ConsumerWidget {
         IconButton(
           icon: const Icon(LucideIcons.share2),
           tooltip: l10n.share,
-          onPressed: () => _share(episode),
+          onPressed: () => _share(context, ref, episode),
         ),
       ],
     );
   }
 
-  void _share(EpisodeFull episode) {
-    shareSonoraLink(
+  Future<void> _share(
+    BuildContext context,
+    WidgetRef ref,
+    EpisodeFull episode,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await shareSonoraLink(
       SonoraLink(kind: SonoraLinkKind.episode, id: episode.videoId),
+      title: episode.name,
+      subtitle: episode.podcastName,
     );
+    if (result == SonoraShareResult.copied && context.mounted) {
+      ref.read(actionFeedbackProvider.notifier).report(l10n.linkCopied);
+    }
   }
 
   Future<void> _play(

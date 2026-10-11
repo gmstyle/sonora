@@ -13,6 +13,7 @@ import '../../../../domain/models/queue_track.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
+import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/connectivity_provider.dart';
@@ -548,20 +549,26 @@ Widget buildBottomActionsRow(
           IconButton(
             style: actionStyle,
             icon: Icon(LucideIcons.share2, size: iconSize),
-            onPressed: () {
+            onPressed: () async {
               final currentSong = ref.read(playerStateProvider).currentSong;
               if (currentSong == null) return;
               final track = QueueTrack.fromMediaItem(currentSong);
-              final vId = track.videoId;
-              shareSonoraLink(
+              final result = await shareSonoraLink(
                 SonoraLink(
                   kind:
                       track.isEpisode
                           ? SonoraLinkKind.episode
                           : SonoraLinkKind.track,
-                  id: vId,
+                  id: track.videoId,
                 ),
+                title: currentSong.title,
+                subtitle: currentSong.artist,
               );
+              if (result == SonoraShareResult.copied && context.mounted) {
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(l10n.linkCopied);
+              }
             },
             tooltip: l10n.share,
             color: theme.colorScheme.onSurfaceVariant,
