@@ -7,7 +7,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/stats_provider.dart';
-import 'sonora_wrapped_view.dart';
+import 'sonora_wrapped_banner.dart';
+import 'open_wrapped.dart';
 
 class StatsTab extends ConsumerWidget {
   const StatsTab({super.key});
@@ -58,7 +59,7 @@ class StatsTab extends ConsumerWidget {
         children: [
           // Wrapped Hero Banner (only if available)
           if (statsState.isWrappedAvailable) ...[
-            _buildWrappedBanner(context, statsState, theme, l10n),
+            SonoraWrappedBanner(onOpen: () => openSonoraWrapped(context, ref)),
             const SizedBox(height: 16),
           ],
 
@@ -196,94 +197,6 @@ class StatsTab extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
         ],
-      ),
-    );
-  }
-
-  Widget _buildWrappedBanner(
-    BuildContext context,
-    StatsState state,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        padding: const EdgeInsets.all(24.0),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.secondary,
-              theme.colorScheme.tertiary,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(LucideIcons.sparkles, color: Colors.white, size: 28),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.wrappedTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.wrappedIntro,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.85),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => SonoraWrappedView.show(context, state),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: theme.colorScheme.primary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      l10n.startWrapped,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(LucideIcons.play, size: 16),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

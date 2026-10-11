@@ -1794,7 +1794,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startWrapped => 'Launch your Wrapped';
 
   @override
-  String get wrappedIntro => 'Your musical year in Sonora';
+  String get wrappedIntro => 'Your listening on Sonora';
+
+  @override
+  String get wrappedReplay => 'Replay your Wrapped';
 
   @override
   String get wrappedTimeSubtitle => 'You spent a lot of time with music!';

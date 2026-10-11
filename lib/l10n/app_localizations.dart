@@ -3052,8 +3052,14 @@ abstract class AppLocalizations {
   /// No description provided for @wrappedIntro.
   ///
   /// In en, this message translates to:
-  /// **'Your musical year in Sonora'**
+  /// **'Your listening on Sonora'**
   String get wrappedIntro;
+
+  /// No description provided for @wrappedReplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay your Wrapped'**
+  String get wrappedReplay;
 
   /// No description provided for @wrappedTimeSubtitle.
   ///

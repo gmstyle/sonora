@@ -15,6 +15,7 @@ import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../shared/widgets/sonora_logo.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_quick_row.dart';
+import '../widgets/home_wrapped_entry.dart';
 import '../widgets/home_section_renderer.dart';
 import '../widgets/home_zone_header.dart';
 import 'home_layout_metrics.dart';
@@ -162,9 +163,12 @@ class HomeFeedLayout extends ConsumerWidget {
   List<Widget> _buildRiprendiZone({required AsyncValue historyAsync}) {
     final showQuickRow =
         asyncHistoryHasContent(historyAsync) || HomeQuickRow.mixesHasContent();
-    if (!showQuickRow) return const [];
 
-    return [HomeQuickRow(historyAsync: historyAsync, metrics: metrics)];
+    return [
+      if (!metrics.useSideBySideQuickRow) HomeWrappedEntry(metrics: metrics),
+      if (showQuickRow)
+        HomeQuickRow(historyAsync: historyAsync, metrics: metrics),
+    ];
   }
 
   List<Widget> _buildYourMusicZone({

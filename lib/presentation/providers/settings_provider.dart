@@ -37,6 +37,9 @@ class Settings {
   final bool reduceEffects;
   final bool offlineMode;
   final bool useVinylStyle;
+
+  /// True after Wrapped has been opened on this device. Not part of backups.
+  final bool wrappedSeen;
   final bool localSyncEnabled;
   final bool localSyncAutoEnabled;
   final String playlistConflictStrategy;
@@ -61,6 +64,7 @@ class Settings {
     this.reduceEffects = false,
     this.offlineMode = false,
     this.useVinylStyle = true,
+    this.wrappedSeen = false,
     this.localSyncEnabled = false,
     this.localSyncAutoEnabled = false,
     this.playlistConflictStrategy = 'merge',
@@ -86,6 +90,7 @@ class Settings {
     bool? reduceEffects,
     bool? offlineMode,
     bool? useVinylStyle,
+    bool? wrappedSeen,
     bool? localSyncEnabled,
     bool? localSyncAutoEnabled,
     String? playlistConflictStrategy,
@@ -114,6 +119,7 @@ class Settings {
       reduceEffects: reduceEffects ?? this.reduceEffects,
       offlineMode: offlineMode ?? this.offlineMode,
       useVinylStyle: useVinylStyle ?? this.useVinylStyle,
+      wrappedSeen: wrappedSeen ?? this.wrappedSeen,
       localSyncEnabled: localSyncEnabled ?? this.localSyncEnabled,
       localSyncAutoEnabled: localSyncAutoEnabled ?? this.localSyncAutoEnabled,
       playlistConflictStrategy:
@@ -125,7 +131,7 @@ class Settings {
 
   /// Portable prefs written into `backup.json` → `settings`.
   ///
-  /// Excludes device-local [downloadPath] and runtime/migration keys
+  /// Excludes device-local [downloadPath] and [wrappedSeen], plus runtime keys
   /// (`lastUpdateCheckTime`, `postQueueSplitDone`,
   /// `batteryPromptDismissed`).
   Map<String, dynamic> toBackupMap() {
@@ -187,6 +193,7 @@ class SettingsNotifier extends Notifier<Settings> {
       reduceEffects: _prefs.getBool(kReduceEffectsKey) ?? false,
       offlineMode: _prefs.getBool(kOfflineModeKey) ?? false,
       useVinylStyle: _prefs.getBool(kUseVinylStyleKey) ?? true,
+      wrappedSeen: _prefs.getBool(kWrappedSeenKey) ?? false,
       localSyncEnabled: _prefs.getBool(kLocalSyncEnabledKey) ?? false,
       localSyncAutoEnabled: _prefs.getBool(kLocalSyncAutoEnabledKey) ?? false,
       playlistConflictStrategy:
@@ -234,6 +241,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kReduceEffectsKey, state.reduceEffects);
     await _prefs.setBool(kOfflineModeKey, state.offlineMode);
     await _prefs.setBool(kUseVinylStyleKey, state.useVinylStyle);
+    await _prefs.setBool(kWrappedSeenKey, state.wrappedSeen);
     await _prefs.setBool(kLocalSyncEnabledKey, state.localSyncEnabled);
     await _prefs.setBool(kLocalSyncAutoEnabledKey, state.localSyncAutoEnabled);
     await _prefs.setString(
@@ -352,6 +360,12 @@ class SettingsNotifier extends Notifier<Settings> {
 
   Future<void> setUseVinylStyle(bool value) async {
     state = state.copyWith(useVinylStyle: value);
+    await _save();
+  }
+
+  Future<void> markWrappedSeen() async {
+    if (state.wrappedSeen) return;
+    state = state.copyWith(wrappedSeen: true);
     await _save();
   }
 
@@ -542,6 +556,7 @@ const kIsLibraryGridViewKey = 'isLibraryGridView';
 const kReduceEffectsKey = 'reduceEffects';
 const kOfflineModeKey = 'offlineMode';
 const kUseVinylStyleKey = 'useVinylStyle';
+const kWrappedSeenKey = 'wrappedSeen';
 const kLocalSyncEnabledKey = 'localSyncEnabled';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 

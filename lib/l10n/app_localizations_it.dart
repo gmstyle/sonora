@@ -1802,7 +1802,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get startWrapped => 'Scopri il tuo Wrapped';
 
   @override
-  String get wrappedIntro => 'Il tuo anno in musica su Sonora';
+  String get wrappedIntro => 'Il tuo ascolto su Sonora';
+
+  @override
+  String get wrappedReplay => 'Rivedi il tuo Wrapped';
 
   @override
   String get wrappedTimeSubtitle =>

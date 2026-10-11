@@ -27,6 +27,7 @@ void main() {
       expect(settings.checkUpdatesOnStartup, true);
       expect(settings.crossfadeDuration, const Duration(seconds: 2));
       expect(settings.mediaCacheSize, MediaCacheSize.gb1);
+      expect(settings.wrappedSeen, false);
     });
 
     test('custom constructor values', () {
@@ -113,6 +114,7 @@ void main() {
       expect(settings.downloadOnlyOnWifi, false);
       expect(settings.trackHistory, true);
       expect(settings.checkUpdatesOnStartup, true);
+      expect(settings.wrappedSeen, false);
     });
 
     test('initial state reads persisted values', () async {
@@ -482,6 +484,7 @@ void main() {
       expect(map[kLocalSyncAutoEnabledKey], true);
       expect(map[kPlaylistConflictStrategyKey], 'overwrite');
       expect(map.containsKey(kDownloadPathKey), false);
+      expect(map.containsKey(kWrappedSeenKey), false);
       expect(map.containsKey(kLegacyStreamQualityKey), false);
       expect(map.containsKey(kLegacyEnableVideoPlaybackKey), false);
     });

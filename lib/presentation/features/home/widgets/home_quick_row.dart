@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../layouts/home_layout_metrics.dart';
 import 'home_section_renderer.dart';
+import 'home_wrapped_entry.dart';
 
 class HomeQuickRow extends ConsumerWidget {
   final AsyncValue historyAsync;
@@ -37,6 +38,17 @@ class HomeQuickRow extends ConsumerWidget {
       compactGrid: true,
     );
 
+    final mixesColumn =
+        metrics.useSideBySideQuickRow
+            ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                HomeWrappedEntry(metrics: metrics, embedded: true),
+                mixesWidget,
+              ],
+            )
+            : mixesWidget;
+
     if (showContinue && showMixes) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: metrics.zoneGap / 2),
@@ -51,7 +63,7 @@ class HomeQuickRow extends ConsumerWidget {
                     children: [
                       Expanded(flex: 55, child: continueWidget),
                       SizedBox(width: metrics.zoneGap),
-                      Expanded(flex: 45, child: mixesWidget),
+                      Expanded(flex: 45, child: mixesColumn),
                     ],
                   ),
                 )
@@ -68,7 +80,7 @@ class HomeQuickRow extends ConsumerWidget {
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: metrics.zoneGap / 2),
-      child: showContinue ? continueWidget : mixesWidget,
+      child: showContinue ? continueWidget : mixesColumn,
     );
   }
 }

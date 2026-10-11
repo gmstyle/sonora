@@ -1277,6 +1277,7 @@ Sonora features a local-first **Listening Statistics** dashboard and an interact
   - **Hourly Distribution**: Play counts into 24 bins by hour of `playedAt` (0–23).
   - **Weekly Distribution**: Play counts into 7 bins by weekday (Monday–Sunday).
 - **Availability Guard**: Sonora Wrapped unlocks when the local database has at least **3 unique tracks** and total listening duration of at least **5 minutes**.
+- **Scope**: Wrapped and the statistics dashboard share one all-time aggregate. Copy describes listening, not a calendar year. `history` keeps one row per track (`playedAt` is the latest play, `playCount` is lifetime).
 
 ### 20.2 Sonora Wrapped Stories UI (`sonora_wrapped_view.dart`)
 
@@ -1290,6 +1291,9 @@ The Wrapped features a story-style sequential slide transition mechanism (simila
   - Top Songs
   - Top Podcasts / Top Episodes (when podcast listening data is present)
   - Summary & Share (`SharePlus`)
+- **Entry points** (only when the guard passes):
+  - Home resume zone (`HomeWrappedEntry`): [SonoraWrappedBanner] until `Settings.wrappedSeen` is set, then a compact replay row. On mobile the card is full width above the resume row. On tablet and wide it sits in the mixes column of that row, still stacked, so the action stays with the title. The statistics pane uses the same stacked card at the pane width. Cards follow `cardTheme` (elevation 0, `surfaceContainerHigh`, scheme colors, `FilledButton`). Opening Wrapped calls `SettingsNotifier.markWrappedSeen`. The flag is stored with the other preferences and left out of backup settings.
+  - Statistics tab banner, unchanged.
 - **Interactions**:
   - Tap left ~30%: previous slide
   - Tap right ~70%: next slide
