@@ -52,14 +52,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/',
-    // Inbound sonora:// is owned by app_links / SonoraLinkHandler — do not
-    // take the platform intent URI as GoRouter's initial location.
+    // Inbound sonora:// is owned by app_links (Flutter deeplinking disabled in
+    // AndroidManifest). Keep override as a belt-and-suspenders for cold start.
     overridePlatformDefaultLocation: true,
     onException: (context, state, router) {
-      // Warm-start intents may still push /track/… into the route parser;
-      // swallow instead of showing ErrorScreen. app_links handles the link.
+      // Swallow unknown paths (e.g. /track/…) instead of ErrorScreen.
       debugPrint(
-        'GoRouter ignored platform route ${state.uri} '
+        'GoRouter ignored route ${state.uri} '
         '(deep links handled by SonoraLinkHandler)',
       );
     },

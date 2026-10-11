@@ -252,12 +252,9 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       }
 
       if (isAndroid) {
-        final appLinks = AppLinks();
-        final initial = await appLinks.getInitialLink();
-        if (initial != null) {
-          await _linkHandler.handleRaw(initial.toString());
-        }
-        _appLinksSub = appLinks.uriLinkStream.listen((uri) {
+        // uriLinkStream includes the cold-start link; do not also call
+        // getInitialLink() or the same URI is handled twice.
+        _appLinksSub = AppLinks().uriLinkStream.listen((uri) {
           unawaited(_onIncomingLink(uri.toString()));
         });
       }

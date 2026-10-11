@@ -1115,8 +1115,9 @@ Share call sites (context menu, player, episode screen, user screen) emit `sonor
 ### Android
 
 - `AndroidManifest.xml`: `VIEW` + `BROWSABLE` + `DEFAULT` intent-filter with `android:scheme="sonora"` on `MainActivity` (`singleTop`).
-- **Single ingress**: `app_links` (`getInitialLink()` + `uriLinkStream`) → `SonoraLinkHandler` only.
-- GoRouter uses `overridePlatformDefaultLocation: true` so the intent URI is not taken as `initialLocation`. `onException` swallows residual platform pushes (e.g. `/track/…`) instead of showing `ErrorScreen`.
+- **`flutter_deeplinking_enabled=false`** inside `MainActivity` so Flutter’s built-in deeplink handler (and thus GoRouter) does **not** consume the same intent as `app_links`.
+- **Single ingress**: `app_links.uriLinkStream` (includes cold-start; do not also call `getInitialLink()`) → `SonoraLinkHandler` only.
+- GoRouter still has `overridePlatformDefaultLocation: true` and `onException` as belt-and-suspenders for unknown paths like `/track/…`.
 
 ### Linux single-instance
 
