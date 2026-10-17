@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../providers/library_notifier.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -82,37 +81,19 @@ class PodcastsTab extends ConsumerWidget {
                     itemCount: podcasts.length,
                     itemBuilder: (_, i) {
                       final p = podcasts[i];
-                      return Dismissible(
-                        key: ValueKey(p.browseId),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 16),
-                          color: Theme.of(context).colorScheme.error,
-                          child: Icon(
-                            LucideIcons.heart,
-                            color: Theme.of(context).colorScheme.onError,
-                          ),
+                      return ListTile(
+                        leading: ThumbnailWidget(
+                          imageUrl: p.thumbnailUrl,
+                          size: 48,
+                          shape: ThumbnailShape.rounded,
                         ),
-                        onDismissed: (_) async {
-                          await ref
-                              .read(libraryNotifierProvider.notifier)
-                              .deleteLikedPodcast(p.browseId);
-                        },
-                        child: ListTile(
-                          leading: ThumbnailWidget(
-                            imageUrl: p.thumbnailUrl,
-                            size: 48,
-                            shape: ThumbnailShape.rounded,
-                          ),
-                          title: Text(p.name),
-                          subtitle: Text(
-                            p.authorName ??
-                                AppLocalizations.of(context)!.podcasts,
-                          ),
-                          trailing: const Icon(LucideIcons.chevronRight),
-                          onTap: () => context.push('/podcast/${p.browseId}'),
+                        title: Text(p.name),
+                        subtitle: Text(
+                          p.authorName ??
+                              AppLocalizations.of(context)!.podcasts,
                         ),
+                        trailing: const Icon(LucideIcons.chevronRight),
+                        onTap: () => context.push('/podcast/${p.browseId}'),
                       );
                     },
                   ),

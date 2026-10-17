@@ -198,44 +198,26 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
           SliverList(
             delegate: SliverChildBuilderDelegate((_, i) {
               final p = liked[i];
-              return Dismissible(
-                key: ValueKey(p.playlistId),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 16),
-                  color: Theme.of(context).colorScheme.error,
-                  child: Icon(
-                    LucideIcons.heart,
-                    color: Theme.of(context).colorScheme.onError,
-                  ),
+              return ListTile(
+                leading: ThumbnailWidget(
+                  imageUrl: p.thumbnailUrl,
+                  size: 48,
+                  shape: ThumbnailShape.rounded,
                 ),
-                onDismissed: (_) async {
-                  await ref
-                      .read(libraryNotifierProvider.notifier)
-                      .toggleLikedPlaylist(p);
-                },
-                child: ListTile(
-                  leading: ThumbnailWidget(
-                    imageUrl: p.thumbnailUrl,
-                    size: 48,
-                    shape: ThumbnailShape.rounded,
-                  ),
-                  title: Text(p.name),
-                  subtitle:
-                      p.videoCount != null
-                          ? Text('${p.videoCount} videos')
-                          : null,
-                  trailing: const Icon(LucideIcons.chevronRight),
-                  onTap: () => context.push('/playlist/${p.playlistId}'),
-                  onLongPress:
-                      () => ContextMenuSheet.showForPlaylist(
-                        context,
-                        playlistId: p.playlistId,
-                        name: p.name,
-                        thumbnailUrl: p.thumbnailUrl,
-                      ),
-                ),
+                title: Text(p.name),
+                subtitle:
+                    p.videoCount != null
+                        ? Text('${p.videoCount} videos')
+                        : null,
+                trailing: const Icon(LucideIcons.chevronRight),
+                onTap: () => context.push('/playlist/${p.playlistId}'),
+                onLongPress:
+                    () => ContextMenuSheet.showForPlaylist(
+                      context,
+                      playlistId: p.playlistId,
+                      name: p.name,
+                      thumbnailUrl: p.thumbnailUrl,
+                    ),
               );
             }, childCount: liked.length),
           ),

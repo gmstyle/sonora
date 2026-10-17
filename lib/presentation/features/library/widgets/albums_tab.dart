@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../providers/library_notifier.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
@@ -87,48 +86,30 @@ class AlbumsTab extends ConsumerWidget {
                     itemCount: albums.length,
                     itemBuilder: (_, i) {
                       final a = albums[i];
-                      return Dismissible(
-                        key: ValueKey(a.albumId),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 16),
-                          color: Theme.of(context).colorScheme.error,
-                          child: Icon(
-                            LucideIcons.heart,
-                            color: Theme.of(context).colorScheme.onError,
-                          ),
+                      return ListTile(
+                        leading: ThumbnailWidget(
+                          imageUrl: a.thumbnailUrl,
+                          size: 48,
+                          shape: ThumbnailShape.rounded,
                         ),
-                        onDismissed: (_) async {
-                          await ref
-                              .read(libraryNotifierProvider.notifier)
-                              .deleteLikedAlbum(a.albumId);
-                        },
-                        child: ListTile(
-                          leading: ThumbnailWidget(
-                            imageUrl: a.thumbnailUrl,
-                            size: 48,
-                            shape: ThumbnailShape.rounded,
-                          ),
-                          title: Text(a.name),
-                          subtitle: Text(
-                            a.year != null
-                                ? '${a.artistName} · ${a.year}'
-                                : a.artistName,
-                          ),
-                          trailing: const Icon(LucideIcons.chevronRight),
-                          onTap: () => context.push('/album/${a.albumId}'),
-                          onLongPress:
-                              () => ContextMenuSheet.showForAlbum(
-                                context,
-                                albumId: a.albumId,
-                                name: a.name,
-                                artist: a.artistName,
-                                artistId: a.artistId,
-                                thumbnailUrl: a.thumbnailUrl,
-                                year: a.year,
-                              ),
+                        title: Text(a.name),
+                        subtitle: Text(
+                          a.year != null
+                              ? '${a.artistName} · ${a.year}'
+                              : a.artistName,
                         ),
+                        trailing: const Icon(LucideIcons.chevronRight),
+                        onTap: () => context.push('/album/${a.albumId}'),
+                        onLongPress:
+                            () => ContextMenuSheet.showForAlbum(
+                              context,
+                              albumId: a.albumId,
+                              name: a.name,
+                              artist: a.artistName,
+                              artistId: a.artistId,
+                              thumbnailUrl: a.thumbnailUrl,
+                              year: a.year,
+                            ),
                       );
                     },
                   ),
