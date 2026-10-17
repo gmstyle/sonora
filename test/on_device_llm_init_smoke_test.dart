@@ -18,9 +18,7 @@ void main() {
 
     SharedPreferences.setMockInitialValues({});
 
-    await FlutterEdgeAi.initialize(
-      inferenceEngines: const [LiteRtLmEngine()],
-    );
+    await FlutterEdgeAi.initialize(inferenceEngines: const [LiteRtLmEngine()]);
 
     final ds = OnDeviceLlmDatasource();
     // Fresh process: model not downloaded → not ready (no throw).

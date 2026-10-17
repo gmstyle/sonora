@@ -14,14 +14,12 @@ class AskModeEnabledNotifier extends Notifier<bool> {
   void toggle() => state = !state;
 }
 
-final askModeEnabledProvider =
-    NotifierProvider<AskModeEnabledNotifier, bool>(AskModeEnabledNotifier.new);
+final askModeEnabledProvider = NotifierProvider<AskModeEnabledNotifier, bool>(
+  AskModeEnabledNotifier.new,
+);
 
 class AskInterpretation {
-  const AskInterpretation({
-    required this.originalQuery,
-    required this.intent,
-  });
+  const AskInterpretation({required this.originalQuery, required this.intent});
 
   final String originalQuery;
   final MusicSearchIntent intent;
@@ -82,9 +80,7 @@ class AskSearchSubmitNotifier extends Notifier<AsyncValue<AskSubmitOutcome?>> {
       ref
           .read(askInterpretationProvider.notifier)
           .set(AskInterpretation(originalQuery: trimmed, intent: intent));
-      ref
-          .read(searchFilterProvider.notifier)
-          .update(intent.searchFilterIndex);
+      ref.read(searchFilterProvider.notifier).update(intent.searchFilterIndex);
       await ref
           .read(activeSearchQueryProvider.notifier)
           .activate(

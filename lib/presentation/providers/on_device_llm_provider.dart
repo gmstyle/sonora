@@ -15,7 +15,9 @@ final onDeviceLlmRepositoryProvider = Provider<OnDeviceLlmRepository>((ref) {
 
 final interpretSearchQueryUseCaseProvider =
     Provider<InterpretSearchQueryUseCase>((ref) {
-      return InterpretSearchQueryUseCase(ref.watch(onDeviceLlmRepositoryProvider));
+      return InterpretSearchQueryUseCase(
+        ref.watch(onDeviceLlmRepositoryProvider),
+      );
     });
 
 /// Whether the Ask LiteRT model is installed and active.

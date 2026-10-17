@@ -154,10 +154,7 @@ class SettingsCategoryContent extends ConsumerWidget {
           children: [_DownloadSection(settings: settings, notifier: notifier)],
         );
       case SettingsCategory.ai:
-        return ListView(
-          padding: listPadding,
-          children: [const _AiSection()],
-        );
+        return ListView(padding: listPadding, children: [const _AiSection()]);
       case SettingsCategory.background:
         return ListView(
           padding: listPadding,

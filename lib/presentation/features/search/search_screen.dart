@@ -1014,10 +1014,7 @@ class _SearchResults extends ConsumerWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        askBanner,
-                        Expanded(child: resultsContent),
-                      ],
+                      children: [askBanner, Expanded(child: resultsContent)],
                     ),
                   ),
                 ],

@@ -44,7 +44,9 @@ class _ActiveSearchQueryNotifier extends Notifier<String> {
     if (persistHistory && query.isNotEmpty) {
       final entry = (historyQuery ?? query).trim();
       if (entry.isNotEmpty) {
-        await ref.read(libraryNotifierProvider.notifier).insertSearchEntry(entry);
+        await ref
+            .read(libraryNotifierProvider.notifier)
+            .insertSearchEntry(entry);
       }
     }
   }

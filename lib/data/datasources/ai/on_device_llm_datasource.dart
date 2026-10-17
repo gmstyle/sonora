@@ -10,9 +10,7 @@ class OnDeviceLlmDatasource {
 
   Future<void> ensureInitialized() async {
     if (_initialized) return;
-    await FlutterEdgeAi.initialize(
-      inferenceEngines: const [LiteRtLmEngine()],
-    );
+    await FlutterEdgeAi.initialize(inferenceEngines: const [LiteRtLmEngine()]);
     _initialized = true;
   }
 
@@ -21,7 +19,9 @@ class OnDeviceLlmDatasource {
     return FlutterEdgeAi.isModelInstalled(kAskLlmFilename);
   }
 
-  Future<void> installModel({void Function(double progress)? onProgress}) async {
+  Future<void> installModel({
+    void Function(double progress)? onProgress,
+  }) async {
     await ensureInitialized();
     var builder = FlutterEdgeAi.installModel(
       modelType: ModelType.qwen3,
