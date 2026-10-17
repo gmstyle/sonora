@@ -12,7 +12,7 @@ class ImportRemotePlaylistUseCase {
 
   Future<PlaylistImportResult> execute(
     String playlistUrlOrId, {
-    void Function(int current, int total)? onProgress,
+    void Function(PlaylistImportProgress progress)? onProgress,
   }) async {
     final ref = PlaylistUrlParser.parse(playlistUrlOrId);
     if (ref == null) {

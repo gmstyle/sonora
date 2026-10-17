@@ -1687,6 +1687,29 @@ class AppLocalizationsIt extends AppLocalizations {
   String get importMatchReviewing => 'Revisione match…';
 
   @override
+  String get importProgressMatching => 'Corrispondenza su YouTube Music';
+
+  @override
+  String get importProgressSaving => 'Salvataggio playlist…';
+
+  @override
+  String get importAiAssistReadyTitle => 'Assistenza AI disponibile';
+
+  @override
+  String get importAiAssistReadyBody =>
+      'Se un match è incerto, Ask può riscrivere la ricerca — confermi tu prima del salvataggio.';
+
+  @override
+  String get importAiAssistDisabledTitle => 'Assistenza AI disattivata';
+
+  @override
+  String get importAiAssistDisabledBody =>
+      'Scarica il modello Ask in Impostazioni → AI per migliorare i match Spotify incerti.';
+
+  @override
+  String get importAiAssistOpenSettings => 'Apri Impostazioni';
+
+  @override
   String get invalidPlaylistUrlOrId =>
       'URL playlist YouTube o Spotify non valido';
 

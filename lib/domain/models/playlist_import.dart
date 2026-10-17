@@ -207,6 +207,29 @@ class SpotifyRefreshPlan {
   int get localPlaylistId => playlist.id;
 }
 
+/// Progress while matching/importing a remote playlist.
+class PlaylistImportProgress {
+  final int current;
+  final int total;
+
+  /// Optional human-readable track being processed (Spotify match loop).
+  final String? trackLabel;
+
+  const PlaylistImportProgress({
+    required this.current,
+    required this.total,
+    this.trackLabel,
+  });
+}
+
+/// Label for progress UI: "Title · Artist".
+String spotifyTrackProgressLabel(SpotifyPlaylistTrack track) {
+  final title = track.title.trim();
+  final artist = track.primaryArtist;
+  if (artist.isEmpty) return title;
+  return '$title · $artist';
+}
+
 /// Outcome of importing a remote playlist into the local library.
 class PlaylistImportResult {
   final int localPlaylistId;

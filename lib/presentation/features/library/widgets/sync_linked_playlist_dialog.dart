@@ -11,10 +11,11 @@ import '../../../providers/on_device_llm_provider.dart';
 import '../../../providers/refresh_linked_playlist_use_case_provider.dart';
 import 'import_match_review_sheet.dart';
 import 'import_playlist_dialog.dart';
+import 'import_progress_body.dart';
 
 /// Blocking sync progress UI — identical for Spotify and YouTube.
 ///
-/// Mirrors [ImportPlaylistDialog]'s loading body (spinner + current/total).
+/// Mirrors [ImportPlaylistDialog]'s loading body (progress + optional AI assist).
 class SyncLinkedPlaylistDialog extends ConsumerStatefulWidget {
   const SyncLinkedPlaylistDialog({
     super.key,
@@ -61,8 +62,13 @@ class _SyncLinkedPlaylistDialogState
     extends ConsumerState<SyncLinkedPlaylistDialog> {
   int _progressCurrent = 0;
   int _progressTotal = 0;
+  String? _trackLabel;
   String? _errorText;
   bool _reviewing = false;
+  bool _aiModelReady = false;
+  ImportProgressPhase _phase = ImportProgressPhase.generic;
+
+  bool get _isSpotify => widget.playlist.sourceKind == 'spotify';
 
   @override
   void initState() {
@@ -78,25 +84,32 @@ class _SyncLinkedPlaylistDialogState
     }
   }
 
+  void _applyProgress(PlaylistImportProgress progress) {
+    if (!mounted) return;
+    setState(() {
+      _progressCurrent = progress.current;
+      _progressTotal = progress.total;
+      if (progress.trackLabel != null) {
+        _trackLabel = progress.trackLabel;
+      }
+    });
+  }
+
   Future<void> _run() async {
     final l10n = AppLocalizations.of(context);
     try {
       final refresh = ref.read(refreshLinkedPlaylistUseCaseProvider);
       final PlaylistSyncResult result;
 
-      if (widget.playlist.sourceKind == 'spotify') {
-        final tryRewrite = await _modelReady();
+      if (_isSpotify) {
+        setState(() => _phase = ImportProgressPhase.matching);
+        _aiModelReady = await _modelReady();
+        if (mounted) setState(() {});
+        final tryRewrite = _aiModelReady;
         final plan = await refresh.prepareSpotify(
           widget.playlist.id,
           tryRewrite: tryRewrite,
-          onProgress: (current, total) {
-            if (mounted) {
-              setState(() {
-                _progressCurrent = current;
-                _progressTotal = total;
-              });
-            }
-          },
+          onProgress: _applyProgress,
         );
         debugPrint(
           'Spotify sync plan: auto=${plan.slots.where((s) => s.kind == SpotifyMatchKind.auto).length} '
@@ -107,7 +120,11 @@ class _SyncLinkedPlaylistDialogState
         var resolved = plan;
         if (plan.ambiguous.isNotEmpty) {
           if (!mounted) return;
-          setState(() => _reviewing = true);
+          setState(() {
+            _reviewing = true;
+            _phase = ImportProgressPhase.reviewing;
+            _trackLabel = null;
+          });
           final choices = await ImportMatchReviewSheet.show(
             context,
             plan.ambiguous,
@@ -121,20 +138,19 @@ class _SyncLinkedPlaylistDialogState
             plan,
             choices,
           );
-          setState(() => _reviewing = false);
+          setState(() {
+            _reviewing = false;
+            _phase = ImportProgressPhase.saving;
+            _trackLabel = null;
+          });
+        } else if (mounted) {
+          setState(() => _phase = ImportProgressPhase.saving);
         }
         result = await refresh.commitSpotify(resolved);
       } else {
         result = await refresh.execute(
           widget.playlist.id,
-          onProgress: (current, total) {
-            if (mounted) {
-              setState(() {
-                _progressCurrent = current;
-                _progressTotal = total;
-              });
-            }
-          },
+          onProgress: _applyProgress,
         );
       }
 
@@ -252,24 +268,13 @@ class _SyncLinkedPlaylistDialogState
         style: TextStyle(color: Theme.of(context).colorScheme.error),
       );
     }
-    if (_reviewing) {
-      return Text(
-        l10n?.importMatchReviewing ?? 'Reviewing matches…',
-        textAlign: TextAlign.center,
-      );
-    }
-    final label =
-        _progressTotal > 0
-            ? (l10n?.importingProgress(_progressCurrent, _progressTotal) ??
-                'Syncing $_progressCurrent/$_progressTotal…')
-            : (l10n?.syncingPlaylist ?? 'Syncing…');
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const CircularProgressIndicator(),
-        const SizedBox(height: 20),
-        Text(label, textAlign: TextAlign.center),
-      ],
+    return ImportProgressBody(
+      phase: _reviewing ? ImportProgressPhase.reviewing : _phase,
+      current: _progressCurrent,
+      total: _progressTotal,
+      trackLabel: _reviewing ? null : _trackLabel,
+      showAiAssist: _isSpotify && !_reviewing,
+      aiModelReady: _aiModelReady,
     );
   }
 }

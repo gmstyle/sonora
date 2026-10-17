@@ -58,11 +58,10 @@ class YtMusicTrackMatcher {
 
     // Any non-auto search hit is reviewable — silent skip only when search
     // returned nothing. Mid-band filtering hid almost all real ambiguity.
-    final reviewable =
-        ranked
-            .take(reviewCandidateLimit)
-            .map((s) => s.candidate)
-            .toList(growable: false);
+    final reviewable = ranked
+        .take(reviewCandidateLimit)
+        .map((s) => s.candidate)
+        .toList(growable: false);
 
     return SpotifyTrackMatchOutcome.needsReview(
       track: track,

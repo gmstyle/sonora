@@ -17,6 +17,7 @@ import '../../../providers/refresh_linked_playlist_use_case_provider.dart';
 import '../../../providers/spotify_sync_cooldown_provider.dart';
 import '../providers/library_provider.dart';
 import 'import_match_review_sheet.dart';
+import 'import_progress_body.dart';
 
 /// Horizontal inset used on tablet/wide so the card stays centered.
 const double kImportPlaylistDialogInset = 24;
@@ -77,7 +78,22 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
   bool _isLoading = false;
   int _progressCurrent = 0;
   int _progressTotal = 0;
+  String? _trackLabel;
   bool _reviewing = false;
+  bool _showAiAssist = false;
+  bool _aiModelReady = false;
+  ImportProgressPhase _phase = ImportProgressPhase.generic;
+
+  void _applyProgress(PlaylistImportProgress progress) {
+    if (!mounted) return;
+    setState(() {
+      _progressCurrent = progress.current;
+      _progressTotal = progress.total;
+      if (progress.trackLabel != null) {
+        _trackLabel = progress.trackLabel;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -126,8 +142,18 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       _error = null;
       _progressCurrent = 0;
       _progressTotal = 0;
+      _trackLabel = null;
       _reviewing = false;
+      _showAiAssist = parsed.kind == PlaylistImportKind.spotify;
+      _phase =
+          parsed.kind == PlaylistImportKind.spotify
+              ? ImportProgressPhase.matching
+              : ImportProgressPhase.generic;
     });
+    if (parsed.kind == PlaylistImportKind.spotify) {
+      _aiModelReady = await _modelReady();
+      if (mounted) setState(() {});
+    }
 
     try {
       if (parsed.kind == PlaylistImportKind.spotify) {
@@ -187,18 +213,11 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
     AppLocalizations? l10n,
   ) async {
     final useCase = ref.read(importSpotifyPlaylistUseCaseProvider);
-    final tryRewrite = await _modelReady();
+    final tryRewrite = _aiModelReady;
     final plan = await useCase.prepare(
       playlistId,
       tryRewrite: tryRewrite,
-      onProgress: (current, total) {
-        if (mounted) {
-          setState(() {
-            _progressCurrent = current;
-            _progressTotal = total;
-          });
-        }
-      },
+      onProgress: _applyProgress,
     );
     debugPrint(
       'Spotify import plan: auto=${plan.slots.where((s) => s.kind == SpotifyMatchKind.auto).length} '
@@ -212,6 +231,8 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       setState(() {
         _isLoading = false;
         _reviewing = true;
+        _phase = ImportProgressPhase.reviewing;
+        _trackLabel = null;
       });
       final choices = await ImportMatchReviewSheet.show(
         context,
@@ -222,6 +243,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
         setState(() {
           _reviewing = false;
           _isLoading = false;
+          _showAiAssist = false;
         });
         return null;
       }
@@ -229,7 +251,11 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       setState(() {
         _reviewing = false;
         _isLoading = true;
+        _phase = ImportProgressPhase.saving;
+        _trackLabel = null;
       });
+    } else if (mounted) {
+      setState(() => _phase = ImportProgressPhase.saving);
     }
 
     try {
@@ -265,28 +291,32 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       });
       return;
     }
+    final isSpotify = e.source == PlaylistImportKind.spotify;
     setState(() {
       _isLoading = true;
       _progressCurrent = 0;
       _progressTotal = 0;
+      _trackLabel = null;
       _reviewing = false;
+      _showAiAssist = isSpotify;
+      _phase =
+          isSpotify
+              ? ImportProgressPhase.matching
+              : ImportProgressPhase.generic;
     });
+    if (isSpotify) {
+      _aiModelReady = await _modelReady();
+      if (mounted) setState(() {});
+    }
     try {
       final refresh = ref.read(refreshLinkedPlaylistUseCaseProvider);
-      final tryRewrite = await _modelReady();
+      final tryRewrite = _aiModelReady;
       PlaylistSyncResult syncResult;
-      if (e.source == PlaylistImportKind.spotify) {
+      if (isSpotify) {
         final plan = await refresh.prepareSpotify(
           e.localPlaylistId,
           tryRewrite: tryRewrite,
-          onProgress: (current, total) {
-            if (mounted) {
-              setState(() {
-                _progressCurrent = current;
-                _progressTotal = total;
-              });
-            }
-          },
+          onProgress: _applyProgress,
         );
         var resolved = plan;
         if (plan.ambiguous.isNotEmpty) {
@@ -294,6 +324,8 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
           setState(() {
             _isLoading = false;
             _reviewing = true;
+            _phase = ImportProgressPhase.reviewing;
+            _trackLabel = null;
           });
           final choices = await ImportMatchReviewSheet.show(
             context,
@@ -304,6 +336,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
             setState(() {
               _reviewing = false;
               _isLoading = false;
+              _showAiAssist = false;
             });
             return;
           }
@@ -314,20 +347,17 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
           setState(() {
             _reviewing = false;
             _isLoading = true;
+            _phase = ImportProgressPhase.saving;
+            _trackLabel = null;
           });
+        } else if (mounted) {
+          setState(() => _phase = ImportProgressPhase.saving);
         }
         syncResult = await refresh.commitSpotify(resolved);
       } else {
         syncResult = await refresh.execute(
           e.localPlaylistId,
-          onProgress: (current, total) {
-            if (mounted) {
-              setState(() {
-                _progressCurrent = current;
-                _progressTotal = total;
-              });
-            }
-          },
+          onProgress: _applyProgress,
         );
       }
       if (mounted) {
@@ -487,31 +517,16 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
     bool compact = false,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final progressLabel =
-        _reviewing
-            ? (l10n?.importMatchReviewing ?? 'Reviewing matches…')
-            : _progressTotal > 0
-            ? (l10n?.importingProgress(_progressCurrent, _progressTotal) ??
-                'Importing $_progressCurrent/$_progressTotal…')
-            : (l10n?.importing ?? 'Importing...');
 
     if (_isLoading || _reviewing) {
-      return SizedBox(
-        height: compact ? 72 : 120,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_isLoading) const CircularProgressIndicator(),
-            if (_isLoading) const SizedBox(height: 16),
-            Text(
-              progressLabel,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+      return ImportProgressBody(
+        phase: _reviewing ? ImportProgressPhase.reviewing : _phase,
+        current: _progressCurrent,
+        total: _progressTotal,
+        trackLabel: _reviewing ? null : _trackLabel,
+        showAiAssist: _showAiAssist && !_reviewing,
+        aiModelReady: _aiModelReady,
+        compact: compact,
       );
     }
 

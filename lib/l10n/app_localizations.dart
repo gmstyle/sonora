@@ -2852,6 +2852,48 @@ abstract class AppLocalizations {
   /// **'Reviewing matches…'**
   String get importMatchReviewing;
 
+  /// No description provided for @importProgressMatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching on YouTube Music'**
+  String get importProgressMatching;
+
+  /// No description provided for @importProgressSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving playlist…'**
+  String get importProgressSaving;
+
+  /// No description provided for @importAiAssistReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI assist available'**
+  String get importAiAssistReadyTitle;
+
+  /// No description provided for @importAiAssistReadyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If a match is uncertain, Ask can rewrite the search — you confirm before anything is saved.'**
+  String get importAiAssistReadyBody;
+
+  /// No description provided for @importAiAssistDisabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI assist is off'**
+  String get importAiAssistDisabledTitle;
+
+  /// No description provided for @importAiAssistDisabledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the Ask model in Settings → AI to improve uncertain Spotify matches.'**
+  String get importAiAssistDisabledBody;
+
+  /// No description provided for @importAiAssistOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get importAiAssistOpenSettings;
+
   /// No description provided for @invalidPlaylistUrlOrId.
   ///
   /// In en, this message translates to:

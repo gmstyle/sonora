@@ -32,7 +32,7 @@ class ImportSpotifyPlaylistUseCase {
   /// Legacy one-shot: prepare, skip all ambiguous tracks, commit.
   Future<PlaylistImportResult> execute(
     String playlistId, {
-    void Function(int current, int total)? onProgress,
+    void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
   }) async {
     final plan = await prepare(
@@ -47,7 +47,7 @@ class ImportSpotifyPlaylistUseCase {
   /// Match all tracks. Ambiguous slots need UI review before [commit].
   Future<SpotifyImportPlan> prepare(
     String playlistId, {
-    void Function(int current, int total)? onProgress,
+    void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
   }) async {
     final existing = await _libraryRepository.findLinkedPlaylist(
@@ -69,7 +69,7 @@ class ImportSpotifyPlaylistUseCase {
       throw Exception('The playlist is empty or could not be retrieved');
     }
 
-    onProgress?.call(0, tracks.length);
+    onProgress?.call(PlaylistImportProgress(current: 0, total: tracks.length));
     final slots = <SpotifyImportSlot>[];
 
     for (var i = 0; i < tracks.length; i++) {
@@ -77,20 +77,32 @@ class ImportSpotifyPlaylistUseCase {
         await _delay(searchSpacing);
       }
 
-      final outcome = await _pipeline.matchTrack(
-        tracks[i],
-        tryRewrite: tryRewrite,
+      final track = tracks[i];
+      onProgress?.call(
+        PlaylistImportProgress(
+          current: i,
+          total: tracks.length,
+          trackLabel: spotifyTrackProgressLabel(track),
+        ),
       );
+
+      final outcome = await _pipeline.matchTrack(track, tryRewrite: tryRewrite);
       slots.add(
         SpotifyImportSlot(
           index: i,
-          track: tracks[i],
+          track: track,
           kind: outcome.kind,
           candidate: outcome.match,
           reviewCandidates: outcome.reviewCandidates,
         ),
       );
-      onProgress?.call(i + 1, tracks.length);
+      onProgress?.call(
+        PlaylistImportProgress(
+          current: i + 1,
+          total: tracks.length,
+          trackLabel: spotifyTrackProgressLabel(track),
+        ),
+      );
     }
 
     return SpotifyImportPlan(snapshot: snapshot, slots: slots);

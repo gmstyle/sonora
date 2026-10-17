@@ -39,7 +39,7 @@ class RefreshLinkedPlaylistUseCase {
   /// [prepareSpotify] + review + [commitSpotify] from the UI.
   Future<PlaylistSyncResult> execute(
     int localPlaylistId, {
-    void Function(int current, int total)? onProgress,
+    void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
   }) async {
     final playlist = await _requireLinkedPlaylist(localPlaylistId);
@@ -62,7 +62,7 @@ class RefreshLinkedPlaylistUseCase {
 
   Future<SpotifyRefreshPlan> prepareSpotify(
     int localPlaylistId, {
-    void Function(int current, int total)? onProgress,
+    void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
   }) async {
     final playlist = await _requireLinkedPlaylist(localPlaylistId);
@@ -84,7 +84,7 @@ class RefreshLinkedPlaylistUseCase {
       throw Exception('The playlist is empty or could not be retrieved');
     }
 
-    onProgress?.call(0, tracks.length);
+    onProgress?.call(PlaylistImportProgress(current: 0, total: tracks.length));
     final slots = <SpotifyImportSlot>[];
 
     for (var i = 0; i < tracks.length; i++) {
@@ -92,32 +92,47 @@ class RefreshLinkedPlaylistUseCase {
         await _delay(searchSpacing);
       }
 
-      final cached = await _cachedCandidate(tracks[i]);
+      final track = tracks[i];
+      onProgress?.call(
+        PlaylistImportProgress(
+          current: i,
+          total: tracks.length,
+          trackLabel: spotifyTrackProgressLabel(track),
+        ),
+      );
+
+      final cached = await _cachedCandidate(track);
       if (cached != null) {
         slots.add(
           SpotifyImportSlot(
             index: i,
-            track: tracks[i],
+            track: track,
             kind: SpotifyMatchKind.auto,
             candidate: cached,
           ),
         );
       } else {
         final outcome = await _pipeline.matchTrack(
-          tracks[i],
+          track,
           tryRewrite: tryRewrite,
         );
         slots.add(
           SpotifyImportSlot(
             index: i,
-            track: tracks[i],
+            track: track,
             kind: outcome.kind,
             candidate: outcome.match,
             reviewCandidates: outcome.reviewCandidates,
           ),
         );
       }
-      onProgress?.call(i + 1, tracks.length);
+      onProgress?.call(
+        PlaylistImportProgress(
+          current: i + 1,
+          total: tracks.length,
+          trackLabel: spotifyTrackProgressLabel(track),
+        ),
+      );
     }
 
     return SpotifyRefreshPlan(
@@ -201,7 +216,7 @@ class RefreshLinkedPlaylistUseCase {
 
   Future<PlaylistSyncResult> _executeYoutube(
     LocalPlaylistModel playlist, {
-    void Function(int current, int total)? onProgress,
+    void Function(PlaylistImportProgress progress)? onProgress,
   }) async {
     final localPlaylistId = playlist.id;
     final remoteId = playlist.remoteId!;
@@ -212,7 +227,9 @@ class RefreshLinkedPlaylistUseCase {
     if (playable.isEmpty) {
       throw Exception('The playlist is empty or could not be retrieved');
     }
-    onProgress?.call(playable.length, playable.length);
+    onProgress?.call(
+      PlaylistImportProgress(current: playable.length, total: playable.length),
+    );
     final desired =
         playable.asMap().entries.map((e) {
           final video = e.value;

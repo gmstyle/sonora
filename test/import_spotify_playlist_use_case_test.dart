@@ -150,17 +150,15 @@ void main() {
       searchSpacing: Duration.zero,
     );
 
-    final progress = <(int, int)>[];
-    final result = await useCase.execute(
-      snapshot.id,
-      onProgress: (current, total) => progress.add((current, total)),
-    );
+    final progress = <PlaylistImportProgress>[];
+    final result = await useCase.execute(snapshot.id, onProgress: progress.add);
 
     expect(result.source, PlaylistImportKind.spotify);
     expect(result.name, 'myLib');
     expect(result.importedCount, 2);
     expect(result.skippedCount, 1);
-    expect(progress.last, (3, 3));
+    expect(progress.last.current, 3);
+    expect(progress.last.total, 3);
 
     expect(library.playlists, hasLength(1));
     expect(library.playlists.first.name, 'myLib');
