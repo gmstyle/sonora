@@ -18,6 +18,9 @@ class OnDeviceLlmRepositoryImpl implements OnDeviceLlmRepository {
   Future<void> uninstallModel() => _datasource.uninstallModel();
 
   @override
+  Future<void> warmUp() => _datasource.warmUp();
+
+  @override
   Future<String> complete({
     required String systemInstruction,
     required String userMessage,

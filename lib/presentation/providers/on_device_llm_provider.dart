@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/ai/on_device_llm_datasource.dart';
@@ -87,6 +89,8 @@ class AskModelInstallNotifier extends Notifier<AskModelInstallState> {
         progress: 1,
       );
       ref.invalidate(askModelReadyProvider);
+      // Load weights now so the first Ask call is not a cold hang.
+      unawaited(ref.read(onDeviceLlmRepositoryProvider).warmUp());
     } catch (e) {
       state = AskModelInstallState(
         phase: AskModelInstallPhase.error,

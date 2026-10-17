@@ -11,6 +11,9 @@ abstract class OnDeviceLlmRepository {
   /// Remove the Ask model from local storage.
   Future<void> uninstallModel();
 
+  /// Load model weights into memory (no-op if already warm).
+  Future<void> warmUp();
+
   /// One-shot completion with a system instruction. Returns assistant text.
   Future<String> complete({
     required String systemInstruction,
