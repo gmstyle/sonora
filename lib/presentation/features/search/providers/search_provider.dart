@@ -28,9 +28,24 @@ class _ActiveSearchQueryNotifier extends Notifier<String> {
   void update(String value) => state = value;
 
   Future<void> submit(String query) async {
+    await activate(query, persistHistory: true);
+  }
+
+  /// Sets the active query used by [searchResultsProvider].
+  ///
+  /// When [persistHistory] is true (default), also writes [historyQuery] (or
+  /// [query] if null) to recent searches.
+  Future<void> activate(
+    String query, {
+    bool persistHistory = true,
+    String? historyQuery,
+  }) async {
     state = query;
-    if (query.isNotEmpty) {
-      await ref.read(libraryNotifierProvider.notifier).insertSearchEntry(query);
+    if (persistHistory && query.isNotEmpty) {
+      final entry = (historyQuery ?? query).trim();
+      if (entry.isNotEmpty) {
+        await ref.read(libraryNotifierProvider.notifier).insertSearchEntry(entry);
+      }
     }
   }
 }

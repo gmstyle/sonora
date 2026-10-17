@@ -25,8 +25,10 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/explicit_badge.dart';
+import 'providers/ask_search_provider.dart';
 import 'providers/search_provider.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../providers/on_device_llm_provider.dart';
 
 /// Content max width for Search on wide shells (≥ [kExpandedBreakpoint]).
 const double _kSearchContentMaxWidth = 1100;
@@ -52,9 +54,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onSearchChanged(String query) {
     ref.read(searchQueryProvider.notifier).update(query);
+    final interp = ref.read(askInterpretationProvider);
+    if (interp != null && query != interp.originalQuery) {
+      ref.read(askInterpretationProvider.notifier).clear();
+    }
   }
 
-  void _submitSearch(String query) {
+  Future<void> _submitSearch(String query) async {
     if (ref.read(isOfflineProvider)) {
       final l10n = AppLocalizations.of(context)!;
       ref
@@ -67,14 +73,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       TextPosition(offset: query.length),
     );
     ref.read(searchQueryProvider.notifier).update(query);
-    ref.read(activeSearchQueryProvider.notifier).submit(query);
     _focusNode.unfocus();
+    await ref.read(askSearchSubmitProvider.notifier).submit(query);
   }
 
   void _clearSearch() {
     _searchController.clear();
     ref.read(searchQueryProvider.notifier).update('');
     ref.read(activeSearchQueryProvider.notifier).update('');
+    ref.read(askInterpretationProvider.notifier).clear();
     _focusNode.requestFocus();
   }
 
@@ -85,6 +92,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final isOffline = ref.watch(isOfflineProvider);
     final l10n = AppLocalizations.of(context);
 
+    final askEnabled = ref.watch(askModeEnabledProvider);
+    final modelReadyAsync = ref.watch(askModelReadyProvider);
+    final modelReady = modelReadyAsync.asData?.value ?? false;
+    final askSubmit = ref.watch(askSearchSubmitProvider);
+    final asking = askSubmit.isLoading;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
@@ -94,11 +107,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             controller: _searchController,
             focusNode: _focusNode,
             autofocus: false,
-            readOnly: isOffline,
+            readOnly: isOffline || asking,
             decoration: InputDecoration(
               hintText:
                   isOffline
                       ? (l10n?.noConnectionMessage ?? l10n?.searchHint)
+                      : askEnabled && modelReady
+                      ? l10n!.askSearchHint
                       : l10n!.searchHint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -111,8 +126,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 horizontal: 16,
               ),
               prefixIcon: const Icon(LucideIcons.search, size: 20),
+              // Keep suffix slot square so the spinner is not stretched oval
+              // inside the 40px search field on compact widths.
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
+                maxWidth: 40,
+                maxHeight: 40,
+              ),
               suffixIcon:
-                  query.isNotEmpty
+                  asking
+                      ? const Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                      : query.isNotEmpty
                       ? IconButton(
                         icon: const Icon(LucideIcons.x, size: 20),
                         onPressed: _clearSearch,
@@ -120,20 +151,58 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       : null,
             ),
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: isOffline ? null : _onSearchChanged,
-            onSubmitted: isOffline ? null : _submitSearch,
+            onChanged: isOffline || asking ? null : _onSearchChanged,
+            onSubmitted: isOffline || asking ? null : _submitSearch,
           ),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(l10n!.askChip),
+              selected: askEnabled && modelReady,
+              avatar: Icon(
+                LucideIcons.sparkles,
+                size: 16,
+                color:
+                    askEnabled && modelReady
+                        ? Theme.of(context).colorScheme.onSecondaryContainer
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              onSelected:
+                  isOffline
+                      ? null
+                      : (selected) {
+                        if (!modelReady) {
+                          ref
+                              .read(actionFeedbackProvider.notifier)
+                              .report(
+                                l10n.askModelRequired,
+                                kind: FeedbackKind.error,
+                              );
+                          return;
+                        }
+                        ref
+                            .read(askModeEnabledProvider.notifier)
+                            .setEnabled(selected);
+                      },
+            ),
+          ),
+        ],
       ),
       body: _buildBody(query, activeQuery),
     );
   }
 
   Widget _buildBody(String query, String activeQuery) {
+    final askInterp = ref.watch(askInterpretationProvider);
+    final showingAskResults =
+        askInterp != null && query == askInterp.originalQuery;
+
     if (query.isEmpty && activeQuery.isEmpty) {
       return _RecentSearches(onTapSearch: _submitSearch);
     }
-    if (query.isNotEmpty && query != activeQuery) {
+    if (query.isNotEmpty && query != activeQuery && !showingAskResults) {
       return _Suggestions(
         query: query,
         onTapSuggestion: _submitSearch,
@@ -841,11 +910,73 @@ class _SearchResults extends ConsumerWidget {
     );
   }
 
+  Widget _buildAskBanner(BuildContext context, WidgetRef ref) {
+    final interpretation = ref.watch(askInterpretationProvider);
+    if (interpretation == null) return const SizedBox.shrink();
+
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final resultsAsync = ref.watch(searchResultsProvider);
+    final songs =
+        resultsAsync.asData?.value.whereType<SongDetailed>().toList() ??
+        const <SongDetailed>[];
+    final canPlay = songs.isNotEmpty && !ref.watch(isOfflineProvider);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Material(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+          child: Row(
+            children: [
+              Icon(LucideIcons.sparkles, color: scheme.primary, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.askInterpretedAs,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      interpretation.intent.displayLabel,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (canPlay)
+                IconButton.filled(
+                  tooltip: l10n.askPlayResults,
+                  onPressed:
+                      () => ref
+                          .read(playerStateProvider.notifier)
+                          .playAlbum(songs),
+                  icon: const Icon(LucideIcons.play, size: 18),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(searchFilterProvider);
     final resultsAsync = ref.watch(searchResultsProvider);
     final options = _filterOptions(context);
+    final askBanner = _buildAskBanner(context, ref);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -880,7 +1011,15 @@ class _SearchResults extends ConsumerWidget {
                               .update(index),
                     ),
                   ),
-                  Expanded(child: resultsContent),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        askBanner,
+                        Expanded(child: resultsContent),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -896,6 +1035,7 @@ class _SearchResults extends ConsumerWidget {
                   (index) =>
                       ref.read(searchFilterProvider.notifier).update(index),
             ),
+            askBanner,
             Expanded(child: resultsContent),
           ],
         );

@@ -328,6 +328,7 @@ enum SettingsCategory {
   appearance,
   playback,
   downloads,
+  ai,
   background,
   privacy,
   backup,
@@ -344,6 +345,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return l10n.playback;
       case SettingsCategory.downloads:
         return l10n.downloadsSettings;
+      case SettingsCategory.ai:
+        return l10n.aiSettings;
       case SettingsCategory.background:
         return l10n.backgroundPlayback;
       case SettingsCategory.privacy:
@@ -357,6 +360,7 @@ extension SettingsCategoryExtension on SettingsCategory {
 
   String getSubtitle(BuildContext context) {
     final isIt = Localizations.localeOf(context).languageCode == 'it';
+    final l10n = AppLocalizations.of(context)!;
     switch (this) {
       case SettingsCategory.appearance:
         return isIt
@@ -370,6 +374,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return isIt
             ? 'Cartella, Wi-Fi e spazio disco'
             : 'Folder, Wi-Fi and disk space';
+      case SettingsCategory.ai:
+        return l10n.aiSettingsSubtitle;
       case SettingsCategory.background:
         return isIt
             ? 'Ottimizzazione batteria per riproduzione in background'
@@ -397,6 +403,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return LucideIcons.sliders;
       case SettingsCategory.downloads:
         return LucideIcons.download;
+      case SettingsCategory.ai:
+        return LucideIcons.sparkles;
       case SettingsCategory.background:
         return LucideIcons.batteryFull;
       case SettingsCategory.privacy:

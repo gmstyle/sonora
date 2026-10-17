@@ -29,6 +29,8 @@ import 'settings_shared.dart';
 import 'widgets/local_sync_panel.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/equalizer_provider.dart';
+import '../../providers/on_device_llm_provider.dart';
+import '../../../core/constants/ai_constants.dart';
 import '../player/widgets/equalizer_panel.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
@@ -150,6 +152,11 @@ class SettingsCategoryContent extends ConsumerWidget {
         return ListView(
           padding: listPadding,
           children: [_DownloadSection(settings: settings, notifier: notifier)],
+        );
+      case SettingsCategory.ai:
+        return ListView(
+          padding: listPadding,
+          children: [const _AiSection()],
         );
       case SettingsCategory.background:
         return ListView(
@@ -448,6 +455,86 @@ class _DownloadSection extends StatelessWidget {
             }
           },
         ),
+      ],
+    );
+  }
+}
+
+// ── AI ───────────────────────────────────────────────────────────
+
+class _AiSection extends ConsumerWidget {
+  const _AiSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final readyAsync = ref.watch(askModelReadyProvider);
+    final install = ref.watch(askModelInstallProvider);
+    final isOffline = ref.watch(isOfflineProvider);
+    final ready = readyAsync.asData?.value ?? false;
+    final downloading = install.phase == AskModelInstallPhase.downloading;
+    final percent = (install.progress * 100).round().clamp(0, 100);
+
+    String subtitle;
+    if (downloading) {
+      subtitle = l10n.aiAskModelDownloading(percent);
+    } else if (ready || install.phase == AskModelInstallPhase.ready) {
+      subtitle = l10n.aiAskModelReady;
+    } else if (install.phase == AskModelInstallPhase.error) {
+      subtitle = l10n.aiAskModelFailed;
+    } else {
+      subtitle = l10n.aiAskModelHint(kAskLlmApproxSizeMb);
+    }
+
+    return SettingsSection(
+      title: l10n.aiSettings,
+      children: [
+        ListTile(
+          leading: Icon(
+            LucideIcons.sparkles,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          title: Text(l10n.aiAskModelTitle),
+          subtitle: Text(subtitle),
+        ),
+        if (downloading)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: LinearProgressIndicator(value: install.progress),
+          ),
+        if (!ready && !downloading)
+          SettingsButtonTile(
+            title: l10n.aiAskModelDownload,
+            icon: LucideIcons.download,
+            onPressed:
+                isOffline
+                    ? null
+                    : () async {
+                      await ref
+                          .read(askModelInstallProvider.notifier)
+                          .download();
+                      final phase = ref.read(askModelInstallProvider).phase;
+                      if (phase == AskModelInstallPhase.error) {
+                        ref
+                            .read(actionFeedbackProvider.notifier)
+                            .report(
+                              l10n.aiAskModelFailed,
+                              kind: FeedbackKind.error,
+                            );
+                      } else if (phase == AskModelInstallPhase.ready) {
+                        ref
+                            .read(actionFeedbackProvider.notifier)
+                            .report(l10n.aiAskModelReady);
+                      }
+                    },
+          ),
+        if (ready || install.phase == AskModelInstallPhase.ready)
+          SettingsButtonTile(
+            title: l10n.aiAskModelRemove,
+            icon: LucideIcons.trash2,
+            onPressed:
+                () => ref.read(askModelInstallProvider.notifier).uninstall(),
+          ),
       ],
     );
   }

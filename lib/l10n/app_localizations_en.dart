@@ -606,6 +606,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchHint => 'Search songs, artists, albums...';
 
   @override
+  String get askSearchHint => 'Describe the music you want…';
+
+  @override
+  String get askChip => 'Ask';
+
+  @override
+  String get askInterpretedAs => 'Interpreted as';
+
+  @override
+  String get askPlayResults => 'Play results';
+
+  @override
+  String get askModelRequired =>
+      'Download the Ask model in Settings → AI first';
+
+  @override
   String get searchForMusic => 'Search for music';
 
   @override
@@ -665,6 +681,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get featuredArtist => 'Featured Artist';
+
+  @override
+  String get aiSettings => 'AI';
+
+  @override
+  String get aiSettingsSubtitle =>
+      'On-device Ask model for natural-language search';
+
+  @override
+  String get aiAskModelTitle => 'Ask model (Qwen3 0.6B)';
+
+  @override
+  String aiAskModelHint(int sizeMb) {
+    return 'Optional on-device pack (~$sizeMb MB). Used only when Ask is on in Search.';
+  }
+
+  @override
+  String get aiAskModelDownload => 'Download model';
+
+  @override
+  String aiAskModelDownloading(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get aiAskModelReady => 'Model ready';
+
+  @override
+  String get aiAskModelRemove => 'Remove model';
+
+  @override
+  String get aiAskModelFailed => 'Model download failed';
 
   @override
   String get system => 'System';

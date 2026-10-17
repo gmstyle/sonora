@@ -226,6 +226,11 @@
     "search": "Schermata Ricerca"
   },
   "searchHint": "Cerca brani, artisti, album...",
+  "askSearchHint": "Descrivi la musica che vuoi…",
+  "askChip": "Ask",
+  "askInterpretedAs": "Interpretato come",
+  "askPlayResults": "Riproduci risultati",
+  "askModelRequired": "Scarica prima il modello Ask in Impostazioni → AI",
   "searchForMusic": "Cerca musica",
   "searchForMusicHint": "Trova i tuoi brani, artisti e album preferiti",
   "recentSearches": "Ricerche Recenti",
@@ -250,6 +255,25 @@
   "@@sectionMeta": {
     "settings": "Schermata Impostazioni"
   },
+  "aiSettings": "AI",
+  "aiSettingsSubtitle": "Modello Ask on-device per la ricerca in linguaggio naturale",
+  "aiAskModelTitle": "Modello Ask (Qwen3 0.6B)",
+  "aiAskModelHint": "Pacchetto on-device opzionale (~{sizeMb} MB). Usato solo con Ask attivo in Cerca.",
+  "@aiAskModelHint": {
+    "placeholders": {
+      "sizeMb": {"type": "int"}
+    }
+  },
+  "aiAskModelDownload": "Scarica modello",
+  "aiAskModelDownloading": "Download… {percent}%",
+  "@aiAskModelDownloading": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "aiAskModelReady": "Modello pronto",
+  "aiAskModelRemove": "Rimuovi modello",
+  "aiAskModelFailed": "Download del modello non riuscito",
   "system": "Sistema",
   "light": "Chiaro",
   "dark": "Scuro",

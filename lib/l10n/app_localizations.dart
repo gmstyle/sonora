@@ -1004,6 +1004,36 @@ abstract class AppLocalizations {
   /// **'Search songs, artists, albums...'**
   String get searchHint;
 
+  /// No description provided for @askSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the music you want…'**
+  String get askSearchHint;
+
+  /// No description provided for @askChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get askChip;
+
+  /// No description provided for @askInterpretedAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted as'**
+  String get askInterpretedAs;
+
+  /// No description provided for @askPlayResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Play results'**
+  String get askPlayResults;
+
+  /// No description provided for @askModelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Download the Ask model in Settings → AI first'**
+  String get askModelRequired;
+
   /// No description provided for @searchForMusic.
   ///
   /// In en, this message translates to:
@@ -1123,6 +1153,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Featured Artist'**
   String get featuredArtist;
+
+  /// No description provided for @aiSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get aiSettings;
+
+  /// No description provided for @aiSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device Ask model for natural-language search'**
+  String get aiSettingsSubtitle;
+
+  /// No description provided for @aiAskModelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask model (Qwen3 0.6B)'**
+  String get aiAskModelTitle;
+
+  /// No description provided for @aiAskModelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional on-device pack (~{sizeMb} MB). Used only when Ask is on in Search.'**
+  String aiAskModelHint(int sizeMb);
+
+  /// No description provided for @aiAskModelDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download model'**
+  String get aiAskModelDownload;
+
+  /// No description provided for @aiAskModelDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {percent}%'**
+  String aiAskModelDownloading(int percent);
+
+  /// No description provided for @aiAskModelReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Model ready'**
+  String get aiAskModelReady;
+
+  /// No description provided for @aiAskModelRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove model'**
+  String get aiAskModelRemove;
+
+  /// No description provided for @aiAskModelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Model download failed'**
+  String get aiAskModelFailed;
 
   /// No description provided for @system.
   ///

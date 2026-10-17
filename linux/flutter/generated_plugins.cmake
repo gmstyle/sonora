@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links_linux
   dynamic_color
+  flutter_edge_ai
   media_kit_libs_linux
   screen_retriever_linux
   tray_manager

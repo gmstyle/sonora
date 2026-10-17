@@ -27,7 +27,8 @@ android {
     defaultConfig {
         multiDexEnabled = true
         applicationId = "com.gmstyle.sonora"
-        minSdk = flutter.minSdkVersion
+        // LiteRT-LM (flutter_edge_ai) requires API 30+ and arm64-v8a.
+        minSdk = maxOf(30, flutter.minSdkVersion)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

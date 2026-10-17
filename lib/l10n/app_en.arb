@@ -320,6 +320,11 @@
     "search": "Search Screen"
   },
   "searchHint": "Search songs, artists, albums...",
+  "askSearchHint": "Describe the music you want…",
+  "askChip": "Ask",
+  "askInterpretedAs": "Interpreted as",
+  "askPlayResults": "Play results",
+  "askModelRequired": "Download the Ask model in Settings → AI first",
   "searchForMusic": "Search for music",
   "searchForMusicHint": "Find your favorite songs, artists, and albums",
   "recentSearches": "Recent Searches",
@@ -344,6 +349,25 @@
   "@@sectionMeta": {
     "settings": "Settings Screen"
   },
+  "aiSettings": "AI",
+  "aiSettingsSubtitle": "On-device Ask model for natural-language search",
+  "aiAskModelTitle": "Ask model (Qwen3 0.6B)",
+  "aiAskModelHint": "Optional on-device pack (~{sizeMb} MB). Used only when Ask is on in Search.",
+  "@aiAskModelHint": {
+    "placeholders": {
+      "sizeMb": {"type": "int"}
+    }
+  },
+  "aiAskModelDownload": "Download model",
+  "aiAskModelDownloading": "Downloading… {percent}%",
+  "@aiAskModelDownloading": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "aiAskModelReady": "Model ready",
+  "aiAskModelRemove": "Remove model",
+  "aiAskModelFailed": "Model download failed",
   "system": "System",
   "light": "Light",
   "dark": "Dark",
