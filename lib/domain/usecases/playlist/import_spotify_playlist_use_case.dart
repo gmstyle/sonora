@@ -1,34 +1,54 @@
-import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
-
-import '../../../core/utils/artists_utils.dart';
 import '../../models/library_models.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
+import '../ai/rewrite_spotify_search_query_use_case.dart';
+import 'spotify_ytm_match_pipeline.dart';
 import 'ytmusic_track_matcher.dart';
 
 class ImportSpotifyPlaylistUseCase {
   ImportSpotifyPlaylistUseCase(
     this._fetchPlaylist,
-    this._musicRepository,
+    MusicRepository musicRepository,
     this._libraryRepository, {
     this.searchSpacing = const Duration(milliseconds: 150),
     Future<void> Function(Duration duration)? delay,
     YtMusicTrackMatcher matcher = const YtMusicTrackMatcher(),
+    RewriteSpotifySearchQueryUseCase? rewriteSearchQuery,
   }) : _delay = delay ?? Future<void>.delayed,
-       _matcher = matcher;
+       _pipeline = SpotifyYtmMatchPipeline(
+         musicRepository,
+         matcher: matcher,
+         rewrite: rewriteSearchQuery,
+       );
 
   final Future<SpotifyPlaylistSnapshot> Function(String playlistId)
   _fetchPlaylist;
-  final MusicRepository _musicRepository;
   final LibraryRepository _libraryRepository;
   final Duration searchSpacing;
   final Future<void> Function(Duration duration) _delay;
-  final YtMusicTrackMatcher _matcher;
+  final SpotifyYtmMatchPipeline _pipeline;
 
+  /// Legacy one-shot: prepare, skip all ambiguous tracks, commit.
   Future<PlaylistImportResult> execute(
     String playlistId, {
     void Function(int current, int total)? onProgress,
+    bool tryRewrite = false,
+  }) async {
+    final plan = await prepare(
+      playlistId,
+      onProgress: onProgress,
+      tryRewrite: tryRewrite,
+    );
+    final resolved = applyReviewChoices(plan, const {});
+    return commit(resolved);
+  }
+
+  /// Match all tracks. Ambiguous slots need UI review before [commit].
+  Future<SpotifyImportPlan> prepare(
+    String playlistId, {
+    void Function(int current, int total)? onProgress,
+    bool tryRewrite = false,
   }) async {
     final existing = await _libraryRepository.findLinkedPlaylist(
       'spotify',
@@ -50,31 +70,75 @@ class ImportSpotifyPlaylistUseCase {
     }
 
     onProgress?.call(0, tracks.length);
-
-    final matched = <ImportedTrackCandidate>[];
-    final seenVideoIds = <String>{};
-    var skipped = 0;
+    final slots = <SpotifyImportSlot>[];
 
     for (var i = 0; i < tracks.length; i++) {
       if (i > 0 && searchSpacing > Duration.zero) {
         await _delay(searchSpacing);
       }
 
-      final candidate = await _matchTrack(tracks[i]);
+      final outcome = await _pipeline.matchTrack(
+        tracks[i],
+        tryRewrite: tryRewrite,
+      );
+      slots.add(
+        SpotifyImportSlot(
+          index: i,
+          track: tracks[i],
+          kind: outcome.kind,
+          candidate: outcome.match,
+          reviewCandidates: outcome.reviewCandidates,
+        ),
+      );
+      onProgress?.call(i + 1, tracks.length);
+    }
+
+    return SpotifyImportPlan(snapshot: snapshot, slots: slots);
+  }
+
+  /// Applies user choices for ambiguous [slot.index] → candidate (null = skip).
+  /// Non-review slots are left as prepared. Duplicate videoIds after resolve
+  /// are dropped as skips.
+  static SpotifyImportPlan applyReviewChoices(
+    SpotifyImportPlan plan,
+    Map<int, ImportedTrackCandidate?> choices,
+  ) {
+    final slots = <SpotifyImportSlot>[];
+    for (final slot in plan.slots) {
+      if (!slot.needsReview) {
+        slots.add(slot);
+        continue;
+      }
+      if (choices.containsKey(slot.index)) {
+        slots.add(slot.withCandidate(choices[slot.index]));
+      } else {
+        // Unresolved ambiguous → skip (same as legacy silent drop).
+        slots.add(slot.withCandidate(null));
+      }
+    }
+    return SpotifyImportPlan(snapshot: plan.snapshot, slots: slots);
+  }
+
+  Future<PlaylistImportResult> commit(SpotifyImportPlan plan) async {
+    final matched = <ImportedTrackCandidate>[];
+    final seenVideoIds = <String>{};
+    var skipped = 0;
+
+    for (final slot in plan.slots) {
+      final candidate = slot.candidate;
       if (candidate == null || !seenVideoIds.add(candidate.videoId)) {
         skipped++;
-      } else {
-        matched.add(candidate);
-        final uri = tracks[i].uri;
-        if (uri != null && uri.isNotEmpty) {
-          await _libraryRepository.upsertSpotifyMatch(
-            spotifyTrackUri: uri,
-            videoId: candidate.videoId,
-            title: candidate.title,
-          );
-        }
+        continue;
       }
-      onProgress?.call(i + 1, tracks.length);
+      matched.add(candidate);
+      final uri = slot.track.uri;
+      if (uri != null && uri.isNotEmpty) {
+        await _libraryRepository.upsertSpotifyMatch(
+          spotifyTrackUri: uri,
+          videoId: candidate.videoId,
+          title: candidate.title,
+        );
+      }
     }
 
     if (matched.isEmpty) {
@@ -83,9 +147,10 @@ class ImportSpotifyPlaylistUseCase {
       );
     }
 
+    final snapshot = plan.snapshot;
     final truncatedNote =
         snapshot.truncated
-            ? ' — first ${tracks.length} tracks from the public embed'
+            ? ' — first ${snapshot.tracks.length} tracks from the public embed'
             : '';
     final now = DateTime.now();
     final localPlaylistId = await _libraryRepository.createPlaylist(
@@ -120,39 +185,6 @@ class ImportSpotifyPlaylistUseCase {
       source: PlaylistImportKind.spotify,
       importedCount: matched.length,
       skippedCount: skipped,
-    );
-  }
-
-  Future<ImportedTrackCandidate?> _matchTrack(
-    SpotifyPlaylistTrack track,
-  ) async {
-    for (final query in _matcher.searchQueries(track)) {
-      if (query.trim().isEmpty) continue;
-      try {
-        final results = await _musicRepository.searchSongs(query, limit: 8);
-        final candidates = results
-            .where((song) => song.videoId.isNotEmpty && song.isPlayable)
-            .map(_toCandidate)
-            .toList(growable: false);
-        final match = _matcher.pickBest(track: track, candidates: candidates);
-        if (match != null) return match;
-      } catch (_) {
-        // Try the next query; a single failed search should not abort import.
-      }
-    }
-    return null;
-  }
-
-  ImportedTrackCandidate _toCandidate(SongDetailed song) {
-    return ImportedTrackCandidate(
-      videoId: song.videoId,
-      title: song.name,
-      artist: displayArtists(song.artists),
-      artistsJson: encodeArtistsJson(song.artists),
-      durationSec: song.duration,
-      thumbnailUrl:
-          song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
-      isExplicit: song.isExplicit,
     );
   }
 }

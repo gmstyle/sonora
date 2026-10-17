@@ -792,6 +792,18 @@
       "total": {"type": "int"}
     }
   },
+  "importMatchReviewTitle": "Choose the right track",
+  "importMatchReviewProgress": "Track {current}/{total}",
+  "@importMatchReviewProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "importMatchReviewSpotifyLabel": "From Spotify",
+  "importMatchSkip": "Skip",
+  "importMatchSkipAll": "Skip all remaining",
+  "importMatchReviewing": "Reviewing matches…",
   "import": "Import",
   "invalidPlaylistUrlOrId": "Invalid YouTube or Spotify playlist URL",
   "playlistEmptyError": "The playlist is empty or could not be retrieved",

@@ -5,8 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../domain/models/library_models.dart';
 import '../../../../domain/models/playlist_import.dart';
+import '../../../../domain/usecases/playlist/refresh_linked_playlist_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/on_device_llm_provider.dart';
 import '../../../providers/refresh_linked_playlist_use_case_provider.dart';
+import 'import_match_review_sheet.dart';
 import 'import_playlist_dialog.dart';
 
 /// Blocking sync progress UI — identical for Spotify and YouTube.
@@ -59,6 +62,7 @@ class _SyncLinkedPlaylistDialogState
   int _progressCurrent = 0;
   int _progressTotal = 0;
   String? _errorText;
+  bool _reviewing = false;
 
   @override
   void initState() {
@@ -66,28 +70,83 @@ class _SyncLinkedPlaylistDialogState
     WidgetsBinding.instance.addPostFrameCallback((_) => _run());
   }
 
+  Future<bool> _modelReady() async {
+    try {
+      return await ref.read(askModelReadyProvider.future);
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _run() async {
     final l10n = AppLocalizations.of(context);
     try {
-      final result = await ref
-          .read(refreshLinkedPlaylistUseCaseProvider)
-          .execute(
-            widget.playlist.id,
-            onProgress: (current, total) {
-              if (mounted) {
-                setState(() {
-                  _progressCurrent = current;
-                  _progressTotal = total;
-                });
-              }
-            },
+      final refresh = ref.read(refreshLinkedPlaylistUseCaseProvider);
+      final PlaylistSyncResult result;
+
+      if (widget.playlist.sourceKind == 'spotify') {
+        final tryRewrite = await _modelReady();
+        final plan = await refresh.prepareSpotify(
+          widget.playlist.id,
+          tryRewrite: tryRewrite,
+          onProgress: (current, total) {
+            if (mounted) {
+              setState(() {
+                _progressCurrent = current;
+                _progressTotal = total;
+              });
+            }
+          },
+        );
+        debugPrint(
+          'Spotify sync plan: auto=${plan.slots.where((s) => s.kind == SpotifyMatchKind.auto).length} '
+          'review=${plan.ambiguous.length} none=${plan.noneCount} '
+          'tryRewrite=$tryRewrite',
+        );
+
+        var resolved = plan;
+        if (plan.ambiguous.isNotEmpty) {
+          if (!mounted) return;
+          setState(() => _reviewing = true);
+          final choices = await ImportMatchReviewSheet.show(
+            context,
+            plan.ambiguous,
           );
+          if (!mounted) return;
+          if (choices == null) {
+            Navigator.pop(context);
+            return;
+          }
+          resolved = RefreshLinkedPlaylistUseCase.applySpotifyReviewChoices(
+            plan,
+            choices,
+          );
+          setState(() => _reviewing = false);
+        }
+        result = await refresh.commitSpotify(resolved);
+      } else {
+        result = await refresh.execute(
+          widget.playlist.id,
+          onProgress: (current, total) {
+            if (mounted) {
+              setState(() {
+                _progressCurrent = current;
+                _progressTotal = total;
+              });
+            }
+          },
+        );
+      }
+
       if (mounted) {
         Navigator.pop(context, result);
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _errorText = _formatError(e, l10n));
+        setState(() {
+          _reviewing = false;
+          _errorText = _formatError(e, l10n);
+        });
       }
     }
   }
@@ -129,7 +188,9 @@ class _SyncLinkedPlaylistDialogState
         vertical: 24,
       ),
       title: Text(
-        l10n?.syncingPlaylist ?? 'Syncing…',
+        _reviewing
+            ? (l10n?.importMatchReviewTitle ?? 'Choose the right track')
+            : (l10n?.syncingPlaylist ?? 'Syncing…'),
         style: Theme.of(
           context,
         ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -160,7 +221,9 @@ class _SyncLinkedPlaylistDialogState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            l10n?.syncingPlaylist ?? 'Syncing…',
+            _reviewing
+                ? (l10n?.importMatchReviewTitle ?? 'Choose the right track')
+                : (l10n?.syncingPlaylist ?? 'Syncing…'),
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -187,6 +250,12 @@ class _SyncLinkedPlaylistDialogState
       return Text(
         _errorText!,
         style: TextStyle(color: Theme.of(context).colorScheme.error),
+      );
+    }
+    if (_reviewing) {
+      return Text(
+        l10n?.importMatchReviewing ?? 'Reviewing matches…',
+        textAlign: TextAlign.center,
       );
     }
     final label =

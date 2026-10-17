@@ -259,6 +259,48 @@ void main() {
     },
   );
 
+  test(
+    'prepare leaves mid-band matches for review; commit uses choice',
+    () async {
+      const snapshot = SpotifyPlaylistSnapshot(
+        id: 'reviewreviewreviewrev1',
+        name: 'review me',
+        tracks: [
+          SpotifyPlaylistTrack(
+            title: 'One Two Three',
+            subtitle: 'Foo Bar Baz Qux',
+          ),
+        ],
+      );
+      final mid = song(
+        id: 'vid_mid',
+        title: 'One Two Four',
+        artist: 'Foo Bar Quux',
+      );
+      final music = _FakeMusicRepository({
+        'One Two Three Foo Bar Baz Qux': [mid],
+      });
+      final useCase = ImportSpotifyPlaylistUseCase(
+        (_) async => snapshot,
+        music,
+        library,
+        searchSpacing: Duration.zero,
+      );
+
+      final plan = await useCase.prepare(snapshot.id);
+      expect(plan.ambiguous, hasLength(1));
+      expect(plan.ambiguous.first.reviewCandidates.first.videoId, 'vid_mid');
+
+      final resolved = ImportSpotifyPlaylistUseCase.applyReviewChoices(plan, {
+        0: plan.ambiguous.first.reviewCandidates.first,
+      });
+      final result = await useCase.commit(resolved);
+      expect(result.importedCount, 1);
+      expect(result.skippedCount, 0);
+      expect(library.entries.single.videoId, 'vid_mid');
+    },
+  );
+
   test('throws when no Spotify track can be matched', () async {
     const snapshot = SpotifyPlaylistSnapshot(
       id: 'emptyemptyemptyemptyem1',

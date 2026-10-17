@@ -1660,6 +1660,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importMatchReviewTitle => 'Choose the right track';
+
+  @override
+  String importMatchReviewProgress(int current, int total) {
+    return 'Track $current/$total';
+  }
+
+  @override
+  String get importMatchReviewSpotifyLabel => 'From Spotify';
+
+  @override
+  String get importMatchSkip => 'Skip';
+
+  @override
+  String get importMatchSkipAll => 'Skip all remaining';
+
+  @override
+  String get importMatchReviewing => 'Reviewing matches…';
+
+  @override
   String get invalidPlaylistUrlOrId =>
       'Invalid YouTube or Spotify playlist URL';
 

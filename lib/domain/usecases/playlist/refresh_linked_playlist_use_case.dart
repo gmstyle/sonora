@@ -4,6 +4,9 @@ import '../../models/library_models.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
+import '../ai/rewrite_spotify_search_query_use_case.dart';
+import 'import_spotify_playlist_use_case.dart';
+import 'spotify_ytm_match_pipeline.dart';
 import 'ytmusic_track_matcher.dart';
 
 /// Pulls the remote tracklist into a linked local playlist (remote wins).
@@ -15,9 +18,14 @@ class RefreshLinkedPlaylistUseCase {
     this.searchSpacing = const Duration(milliseconds: 150),
     Future<void> Function(Duration duration)? delay,
     YtMusicTrackMatcher matcher = const YtMusicTrackMatcher(),
+    RewriteSpotifySearchQueryUseCase? rewriteSearchQuery,
   }) : _fetchSpotify = fetchSpotify,
        _delay = delay ?? Future<void>.delayed,
-       _matcher = matcher;
+       _pipeline = SpotifyYtmMatchPipeline(
+         _musicRepository,
+         matcher: matcher,
+         rewrite: rewriteSearchQuery,
+       );
 
   final MusicRepository _musicRepository;
   final LibraryRepository _libraryRepository;
@@ -25,103 +33,222 @@ class RefreshLinkedPlaylistUseCase {
   _fetchSpotify;
   final Duration searchSpacing;
   final Future<void> Function(Duration duration) _delay;
-  final YtMusicTrackMatcher _matcher;
+  final SpotifyYtmMatchPipeline _pipeline;
 
+  /// Full sync. Spotify ambiguous tracks are skipped (legacy). Prefer
+  /// [prepareSpotify] + review + [commitSpotify] from the UI.
   Future<PlaylistSyncResult> execute(
     int localPlaylistId, {
     void Function(int current, int total)? onProgress,
+    bool tryRewrite = false,
   }) async {
-    final playlist = await _libraryRepository.getPlaylist(localPlaylistId);
-    if (playlist == null) {
-      throw StateError('Playlist $localPlaylistId not found');
-    }
-    if (!playlist.isLinked) {
-      throw StateError('Playlist is not linked to a remote source');
-    }
-
+    final playlist = await _requireLinkedPlaylist(localPlaylistId);
     final sourceKind = playlist.sourceKind!;
-    final remoteId = playlist.remoteId!;
-
-    late List<PlaylistEntryModel> desired;
-    var skipped = 0;
-    late final String remoteName;
 
     if (sourceKind == 'youtube') {
-      final details = await _musicRepository.getPlaylist(remoteId);
-      remoteName = details.name;
-      final videos = await _musicRepository.getPlaylistVideos(remoteId);
-      final playable = playableVideos(videos);
-      skipped = videos.length - playable.length;
-      if (playable.isEmpty) {
-        throw Exception('The playlist is empty or could not be retrieved');
-      }
-      onProgress?.call(playable.length, playable.length);
-      desired =
-          playable.asMap().entries.map((e) {
-            final video = e.value;
-            return PlaylistEntryModel(
-              playlistId: localPlaylistId,
-              videoId: video.videoId,
-              position: e.key,
-              title: video.name,
-              artist: displayArtists(video.artists),
-              artistsJson: encodeArtistsJson(video.artists),
-              thumbnailUrl:
-                  video.thumbnails.isNotEmpty
-                      ? video.thumbnails.last.url
-                      : null,
-              duration: video.duration,
-              isVideo: false,
-              isExplicit: video.isExplicit,
-            );
-          }).toList();
-    } else if (sourceKind == 'spotify') {
-      final fetch = _fetchSpotify;
-      if (fetch == null) {
-        throw StateError('Spotify fetch is not configured');
-      }
-
-      final currentEarly = await _libraryRepository.getPlaylistEntries(
+      return _executeYoutube(playlist, onProgress: onProgress);
+    }
+    if (sourceKind == 'spotify') {
+      final plan = await prepareSpotify(
         localPlaylistId,
-      );
-
-      // Single fetch — CDN freshness is handled by the 12h Spotify sync gate.
-      var snapshot = await fetch(remoteId);
-
-      var built = await _buildFromSpotifySnapshot(
-        localPlaylistId: localPlaylistId,
-        snapshot: snapshot,
-        current: currentEarly,
         onProgress: onProgress,
+        tryRewrite: tryRewrite,
       );
+      final resolved = applySpotifyReviewChoices(plan, const {});
+      return commitSpotify(resolved);
+    }
+    throw StateError('Unknown source kind: $sourceKind');
+  }
 
-      if (built.entries.isEmpty) {
-        throw Exception(
-          'No tracks from this Spotify playlist could be matched on YouTube Music',
-        );
-      }
-
-      // Guard against a single stale short embed wiping local tracks.
-      final shrinkDiff = diffPlaylistEntries(currentEarly, built.entries);
-      if (shrinkDiff.removed > 0 && shrinkDiff.added == 0) {
-        await _delay(const Duration(seconds: 2));
-        final confirm = await fetch(remoteId);
-        if (_spotifyFingerprint(confirm) != _spotifyFingerprint(snapshot)) {
-          throw SpotifyEmbedUnstableException();
-        }
-      }
-
-      remoteName = snapshot.name;
-      desired = built.entries;
-      skipped = built.skipped;
-    } else {
-      throw StateError('Unknown source kind: $sourceKind');
+  Future<SpotifyRefreshPlan> prepareSpotify(
+    int localPlaylistId, {
+    void Function(int current, int total)? onProgress,
+    bool tryRewrite = false,
+  }) async {
+    final playlist = await _requireLinkedPlaylist(localPlaylistId);
+    if (playlist.sourceKind != 'spotify') {
+      throw StateError('Playlist is not linked to Spotify');
+    }
+    final fetch = _fetchSpotify;
+    if (fetch == null) {
+      throw StateError('Spotify fetch is not configured');
     }
 
+    final remoteId = playlist.remoteId!;
     final current = await _libraryRepository.getPlaylistEntries(
       localPlaylistId,
     );
+    final snapshot = await fetch(remoteId);
+    final tracks = snapshot.tracks;
+    if (tracks.isEmpty) {
+      throw Exception('The playlist is empty or could not be retrieved');
+    }
 
+    onProgress?.call(0, tracks.length);
+    final slots = <SpotifyImportSlot>[];
+
+    for (var i = 0; i < tracks.length; i++) {
+      if (i > 0 && searchSpacing > Duration.zero) {
+        await _delay(searchSpacing);
+      }
+
+      final cached = await _cachedCandidate(tracks[i]);
+      if (cached != null) {
+        slots.add(
+          SpotifyImportSlot(
+            index: i,
+            track: tracks[i],
+            kind: SpotifyMatchKind.auto,
+            candidate: cached,
+          ),
+        );
+      } else {
+        final outcome = await _pipeline.matchTrack(
+          tracks[i],
+          tryRewrite: tryRewrite,
+        );
+        slots.add(
+          SpotifyImportSlot(
+            index: i,
+            track: tracks[i],
+            kind: outcome.kind,
+            candidate: outcome.match,
+            reviewCandidates: outcome.reviewCandidates,
+          ),
+        );
+      }
+      onProgress?.call(i + 1, tracks.length);
+    }
+
+    return SpotifyRefreshPlan(
+      playlist: playlist,
+      snapshot: snapshot,
+      currentEntries: current,
+      slots: slots,
+    );
+  }
+
+  static SpotifyRefreshPlan applySpotifyReviewChoices(
+    SpotifyRefreshPlan plan,
+    Map<int, ImportedTrackCandidate?> choices,
+  ) {
+    final importPlan = ImportSpotifyPlaylistUseCase.applyReviewChoices(
+      SpotifyImportPlan(snapshot: plan.snapshot, slots: plan.slots),
+      choices,
+    );
+    return SpotifyRefreshPlan(
+      playlist: plan.playlist,
+      snapshot: plan.snapshot,
+      currentEntries: plan.currentEntries,
+      slots: importPlan.slots,
+    );
+  }
+
+  Future<PlaylistSyncResult> commitSpotify(SpotifyRefreshPlan plan) async {
+    final fetch = _fetchSpotify;
+    if (fetch == null) {
+      throw StateError('Spotify fetch is not configured');
+    }
+
+    final localPlaylistId = plan.localPlaylistId;
+    final built = _entriesFromSlots(
+      localPlaylistId: localPlaylistId,
+      slots: plan.slots,
+    );
+
+    if (built.entries.isEmpty) {
+      throw Exception(
+        'No tracks from this Spotify playlist could be matched on YouTube Music',
+      );
+    }
+
+    // Guard against a single stale short embed wiping local tracks.
+    final shrinkDiff = diffPlaylistEntries(plan.currentEntries, built.entries);
+    if (shrinkDiff.removed > 0 && shrinkDiff.added == 0) {
+      await _delay(const Duration(seconds: 2));
+      final confirm = await fetch(plan.playlist.remoteId!);
+      if (_spotifyFingerprint(confirm) != _spotifyFingerprint(plan.snapshot)) {
+        throw SpotifyEmbedUnstableException();
+      }
+    }
+
+    // Persist newly chosen matches (not already cached).
+    for (final slot in plan.slots) {
+      final candidate = slot.candidate;
+      final uri = slot.track.uri;
+      if (candidate == null || uri == null || uri.isEmpty) continue;
+      final existing = await _libraryRepository.getCachedSpotifyMatch(uri);
+      if (existing != null) continue;
+      await _libraryRepository.upsertSpotifyMatch(
+        spotifyTrackUri: uri,
+        videoId: candidate.videoId,
+        title: candidate.title,
+      );
+    }
+
+    final hydrated = await _hydrateMissingThumbnails(
+      built.entries,
+      plan.currentEntries,
+    );
+
+    return _finalizeReplace(
+      playlist: plan.playlist,
+      remoteName: plan.snapshot.name,
+      desired: hydrated,
+      skipped: built.skipped,
+    );
+  }
+
+  Future<PlaylistSyncResult> _executeYoutube(
+    LocalPlaylistModel playlist, {
+    void Function(int current, int total)? onProgress,
+  }) async {
+    final localPlaylistId = playlist.id;
+    final remoteId = playlist.remoteId!;
+    final details = await _musicRepository.getPlaylist(remoteId);
+    final videos = await _musicRepository.getPlaylistVideos(remoteId);
+    final playable = playableVideos(videos);
+    final skipped = videos.length - playable.length;
+    if (playable.isEmpty) {
+      throw Exception('The playlist is empty or could not be retrieved');
+    }
+    onProgress?.call(playable.length, playable.length);
+    final desired =
+        playable.asMap().entries.map((e) {
+          final video = e.value;
+          return PlaylistEntryModel(
+            playlistId: localPlaylistId,
+            videoId: video.videoId,
+            position: e.key,
+            title: video.name,
+            artist: displayArtists(video.artists),
+            artistsJson: encodeArtistsJson(video.artists),
+            thumbnailUrl:
+                video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
+            duration: video.duration,
+            isVideo: false,
+            isExplicit: video.isExplicit,
+          );
+        }).toList();
+
+    return _finalizeReplace(
+      playlist: playlist,
+      remoteName: details.name,
+      desired: desired,
+      skipped: skipped,
+    );
+  }
+
+  Future<PlaylistSyncResult> _finalizeReplace({
+    required LocalPlaylistModel playlist,
+    required String remoteName,
+    required List<PlaylistEntryModel> desired,
+    required int skipped,
+  }) async {
+    final localPlaylistId = playlist.id;
+    final current = await _libraryRepository.getPlaylistEntries(
+      localPlaylistId,
+    );
     final diff = diffPlaylistEntries(current, desired);
 
     await _libraryRepository.replacePlaylistEntries(localPlaylistId, desired);
@@ -138,7 +265,7 @@ class RefreshLinkedPlaylistUseCase {
       linkStatus: PlaylistLinkStatus.linked,
     );
 
-    final result = PlaylistSyncResult(
+    return PlaylistSyncResult(
       localPlaylistId: localPlaylistId,
       name: newLocalName,
       added: diff.added,
@@ -147,95 +274,75 @@ class RefreshLinkedPlaylistUseCase {
       skipped: skipped,
       nameUpdated: nameUpdated && playlist.name != remoteName,
     );
+  }
 
-    return result;
+  Future<LocalPlaylistModel> _requireLinkedPlaylist(int localPlaylistId) async {
+    final playlist = await _libraryRepository.getPlaylist(localPlaylistId);
+    if (playlist == null) {
+      throw StateError('Playlist $localPlaylistId not found');
+    }
+    if (!playlist.isLinked) {
+      throw StateError('Playlist is not linked to a remote source');
+    }
+    return playlist;
+  }
+
+  Future<ImportedTrackCandidate?> _cachedCandidate(
+    SpotifyPlaylistTrack track,
+  ) async {
+    final uri = track.uri;
+    if (uri == null || uri.isEmpty) return null;
+    final cached = await _libraryRepository.getCachedSpotifyMatch(uri);
+    if (cached == null) return null;
+    return ImportedTrackCandidate(
+      videoId: cached.videoId,
+      title: cached.title ?? track.title,
+      artist: track.primaryArtist,
+      durationSec: track.durationMs != null ? track.durationMs! ~/ 1000 : null,
+      isExplicit: track.isExplicit,
+    );
+  }
+
+  ({List<PlaylistEntryModel> entries, int skipped}) _entriesFromSlots({
+    required int localPlaylistId,
+    required List<SpotifyImportSlot> slots,
+  }) {
+    final matched = <PlaylistEntryModel>[];
+    final seenVideoIds = <String>{};
+    var skipped = 0;
+
+    for (final slot in slots) {
+      final candidate = slot.candidate;
+      if (candidate == null) {
+        skipped++;
+        continue;
+      }
+      if (!seenVideoIds.add(candidate.videoId)) {
+        skipped++;
+        continue;
+      }
+      matched.add(
+        PlaylistEntryModel(
+          playlistId: localPlaylistId,
+          videoId: candidate.videoId,
+          position: matched.length,
+          title: candidate.title,
+          artist: candidate.artist,
+          artistsJson: candidate.artistsJson,
+          thumbnailUrl: candidate.thumbnailUrl,
+          duration: candidate.durationSec,
+          isVideo: false,
+          isExplicit: candidate.isExplicit,
+        ),
+      );
+    }
+    return (entries: matched, skipped: skipped);
   }
 
   String _spotifyFingerprint(SpotifyPlaylistSnapshot snapshot) {
     return snapshot.tracks
         .map((t) => t.uri ?? '${t.title}\u0001${t.subtitle}')
         .join('\u0002');
-  }
-
-  Future<({List<PlaylistEntryModel> entries, int skipped})>
-  _buildFromSpotifySnapshot({
-    required int localPlaylistId,
-    required SpotifyPlaylistSnapshot snapshot,
-    required List<PlaylistEntryModel> current,
-    void Function(int current, int total)? onProgress,
-  }) async {
-    final tracks = snapshot.tracks;
-    if (tracks.isEmpty) {
-      throw Exception('The playlist is empty or could not be retrieved');
-    }
-
-    onProgress?.call(0, tracks.length);
-    final matched = <PlaylistEntryModel>[];
-    final seenVideoIds = <String>{};
-    var skipped = 0;
-
-    for (var i = 0; i < tracks.length; i++) {
-      if (i > 0 && searchSpacing > Duration.zero) {
-        await _delay(searchSpacing);
-      }
-      final resolve = await _resolveSpotifyTrackDetailed(tracks[i]);
-      final candidate = resolve.candidate;
-      if (candidate == null) {
-        skipped++;
-      } else if (!seenVideoIds.add(candidate.videoId)) {
-        skipped++;
-      } else {
-        matched.add(
-          PlaylistEntryModel(
-            playlistId: localPlaylistId,
-            videoId: candidate.videoId,
-            position: matched.length,
-            title: candidate.title,
-            artist: candidate.artist,
-            artistsJson: candidate.artistsJson,
-            thumbnailUrl: candidate.thumbnailUrl,
-            duration: candidate.durationSec,
-            isVideo: false,
-            isExplicit: candidate.isExplicit,
-          ),
-        );
-      }
-      onProgress?.call(i + 1, tracks.length);
-    }
-
-    final hydrated = await _hydrateMissingThumbnails(matched, current);
-    return (entries: hydrated, skipped: skipped);
-  }
-
-  Future<({ImportedTrackCandidate? candidate, bool fromCache})>
-  _resolveSpotifyTrackDetailed(SpotifyPlaylistTrack track) async {
-    final uri = track.uri;
-    if (uri != null && uri.isNotEmpty) {
-      final cached = await _libraryRepository.getCachedSpotifyMatch(uri);
-      if (cached != null) {
-        return (
-          candidate: ImportedTrackCandidate(
-            videoId: cached.videoId,
-            title: cached.title ?? track.title,
-            artist: track.primaryArtist,
-            durationSec:
-                track.durationMs != null ? track.durationMs! ~/ 1000 : null,
-            isExplicit: track.isExplicit,
-          ),
-          fromCache: true,
-        );
-      }
-    }
-
-    final matched = await _matchTrack(track);
-    if (matched != null && uri != null && uri.isNotEmpty) {
-      await _libraryRepository.upsertSpotifyMatch(
-        spotifyTrackUri: uri,
-        videoId: matched.videoId,
-        title: matched.title,
-      );
-    }
-    return (candidate: matched, fromCache: false);
   }
 
   /// Cache hits omit YTM artwork; restore from prior entries or fetch by videoId.
@@ -299,39 +406,6 @@ class RefreshLinkedPlaylistUseCase {
     }
 
     return out;
-  }
-
-  Future<ImportedTrackCandidate?> _matchTrack(
-    SpotifyPlaylistTrack track,
-  ) async {
-    for (final query in _matcher.searchQueries(track)) {
-      if (query.trim().isEmpty) continue;
-      try {
-        final results = await _musicRepository.searchSongs(query, limit: 8);
-        final candidates = results
-            .where((song) => song.videoId.isNotEmpty && song.isPlayable)
-            .map(
-              (song) => ImportedTrackCandidate(
-                videoId: song.videoId,
-                title: song.name,
-                artist: displayArtists(song.artists),
-                artistsJson: encodeArtistsJson(song.artists),
-                durationSec: song.duration,
-                thumbnailUrl:
-                    song.thumbnails.isNotEmpty
-                        ? song.thumbnails.last.url
-                        : null,
-                isExplicit: song.isExplicit,
-              ),
-            )
-            .toList(growable: false);
-        final match = _matcher.pickBest(track: track, candidates: candidates);
-        if (match != null) return match;
-      } catch (_) {
-        // Try the next query.
-      }
-    }
-    return null;
   }
 }
 

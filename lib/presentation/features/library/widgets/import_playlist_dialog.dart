@@ -5,13 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/playlist_url_parser.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../domain/models/playlist_import.dart';
+import '../../../../domain/usecases/playlist/import_spotify_playlist_use_case.dart';
+import '../../../../domain/usecases/playlist/refresh_linked_playlist_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/import_playlist_providers.dart';
+import '../../../providers/on_device_llm_provider.dart';
 import '../../../providers/refresh_linked_playlist_use_case_provider.dart';
 import '../../../providers/spotify_sync_cooldown_provider.dart';
 import '../providers/library_provider.dart';
+import 'import_match_review_sheet.dart';
 
 /// Horizontal inset used on tablet/wide so the card stays centered.
 const double kImportPlaylistDialogInset = 24;
@@ -72,6 +77,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
   bool _isLoading = false;
   int _progressCurrent = 0;
   int _progressTotal = 0;
+  bool _reviewing = false;
 
   @override
   void initState() {
@@ -87,6 +93,14 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
     super.dispose();
   }
 
+  Future<bool> _modelReady() async {
+    try {
+      return await ref.read(askModelReadyProvider.future);
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _submit(AppLocalizations? l10n) async {
     final input = _controller.text.trim();
     if (input.isEmpty) {
@@ -97,27 +111,36 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       return;
     }
 
+    final parsed = PlaylistUrlParser.parse(input);
+    if (parsed == null) {
+      setState(() {
+        _error =
+            l10n?.invalidPlaylistUrlOrId ??
+            'Invalid YouTube or Spotify playlist URL';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
       _progressCurrent = 0;
       _progressTotal = 0;
+      _reviewing = false;
     });
 
     try {
+      if (parsed.kind == PlaylistImportKind.spotify) {
+        final result = await _importSpotify(parsed.id, l10n);
+        if (result != null && mounted) {
+          Navigator.pop(context, result);
+        }
+        return;
+      }
+
       final result = await ref
           .read(importRemotePlaylistUseCaseProvider)
-          .execute(
-            input,
-            onProgress: (current, total) {
-              if (mounted) {
-                setState(() {
-                  _progressCurrent = current;
-                  _progressTotal = total;
-                });
-              }
-            },
-          );
+          .execute(input);
       if (mounted) {
         Navigator.pop(context, result);
       }
@@ -146,101 +169,221 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
             ),
       );
       if (sync == true && mounted) {
-        final playlists = await ref.read(playlistsProvider.future);
-        LocalPlaylistModel? existing;
-        for (final p in playlists) {
-          if (p.id == e.localPlaylistId) {
-            existing = p;
-            break;
-          }
-        }
-        if (existing != null && isSpotifySyncCoolingDown(existing)) {
-          setState(() {
-            _error =
-                l10n?.playlistSyncSpotifyCooldown ??
-                'Spotify sync is limited to once every 12 hours';
-          });
-          return;
-        }
-        setState(() {
-          _isLoading = true;
-          _progressCurrent = 0;
-          _progressTotal = 0;
-        });
-        try {
-          final syncResult = await ref
-              .read(refreshLinkedPlaylistUseCaseProvider)
-              .execute(
-                e.localPlaylistId,
-                onProgress: (current, total) {
-                  if (mounted) {
-                    setState(() {
-                      _progressCurrent = current;
-                      _progressTotal = total;
-                    });
-                  }
-                },
-              );
-          if (mounted) {
-            Navigator.pop(
-              context,
-              PlaylistImportResult(
-                localPlaylistId: syncResult.localPlaylistId,
-                name: syncResult.name,
-                source: e.source,
-                importedCount: syncResult.added,
-                skippedCount: syncResult.skipped,
-              ),
-            );
-          }
-        } catch (syncError) {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _error = syncError.toString().replaceAll('Exception: ', '');
-            });
-          }
-        }
+        await _syncAlreadyLinked(e, l10n);
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          final errStr = e.toString();
-          if (e is ArgumentError) {
-            _error =
-                l10n?.invalidPlaylistUrlOrId ??
-                'Invalid YouTube or Spotify playlist URL';
-          } else if (errStr.contains('matched on YouTube Music')) {
-            _error =
-                l10n?.playlistNoMatchesError ??
-                'No tracks from this Spotify playlist could be matched on YouTube Music';
-          } else if (errStr.contains('empty') ||
-              errStr.contains('could not be retrieved')) {
-            _error =
-                l10n?.playlistEmptyError ??
-                'The playlist is empty or could not be retrieved';
-          } else if (errStr.contains('SocketException') ||
-              errStr.contains('Network') ||
-              errStr.contains('HttpException') ||
-              errStr.contains('Connection') ||
-              errStr.contains('DioException')) {
-            _error =
-                l10n?.playlistSyncError ??
-                'An error occurred while syncing. Please check your internet connection.';
-          } else {
-            _error = errStr.replaceAll('Exception: ', '');
-          }
+          _reviewing = false;
+          _error = _formatImportError(e, l10n);
         });
       }
     }
+  }
+
+  Future<PlaylistImportResult?> _importSpotify(
+    String playlistId,
+    AppLocalizations? l10n,
+  ) async {
+    final useCase = ref.read(importSpotifyPlaylistUseCaseProvider);
+    final tryRewrite = await _modelReady();
+    final plan = await useCase.prepare(
+      playlistId,
+      tryRewrite: tryRewrite,
+      onProgress: (current, total) {
+        if (mounted) {
+          setState(() {
+            _progressCurrent = current;
+            _progressTotal = total;
+          });
+        }
+      },
+    );
+    debugPrint(
+      'Spotify import plan: auto=${plan.slots.where((s) => s.kind == SpotifyMatchKind.auto).length} '
+      'review=${plan.ambiguous.length} none=${plan.noneCount} '
+      'tryRewrite=$tryRewrite',
+    );
+
+    var resolved = plan;
+    if (plan.ambiguous.isNotEmpty) {
+      if (!mounted) return null;
+      setState(() {
+        _isLoading = false;
+        _reviewing = true;
+      });
+      final choices = await ImportMatchReviewSheet.show(
+        context,
+        plan.ambiguous,
+      );
+      if (!mounted) return null;
+      if (choices == null) {
+        setState(() {
+          _reviewing = false;
+          _isLoading = false;
+        });
+        return null;
+      }
+      resolved = ImportSpotifyPlaylistUseCase.applyReviewChoices(plan, choices);
+      setState(() {
+        _reviewing = false;
+        _isLoading = true;
+      });
+    }
+
+    try {
+      return await useCase.commit(resolved);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = _formatImportError(e, l10n);
+        });
+      }
+      return null;
+    }
+  }
+
+  Future<void> _syncAlreadyLinked(
+    PlaylistAlreadyLinkedException e,
+    AppLocalizations? l10n,
+  ) async {
+    final playlists = await ref.read(playlistsProvider.future);
+    LocalPlaylistModel? existing;
+    for (final p in playlists) {
+      if (p.id == e.localPlaylistId) {
+        existing = p;
+        break;
+      }
+    }
+    if (existing != null && isSpotifySyncCoolingDown(existing)) {
+      setState(() {
+        _error =
+            l10n?.playlistSyncSpotifyCooldown ??
+            'Spotify sync is limited to once every 12 hours';
+      });
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _progressCurrent = 0;
+      _progressTotal = 0;
+      _reviewing = false;
+    });
+    try {
+      final refresh = ref.read(refreshLinkedPlaylistUseCaseProvider);
+      final tryRewrite = await _modelReady();
+      PlaylistSyncResult syncResult;
+      if (e.source == PlaylistImportKind.spotify) {
+        final plan = await refresh.prepareSpotify(
+          e.localPlaylistId,
+          tryRewrite: tryRewrite,
+          onProgress: (current, total) {
+            if (mounted) {
+              setState(() {
+                _progressCurrent = current;
+                _progressTotal = total;
+              });
+            }
+          },
+        );
+        var resolved = plan;
+        if (plan.ambiguous.isNotEmpty) {
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+            _reviewing = true;
+          });
+          final choices = await ImportMatchReviewSheet.show(
+            context,
+            plan.ambiguous,
+          );
+          if (!mounted) return;
+          if (choices == null) {
+            setState(() {
+              _reviewing = false;
+              _isLoading = false;
+            });
+            return;
+          }
+          resolved = RefreshLinkedPlaylistUseCase.applySpotifyReviewChoices(
+            plan,
+            choices,
+          );
+          setState(() {
+            _reviewing = false;
+            _isLoading = true;
+          });
+        }
+        syncResult = await refresh.commitSpotify(resolved);
+      } else {
+        syncResult = await refresh.execute(
+          e.localPlaylistId,
+          onProgress: (current, total) {
+            if (mounted) {
+              setState(() {
+                _progressCurrent = current;
+                _progressTotal = total;
+              });
+            }
+          },
+        );
+      }
+      if (mounted) {
+        Navigator.pop(
+          context,
+          PlaylistImportResult(
+            localPlaylistId: syncResult.localPlaylistId,
+            name: syncResult.name,
+            source: e.source,
+            importedCount: syncResult.added,
+            skippedCount: syncResult.skipped,
+          ),
+        );
+      }
+    } catch (syncError) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _reviewing = false;
+          _error = syncError.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  String _formatImportError(Object e, AppLocalizations? l10n) {
+    final errStr = e.toString();
+    if (e is ArgumentError) {
+      return l10n?.invalidPlaylistUrlOrId ??
+          'Invalid YouTube or Spotify playlist URL';
+    }
+    if (errStr.contains('matched on YouTube Music')) {
+      return l10n?.playlistNoMatchesError ??
+          'No tracks from this Spotify playlist could be matched on YouTube Music';
+    }
+    if (errStr.contains('empty') || errStr.contains('could not be retrieved')) {
+      return l10n?.playlistEmptyError ??
+          'The playlist is empty or could not be retrieved';
+    }
+    if (errStr.contains('SocketException') ||
+        errStr.contains('Network') ||
+        errStr.contains('HttpException') ||
+        errStr.contains('Connection') ||
+        errStr.contains('DioException')) {
+      return l10n?.playlistSyncError ??
+          'An error occurred while syncing. Please check your internet connection.';
+    }
+    debugPrint('Import playlist failed: $e');
+    return errStr.replaceAll('Exception: ', '');
   }
 
   @override
   Widget build(BuildContext context) {
     final overlay =
         widget.isSheet ? _buildSheet(context) : _buildDialog(context);
-    return PopScope(canPop: !_isLoading, child: overlay);
+    return PopScope(canPop: !_isLoading && !_reviewing, child: overlay);
   }
 
   Widget _buildDialog(BuildContext context) {
@@ -264,7 +407,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       ),
       content: _buildBody(context, l10n),
       actions:
-          _isLoading
+          _isLoading || _reviewing
               ? null
               : [
                 TextButton(
@@ -310,7 +453,7 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
                 ),
                 SizedBox(height: keyboardOpen ? 8 : 16),
                 _buildBody(context, l10n, compact: keyboardOpen),
-                if (!_isLoading) ...[
+                if (!_isLoading && !_reviewing) ...[
                   SizedBox(height: keyboardOpen ? 8 : 16),
                   Row(
                     children: [
@@ -345,19 +488,21 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final progressLabel =
-        _progressTotal > 0
+        _reviewing
+            ? (l10n?.importMatchReviewing ?? 'Reviewing matches…')
+            : _progressTotal > 0
             ? (l10n?.importingProgress(_progressCurrent, _progressTotal) ??
                 'Importing $_progressCurrent/$_progressTotal…')
             : (l10n?.importing ?? 'Importing...');
 
-    if (_isLoading) {
+    if (_isLoading || _reviewing) {
       return SizedBox(
         height: compact ? 72 : 120,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
+            if (_isLoading) const CircularProgressIndicator(),
+            if (_isLoading) const SizedBox(height: 16),
             Text(
               progressLabel,
               textAlign: TextAlign.center,

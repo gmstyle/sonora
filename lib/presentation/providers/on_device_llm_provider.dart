@@ -4,6 +4,7 @@ import '../../data/datasources/ai/on_device_llm_datasource.dart';
 import '../../data/repositories/on_device_llm_repository_impl.dart';
 import '../../domain/repositories/on_device_llm_repository.dart';
 import '../../domain/usecases/ai/interpret_search_query_use_case.dart';
+import '../../domain/usecases/ai/rewrite_spotify_search_query_use_case.dart';
 
 final onDeviceLlmDatasourceProvider = Provider<OnDeviceLlmDatasource>((ref) {
   return OnDeviceLlmDatasource();
@@ -16,6 +17,13 @@ final onDeviceLlmRepositoryProvider = Provider<OnDeviceLlmRepository>((ref) {
 final interpretSearchQueryUseCaseProvider =
     Provider<InterpretSearchQueryUseCase>((ref) {
       return InterpretSearchQueryUseCase(
+        ref.watch(onDeviceLlmRepositoryProvider),
+      );
+    });
+
+final rewriteSpotifySearchQueryUseCaseProvider =
+    Provider<RewriteSpotifySearchQueryUseCase>((ref) {
+      return RewriteSpotifySearchQueryUseCase(
         ref.watch(onDeviceLlmRepositoryProvider),
       );
     });

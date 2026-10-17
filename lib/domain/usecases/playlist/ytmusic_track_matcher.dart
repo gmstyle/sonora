@@ -4,26 +4,70 @@ import '../../models/playlist_import.dart';
 class YtMusicTrackMatcher {
   const YtMusicTrackMatcher();
 
+  /// Auto-accept threshold (unchanged behavior for [pickBest]).
   static const minScore = 0.55;
+
+  /// Max candidates shown when [classify] returns [SpotifyMatchKind.needsReview].
+  static const reviewCandidateLimit = 3;
 
   ImportedTrackCandidate? pickBest({
     required SpotifyPlaylistTrack track,
     required List<ImportedTrackCandidate> candidates,
   }) {
-    ImportedTrackCandidate? best;
-    var bestScore = 0.0;
+    final ranked = rankCandidates(track: track, candidates: candidates);
+    if (ranked.isEmpty || ranked.first.score < minScore) return null;
+    return ranked.first.candidate;
+  }
 
+  /// Scores and sorts candidates descending by score (empty videoIds dropped).
+  List<ScoredImportCandidate> rankCandidates({
+    required SpotifyPlaylistTrack track,
+    required List<ImportedTrackCandidate> candidates,
+  }) {
+    final scored = <ScoredImportCandidate>[];
     for (final candidate in candidates) {
       if (candidate.videoId.isEmpty) continue;
-      final score = scoreCandidate(track, candidate);
-      if (score > bestScore) {
-        bestScore = score;
-        best = candidate;
-      }
+      scored.add(
+        ScoredImportCandidate(
+          candidate: candidate,
+          score: scoreCandidate(track, candidate),
+        ),
+      );
+    }
+    scored.sort((a, b) => b.score.compareTo(a.score));
+    return scored;
+  }
+
+  /// Classifies a track: auto (≥ [minScore]), needs review (search hits but
+  /// not confident enough to auto-pick), or none (empty search).
+  SpotifyTrackMatchOutcome classify({
+    required SpotifyPlaylistTrack track,
+    required List<ImportedTrackCandidate> candidates,
+  }) {
+    final ranked = rankCandidates(track: track, candidates: candidates);
+    if (ranked.isEmpty) {
+      return SpotifyTrackMatchOutcome.none(track: track);
     }
 
-    if (best == null || bestScore < minScore) return null;
-    return best;
+    if (ranked.first.score >= minScore) {
+      return SpotifyTrackMatchOutcome.auto(
+        track: track,
+        match: ranked.first.candidate,
+      );
+    }
+
+    // Any non-auto search hit is reviewable — silent skip only when search
+    // returned nothing. Mid-band filtering hid almost all real ambiguity.
+    final reviewable =
+        ranked
+            .take(reviewCandidateLimit)
+            .map((s) => s.candidate)
+            .toList(growable: false);
+
+    return SpotifyTrackMatchOutcome.needsReview(
+      track: track,
+      candidates: reviewable,
+    );
   }
 
   /// Search strings to try, in order (title+artist, then a cleaned title).

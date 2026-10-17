@@ -2816,6 +2816,42 @@ abstract class AppLocalizations {
   /// **'Importing {current}/{total}…'**
   String importingProgress(int current, int total);
 
+  /// No description provided for @importMatchReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the right track'**
+  String get importMatchReviewTitle;
+
+  /// No description provided for @importMatchReviewProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Track {current}/{total}'**
+  String importMatchReviewProgress(int current, int total);
+
+  /// No description provided for @importMatchReviewSpotifyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From Spotify'**
+  String get importMatchReviewSpotifyLabel;
+
+  /// No description provided for @importMatchSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importMatchSkip;
+
+  /// No description provided for @importMatchSkipAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip all remaining'**
+  String get importMatchSkipAll;
+
+  /// No description provided for @importMatchReviewing.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewing matches…'**
+  String get importMatchReviewing;
+
   /// No description provided for @invalidPlaylistUrlOrId.
   ///
   /// In en, this message translates to:

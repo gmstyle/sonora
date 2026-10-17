@@ -130,4 +130,79 @@ void main() {
       ]),
     );
   });
+
+  test('classify returns needsReview for mid-band scores', () {
+    // title Jaccard 0.5 + artist Jaccard 0.4 + missing duration 0.5
+    // → 0.5*0.6 + 0.4*0.3 + 0.5*0.1 = 0.47 (review band).
+    final track = spotify(title: 'One Two Three', subtitle: 'A B C D');
+    final outcome = matcher.classify(
+      track: track,
+      candidates: [
+        hit(id: 'mid', title: 'One Two Four', artist: 'A B E'),
+        hit(id: 'weak', title: 'Unrelated', artist: 'Nobody'),
+      ],
+    );
+    expect(outcome.kind, SpotifyMatchKind.needsReview);
+    expect(outcome.reviewCandidates.map((c) => c.videoId).toList(), [
+      'mid',
+      'weak',
+    ]);
+  });
+
+  test(
+    'classify returns needsReview when auto fails but search returned hits',
+    () {
+      final track = spotify(
+        title: 'Angel',
+        subtitle: 'Shaggy, Rayvon',
+        durationMs: 235000,
+      );
+      final outcome = matcher.classify(
+        track: track,
+        candidates: [
+          hit(
+            id: 'sarah',
+            title: 'Angel',
+            artist: 'Sarah McLachlan',
+            durationSec: 261,
+          ),
+        ],
+      );
+      expect(outcome.kind, SpotifyMatchKind.needsReview);
+      expect(outcome.reviewCandidates.single.videoId, 'sarah');
+    },
+  );
+
+  test('classify returns none when search returned no candidates', () {
+    final track = spotify(title: 'Angel', subtitle: 'Shaggy, Rayvon');
+    final outcome = matcher.classify(track: track, candidates: const []);
+    expect(outcome.kind, SpotifyMatchKind.none);
+  });
+
+  test('rankCandidates sorts by score descending', () {
+    final track = spotify(
+      title: "It's My Life",
+      subtitle: 'Bon Jovi',
+      durationMs: 224000,
+    );
+    final ranked = matcher.rankCandidates(
+      track: track,
+      candidates: [
+        hit(
+          id: 'talk',
+          title: "It's My Life",
+          artist: 'Talk Talk',
+          durationSec: 232,
+        ),
+        hit(
+          id: 'bonjovi',
+          title: "It's My Life",
+          artist: 'Bon Jovi',
+          durationSec: 224,
+        ),
+      ],
+    );
+    expect(ranked.first.candidate.videoId, 'bonjovi');
+    expect(ranked.first.score, greaterThan(ranked.last.score));
+  });
 }

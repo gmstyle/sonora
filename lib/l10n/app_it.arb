@@ -628,6 +628,18 @@
       "total": {"type": "int"}
     }
   },
+  "importMatchReviewTitle": "Scegli il brano giusto",
+  "importMatchReviewProgress": "Brano {current}/{total}",
+  "@importMatchReviewProgress": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "importMatchReviewSpotifyLabel": "Da Spotify",
+  "importMatchSkip": "Salta",
+  "importMatchSkipAll": "Salta tutti i rimanenti",
+  "importMatchReviewing": "Revisione match…",
   "import": "Importa",
   "invalidPlaylistUrlOrId": "URL playlist YouTube o Spotify non valido",
   "playlistEmptyError": "La playlist è vuota o non è stato possibile recuperarla",
