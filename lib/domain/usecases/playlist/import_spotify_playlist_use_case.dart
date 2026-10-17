@@ -34,11 +34,13 @@ class ImportSpotifyPlaylistUseCase {
     String playlistId, {
     void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
+    bool Function()? shouldAbort,
   }) async {
     final plan = await prepare(
       playlistId,
       onProgress: onProgress,
       tryRewrite: tryRewrite,
+      shouldAbort: shouldAbort,
     );
     final resolved = applyReviewChoices(plan, const {});
     return commit(resolved);
@@ -49,6 +51,7 @@ class ImportSpotifyPlaylistUseCase {
     String playlistId, {
     void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
+    bool Function()? shouldAbort,
   }) async {
     final existing = await _libraryRepository.findLinkedPlaylist(
       'spotify',
@@ -73,6 +76,9 @@ class ImportSpotifyPlaylistUseCase {
     final slots = <SpotifyImportSlot>[];
 
     for (var i = 0; i < tracks.length; i++) {
+      if (shouldAbort?.call() == true) {
+        throw PlaylistImportCancelledException();
+      }
       if (i > 0 && searchSpacing > Duration.zero) {
         await _delay(searchSpacing);
       }

@@ -5,17 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../domain/models/library_models.dart';
 import '../../../../domain/models/playlist_import.dart';
-import '../../../../domain/usecases/playlist/refresh_linked_playlist_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../providers/on_device_llm_provider.dart';
-import '../../../providers/refresh_linked_playlist_use_case_provider.dart';
+import '../../../providers/playlist_import_job_provider.dart';
 import 'import_match_review_sheet.dart';
 import 'import_playlist_dialog.dart';
 import 'import_progress_body.dart';
 
-/// Blocking sync progress UI — identical for Spotify and YouTube.
-///
-/// Mirrors [ImportPlaylistDialog]'s loading body (progress + optional AI assist).
+/// Blocking sync progress UI — can minimize to the shared dock banner.
 class SyncLinkedPlaylistDialog extends ConsumerStatefulWidget {
   const SyncLinkedPlaylistDialog({
     super.key,
@@ -26,10 +22,6 @@ class SyncLinkedPlaylistDialog extends ConsumerStatefulWidget {
   final LocalPlaylistModel playlist;
   final bool isSheet;
 
-  /// Shows a blocking overlay and runs [RefreshLinkedPlaylistUseCase].
-  ///
-  /// Returns the [PlaylistSyncResult] on success. Returns `null` if the user
-  /// dismisses after an error (barrier is locked while loading).
   static Future<PlaylistSyncResult?> show(
     BuildContext context,
     LocalPlaylistModel playlist,
@@ -60,140 +52,126 @@ class SyncLinkedPlaylistDialog extends ConsumerStatefulWidget {
 
 class _SyncLinkedPlaylistDialogState
     extends ConsumerState<SyncLinkedPlaylistDialog> {
-  int _progressCurrent = 0;
-  int _progressTotal = 0;
-  String? _trackLabel;
+  var _handlingReview = false;
   String? _errorText;
-  bool _reviewing = false;
-  bool _aiModelReady = false;
-  ImportProgressPhase _phase = ImportProgressPhase.generic;
 
   bool get _isSpotify => widget.playlist.sourceKind == 'spotify';
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _run());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
   }
 
-  Future<bool> _modelReady() async {
+  Future<void> _start() async {
+    final notifier = ref.read(playlistImportJobProvider.notifier);
+    final job = ref.read(playlistImportJobProvider);
+    if (job.isActive || job.phase == PlaylistImportJobPhase.awaitingReview) {
+      setState(() {
+        _errorText =
+            AppLocalizations.of(context)?.importJobAlreadyRunning ??
+            'An import is already in progress';
+      });
+      return;
+    }
+    if (_isSpotify) {
+      await notifier.startSpotifySync(widget.playlist.id);
+    } else {
+      await notifier.startYoutubeSync(widget.playlist.id);
+    }
+  }
+
+  Future<void> _runReview(PlaylistImportJobState job) async {
+    if (_handlingReview) return;
+    _handlingReview = true;
     try {
-      return await ref.read(askModelReadyProvider.future);
-    } catch (_) {
-      return false;
+      final ambiguous =
+          job.importPlan?.ambiguous ?? job.refreshPlan?.ambiguous ?? const [];
+      final choices = await ImportMatchReviewSheet.show(context, ambiguous);
+      final notifier = ref.read(playlistImportJobProvider.notifier);
+      if (choices == null) {
+        await notifier.cancel();
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+      await notifier.submitReview(choices);
+    } finally {
+      _handlingReview = false;
     }
   }
 
-  void _applyProgress(PlaylistImportProgress progress) {
-    if (!mounted) return;
-    setState(() {
-      _progressCurrent = progress.current;
-      _progressTotal = progress.total;
-      if (progress.trackLabel != null) {
-        _trackLabel = progress.trackLabel;
-      }
-    });
+  void _minimize() {
+    ref.read(playlistImportJobProvider.notifier).minimize();
+    if (mounted) Navigator.pop(context);
   }
 
-  Future<void> _run() async {
-    final l10n = AppLocalizations.of(context);
-    try {
-      final refresh = ref.read(refreshLinkedPlaylistUseCaseProvider);
-      final PlaylistSyncResult result;
-
-      if (_isSpotify) {
-        setState(() => _phase = ImportProgressPhase.matching);
-        _aiModelReady = await _modelReady();
-        if (mounted) setState(() {});
-        final tryRewrite = _aiModelReady;
-        final plan = await refresh.prepareSpotify(
-          widget.playlist.id,
-          tryRewrite: tryRewrite,
-          onProgress: _applyProgress,
-        );
-        debugPrint(
-          'Spotify sync plan: auto=${plan.slots.where((s) => s.kind == SpotifyMatchKind.auto).length} '
-          'review=${plan.ambiguous.length} none=${plan.noneCount} '
-          'tryRewrite=$tryRewrite',
-        );
-
-        var resolved = plan;
-        if (plan.ambiguous.isNotEmpty) {
-          if (!mounted) return;
-          setState(() {
-            _reviewing = true;
-            _phase = ImportProgressPhase.reviewing;
-            _trackLabel = null;
-          });
-          final choices = await ImportMatchReviewSheet.show(
-            context,
-            plan.ambiguous,
-          );
-          if (!mounted) return;
-          if (choices == null) {
-            Navigator.pop(context);
-            return;
-          }
-          resolved = RefreshLinkedPlaylistUseCase.applySpotifyReviewChoices(
-            plan,
-            choices,
-          );
-          setState(() {
-            _reviewing = false;
-            _phase = ImportProgressPhase.saving;
-            _trackLabel = null;
-          });
-        } else if (mounted) {
-          setState(() => _phase = ImportProgressPhase.saving);
-        }
-        result = await refresh.commitSpotify(resolved);
-      } else {
-        result = await refresh.execute(
-          widget.playlist.id,
-          onProgress: _applyProgress,
-        );
-      }
-
-      if (mounted) {
-        Navigator.pop(context, result);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _reviewing = false;
-          _errorText = _formatError(e, l10n);
-        });
-      }
-    }
-  }
-
-  String _formatError(Object e, AppLocalizations? l10n) {
-    if (e is SpotifyEmbedUnstableException) {
-      return l10n?.playlistSyncSpotifyUnstable ?? e.toString();
-    }
-    final err = e.toString();
-    if (err.contains('SocketException') ||
-        err.contains('Network') ||
-        err.contains('HttpException') ||
-        err.contains('Connection') ||
-        err.contains('DioException')) {
-      return l10n?.playlistSyncError ??
-          'An error occurred while syncing. Please check your internet connection.';
-    }
-    return err.replaceAll('Exception: ', '');
+  ImportProgressPhase _mapPhase(PlaylistImportJobPhase phase) {
+    return switch (phase) {
+      PlaylistImportJobPhase.matching => ImportProgressPhase.matching,
+      PlaylistImportJobPhase.awaitingReview => ImportProgressPhase.reviewing,
+      PlaylistImportJobPhase.saving => ImportProgressPhase.saving,
+      _ => ImportProgressPhase.generic,
+    };
   }
 
   @override
   Widget build(BuildContext context) {
+    final job = ref.watch(playlistImportJobProvider);
     final l10n = AppLocalizations.of(context);
+
+    ref.listen<PlaylistImportJobState>(playlistImportJobProvider, (prev, next) {
+      if (next.uiOwner != PlaylistImportUiOwner.dialog) return;
+
+      if (next.phase == PlaylistImportJobPhase.awaitingReview &&
+          next.needsUiAttention &&
+          prev?.phase != PlaylistImportJobPhase.awaitingReview) {
+        ref.read(playlistImportJobProvider.notifier).acknowledgeUiAttention();
+        _runReview(next);
+      }
+
+      if (next.phase == PlaylistImportJobPhase.completed &&
+          next.syncResult != null) {
+        final result = next.syncResult!;
+        ref.read(playlistImportJobProvider.notifier).clearTerminal();
+        if (mounted) Navigator.pop(context, result);
+      }
+
+      if (next.phase == PlaylistImportJobPhase.failed) {
+        final msg = next.errorMessage;
+        ref.read(playlistImportJobProvider.notifier).clearTerminal();
+        if (mounted) setState(() => _errorText = msg);
+      }
+
+      if (next.phase == PlaylistImportJobPhase.cancelled) {
+        ref.read(playlistImportJobProvider.notifier).clearTerminal();
+        if (mounted) Navigator.pop(context);
+      }
+    });
+
+    final busy =
+        _errorText == null &&
+        job.uiOwner == PlaylistImportUiOwner.dialog &&
+        (job.isActive || job.phase == PlaylistImportJobPhase.awaitingReview);
+
     final overlay =
         widget.isSheet
-            ? _buildSheet(context, l10n)
-            : _buildDialog(context, l10n);
-    return PopScope(canPop: _errorText != null, child: overlay);
+            ? _buildSheet(context, l10n, busy, job)
+            : _buildDialog(context, l10n, busy, job);
+    return PopScope(
+      canPop: _errorText != null || !busy,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && busy) _minimize();
+      },
+      child: overlay,
+    );
   }
 
-  Widget _buildDialog(BuildContext context, AppLocalizations? l10n) {
+  Widget _buildDialog(
+    BuildContext context,
+    AppLocalizations? l10n,
+    bool busy,
+    PlaylistImportJobState job,
+  ) {
     final dialogWidth = importPlaylistDialogWidth(
       MediaQuery.sizeOf(context).width,
     );
@@ -204,27 +182,39 @@ class _SyncLinkedPlaylistDialogState
         vertical: 24,
       ),
       title: Text(
-        _reviewing
-            ? (l10n?.importMatchReviewTitle ?? 'Choose the right track')
-            : (l10n?.syncingPlaylist ?? 'Syncing…'),
+        l10n?.syncingPlaylist ?? 'Syncing…',
         style: Theme.of(
           context,
         ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
       ),
-      content: _buildBody(context, l10n),
-      actions:
-          _errorText != null
-              ? [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n?.cancel ?? 'Close'),
-                ),
-              ]
-              : null,
+      content: _buildBody(context, l10n, busy, job),
+      actions: [
+        if (_errorText != null)
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n?.cancel ?? 'Close'),
+          )
+        else if (busy) ...[
+          TextButton(
+            onPressed:
+                () => ref.read(playlistImportJobProvider.notifier).cancel(),
+            child: Text(l10n?.cancel ?? 'Cancel'),
+          ),
+          TextButton(
+            onPressed: _minimize,
+            child: Text(l10n?.importJobMinimize ?? 'Run in background'),
+          ),
+        ],
+      ],
     );
   }
 
-  Widget _buildSheet(BuildContext context, AppLocalizations? l10n) {
+  Widget _buildSheet(
+    BuildContext context,
+    AppLocalizations? l10n,
+    bool busy,
+    PlaylistImportJobState job,
+  ) {
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
@@ -237,31 +227,55 @@ class _SyncLinkedPlaylistDialogState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            _reviewing
-                ? (l10n?.importMatchReviewTitle ?? 'Choose the right track')
-                : (l10n?.syncingPlaylist ?? 'Syncing…'),
+            l10n?.syncingPlaylist ?? 'Syncing…',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          _buildBody(context, l10n),
-          if (_errorText != null) ...[
-            const SizedBox(height: 16),
+          _buildBody(context, l10n, busy, job),
+          const SizedBox(height: 16),
+          if (_errorText != null)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(l10n?.cancel ?? 'Close'),
               ),
+            )
+          else if (busy)
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed:
+                        () =>
+                            ref
+                                .read(playlistImportJobProvider.notifier)
+                                .cancel(),
+                    child: Text(l10n?.cancel ?? 'Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: _minimize,
+                    child: Text(l10n?.importJobMinimize ?? 'Run in background'),
+                  ),
+                ),
+              ],
             ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, AppLocalizations? l10n) {
+  Widget _buildBody(
+    BuildContext context,
+    AppLocalizations? l10n,
+    bool busy,
+    PlaylistImportJobState job,
+  ) {
     if (_errorText != null) {
       return Text(
         _errorText!,
@@ -269,12 +283,16 @@ class _SyncLinkedPlaylistDialogState
       );
     }
     return ImportProgressBody(
-      phase: _reviewing ? ImportProgressPhase.reviewing : _phase,
-      current: _progressCurrent,
-      total: _progressTotal,
-      trackLabel: _reviewing ? null : _trackLabel,
-      showAiAssist: _isSpotify && !_reviewing,
-      aiModelReady: _aiModelReady,
+      phase: _mapPhase(job.phase),
+      current: job.current,
+      total: job.total,
+      trackLabel:
+          job.phase == PlaylistImportJobPhase.awaitingReview
+              ? null
+              : job.trackLabel,
+      showAiAssist:
+          _isSpotify && job.phase != PlaylistImportJobPhase.awaitingReview,
+      aiModelReady: job.aiModelReady,
     );
   }
 }

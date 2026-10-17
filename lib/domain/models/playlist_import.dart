@@ -276,6 +276,12 @@ class SpotifyEmbedUnstableException implements Exception {
       'Spotify playlist data is still updating. Try sync again in a few seconds.';
 }
 
+/// User cancelled a background playlist import / sync job.
+class PlaylistImportCancelledException implements Exception {
+  @override
+  String toString() => 'Playlist import was cancelled';
+}
+
 /// Outcome of a manual pull-sync for a linked playlist.
 class PlaylistSyncResult {
   final int localPlaylistId;

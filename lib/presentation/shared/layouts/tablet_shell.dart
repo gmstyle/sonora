@@ -5,11 +5,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/nav_now_playing.dart';
 import '../../features/player/player_sheet.dart';
-import '../../providers/download_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../providers/playlist_import_job_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
-import '../widgets/download_progress_banner.dart';
+import '../widgets/dock_status_banners.dart';
+import '../widgets/playlist_import_job_host.dart';
 import '../widgets/player_error_listener.dart';
 import '../widgets/sonora_logo.dart';
 
@@ -96,7 +97,7 @@ class TabletShell extends ConsumerWidget {
                     bottom:
                         isPlayerActive
                             ? 72.0
-                            : (ref.watch(downloadBannerSummaryProvider) != null
+                            : (ref.watch(dockBannersVisibleProvider)
                                 ? 72.0
                                 : 0.0),
                   ),
@@ -107,10 +108,11 @@ class TabletShell extends ConsumerWidget {
                   left: 0,
                   right: 0,
                   bottom: isPlayerActive ? 72 : 0,
-                  child: const DownloadProgressBanner(),
+                  child: const DockStatusBanners(),
                 ),
                 const PlayerErrorListener(),
                 const ActionFeedbackListener(),
+                const PlaylistImportJobHost(),
               ],
             ),
           ),

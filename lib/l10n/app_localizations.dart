@@ -2894,6 +2894,30 @@ abstract class AppLocalizations {
   /// **'Open Settings'**
   String get importAiAssistOpenSettings;
 
+  /// No description provided for @importJobMinimize.
+  ///
+  /// In en, this message translates to:
+  /// **'Run in background'**
+  String get importJobMinimize;
+
+  /// No description provided for @importJobTapToExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to expand'**
+  String get importJobTapToExpand;
+
+  /// No description provided for @importJobTapToReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to choose matches'**
+  String get importJobTapToReview;
+
+  /// No description provided for @importJobAlreadyRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'An import is already in progress'**
+  String get importJobAlreadyRunning;
+
   /// No description provided for @invalidPlaylistUrlOrId.
   ///
   /// In en, this message translates to:

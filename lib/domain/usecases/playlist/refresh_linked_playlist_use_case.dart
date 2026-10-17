@@ -41,6 +41,7 @@ class RefreshLinkedPlaylistUseCase {
     int localPlaylistId, {
     void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
+    bool Function()? shouldAbort,
   }) async {
     final playlist = await _requireLinkedPlaylist(localPlaylistId);
     final sourceKind = playlist.sourceKind!;
@@ -53,6 +54,7 @@ class RefreshLinkedPlaylistUseCase {
         localPlaylistId,
         onProgress: onProgress,
         tryRewrite: tryRewrite,
+        shouldAbort: shouldAbort,
       );
       final resolved = applySpotifyReviewChoices(plan, const {});
       return commitSpotify(resolved);
@@ -64,6 +66,7 @@ class RefreshLinkedPlaylistUseCase {
     int localPlaylistId, {
     void Function(PlaylistImportProgress progress)? onProgress,
     bool tryRewrite = false,
+    bool Function()? shouldAbort,
   }) async {
     final playlist = await _requireLinkedPlaylist(localPlaylistId);
     if (playlist.sourceKind != 'spotify') {
@@ -88,6 +91,9 @@ class RefreshLinkedPlaylistUseCase {
     final slots = <SpotifyImportSlot>[];
 
     for (var i = 0; i < tracks.length; i++) {
+      if (shouldAbort?.call() == true) {
+        throw PlaylistImportCancelledException();
+      }
       if (i > 0 && searchSpacing > Duration.zero) {
         await _delay(searchSpacing);
       }

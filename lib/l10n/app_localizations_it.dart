@@ -1710,6 +1710,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get importAiAssistOpenSettings => 'Apri Impostazioni';
 
   @override
+  String get importJobMinimize => 'Esegui in background';
+
+  @override
+  String get importJobTapToExpand => 'Tocca per espandere';
+
+  @override
+  String get importJobTapToReview => 'Tocca per scegliere i match';
+
+  @override
+  String get importJobAlreadyRunning => 'Un\'importazione è già in corso';
+
+  @override
   String get invalidPlaylistUrlOrId =>
       'URL playlist YouTube o Spotify non valido';
 

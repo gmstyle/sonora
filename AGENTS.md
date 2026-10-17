@@ -139,6 +139,7 @@ Equalizer, local sync, cast, and the sleep timer already do this. Playlist impor
 | Failed load | `ErrorRetryWidget` + `ref.invalidate` |
 | Confirm or soft failure ("Added to queue") | `ref.read(actionFeedbackProvider.notifier).report(l10n....)` |
 | Offline | `OfflineBanner` (already in `AppShell`) |
+| Persistent progress above the dock (downloads, playlist import, …) | `DockProgressBanner` via `DockStatusBanners` in the three shells. Do not invent a second chip chrome |
 
 `report` copy comes from `AppLocalizations`. Exception text goes to `debugPrint`, not the toast. In release, sync and network failures show a localized message; `kDebugMode` is the only place a raw error may reach the UI.
 
