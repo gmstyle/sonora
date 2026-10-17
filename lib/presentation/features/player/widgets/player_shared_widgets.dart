@@ -626,7 +626,7 @@ Widget buildBottomActionsRow(
             IconButton(
               style: actionStyle,
               icon: Icon(
-                LucideIcons.sparkles,
+                LucideIcons.orbit,
                 size: iconSize,
                 color:
                     activeView == PlayerSubView.related

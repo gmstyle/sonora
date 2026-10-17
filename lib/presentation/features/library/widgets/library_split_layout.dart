@@ -51,7 +51,7 @@ _TabItem _tabMeta(LibraryTab tab) {
     ),
     LibraryTab.mixes => _TabItem(
       (context) => AppLocalizations.of(context)!.mixes,
-      LucideIcons.sparkles,
+      LucideIcons.blend,
     ),
     LibraryTab.stats => _TabItem(
       (context) => AppLocalizations.of(context)!.stats,

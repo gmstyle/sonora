@@ -326,7 +326,7 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
                     ),
                     child: const Center(
                       child: Icon(
-                        LucideIcons.sparkles,
+                        LucideIcons.partyPopper,
                         color: Colors.white,
                         size: 28,
                       ),
@@ -789,7 +789,7 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
                     ),
                   ),
                   Icon(
-                    LucideIcons.sparkles,
+                    LucideIcons.partyPopper,
                     color: Colors.amber.shade400,
                     size: 20,
                   ),

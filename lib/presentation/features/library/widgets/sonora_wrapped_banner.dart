@@ -30,7 +30,7 @@ class SonoraWrappedBanner extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(LucideIcons.sparkles, color: scheme.primary, size: 22),
+                Icon(LucideIcons.partyPopper, color: scheme.primary, size: 22),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

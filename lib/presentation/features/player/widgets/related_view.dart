@@ -67,7 +67,7 @@ class RelatedView extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(LucideIcons.sparkles, size: 48, color: pc.labelMuted),
+                Icon(LucideIcons.orbit, size: 48, color: pc.labelMuted),
                 const SizedBox(height: 16),
                 Text(
                   l10n.noRelatedContent,
@@ -120,7 +120,7 @@ class _PodcastEpisodesRelated extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(LucideIcons.sparkles, size: 48, color: pc.labelMuted),
+                Icon(LucideIcons.orbit, size: 48, color: pc.labelMuted),
                 const SizedBox(height: 16),
                 Text(
                   l10n.noRelatedContent,

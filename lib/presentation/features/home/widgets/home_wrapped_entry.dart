@@ -81,7 +81,7 @@ class _ReplayRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(LucideIcons.sparkles, color: scheme.primary, size: 18),
+              Icon(LucideIcons.partyPopper, color: scheme.primary, size: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

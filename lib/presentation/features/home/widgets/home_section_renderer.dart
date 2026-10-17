@@ -1084,7 +1084,7 @@ class HomeExplore extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final items = [
       (title: l10n.charts, route: '/charts', icon: LucideIcons.trophy),
-      (title: l10n.moodsAndGenres, route: '/moods', icon: LucideIcons.sparkles),
+      (title: l10n.moodsAndGenres, route: '/moods', icon: LucideIcons.palette),
       (
         title: l10n.newReleases,
         route: '/new-releases',
