@@ -1,5 +1,5 @@
 import '../../models/music_search_intent.dart';
-import '../../repositories/on_device_llm_repository.dart';
+import '../../repositories/llm_completion_repository.dart';
 import 'music_search_intent_parser.dart';
 
 /// System prompt for Ask search. Output must be JSON only; no catalog IDs.
@@ -28,7 +28,7 @@ class InterpretSearchQueryUseCase {
     MusicSearchIntentParser parser = const MusicSearchIntentParser(),
   }) : _parser = parser;
 
-  final OnDeviceLlmRepository _llm;
+  final LlmCompletionRepository _llm;
   final MusicSearchIntentParser _parser;
 
   /// Returns a structured intent, or null when the model is unavailable /
@@ -36,7 +36,7 @@ class InterpretSearchQueryUseCase {
   Future<MusicSearchIntent?> execute(String userQuery) async {
     final trimmed = userQuery.trim();
     if (trimmed.isEmpty) return null;
-    if (!await _llm.isModelReady()) return null;
+    if (!await _llm.isReady()) return null;
 
     try {
       final raw = await _llm.complete(

@@ -23,6 +23,7 @@ import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
+import '../../../shared/widgets/moment_mix_ask_card.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shelf_card_layout.dart';
@@ -1013,57 +1014,71 @@ class HomeYourMixes extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (compactGrid) {
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (showHeader) ...[
-              Text(
-                AppLocalizations.of(context)!.yourMixes,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-            ],
-            Row(
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MomentMixAskSection(horizontalPadding: horizontalPadding),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (var i = 0; i < 3; i++) ...[
-                  if (i > 0) const SizedBox(width: 8),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return SmartMixCard(
-                          type: SmartMixType.values[i],
-                          cardWidth: constraints.maxWidth,
-                        );
-                      },
+                if (showHeader) ...[
+                  Text(
+                    AppLocalizations.of(context)!.yourMixes,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 8),
                 ],
+                Row(
+                  children: [
+                    for (var i = 0; i < 3; i++) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SmartMixCard(
+                              type: SmartMixType.values[i],
+                              cardWidth: constraints.maxWidth,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
     final cardWidth = 140.0;
     final height = cardWidth + HomeLayoutMetrics.shelfTextHeight;
-    return _HomeCarouselSection(
-      title: AppLocalizations.of(context)!.yourMixes,
-      height: height,
-      horizontalPadding: horizontalPadding,
-      itemCount: 3,
-      itemBuilder: (context, index) {
-        final type = SmartMixType.values[index];
-        return SmartMixCard(type: type, cardWidth: cardWidth);
-      },
-      onShowAll: () {
-        ref.read(libraryActiveTabProvider.notifier).update(LibraryTab.mixes);
-        context.go('/library');
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MomentMixAskSection(horizontalPadding: horizontalPadding),
+        _HomeCarouselSection(
+          title: AppLocalizations.of(context)!.yourMixes,
+          height: height,
+          horizontalPadding: horizontalPadding,
+          itemCount: 3,
+          itemBuilder: (context, index) {
+            final type = SmartMixType.values[index];
+            return SmartMixCard(type: type, cardWidth: cardWidth);
+          },
+          onShowAll: () {
+            ref
+                .read(libraryActiveTabProvider.notifier)
+                .update(LibraryTab.mixes);
+            context.go('/library');
+          },
+        ),
+      ],
     );
   }
 }

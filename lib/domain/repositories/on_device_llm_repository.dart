@@ -1,7 +1,8 @@
-/// On-device LLM used for Ask search (and future AI features).
-///
-/// Implementations wrap a Flutter/native runtime; this interface stays pure Dart.
-abstract class OnDeviceLlmRepository {
+import 'llm_completion_repository.dart';
+
+/// On-device Ask model (LiteRT-LM). Install/warm APIs stay here;
+/// [complete] is shared via [LlmCompletionRepository].
+abstract class OnDeviceLlmRepository implements LlmCompletionRepository {
   /// True when the Ask model file is installed and set active.
   Future<bool> isModelReady();
 
@@ -13,11 +14,4 @@ abstract class OnDeviceLlmRepository {
 
   /// Load model weights into memory (no-op if already warm).
   Future<void> warmUp();
-
-  /// One-shot completion with a system instruction. Returns assistant text.
-  Future<String> complete({
-    required String systemInstruction,
-    required String userMessage,
-    int maxOutputTokens = 256,
-  });
 }

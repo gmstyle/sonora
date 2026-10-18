@@ -93,7 +93,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final l10n = AppLocalizations.of(context);
 
     final askEnabled = ref.watch(askModeEnabledProvider);
-    final modelReadyAsync = ref.watch(askModelReadyProvider);
+    final modelReadyAsync = ref.watch(askLlmReadyProvider);
     final modelReady = modelReadyAsync.asData?.value ?? false;
     final askSubmit = ref.watch(askSearchSubmitProvider);
     final asking = askSubmit.isLoading;

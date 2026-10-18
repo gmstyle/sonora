@@ -7,6 +7,9 @@ class OnDeviceLlmRepositoryImpl implements OnDeviceLlmRepository {
   final OnDeviceLlmDatasource _datasource;
 
   @override
+  Future<bool> isReady() => isModelReady();
+
+  @override
   Future<bool> isModelReady() => _datasource.isModelReady();
 
   @override

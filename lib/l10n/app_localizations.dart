@@ -1163,19 +1163,91 @@ abstract class AppLocalizations {
   /// No description provided for @aiSettingsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'On-device Ask model for natural-language search'**
+  /// **'Ask engine for Search, Mix, and import assist'**
   String get aiSettingsSubtitle;
+
+  /// No description provided for @aiAskModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask engine'**
+  String get aiAskModeTitle;
+
+  /// No description provided for @aiAskModeOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device'**
+  String get aiAskModeOnDevice;
+
+  /// No description provided for @aiAskModeCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud (Gemini)'**
+  String get aiAskModeCloud;
+
+  /// No description provided for @aiAskModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get aiAskModeAuto;
+
+  /// No description provided for @aiAskModeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto uses Gemini when a key is set and you are online; otherwise the on-device model.'**
+  String get aiAskModeHint;
+
+  /// No description provided for @aiGeminiApiKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gemini API key'**
+  String get aiGeminiApiKeyTitle;
+
+  /// No description provided for @aiGeminiApiKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'From Google AI Studio. Stored only on this device; prompts go to Google.'**
+  String get aiGeminiApiKeyHint;
+
+  /// No description provided for @aiGeminiApiKeySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save key'**
+  String get aiGeminiApiKeySave;
+
+  /// No description provided for @aiGeminiApiKeyClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear key'**
+  String get aiGeminiApiKeyClear;
+
+  /// No description provided for @aiGeminiApiKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'API key saved'**
+  String get aiGeminiApiKeySaved;
+
+  /// No description provided for @aiGeminiApiKeyCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'API key cleared'**
+  String get aiGeminiApiKeyCleared;
+
+  /// No description provided for @aiGeminiApiKeyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Gemini API key for Cloud Ask'**
+  String get aiGeminiApiKeyMissing;
 
   /// No description provided for @aiAskModelTitle.
   ///
   /// In en, this message translates to:
-  /// **'Ask model (Qwen3 0.6B)'**
+  /// **'On-device model (Qwen3 0.6B)'**
   String get aiAskModelTitle;
 
   /// No description provided for @aiAskModelHint.
   ///
   /// In en, this message translates to:
-  /// **'Optional on-device pack (~{sizeMb} MB). Used only when Ask is on in Search.'**
+  /// **'Optional pack (~{sizeMb} MB) for On-device and Auto when offline.'**
   String aiAskModelHint(int sizeMb);
 
   /// No description provided for @aiAskModelDownload.
@@ -1207,6 +1279,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Model download failed'**
   String get aiAskModelFailed;
+
+  /// No description provided for @wrappedInsightAiBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Crafted with Ask'**
+  String get wrappedInsightAiBadge;
+
+  /// No description provided for @wrappedPreparingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your Wrapped'**
+  String get wrappedPreparingTitle;
+
+  /// No description provided for @wrappedPreparingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask is crafting your listening story. This can take a moment.'**
+  String get wrappedPreparingBody;
+
+  /// No description provided for @wrappedPreparingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Start anyway'**
+  String get wrappedPreparingSkip;
+
+  /// No description provided for @statsInsightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening insight'**
+  String get statsInsightTitle;
 
   /// No description provided for @system.
   ///
@@ -3120,6 +3222,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your Mixes'**
   String get yourMixes;
+
+  /// No description provided for @mixForThisMoment.
+  ///
+  /// In en, this message translates to:
+  /// **'Mix for this moment'**
+  String get mixForThisMoment;
+
+  /// No description provided for @mixForThisMomentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe a vibe — Sonora builds a queue from your library and catalog'**
+  String get mixForThisMomentHint;
+
+  /// No description provided for @momentMixPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm for the train, rock to focus…'**
+  String get momentMixPromptHint;
+
+  /// No description provided for @momentMixTrackCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} tracks'**
+  String momentMixTrackCount(int count);
+
+  /// No description provided for @momentMixInterpretFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t understand that mix request'**
+  String get momentMixInterpretFailed;
+
+  /// No description provided for @momentMixEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracks matched this moment'**
+  String get momentMixEmpty;
+
+  /// No description provided for @momentMixOfflineYtm.
+  ///
+  /// In en, this message translates to:
+  /// **'Catalog mixes need a connection — try a library vibe instead'**
+  String get momentMixOfflineYtm;
+
+  /// No description provided for @momentMixOfflineNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline: mixes use your listening history only'**
+  String get momentMixOfflineNote;
+
+  /// No description provided for @mixMoodCalm.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm'**
+  String get mixMoodCalm;
+
+  /// No description provided for @mixMoodEnergetic.
+  ///
+  /// In en, this message translates to:
+  /// **'Energetic'**
+  String get mixMoodEnergetic;
+
+  /// No description provided for @mixMoodFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus'**
+  String get mixMoodFocus;
+
+  /// No description provided for @mixMoodHappy.
+  ///
+  /// In en, this message translates to:
+  /// **'Happy'**
+  String get mixMoodHappy;
+
+  /// No description provided for @mixMoodMelancholic.
+  ///
+  /// In en, this message translates to:
+  /// **'Melancholic'**
+  String get mixMoodMelancholic;
+
+  /// No description provided for @mixMoodRomantic.
+  ///
+  /// In en, this message translates to:
+  /// **'Romantic'**
+  String get mixMoodRomantic;
+
+  /// No description provided for @mixMoodWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout'**
+  String get mixMoodWorkout;
+
+  /// No description provided for @mixMoodParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Party'**
+  String get mixMoodParty;
+
+  /// No description provided for @mixMoodChill.
+  ///
+  /// In en, this message translates to:
+  /// **'Chill'**
+  String get mixMoodChill;
+
+  /// No description provided for @mixEnergyLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low energy'**
+  String get mixEnergyLow;
+
+  /// No description provided for @mixEnergyMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium energy'**
+  String get mixEnergyMedium;
+
+  /// No description provided for @mixEnergyHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High energy'**
+  String get mixEnergyHigh;
 
   /// No description provided for @useVinylStyle.
   ///

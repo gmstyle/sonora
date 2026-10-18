@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/utils/android_battery.dart';
 import '../../data/services/media_cache_service.dart';
+import '../../domain/models/ask_mode.dart';
 import '../../domain/models/media_cache_size.dart';
 import '../../domain/models/media_quality.dart';
 import '../features/home/providers/home_provider.dart';
@@ -40,6 +41,13 @@ class Settings {
 
   /// True after Wrapped has been opened on this device. Not part of backups.
   final bool wrappedSeen;
+
+  /// Ask engine selection. Device-local — not part of backups.
+  final AskMode askMode;
+
+  /// User Gemini API key for Cloud Ask. Device-local — not part of backups.
+  final String? geminiApiKey;
+
   final bool localSyncEnabled;
   final bool localSyncAutoEnabled;
   final String playlistConflictStrategy;
@@ -65,6 +73,8 @@ class Settings {
     this.offlineMode = false,
     this.useVinylStyle = true,
     this.wrappedSeen = false,
+    this.askMode = AskMode.onDevice,
+    this.geminiApiKey,
     this.localSyncEnabled = false,
     this.localSyncAutoEnabled = false,
     this.playlistConflictStrategy = 'merge',
@@ -91,10 +101,13 @@ class Settings {
     bool? offlineMode,
     bool? useVinylStyle,
     bool? wrappedSeen,
+    AskMode? askMode,
+    String? geminiApiKey,
     bool? localSyncEnabled,
     bool? localSyncAutoEnabled,
     String? playlistConflictStrategy,
     bool clearDownloadPath = false,
+    bool clearGeminiApiKey = false,
   }) {
     return Settings(
       themeMode: themeMode ?? this.themeMode,
@@ -120,6 +133,9 @@ class Settings {
       offlineMode: offlineMode ?? this.offlineMode,
       useVinylStyle: useVinylStyle ?? this.useVinylStyle,
       wrappedSeen: wrappedSeen ?? this.wrappedSeen,
+      askMode: askMode ?? this.askMode,
+      geminiApiKey:
+          clearGeminiApiKey ? null : (geminiApiKey ?? this.geminiApiKey),
       localSyncEnabled: localSyncEnabled ?? this.localSyncEnabled,
       localSyncAutoEnabled: localSyncAutoEnabled ?? this.localSyncAutoEnabled,
       playlistConflictStrategy:
@@ -131,9 +147,9 @@ class Settings {
 
   /// Portable prefs written into `backup.json` → `settings`.
   ///
-  /// Excludes device-local [downloadPath] and [wrappedSeen], plus runtime keys
-  /// (`lastUpdateCheckTime`, `postQueueSplitDone`,
-  /// `batteryPromptDismissed`).
+  /// Excludes device-local [downloadPath], [wrappedSeen], [askMode],
+  /// [geminiApiKey], plus runtime keys (`lastUpdateCheckTime`,
+  /// `postQueueSplitDone`, `batteryPromptDismissed`).
   Map<String, dynamic> toBackupMap() {
     return <String, dynamic>{
       kThemeModeKey: themeMode.index,
@@ -194,6 +210,8 @@ class SettingsNotifier extends Notifier<Settings> {
       offlineMode: _prefs.getBool(kOfflineModeKey) ?? false,
       useVinylStyle: _prefs.getBool(kUseVinylStyleKey) ?? true,
       wrappedSeen: _prefs.getBool(kWrappedSeenKey) ?? false,
+      askMode: AskMode.fromStorage(_prefs.getString(kAskModeKey)),
+      geminiApiKey: _prefs.getString(kGeminiApiKeyKey),
       localSyncEnabled: _prefs.getBool(kLocalSyncEnabledKey) ?? false,
       localSyncAutoEnabled: _prefs.getBool(kLocalSyncAutoEnabledKey) ?? false,
       playlistConflictStrategy:
@@ -242,6 +260,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kOfflineModeKey, state.offlineMode);
     await _prefs.setBool(kUseVinylStyleKey, state.useVinylStyle);
     await _prefs.setBool(kWrappedSeenKey, state.wrappedSeen);
+    await _prefs.setString(kAskModeKey, state.askMode.storageValue);
+    if (state.geminiApiKey != null && state.geminiApiKey!.isNotEmpty) {
+      await _prefs.setString(kGeminiApiKeyKey, state.geminiApiKey!);
+    } else {
+      await _prefs.remove(kGeminiApiKeyKey);
+    }
     await _prefs.setBool(kLocalSyncEnabledKey, state.localSyncEnabled);
     await _prefs.setBool(kLocalSyncAutoEnabledKey, state.localSyncAutoEnabled);
     await _prefs.setString(
@@ -366,6 +390,20 @@ class SettingsNotifier extends Notifier<Settings> {
   Future<void> markWrappedSeen() async {
     if (state.wrappedSeen) return;
     state = state.copyWith(wrappedSeen: true);
+    await _save();
+  }
+
+  Future<void> setAskMode(AskMode mode) async {
+    if (state.askMode == mode) return;
+    state = state.copyWith(askMode: mode);
+    await _save();
+  }
+
+  Future<void> setGeminiApiKey(String? key) async {
+    final trimmed = key?.trim();
+    final next = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+    if (state.geminiApiKey == next) return;
+    state = state.copyWith(geminiApiKey: next, clearGeminiApiKey: next == null);
     await _save();
   }
 
@@ -557,6 +595,8 @@ const kReduceEffectsKey = 'reduceEffects';
 const kOfflineModeKey = 'offlineMode';
 const kUseVinylStyleKey = 'useVinylStyle';
 const kWrappedSeenKey = 'wrappedSeen';
+const kAskModeKey = 'askMode';
+const kGeminiApiKeyKey = 'geminiApiKey';
 const kLocalSyncEnabledKey = 'localSyncEnabled';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
 

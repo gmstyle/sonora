@@ -2,11 +2,19 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/datasources/ai/gemini_llm_datasource.dart';
 import '../../data/datasources/ai/on_device_llm_datasource.dart';
+import '../../data/repositories/gemini_llm_repository_impl.dart';
 import '../../data/repositories/on_device_llm_repository_impl.dart';
+import '../../data/repositories/routing_llm_repository.dart';
+import '../../domain/models/ask_capabilities.dart';
+import '../../domain/models/ask_mode.dart';
+import '../../domain/repositories/llm_completion_repository.dart';
 import '../../domain/repositories/on_device_llm_repository.dart';
 import '../../domain/usecases/ai/interpret_search_query_use_case.dart';
 import '../../domain/usecases/ai/rewrite_spotify_search_query_use_case.dart';
+import 'connectivity_provider.dart';
+import 'settings_provider.dart';
 
 final onDeviceLlmDatasourceProvider = Provider<OnDeviceLlmDatasource>((ref) {
   return OnDeviceLlmDatasource();
@@ -16,21 +24,56 @@ final onDeviceLlmRepositoryProvider = Provider<OnDeviceLlmRepository>((ref) {
   return OnDeviceLlmRepositoryImpl(ref.watch(onDeviceLlmDatasourceProvider));
 });
 
+final geminiLlmDatasourceProvider = Provider<GeminiLlmDatasource>((ref) {
+  return GeminiLlmDatasource();
+});
+
+final geminiLlmRepositoryProvider = Provider<GeminiLlmRepositoryImpl>((ref) {
+  return GeminiLlmRepositoryImpl(ref.watch(geminiLlmDatasourceProvider));
+});
+
+/// Resolved Ask completion (on-device and/or Gemini).
+final askLlmRepositoryProvider = Provider<LlmCompletionRepository>((ref) {
+  final settings = ref.watch(settingsProvider);
+  final offline = ref.watch(isOfflineProvider);
+  return RoutingLlmRepository(
+    onDevice: ref.watch(onDeviceLlmRepositoryProvider),
+    cloud: ref.watch(geminiLlmRepositoryProvider),
+    mode: () => settings.askMode,
+    apiKey: () => settings.geminiApiKey,
+    isOffline: () => offline,
+  );
+});
+
 final interpretSearchQueryUseCaseProvider =
     Provider<InterpretSearchQueryUseCase>((ref) {
-      return InterpretSearchQueryUseCase(
-        ref.watch(onDeviceLlmRepositoryProvider),
-      );
+      return InterpretSearchQueryUseCase(ref.watch(askLlmRepositoryProvider));
     });
 
 final rewriteSpotifySearchQueryUseCaseProvider =
     Provider<RewriteSpotifySearchQueryUseCase>((ref) {
       return RewriteSpotifySearchQueryUseCase(
-        ref.watch(onDeviceLlmRepositoryProvider),
+        ref.watch(askLlmRepositoryProvider),
       );
     });
 
-/// Whether the Ask LiteRT model is installed and active.
+/// Whether any Ask backend can run completions right now.
+final askLlmReadyProvider = FutureProvider<bool>((ref) {
+  return ref.watch(askLlmRepositoryProvider).isReady();
+});
+
+/// Feature gates for the resolved backend (cloud vs on-device).
+final askCapabilitiesProvider = FutureProvider<AskCapabilities>((ref) async {
+  final router = ref.watch(askLlmRepositoryProvider);
+  if (router is! RoutingLlmRepository) {
+    final ready = await router.isReady();
+    return AskCapabilities(ready ? AskLlmBackend.onDevice : AskLlmBackend.none);
+  }
+  final backend = await router.currentBackend();
+  return AskCapabilities(backend);
+});
+
+/// Whether the on-device LiteRT model file is installed (Settings download UI).
 final askModelReadyProvider = FutureProvider<bool>((ref) {
   return ref.watch(onDeviceLlmRepositoryProvider).isModelReady();
 });
@@ -89,7 +132,8 @@ class AskModelInstallNotifier extends Notifier<AskModelInstallState> {
         progress: 1,
       );
       ref.invalidate(askModelReadyProvider);
-      // Load weights now so the first Ask call is not a cold hang.
+      ref.invalidate(askLlmReadyProvider);
+      ref.invalidate(askCapabilitiesProvider);
       unawaited(ref.read(onDeviceLlmRepositoryProvider).warmUp());
     } catch (e) {
       state = AskModelInstallState(
@@ -105,6 +149,8 @@ class AskModelInstallNotifier extends Notifier<AskModelInstallState> {
       await ref.read(onDeviceLlmRepositoryProvider).uninstallModel();
       state = const AskModelInstallState();
       ref.invalidate(askModelReadyProvider);
+      ref.invalidate(askLlmReadyProvider);
+      ref.invalidate(askCapabilitiesProvider);
     } catch (e) {
       state = AskModelInstallState(
         phase: AskModelInstallPhase.error,

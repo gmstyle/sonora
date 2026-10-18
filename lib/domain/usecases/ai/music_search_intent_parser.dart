@@ -33,6 +33,8 @@ class MusicSearchIntentParser {
       era: _string(map['era']),
       seedArtists: _stringList(map['seedArtists']),
       contentType: _contentType(_string(map['contentType'])),
+      source: MixSource.parse(_string(map['source'])),
+      energy: MixEnergy.parse(_string(map['energy'])),
     );
   }
 

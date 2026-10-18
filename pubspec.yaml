@@ -110,6 +110,8 @@ dependencies:
   shelf_router: ^1.1.4
   flutter_edge_ai: ^2.4.0
   flutter_edge_ai_litertlm: ^1.14.0
+  genkit: ^1.0.0
+  genkit_google_genai: ^1.0.0
 
 dev_dependencies:
   flutter_test:

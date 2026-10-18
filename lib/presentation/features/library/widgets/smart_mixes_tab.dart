@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/moment_mix_ask_card.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../providers/settings_provider.dart';
 
@@ -33,9 +34,12 @@ class SmartMixesTab extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
+        const SliverToBoxAdapter(
+          child: MomentMixAskSection(horizontalPadding: 16, topPadding: 12),
+        ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Text(
               AppLocalizations.of(context)!.yourMixes,
               style: Theme.of(

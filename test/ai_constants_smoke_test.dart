@@ -12,5 +12,6 @@ void main() {
     expect(kAskLlmDownloadUrl, startsWith('https://huggingface.co/'));
     expect(kAskLlmApproxSizeMb, greaterThan(300));
     expect(kAskLlmApproxSizeMb, lessThan(400));
+    expect(kAskGeminiModelId, isNotEmpty);
   });
 }

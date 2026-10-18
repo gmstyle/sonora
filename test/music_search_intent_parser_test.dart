@@ -18,6 +18,36 @@ void main() {
     expect(intent.contentType, MusicSearchContentType.songs);
     expect(intent.searchFilterIndex, 1);
     expect(intent.displayLabel, contains('energetic'));
+    expect(intent.source, MixSource.both);
+    expect(intent.energy, MixEnergy.unknown);
+    expect(intent.mixMood, MixMood.energetic);
+  });
+
+  test('parses mix source and energy', () {
+    const raw = '''
+{"searchQuery":"calm piano","mood":"calm","energy":"low","source":"history","genres":["piano"],"contentType":"songs"}
+''';
+    final intent = parser.parse(raw)!;
+    expect(intent.source, MixSource.history);
+    expect(intent.energy, MixEnergy.low);
+    expect(intent.mixMood, MixMood.calm);
+  });
+
+  test('maps liked and catalog aliases to MixSource', () {
+    expect(
+      parser
+          .parse('{"searchQuery":"x","source":"liked","contentType":"songs"}')!
+          .source,
+      MixSource.history,
+    );
+    expect(
+      parser
+          .parse(
+            '{"searchQuery":"x","source":"catalog","contentType":"songs"}',
+          )!
+          .source,
+      MixSource.ytm,
+    );
   });
 
   test('strips markdown fences and preamble', () {

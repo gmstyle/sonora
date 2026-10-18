@@ -444,7 +444,7 @@ class PlaylistImportJobNotifier extends Notifier<PlaylistImportJobState> {
 
   Future<bool> _modelReady() async {
     try {
-      return await ref.read(askModelReadyProvider.future);
+      return await ref.read(askLlmReadyProvider.future);
     } catch (_) {
       return false;
     }

@@ -57,7 +57,7 @@ class AskSearchSubmitNotifier extends Notifier<AsyncValue<AskSubmitOutcome?>> {
     }
 
     final askOn = ref.read(askModeEnabledProvider);
-    final modelReady = await ref.read(askModelReadyProvider.future);
+    final modelReady = await ref.read(askLlmReadyProvider.future);
 
     if (!askOn || !modelReady) {
       await ref.read(activeSearchQueryProvider.notifier).submit(trimmed);

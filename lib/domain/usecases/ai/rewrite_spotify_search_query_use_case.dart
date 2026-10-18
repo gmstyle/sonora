@@ -1,4 +1,4 @@
-import '../../repositories/on_device_llm_repository.dart';
+import '../../repositories/llm_completion_repository.dart';
 
 /// System prompt for cleaning Spotify metadata into a YTM search string.
 const kRewriteSpotifySearchSystemInstruction = '''
@@ -14,7 +14,7 @@ Example output: Blinding Lights The Weeknd
 class RewriteSpotifySearchQueryUseCase {
   RewriteSpotifySearchQueryUseCase(this._llm);
 
-  final OnDeviceLlmRepository _llm;
+  final LlmCompletionRepository _llm;
 
   /// Returns a cleaned query, or null when the model is unavailable / fails.
   Future<String?> execute({
@@ -24,7 +24,7 @@ class RewriteSpotifySearchQueryUseCase {
     final t = title.trim();
     final a = artist.trim();
     if (t.isEmpty) return null;
-    if (!await _llm.isModelReady()) return null;
+    if (!await _llm.isReady()) return null;
 
     final userMessage = a.isEmpty ? 'title: $t' : 'title: $t\nartist: $a';
 

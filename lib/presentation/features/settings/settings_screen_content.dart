@@ -31,6 +31,7 @@ import '../../providers/sync_provider.dart';
 import '../../providers/equalizer_provider.dart';
 import '../../providers/on_device_llm_provider.dart';
 import '../../../core/constants/ai_constants.dart';
+import '../../../domain/models/ask_mode.dart';
 import '../player/widgets/equalizer_panel.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
@@ -459,40 +460,135 @@ class _DownloadSection extends StatelessWidget {
 
 // ── AI ───────────────────────────────────────────────────────────
 
-class _AiSection extends ConsumerWidget {
+class _AiSection extends ConsumerStatefulWidget {
   const _AiSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AiSection> createState() => _AiSectionState();
+}
+
+class _AiSectionState extends ConsumerState<_AiSection> {
+  late final TextEditingController _apiKeyController;
+  var _obscureKey = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiKeyController = TextEditingController(
+      text: ref.read(settingsProvider).geminiApiKey ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
     final readyAsync = ref.watch(askModelReadyProvider);
     final install = ref.watch(askModelInstallProvider);
     final isOffline = ref.watch(isOfflineProvider);
     final ready = readyAsync.asData?.value ?? false;
     final downloading = install.phase == AskModelInstallPhase.downloading;
     final percent = (install.progress * 100).round().clamp(0, 100);
+    final showCloudKey = settings.askMode != AskMode.onDevice;
 
-    String subtitle;
+    String modelSubtitle;
     if (downloading) {
-      subtitle = l10n.aiAskModelDownloading(percent);
+      modelSubtitle = l10n.aiAskModelDownloading(percent);
     } else if (ready || install.phase == AskModelInstallPhase.ready) {
-      subtitle = l10n.aiAskModelReady;
+      modelSubtitle = l10n.aiAskModelReady;
     } else if (install.phase == AskModelInstallPhase.error) {
-      subtitle = l10n.aiAskModelFailed;
+      modelSubtitle = l10n.aiAskModelFailed;
     } else {
-      subtitle = l10n.aiAskModelHint(kAskLlmApproxSizeMb);
+      modelSubtitle = l10n.aiAskModelHint(kAskLlmApproxSizeMb);
     }
 
     return SettingsSection(
       title: l10n.aiSettings,
       children: [
+        SettingsDropdownTile(
+          title: l10n.aiAskModeTitle,
+          subtitle: l10n.aiAskModeHint,
+          icon: LucideIcons.sparkles,
+          value: settings.askMode.storageValue,
+          options: {
+            AskMode.onDevice.storageValue: l10n.aiAskModeOnDevice,
+            AskMode.cloud.storageValue: l10n.aiAskModeCloud,
+            AskMode.auto.storageValue: l10n.aiAskModeAuto,
+          },
+          onChanged: (v) {
+            if (v == null) return;
+            notifier.setAskMode(AskMode.fromStorage(v));
+            ref.invalidate(askLlmReadyProvider);
+            ref.invalidate(askCapabilitiesProvider);
+          },
+        ),
+        if (showCloudKey) ...[
+          ListTile(
+            leading: const Icon(LucideIcons.keyRound),
+            title: Text(l10n.aiGeminiApiKeyTitle),
+            subtitle: Text(l10n.aiGeminiApiKeyHint),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _apiKeyController,
+              obscureText: _obscureKey,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                isDense: true,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureKey ? LucideIcons.eye : LucideIcons.eyeOff,
+                  ),
+                  onPressed: () => setState(() => _obscureKey = !_obscureKey),
+                ),
+              ),
+            ),
+          ),
+          SettingsButtonTile(
+            title: l10n.aiGeminiApiKeySave,
+            icon: LucideIcons.save,
+            onPressed: () async {
+              await notifier.setGeminiApiKey(_apiKeyController.text);
+              ref.invalidate(askLlmReadyProvider);
+              ref.invalidate(askCapabilitiesProvider);
+              ref
+                  .read(actionFeedbackProvider.notifier)
+                  .report(l10n.aiGeminiApiKeySaved);
+            },
+          ),
+          if (settings.geminiApiKey != null &&
+              settings.geminiApiKey!.isNotEmpty)
+            SettingsButtonTile(
+              title: l10n.aiGeminiApiKeyClear,
+              icon: LucideIcons.trash2,
+              onPressed: () async {
+                _apiKeyController.clear();
+                await notifier.setGeminiApiKey(null);
+                ref.invalidate(askLlmReadyProvider);
+                ref.invalidate(askCapabilitiesProvider);
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(l10n.aiGeminiApiKeyCleared);
+              },
+            ),
+        ],
         ListTile(
           leading: Icon(
-            LucideIcons.sparkles,
+            LucideIcons.hardDrive,
             color: Theme.of(context).colorScheme.primary,
           ),
           title: Text(l10n.aiAskModelTitle),
-          subtitle: Text(subtitle),
+          subtitle: Text(modelSubtitle),
         ),
         if (downloading)
           Padding(

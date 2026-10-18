@@ -692,14 +692,53 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get aiSettingsSubtitle =>
-      'Modello Ask on-device per la ricerca in linguaggio naturale';
+      'Motore Ask per Cerca, Mix e assist all\'import';
 
   @override
-  String get aiAskModelTitle => 'Modello Ask (Qwen3 0.6B)';
+  String get aiAskModeTitle => 'Motore Ask';
+
+  @override
+  String get aiAskModeOnDevice => 'On-device';
+
+  @override
+  String get aiAskModeCloud => 'Cloud (Gemini)';
+
+  @override
+  String get aiAskModeAuto => 'Auto';
+
+  @override
+  String get aiAskModeHint =>
+      'Auto usa Gemini con chiave e rete; altrimenti il modello on-device.';
+
+  @override
+  String get aiGeminiApiKeyTitle => 'Chiave API Gemini';
+
+  @override
+  String get aiGeminiApiKeyHint =>
+      'Da Google AI Studio. Solo su questo dispositivo; i prompt vanno a Google.';
+
+  @override
+  String get aiGeminiApiKeySave => 'Salva chiave';
+
+  @override
+  String get aiGeminiApiKeyClear => 'Rimuovi chiave';
+
+  @override
+  String get aiGeminiApiKeySaved => 'Chiave API salvata';
+
+  @override
+  String get aiGeminiApiKeyCleared => 'Chiave API rimossa';
+
+  @override
+  String get aiGeminiApiKeyMissing =>
+      'Aggiungi una chiave Gemini per Ask Cloud';
+
+  @override
+  String get aiAskModelTitle => 'Modello on-device (Qwen3 0.6B)';
 
   @override
   String aiAskModelHint(int sizeMb) {
-    return 'Pacchetto on-device opzionale (~$sizeMb MB). Usato solo con Ask attivo in Cerca.';
+    return 'Pacchetto opzionale (~$sizeMb MB) per On-device e Auto offline.';
   }
 
   @override
@@ -718,6 +757,22 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get aiAskModelFailed => 'Download del modello non riuscito';
+
+  @override
+  String get wrappedInsightAiBadge => 'Scritto con Ask';
+
+  @override
+  String get wrappedPreparingTitle => 'Prepariamo il tuo Wrapped';
+
+  @override
+  String get wrappedPreparingBody =>
+      'Ask sta scrivendo la tua storia di ascolto. Può richiedere un momento.';
+
+  @override
+  String get wrappedPreparingSkip => 'Avvia comunque';
+
+  @override
+  String get statsInsightTitle => 'Insight di ascolto';
 
   @override
   String get system => 'Sistema';
@@ -1843,6 +1898,73 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get yourMixes => 'I tuoi Mix';
+
+  @override
+  String get mixForThisMoment => 'Mix per questo momento';
+
+  @override
+  String get mixForThisMomentHint =>
+      'Descrivi un mood — Sonora crea una coda dalla tua libreria e dal catalogo';
+
+  @override
+  String get momentMixPromptHint =>
+      'Calmo per il treno, rock per concentrarmi…';
+
+  @override
+  String momentMixTrackCount(int count) {
+    return '$count brani';
+  }
+
+  @override
+  String get momentMixInterpretFailed =>
+      'Non sono riuscito a interpretare la richiesta';
+
+  @override
+  String get momentMixEmpty => 'Nessun brano per questo momento';
+
+  @override
+  String get momentMixOfflineYtm =>
+      'I mix dal catalogo richiedono connessione — prova un mood dalla libreria';
+
+  @override
+  String get momentMixOfflineNote =>
+      'Offline: i mix usano solo la cronologia di ascolto';
+
+  @override
+  String get mixMoodCalm => 'Calmo';
+
+  @override
+  String get mixMoodEnergetic => 'Energico';
+
+  @override
+  String get mixMoodFocus => 'Concentrazione';
+
+  @override
+  String get mixMoodHappy => 'Felice';
+
+  @override
+  String get mixMoodMelancholic => 'Malinconico';
+
+  @override
+  String get mixMoodRomantic => 'Romantico';
+
+  @override
+  String get mixMoodWorkout => 'Allenamento';
+
+  @override
+  String get mixMoodParty => 'Festa';
+
+  @override
+  String get mixMoodChill => 'Chill';
+
+  @override
+  String get mixEnergyLow => 'Energia bassa';
+
+  @override
+  String get mixEnergyMedium => 'Energia media';
+
+  @override
+  String get mixEnergyHigh => 'Energia alta';
 
   @override
   String get useVinylStyle => 'Copertine in stile vinile';

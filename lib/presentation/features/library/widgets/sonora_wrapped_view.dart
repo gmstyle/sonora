@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../domain/models/wrapped_narrative.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/stats_provider.dart';
+import '../providers/wrapped_narrative_provider.dart';
 
-class SonoraWrappedView extends StatefulWidget {
+class SonoraWrappedView extends ConsumerStatefulWidget {
   final StatsState stats;
 
   const SonoraWrappedView({super.key, required this.stats});
@@ -22,11 +25,17 @@ class SonoraWrappedView extends StatefulWidget {
   }
 
   @override
-  State<SonoraWrappedView> createState() => _SonoraWrappedViewState();
+  ConsumerState<SonoraWrappedView> createState() => _SonoraWrappedViewState();
 }
 
-class _SonoraWrappedViewState extends State<SonoraWrappedView>
+class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
     with SingleTickerProviderStateMixin {
+  /// Non-null when Cloud Ask produced a grounded narrator pack.
+  WrappedNarrative? get _ai {
+    final n = ref.watch(wrappedNarrativeProvider).narrative;
+    return n?.fromAi == true ? n : null;
+  }
+
   int _currentSlide = 0;
   double _progress = 0.0;
   Timer? _timer;
@@ -339,7 +348,7 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
         ),
         const SizedBox(height: 48),
         Text(
-          l10n.wrappedTitle,
+          _ai?.title ?? l10n.wrappedTitle,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
@@ -357,6 +366,10 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
             fontSize: 16,
           ),
         ),
+        if (_ai != null) ...[
+          const SizedBox(height: 16),
+          _AiBadge(label: l10n.wrappedInsightAiBadge),
+        ],
       ],
     );
   }
@@ -372,7 +385,7 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
         ),
         const SizedBox(height: 32),
         Text(
-          l10n.wrappedTimeSubtitle,
+          _ai?.hook ?? l10n.wrappedTimeSubtitle,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
@@ -420,7 +433,9 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          l10n.wrappedTopArtistSubtitle,
+          (_ai?.artistLine?.trim().isNotEmpty == true)
+              ? _ai!.artistLine!
+              : l10n.wrappedTopArtistSubtitle,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
@@ -489,7 +504,9 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          l10n.wrappedTopSongsSubtitle,
+          (_ai?.songLine?.trim().isNotEmpty == true)
+              ? _ai!.songLine!
+              : l10n.wrappedTopSongsSubtitle,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
@@ -738,7 +755,10 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          l10n.wrappedSummary,
+          (_ai?.closing.trim().isNotEmpty == true)
+              ? _ai!.closing
+              : l10n.wrappedSummary,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 22,
@@ -930,6 +950,38 @@ class _SonoraWrappedViewState extends State<SonoraWrappedView>
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AiBadge extends StatelessWidget {
+  const _AiBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(LucideIcons.sparkles, color: Colors.white70, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

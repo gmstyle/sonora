@@ -402,6 +402,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.2"
+  dotprompt:
+    dependency: transitive
+    description:
+      name: dotprompt
+      sha256: d588959f509a67062874c4378085f982a7ed4d10ae521c9504cd9c3331f13304
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0"
   drift:
     dependency: "direct main"
     description:
@@ -678,6 +686,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.4"
+  genkit:
+    dependency: "direct main"
+    description:
+      name: genkit
+      sha256: "478f914efde52c6c1c0f2177b5a1632c2e5dc39e88cab29b48930d80137c1a2a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
+  genkit_google_genai:
+    dependency: "direct main"
+    description:
+      name: genkit_google_genai
+      sha256: d308e31d60d89c3ed8484347aab1db16ba6e150e325b10e41550b677fe6adc10
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   glob:
     dependency: transitive
     description:
@@ -710,6 +734,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
+  handlebars_dart:
+    dependency: transitive
+    description:
+      name: handlebars_dart
+      sha256: "267f946bae6b46be5f80150a4572740098a460866ee2b6cb7ac39cd463eb7562"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   hooks:
     dependency: transitive
     description:
@@ -1310,6 +1342,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.6"
+  schemantic:
+    dependency: transitive
+    description:
+      name: schemantic
+      sha256: f56f27cfc1db2466f3102b4d2814e184128df43aee92e093a880273dd1bccb75
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   screen_retriever:
     dependency: transitive
     description:

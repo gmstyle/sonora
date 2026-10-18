@@ -687,14 +687,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSettingsSubtitle =>
-      'On-device Ask model for natural-language search';
+      'Ask engine for Search, Mix, and import assist';
 
   @override
-  String get aiAskModelTitle => 'Ask model (Qwen3 0.6B)';
+  String get aiAskModeTitle => 'Ask engine';
+
+  @override
+  String get aiAskModeOnDevice => 'On-device';
+
+  @override
+  String get aiAskModeCloud => 'Cloud (Gemini)';
+
+  @override
+  String get aiAskModeAuto => 'Auto';
+
+  @override
+  String get aiAskModeHint =>
+      'Auto uses Gemini when a key is set and you are online; otherwise the on-device model.';
+
+  @override
+  String get aiGeminiApiKeyTitle => 'Gemini API key';
+
+  @override
+  String get aiGeminiApiKeyHint =>
+      'From Google AI Studio. Stored only on this device; prompts go to Google.';
+
+  @override
+  String get aiGeminiApiKeySave => 'Save key';
+
+  @override
+  String get aiGeminiApiKeyClear => 'Clear key';
+
+  @override
+  String get aiGeminiApiKeySaved => 'API key saved';
+
+  @override
+  String get aiGeminiApiKeyCleared => 'API key cleared';
+
+  @override
+  String get aiGeminiApiKeyMissing => 'Add a Gemini API key for Cloud Ask';
+
+  @override
+  String get aiAskModelTitle => 'On-device model (Qwen3 0.6B)';
 
   @override
   String aiAskModelHint(int sizeMb) {
-    return 'Optional on-device pack (~$sizeMb MB). Used only when Ask is on in Search.';
+    return 'Optional pack (~$sizeMb MB) for On-device and Auto when offline.';
   }
 
   @override
@@ -713,6 +751,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiAskModelFailed => 'Model download failed';
+
+  @override
+  String get wrappedInsightAiBadge => 'Crafted with Ask';
+
+  @override
+  String get wrappedPreparingTitle => 'Preparing your Wrapped';
+
+  @override
+  String get wrappedPreparingBody =>
+      'Ask is crafting your listening story. This can take a moment.';
+
+  @override
+  String get wrappedPreparingSkip => 'Start anyway';
+
+  @override
+  String get statsInsightTitle => 'Listening insight';
 
   @override
   String get system => 'System';
@@ -1836,6 +1890,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yourMixes => 'Your Mixes';
+
+  @override
+  String get mixForThisMoment => 'Mix for this moment';
+
+  @override
+  String get mixForThisMomentHint =>
+      'Describe a vibe — Sonora builds a queue from your library and catalog';
+
+  @override
+  String get momentMixPromptHint => 'Calm for the train, rock to focus…';
+
+  @override
+  String momentMixTrackCount(int count) {
+    return '$count tracks';
+  }
+
+  @override
+  String get momentMixInterpretFailed => 'Couldn’t understand that mix request';
+
+  @override
+  String get momentMixEmpty => 'No tracks matched this moment';
+
+  @override
+  String get momentMixOfflineYtm =>
+      'Catalog mixes need a connection — try a library vibe instead';
+
+  @override
+  String get momentMixOfflineNote =>
+      'Offline: mixes use your listening history only';
+
+  @override
+  String get mixMoodCalm => 'Calm';
+
+  @override
+  String get mixMoodEnergetic => 'Energetic';
+
+  @override
+  String get mixMoodFocus => 'Focus';
+
+  @override
+  String get mixMoodHappy => 'Happy';
+
+  @override
+  String get mixMoodMelancholic => 'Melancholic';
+
+  @override
+  String get mixMoodRomantic => 'Romantic';
+
+  @override
+  String get mixMoodWorkout => 'Workout';
+
+  @override
+  String get mixMoodParty => 'Party';
+
+  @override
+  String get mixMoodChill => 'Chill';
+
+  @override
+  String get mixEnergyLow => 'Low energy';
+
+  @override
+  String get mixEnergyMedium => 'Medium energy';
+
+  @override
+  String get mixEnergyHigh => 'High energy';
 
   @override
   String get useVinylStyle => 'Vinyl style artwork';

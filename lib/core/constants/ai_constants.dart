@@ -15,3 +15,9 @@ const kAskLlmDownloadUrl =
 
 /// Approximate download size shown in Settings (~345 MB).
 const kAskLlmApproxSizeMb = 345;
+
+/// Default Gemini model id for Cloud Ask (Genkit `googleAI.gemini`).
+const kAskGeminiModelId = 'gemini-flash-latest';
+
+/// Soft timeout for a single Gemini completion.
+const kAskGeminiTimeout = Duration(seconds: 45);
