@@ -151,6 +151,12 @@ class TrackUrlResolver {
     }
 
     await resolveSinglePendingItem(currentIndex);
+    // Look-ahead must not keep probing YouTube while a 429 cool-down is open.
+    if (_streamDatasource.isRateLimited) {
+      _lookaheadTimer?.cancel();
+      return;
+    }
+
     await resolveSinglePendingItem(currentIndex + 1);
 
     // Always re-read playlist after resolve — a captured snapshot would still
@@ -159,12 +165,14 @@ class TrackUrlResolver {
 
     _lookaheadTimer?.cancel();
     _lookaheadTimer = Timer(const Duration(seconds: 20), () async {
+      if (_streamDatasource.isRateLimited) return;
       final actualIndex = _engine.state.playlist.index;
       if (actualIndex == currentIndex && _engine.state.playing) {
         await resolveSinglePendingItem(currentIndex + 2);
         _prefetchDiskCacheAt(currentIndex + 2);
 
         await Future.delayed(const Duration(seconds: 3));
+        if (_streamDatasource.isRateLimited) return;
         final finalIndex = _engine.state.playlist.index;
         if (finalIndex == currentIndex && _engine.state.playing) {
           await resolveSinglePendingItem(currentIndex + 3);
@@ -176,7 +184,7 @@ class TrackUrlResolver {
 
   /// Kicks off a disk cache download for [index] using a fresh playlist read.
   void _prefetchDiskCacheAt(int index) {
-    if (_isForcedOffline()) {
+    if (_isForcedOffline() || _streamDatasource.isRateLimited) {
       return;
     }
     final playlist = _engine.state.playlist;
@@ -271,15 +279,10 @@ class TrackUrlResolver {
     _lastResolveFailureKind = null;
     _queueController.beginResolving();
     try {
-      // The active (currently playing/selected) item gets enough headroom
-      // to survive PlayVideoIdUseCase.streamUrlTimeout's full anti-429
-      // back-off cycle — aborting early here would defeat that back-off and
-      // strand playback on a dummy/expired URL for no reason (this is the
-      // #1 cause of "tapping a queue item does nothing" after the app has
-      // been idle for a while). Background (look-ahead) items use a much
-      // shorter bound since they are not blocking playback and will simply
-      // be re-resolved once they actually become current.
+      // The active item gets the full streamUrlTimeout (+slack). Background
+      // look-ahead uses a shorter bound so idle prefetch cannot pile up.
       final isCurrent = treatAsCurrent ?? (index == playlist.index);
+      if (!isCurrent && _streamDatasource.isRateLimited) return;
       final url = await _playVideoIdUseCase
           .resolveUrl(videoId)
           .timeout(

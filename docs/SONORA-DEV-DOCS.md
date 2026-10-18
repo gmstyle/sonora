@@ -43,7 +43,8 @@ lib/
 │   │   ├── app_constants.dart         # kAppVersion, kGitHubRepo*, breakpoints
 │   │   └── api_constants.dart         # gl/hl defaults
 │   ├── errors/
-│   │   └── failures.dart              # sealed class Failure (4 variants)
+│   │   ├── failures.dart              # sealed class Failure (4 variants)
+│   │   └── youtube_rate_limited_exception.dart # Post-429 cool-down fail-fast
 │   ├── extensions/
 │   │   ├── duration_ext.dart           # Duration → "3:45"
 │   │   ├── stat_format.dart            # int.toCompact(), stripYtLabel(), nullIfEmpty
@@ -71,7 +72,9 @@ lib/
 │   │   └── remote/
 │   │       ├── ytmusic_datasource.dart # Wrapper for dart_ytmusic_api
 │   │       ├── spotify_playlist_datasource.dart # Public Spotify embed → track list
-│   │       └── stream_datasource.dart  # youtube_explode_dart → stream URL (quality-aware)
+│   │       ├── stream_datasource.dart  # youtube_explode_dart → stream URL (quality-aware)
+│   │       ├── ytm_session_http_client.dart # Shared YTM cookies/visitor for explode
+│   │       └── youtube_request_scheduler.dart # Concurrency + 429 cool-down gate
 │   ├── repositories/
 │   │   ├── music_repository_impl.dart
 │   │   ├── library_repository_impl.dart
@@ -430,9 +433,11 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
     - `qa` — streaming audio quality from `Settings.streamAudioQuality` (built by `QueueController.toMedia`).
     - Catalog music videos use the same audio-only proxy path.
   - **Fast Disk Cache Serving**: Checks `MediaCacheService` first for every request. If the track is cached on disk (`sonora_media_cache`), serves byte chunks directly with full `Range: bytes=...` support (`206 Partial Content`) for instant seeking with zero network usage (audio webm/mp3). Muxed `{id}.mp4` and video-only `{id}.v.*` leftovers are ignored.
-  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:)` and `YoutubeRequestScheduler`.
-  - **Transparent Auto-Retry & URL Refresh**: If YouTube returns `403` (expired URL token), `429` (rate limit), or a socket drop mid-stream, the proxy intercepts the failure *before* it reaches `just_audio`, invalidates `StreamDatasource`'s cache for that video, resolves a fresh YouTube URL with the same audio quality, and retries up to 3 times automatically. The engine sees only a smooth local stream without throwing unrecoverable player crashes.
-  - **Background Cache Population**: As remote streams play, audio is saved asynchronously via `StreamDatasource.cacheAudio` → youtube_explode `StreamClient` (same authenticated downloader as library downloads; not a raw Dio GET). Lookahead prefetch (`TrackUrlResolver`) uses the same path. Changing stream audio quality clears this cache.
+  - **Remote Proxying with Anti-429 Resilience**: If not cached, fetches the remote stream URL via `StreamDatasource.getStreamUrl(videoId, audioQuality:)` and `YoutubeRequestScheduler` (bounded concurrency, min spacing, post-429 cool-down).
+  - **Transparent Auto-Retry & URL Refresh**: On CDN `403` or `5xx`, the proxy invalidates the cached plan, resolves a fresh URL, and retries (up to 3). On CDN `429` it opens the shared cool-down and does **not** cascade into more Innertube manifest calls. Socket drops still refresh the URL when the cool-down is inactive.
+  - **YTM session bridge**: `StreamDatasource` builds `YoutubeExplode` with `YtmSessionHttpClient`, which injects the shared `YTMusic` cookie jar (`SOCS`/`CONSENT`) and `VISITOR_DATA` into explode requests so catalog and stream resolution share one anonymous session.
+  - **Manifest path**: Prefer `visionos` + `androidVr` with `requireWatchPage: false`; only then try `tv` (still without a forced watch-page fetch). HTTP 429 trips a ~15 min cool-down (`YoutubeRateLimitedException` fail-fast); look-ahead resolve and `cacheAudio` pause while cooling down.
+  - **Background Cache Population**: As remote streams play, audio is saved asynchronously via `StreamDatasource.cacheAudio` → youtube_explode `StreamClient` (same authenticated downloader as library downloads; not a raw Dio GET). Lookahead prefetch (`TrackUrlResolver`) uses the same path and skips work during cool-down. Changing stream audio quality clears this cache.
   - After URL resolve / restore / retry, `QueueController.endResolving` fires `onResolvingIdle` (e.g. persist playback pointer). Pause/stop persist index + videoId + position together (`persistPlaybackPointer`).
 
 - **Stream quality selection (`StreamQualitySelector` + `MediaQuality`)**:
@@ -446,7 +451,7 @@ Sonora uses `just_audio` as its core audio engine (ExoPlayer on Android, libmpv 
   - **Transparent Stream Cache** (`LocalAudioProxyServer` + `MediaCacheService`): Automatic background buffering during online playback (audio-only). Saved to temporary cache (`sonora_media_cache`) with a user-configurable LRU size cap. Routed via local proxy loopback URLs; `file://` audio-only cache hits also bypass the proxy in `QueueController.toMedia`.
 
 **Lazy URL Resolution (Adaptive Lookahead)** — owned by `TrackUrlResolver`:
-Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When the playlist index changes, the resolver resolves the URL for the current item and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background timer pre-resolves `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. This prevents YouTube Music rate-limiting (HTTP 429) while maintaining a buffer for instant skips.
+Related Items (up-next/auto-play) are added to the queue as **pending** (`extras['needsUrl'] = true`). When the playlist index changes, the resolver resolves the URL for the current item and the next item (`currentIndex + 1`) immediately to guarantee a seamless transition. If the current track plays stably for more than **20 seconds**, a background timer pre-resolves `currentIndex + 2` and `currentIndex + 3` (throttled with a 3-second delay). If the user skips, stops, or clears the queue, the pending timer is cancelled. While `StreamDatasource.isRateLimited` is true, look-ahead resolve and disk prefetch stop so cool-down is not extended.
 
 `skipToQueueItem` jumps immediately when the engine URI is already playable (local proxy or `file://`), even if `needsUrl` is still true. YouTube resolve runs in the background after the jump. Shuffle skip targets a random index that lookahead did not prefetch; blocking on Innertube before the jump was a 1–2s stall. The dummy placeholder (`http://localhost/dummy_…`) is the only URI that still blocks skip. `QueueController.replaceAt` uses `PlaybackEngine.replace` (just_audio: remove + insert at index) rather than remove → add → move, which threw `IllegalArgumentException` in ExoPlayer on Android.
 
@@ -1039,7 +1044,7 @@ On first launch after an upgrade, `migrateLegacySettingsPrefs` copies leftover `
 | `test/android_auto_recent_test.dart` | 3 | AA recent-items node |
 | `test/core/extensions/duration_ext_test.dart` | 3 | `Duration` → `"3:45"` |
 | `test/media_cache_size_test.dart` | 3 | Cache size accounting |
-| `test/youtube_request_scheduler_test.dart` | 3 | Request throttling |
+| `test/youtube_request_scheduler_test.dart` | 5 | Request throttling + 429 cool-down |
 | `test/queue_repository_test.dart` | 1 | Queue persist / restore round-trip |
 
 `test/ytmusic_datasource_test.dart` hits the live YouTube Music API and can fail offline. CI runs `flutter test --exclude-tags integration` so these live-network tests do not gate validate/release.

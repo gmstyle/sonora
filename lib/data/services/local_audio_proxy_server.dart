@@ -17,8 +17,8 @@ import 'media_cache_service.dart';
 /// - Serves locally cached media files directly from disk if available
 /// - Supports HTTP Range requests for instant seek/scrubbing
 /// - Transparently fetches remote stream URLs via [StreamDatasource]
-/// - Retries and auto-refreshes expired/rate-limited YouTube URLs (HTTP 403/429)
-///   without throwing unrecoverable errors to the engine
+/// - Retries and auto-refreshes expired YouTube URLs (HTTP 403 / 5xx); on CDN
+///   HTTP 429 opens the shared cool-down instead of refreshing the manifest
 class LocalAudioProxyServer {
   final StreamDatasource _streamDatasource;
   final MediaCacheService _mediaCacheService;
@@ -273,13 +273,30 @@ class LocalAudioProxyServer {
 
         final response = await request.close();
 
-        if (response.statusCode == 403 ||
-            response.statusCode == 429 ||
-            response.statusCode >= 500) {
+        if (response.statusCode == 429) {
+          // CDN rate-limit: do not cascade into more Innertube manifest calls.
+          dev.log(
+            '[LocalAudioProxyServer] Remote stream HTTP 429 for $videoId — entering cool-down.',
+          );
+          client.close();
+          _streamDatasource.reportRateLimit();
+          return Response(
+            429,
+            body: 'YouTube rate-limited the stream for $videoId',
+          );
+        }
+
+        if (response.statusCode == 403 || response.statusCode >= 500) {
           dev.log(
             '[LocalAudioProxyServer] Remote stream returned HTTP ${response.statusCode} for $videoId (attempt $attempts). Refreshing URL...',
           );
           client.close();
+          if (_streamDatasource.isRateLimited) {
+            return Response(
+              503,
+              body: 'YouTube rate-limit cool-down active for $videoId',
+            );
+          }
           _streamDatasource.invalidateCache(videoId);
           currentUrl = await _streamDatasource.getStreamUrl(
             videoId,

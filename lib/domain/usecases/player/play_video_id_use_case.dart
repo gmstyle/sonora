@@ -28,15 +28,9 @@ class PlayVideoIdUseCase {
 
   /// Upper bound for a single stream-URL resolution.
   ///
-  /// [StreamDatasource.getStreamUrl] retries up to 3 times on a YouTube 429
-  /// (`RequestLimitExceededException`) with a 5s then 15s back-off between
-  /// attempts (~20s of waiting alone, plus the network calls themselves).
-  /// This timeout MUST stay comfortably above that worst case, otherwise the
-  /// caller gives up (and the caller-side code treats it as a hard failure)
-  /// before the datasource's own anti-429 back-off had a chance to succeed —
-  /// which defeats the whole point of the back-off and can even cause a
-  /// pile-up of abandoned-but-still-running requests that make the 429
-  /// situation worse.
+  /// Manifest resolution no longer retries HTTP 429 (a cool-down circuit
+  /// fails fast instead). The budget covers Innertube client fallbacks and
+  /// scheduler spacing under load — not multi-minute rate-limit back-offs.
   static const Duration streamUrlTimeout = Duration(seconds: 40);
 
   Future<MediaItem> execute(

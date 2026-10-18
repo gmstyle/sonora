@@ -9,7 +9,9 @@ import '../../../core/utils/url_staleness.dart';
 import '../../../domain/media/stream_quality_selector.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../services/media_cache_service.dart';
+import '../../../core/errors/youtube_rate_limited_exception.dart';
 import 'youtube_request_scheduler.dart';
+import 'ytm_session_http_client.dart';
 
 /// Cached URL for one videoId + audio quality combination.
 class PlaybackUrlPlan {
@@ -21,7 +23,7 @@ class PlaybackUrlPlan {
 }
 
 class StreamDatasource {
-  final YoutubeExplode _yt = YoutubeExplode();
+  final YoutubeExplode _yt;
 
   /// Shared gate for every outbound request this datasource makes to
   /// YouTube (manifest fetches for both playback and downloads). See
@@ -36,12 +38,18 @@ class StreamDatasource {
   MediaQuality Function() getDefaultAudioQuality;
 
   StreamDatasource({
+    YoutubeExplode? youtubeExplode,
     YoutubeRequestScheduler? scheduler,
     StreamQualitySelector? selector,
     MediaQuality Function()? getDefaultAudioQuality,
     @Deprecated('Use getDefaultAudioQuality')
     MediaQuality Function()? getDefaultQuality,
-  }) : _scheduler = scheduler ?? YoutubeRequestScheduler.shared,
+  }) : _yt =
+           youtubeExplode ??
+           YoutubeExplode(
+             httpClient: YoutubeHttpClient(YtmSessionHttpClient()),
+           ),
+       _scheduler = scheduler ?? YoutubeRequestScheduler.shared,
        _selector = selector ?? const StreamQualitySelector(),
        getDefaultAudioQuality =
            getDefaultAudioQuality ??
@@ -51,12 +59,26 @@ class StreamDatasource {
   /// In-memory playback plans: `videoId|audioQ` → URL.
   final Map<String, PlaybackUrlPlan> _playbackCache = {};
 
+  /// True while the shared scheduler is in a post-429 cool-down.
+  bool get isRateLimited => _scheduler.isCoolingDown;
+
+  /// Remaining cool-down, or `null` when stream resolution is allowed.
+  Duration? get rateLimitRetryAfter => _scheduler.coolDownRemaining;
+
+  /// Opens the cool-down without waiting for the next manifest call
+  /// (e.g. CDN HTTP 429 observed by the local audio proxy).
+  void reportRateLimit([Duration? duration]) =>
+      _scheduler.enterCoolDown(duration);
+
   static String playbackKey(
     String videoId, {
     required MediaQuality audioQuality,
   }) => '$videoId|${audioQuality.name}';
 
   /// Ensures a stream URL is resolved and cached for [videoId].
+  ///
+  /// Does **not** retry HTTP 429: a rate-limit trips the scheduler cool-down
+  /// and further calls fail fast with [YoutubeRateLimitedException].
   Future<PlaybackUrlPlan> ensurePlaybackSelection(
     String videoId, {
     MediaQuality? audioQuality,
@@ -71,24 +93,18 @@ class StreamDatasource {
     }
 
     try {
-      final manifest = await _scheduler.schedule(
-        () => _yt.videos.streamsClient.getManifest(videoId),
-      );
+      final manifest = await _fetchManifest(videoId);
       final selection = _selector.select(manifest, quality: resolvedAudio);
       final primaryUrl = selection.url.toString();
       _assertAbsoluteHttpUrl(primaryUrl, 'primary');
       final plan = PlaybackUrlPlan(primaryUrl: primaryUrl);
       _playbackCache[key] = plan;
       return plan;
+    } on YoutubeRateLimitedException {
+      rethrow;
     } on RequestLimitExceededException {
-      if (attempt >= 3) rethrow;
-      final delaySeconds = attempt == 1 ? 5 : 15;
-      await Future.delayed(Duration(seconds: delaySeconds));
-      return ensurePlaybackSelection(
-        videoId,
-        audioQuality: resolvedAudio,
-        attempt: attempt + 1,
-      );
+      _scheduler.enterCoolDown();
+      rethrow;
     } on ArgumentError catch (_) {
       // youtube_explode can surface "No host specified in URI" when a
       // transient empty stream URL slips through; one retry usually recovers.
@@ -102,6 +118,46 @@ class StreamDatasource {
     }
   }
 
+  /// Resolves a [StreamManifest] without the library's automatic TV + watch
+  /// page cascade on the first pass (that `GET /watch` is what most often
+  /// returns HTTP 429 once the IP is warm).
+  Future<StreamManifest> _fetchManifest(String videoId) {
+    return _scheduler.schedule(() async {
+      try {
+        return await _yt.videos.streamsClient.getManifest(
+          videoId,
+          ytClients: const [
+            YoutubeApiClient.visionos,
+            YoutubeApiClient.androidVr,
+          ],
+          requireWatchPage: false,
+        );
+      } on RequestLimitExceededException {
+        _scheduler.enterCoolDown();
+        rethrow;
+      } catch (first, firstStack) {
+        // Prefer failing during cool-down over a second cascade.
+        if (_scheduler.isCoolingDown) {
+          Error.throwWithStackTrace(first, firstStack);
+        }
+        try {
+          return await _yt.videos.streamsClient.getManifest(
+            videoId,
+            ytClients: [YoutubeApiClient.tv],
+            requireWatchPage: false,
+          );
+        } on RequestLimitExceededException {
+          _scheduler.enterCoolDown();
+          rethrow;
+        } catch (_) {
+          // Surface the first failure (usually LOGIN_REQUIRED / empty
+          // streams) rather than masking it with the TV fallback error.
+          Error.throwWithStackTrace(first, firstStack);
+        }
+      }
+    });
+  }
+
   static void _assertAbsoluteHttpUrl(String url, String label) {
     final uri = Uri.tryParse(url);
     if (uri == null ||
@@ -113,36 +169,18 @@ class StreamDatasource {
 
   /// Resolves the stream URL for [videoId], serving from the in-memory cache
   /// when the cached URL is still valid.
-  ///
-  /// On [RequestLimitExceededException] (YouTube rate limiting), retries up to
-  /// 3 times with exponential back-off (5 s → 15 s → 30 s) before re-throwing.
   Future<String> getStreamUrl(
     String videoId, {
     MediaQuality? audioQuality,
-    int attempt = 1,
   }) async {
-    final resolvedAudio = audioQuality ?? getDefaultAudioQuality();
-
-    try {
-      final plan = await ensurePlaybackSelection(
-        videoId,
-        audioQuality: resolvedAudio,
-      );
-      return plan.primaryUrl;
-    } on RequestLimitExceededException {
-      if (attempt >= 3) rethrow;
-      final delaySeconds = attempt == 1 ? 5 : 15;
-      await Future.delayed(Duration(seconds: delaySeconds));
-      return getStreamUrl(
-        videoId,
-        audioQuality: resolvedAudio,
-        attempt: attempt + 1,
-      );
-    }
+    final plan = await ensurePlaybackSelection(
+      videoId,
+      audioQuality: audioQuality ?? getDefaultAudioQuality(),
+    );
+    return plan.primaryUrl;
   }
 
-  Future<StreamManifest> getManifest(String videoId) =>
-      _scheduler.schedule(() => _yt.videos.streamsClient.getManifest(videoId));
+  Future<StreamManifest> getManifest(String videoId) => _fetchManifest(videoId);
 
   /// Writes [stream] to [filePath] using youtube_explode's HTTP client.
   ///
@@ -215,8 +253,9 @@ class StreamDatasource {
   /// the same authenticated [StreamClient] as library downloads.
   ///
   /// Failures are logged and swallowed so lookahead / background cache never
-  /// interrupts playback.
+  /// interrupts playback. Skips entirely during a rate-limit cool-down.
   Future<void> cacheAudio(String videoId, {MediaQuality? audioQuality}) async {
+    if (_scheduler.isCoolingDown) return;
     try {
       final cache = MediaCacheService.instance;
       if (await cache.getCachedFileUri(videoId) != null) return;
@@ -236,6 +275,9 @@ class StreamDatasource {
             ),
       );
     } catch (e) {
+      if (e is RequestLimitExceededException) {
+        _scheduler.enterCoolDown();
+      }
       dev.log('[StreamDatasource] cacheAudio failed for $videoId: $e');
     }
   }

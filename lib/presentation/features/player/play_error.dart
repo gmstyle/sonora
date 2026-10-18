@@ -1,5 +1,7 @@
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+import '../../../core/errors/youtube_rate_limited_exception.dart';
+
 /// Why a queue track failed to play.
 enum PlayErrorKind {
   /// Permanently unavailable (age-gate, geo, removed, etc.).
@@ -16,6 +18,10 @@ enum PlayErrorKind {
         error is VideoUnavailableException) {
       return PlayErrorKind.unplayable;
     }
+    if (error is YoutubeRateLimitedException ||
+        error is RequestLimitExceededException) {
+      return PlayErrorKind.network;
+    }
     final s = error.toString().toLowerCase();
     if (s.contains('videounplayable') ||
         s.contains('videounavailable') ||
@@ -23,7 +29,11 @@ enum PlayErrorKind {
         s.contains('sign in to confirm your age')) {
       return PlayErrorKind.unplayable;
     }
-    if (s.contains('socketexception') ||
+    if (s.contains('youtuberatelimited') ||
+        s.contains('requestlimitexceeded') ||
+        s.contains('rate limit') ||
+        s.contains('rate-limit') ||
+        s.contains('socketexception') ||
         s.contains('timeout') ||
         s.contains('network') ||
         s.contains('connection failed') ||

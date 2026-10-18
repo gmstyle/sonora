@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
+import '../../../core/errors/youtube_rate_limited_exception.dart';
+
 /// Global gate for every outbound request this app makes to YouTube
 /// (stream URL / manifest resolution for playback and downloads).
 ///
@@ -24,6 +26,9 @@ import 'dart:collection';
 ///    request will not *start* less than [minSpacing] after the previous
 ///    one started, smoothing out bursts instead of firing several requests
 ///    in the same instant.
+///  - **Cool-down circuit**: after a YouTube HTTP 429, [enterCoolDown] blocks
+///    further scheduled work for [coolDown] so retries and prefetch cannot
+///    extend the IP-level block.
 ///
 /// A single, process-wide instance ([shared]) is used by both playback URL
 /// resolution and downloads, since they all draw from the same YouTube-side
@@ -31,7 +36,8 @@ import 'dart:collection';
 class YoutubeRequestScheduler {
   YoutubeRequestScheduler({
     this.maxConcurrent = 2,
-    this.minSpacing = const Duration(milliseconds: 400),
+    this.minSpacing = const Duration(milliseconds: 600),
+    this.coolDown = const Duration(minutes: 15),
   });
 
   /// Shared instance used across the app. Tests may construct their own
@@ -42,6 +48,9 @@ class YoutubeRequestScheduler {
   final int maxConcurrent;
   final Duration minSpacing;
 
+  /// How long to refuse new work after [enterCoolDown].
+  final Duration coolDown;
+
   int _active = 0;
 
   /// The earliest time the *next* request is allowed to start. Reserved
@@ -50,18 +59,62 @@ class YoutubeRequestScheduler {
   /// slot instead of all computing their wait relative to the same stale
   /// "last start" timestamp and waking up simultaneously.
   DateTime? _nextAllowedStart;
+  DateTime? _coolDownUntil;
   final Queue<Completer<void>> _waiters = Queue<Completer<void>>();
+
+  /// True while a cool-down started by [enterCoolDown] is still active.
+  bool get isCoolingDown {
+    final until = _coolDownUntil;
+    if (until == null) return false;
+    if (!DateTime.now().isBefore(until)) {
+      _coolDownUntil = null;
+      return false;
+    }
+    return true;
+  }
+
+  /// Remaining cool-down, or `null` when not cooling down.
+  Duration? get coolDownRemaining {
+    if (!isCoolingDown) return null;
+    return _coolDownUntil!.difference(DateTime.now());
+  }
+
+  /// Opens the cool-down circuit. Further [schedule] calls fail fast with
+  /// [YoutubeRateLimitedException] until [coolDown] elapses (or a longer
+  /// remaining cool-down already in effect ends).
+  void enterCoolDown([Duration? duration]) {
+    final until = DateTime.now().add(duration ?? coolDown);
+    if (_coolDownUntil == null || until.isAfter(_coolDownUntil!)) {
+      _coolDownUntil = until;
+    }
+  }
+
+  /// Clears any active cool-down (tests / manual recovery).
+  void clearCoolDown() {
+    _coolDownUntil = null;
+  }
 
   /// Runs [action] once a concurrency slot is available and the minimum
   /// spacing since the last request start has elapsed. Requests are
   /// released as soon as [action] completes (successfully or not), so a
   /// failing request never holds up the queue.
+  ///
+  /// Throws [YoutubeRateLimitedException] immediately when cooling down.
   Future<T> schedule<T>(Future<T> Function() action) async {
+    _throwIfCoolingDown();
     await _acquire();
     try {
+      _throwIfCoolingDown();
       return await action();
     } finally {
       _release();
+    }
+  }
+
+  void _throwIfCoolingDown() {
+    final remaining = coolDownRemaining;
+    if (remaining != null) {
+      throw YoutubeRateLimitedException(remaining);
     }
   }
 

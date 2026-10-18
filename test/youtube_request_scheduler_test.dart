@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sonora/core/errors/youtube_rate_limited_exception.dart';
 import 'package:sonora/data/datasources/remote/youtube_request_scheduler.dart';
 
 /// Covers the anti-429 concurrency gate: at most [maxConcurrent] actions run
@@ -85,5 +86,39 @@ void main() {
         .schedule(() async => 'ok')
         .timeout(const Duration(seconds: 2));
     expect(result, 'ok');
+  });
+
+  test('cool-down fails fast and clears after the duration', () async {
+    final scheduler = YoutubeRequestScheduler(
+      maxConcurrent: 1,
+      minSpacing: Duration.zero,
+      coolDown: const Duration(milliseconds: 80),
+    );
+
+    scheduler.enterCoolDown();
+    expect(scheduler.isCoolingDown, isTrue);
+    await expectLater(
+      scheduler.schedule(() async => 'nope'),
+      throwsA(isA<YoutubeRateLimitedException>()),
+    );
+
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(scheduler.isCoolingDown, isFalse);
+    expect(await scheduler.schedule(() async => 'ok'), 'ok');
+  });
+
+  test('enterCoolDown keeps the longer remaining window', () async {
+    final scheduler = YoutubeRequestScheduler(
+      maxConcurrent: 1,
+      minSpacing: Duration.zero,
+      coolDown: const Duration(minutes: 15),
+    );
+
+    scheduler.enterCoolDown(const Duration(milliseconds: 50));
+    scheduler.enterCoolDown(const Duration(milliseconds: 200));
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    expect(scheduler.isCoolingDown, isTrue);
+    scheduler.clearCoolDown();
+    expect(scheduler.isCoolingDown, isFalse);
   });
 }
