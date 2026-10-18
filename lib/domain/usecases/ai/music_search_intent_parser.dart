@@ -28,6 +28,7 @@ class MusicSearchIntentParser {
 
     return MusicSearchIntent(
       searchQuery: searchQuery.trim(),
+      title: _mixTitle(map['title']),
       mood: _string(map['mood']),
       genres: _stringList(map['genres']),
       era: _string(map['era']),
@@ -36,6 +37,24 @@ class MusicSearchIntentParser {
       source: MixSource.parse(_string(map['source'])),
       energy: MixEnergy.parse(_string(map['energy'])),
     );
+  }
+
+  /// Optional mix card / playlist name; null when missing or empty after cleanup.
+  String? _mixTitle(Object? value) {
+    final raw = _string(value);
+    if (raw == null) return null;
+    var t = raw.replaceAll(RegExp(r'[\r\n]+'), ' ');
+    t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if ((t.startsWith('"') && t.endsWith('"')) ||
+        (t.startsWith("'") && t.endsWith("'"))) {
+      t = t.substring(1, t.length - 1).trim();
+    }
+    if (t.isEmpty) return null;
+    const maxLen = 48;
+    if (t.length > maxLen) {
+      t = t.substring(0, maxLen).trimRight();
+    }
+    return t.isEmpty ? null : t;
   }
 
   String? _composeQuery(Map<String, dynamic> map) {

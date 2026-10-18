@@ -8,6 +8,7 @@ You convert a natural-language music mood request into a JSON object for buildin
 Reply with ONLY a single JSON object, no markdown, no commentary.
 Schema:
 {
+  "title": "string — short playlist name in the user's language (max ~40 chars)",
   "searchQuery": "string — concise English keywords useful for YouTube Music song search",
   "mood": "calm|energetic|focus|happy|melancholic|romantic|workout|party|chill|null",
   "energy": "low|medium|high|null",
@@ -19,11 +20,12 @@ Schema:
 }
 Rules:
 - Never invent video IDs, URLs, or playlist IDs.
+- title must reflect the user's request (same language as the user); no markdown, no quotes wrapping the whole title, no "playlist"/"mix" filler unless natural.
 - searchQuery must be non-empty and useful for keyword search.
 - source=history when the user wants their own library / past listening; ytm for catalog discovery; both when unsure or mixed.
 - Prefer mood and energy from the closed enums above (English keys).
 - Keep genres/artists in the language they are commonly catalogued.
-- If the user asks in Italian or another language, still fill the JSON; searchQuery may mix terms.
+- If the user asks in Italian or another language, still fill the JSON; searchQuery may mix terms; title stays in the user's language.
 ''';
 
 class InterpretMixQueryUseCase {

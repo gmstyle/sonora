@@ -33,6 +33,21 @@ void main() {
     expect(intent.mixMood, MixMood.calm);
   });
 
+  test('parses and sanitizes mix title', () {
+    const raw = '''
+{"title":"  Chill in treno  ","searchQuery":"chill train","mood":"chill","energy":"medium","contentType":"songs"}
+''';
+    final intent = parser.parse(raw)!;
+    expect(intent.title, 'Chill in treno');
+  });
+
+  test('omits empty mix title', () {
+    const raw =
+        '{"title":"","searchQuery":"chill","mood":"chill","contentType":"songs"}';
+    final intent = parser.parse(raw)!;
+    expect(intent.title, isNull);
+  });
+
   test('maps liked and catalog aliases to MixSource', () {
     expect(
       parser

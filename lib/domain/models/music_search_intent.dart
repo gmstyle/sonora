@@ -5,6 +5,7 @@
 class MusicSearchIntent {
   const MusicSearchIntent({
     required this.searchQuery,
+    this.title,
     this.mood,
     this.genres = const [],
     this.era,
@@ -16,6 +17,10 @@ class MusicSearchIntent {
 
   /// Keyword query to send to YouTube Music search.
   final String searchQuery;
+
+  /// Short playlist / card name in the user's language (mix path). Optional.
+  final String? title;
+
   final String? mood;
   final List<String> genres;
   final String? era;

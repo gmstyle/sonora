@@ -294,9 +294,12 @@ class _MomentMixResultCard extends StatelessWidget {
   }
 }
 
-/// Builds a card title from mood/energy enums via l10n — never LLM prose.
+/// Card / save name: prefer LLM [MusicSearchIntent.title], else mood · energy l10n.
 String momentMixTitle(AppLocalizations l10n, MusicSearchIntent? intent) {
   if (intent == null) return l10n.mixForThisMoment;
+
+  final llmTitle = intent.title?.trim();
+  if (llmTitle != null && llmTitle.isNotEmpty) return llmTitle;
 
   final moodLabel = switch (intent.mixMood) {
     MixMood.calm => l10n.mixMoodCalm,
