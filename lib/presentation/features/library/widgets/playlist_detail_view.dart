@@ -12,6 +12,7 @@ import '../../../providers/download_provider.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/library_notifier.dart';
+import '../../../providers/play_local_playlist_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -447,7 +448,9 @@ class _PlaylistDetailContentState
       final entries = await ref.read(
         playlistEntriesProvider(widget.playlist.id).future,
       );
-      await _buildMediaItemsAndPlay(entries, startIndex: 0);
+      await ref
+          .read(playerStateProvider.notifier)
+          .playLocalPlaylist(entries, startIndex: 0);
     } catch (e) {
       debugPrint('Failed to play local playlist: $e');
       ref
@@ -466,7 +469,9 @@ class _PlaylistDetailContentState
         playlistEntriesProvider(widget.playlist.id).future,
       );
       final shuffled = List<PlaylistEntryModel>.from(entries)..shuffle();
-      await _buildMediaItemsAndPlay(shuffled, startIndex: 0);
+      await ref
+          .read(playerStateProvider.notifier)
+          .playLocalPlaylist(shuffled, startIndex: 0);
     } catch (e) {
       debugPrint('Failed to shuffle play local playlist: $e');
       ref
@@ -501,8 +506,8 @@ class _PlaylistDetailContentState
         playlistEntriesProvider(widget.playlist.id).future,
       );
       final items = await ref
-          .read(libraryNotifierProvider.notifier)
-          .buildLocalPlaylistItems(entries, playIndex: -1);
+          .read(playLocalPlaylistUseCaseProvider)
+          .execute(entries, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       ref
           .read(actionFeedbackProvider.notifier)
@@ -600,17 +605,6 @@ class _PlaylistDetailContentState
         });
       }
     }
-  }
-
-  Future<void> _buildMediaItemsAndPlay(
-    List<PlaylistEntryModel> entries, {
-    required int startIndex,
-  }) async {
-    final player = ref.read(playerStateProvider.notifier);
-    final items = await ref
-        .read(libraryNotifierProvider.notifier)
-        .buildLocalPlaylistItems(entries, playIndex: startIndex);
-    await player.playNow(items, initialIndex: startIndex);
   }
 }
 

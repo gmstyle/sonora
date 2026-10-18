@@ -8,7 +8,6 @@ import '../../features/library/providers/library_provider.dart';
 import '../../features/library/widgets/playlist_detail_view.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../providers/library_notifier.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'shelf_card_layout.dart';
@@ -61,10 +60,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
         final entries = await ref.read(
           playlistEntriesProvider(widget.localPlaylistId!).future,
         );
-        final items = await ref
-            .read(libraryNotifierProvider.notifier)
-            .buildLocalPlaylistItems(entries, playIndex: 0);
-        await player.playNow(items, initialIndex: 0);
+        await player.playLocalPlaylist(entries, startIndex: 0);
       } else if (widget.playlistId != null) {
         final songs = await ref.read(
           playlistVideosProvider(widget.playlistId!).future,

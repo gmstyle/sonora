@@ -1,13 +1,10 @@
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/library_models.dart';
-import '../../domain/models/queue_track.dart';
 import '../../domain/repositories/library_repository.dart';
 import '../../domain/repositories/music_repository.dart';
 import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
-import 'play_video_id_use_case_provider.dart';
 
 // ── Single-item query providers ───────────────────────────────────────────────
 
@@ -187,6 +184,115 @@ class LibraryNotifier extends Notifier<void> {
     await _repo.createPlaylist(name);
   }
 
+  /// Creates a local playlist and fills it with [tracks] (history / liked rows).
+  Future<LocalPlaylistModel> createPlaylistWithTracks(
+    String name,
+    List<dynamic> tracks,
+  ) async {
+    final id = await _repo.createPlaylist(name);
+    final seen = <String>{};
+    final entries = <PlaylistEntryModel>[];
+    for (final track in tracks) {
+      final videoId = _trackVideoId(track);
+      if (videoId == null || videoId.isEmpty || seen.contains(videoId)) {
+        continue;
+      }
+      seen.add(videoId);
+      entries.add(
+        PlaylistEntryModel(
+          playlistId: id,
+          videoId: videoId,
+          position: entries.length,
+          title: _trackTitle(track),
+          artist: _trackArtist(track),
+          artistsJson: track is LikedSongModel ? track.artistsJson : null,
+          thumbnailUrl: _trackThumbnail(track),
+          duration: _trackDuration(track),
+          isVideo: _trackIsVideo(track),
+          isExplicit: _trackIsExplicit(track),
+        ),
+      );
+    }
+    if (entries.isNotEmpty) {
+      await _repo.replacePlaylistEntries(id, entries);
+    }
+    final playlist = await _repo.getPlaylist(id);
+    if (playlist == null) {
+      return LocalPlaylistModel(id: id, name: name, createdAt: DateTime.now());
+    }
+    return playlist;
+  }
+
+  String? _trackVideoId(dynamic track) {
+    if (track is HistoryModel) return track.videoId;
+    if (track is LikedSongModel) return track.videoId;
+    try {
+      return track.videoId as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _trackTitle(dynamic track) {
+    if (track is HistoryModel) return track.title;
+    if (track is LikedSongModel) return track.title;
+    try {
+      return track.title as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _trackArtist(dynamic track) {
+    if (track is HistoryModel) return track.artist;
+    if (track is LikedSongModel) return track.artist;
+    try {
+      return track.artist as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _trackThumbnail(dynamic track) {
+    if (track is HistoryModel) return track.thumbnailUrl;
+    if (track is LikedSongModel) return track.thumbnailUrl;
+    try {
+      return track.thumbnailUrl as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  int? _trackDuration(dynamic track) {
+    if (track is HistoryModel) return track.duration;
+    if (track is LikedSongModel) return track.duration;
+    try {
+      return track.duration as int?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _trackIsVideo(dynamic track) {
+    if (track is HistoryModel) return track.isVideo;
+    if (track is LikedSongModel) return track.isVideo;
+    try {
+      return track.isVideo as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _trackIsExplicit(dynamic track) {
+    if (track is HistoryModel) return track.isExplicit;
+    if (track is LikedSongModel) return track.isExplicit;
+    try {
+      return track.isExplicit as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> deletePlaylist(int id) async {
     await _repo.deletePlaylist(id);
   }
@@ -290,48 +396,6 @@ class LibraryNotifier extends Notifier<void> {
   /// Returns all local playlists. Used by shared widgets that cannot import
   /// feature-level providers directly (e.g. ContextMenuSheet).
   Future<List<LocalPlaylistModel>> getAllPlaylists() => _repo.getAllPlaylists();
-
-  // ── Local playlist play helpers ──────────────────────────────────────────────
-
-  /// Resolves metadata for each entry from liked_songs (best-effort) and
-  /// returns a list of [MediaItem]s ready for [PlayerNotifier.playNow].
-  /// Falls back to stored entry metadata when unavailable in liked_songs.
-  Future<List<MediaItem>> buildLocalPlaylistItems(
-    List<PlaylistEntryModel> entries, {
-    int playIndex = 0,
-  }) async {
-    final items = <MediaItem>[];
-    String? firstUrl;
-    if (playIndex >= 0 && playIndex < entries.length) {
-      // Do not swallow failures: playNow rejects a placeholder lead track.
-      final useCase = ref.read(playVideoIdUseCaseProvider);
-      firstUrl = await useCase.resolveUrl(entries[playIndex].videoId);
-    }
-
-    for (int i = 0; i < entries.length; i++) {
-      final entry = entries[i];
-      final liked = await _repo.getLikedSong(entry.videoId);
-      final title = liked?.title ?? entry.title ?? entry.videoId;
-      final artist = liked?.artist ?? entry.artist ?? '';
-      final thumbnailUrl = liked?.thumbnailUrl ?? entry.thumbnailUrl;
-      final isFirst = i == playIndex;
-      items.add(
-        QueueTrack(
-          videoId: entry.videoId,
-          url: isFirst ? firstUrl : null,
-          needsUrl: !isFirst || firstUrl == null,
-          isVideo: liked?.isVideo ?? entry.isVideo,
-          isExplicit: liked?.isExplicit ?? entry.isExplicit,
-          artistId: liked?.artistId,
-          artistsJson: liked?.artistsJson ?? entry.artistsJson,
-          title: title,
-          artist: artist,
-          artUri: thumbnailUrl != null ? Uri.tryParse(thumbnailUrl) : null,
-        ).toFreshMediaItem(),
-      );
-    }
-    return items;
-  }
 }
 
 /// Returns true when [url] looks like a signed YouTube CDN thumbnail that

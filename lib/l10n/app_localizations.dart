@@ -3271,6 +3271,24 @@ abstract class AppLocalizations {
   /// **'Offline: mixes use your listening history only'**
   String get momentMixOfflineNote;
 
+  /// No description provided for @savePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Save playlist'**
+  String get savePlaylist;
+
+  /// No description provided for @momentMixSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as \"{playlistName}\"'**
+  String momentMixSaved(String playlistName);
+
+  /// No description provided for @momentMixSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t save this mix as a playlist'**
+  String get momentMixSaveFailed;
+
   /// No description provided for @mixMoodCalm.
   ///
   /// In en, this message translates to:

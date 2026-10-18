@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../domain/models/music_search_intent.dart';
@@ -182,6 +183,7 @@ class _MomentMixAskSectionState extends ConsumerState<MomentMixAskSection> {
               subtitle: l10n.momentMixTrackCount(mix.tracks.length),
               hovered: _hovered,
               onHover: (v) => setState(() => _hovered = v),
+              onOpen: () => context.push('/moment-mix'),
               onPlay: () => _play(l10n),
             ),
           ],
@@ -197,6 +199,7 @@ class _MomentMixResultCard extends StatelessWidget {
     required this.subtitle,
     required this.hovered,
     required this.onHover,
+    required this.onOpen,
     required this.onPlay,
   });
 
@@ -204,6 +207,7 @@ class _MomentMixResultCard extends StatelessWidget {
   final String subtitle;
   final bool hovered;
   final ValueChanged<bool> onHover;
+  final VoidCallback onOpen;
   final VoidCallback onPlay;
 
   static const _gradient = LinearGradient(
@@ -218,7 +222,7 @@ class _MomentMixResultCard extends StatelessWidget {
       onEnter: (_) => onHover(true),
       onExit: (_) => onHover(false),
       child: ScaleButton(
-        onTap: onPlay,
+        onTap: onOpen,
         child: Row(
           children: [
             SizedBox(

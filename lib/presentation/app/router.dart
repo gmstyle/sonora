@@ -20,6 +20,7 @@ import '../features/podcast/episode_screen.dart';
 import '../features/user/user_screen.dart';
 import '../features/user/user_videos_screen.dart';
 import '../features/user/user_playlists_screen.dart';
+import '../features/library/widgets/moment_mix_detail_view.dart';
 import '../features/library/widgets/smart_mix_detail_view.dart';
 import '../shared/layouts/app_shell.dart';
 
@@ -161,6 +162,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                           child: SmartMixDetailView(
                             type: state.pathParameters['type']!,
                           ),
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'moment-mix',
+                    pageBuilder:
+                        (context, state) => _slideUpPage(
+                          key: state.pageKey,
+                          child: const MomentMixDetailView(),
                         ),
                   ),
                   GoRoute(

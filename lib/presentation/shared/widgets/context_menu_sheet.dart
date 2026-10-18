@@ -36,6 +36,7 @@ import '../../providers/library_notifier.dart';
 import '../../providers/music_repository_provider.dart';
 import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/play_podcast_use_case_provider.dart';
+import '../../providers/play_local_playlist_use_case_provider.dart';
 import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/play_video_id_use_case_provider.dart';
 import '../../providers/player_provider.dart';
@@ -3125,21 +3126,11 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       label: l10n.playAll,
                       onTap: () {
                         final player = ref.read(playerStateProvider.notifier);
-                        final notifier = ref.read(
-                          libraryNotifierProvider.notifier,
-                        );
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
                         Navigator.pop(context);
-                        _playAll(
-                          ref,
-                          playlist.id,
-                          player,
-                          notifier,
-                          feedback,
-                          l10n,
-                        );
+                        _playAll(ref, playlist.id, player, feedback, l10n);
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.shuffle))
@@ -3148,21 +3139,11 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       label: l10n.shufflePlay,
                       onTap: () {
                         final player = ref.read(playerStateProvider.notifier);
-                        final notifier = ref.read(
-                          libraryNotifierProvider.notifier,
-                        );
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
                         Navigator.pop(context);
-                        _shufflePlay(
-                          ref,
-                          playlist.id,
-                          player,
-                          notifier,
-                          feedback,
-                          l10n,
-                        );
+                        _shufflePlay(ref, playlist.id, player, feedback, l10n);
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.queue))
@@ -3171,21 +3152,11 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       label: l10n.addToQueue,
                       onTap: () {
                         final player = ref.read(playerStateProvider.notifier);
-                        final notifier = ref.read(
-                          libraryNotifierProvider.notifier,
-                        );
                         final feedback = ref.read(
                           actionFeedbackProvider.notifier,
                         );
                         Navigator.pop(context);
-                        _addToQueue(
-                          ref,
-                          playlist.id,
-                          player,
-                          notifier,
-                          feedback,
-                          l10n,
-                        );
+                        _addToQueue(ref, playlist.id, player, feedback, l10n);
                       },
                     ),
                   if (_showAction(omitActionIds, DetailActionId.rename))
@@ -3336,7 +3307,6 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
     WidgetRef ref,
     int playlistId,
     PlayerNotifier player,
-    LibraryNotifier notifier,
     ActionFeedbackNotifier feedback,
     AppLocalizations l10n,
   ) async {
@@ -3345,11 +3315,7 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
       final entries = await ref.read(
         playlistEntriesProvider(playlistId).future,
       );
-      final items = await notifier.buildLocalPlaylistItems(
-        entries,
-        playIndex: 0,
-      );
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playLocalPlaylist(entries, startIndex: 0);
     } catch (_) {}
   }
 
@@ -3357,7 +3323,6 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
     WidgetRef ref,
     int playlistId,
     PlayerNotifier player,
-    LibraryNotifier notifier,
     ActionFeedbackNotifier feedback,
     AppLocalizations l10n,
   ) async {
@@ -3367,11 +3332,7 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
         playlistEntriesProvider(playlistId).future,
       );
       final shuffled = List<PlaylistEntryModel>.from(entries)..shuffle();
-      final items = await notifier.buildLocalPlaylistItems(
-        shuffled,
-        playIndex: 0,
-      );
-      if (items.isNotEmpty) await player.playNow(items);
+      await player.playLocalPlaylist(shuffled, startIndex: 0);
     } catch (_) {}
   }
 
@@ -3379,7 +3340,6 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
     WidgetRef ref,
     int playlistId,
     PlayerNotifier player,
-    LibraryNotifier notifier,
     ActionFeedbackNotifier feedback,
     AppLocalizations l10n,
   ) async {
@@ -3387,10 +3347,9 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
       final entries = await ref.read(
         playlistEntriesProvider(playlistId).future,
       );
-      final items = await notifier.buildLocalPlaylistItems(
-        entries,
-        playIndex: -1,
-      );
+      final items = await ref
+          .read(playLocalPlaylistUseCaseProvider)
+          .execute(entries, playIndex: -1);
       if (items.isNotEmpty) await player.addAllToQueue(items);
       feedback.report(l10n.addedToQueue(items.length));
     } catch (e) {

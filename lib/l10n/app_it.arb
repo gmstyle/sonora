@@ -744,6 +744,14 @@
   "momentMixEmpty": "Nessun brano per questo momento",
   "momentMixOfflineYtm": "I mix dal catalogo richiedono connessione — prova un mood dalla libreria",
   "momentMixOfflineNote": "Offline: i mix usano solo la cronologia di ascolto",
+  "savePlaylist": "Salva playlist",
+  "momentMixSaved": "Salvata come \"{playlistName}\"",
+  "@momentMixSaved": {
+    "placeholders": {
+      "playlistName": {"type": "String"}
+    }
+  },
+  "momentMixSaveFailed": "Non sono riuscito a salvare il mix come playlist",
   "mixMoodCalm": "Calmo",
   "mixMoodEnergetic": "Energico",
   "mixMoodFocus": "Concentrazione",

@@ -1921,6 +1921,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Offline: mixes use your listening history only';
 
   @override
+  String get savePlaylist => 'Save playlist';
+
+  @override
+  String momentMixSaved(String playlistName) {
+    return 'Saved as \"$playlistName\"';
+  }
+
+  @override
+  String get momentMixSaveFailed => 'Couldn’t save this mix as a playlist';
+
+  @override
   String get mixMoodCalm => 'Calm';
 
   @override

@@ -40,7 +40,7 @@ State is `flutter_riverpod` 3. Mutable state is a `Notifier` exposed by `Notifie
 
 A widget never calls `ref.read` or `ref.watch` on `*RepositoryProvider`. Three legal paths:
 
-1. **Use case** in `domain/usecases/` when the action needs two or more repository or datasource calls. Wire it with a `Provider` next to the other use-case providers (`playAlbumUseCaseProvider`). Playback of an album, playlist, podcast, smart mix, or radio goes through `PlayerNotifier`, which owns the use case call, `isSwitching`, and the monotonic `_operationVersion`.
+1. **Use case** in `domain/usecases/` when the action needs two or more repository or datasource calls. Wire it with a `Provider` next to the other use-case providers (`playAlbumUseCaseProvider`). Playback of an album, playlist, podcast, smart mix, local custom playlist, or radio goes through `PlayerNotifier`, which owns the use case call, `isSwitching`, and the monotonic `_operationVersion`.
 2. **`LibraryNotifier`** (`libraryNotifierProvider`) for a single library mutation: like, follow, subscribe, playlist entry, history.
 3. **`FutureProvider` / `FutureProvider.family`** for a one-to-one read (`albumProvider` → `repo.getAlbum()`).
 

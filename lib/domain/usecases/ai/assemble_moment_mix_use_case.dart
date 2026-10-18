@@ -8,6 +8,9 @@ import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
 import 'moment_mix_assembler.dart';
 
+/// Drop YTM search hits longer than this (compilations / "mix" streams).
+const kMomentMixMaxTrackDurationSec = 20 * 60;
+
 /// Result of assembling a moment mix from [MusicSearchIntent].
 class MomentMixQueue {
   const MomentMixQueue({required this.tracks, required this.intent});
@@ -68,7 +71,10 @@ class AssembleMomentMixUseCase {
           intent.searchQuery,
           limit: kMomentMixTrackCap,
         );
-        ytmMapped = [for (final s in playableSongs(songs)) _mapSongDetailed(s)];
+        ytmMapped = [
+          for (final s in playableSongs(songs))
+            if (_isSongLengthOk(s.duration)) _mapSongDetailed(s),
+        ];
       } catch (_) {
         ytmMapped = const [];
       }
@@ -122,5 +128,11 @@ class AssembleMomentMixUseCase {
       duration: s.duration,
       isExplicit: s.isExplicit,
     );
+  }
+
+  /// Keep unknown duration; drop known mega-mix / compilation hits.
+  bool _isSongLengthOk(int? durationSec) {
+    if (durationSec == null || durationSec <= 0) return true;
+    return durationSec <= kMomentMixMaxTrackDurationSec;
   }
 }

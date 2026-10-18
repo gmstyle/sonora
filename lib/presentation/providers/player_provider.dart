@@ -6,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/models/library_models.dart';
 import '../../domain/models/queue_track.dart';
 import '../../core/utils/playable_tracks.dart';
 import '../features/player/audio_handler.dart';
@@ -14,6 +15,7 @@ import 'play_video_id_use_case_provider.dart';
 import 'play_album_use_case_provider.dart';
 import 'play_playlist_use_case_provider.dart';
 import 'play_podcast_use_case_provider.dart';
+import 'play_local_playlist_use_case_provider.dart';
 import 'play_smart_mix_use_case_provider.dart';
 import 'queue_use_case_provider.dart';
 import 'settings_provider.dart';
@@ -885,6 +887,46 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           isSwitching: false,
           hasError: true,
           errorMessage: 'Failed to play smart mix: $e',
+        );
+      }
+    }
+  }
+
+  /// Local custom playlist — same stack as [playPlaylist] / [playSmartMix].
+  Future<void> playLocalPlaylist(
+    List<PlaylistEntryModel> entries, {
+    int startIndex = 0,
+  }) async {
+    final v = ++_operationVersion;
+    await _handler.pause();
+    state = state.copyWith(isSwitching: true, clearUnplayable: true);
+    try {
+      if (entries.isEmpty) {
+        if (_operationVersion == v) {
+          state = state.copyWith(isSwitching: false);
+        }
+        return;
+      }
+      final useCase = ref.read(playLocalPlaylistUseCaseProvider);
+      final items = await useCase.execute(entries, playIndex: startIndex);
+      if (_operationVersion != v) return;
+      if (items.isEmpty) {
+        state = state.copyWith(isSwitching: false);
+        return;
+      }
+      await _handler.playNow(
+        items,
+        initialIndex: startIndex.clamp(0, items.length - 1),
+        shouldAbort: () => _operationVersion != v,
+      );
+      if (_operationVersion != v) return;
+      _clearSwitchingIfAudible();
+    } catch (e) {
+      if (_operationVersion == v) {
+        state = state.copyWith(
+          isSwitching: false,
+          hasError: true,
+          errorMessage: 'Failed to play local playlist: $e',
         );
       }
     }

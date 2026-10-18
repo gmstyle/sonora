@@ -908,6 +908,14 @@
   "momentMixEmpty": "No tracks matched this moment",
   "momentMixOfflineYtm": "Catalog mixes need a connection — try a library vibe instead",
   "momentMixOfflineNote": "Offline: mixes use your listening history only",
+  "savePlaylist": "Save playlist",
+  "momentMixSaved": "Saved as \"{playlistName}\"",
+  "@momentMixSaved": {
+    "placeholders": {
+      "playlistName": {"type": "String"}
+    }
+  },
+  "momentMixSaveFailed": "Couldn’t save this mix as a playlist",
   "mixMoodCalm": "Calm",
   "mixMoodEnergetic": "Energetic",
   "mixMoodFocus": "Focus",

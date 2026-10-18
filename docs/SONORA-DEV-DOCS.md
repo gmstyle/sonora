@@ -454,7 +454,7 @@ Related Items (up-next/auto-play) are added to the queue as **pending** (`extras
 
 - **Custom Shuffle** (`SkipNavigator`): Engine-level shuffle is not used (`JustAudioPlaybackEngine.setShuffle` only notifies listeners; `just_audio_media_kit` ignores `shuffleOrder`). When shuffle is enabled (`AudioServiceShuffleMode.all`), `skipToNext()` selects a random index. Natural track end does not emit `completed` on a concatenating just_audio playlist (the engine auto-advances `+1`); `TrackTransitionCoordinator` intercepts that auto-advance and also calls `skipToNext` in the last ~450ms so shuffle applies without a sequential blip. A shuffled-history list tracks previously played indices so `skipToPrevious()` can step backward along the exact shuffled path.
 - **Rapid Skip Protection** (`SkipNavigator`): During rapid manual skips, asynchronous playlist index updates lag behind taps. A synchronous target-skip index keeps each rapid tap resolving to the correct item.
-- **Centralized Play Guarding**: Usecase execution for albums, playlists, and smart mixes is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
+- **Centralized Play Guarding**: Usecase execution for albums, playlists, smart mixes, and local custom playlists is centralized within `PlayerNotifier` (`playAlbum`, `playPlaylist`, `playSmartMix`, `playLocalPlaylist`). These methods pause playback, set `isSwitching: true`, and guard asynchronous network URL resolutions using a monotonic `_operationVersion` counter, discarding obsolete requests when the user taps multiple items in rapid succession.
 
 **Auto-skip on error** — owned by `PlaybackRecoveryController`:
 If the stream URL expires or fails after retries, recovery advances to an offline/cached track when possible, otherwise stops and notifies via `onPlayError` (forwarded by the facade).
@@ -541,7 +541,7 @@ All playlist-rebuilding actions (`setQueue`, `playNow`) are serialized through a
 - `_prefetchAutoPlayUpNext` and `_fetchAutoPlayUpNext` use `appendUpNext` instead of `addToQueue`/`addAllToQueue`. The trigger logic is unchanged: still guarded by `Settings.autoPlayUpNext`, `_isFetchingUpNext`, and `_operationVersion`.
 - A listener on `settingsProvider` calls `_handler.setAutoplayEnabled(false)` the moment the user toggles autoplay off, so the upnext section disappears immediately.
 - `playVideoId` uses a **250ms debounce timer** (fire-and-forget, no Completer). Last tap wins via `_operationVersion`. `state.isSwitching` drives the UI loading indicator.
-- `playNow`, `playAlbum`, `playPlaylist`, `playSmartMix` all pass `shouldAbort: () => _operationVersion != v` to the handler so that a newer user action skips the in-flight operation.
+- `playNow`, `playAlbum`, `playPlaylist`, `playSmartMix`, `playLocalPlaylist` all pass `shouldAbort: () => _operationVersion != v` to the handler so that a newer user action skips the in-flight operation.
 - `clearQueue({bool includeUpNext = false})` defaults to clearing only the user queue (`purgeUserQueue` on the handler + `clearUserQueue` on the DB). Pass `includeUpNext: true` to wipe everything (`clearQueue` on both).
 
 **Persistence & restore:**

@@ -1931,6 +1931,18 @@ class AppLocalizationsIt extends AppLocalizations {
       'Offline: i mix usano solo la cronologia di ascolto';
 
   @override
+  String get savePlaylist => 'Salva playlist';
+
+  @override
+  String momentMixSaved(String playlistName) {
+    return 'Salvata come \"$playlistName\"';
+  }
+
+  @override
+  String get momentMixSaveFailed =>
+      'Non sono riuscito a salvare il mix come playlist';
+
+  @override
   String get mixMoodCalm => 'Calmo';
 
   @override
