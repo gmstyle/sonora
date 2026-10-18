@@ -46,7 +46,7 @@ class InterpretMixQueryUseCase {
       final raw = await _llm.complete(
         systemInstruction: kAskMixSystemInstruction,
         userMessage: trimmed,
-        maxOutputTokens: 256,
+        maxOutputTokens: 512,
       );
       return _parser.parse(raw);
     } catch (_) {

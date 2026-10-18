@@ -34,12 +34,18 @@ class GeminiLlmDatasource {
     }
 
     debugPrint('GeminiLlm: generate…');
+    // Flash-latest uses thinking by default; with a small maxOutputTokens
+    // budget the visible answer is truncated mid-JSON (e.g. 16 chars).
     final response = await ai
         .generate(
           model: googleAI.gemini(kAskGeminiModelId),
           system: systemInstruction,
           prompt: userMessage,
-          config: GeminiOptions(maxOutputTokens: maxOutputTokens),
+          config: GeminiOptions(
+            maxOutputTokens: maxOutputTokens,
+            thinkingConfig: GeminiThinkingConfig(thinkingBudget: 0),
+            responseMimeType: 'application/json',
+          ),
         )
         .timeout(kAskGeminiTimeout);
     final text = response.text.trim();
