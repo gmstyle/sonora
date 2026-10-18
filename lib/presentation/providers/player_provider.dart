@@ -386,6 +386,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
       _playbackSub = _handler.playbackState.listen((s) {
         final wasSwitching = state.isSwitching;
+        final engineError = s.processingState == AudioProcessingState.error;
         state = state.copyWith(
           isPlaying: s.playing,
           isPaused:
@@ -393,7 +394,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           isLoading:
               s.processingState == AudioProcessingState.loading ||
               s.processingState == AudioProcessingState.buffering,
-          hasError: s.processingState == AudioProcessingState.error,
+          hasError: engineError,
           // position is now tracked via positionStream — skip here to avoid
           // overwriting the more frequent update with a stale value from
           // playbackState (which is no longer updated on every tick).
@@ -403,8 +404,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           // Keep isSwitching true only while the player is still paused during
           // a user-initiated song change. ExoPlayer often reports buffering
           // while already outputting audio; waiting for `ready` left the mini
-          // player stuck on shimmer.
-          isSwitching: wasSwitching && !s.playing,
+          // player stuck on shimmer. Engine error must clear it or the mini
+          // player stays on the loading shimmer forever.
+          isSwitching: engineError ? false : (wasSwitching && !s.playing),
         );
 
         if (s.playing) {
@@ -1211,6 +1213,12 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         if (_operationVersion == v) {
           state = state.copyWith(
             hasError: true,
+            lastPlayError: PlayErrorEvent(
+              videoId: videoId,
+              title: videoId,
+              kind: PlayErrorKind.classify(e),
+              skippedToNext: false,
+            ),
             errorMessage: 'Failed to play video: $e',
             isSwitching: false,
           );

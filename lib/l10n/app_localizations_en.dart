@@ -1629,6 +1629,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Internet connection is weak or absent. Please check your network or play downloaded tracks.';
 
   @override
+  String get youtubeRateLimitedError =>
+      'YouTube temporarily limited this network. Wait a bit, try mobile data, or play downloaded tracks.';
+
+  @override
   String trackUnplayable(String title) {
     return 'Can\'t play \"$title\".';
   }

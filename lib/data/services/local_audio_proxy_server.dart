@@ -6,6 +6,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
+import '../../core/errors/youtube_rate_limited_exception.dart';
 import '../../domain/models/media_quality.dart';
 import '../datasources/remote/stream_datasource.dart';
 import 'media_cache_service.dart';
@@ -19,7 +20,13 @@ import 'media_cache_service.dart';
 /// - Transparently fetches remote stream URLs via [StreamDatasource]
 /// - Retries and auto-refreshes expired YouTube URLs (HTTP 403 / 5xx); on CDN
 ///   HTTP 429 opens the shared cool-down instead of refreshing the manifest
+/// - Caps manifest resolve time so media_kit/mpv does not hang on an open
+///   `/stream` request while YouTube is slow or rate-limiting
 class LocalAudioProxyServer {
+  /// Upper bound for Innertube URL resolve inside `/stream` (same budget as
+  /// [PlayVideoIdUseCase.streamUrlTimeout]) so media_kit does not hang.
+  static const Duration streamResolveTimeout = Duration(seconds: 40);
+
   final StreamDatasource _streamDatasource;
   final MediaCacheService _mediaCacheService;
   final bool Function() _isForcedOffline;
@@ -175,11 +182,37 @@ class LocalAudioProxyServer {
       );
     }
 
+    if (_streamDatasource.isRateLimited) {
+      dev.log(
+        '[LocalAudioProxyServer] Rate-limit cool-down active — refusing $videoId',
+      );
+      return Response(
+        HttpStatus.serviceUnavailable,
+        body: 'YouTube rate-limit cool-down active for $videoId',
+      );
+    }
+
     String? streamUrl;
     try {
-      streamUrl = await _streamDatasource.getStreamUrl(
-        videoId,
-        audioQuality: audioQuality,
+      // Bound resolve so ffmpeg/mpv does not wait forever for response headers
+      // while Innertube is slow (previously surfaced only as "Connessione scaduta").
+      streamUrl = await _streamDatasource
+          .getStreamUrl(videoId, audioQuality: audioQuality)
+          .timeout(streamResolveTimeout);
+    } on YoutubeRateLimitedException catch (e) {
+      dev.log('[LocalAudioProxyServer] Rate-limited resolving $videoId: $e');
+      return Response(
+        HttpStatus.serviceUnavailable,
+        body: 'YouTube rate-limited stream resolve for $videoId',
+      );
+    } on TimeoutException catch (e) {
+      dev.log(
+        '[LocalAudioProxyServer] Timed out resolving stream URL for $videoId '
+        '(qa=${audioQuality.storageValue}): $e',
+      );
+      return Response(
+        HttpStatus.gatewayTimeout,
+        body: 'Timed out resolving stream URL for $videoId',
       );
     } catch (e) {
       dev.log(

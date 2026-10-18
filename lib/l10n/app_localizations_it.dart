@@ -1638,6 +1638,10 @@ class AppLocalizationsIt extends AppLocalizations {
       'La connessione internet è debole o assente. Controlla la rete o riproduci i brani scaricati.';
 
   @override
+  String get youtubeRateLimitedError =>
+      'YouTube ha limitato temporaneamente questa rete. Aspetta un po\', prova i dati mobili o riproduci i brani scaricati.';
+
+  @override
   String trackUnplayable(String title) {
     return 'Impossibile riprodurre \"$title\".';
   }

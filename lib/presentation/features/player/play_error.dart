@@ -10,6 +10,9 @@ enum PlayErrorKind {
   /// Transient connectivity / timeout failure.
   network,
 
+  /// YouTube HTTP 429 / local cool-down after rate limiting.
+  rateLimited,
+
   /// Unclassified failure.
   unknown;
 
@@ -20,7 +23,7 @@ enum PlayErrorKind {
     }
     if (error is YoutubeRateLimitedException ||
         error is RequestLimitExceededException) {
-      return PlayErrorKind.network;
+      return PlayErrorKind.rateLimited;
     }
     final s = error.toString().toLowerCase();
     if (s.contains('videounplayable') ||
@@ -29,22 +32,36 @@ enum PlayErrorKind {
         s.contains('sign in to confirm your age')) {
       return PlayErrorKind.unplayable;
     }
-    if (s.contains('youtuberatelimited') ||
-        s.contains('requestlimitexceeded') ||
-        s.contains('rate limit') ||
-        s.contains('rate-limit') ||
-        s.contains('socketexception') ||
+    if (_looksLikeRateLimit(s)) {
+      return PlayErrorKind.rateLimited;
+    }
+    if (s.contains('socketexception') ||
         s.contains('timeout') ||
         s.contains('network') ||
         s.contains('connection failed') ||
         s.contains('handshakeexception') ||
         s.contains('failed to host') ||
         s.contains('connection timed out') ||
+        s.contains('connessione scaduta') ||
+        s.contains('failed to open') ||
         s.contains('offline')) {
       return PlayErrorKind.network;
     }
     return PlayErrorKind.unknown;
   }
+
+  /// True when a raw / legacy error string is a YouTube rate-limit failure.
+  static bool messageLooksLikeRateLimit(String message) =>
+      _looksLikeRateLimit(message.toLowerCase());
+
+  static bool _looksLikeRateLimit(String lower) =>
+      lower.contains('youtuberatelimited') ||
+      lower.contains('requestlimitexceeded') ||
+      lower.contains('rate limit') ||
+      lower.contains('rate-limit') ||
+      lower.contains('rate_limit') ||
+      lower.contains('cool-down') ||
+      lower.contains('cooldown');
 }
 
 /// Event emitted on the player error stream for UI toast + queue marking.

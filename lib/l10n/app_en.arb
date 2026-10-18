@@ -761,6 +761,7 @@
   "offlineNotification": "You're offline",
   "connectionRestored": "Connection restored",
   "weakConnectionError": "Internet connection is weak or absent. Please check your network or play downloaded tracks.",
+  "youtubeRateLimitedError": "YouTube temporarily limited this network. Wait a bit, try mobile data, or play downloaded tracks.",
   "trackUnplayable": "Can't play \"{title}\".",
   "@trackUnplayable": {
     "placeholders": {

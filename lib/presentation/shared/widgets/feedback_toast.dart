@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
 
 class FeedbackToast {
@@ -62,11 +64,9 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   late AnimationController _controller;
   late Animation<double> _opacity;
   late Animation<double> _scale;
+  bool _closing = false;
 
-  Duration get _holdDuration =>
-      widget.kind == FeedbackKind.error
-          ? const Duration(seconds: 4)
-          : const Duration(seconds: 2);
+  bool get _sticky => widget.kind == FeedbackKind.error;
 
   @override
   void initState() {
@@ -86,15 +86,21 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
 
     _controller.forward();
 
-    Future.delayed(_holdDuration, () {
-      if (mounted) {
-        _controller.reverse().then((_) {
-          if (mounted) {
-            widget.onDismiss();
-          }
-        });
-      }
-    });
+    // Confirm toasts auto-dismiss; errors stay until the user closes them.
+    if (!_sticky) {
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) _dismiss();
+      });
+    }
+  }
+
+  Future<void> _dismiss() async {
+    if (_closing || !mounted) return;
+    _closing = true;
+    await _controller.reverse();
+    if (mounted) {
+      widget.onDismiss();
+    }
   }
 
   @override
@@ -107,6 +113,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final topPadding = MediaQuery.of(context).padding.top + 12;
     final mark =
         widget.kind == FeedbackKind.error
@@ -127,10 +134,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                  padding: EdgeInsets.fromLTRB(16, 12, _sticky ? 4 : 16, 12),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(20),
@@ -151,9 +155,9 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
                       Flexible(
                         child: Text(
                           widget.message,
-                          maxLines: 1,
+                          maxLines: _sticky ? 3 : 1,
                           overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
+                          textAlign: TextAlign.start,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurface,
                             fontWeight: FontWeight.w500,
@@ -161,6 +165,19 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
                           ),
                         ),
                       ),
+                      if (_sticky) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: _dismiss,
+                          tooltip: l10n?.close ?? 'Close',
+                          visualDensity: VisualDensity.compact,
+                          iconSize: 18,
+                          icon: Icon(
+                            LucideIcons.x,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

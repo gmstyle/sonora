@@ -281,7 +281,20 @@ class PlaybackRecoveryController {
       _retryCount = 0;
     }
 
-    if (_isRetrying || _retryCount >= 1 || _urlResolver.isPending(videoId)) {
+    // A retry is already in flight — do not start a second one (the in-flight
+    // path reports via catch / handlePlaybackConnectionFailure).
+    if (_isRetrying || _urlResolver.isPending(videoId)) {
+      return;
+    }
+
+    // One refresh already tried for this track: surface the failure instead of
+    // swallowing it. Swallowing left isSwitching stuck and no toast.
+    if (_retryCount >= 1) {
+      await handlePlaybackConnectionFailure(
+        videoId,
+        currentItem.title,
+        kind: PlayErrorKind.classify(error),
+      );
       return;
     }
 

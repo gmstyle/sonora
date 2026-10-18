@@ -2792,6 +2792,12 @@ abstract class AppLocalizations {
   /// **'Internet connection is weak or absent. Please check your network or play downloaded tracks.'**
   String get weakConnectionError;
 
+  /// No description provided for @youtubeRateLimitedError.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube temporarily limited this network. Wait a bit, try mobile data, or play downloaded tracks.'**
+  String get youtubeRateLimitedError;
+
   /// No description provided for @trackUnplayable.
   ///
   /// In en, this message translates to:
