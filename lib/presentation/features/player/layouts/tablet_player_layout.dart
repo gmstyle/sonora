@@ -4,8 +4,10 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../widgets/player_controls.dart';
+import '../widgets/player_insights_panel.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
@@ -46,6 +48,7 @@ class TabletPlayerLayout extends ConsumerWidget {
     final tight = availHeight < 600;
     final narrow = availWidth < 720;
     final isPanelOpen = activeView != PlayerSubView.none;
+    final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
     final hPad = narrow ? 16.0 : 32.0;
     final colGap = narrow ? 16.0 : 48.0;
 
@@ -95,6 +98,11 @@ class TabletPlayerLayout extends ConsumerWidget {
                                           activeView: activeView,
                                           videoId: videoId,
                                           position: playerState.position,
+                                        )
+                                        : insightsOpen
+                                        ? const SingleChildScrollView(
+                                          key: ValueKey('insights'),
+                                          child: PlayerInsightsCard(),
                                         )
                                         : PlayerDefaultView(
                                           key: const ValueKey('empty'),

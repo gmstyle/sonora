@@ -16,4 +16,7 @@ class AskCapabilities {
 
   /// Prose narrative — cloud only (on-device quality is insufficient).
   bool get canWrappedNarrative => backend == AskLlmBackend.cloud;
+
+  /// Player curiosities (Search grounding) + lyrics translation — cloud only.
+  bool get canPlayerInsights => backend == AskLlmBackend.cloud;
 }

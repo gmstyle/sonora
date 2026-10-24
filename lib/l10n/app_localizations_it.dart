@@ -1319,6 +1319,48 @@ class AppLocalizationsIt extends AppLocalizations {
   String get lyrics => 'Testi';
 
   @override
+  String get playerAskCuriosities => 'Curiosità';
+
+  @override
+  String get playerAskOriginal => 'Originale';
+
+  @override
+  String get playerAskTranslate => 'Traduci';
+
+  @override
+  String get playerAskTranslateLyrics => 'Traduci testo';
+
+  @override
+  String get playerAskAiDisclaimerTitle => 'Elaborazione AI';
+
+  @override
+  String get playerAskAiDisclaimerBody =>
+      'Generato da Ask da fonti web o dal testo già caricato — non è contenuto ufficiale di YouTube Music o Wikipedia. Verifica i fatti importanti.';
+
+  @override
+  String get playerAskSources => 'Fonti';
+
+  @override
+  String get playerAskClose => 'Chiudi';
+
+  @override
+  String get playerAskCloudRequired =>
+      'Serve Ask Cloud con una chiave API Gemini';
+
+  @override
+  String get playerAskNoSources =>
+      'Non sono state trovate fonti affidabili per questo brano';
+
+  @override
+  String get playerAskNoLyrics => 'Nessun testo disponibile da tradurre';
+
+  @override
+  String get playerAskEmpty => 'Ask ha restituito un risultato vuoto';
+
+  @override
+  String get playerAskFailed => 'Ask non è riuscito. Riprova';
+
+  @override
   String get related => 'Correlati';
 
   @override

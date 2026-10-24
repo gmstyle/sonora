@@ -15,6 +15,8 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/library_notifier.dart';
+import '../../../providers/on_device_llm_provider.dart';
+import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../shared/widgets/detail_affinity_button.dart';
@@ -27,6 +29,7 @@ import 'equalizer_panel.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../player_navigation.dart';
 import 'lyrics_view.dart';
+import 'player_insights_panel.dart';
 import 'queue_sheet.dart';
 import 'related_view.dart';
 import 'show_notes_view.dart';
@@ -524,6 +527,10 @@ Widget buildBottomActionsRow(
   final showRelated =
       !isEpisode || (podcastBrowseId != null && podcastBrowseId.isNotEmpty);
   final isOffline = ref.watch(isOfflineProvider);
+  final askCaps = ref.watch(askCapabilitiesProvider).asData?.value;
+  final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
+  final showPlayerAsk =
+      !isEpisode && !isOffline && (askCaps?.canPlayerInsights ?? false);
 
   // Tablet/landscape-split right column can be ~300px (Mi A1); 7×48 buttons
   // overflow. Compact + FittedBox whenever width is tight, not only mobile.
@@ -590,6 +597,7 @@ Widget buildBottomActionsRow(
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
+                ref.read(playerInsightsProvider.notifier).dismiss();
                 ref
                     .read(playerSubViewProvider.notifier)
                     .set(
@@ -612,6 +620,7 @@ Widget buildBottomActionsRow(
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
+                ref.read(playerInsightsProvider.notifier).dismiss();
                 ref
                     .read(playerSubViewProvider.notifier)
                     .set(
@@ -621,6 +630,26 @@ Widget buildBottomActionsRow(
                     );
               },
               tooltip: l10n.showNotes,
+            ),
+          if (showPlayerAsk)
+            IconButton(
+              style: actionStyle,
+              icon: Icon(
+                LucideIcons.sparkles,
+                size: iconSize,
+                color:
+                    insightsOpen
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+              ),
+              onPressed: () {
+                if (insightsOpen) {
+                  ref.read(playerInsightsProvider.notifier).dismiss();
+                } else {
+                  PlayerInsightsOverlay.open(context, ref);
+                }
+              },
+              tooltip: l10n.playerAskCuriosities,
             ),
           if (showRelated)
             IconButton(
@@ -637,6 +666,7 @@ Widget buildBottomActionsRow(
                   isOffline
                       ? null
                       : () {
+                        ref.read(playerInsightsProvider.notifier).dismiss();
                         ref
                             .read(playerSubViewProvider.notifier)
                             .set(
@@ -658,6 +688,7 @@ Widget buildBottomActionsRow(
                       : theme.colorScheme.onSurfaceVariant,
             ),
             onPressed: () {
+              ref.read(playerInsightsProvider.notifier).dismiss();
               ref
                   .read(playerSubViewProvider.notifier)
                   .set(

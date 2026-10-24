@@ -4,7 +4,11 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/connectivity_provider.dart';
+import '../../../providers/lyrics_translation_provider.dart';
 import '../../../providers/music_repository_provider.dart';
+import '../../../providers/on_device_llm_provider.dart';
+import '../../../shared/widgets/error_retry_widget.dart';
 
 final lyricsProvider = FutureProvider.family<TimedLyricsRes?, String>((
   ref,
@@ -34,16 +38,56 @@ class LyricsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timedAsync = ref.watch(lyricsProvider(videoId));
     final fallbackAsync = ref.watch(plainLyricsProvider(videoId));
+    final translation = ref.watch(lyricsTranslationProvider);
+    final caps = ref.watch(askCapabilitiesProvider).asData?.value;
+    final offline = ref.watch(isOfflineProvider);
+    final canTranslate = !offline && (caps?.canPlayerInsights ?? false);
 
-    return timedAsync.when(
-      loading: () => const _LyricsLoading(),
-      error: (_, _) => _buildPlainLyrics(context, fallbackAsync),
-      data: (timed) {
-        if (timed != null) {
-          return _TimedLyricsView(lyrics: timed, position: position);
-        }
-        return _buildPlainLyrics(context, fallbackAsync);
-      },
+    final showTranslated =
+        canTranslate &&
+        translation.showTranslation &&
+        translation.videoId == videoId;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (canTranslate)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: _TranslateAskAction(
+              videoId: videoId,
+              showTranslation: showTranslated,
+              loading:
+                  showTranslated &&
+                  translation.phase == LyricsTranslationPhase.loading,
+            ),
+          ),
+        if (showTranslated &&
+            translation.phase == LyricsTranslationPhase.ready) ...[
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: _TranslationDisclaimer(),
+          ),
+        ],
+        Expanded(
+          child:
+              showTranslated
+                  ? _TranslatedBody(videoId: videoId, state: translation)
+                  : timedAsync.when(
+                    loading: () => const _LyricsLoading(),
+                    error: (_, _) => _buildPlainLyrics(context, fallbackAsync),
+                    data: (timed) {
+                      if (timed != null) {
+                        return _TimedLyricsView(
+                          lyrics: timed,
+                          position: position,
+                        );
+                      }
+                      return _buildPlainLyrics(context, fallbackAsync);
+                    },
+                  ),
+        ),
+      ],
     );
   }
 
@@ -92,6 +136,162 @@ class LyricsView extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Ask-branded translate control (sparkles = AI), not a segmented control.
+class _TranslateAskAction extends ConsumerWidget {
+  const _TranslateAskAction({
+    required this.videoId,
+    required this.showTranslation,
+    required this.loading,
+  });
+
+  final String videoId;
+  final bool showTranslation;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
+    final scheme = Theme.of(context).colorScheme;
+
+    if (showTranslation) {
+      return Row(
+        children: [
+          Icon(LucideIcons.sparkles, size: 18, color: scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.playerAskTranslateLyrics,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed:
+                loading
+                    ? null
+                    : () =>
+                        ref
+                            .read(lyricsTranslationProvider.notifier)
+                            .showOriginal(),
+            child: Text(l10n.playerAskOriginal),
+          ),
+        ],
+      );
+    }
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: FilledButton.tonalIcon(
+        onPressed:
+            loading
+                ? null
+                : () {
+                  ref
+                      .read(lyricsTranslationProvider.notifier)
+                      .showTranslated(videoId: videoId, targetLanguage: locale);
+                },
+        icon:
+            loading
+                ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: scheme.onSecondaryContainer,
+                  ),
+                )
+                : const Icon(LucideIcons.sparkles, size: 18),
+        label: Text(l10n.playerAskTranslate),
+      ),
+    );
+  }
+}
+
+class _TranslationDisclaimer extends StatelessWidget {
+  const _TranslationDisclaimer();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.secondaryContainer.withValues(alpha: 0.45),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Icon(LucideIcons.sparkles, size: 16, color: scheme.secondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${l10n.playerAskAiDisclaimerTitle} — ${l10n.playerAskAiDisclaimerBody}',
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TranslatedBody extends ConsumerWidget {
+  const _TranslatedBody({required this.videoId, required this.state});
+
+  final String videoId;
+  final LyricsTranslationState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final pc = PlayerColors.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+
+    if (state.phase == LyricsTranslationPhase.loading) {
+      return const _LyricsLoading();
+    }
+
+    if (state.phase == LyricsTranslationPhase.error) {
+      final message = switch (state.errorKind) {
+        LyricsTranslationErrorKind.unavailable => l10n.playerAskCloudRequired,
+        LyricsTranslationErrorKind.noLyrics => l10n.playerAskNoLyrics,
+        LyricsTranslationErrorKind.empty => l10n.playerAskEmpty,
+        LyricsTranslationErrorKind.failed || null => l10n.playerAskFailed,
+      };
+      return ErrorRetryWidget(
+        message: message,
+        onRetry: () {
+          ref
+              .read(lyricsTranslationProvider.notifier)
+              .showTranslated(videoId: videoId, targetLanguage: locale);
+        },
+      );
+    }
+
+    final text = state.translation ?? '';
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          height: 1.8,
+          color: pc.titleSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }

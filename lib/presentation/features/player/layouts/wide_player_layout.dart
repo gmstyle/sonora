@@ -4,8 +4,10 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../widgets/player_controls.dart';
+import '../widgets/player_insights_panel.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
@@ -45,6 +47,7 @@ class WidePlayerLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tight = availHeight < 600;
     final isPanelOpen = activeView != PlayerSubView.none;
+    final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
 
     return SafeArea(
       child: Padding(
@@ -96,6 +99,11 @@ class WidePlayerLayout extends ConsumerWidget {
                                           activeView: activeView,
                                           videoId: videoId,
                                           position: playerState.position,
+                                        )
+                                        : insightsOpen
+                                        ? const SingleChildScrollView(
+                                          key: ValueKey('insights'),
+                                          child: PlayerInsightsCard(),
                                         )
                                         : PlayerDefaultView(
                                           key: const ValueKey('empty'),

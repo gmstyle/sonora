@@ -83,5 +83,20 @@ void main() {
         isTrue,
       );
     });
+
+    test('player insights only on cloud', () {
+      expect(
+        const AskCapabilities(AskLlmBackend.none).canPlayerInsights,
+        isFalse,
+      );
+      expect(
+        const AskCapabilities(AskLlmBackend.onDevice).canPlayerInsights,
+        isFalse,
+      );
+      expect(
+        const AskCapabilities(AskLlmBackend.cloud).canPlayerInsights,
+        isTrue,
+      );
+    });
   });
 }

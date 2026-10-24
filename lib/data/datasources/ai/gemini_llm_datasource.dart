@@ -3,6 +3,7 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart';
 
 import '../../../core/constants/ai_constants.dart';
+import '../../../domain/models/grounded_llm_result.dart';
 
 /// Thin Genkit wrapper for Gemini Developer API (user-supplied API key).
 class GeminiLlmDatasource {
@@ -54,5 +55,46 @@ class GeminiLlmDatasource {
       throw StateError('Gemini returned empty text');
     }
     return text;
+  }
+
+  /// Completion with Google Search grounding. Sources come from raw
+  /// `groundingMetadata` on the GenerateContent response.
+  Future<GroundedLlmResult> completeGrounded({
+    required String systemInstruction,
+    required String userMessage,
+    int maxOutputTokens = 1024,
+  }) async {
+    final ai = _ai;
+    if (ai == null || !hasApiKey) {
+      throw StateError('Gemini API key is not configured');
+    }
+
+    debugPrint('GeminiLlm: generate grounded…');
+    final response = await ai
+        .generate(
+          model: googleAI.gemini(kAskGeminiModelId),
+          system: systemInstruction,
+          prompt: userMessage,
+          config: GeminiOptions(
+            maxOutputTokens: maxOutputTokens,
+            thinkingConfig: GeminiThinkingConfig(thinkingBudget: 0),
+            responseMimeType: 'application/json',
+            googleSearch: GeminiGoogleSearch(),
+          ),
+        )
+        .timeout(kAskGeminiTimeout);
+
+    final text = response.text.trim();
+    debugPrint(
+      'GeminiLlm: grounded done (${text.length} chars, '
+      'raw=${response.raw != null})',
+    );
+    if (text.isEmpty) {
+      throw StateError('Gemini returned empty text');
+    }
+
+    final sources = extractGroundedSources(response.raw);
+
+    return GroundedLlmResult(text: text, sources: sources);
   }
 }

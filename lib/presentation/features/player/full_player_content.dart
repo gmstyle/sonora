@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../providers/lyrics_translation_provider.dart';
+import '../../providers/player_insights_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../../domain/models/queue_track.dart';
@@ -88,6 +90,20 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final theme = Theme.of(context);
     final padding = MediaQuery.of(context).viewPadding;
     final hasSleepTimer = playerState.hasSleepTimer;
+
+    ref.listen<String?>(
+      playerStateProvider.select(
+        (s) =>
+            s.currentSong == null
+                ? null
+                : QueueTrack.fromMediaItem(s.currentSong!).videoId,
+      ),
+      (prev, next) {
+        if (prev == next) return;
+        ref.read(playerInsightsProvider.notifier).onTrackChanged(next);
+        ref.read(lyricsTranslationProvider.notifier).onTrackChanged(next);
+      },
+    );
 
     // ── Palette ───────────────────────────────────────────────────
     final paletteMap = ref.watch(paletteNotifierProvider);
