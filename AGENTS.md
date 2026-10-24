@@ -6,9 +6,15 @@ Flutter music app. Catalog comes from YouTube Music through `dart_ytmusic_api`. 
 
 ## Verify
 
+After every implementation that touches Dart sources, both of these are **mandatory** before you consider the work done (not optional, not “only if CI fails”):
+
+1. `dart format` on the files you changed (or their directories). Do not reformat unrelated screens in the same change.
+2. `flutter analyze` — must be clean on the edited Dart files (ideally the whole package).
+
 | Command | When |
 |---|---|
-| `flutter analyze` | After every `lib/` change |
+| `dart format <paths>` | After every Dart change (with `flutter analyze`) |
+| `flutter analyze` | After every Dart change (with `dart format`) |
 | `flutter test --exclude-tags integration` | After logic or widget behavior changes. Same set CI runs |
 | `flutter test --tags integration` | Only when you intend to hit live YouTube Music |
 | `dart run build_runner build --delete-conflicting-outputs` | After a Drift table or column change |
@@ -184,4 +190,4 @@ Before finishing:
 2. New copy exists in both ARB files and the generated localizations were regenerated.
 3. A new screen handles compact, tablet, and wide, or it is a single adaptive layout that already branches on those widths.
 4. A new network action is disabled under `isOfflineProvider`.
-5. `flutter analyze` is clean on the edited Dart files. Behavior changes have a test next to the existing group, not a live YouTube call.
+5. `dart format` ran on the touched Dart files and `flutter analyze` is clean. Behavior changes have a test next to the existing group, not a live YouTube call.
