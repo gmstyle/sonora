@@ -1,6 +1,6 @@
 name: sonora
 description: A music streaming app.
-version: 1.8.12+73
+version: 1.8.13+74
 publish_to: none
 
 environment:
