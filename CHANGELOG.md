@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.13+74] - 2026-10-24
+
+### Features
+
+- **ai**: Add Ask intro wizard and Settings deep link
+- **ai**: Add player curiosities and lyrics translation
+- **ai**: Name moment mixes from LLM title field
+- **ai**: Preview moment mix and save as local playlist
+- **ai**: Add Gemini BYOK cloud Ask beside on-device Qwen
+- **library**: Minimize playlist import to shared dock progress banner
+- **library**: Richer Spotify import progress with Ask assist cue
+- **library**: Review ambiguous Spotify→YTM import matches
+- **search**: Add on-device Ask natural-language search
+
+### Bug Fixes
+
+- **player**: Surface YouTube rate limits and keep error toasts sticky
+- **player**: Cool down YouTube 429s and share the YTM session
+- **ai**: Stop Gemini Mix JSON truncation from Flash thinking
+- **ai**: Switch Ask to dynamic INT4 and cache the inference model
+- **library**: Remove swipe-to-unlike from list tabs
+
 ## [1.8.12+73] - 2026-10-11
 
 ### Features
