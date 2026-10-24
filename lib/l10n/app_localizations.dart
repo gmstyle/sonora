@@ -1031,7 +1031,7 @@ abstract class AppLocalizations {
   /// No description provided for @askModelRequired.
   ///
   /// In en, this message translates to:
-  /// **'Download the Ask model in Settings → AI first'**
+  /// **'Download the Ask model in Settings → Ask first'**
   String get askModelRequired;
 
   /// No description provided for @searchForMusic.
@@ -1157,19 +1157,19 @@ abstract class AppLocalizations {
   /// No description provided for @aiSettings.
   ///
   /// In en, this message translates to:
-  /// **'AI'**
+  /// **'Ask'**
   String get aiSettings;
 
   /// No description provided for @aiSettingsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Ask engine for Search, Mix, and import assist'**
+  /// **'Engine for Search, Mix, curiosities, and lyrics translation'**
   String get aiSettingsSubtitle;
 
   /// No description provided for @aiAskModeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Ask engine'**
+  /// **'Engine'**
   String get aiAskModeTitle;
 
   /// No description provided for @aiAskModeOnDevice.
@@ -1237,6 +1237,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a Gemini API key for Cloud Ask'**
   String get aiGeminiApiKeyMissing;
+
+  /// No description provided for @askIntroWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask is in Sonora'**
+  String get askIntroWelcomeTitle;
+
+  /// No description provided for @askIntroWelcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'An optional assistant for searching, mixing, and understanding the music you play — on this device or with your own Gemini key.'**
+  String get askIntroWelcomeBody;
+
+  /// No description provided for @askIntroWelcomeBullet1.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — Sonora works without it'**
+  String get askIntroWelcomeBullet1;
+
+  /// No description provided for @askIntroWelcomeBullet2.
+  ///
+  /// In en, this message translates to:
+  /// **'Look for Ask in Search, Library, and the player'**
+  String get askIntroWelcomeBullet2;
+
+  /// No description provided for @askIntroWhatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What Ask can do'**
+  String get askIntroWhatTitle;
+
+  /// No description provided for @askIntroWhatBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Three main jobs, one engine.'**
+  String get askIntroWhatBody;
+
+  /// No description provided for @askIntroWhatBullet1.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural-language search (“warm 70s jazz”)'**
+  String get askIntroWhatBullet1;
+
+  /// No description provided for @askIntroWhatBullet2.
+  ///
+  /// In en, this message translates to:
+  /// **'Moment Mix and help matching Spotify imports'**
+  String get askIntroWhatBullet2;
+
+  /// No description provided for @askIntroWhatBullet3.
+  ///
+  /// In en, this message translates to:
+  /// **'In the player: track curiosities and translate lyrics (Cloud)'**
+  String get askIntroWhatBullet3;
+
+  /// No description provided for @askIntroWhereTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where to find it'**
+  String get askIntroWhereTitle;
+
+  /// No description provided for @askIntroWhereBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask uses the same mark wherever it appears — no separate menu.'**
+  String get askIntroWhereBody;
+
+  /// No description provided for @askIntroWhereBullet1.
+  ///
+  /// In en, this message translates to:
+  /// **'Search → Ask'**
+  String get askIntroWhereBullet1;
+
+  /// No description provided for @askIntroWhereBullet2.
+  ///
+  /// In en, this message translates to:
+  /// **'Library → Moment Mix'**
+  String get askIntroWhereBullet2;
+
+  /// No description provided for @askIntroWhereBullet3.
+  ///
+  /// In en, this message translates to:
+  /// **'Full player → curiosities · Lyrics → Translate'**
+  String get askIntroWhereBullet3;
+
+  /// No description provided for @askIntroWhereBullet4.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings → Ask for engine and key'**
+  String get askIntroWhereBullet4;
+
+  /// No description provided for @askIntroActivateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it on when you want'**
+  String get askIntroActivateTitle;
+
+  /// No description provided for @askIntroActivateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Two paths. Auto uses Cloud when you have a key and a network; otherwise on-device.'**
+  String get askIntroActivateBody;
+
+  /// No description provided for @askIntroActivateBullet1.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device: download Qwen3 0.6B — works offline'**
+  String get askIntroActivateBullet1;
+
+  /// No description provided for @askIntroActivateBullet2.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud: Gemini key from Google AI Studio — kept on this device'**
+  String get askIntroActivateBullet2;
+
+  /// No description provided for @askIntroActivateBullet3.
+  ///
+  /// In en, this message translates to:
+  /// **'Curiosities and lyrics translation need Cloud'**
+  String get askIntroActivateBullet3;
+
+  /// No description provided for @askIntroActivateDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask can be wrong. With Cloud, prompts go to Google.'**
+  String get askIntroActivateDisclaimer;
+
+  /// No description provided for @askIntroNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get askIntroNext;
+
+  /// No description provided for @askIntroBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get askIntroBack;
+
+  /// No description provided for @askIntroOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Ask settings'**
+  String get askIntroOpenSettings;
 
   /// No description provided for @aiAskModelTitle.
   ///
@@ -3053,7 +3197,7 @@ abstract class AppLocalizations {
   /// No description provided for @importAiAssistReadyTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI assist available'**
+  /// **'Ask assist available'**
   String get importAiAssistReadyTitle;
 
   /// No description provided for @importAiAssistReadyBody.
@@ -3065,19 +3209,19 @@ abstract class AppLocalizations {
   /// No description provided for @importAiAssistDisabledTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI assist is off'**
+  /// **'Ask assist is off'**
   String get importAiAssistDisabledTitle;
 
   /// No description provided for @importAiAssistDisabledBody.
   ///
   /// In en, this message translates to:
-  /// **'Download the Ask model in Settings → AI to improve uncertain Spotify matches.'**
+  /// **'Download the Ask model in Settings → Ask to improve uncertain Spotify matches.'**
   String get importAiAssistDisabledBody;
 
   /// No description provided for @importAiAssistOpenSettings.
   ///
   /// In en, this message translates to:
-  /// **'Open Settings'**
+  /// **'Open Ask settings'**
   String get importAiAssistOpenSettings;
 
   /// No description provided for @importJobMinimize.

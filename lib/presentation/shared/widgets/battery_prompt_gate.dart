@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/home/providers/home_provider.dart';
+import '../../providers/ask_intro_provider.dart';
 import '../../providers/battery_prompt_provider.dart';
 import 'battery_optimization_prompt.dart';
 
 /// Shows the battery-optimization prompt once per app session after the home
 /// sections have finished loading, so it does not compete with the startup UI.
+///
+/// Defers when the Ask intro should show in this session (one overlay at a
+/// time); the battery prompt can appear on a later launch.
 class BatteryPromptGate extends ConsumerStatefulWidget {
   const BatteryPromptGate({super.key});
 
@@ -34,6 +38,9 @@ class _BatteryPromptGateState extends ConsumerState<BatteryPromptGate> {
       // Home failed to load — still proceed with the prompt.
     }
     if (!mounted) return;
+
+    final showAskIntro = await ref.read(shouldShowAiIntroProvider.future);
+    if (!mounted || showAskIntro) return;
 
     final shouldShow = await ref.read(shouldShowBatteryPromptProvider.future);
     if (!mounted || !shouldShow) return;

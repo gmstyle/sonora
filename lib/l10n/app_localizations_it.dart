@@ -624,7 +624,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get askModelRequired =>
-      'Scarica prima il modello Ask in Impostazioni → AI';
+      'Scarica prima il modello Ask in Impostazioni → Ask';
 
   @override
   String get searchForMusic => 'Cerca musica';
@@ -688,14 +688,14 @@ class AppLocalizationsIt extends AppLocalizations {
   String get featuredArtist => 'Artista in evidenza';
 
   @override
-  String get aiSettings => 'AI';
+  String get aiSettings => 'Ask';
 
   @override
   String get aiSettingsSubtitle =>
-      'Motore Ask per Cerca, Mix e assist all\'import';
+      'Motore per Cerca, Mix, curiosità e traduzione lyrics';
 
   @override
-  String get aiAskModeTitle => 'Motore Ask';
+  String get aiAskModeTitle => 'Motore';
 
   @override
   String get aiAskModeOnDevice => 'On-device';
@@ -732,6 +732,89 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get aiGeminiApiKeyMissing =>
       'Aggiungi una chiave Gemini per Ask Cloud';
+
+  @override
+  String get askIntroWelcomeTitle => 'C\'è Ask in Sonora';
+
+  @override
+  String get askIntroWelcomeBody =>
+      'Un assistente opzionale per cercare, mescolare e capire la musica che ascolti — sul dispositivo o con la tua chiave Gemini.';
+
+  @override
+  String get askIntroWelcomeBullet1 => 'Opzionale: Sonora funziona anche senza';
+
+  @override
+  String get askIntroWelcomeBullet2 =>
+      'Trovi Ask in Cerca, Libreria e nel player';
+
+  @override
+  String get askIntroWhatTitle => 'Cosa può fare Ask';
+
+  @override
+  String get askIntroWhatBody => 'Tre job principali, un solo motore.';
+
+  @override
+  String get askIntroWhatBullet1 =>
+      'Cerca in linguaggio naturale (“jazz caldo anni 70”)';
+
+  @override
+  String get askIntroWhatBullet2 =>
+      'Moment Mix e aiuto sui match dell’import Spotify';
+
+  @override
+  String get askIntroWhatBullet3 =>
+      'Nel player: curiosità sul brano e traduci lyrics (Cloud)';
+
+  @override
+  String get askIntroWhereTitle => 'Dove lo trovi';
+
+  @override
+  String get askIntroWhereBody =>
+      'Ask usa lo stesso segno ovunque compare — nessun menu separato.';
+
+  @override
+  String get askIntroWhereBullet1 => 'Cerca → Ask';
+
+  @override
+  String get askIntroWhereBullet2 => 'Libreria → Moment Mix';
+
+  @override
+  String get askIntroWhereBullet3 => 'Player → curiosità · Lyrics → Traduci';
+
+  @override
+  String get askIntroWhereBullet4 => 'Impostazioni → Ask per motore e chiave';
+
+  @override
+  String get askIntroActivateTitle => 'Attivalo quando vuoi';
+
+  @override
+  String get askIntroActivateBody =>
+      'Due strade. Auto usa Cloud se hai chiave e rete, altrimenti on-device.';
+
+  @override
+  String get askIntroActivateBullet1 =>
+      'On-device: scarica Qwen3 0.6B — anche offline';
+
+  @override
+  String get askIntroActivateBullet2 =>
+      'Cloud: chiave Gemini da Google AI Studio — resta su questo dispositivo';
+
+  @override
+  String get askIntroActivateBullet3 =>
+      'Curiosità e traduzione lyrics richiedono Cloud';
+
+  @override
+  String get askIntroActivateDisclaimer =>
+      'Ask può sbagliare. Con Cloud i prompt vanno a Google.';
+
+  @override
+  String get askIntroNext => 'Avanti';
+
+  @override
+  String get askIntroBack => 'Indietro';
+
+  @override
+  String get askIntroOpenSettings => 'Apri impostazioni Ask';
 
   @override
   String get aiAskModelTitle => 'Modello on-device (Qwen3 0.6B)';
@@ -1794,21 +1877,21 @@ class AppLocalizationsIt extends AppLocalizations {
   String get importProgressSaving => 'Salvataggio playlist…';
 
   @override
-  String get importAiAssistReadyTitle => 'Assistenza AI disponibile';
+  String get importAiAssistReadyTitle => 'Assistenza Ask disponibile';
 
   @override
   String get importAiAssistReadyBody =>
       'Se un match è incerto, Ask può riscrivere la ricerca — confermi tu prima del salvataggio.';
 
   @override
-  String get importAiAssistDisabledTitle => 'Assistenza AI disattivata';
+  String get importAiAssistDisabledTitle => 'Assistenza Ask disattivata';
 
   @override
   String get importAiAssistDisabledBody =>
-      'Scarica il modello Ask in Impostazioni → AI per migliorare i match Spotify incerti.';
+      'Scarica il modello Ask in Impostazioni → Ask per migliorare i match Spotify incerti.';
 
   @override
-  String get importAiAssistOpenSettings => 'Apri Impostazioni';
+  String get importAiAssistOpenSettings => 'Apri impostazioni Ask';
 
   @override
   String get importJobMinimize => 'Esegui in background';

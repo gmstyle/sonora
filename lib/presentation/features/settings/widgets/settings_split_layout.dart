@@ -7,14 +7,17 @@ import '../settings_shared.dart';
 import '../settings_screen_content.dart';
 
 class SettingsSplitLayout extends StatefulWidget {
-  const SettingsSplitLayout({super.key});
+  const SettingsSplitLayout({super.key, this.initialCategory});
+
+  final SettingsCategory? initialCategory;
 
   @override
   State<SettingsSplitLayout> createState() => _SettingsSplitLayoutState();
 }
 
 class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
-  SettingsCategory _selectedCategory = SettingsCategory.appearance;
+  late SettingsCategory _selectedCategory =
+      widget.initialCategory ?? SettingsCategory.appearance;
 
   @override
   Widget build(BuildContext context) {

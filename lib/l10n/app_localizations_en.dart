@@ -619,7 +619,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askModelRequired =>
-      'Download the Ask model in Settings → AI first';
+      'Download the Ask model in Settings → Ask first';
 
   @override
   String get searchForMusic => 'Search for music';
@@ -683,14 +683,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featuredArtist => 'Featured Artist';
 
   @override
-  String get aiSettings => 'AI';
+  String get aiSettings => 'Ask';
 
   @override
   String get aiSettingsSubtitle =>
-      'Ask engine for Search, Mix, and import assist';
+      'Engine for Search, Mix, curiosities, and lyrics translation';
 
   @override
-  String get aiAskModeTitle => 'Ask engine';
+  String get aiAskModeTitle => 'Engine';
 
   @override
   String get aiAskModeOnDevice => 'On-device';
@@ -726,6 +726,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGeminiApiKeyMissing => 'Add a Gemini API key for Cloud Ask';
+
+  @override
+  String get askIntroWelcomeTitle => 'Ask is in Sonora';
+
+  @override
+  String get askIntroWelcomeBody =>
+      'An optional assistant for searching, mixing, and understanding the music you play — on this device or with your own Gemini key.';
+
+  @override
+  String get askIntroWelcomeBullet1 => 'Optional — Sonora works without it';
+
+  @override
+  String get askIntroWelcomeBullet2 =>
+      'Look for Ask in Search, Library, and the player';
+
+  @override
+  String get askIntroWhatTitle => 'What Ask can do';
+
+  @override
+  String get askIntroWhatBody => 'Three main jobs, one engine.';
+
+  @override
+  String get askIntroWhatBullet1 => 'Natural-language search (“warm 70s jazz”)';
+
+  @override
+  String get askIntroWhatBullet2 =>
+      'Moment Mix and help matching Spotify imports';
+
+  @override
+  String get askIntroWhatBullet3 =>
+      'In the player: track curiosities and translate lyrics (Cloud)';
+
+  @override
+  String get askIntroWhereTitle => 'Where to find it';
+
+  @override
+  String get askIntroWhereBody =>
+      'Ask uses the same mark wherever it appears — no separate menu.';
+
+  @override
+  String get askIntroWhereBullet1 => 'Search → Ask';
+
+  @override
+  String get askIntroWhereBullet2 => 'Library → Moment Mix';
+
+  @override
+  String get askIntroWhereBullet3 =>
+      'Full player → curiosities · Lyrics → Translate';
+
+  @override
+  String get askIntroWhereBullet4 => 'Settings → Ask for engine and key';
+
+  @override
+  String get askIntroActivateTitle => 'Turn it on when you want';
+
+  @override
+  String get askIntroActivateBody =>
+      'Two paths. Auto uses Cloud when you have a key and a network; otherwise on-device.';
+
+  @override
+  String get askIntroActivateBullet1 =>
+      'On-device: download Qwen3 0.6B — works offline';
+
+  @override
+  String get askIntroActivateBullet2 =>
+      'Cloud: Gemini key from Google AI Studio — kept on this device';
+
+  @override
+  String get askIntroActivateBullet3 =>
+      'Curiosities and lyrics translation need Cloud';
+
+  @override
+  String get askIntroActivateDisclaimer =>
+      'Ask can be wrong. With Cloud, prompts go to Google.';
+
+  @override
+  String get askIntroNext => 'Next';
+
+  @override
+  String get askIntroBack => 'Back';
+
+  @override
+  String get askIntroOpenSettings => 'Open Ask settings';
 
   @override
   String get aiAskModelTitle => 'On-device model (Qwen3 0.6B)';
@@ -1786,21 +1869,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importProgressSaving => 'Saving playlist…';
 
   @override
-  String get importAiAssistReadyTitle => 'AI assist available';
+  String get importAiAssistReadyTitle => 'Ask assist available';
 
   @override
   String get importAiAssistReadyBody =>
       'If a match is uncertain, Ask can rewrite the search — you confirm before anything is saved.';
 
   @override
-  String get importAiAssistDisabledTitle => 'AI assist is off';
+  String get importAiAssistDisabledTitle => 'Ask assist is off';
 
   @override
   String get importAiAssistDisabledBody =>
-      'Download the Ask model in Settings → AI to improve uncertain Spotify matches.';
+      'Download the Ask model in Settings → Ask to improve uncertain Spotify matches.';
 
   @override
-  String get importAiAssistOpenSettings => 'Open Settings';
+  String get importAiAssistOpenSettings => 'Open Ask settings';
 
   @override
   String get importJobMinimize => 'Run in background';

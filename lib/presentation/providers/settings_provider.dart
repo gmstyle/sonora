@@ -149,7 +149,7 @@ class Settings {
   ///
   /// Excludes device-local [downloadPath], [wrappedSeen], [askMode],
   /// [geminiApiKey], plus runtime keys (`lastUpdateCheckTime`,
-  /// `postQueueSplitDone`, `batteryPromptDismissed`).
+  /// `postQueueSplitDone`, `batteryPromptDismissed`, `aiIntroSeen`).
   Map<String, dynamic> toBackupMap() {
     return <String, dynamic>{
       kThemeModeKey: themeMode.index,
@@ -608,6 +608,9 @@ const kPostQueueSplitDoneKey = 'postQueueSplitDone';
 /// When `true`, the proactive battery-optimization startup prompt is never shown again.
 const kBatteryPromptDismissedKey = 'batteryPromptDismissed';
 
+/// When `true`, the one-shot Ask feature intro wizard is never shown again.
+const kAiIntroSeenKey = 'aiIntroSeen';
+
 /// Keys written by [Settings.toBackupMap]. Equalizer keys are merged in
 /// separately from `EqualizerState.toBackupMap`.
 const kSettingsBackupKeys = <String>{
@@ -668,6 +671,10 @@ extension BatteryOptimizationNotifier on SettingsNotifier {
 
   Future<void> dismissBatteryPromptForever() async {
     await _prefs.setBool(kBatteryPromptDismissedKey, true);
+  }
+
+  Future<void> markAiIntroSeen() async {
+    await _prefs.setBool(kAiIntroSeenKey, true);
   }
 }
 

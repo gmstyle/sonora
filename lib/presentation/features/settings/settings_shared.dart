@@ -335,6 +335,22 @@ enum SettingsCategory {
   about,
 }
 
+/// Query value for `/settings?section=ask` (and future section deep links).
+const kSettingsAskSection = 'ask';
+
+/// Path that opens Settings already on the Ask category.
+const kSettingsAskPath = '/settings?section=$kSettingsAskSection';
+
+/// Maps a `section` query param to a [SettingsCategory], or `null` if unknown.
+SettingsCategory? settingsCategoryFromSection(String? section) {
+  switch (section) {
+    case kSettingsAskSection:
+      return SettingsCategory.ai;
+    default:
+      return null;
+  }
+}
+
 extension SettingsCategoryExtension on SettingsCategory {
   String getTitle(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

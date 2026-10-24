@@ -6,11 +6,37 @@ import '../../../../l10n/app_localizations.dart';
 import '../settings_screen_content.dart';
 import '../settings_shared.dart';
 
-class SettingsMobileLayout extends ConsumerWidget {
-  const SettingsMobileLayout({super.key});
+class SettingsMobileLayout extends ConsumerStatefulWidget {
+  const SettingsMobileLayout({super.key, this.initialCategory});
+
+  final SettingsCategory? initialCategory;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsMobileLayout> createState() =>
+      _SettingsMobileLayoutState();
+}
+
+class _SettingsMobileLayoutState extends ConsumerState<SettingsMobileLayout> {
+  bool _openedInitial = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final category = widget.initialCategory;
+    if (category == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _openedInitial) return;
+      _openedInitial = true;
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => SettingsCategoryScreen(category: category),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../settings/settings_shared.dart';
 
 enum ImportProgressPhase { matching, reviewing, saving, generic }
 
@@ -111,14 +112,14 @@ class _AiAssistCard extends StatelessWidget {
 
     final title =
         modelReady
-            ? (l10n?.importAiAssistReadyTitle ?? 'AI assist available')
-            : (l10n?.importAiAssistDisabledTitle ?? 'AI assist is off');
+            ? (l10n?.importAiAssistReadyTitle ?? 'Ask assist available')
+            : (l10n?.importAiAssistDisabledTitle ?? 'Ask assist is off');
     final body =
         modelReady
             ? (l10n?.importAiAssistReadyBody ??
                 'If a match is uncertain, Ask can rewrite the search — you confirm before anything is saved.')
             : (l10n?.importAiAssistDisabledBody ??
-                'Download the Ask model in Settings → AI to improve uncertain Spotify matches.');
+                'Download the Ask model in Settings → Ask to improve uncertain Spotify matches.');
 
     return Material(
       color: colorScheme.surfaceContainer,
@@ -168,7 +169,7 @@ class _AiAssistCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () => context.push('/settings'),
+                  onPressed: () => context.push(kSettingsAskPath),
                   child: Text(
                     l10n?.importAiAssistOpenSettings ?? 'Open Settings',
                   ),

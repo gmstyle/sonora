@@ -6,6 +6,7 @@ import '../features/search/search_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/downloads/downloads_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/settings/settings_shared.dart';
 import '../features/artist/artist_releases_screen.dart';
 import '../features/artist/artist_screen.dart';
 import '../features/artist/artist_videos_screen.dart';
@@ -390,7 +391,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const SettingsScreen(),
+        builder:
+            (context, state) => SettingsScreen(
+              initialCategory: settingsCategoryFromSection(
+                state.uri.queryParameters['section'],
+              ),
+            ),
       ),
     ],
   );
