@@ -366,7 +366,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "5551016d8d4218cfb0fafbd99fea36006ad35989"
+      resolved-ref: "49b21ab4a7f3c927f33ea179fb27bd93f489c342"
       url: "https://github.com/gmstyle/dart_ytmusic_api.git"
     source: git
     version: "1.9.2"
@@ -587,10 +587,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_local_notifications
-      sha256: "9ee28742343dd13df758bb4185e8ded37ac2d1aeca6648c3ba7862c99797517e"
+      sha256: fd5fc8966a8b34337ac182dc394f3506139b69d8138d4e9e174a13d6468adcd4
       url: "https://pub.dev"
     source: hosted
-    version: "22.3.2"
+    version: "22.3.3"
   flutter_local_notifications_linux:
     dependency: "direct main"
     description:
@@ -1903,10 +1903,10 @@ packages:
     dependency: transitive
     description:
       name: xml
-      sha256: "971043b3a0d3da28727e40ed3e0b5d18b742fa5a68665cca88e74b7876d5e025"
+      sha256: "67f0aff7be013d107995e9b75bf4e7f2c3ef2dfdb2c8e68024bba0a7fd5756a4"
       url: "https://pub.dev"
     source: hosted
-    version: "6.6.1"
+    version: "7.0.1"
   yaml:
     dependency: transitive
     description:
@@ -1928,10 +1928,10 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "472b4c2148cafe60e9d3fd452f06194936de6e32"
+      resolved-ref: bec10d6960f56c2d6fa383c80321b6876e66c07f
       url: "https://github.com/gmstyle/youtube_explode_dart.git"
     source: git
-    version: "3.1.1"
+    version: "3.2.0"
 sdks:
   dart: ">=3.13.0 <4.0.0"
   flutter: ">=3.47.0"
