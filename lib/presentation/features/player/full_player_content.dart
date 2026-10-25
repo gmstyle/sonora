@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/screen_keep_awake.dart';
 import '../../providers/lyrics_translation_provider.dart';
 import '../../providers/player_insights_provider.dart';
 import '../../providers/player_provider.dart';
@@ -58,6 +59,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   late final PlayerSubViewNotifier _subViewNotifier;
   final GlobalKey _artworkKey = GlobalKey(debugLabel: 'player_artwork');
 
+  /// Last sub-view applied to [ScreenKeepAwake]; avoids spam on rebuilds.
+  PlayerSubView? _keepAwakeForView;
+
   @override
   void initState() {
     super.initState();
@@ -71,8 +75,20 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
 
   @override
   void dispose() {
+    // Fire-and-forget: leave the sheet must never leave FLAG_KEEP_SCREEN_ON.
+    ScreenKeepAwake.disable();
     Future.microtask(() => _subViewNotifier.set(PlayerSubView.none));
     super.dispose();
+  }
+
+  void _syncLyricsKeepAwake(PlayerSubView view) {
+    if (_keepAwakeForView == view) return;
+    _keepAwakeForView = view;
+    if (view == PlayerSubView.lyrics) {
+      ScreenKeepAwake.enable();
+    } else {
+      ScreenKeepAwake.disable();
+    }
   }
 
   @override
@@ -80,16 +96,12 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     final playerState = ref.watch(playerStateProvider);
     final playerNotifier = ref.read(playerStateProvider.notifier);
     final activeView = ref.watch(playerSubViewProvider);
-    final currentSong = playerState.currentSong;
-    if (currentSong == null) return const SizedBox.shrink();
 
-    final track = QueueTrack.fromMediaItem(currentSong);
-    final videoId = track.videoId;
-    final artUrl = currentSong.artUri?.toString();
-    final albumName = currentSong.album;
-    final theme = Theme.of(context);
-    final padding = MediaQuery.of(context).viewPadding;
-    final hasSleepTimer = playerState.hasSleepTimer;
+    // Keep the display awake only while the lyrics sub-view is open (Android).
+    ref.listen<PlayerSubView>(playerSubViewProvider, (prev, next) {
+      _syncLyricsKeepAwake(next);
+    });
+    _syncLyricsKeepAwake(activeView);
 
     ref.listen<String?>(
       playerStateProvider.select(
@@ -104,6 +116,17 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
         ref.read(lyricsTranslationProvider.notifier).onTrackChanged(next);
       },
     );
+
+    final currentSong = playerState.currentSong;
+    if (currentSong == null) return const SizedBox.shrink();
+
+    final track = QueueTrack.fromMediaItem(currentSong);
+    final videoId = track.videoId;
+    final artUrl = currentSong.artUri?.toString();
+    final albumName = currentSong.album;
+    final theme = Theme.of(context);
+    final padding = MediaQuery.of(context).viewPadding;
+    final hasSleepTimer = playerState.hasSleepTimer;
 
     // ── Palette ───────────────────────────────────────────────────
     final paletteMap = ref.watch(paletteNotifierProvider);

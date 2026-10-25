@@ -15,6 +15,9 @@ dependencies:
   # ── Core Utilities ────────────────────────────────────────────
   path: ^1.9.0
   args: ^2.7.0
+  # Keep screen awake on Android while lyrics view is open.
+  # 1.8.1+ needs dbus ^0.8; audio_service_mpris 0.2.1 pins dbus ^0.7.
+  wakelock_plus: ^1.8.0
 
   # ── YTMusic Data Layer ────────────────────────────────────────
   #dart_ytmusic_api:
