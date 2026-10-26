@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.14+75] - 2026-10-26
+
+### Features
+
+- **player**: Keep screen awake on Android while lyrics are open
+
+### Bug Fixes
+
+- **home**: Avoid double keyboard resize under Moment Mix
+- **android**: Declare Sonora as an audio music app
+
 ## [1.8.13+74] - 2026-10-24
 
 ### Features
