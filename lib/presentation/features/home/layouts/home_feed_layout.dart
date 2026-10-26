@@ -55,6 +55,9 @@ class HomeFeedLayout extends ConsumerWidget {
       child: Focus(
         autofocus: true,
         child: Scaffold(
+          // MobileShell already shrinks for the IME; resizing here leaves a
+          // blank band under Moment Mix when the keyboard opens.
+          resizeToAvoidBottomInset: false,
           extendBodyBehindAppBar: true,
           appBar: AppBar(
             flexibleSpace: const GlassAppBarBackground(),
