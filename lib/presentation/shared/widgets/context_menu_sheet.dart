@@ -23,6 +23,7 @@ import '../../../domain/usecases/player/start_radio_use_case.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../features/artist/providers/artist_provider.dart';
+import '../../features/home/providers/home_provider.dart';
 import '../../features/library/providers/library_provider.dart';
 import '../../features/library/widgets/create_playlist_dialog.dart';
 import '../../features/library/widgets/linked_playlist_actions.dart';
@@ -3268,10 +3269,21 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                         final notifier = ref.read(
                           libraryNotifierProvider.notifier,
                         );
+                        // Detail page passes hideGoToPlaylist: leave after delete.
+                        final leaveDetail = hideGoToPlaylist;
+                        final nav =
+                            leaveDetail
+                                ? Navigator.of(context, rootNavigator: true)
+                                : null;
                         Navigator.pop(context);
                         await notifier.deletePlaylist(playlist.id);
                         ref.invalidate(playlistsProvider);
+                        ref.invalidate(homeCombinedPlaylistsProvider);
+                        ref.invalidate(homeRandomPlaylistsProvider);
                         onUpdated();
+                        if (leaveDetail && nav != null && nav.canPop()) {
+                          nav.pop();
+                        }
                       }
                     },
                   ),
