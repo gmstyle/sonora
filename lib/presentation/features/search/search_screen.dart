@@ -28,7 +28,9 @@ import '../../shared/widgets/explicit_badge.dart';
 import 'providers/ask_search_provider.dart';
 import 'providers/search_provider.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../providers/android_tv_provider.dart';
 import '../../providers/on_device_llm_provider.dart';
+import '../tv/screens/tv_search_screen.dart';
 
 /// Content max width for Search on wide shells (≥ [kExpandedBreakpoint]).
 const double _kSearchContentMaxWidth = 1100;
@@ -87,6 +89,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return const TvSearchScreen();
+    }
     final query = ref.watch(searchQueryProvider);
     final activeQuery = ref.watch(activeSearchQueryProvider);
     final isOffline = ref.watch(isOfflineProvider);

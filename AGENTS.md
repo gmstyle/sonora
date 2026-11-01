@@ -1,6 +1,6 @@
 # Sonora
 
-Flutter music app. Catalog comes from YouTube Music through `dart_ytmusic_api`. Stream URLs come from `youtube_explode_dart`. Playback is `just_audio` behind a `PlaybackEngine`. Local data is Drift. Supported clients are **Android and Linux**.
+Flutter music app. Catalog comes from YouTube Music through `dart_ytmusic_api`. Stream URLs come from `youtube_explode_dart`. Playback is `just_audio` behind a `PlaybackEngine`. Local data is Drift. Supported clients are **Android**, **Android TV (sideload)**, and **Linux**.
 
 `docs/SONORA-DEV-DOCS.md` is the architecture reference (layers, player, schema, routes). This file is the contract for changes: follow the patterns below instead of inventing a parallel one. `docs/CLI.md` covers the headless CLI.
 
@@ -180,7 +180,15 @@ Catalog fields that are not already columns (subscriber counts, descriptions, pl
 
 ## Scope
 
-Android and Linux only. Do not add iOS, Windows, or macOS targets, permissions, or copy. In-app video playback was removed; music videos play as audio.
+Android (phone/tablet), Android TV (sideload, dedicated `TvShell` + D-pad), and Linux only. Do not add iOS, Windows, or macOS targets, permissions, or copy. In-app video playback was removed; music videos play as audio.
+
+### Android TV
+
+- Detect with `AndroidTv.isAndroidTv` → `isAndroidTvProvider` (overridden in `main`).
+- `AppShell` selects `TvShell` when TV; phone/tablet/wide shells stay untouched.
+- Focus uses `package:dpad` (`Dpad.wrap` only when TV). New TV chrome lives under `lib/presentation/features/tv/`.
+- Gate phone-only surfaces on TV: cast, battery prompt, Ask intro, local sync, APK updates.
+- Manifest: `LEANBACK_LAUNCHER`, `leanback`/`touchscreen` `required="false"`, `android:banner`. Sideload only — not a Play Store TV listing.
 
 Fix the layer that owns the bug. Do not restyle an unrelated screen, rename a public route, or swap the audio engine in the same change.
 

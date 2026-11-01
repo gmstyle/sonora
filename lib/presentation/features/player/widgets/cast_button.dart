@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/cast_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import 'cast_dialog.dart';
@@ -15,6 +16,9 @@ class CastButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return const SizedBox.shrink();
+    }
     final castStateAsync = ref.watch(castStateProvider);
     final isOffline = ref.watch(isOfflineProvider);
 

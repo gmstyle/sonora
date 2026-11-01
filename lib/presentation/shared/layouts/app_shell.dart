@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../features/tv/layouts/tv_shell.dart';
+import '../../providers/android_tv_provider.dart';
 import '../widgets/ask_intro_gate.dart';
 import '../widgets/battery_prompt_gate.dart';
 import '../widgets/offline_banner.dart';
@@ -16,6 +18,16 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTv = ref.watch(isAndroidTvProvider);
+    if (isTv) {
+      return Stack(
+        children: [
+          TvShell(navigationShell: navigationShell),
+          const OfflineBanner(),
+        ],
+      );
+    }
+
     return Stack(
       children: [
         LayoutBuilder(

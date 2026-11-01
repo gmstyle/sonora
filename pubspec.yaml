@@ -117,6 +117,7 @@ dependencies:
   flutter_edge_ai_litertlm: ^1.14.0
   genkit: ^1.0.0
   genkit_google_genai: ^1.0.0
+  dpad: ^3.2.0
 
 dev_dependencies:
   flutter_test:

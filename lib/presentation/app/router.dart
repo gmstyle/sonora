@@ -23,6 +23,8 @@ import '../features/user/user_videos_screen.dart';
 import '../features/user/user_playlists_screen.dart';
 import '../features/library/widgets/moment_mix_detail_view.dart';
 import '../features/library/widgets/smart_mix_detail_view.dart';
+import '../features/tv/widgets/tv_branch_focus.dart';
+import '../features/tv/widgets/tv_left_to_sidebar.dart';
 import '../shared/layouts/app_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -74,7 +76,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/',
-                builder: (context, state) => const HomeScreen(),
+                builder:
+                    (context, state) => const TvBranchFocus(
+                      branchIndex: 0,
+                      child: HomeScreen(),
+                    ),
                 routes: [
                   GoRoute(
                     path: 'artist/:artistId',
@@ -302,7 +308,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/search',
-                builder: (context, state) => const SearchScreen(),
+                builder:
+                    (context, state) => const TvBranchFocus(
+                      branchIndex: 1,
+                      child: SearchScreen(),
+                    ),
                 routes: [
                   GoRoute(
                     path: 'podcast/:browseId',
@@ -374,7 +384,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/library',
-                builder: (context, state) => const LibraryScreen(),
+                builder:
+                    (context, state) => const TvBranchFocus(
+                      branchIndex: 2,
+                      child: LibraryScreen(),
+                    ),
               ),
             ],
           ),
@@ -382,7 +396,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/downloads',
-                builder: (context, state) => const DownloadsScreen(),
+                builder:
+                    (context, state) => const TvBranchFocus(
+                      branchIndex: 3,
+                      child: TvLeftToSidebar(
+                        memoryKey: 'tv/downloads',
+                        child: DownloadsScreen(),
+                      ),
+                    ),
               ),
             ],
           ),

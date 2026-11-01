@@ -19,10 +19,12 @@ import 'package:window_manager/window_manager.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/link/sonora_link_handler.dart';
+import 'core/utils/android_tv.dart';
 import 'core/utils/linux_single_instance.dart';
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
 import 'core/utils/linux_tray_service.dart';
+import 'package:dpad/dpad.dart';
 import 'data/datasources/local/database_connection.dart';
 import 'data/datasources/local/daos/downloads_dao.dart';
 import 'data/datasources/local/daos/history_dao.dart';
@@ -41,6 +43,7 @@ import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
+import 'presentation/providers/android_tv_provider.dart';
 import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/download_notification_service.dart';
 import 'presentation/providers/download_provider.dart';
@@ -180,6 +183,10 @@ Future<void> main() async {
     LinuxTrayService.setAudioHandler(handler);
   }
 
+  final isAndroidTv = await AndroidTv.isAndroidTv();
+  await AndroidTv.debugLogDetection();
+  debugPrint('[AndroidTv] isAndroidTv=$isAndroidTv');
+
   runApp(
     ProviderScope(
       overrides: [
@@ -191,6 +198,7 @@ Future<void> main() async {
         libraryRepositoryProvider.overrideWithValue(libraryRepo),
         musicRepositoryProvider.overrideWithValue(musicRepo),
         playVideoIdUseCaseProvider.overrideWithValue(playVideoIdUseCase),
+        isAndroidTvProvider.overrideWithValue(isAndroidTv),
       ],
       child: const SonoraApp(),
     ),
@@ -447,6 +455,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
         final lightTheme = ref.watch(lightThemeProvider(lightDynamic));
         final darkTheme = ref.watch(darkThemeProvider(darkDynamic));
 
+        final isTv = ref.watch(isAndroidTvProvider);
         return MaterialApp.router(
           title: AppLocalizations.of(context)?.appTitle ?? 'Sonora',
           routerConfig: router,
@@ -455,6 +464,8 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: themeMode,
+          // D-pad root only on Android TV — phone/tablet keep stock focus.
+          builder: isTv ? Dpad.wrap() : null,
         );
       },
     );

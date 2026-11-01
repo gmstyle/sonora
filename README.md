@@ -3,10 +3,10 @@
   <img alt="Sonora" src="assets/logo_full.png" width="320">
 </picture>
 
-Sonora is a cross-platform music streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable experience on **Android** and **Linux desktop**.
+Sonora is a cross-platform music streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable experience on **Android**, **Android TV (sideload)**, and **Linux desktop**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Platform: Android + Linux](https://img.shields.io/badge/Platform-Android%20%7C%20Linux-blue)
+![Platform: Android + Linux](https://img.shields.io/badge/Platform-Android%20%7C%20Android%20TV%20%7C%20Linux-blue)
 [![Total Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/total.svg)](https://github.com/gmstyle/sonora/releases)
 [![Latest Release Downloads](https://img.shields.io/github/downloads/gmstyle/sonora/latest/total.svg)](https://github.com/gmstyle/sonora/releases/latest)
 
@@ -44,6 +44,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 **Desktop & extras**
 - Adaptive layouts (phone, tablet, wide) with light, dark, and AMOLED themes (Dynamic Color on Android 12+)
+- Android TV sideload shell with D-pad navigation (dedicated 10-foot Home, Search, Library, Now Playing)
 - Linux tray and MPRIS; auto-update from GitHub Releases with in-app release notes
 - Headless CLI, backup/restore, P2P library sync over Wi-Fi, Sonora Wrapped stats, Italian and English
 
@@ -53,7 +54,8 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 | Platform | Status |
 |----------|--------|
-| Android  | ✅ (API 24+) |
+| Android  | ✅ (API 30+) |
+| Android TV | ✅ (sideload; dedicated 10-foot UI) |
 | Linux    | ✅ (x64) |
 | Windows  | ❌ (not planned) |
 | macOS    | ❌ (not planned) |
@@ -65,7 +67,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 Get the latest build from [GitHub Releases](https://github.com/gmstyle/sonora/releases/latest):
 
-- **Android**: signed APK
+- **Android / Android TV**: signed APK (sideload on TV; Leanback launcher)
 - **Linux portable**: `sonora-linux-x64.tar.gz` with install scripts
 - **Linux DEB**: Debian / Ubuntu
 - **Linux RPM**: Fedora / RHEL

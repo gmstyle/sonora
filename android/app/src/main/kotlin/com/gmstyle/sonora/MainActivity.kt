@@ -1,6 +1,9 @@
 package com.gmstyle.sonora
 
+import android.app.UiModeManager
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.Configuration
 import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
@@ -16,6 +19,17 @@ class MainActivity : AudioServiceFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.gmstyle.sonora/android_tv"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isAndroidTv" -> result.success(isAndroidTvDevice())
+                "tvDiagnostics" -> result.success(androidTvDiagnostics())
+                else -> result.notImplemented()
+            }
+        }
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -90,6 +104,70 @@ class MainActivity : AudioServiceFragmentActivity() {
             } else {
                 result.notImplemented()
             }
+        }
+    }
+
+    /**
+     * Hybrid STBs / Google TV boxes often omit FEATURE_LEANBACK or report a
+     * non-television uiMode while still being remote-only. Combine several
+     * signals so Sonora still opens [TvShell] on those devices.
+     */
+    private fun isAndroidTvDevice(): Boolean {
+        val signals = androidTvDiagnostics()
+        return signals["result"] as Boolean
+    }
+
+    private fun androidTvDiagnostics(): Map<String, Any> {
+        val pm = packageManager
+        val uiModeManager = getSystemService(UI_MODE_SERVICE) as? UiModeManager
+        val uiModeTelevision =
+            uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+        val configTelevision =
+            (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+                Configuration.UI_MODE_TYPE_TELEVISION
+        val leanback = pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+        val leanbackOnly =
+            pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK_ONLY)
+        val touchscreen = pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+        val faketouch = pm.hasSystemFeature(PackageManager.FEATURE_FAKETOUCH)
+        val characteristicsTv = hasTvBuildCharacteristic()
+        // Remote-first boxes: no real touchscreen (faketouch alone is OK for
+        // "touch-capable remote" shells that still need D-pad UI).
+        val remoteOnly = !touchscreen
+        val result =
+            uiModeTelevision ||
+                configTelevision ||
+                leanback ||
+                leanbackOnly ||
+                characteristicsTv ||
+                remoteOnly
+        return mapOf(
+            "uiModeTelevision" to uiModeTelevision,
+            "configTelevision" to configTelevision,
+            "leanback" to leanback,
+            "leanbackOnly" to leanbackOnly,
+            "touchscreen" to touchscreen,
+            "faketouch" to faketouch,
+            "characteristicsTv" to characteristicsTv,
+            "remoteOnly" to remoteOnly,
+            "result" to result,
+            "model" to android.os.Build.MODEL,
+            "device" to android.os.Build.DEVICE,
+        )
+    }
+
+    private fun hasTvBuildCharacteristic(): Boolean {
+        return try {
+            val clazz = Class.forName("android.os.SystemProperties")
+            val get = clazz.getMethod(
+                "get",
+                String::class.java,
+                String::class.java,
+            )
+            val raw = get.invoke(null, "ro.build.characteristics", "") as String
+            raw.split(',').any { it.trim().equals("tv", ignoreCase = true) }
+        } catch (_: Exception) {
+            false
         }
     }
 

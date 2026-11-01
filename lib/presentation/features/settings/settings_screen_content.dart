@@ -15,6 +15,7 @@ import '../../../domain/models/media_cache_size.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/android_tv_provider.dart';
 import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
 import '../../providers/library_notifier.dart';
@@ -41,16 +42,16 @@ class SettingsScreenContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    final isTv = ref.watch(isAndroidTvProvider);
+    final categories = visibleSettingsCategories(
+      isAndroid: isAndroid,
+      isAndroidTv: isTv,
+    );
     return ListView.builder(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
-      itemCount:
-          SettingsCategory.values
-              .where((c) => c != SettingsCategory.background || isAndroid)
-              .length,
+      itemCount: categories.length,
       itemBuilder: (context, index) {
-        final category = SettingsCategory.values
-            .where((c) => c != SettingsCategory.background || isAndroid)
-            .elementAt(index);
+        final category = categories[index];
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 6),
           shape: RoundedRectangleBorder(
@@ -127,6 +128,7 @@ class SettingsCategoryContent extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
     final listPadding = EdgeInsets.only(bottom: 32 + bottomPadding);
+    final isTv = ref.watch(isAndroidTvProvider);
 
     switch (category) {
       case SettingsCategory.appearance:
@@ -159,7 +161,7 @@ class SettingsCategoryContent extends ConsumerWidget {
       case SettingsCategory.background:
         return ListView(
           padding: listPadding,
-          children: [if (isAndroid) const _BatterySection()],
+          children: [if (isAndroid && !isTv) const _BatterySection()],
         );
       case SettingsCategory.privacy:
         return ListView(
@@ -171,13 +173,17 @@ class SettingsCategoryContent extends ConsumerWidget {
       case SettingsCategory.backup:
         return ListView(
           padding: listPadding,
-          children: [_BackupSection(ref: ref), _LocalSyncSection(ref: ref)],
+          children: [
+            _BackupSection(ref: ref),
+            if (!isTv) _LocalSyncSection(ref: ref),
+          ],
         );
       case SettingsCategory.about:
         return ListView(
           padding: listPadding,
           children: [
-            _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
+            if (!isTv)
+              _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
             _SupportSection(),
             _AboutSection(),
           ],

@@ -144,6 +144,7 @@ lib/
     │   └── ... (DI wiring providers)
     ├── shared/
     │   ├── layouts/                      # app_shell, mobile_shell, tablet_shell, wide_shell
+    │   ├── tv/                           # Android TV shell, metrics, Home/Search/Library/NowPlaying
     │   └── widgets/                      # shared widgets (incl. ContextMenuSheet.showForPodcast/Episode)
     └── features/
         ├── home/                         # HomeScreen + 3 layouts + HomeSectionRenderer (podcast/episode cards)
@@ -663,6 +664,18 @@ const double kExpandedBreakpoint  = 1200.0;  // → WideShell (NavigationDrawer)
 
 - 600–1200dp → `TabletShell` (NavigationRail collapsed)
 - Every complex feature screen has separate layouts: `*_mobile_layout.dart`, `*_tablet_layout.dart`, `*_wide_layout.dart`
+- **Android TV** bypasses width breakpoints: `isAndroidTvProvider` makes `AppShell` use `TvShell` (`lib/presentation/features/tv/`). Home / Search / Library swap to `Tv*Screen`; focus is `package:dpad` via `MaterialApp.builder: Dpad.wrap()` only when TV. Detected in `MainActivity` (`UiModeManager` + `FEATURE_LEANBACK`) through `AndroidTv.isAndroidTv`. Distribution is **sideload** (Leanback launcher + banner); not a Play Store TV listing.
+
+### 7.1.0 Android TV sideload
+
+```bash
+flutter build apk
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+# Launch from the TV home row (LEANBACK_LAUNCHER), or:
+adb shell monkey -p com.gmstyle.sonora -c android.intent.category.LEANBACK_LAUNCHER 1
+```
+
+Phone-only UI is gated off on TV (cast, battery prompt, Ask intro, local sync, in-app APK updates).
 
 ### 7.1.1 Detail header actions
 

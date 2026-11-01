@@ -1,7 +1,12 @@
+import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
+import '../../providers/android_tv_provider.dart';
+import '../tv/widgets/tv_focusable.dart';
 
 /// Pops Settings when it was pushed onto the stack; otherwise goes home
 /// (deep link `/settings` with nothing to pop).
@@ -52,7 +57,7 @@ class SettingsSection extends StatelessWidget {
 
 // ── Option tiles ─────────────────────────────────────────────────
 
-class SettingsSwitchTile extends StatelessWidget {
+class SettingsSwitchTile extends ConsumerWidget {
   final String title;
   final String? subtitle;
   final bool value;
@@ -69,18 +74,24 @@ class SettingsSwitchTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tile = SwitchListTile(
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle!) : null,
       value: value,
       onChanged: onChanged,
       secondary: icon != null ? Icon(icon) : null,
     );
+    if (!ref.watch(isAndroidTvProvider)) return tile;
+    return TvFocusable(
+      debugLabel: 'settings-switch:$title',
+      onSelect: () => onChanged(!value),
+      child: tile,
+    );
   }
 }
 
-class SettingsDropdownTile extends StatelessWidget {
+class SettingsDropdownTile extends ConsumerWidget {
   final String title;
   final String? subtitle;
   final String value;
@@ -98,57 +109,129 @@ class SettingsDropdownTile extends StatelessWidget {
     this.icon,
   });
 
+  Future<void> _pickOnTv(BuildContext context) async {
+    final keys = options.keys.toList(growable: false);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480, maxHeight: 520),
+            child: DpadRegion(
+              memoryKey: 'settings/dropdown',
+              debugLabel: 'settings/dropdown:$title',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                    child: Text(
+                      title,
+                      style: Theme.of(dialogContext).textTheme.titleLarge,
+                    ),
+                  ),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.only(bottom: 16),
+                      itemCount: keys.length,
+                      itemBuilder: (context, index) {
+                        final key = keys[index];
+                        final selected = key == value;
+                        final selectedIndex = keys.indexOf(value);
+                        final autofocusIndex =
+                            selectedIndex >= 0 ? selectedIndex : 0;
+                        return TvFocusable(
+                          autofocus: index == autofocusIndex,
+                          debugLabel: 'settings-dropdown-option:$key',
+                          onSelect: () {
+                            onChanged(key);
+                            Navigator.of(dialogContext).pop();
+                          },
+                          child: ListTile(
+                            title: Text(options[key]!),
+                            selected: selected,
+                            trailing:
+                                selected ? const Icon(LucideIcons.check) : null,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return ListTile(
+    final isTv = ref.watch(isAndroidTvProvider);
+    final tile = ListTile(
       leading: icon != null ? Icon(icon) : null,
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle!) : null,
-      trailing: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          // Intrinsic width keeps the control compact like a Switch,
-          // aligned to the trailing edge of the tile.
-          alignment: AlignmentDirectional.centerEnd,
-          borderRadius: BorderRadius.circular(8),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-          ),
-          items:
-              options.entries
-                  .map(
-                    (e) => DropdownMenuItem<String>(
-                      value: e.key,
-                      child: Text(e.value, overflow: TextOverflow.ellipsis),
-                    ),
-                  )
-                  .toList(),
-          selectedItemBuilder: (context) {
-            return options.entries
-                .map(
-                  (e) => Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 140),
-                      child: Text(
-                        e.value,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.end,
-                      ),
-                    ),
+      trailing:
+          isTv
+              ? Text(options[value] ?? value, style: theme.textTheme.bodyMedium)
+              : DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: value,
+                  // Intrinsic width keeps the control compact like a Switch,
+                  // aligned to the trailing edge of the tile.
+                  alignment: AlignmentDirectional.centerEnd,
+                  borderRadius: BorderRadius.circular(8),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
                   ),
-                )
-                .toList();
-          },
-          onChanged: onChanged,
-        ),
-      ),
+                  items:
+                      options.entries
+                          .map(
+                            (e) => DropdownMenuItem<String>(
+                              value: e.key,
+                              child: Text(
+                                e.value,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                  selectedItemBuilder: (context) {
+                    return options.entries
+                        .map(
+                          (e) => Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 140),
+                              child: Text(
+                                e.value,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.end,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList();
+                  },
+                  onChanged: onChanged,
+                ),
+              ),
+    );
+    if (!isTv) return tile;
+    return TvFocusable(
+      debugLabel: 'settings-dropdown:$title',
+      onSelect: () => _pickOnTv(context),
+      child: tile,
     );
   }
 }
 
-class SettingsButtonTile extends StatelessWidget {
+class SettingsButtonTile extends ConsumerWidget {
   final String title;
   final String? subtitle;
   final VoidCallback? onPressed;
@@ -165,8 +248,8 @@ class SettingsButtonTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tile = ListTile(
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle!) : null,
       leading: icon != null ? Icon(icon) : null,
@@ -174,10 +257,16 @@ class SettingsButtonTile extends StatelessWidget {
       onTap: onPressed,
       enabled: onPressed != null,
     );
+    if (!ref.watch(isAndroidTvProvider) || onPressed == null) return tile;
+    return TvFocusable(
+      debugLabel: 'settings-button:$title',
+      onSelect: onPressed,
+      child: tile,
+    );
   }
 }
 
-class SettingsSliderTile extends StatelessWidget {
+class SettingsSliderTile extends ConsumerStatefulWidget {
   final String title;
   final String subtitle;
   final double value;
@@ -198,26 +287,96 @@ class SettingsSliderTile extends StatelessWidget {
   });
 
   @override
+  ConsumerState<SettingsSliderTile> createState() => _SettingsSliderTileState();
+}
+
+class _SettingsSliderTileState extends ConsumerState<SettingsSliderTile> {
+  bool _editing = false;
+
+  double get _step {
+    final divisions = (widget.max - widget.min).round();
+    if (divisions <= 0) return 1;
+    return (widget.max - widget.min) / divisions;
+  }
+
+  void _nudge(TraversalDirection direction) {
+    final delta =
+        direction == TraversalDirection.right ||
+                direction == TraversalDirection.down
+            ? _step
+            : -_step;
+    final next = (widget.value + delta).clamp(widget.min, widget.max);
+    if (next != widget.value) {
+      widget.onChanged(next);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
+    final theme = Theme.of(context);
+    final isTv = ref.watch(isAndroidTvProvider);
+    final tile = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         ListTile(
-          title: Text(title),
-          subtitle: Text('$subtitle: ${displayValue(value)}'),
+          title: Text(widget.title),
+          subtitle: Text(
+            '${widget.subtitle}: ${widget.displayValue(widget.value)}',
+          ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Slider(
-            value: value,
-            min: min,
-            max: max,
-            divisions: (max - min).round(),
-            label: displayValue(value),
-            onChanged: onChanged,
+            value: widget.value,
+            min: widget.min,
+            max: widget.max,
+            divisions: (widget.max - widget.min).round(),
+            label: widget.displayValue(widget.value),
+            onChanged: widget.onChanged,
           ),
         ),
       ],
+    );
+
+    if (!isTv) return tile;
+
+    return PopScope(
+      canPop: !_editing,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _editing) {
+          setState(() => _editing = false);
+        }
+      },
+      child: TvFocusable(
+        debugLabel: 'settings-slider:${widget.title}',
+        onFocusChange: (focused) {
+          if (!focused && _editing) {
+            setState(() => _editing = false);
+          }
+        },
+        onSelect: () => setState(() => _editing = !_editing),
+        onDirection: (direction) {
+          if (!_editing) return false;
+          if (direction == TraversalDirection.left ||
+              direction == TraversalDirection.right) {
+            _nudge(direction);
+            return true;
+          }
+          return false;
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _editing ? theme.colorScheme.tertiary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: tile,
+        ),
+      ),
     );
   }
 }
@@ -333,6 +492,21 @@ enum SettingsCategory {
   privacy,
   backup,
   about,
+}
+
+/// Categories shown in Settings. Hides phone-only sections on Android TV.
+List<SettingsCategory> visibleSettingsCategories({
+  required bool isAndroid,
+  required bool isAndroidTv,
+}) {
+  return SettingsCategory.values
+      .where((c) {
+        if (c == SettingsCategory.background) {
+          return isAndroid && !isAndroidTv;
+        }
+        return true;
+      })
+      .toList(growable: false);
 }
 
 /// Query value for `/settings?section=ask` (and future section deep links).
