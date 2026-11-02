@@ -993,6 +993,9 @@
   "wrappedTopArtistSubtitle": "Your number one artist!",
   "wrappedTopSongsSubtitle": "The soundtrack of your days",
   "wrappedSummary": "Your music profile",
+  "wrappedRestart": "Start over",
+  "wrappedNext": "Next",
+  "wrappedPrevious": "Previous",
   "plays": "plays",
 
   "@@sectionMeta": {

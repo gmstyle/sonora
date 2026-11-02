@@ -2174,6 +2174,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wrappedSummary => 'Your music profile';
 
   @override
+  String get wrappedRestart => 'Start over';
+
+  @override
+  String get wrappedNext => 'Next';
+
+  @override
+  String get wrappedPrevious => 'Previous';
+
+  @override
   String get plays => 'plays';
 
   @override

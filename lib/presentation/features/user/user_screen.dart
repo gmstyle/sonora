@@ -18,6 +18,7 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/video_card.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/android_tv_provider.dart';
 import 'providers/user_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -322,6 +323,7 @@ class _UserSliverAppBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final isTv = ref.watch(isAndroidTvProvider);
     final iconColor = Color.lerp(
       Colors.white,
       theme.colorScheme.onSurface,
@@ -346,19 +348,22 @@ class _UserSliverAppBar extends ConsumerWidget {
         ),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(LucideIcons.share2),
-          tooltip: l10n.share,
-          onPressed: () async {
-            final result = await shareSonoraLink(
-              SonoraLink(kind: SonoraLinkKind.user, id: user.channelId),
-              title: user.name,
-            );
-            if (result == SonoraShareResult.copied && context.mounted) {
-              ref.read(actionFeedbackProvider.notifier).report(l10n.linkCopied);
-            }
-          },
-        ),
+        if (!isTv)
+          IconButton(
+            icon: const Icon(LucideIcons.share2),
+            tooltip: l10n.share,
+            onPressed: () async {
+              final result = await shareSonoraLink(
+                SonoraLink(kind: SonoraLinkKind.user, id: user.channelId),
+                title: user.name,
+              );
+              if (result == SonoraShareResult.copied && context.mounted) {
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(l10n.linkCopied);
+              }
+            },
+          ),
       ],
       flexibleSpace: Stack(
         fit: StackFit.expand,

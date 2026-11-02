@@ -675,7 +675,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 adb shell monkey -p com.gmstyle.sonora -c android.intent.category.LEANBACK_LAUNCHER 1
 ```
 
-Phone-only UI is gated off on TV (cast, battery prompt, Ask intro, local sync, in-app APK updates).
+Parity by default on TV. Hidden only: cast/DLNA, battery prompt (`BatteryPromptGate`), Ask intro wizard (`AskIntroGate`), Android Auto, share sheet (default), and Linux-only surfaces. Local P2P sync and in-app APK updates remain available in Settings.
 
 ### 7.1.1 Detail header actions
 
@@ -1312,10 +1312,12 @@ The Wrapped features a story-style sequential slide transition mechanism (simila
 - **Entry points** (only when the guard passes):
   - Home resume zone (`HomeWrappedEntry`): [SonoraWrappedBanner] until `Settings.wrappedSeen` is set, then a compact replay row. On mobile the card is full width above the resume row. On tablet and wide it sits in the mixes column of that row, still stacked, so the action stays with the title. The statistics pane uses the same stacked card at the pane width. Cards follow `cardTheme` (elevation 0, `surfaceContainerHigh`, scheme colors, `FilledButton`). Opening Wrapped calls `SettingsNotifier.markWrappedSeen`. The flag is stored with the other preferences and left out of backup settings.
   - Statistics tab banner, unchanged.
+  - Android TV: Home Wrapped shelf + Library Stats card → same `openSonoraWrapped` route with D-pad chrome (share omitted).
 - **Interactions**:
   - Tap left ~30%: previous slide
   - Tap right ~70%: next slide
   - Top-right `X`: exit Wrapped
+  - TV: Previous / Next / Close focusable chips (Select); auto-advance timer unchanged
 
 ---
 

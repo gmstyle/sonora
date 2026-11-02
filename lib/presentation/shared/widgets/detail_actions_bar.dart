@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
+import '../../providers/android_tv_provider.dart';
 
 /// Canonical ids for [DetailActionsBar] ranking (lower index = higher priority).
 abstract final class DetailActionId {
@@ -66,11 +69,12 @@ class DetailAction {
 /// Fixed on all breakpoints (no per-width budget):
 /// - Compact (&lt;600): 2 secondary icons + shuffle + ⋮ + circular Play
 /// - Tablet / wide: Play + Shuffle + 2 secondary labeled + ⋮
+/// - Android TV: Play-dominant labeled row; every control is [TvFocusable]
 ///
 /// Pass exactly the two in-bar secondaries via [secondary] (typically queue +
 /// save, or queue + download for local playlists). Overflow / extras open via
 /// [onOverflow] (usually [ContextMenuSheet] with [omitActionIds]).
-class DetailActionsBar extends StatelessWidget {
+class DetailActionsBar extends ConsumerWidget {
   /// The two secondary actions after Play/Shuffle (queue + save, etc.).
   final List<DetailAction> secondary;
 
@@ -102,9 +106,10 @@ class DetailActionsBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     final isCompact = width < kCompactBreakpoint;
+    final isTv = ref.watch(isAndroidTvProvider);
 
     final visibleSecondary = secondary.take(kSecondaryBudget).toList();
     final overflowed = secondary.skip(kSecondaryBudget).toList();
@@ -117,7 +122,19 @@ class DetailActionsBar extends StatelessWidget {
         return;
       }
       if (overflowed.isEmpty) return;
-      _showOverflowSheet(context, overflowed);
+      _showOverflowSheet(context, ref, overflowed);
+    }
+
+    if (isTv) {
+      return _TvBar(
+        secondary: visibleSecondary,
+        onPlay: onPlay,
+        playLabel: playLabel,
+        onShuffle: onShuffle,
+        shuffleLabel: shuffleLabel,
+        showMore: showMore,
+        onMore: showMore ? openOverflow : null,
+      );
     }
 
     if (isCompact) {
@@ -166,34 +183,26 @@ class DetailActionsBar extends StatelessWidget {
 
   static Future<void> _showOverflowSheet(
     BuildContext context,
+    WidgetRef ref,
     List<DetailAction> actions,
   ) {
     final l10n = AppLocalizations.of(context);
-    final wide = MediaQuery.sizeOf(context).width >= kExpandedBreakpoint;
+    final isTv = ref.read(isAndroidTvProvider);
+    final wide =
+        isTv || MediaQuery.sizeOf(context).width >= kExpandedBreakpoint;
 
     Widget buildBody(BuildContext ctx) {
+      final rows = <Widget>[
+        for (final action in actions)
+          _OverflowActionTile(action: action, isTv: isTv),
+        if (actions.isEmpty) ListTile(title: Text(l10n?.more ?? 'More')),
+      ];
       return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final action in actions)
-              ListTile(
-                leading: Icon(action.icon),
-                title: Text(action.label),
-                enabled:
-                    action.onPressed != null || action.buildControl != null,
-                onTap: () {
-                  Navigator.pop(ctx);
-                  action.onPressed?.call();
-                },
-              ),
-            if (actions.isEmpty) ListTile(title: Text(l10n?.more ?? 'More')),
-          ],
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: rows),
       );
     }
 
-    // Match ContextMenuSheet / §7.3: dialog on wide, sheet below.
+    // Match ContextMenuSheet / §7.3: dialog on wide/TV, sheet below.
     if (wide) {
       return showDialog<void>(
         context: context,
@@ -216,6 +225,151 @@ class DetailActionsBar extends StatelessWidget {
       useRootNavigator: true,
       showDragHandle: true,
       builder: buildBody,
+    );
+  }
+}
+
+class _OverflowActionTile extends StatelessWidget {
+  final DetailAction action;
+  final bool isTv;
+
+  const _OverflowActionTile({required this.action, required this.isTv});
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = action.onPressed != null || action.buildControl != null;
+    final tile = ListTile(
+      leading: Icon(action.icon),
+      title: Text(action.label),
+      enabled: enabled,
+      onTap: () {
+        Navigator.pop(context);
+        action.onPressed?.call();
+      },
+    );
+    if (!isTv) return tile;
+    return TvFocusable(
+      enabled: enabled,
+      onSelect:
+          enabled
+              ? () {
+                Navigator.pop(context);
+                action.onPressed?.call();
+              }
+              : null,
+      debugLabel: 'detail-overflow:${action.id}',
+      child: tile,
+    );
+  }
+}
+
+/// Android TV header: Play is the dominant filled control; every action is
+/// D-pad focusable (Select activates, including long-press overflow via ⋮).
+class _TvBar extends StatelessWidget {
+  final List<DetailAction> secondary;
+  final VoidCallback? onPlay;
+  final String playLabel;
+  final VoidCallback? onShuffle;
+  final String? shuffleLabel;
+  final bool showMore;
+  final VoidCallback? onMore;
+
+  const _TvBar({
+    required this.secondary,
+    required this.onPlay,
+    required this.playLabel,
+    required this.onShuffle,
+    required this.shuffleLabel,
+    required this.showMore,
+    required this.onMore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            TvFocusable(
+              autofocus: true,
+              enabled: onPlay != null,
+              onSelect: onPlay,
+              debugLabel: 'detail-action:play',
+              child: FilledButton.icon(
+                onPressed: onPlay,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 56),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 16,
+                  ),
+                  textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                icon: const Icon(LucideIcons.play, size: 28),
+                label: Text(playLabel),
+              ),
+            ),
+            TvFocusable(
+              enabled: onShuffle != null,
+              onSelect: onShuffle,
+              debugLabel: 'detail-action:shuffle',
+              child: FilledButton.tonalIcon(
+                onPressed: onShuffle,
+                icon: const Icon(LucideIcons.shuffle),
+                label: Text(shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle'),
+              ),
+            ),
+            for (final action in secondary) _TvSecondary(action: action),
+            if (showMore)
+              TvFocusable(
+                enabled: onMore != null,
+                onSelect: onMore,
+                debugLabel: 'detail-action:more',
+                child: IconButton(
+                  icon: const Icon(LucideIcons.moreVertical),
+                  tooltip: l10n?.more ?? 'More',
+                  onPressed: onMore,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TvSecondary extends StatelessWidget {
+  final DetailAction action;
+
+  const _TvSecondary({required this.action});
+
+  @override
+  Widget build(BuildContext context) {
+    final built = action.buildControl?.call(context, false);
+    // Affinity / download custom controls that omit [onPressed] self-handle
+    // TV focus (see [DetailAffinityButton]). When [onPressed] is set, wrap.
+    if (built != null && action.onPressed == null) return built;
+
+    final child =
+        built ??
+        FilledButton.tonalIcon(
+          onPressed: action.onPressed,
+          icon: Icon(action.icon),
+          label: Text(action.label),
+        );
+    return TvFocusable(
+      enabled: action.onPressed != null,
+      onSelect: action.onPressed,
+      debugLabel: 'detail-action:${action.id}',
+      child: child,
     );
   }
 }

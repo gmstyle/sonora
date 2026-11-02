@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -59,146 +60,153 @@ class SongCard extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
-    final card = ScaleButton(
-      onTap:
-          !isPlayable
-              ? () {
-                final l10n = AppLocalizations.of(context);
-                if (l10n != null) {
-                  ref
-                      .read(actionFeedbackProvider.notifier)
-                      .report(
-                        l10n.trackUnplayable(title),
-                        kind: FeedbackKind.error,
-                      );
-                }
-              }
-              : () => ref
-                  .read(playerStateProvider.notifier)
-                  .playVideoId(
-                    videoId,
-                    isVideo: isVideo,
-                    isExplicit: isExplicit,
+    void activate() {
+      if (!isPlayable) {
+        final l10n = AppLocalizations.of(context);
+        if (l10n != null) {
+          ref
+              .read(actionFeedbackProvider.notifier)
+              .report(l10n.trackUnplayable(title), kind: FeedbackKind.error);
+        }
+        return;
+      }
+      ref
+          .read(playerStateProvider.notifier)
+          .playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit);
+    }
+
+    void openMenu() {
+      ContextMenuSheet.showForSong(
+        context,
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        artistId: artistId,
+        albumId: albumId,
+        artists: artists,
+        artistsJson: artistsJson,
+        playCount: playCount,
+        isExplicit: isExplicit,
+        isPlayable: isPlayable,
+      );
+    }
+
+    final card = MaybeTvFocusable(
+      debugLabel: 'song-card:$videoId',
+      onSelect: activate,
+      onLongSelect: openMenu,
+      child: ScaleButton(
+        onTap: activate,
+        onLongPress: openMenu,
+        child: ShelfCardLayout(
+          cardWidth: cardWidth,
+          coverBuilder:
+              (size) => Stack(
+                children: [
+                  ThumbnailWidget(
+                    imageUrl: thumbnailUrl,
+                    size: size,
+                    shape: ThumbnailShape.rounded,
                   ),
-      onLongPress:
-          () => ContextMenuSheet.showForSong(
-            context,
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            playCount: playCount,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
-      child: ShelfCardLayout(
-        cardWidth: cardWidth,
-        coverBuilder:
-            (size) => Stack(
-              children: [
-                ThumbnailWidget(
-                  imageUrl: thumbnailUrl,
-                  size: size,
-                  shape: ThumbnailShape.rounded,
-                ),
-                if (duration != null)
-                  Positioned(
-                    bottom: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        Duration(seconds: duration!).format(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
+                  if (duration != null)
+                    Positioned(
+                      bottom: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          Duration(seconds: duration!).format(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                if (isDownloaded)
-                  Positioned(
-                    bottom: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
+                  if (isDownloaded)
+                    Positioned(
+                      bottom: 6,
+                      left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          LucideIcons.checkCircle,
+                          size: 12,
+                          color: theme.colorScheme.onPrimary,
+                        ),
                       ),
+                    ),
+                  if (isVideo)
+                    Positioned(
+                      bottom: 6,
+                      left: isDownloaded ? 28 : 6,
+                      child: const VideoBadge(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        borderRadius: 4,
+                      ),
+                    ),
+                  if (!isPlayable)
+                    Positioned(
+                      top: 6,
+                      right: 6,
                       child: Icon(
-                        LucideIcons.checkCircle,
-                        size: 12,
-                        color: theme.colorScheme.onPrimary,
+                        LucideIcons.ban,
+                        size: 16,
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
-                  ),
-                if (isVideo)
-                  Positioned(
-                    bottom: 6,
-                    left: isDownloaded ? 28 : 6,
-                    child: const VideoBadge(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      borderRadius: 4,
+                ],
+              ),
+          textBlock: [
+            const SizedBox(height: 6),
+            Text.rich(
+              TextSpan(
+                children: [
+                  if (isExplicit)
+                    const WidgetSpan(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 6.0),
+                        child: ExplicitBadge(),
+                      ),
+                      alignment: PlaceholderAlignment.middle,
                     ),
-                  ),
-                if (!isPlayable)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Icon(
-                      LucideIcons.ban,
-                      size: 16,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-              ],
+                  TextSpan(text: title),
+                ],
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
             ),
-        textBlock: [
-          const SizedBox(height: 6),
-          Text.rich(
-            TextSpan(
-              children: [
-                if (isExplicit)
-                  const WidgetSpan(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: 6.0),
-                      child: ExplicitBadge(),
-                    ),
-                    alignment: PlaceholderAlignment.middle,
-                  ),
-                TextSpan(text: title),
-              ],
+            const SizedBox(height: 2),
+            Text(
+              [artist, if (statLabel != null) statLabel].join(' · '),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            [artist, if (statLabel != null) statLabel].join(' · '),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 

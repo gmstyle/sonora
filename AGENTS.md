@@ -187,7 +187,7 @@ Android (phone/tablet), Android TV (sideload, dedicated `TvShell` + D-pad), and 
 - Detect with `AndroidTv.isAndroidTv` → `isAndroidTvProvider` (overridden in `main`).
 - `AppShell` selects `TvShell` when TV; phone/tablet/wide shells stay untouched.
 - Focus uses `package:dpad` (`Dpad.wrap` only when TV). New TV chrome lives under `lib/presentation/features/tv/`.
-- Gate phone-only surfaces on TV: cast, battery prompt, Ask intro, local sync, APK updates.
+- Parity by default on TV. Hide only: cast/DLNA, battery prompt, Ask intro wizard, Android Auto, share (default), and Linux-only surfaces. Local P2P sync, in-app APK updates, and Sonora Wrapped (D-pad story overlay) stay enabled.
 - Manifest: `LEANBACK_LAUNCHER`, `leanback`/`touchscreen` `required="false"`, `android:banner`. Sideload only — not a Play Store TV listing.
 
 Fix the layer that owns the bug. Do not restyle an unrelated screen, rename a public route, or swap the audio engine in the same change.

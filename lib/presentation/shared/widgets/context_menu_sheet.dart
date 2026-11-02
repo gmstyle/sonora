@@ -30,7 +30,9 @@ import '../../features/library/widgets/linked_playlist_actions.dart';
 import '../../features/library/widgets/playlist_detail_view.dart';
 import '../../features/playlist/providers/playlist_provider.dart';
 import '../../features/podcast/providers/podcast_provider.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/android_tv_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/library_notifier.dart';
@@ -77,6 +79,68 @@ bool _isOnEntityPage(BuildContext context, String paramKey, String id) {
 /// Whether an action should appear given [omitActionIds] from a detail header.
 bool _showAction(Set<String> omitActionIds, String id) =>
     !omitActionIds.contains(id);
+
+/// Share is omitted on Android TV (no system share sheet by default).
+bool _showShare(WidgetRef ref, [Set<String> omitActionIds = const {}]) =>
+    !ref.watch(isAndroidTvProvider) &&
+    _showAction(omitActionIds, DetailActionId.share);
+
+/// Wide layouts and Android TV always use a centered dialog (10-foot).
+bool _preferContextMenuDialog(BuildContext context) {
+  if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) return true;
+  try {
+    return ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(isAndroidTvProvider);
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> _presentContextMenu(BuildContext context, Widget sheet) {
+  if (_preferContextMenuDialog(context)) {
+    return showDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      builder:
+          (_) => Center(
+            child: SizedBox(
+              width: 360,
+              child: Card(
+                elevation: 8,
+                clipBehavior: Clip.hardEdge,
+                child: sheet,
+              ),
+            ),
+          ),
+    );
+  }
+  return showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    builder: (_) => sheet,
+  );
+}
+
+/// Wraps a menu [ListTile] so Select activates it on Android TV.
+Widget _tvMenuRow({
+  required WidgetRef ref,
+  required Widget child,
+  VoidCallback? onSelect,
+  bool enabled = true,
+  bool autofocus = false,
+  String? debugLabel,
+}) {
+  if (!ref.watch(isAndroidTvProvider)) return child;
+  return TvFocusable(
+    autofocus: autofocus,
+    enabled: enabled,
+    onSelect: enabled ? onSelect : null,
+    debugLabel: debugLabel,
+    child: child,
+  );
+}
 
 /// Close the sheet first, then download using [notifier] captured while mounted.
 void _enqueueSingleTrackDownload({
@@ -173,60 +237,25 @@ class ContextMenuSheet {
     bool isExplicit = false,
     bool isPlayable = true,
   }) {
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _SongContextMenuSheet(
-                    videoId: videoId,
-                    title: title,
-                    artist: artist,
-                    thumbnailUrl: thumbnailUrl,
-                    duration: duration,
-                    isVideo: isVideo,
-                    albumName: albumName,
-                    artistId: artistId,
-                    albumId: albumId,
-                    artists: artists,
-                    artistsJson: artistsJson,
-                    playCount: playCount,
-                    viewCount: viewCount,
-                    isExplicit: isExplicit,
-                    isPlayable: isPlayable,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _SongContextMenuSheet(
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            albumName: albumName,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            playCount: playCount,
-            viewCount: viewCount,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
+    return _presentContextMenu(
+      context,
+      _SongContextMenuSheet(
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        albumName: albumName,
+        artistId: artistId,
+        albumId: albumId,
+        artists: artists,
+        artistsJson: artistsJson,
+        playCount: playCount,
+        viewCount: viewCount,
+        isExplicit: isExplicit,
+        isPlayable: isPlayable,
+      ),
     );
   }
 
@@ -239,42 +268,16 @@ class ContextMenuSheet {
     Set<String> omitActionIds = const {},
   }) {
     final hideGoToArtist = _isOnEntityPage(context, 'artistId', artistId);
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _ArtistContextMenuSheet(
-                    artistId: artistId,
-                    name: name,
-                    thumbnailUrl: thumbnailUrl,
-                    monthlyListeners: monthlyListeners,
-                    hideGoToArtist: hideGoToArtist,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _ArtistContextMenuSheet(
-            artistId: artistId,
-            name: name,
-            thumbnailUrl: thumbnailUrl,
-            monthlyListeners: monthlyListeners,
-            hideGoToArtist: hideGoToArtist,
-            omitActionIds: omitActionIds,
-          ),
+    return _presentContextMenu(
+      context,
+      _ArtistContextMenuSheet(
+        artistId: artistId,
+        name: name,
+        thumbnailUrl: thumbnailUrl,
+        monthlyListeners: monthlyListeners,
+        hideGoToArtist: hideGoToArtist,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -289,46 +292,18 @@ class ContextMenuSheet {
     Set<String> omitActionIds = const {},
   }) {
     final hideGoToAlbum = _isOnEntityPage(context, 'albumId', albumId);
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _AlbumContextMenuSheet(
-                    albumId: albumId,
-                    name: name,
-                    artist: artist,
-                    artistId: artistId,
-                    thumbnailUrl: thumbnailUrl,
-                    year: year,
-                    hideGoToAlbum: hideGoToAlbum,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _AlbumContextMenuSheet(
-            albumId: albumId,
-            name: name,
-            artist: artist,
-            artistId: artistId,
-            thumbnailUrl: thumbnailUrl,
-            year: year,
-            hideGoToAlbum: hideGoToAlbum,
-            omitActionIds: omitActionIds,
-          ),
+    return _presentContextMenu(
+      context,
+      _AlbumContextMenuSheet(
+        albumId: albumId,
+        name: name,
+        artist: artist,
+        artistId: artistId,
+        thumbnailUrl: thumbnailUrl,
+        year: year,
+        hideGoToAlbum: hideGoToAlbum,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -341,42 +316,16 @@ class ContextMenuSheet {
     Set<String> omitActionIds = const {},
   }) {
     final hideGoToPodcast = _isOnEntityPage(context, 'browseId', browseId);
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _PodcastContextMenuSheet(
-                    browseId: browseId,
-                    name: name,
-                    author: author,
-                    thumbnailUrl: thumbnailUrl,
-                    hideGoToPodcast: hideGoToPodcast,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _PodcastContextMenuSheet(
-            browseId: browseId,
-            name: name,
-            author: author,
-            thumbnailUrl: thumbnailUrl,
-            hideGoToPodcast: hideGoToPodcast,
-            omitActionIds: omitActionIds,
-          ),
+    return _presentContextMenu(
+      context,
+      _PodcastContextMenuSheet(
+        browseId: browseId,
+        name: name,
+        author: author,
+        thumbnailUrl: thumbnailUrl,
+        hideGoToPodcast: hideGoToPodcast,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -393,46 +342,18 @@ class ContextMenuSheet {
     final hideGoToPodcast =
         podcastBrowseId != null &&
         _isOnEntityPage(context, 'browseId', podcastBrowseId);
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _EpisodeContextMenuSheet(
-                    videoId: videoId,
-                    name: name,
-                    podcastName: podcastName,
-                    podcastBrowseId: podcastBrowseId,
-                    thumbnailUrl: thumbnailUrl,
-                    date: date,
-                    onGoToPodcast: onGoToPodcast,
-                    hideGoToPodcast: hideGoToPodcast,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _EpisodeContextMenuSheet(
-            videoId: videoId,
-            name: name,
-            podcastName: podcastName,
-            podcastBrowseId: podcastBrowseId,
-            thumbnailUrl: thumbnailUrl,
-            date: date,
-            onGoToPodcast: onGoToPodcast,
-            hideGoToPodcast: hideGoToPodcast,
-          ),
+    return _presentContextMenu(
+      context,
+      _EpisodeContextMenuSheet(
+        videoId: videoId,
+        name: name,
+        podcastName: podcastName,
+        podcastBrowseId: podcastBrowseId,
+        thumbnailUrl: thumbnailUrl,
+        date: date,
+        onGoToPodcast: onGoToPodcast,
+        hideGoToPodcast: hideGoToPodcast,
+      ),
     );
   }
 
@@ -445,42 +366,16 @@ class ContextMenuSheet {
     Set<String> omitActionIds = const {},
   }) {
     final hideGoToPlaylist = _isOnEntityPage(context, 'playlistId', playlistId);
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _PlaylistContextMenuSheet(
-                    playlistId: playlistId,
-                    name: name,
-                    artist: artist,
-                    thumbnailUrl: thumbnailUrl,
-                    hideGoToPlaylist: hideGoToPlaylist,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _PlaylistContextMenuSheet(
-            playlistId: playlistId,
-            name: name,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            hideGoToPlaylist: hideGoToPlaylist,
-            omitActionIds: omitActionIds,
-          ),
+    return _presentContextMenu(
+      context,
+      _PlaylistContextMenuSheet(
+        playlistId: playlistId,
+        name: name,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        hideGoToPlaylist: hideGoToPlaylist,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -491,38 +386,14 @@ class ContextMenuSheet {
     bool hideGoToPlaylist = false,
     Set<String> omitActionIds = const {},
   }) {
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _CustomPlaylistContextMenuSheet(
-                    playlist: playlist,
-                    onUpdated: onUpdated,
-                    hideGoToPlaylist: hideGoToPlaylist,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _CustomPlaylistContextMenuSheet(
-            playlist: playlist,
-            onUpdated: onUpdated,
-            hideGoToPlaylist: hideGoToPlaylist,
-            omitActionIds: omitActionIds,
-          ),
+    return _presentContextMenu(
+      context,
+      _CustomPlaylistContextMenuSheet(
+        playlist: playlist,
+        onUpdated: onUpdated,
+        hideGoToPlaylist: hideGoToPlaylist,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -543,58 +414,24 @@ class ContextMenuSheet {
     required void Function(String albumId) onGoToAlbum,
     bool isExplicit = false,
   }) {
-    if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
-      return showDialog(
-        context: context,
-        useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _NowPlayingContextMenuSheet(
-                    videoId: videoId,
-                    title: title,
-                    artist: artist,
-                    thumbnailUrl: thumbnailUrl,
-                    duration: duration,
-                    isVideo: isVideo,
-                    albumName: albumName,
-                    artistId: artistId,
-                    albumId: albumId,
-                    artists: artists,
-                    artistsJson: artistsJson,
-                    onGoToArtist: onGoToArtist,
-                    onGoToAlbum: onGoToAlbum,
-                    isExplicit: isExplicit,
-                  ),
-                ),
-              ),
-            ),
-      );
-    }
-    return showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      builder:
-          (_) => _NowPlayingContextMenuSheet(
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            albumName: albumName,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            onGoToArtist: onGoToArtist,
-            onGoToAlbum: onGoToAlbum,
-            isExplicit: isExplicit,
-          ),
+    return _presentContextMenu(
+      context,
+      _NowPlayingContextMenuSheet(
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        albumName: albumName,
+        artistId: artistId,
+        albumId: albumId,
+        artists: artists,
+        artistsJson: artistsJson,
+        onGoToArtist: onGoToArtist,
+        onGoToAlbum: onGoToAlbum,
+        isExplicit: isExplicit,
+      ),
     );
   }
 }
@@ -1227,24 +1064,25 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  _ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      final share = _shareSonoraLink(
-                        ref,
-                        context,
-                        link: SonoraLink(
-                          kind: SonoraLinkKind.track,
-                          id: videoId,
-                        ),
-                        title: title,
-                        subtitle: artist,
-                      );
-                      Navigator.pop(context);
-                      unawaited(share);
-                    },
-                  ),
+                  if (_showShare(ref))
+                    _ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        final share = _shareSonoraLink(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.track,
+                            id: videoId,
+                          ),
+                          title: title,
+                          subtitle: artist,
+                        );
+                        Navigator.pop(context);
+                        unawaited(share);
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -1470,7 +1308,7 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  if (_showAction(omitActionIds, DetailActionId.share))
+                  if (_showShare(ref, omitActionIds))
                     _ActionTile(
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
@@ -1801,7 +1639,7 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  if (_showAction(omitActionIds, DetailActionId.share))
+                  if (_showShare(ref, omitActionIds))
                     _ActionTile(
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
@@ -2167,7 +2005,7 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  if (_showAction(omitActionIds, DetailActionId.share))
+                  if (_showShare(ref, omitActionIds))
                     _ActionTile(
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
@@ -2392,45 +2230,58 @@ class _LikePodcastActionTile extends ConsumerWidget {
     final likedAsync = ref.watch(likedPodcastProvider(browseId));
     return likedAsync.when(
       loading:
-          () => ListTile(
-            leading: const Icon(LucideIcons.bookmark),
-            title: Text(AppLocalizations.of(context)!.subscribe),
+          () => _tvMenuRow(
+            ref: ref,
             enabled: false,
-            dense: true,
+            debugLabel: 'context-menu:subscribe-loading',
+            child: ListTile(
+              leading: const Icon(LucideIcons.bookmark),
+              title: Text(AppLocalizations.of(context)!.subscribe),
+              enabled: false,
+              dense: true,
+            ),
           ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSubscribed = liked != null;
-        return ListTile(
-          leading: Icon(
-            isSubscribed ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
-            color: isSubscribed ? Theme.of(context).colorScheme.primary : null,
+        Future<void> toggle() async {
+          if (isSubscribed) {
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .deleteLikedPodcast(browseId);
+          } else {
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedPodcast(
+                  LikedPodcastModel(
+                    browseId: browseId,
+                    name: name,
+                    authorName: authorName,
+                    thumbnailUrl: thumbnailUrl,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+          }
+        }
+
+        return _tvMenuRow(
+          ref: ref,
+          onSelect: toggle,
+          debugLabel: 'context-menu:subscribe-podcast',
+          child: ListTile(
+            leading: Icon(
+              isSubscribed ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
+              color:
+                  isSubscribed ? Theme.of(context).colorScheme.primary : null,
+            ),
+            title: Text(
+              isSubscribed
+                  ? AppLocalizations.of(context)!.subscribed
+                  : AppLocalizations.of(context)!.subscribe,
+            ),
+            onTap: toggle,
+            dense: true,
           ),
-          title: Text(
-            isSubscribed
-                ? AppLocalizations.of(context)!.subscribed
-                : AppLocalizations.of(context)!.subscribe,
-          ),
-          onTap: () async {
-            if (isSubscribed) {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .deleteLikedPodcast(browseId);
-            } else {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .toggleLikedPodcast(
-                    LikedPodcastModel(
-                      browseId: browseId,
-                      name: name,
-                      authorName: authorName,
-                      thumbnailUrl: thumbnailUrl,
-                      addedAt: DateTime.now(),
-                    ),
-                  );
-            }
-          },
-          dense: true,
         );
       },
     );
@@ -2554,24 +2405,25 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                     date: date,
                   ),
-                  _ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      final share = _shareSonoraLink(
-                        ref,
-                        context,
-                        link: SonoraLink(
-                          kind: SonoraLinkKind.episode,
-                          id: videoId,
-                        ),
-                        title: name,
-                        subtitle: podcastName,
-                      );
-                      Navigator.pop(context);
-                      unawaited(share);
-                    },
-                  ),
+                  if (_showShare(ref))
+                    _ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        final share = _shareSonoraLink(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.episode,
+                            id: videoId,
+                          ),
+                          title: name,
+                          subtitle: podcastName,
+                        );
+                        Navigator.pop(context);
+                        unawaited(share);
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -2630,47 +2482,59 @@ class _LikeEpisodeActionTile extends ConsumerWidget {
     final likedAsync = ref.watch(likedEpisodeProvider(videoId));
     return likedAsync.when(
       loading:
-          () => ListTile(
-            leading: const Icon(LucideIcons.bookmark),
-            title: Text(AppLocalizations.of(context)!.like),
+          () => _tvMenuRow(
+            ref: ref,
             enabled: false,
-            dense: true,
+            debugLabel: 'context-menu:like-episode-loading',
+            child: ListTile(
+              leading: const Icon(LucideIcons.bookmark),
+              title: Text(AppLocalizations.of(context)!.like),
+              enabled: false,
+              dense: true,
+            ),
           ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSaved = liked != null;
-        return ListTile(
-          leading: Icon(
-            isSaved ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
-            color: isSaved ? Theme.of(context).colorScheme.primary : null,
+        Future<void> toggle() async {
+          if (isSaved) {
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .deleteLikedEpisode(videoId);
+          } else {
+            await ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedEpisode(
+                  LikedEpisodeModel(
+                    videoId: videoId,
+                    name: name,
+                    podcastName: podcastName,
+                    podcastBrowseId: podcastBrowseId,
+                    thumbnailUrl: thumbnailUrl,
+                    date: date,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+          }
+        }
+
+        return _tvMenuRow(
+          ref: ref,
+          onSelect: toggle,
+          debugLabel: 'context-menu:like-episode',
+          child: ListTile(
+            leading: Icon(
+              isSaved ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
+              color: isSaved ? Theme.of(context).colorScheme.primary : null,
+            ),
+            title: Text(
+              isSaved
+                  ? AppLocalizations.of(context)!.unlike
+                  : AppLocalizations.of(context)!.like,
+            ),
+            onTap: toggle,
+            dense: true,
           ),
-          title: Text(
-            isSaved
-                ? AppLocalizations.of(context)!.unlike
-                : AppLocalizations.of(context)!.like,
-          ),
-          onTap: () async {
-            if (isSaved) {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .deleteLikedEpisode(videoId);
-            } else {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .toggleLikedEpisode(
-                    LikedEpisodeModel(
-                      videoId: videoId,
-                      name: name,
-                      podcastName: podcastName,
-                      podcastBrowseId: podcastBrowseId,
-                      thumbnailUrl: thumbnailUrl,
-                      date: date,
-                      addedAt: DateTime.now(),
-                    ),
-                  );
-            }
-          },
-          dense: true,
         );
       },
     );
@@ -2866,7 +2730,7 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  if (_showAction(omitActionIds, DetailActionId.share))
+                  if (_showShare(ref, omitActionIds))
                     _ActionTile(
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
@@ -3375,7 +3239,7 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
 // Shared action tiles
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ActionTile extends StatelessWidget {
+class _ActionTile extends ConsumerWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -3389,13 +3253,20 @@ class _ActionTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tile = ListTile(
       leading: Icon(icon),
       title: Text(label),
       onTap: enabled ? onTap : null,
       enabled: enabled,
       dense: true,
+    );
+    return _tvMenuRow(
+      ref: ref,
+      child: tile,
+      onSelect: onTap,
+      enabled: enabled,
+      debugLabel: 'context-menu:$label',
     );
   }
 }
@@ -3465,11 +3336,16 @@ class _LikeActionTile extends ConsumerWidget {
       loading:
           () =>
               isPlayable
-                  ? ListTile(
-                    leading: const Icon(DetailAffinityButton.likeIdle),
-                    title: Text(AppLocalizations.of(context)!.like),
+                  ? _tvMenuRow(
+                    ref: ref,
                     enabled: false,
-                    dense: true,
+                    debugLabel: 'context-menu:like-loading',
+                    child: ListTile(
+                      leading: const Icon(DetailAffinityButton.likeIdle),
+                      title: Text(AppLocalizations.of(context)!.like),
+                      enabled: false,
+                      dense: true,
+                    ),
                   )
                   : const SizedBox.shrink(),
       error: (e, _) => const SizedBox.shrink(),
@@ -3478,38 +3354,45 @@ class _LikeActionTile extends ConsumerWidget {
         // Unplayable tracks cannot be newly liked; keep unlike for rows
         // already saved before this gate existed.
         if (!isPlayable && !isLiked) return const SizedBox.shrink();
-        return ListTile(
-          leading: Icon(
-            isLiked
-                ? DetailAffinityButton.likeActive
-                : DetailAffinityButton.likeIdle,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+        Future<void> toggle() async {
+          await ref
+              .read(libraryNotifierProvider.notifier)
+              .toggleLikedSong(
+                LikedSongModel(
+                  videoId: videoId,
+                  title: title,
+                  artist: artist,
+                  thumbnailUrl: thumbnailUrl,
+                  artistId: artistId,
+                  albumId: albumId,
+                  artistsJson: artistsJson,
+                  addedAt: DateTime.now(),
+                  isVideo: isVideo,
+                  isExplicit: isExplicit,
+                  duration: duration,
+                ),
+              );
+        }
+
+        return _tvMenuRow(
+          ref: ref,
+          onSelect: toggle,
+          debugLabel: 'context-menu:like-song',
+          child: ListTile(
+            leading: Icon(
+              isLiked
+                  ? DetailAffinityButton.likeActive
+                  : DetailAffinityButton.likeIdle,
+              color: isLiked ? Theme.of(context).colorScheme.error : null,
+            ),
+            title: Text(
+              isLiked
+                  ? AppLocalizations.of(context)!.unlike
+                  : AppLocalizations.of(context)!.like,
+            ),
+            onTap: toggle,
+            dense: true,
           ),
-          title: Text(
-            isLiked
-                ? AppLocalizations.of(context)!.unlike
-                : AppLocalizations.of(context)!.like,
-          ),
-          onTap: () async {
-            await ref
-                .read(libraryNotifierProvider.notifier)
-                .toggleLikedSong(
-                  LikedSongModel(
-                    videoId: videoId,
-                    title: title,
-                    artist: artist,
-                    thumbnailUrl: thumbnailUrl,
-                    artistId: artistId,
-                    albumId: albumId,
-                    artistsJson: artistsJson,
-                    addedAt: DateTime.now(),
-                    isVideo: isVideo,
-                    isExplicit: isExplicit,
-                    duration: duration,
-                  ),
-                );
-          },
-          dense: true,
         );
       },
     );
@@ -3532,38 +3415,50 @@ class _FollowArtistActionTile extends ConsumerWidget {
     final followedAsync = ref.watch(followedArtistProvider(artistId));
     return followedAsync.when(
       loading:
-          () => ListTile(
-            leading: Icon(LucideIcons.userPlus),
-            title: Text(AppLocalizations.of(context)!.follow),
+          () => _tvMenuRow(
+            ref: ref,
             enabled: false,
-            dense: true,
+            debugLabel: 'context-menu:follow-loading',
+            child: ListTile(
+              leading: Icon(LucideIcons.userPlus),
+              title: Text(AppLocalizations.of(context)!.follow),
+              enabled: false,
+              dense: true,
+            ),
           ),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
         final isFollowing = followed != null;
-        return ListTile(
-          leading: Icon(
-            isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
-            color: isFollowing ? Theme.of(context).colorScheme.primary : null,
+        Future<void> toggle() async {
+          await ref
+              .read(libraryNotifierProvider.notifier)
+              .toggleFollowedArtist(
+                FollowedArtistModel(
+                  artistId: artistId,
+                  name: name,
+                  thumbnailUrl: thumbnailUrl,
+                  addedAt: DateTime.now(),
+                ),
+              );
+        }
+
+        return _tvMenuRow(
+          ref: ref,
+          onSelect: toggle,
+          debugLabel: 'context-menu:follow-artist',
+          child: ListTile(
+            leading: Icon(
+              isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
+              color: isFollowing ? Theme.of(context).colorScheme.primary : null,
+            ),
+            title: Text(
+              isFollowing
+                  ? AppLocalizations.of(context)!.following
+                  : AppLocalizations.of(context)!.follow,
+            ),
+            onTap: toggle,
+            dense: true,
           ),
-          title: Text(
-            isFollowing
-                ? AppLocalizations.of(context)!.following
-                : AppLocalizations.of(context)!.follow,
-          ),
-          onTap: () async {
-            await ref
-                .read(libraryNotifierProvider.notifier)
-                .toggleFollowedArtist(
-                  FollowedArtistModel(
-                    artistId: artistId,
-                    name: name,
-                    thumbnailUrl: thumbnailUrl,
-                    addedAt: DateTime.now(),
-                  ),
-                );
-          },
-          dense: true,
         );
       },
     );
@@ -3592,43 +3487,55 @@ class _LikeAlbumActionTile extends ConsumerWidget {
     final likedAsync = ref.watch(likedAlbumProvider(albumId));
     return likedAsync.when(
       loading:
-          () => ListTile(
-            leading: const Icon(DetailAffinityButton.likeIdle),
-            title: Text(AppLocalizations.of(context)!.like),
+          () => _tvMenuRow(
+            ref: ref,
             enabled: false,
-            dense: true,
+            debugLabel: 'context-menu:like-album-loading',
+            child: ListTile(
+              leading: const Icon(DetailAffinityButton.likeIdle),
+              title: Text(AppLocalizations.of(context)!.like),
+              enabled: false,
+              dense: true,
+            ),
           ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
-        return ListTile(
-          leading: Icon(
-            isLiked
-                ? DetailAffinityButton.likeActive
-                : DetailAffinityButton.likeIdle,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+        Future<void> toggle() async {
+          await ref
+              .read(libraryNotifierProvider.notifier)
+              .toggleLikedAlbum(
+                LikedAlbumModel(
+                  albumId: albumId,
+                  name: name,
+                  artistName: artistName,
+                  artistId: artistId,
+                  thumbnailUrl: thumbnailUrl,
+                  year: year,
+                  addedAt: DateTime.now(),
+                ),
+              );
+        }
+
+        return _tvMenuRow(
+          ref: ref,
+          onSelect: toggle,
+          debugLabel: 'context-menu:like-album',
+          child: ListTile(
+            leading: Icon(
+              isLiked
+                  ? DetailAffinityButton.likeActive
+                  : DetailAffinityButton.likeIdle,
+              color: isLiked ? Theme.of(context).colorScheme.error : null,
+            ),
+            title: Text(
+              isLiked
+                  ? AppLocalizations.of(context)!.unlike
+                  : AppLocalizations.of(context)!.like,
+            ),
+            onTap: toggle,
+            dense: true,
           ),
-          title: Text(
-            isLiked
-                ? AppLocalizations.of(context)!.unlike
-                : AppLocalizations.of(context)!.like,
-          ),
-          onTap: () async {
-            await ref
-                .read(libraryNotifierProvider.notifier)
-                .toggleLikedAlbum(
-                  LikedAlbumModel(
-                    albumId: albumId,
-                    name: name,
-                    artistName: artistName,
-                    artistId: artistId,
-                    thumbnailUrl: thumbnailUrl,
-                    year: year,
-                    addedAt: DateTime.now(),
-                  ),
-                );
-          },
-          dense: true,
         );
       },
     );
@@ -3651,40 +3558,52 @@ class _LikePlaylistActionTile extends ConsumerWidget {
     final likedAsync = ref.watch(likedPlaylistProvider(playlistId));
     return likedAsync.when(
       loading:
-          () => ListTile(
-            leading: const Icon(DetailAffinityButton.likeIdle),
-            title: Text(AppLocalizations.of(context)!.like),
+          () => _tvMenuRow(
+            ref: ref,
             enabled: false,
-            dense: true,
+            debugLabel: 'context-menu:like-playlist-loading',
+            child: ListTile(
+              leading: const Icon(DetailAffinityButton.likeIdle),
+              title: Text(AppLocalizations.of(context)!.like),
+              enabled: false,
+              dense: true,
+            ),
           ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
-        return ListTile(
-          leading: Icon(
-            isLiked
-                ? DetailAffinityButton.likeActive
-                : DetailAffinityButton.likeIdle,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+        Future<void> toggle() async {
+          await ref
+              .read(libraryNotifierProvider.notifier)
+              .toggleLikedPlaylist(
+                LikedPlaylistModel(
+                  playlistId: playlistId,
+                  name: name,
+                  thumbnailUrl: thumbnailUrl,
+                  addedAt: DateTime.now(),
+                ),
+              );
+        }
+
+        return _tvMenuRow(
+          ref: ref,
+          onSelect: toggle,
+          debugLabel: 'context-menu:like-playlist',
+          child: ListTile(
+            leading: Icon(
+              isLiked
+                  ? DetailAffinityButton.likeActive
+                  : DetailAffinityButton.likeIdle,
+              color: isLiked ? Theme.of(context).colorScheme.error : null,
+            ),
+            title: Text(
+              isLiked
+                  ? AppLocalizations.of(context)!.unlike
+                  : AppLocalizations.of(context)!.like,
+            ),
+            onTap: toggle,
+            dense: true,
           ),
-          title: Text(
-            isLiked
-                ? AppLocalizations.of(context)!.unlike
-                : AppLocalizations.of(context)!.like,
-          ),
-          onTap: () async {
-            await ref
-                .read(libraryNotifierProvider.notifier)
-                .toggleLikedPlaylist(
-                  LikedPlaylistModel(
-                    playlistId: playlistId,
-                    name: name,
-                    thumbnailUrl: thumbnailUrl,
-                    addedAt: DateTime.now(),
-                  ),
-                );
-          },
-          dense: true,
         );
       },
     );

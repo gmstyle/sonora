@@ -29,6 +29,11 @@ import '../shared/layouts/app_shell.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Pushed catalog/explore screens: Left-edge D-pad returns toward the TV rail.
+Widget _tvPush(String memoryKey, Widget child) {
+  return TvLeftToSidebar(memoryKey: memoryKey, child: child);
+}
+
 CustomTransitionPage<void> _slideUpPage({
   required LocalKey key,
   required Widget child,
@@ -87,9 +92,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: ArtistScreen(
-                            artistId: state.pathParameters['artistId']!,
-                            heroTag: state.uri.queryParameters['heroTag'],
+                          child: _tvPush(
+                            'tv/artist',
+                            ArtistScreen(
+                              artistId: state.pathParameters['artistId']!,
+                              heroTag: state.uri.queryParameters['heroTag'],
+                            ),
                           ),
                         ),
                     routes: [
@@ -100,10 +108,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                           final name = state.uri.queryParameters['name'];
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: ArtistReleasesScreen(
-                              artistId: artistId,
-                              artistName: name,
-                              kind: ArtistReleaseKind.albums,
+                            child: _tvPush(
+                              'tv/artist-albums',
+                              ArtistReleasesScreen(
+                                artistId: artistId,
+                                artistName: name,
+                                kind: ArtistReleaseKind.albums,
+                              ),
                             ),
                           );
                         },
@@ -115,10 +126,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                           final name = state.uri.queryParameters['name'];
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: ArtistReleasesScreen(
-                              artistId: artistId,
-                              artistName: name,
-                              kind: ArtistReleaseKind.singles,
+                            child: _tvPush(
+                              'tv/artist-singles',
+                              ArtistReleasesScreen(
+                                artistId: artistId,
+                                artistName: name,
+                                kind: ArtistReleaseKind.singles,
+                              ),
                             ),
                           );
                         },
@@ -130,9 +144,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                           final name = state.uri.queryParameters['name'];
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: ArtistVideosScreen(
-                              artistId: artistId,
-                              artistName: name,
+                            child: _tvPush(
+                              'tv/artist-videos',
+                              ArtistVideosScreen(
+                                artistId: artistId,
+                                artistName: name,
+                              ),
                             ),
                           );
                         },
@@ -144,9 +161,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: AlbumScreen(
-                            albumId: state.pathParameters['albumId']!,
-                            heroTag: state.uri.queryParameters['heroTag'],
+                          child: _tvPush(
+                            'tv/album',
+                            AlbumScreen(
+                              albumId: state.pathParameters['albumId']!,
+                              heroTag: state.uri.queryParameters['heroTag'],
+                            ),
                           ),
                         ),
                   ),
@@ -155,9 +175,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: PlaylistScreen(
-                            playlistId: state.pathParameters['playlistId']!,
-                            heroTag: state.uri.queryParameters['heroTag'],
+                          child: _tvPush(
+                            'tv/playlist',
+                            PlaylistScreen(
+                              playlistId: state.pathParameters['playlistId']!,
+                              heroTag: state.uri.queryParameters['heroTag'],
+                            ),
                           ),
                         ),
                   ),
@@ -166,8 +189,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: SmartMixDetailView(
-                            type: state.pathParameters['type']!,
+                          child: _tvPush(
+                            'tv/smart-mix',
+                            SmartMixDetailView(
+                              type: state.pathParameters['type']!,
+                            ),
                           ),
                         ),
                   ),
@@ -176,7 +202,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: const MomentMixDetailView(),
+                          child: _tvPush(
+                            'tv/moment-mix',
+                            const MomentMixDetailView(),
+                          ),
                         ),
                   ),
                   GoRoute(
@@ -188,10 +217,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                           state.uri.queryParameters['title'] ?? 'Section';
                       return _slideUpPage(
                         key: state.pageKey,
-                        child: BrowseSectionScreen(
-                          browseId: browseId,
-                          params: params,
-                          title: title,
+                        child: _tvPush(
+                          'tv/browse-section',
+                          BrowseSectionScreen(
+                            browseId: browseId,
+                            params: params,
+                            title: title,
+                          ),
                         ),
                       );
                     },
@@ -201,7 +233,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: const ChartsScreen(),
+                          child: _tvPush('tv/charts', const ChartsScreen()),
                         ),
                   ),
                   GoRoute(
@@ -209,7 +241,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: const MoodsScreen(),
+                          child: _tvPush('tv/moods', const MoodsScreen()),
                         ),
                     routes: [
                       GoRoute(
@@ -221,9 +253,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                               state.uri.queryParameters['title'] ?? 'Mood';
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: MoodPlaylistsScreen(
-                              params: params,
-                              title: title,
+                            child: _tvPush(
+                              'tv/mood-playlists',
+                              MoodPlaylistsScreen(params: params, title: title),
                             ),
                           );
                         },
@@ -235,7 +267,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: const NewReleasesScreen(),
+                          child: _tvPush(
+                            'tv/new-releases',
+                            const NewReleasesScreen(),
+                          ),
                         ),
                   ),
                   GoRoute(
@@ -243,8 +278,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: PodcastScreen(
-                            browseId: state.pathParameters['browseId']!,
+                          child: _tvPush(
+                            'tv/podcast',
+                            PodcastScreen(
+                              browseId: state.pathParameters['browseId']!,
+                            ),
                           ),
                         ),
                   ),
@@ -253,8 +291,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: EpisodeScreen(
-                            videoId: state.pathParameters['videoId']!,
+                          child: _tvPush(
+                            'tv/episode',
+                            EpisodeScreen(
+                              videoId: state.pathParameters['videoId']!,
+                            ),
                           ),
                         ),
                   ),
@@ -263,8 +304,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: UserScreen(
-                            channelId: state.pathParameters['channelId']!,
+                          child: _tvPush(
+                            'tv/user',
+                            UserScreen(
+                              channelId: state.pathParameters['channelId']!,
+                            ),
                           ),
                         ),
                     routes: [
@@ -276,9 +320,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                               state.uri.queryParameters['params'] ?? '';
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: UserVideosScreen(
-                              channelId: channelId,
-                              params: params,
+                            child: _tvPush(
+                              'tv/user-videos',
+                              UserVideosScreen(
+                                channelId: channelId,
+                                params: params,
+                              ),
                             ),
                           );
                         },
@@ -291,9 +338,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                               state.uri.queryParameters['params'] ?? '';
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: UserPlaylistsScreen(
-                              channelId: channelId,
-                              params: params,
+                            child: _tvPush(
+                              'tv/user-playlists',
+                              UserPlaylistsScreen(
+                                channelId: channelId,
+                                params: params,
+                              ),
                             ),
                           );
                         },
@@ -319,8 +369,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: PodcastScreen(
-                            browseId: state.pathParameters['browseId']!,
+                          child: _tvPush(
+                            'tv/search-podcast',
+                            PodcastScreen(
+                              browseId: state.pathParameters['browseId']!,
+                            ),
                           ),
                         ),
                   ),
@@ -329,8 +382,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: EpisodeScreen(
-                            videoId: state.pathParameters['videoId']!,
+                          child: _tvPush(
+                            'tv/search-episode',
+                            EpisodeScreen(
+                              videoId: state.pathParameters['videoId']!,
+                            ),
                           ),
                         ),
                   ),
@@ -339,8 +395,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     pageBuilder:
                         (context, state) => _slideUpPage(
                           key: state.pageKey,
-                          child: UserScreen(
-                            channelId: state.pathParameters['channelId']!,
+                          child: _tvPush(
+                            'tv/search-user',
+                            UserScreen(
+                              channelId: state.pathParameters['channelId']!,
+                            ),
                           ),
                         ),
                     routes: [
@@ -352,9 +411,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                               state.uri.queryParameters['params'] ?? '';
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: UserVideosScreen(
-                              channelId: channelId,
-                              params: params,
+                            child: _tvPush(
+                              'tv/search-user-videos',
+                              UserVideosScreen(
+                                channelId: channelId,
+                                params: params,
+                              ),
                             ),
                           );
                         },
@@ -367,9 +429,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                               state.uri.queryParameters['params'] ?? '';
                           return _slideUpPage(
                             key: state.pageKey,
-                            child: UserPlaylistsScreen(
-                              channelId: channelId,
-                              params: params,
+                            child: _tvPush(
+                              'tv/search-user-playlists',
+                              UserPlaylistsScreen(
+                                channelId: channelId,
+                                params: params,
+                              ),
                             ),
                           );
                         },

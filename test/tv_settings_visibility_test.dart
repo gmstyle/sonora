@@ -28,7 +28,9 @@ void main() {
       );
       expect(cats, isNot(contains(SettingsCategory.background)));
       expect(cats, contains(SettingsCategory.playback));
+      // Backup (local P2P sync) and About (in-app APK updates) stay on TV.
       expect(cats, contains(SettingsCategory.backup));
+      expect(cats, contains(SettingsCategory.about));
     });
   });
 }

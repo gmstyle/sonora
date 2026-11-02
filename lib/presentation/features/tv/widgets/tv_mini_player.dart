@@ -10,7 +10,10 @@ import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
 import 'tv_focusable.dart';
 
-/// Bottom dock for the TV shell — identity + transport, opens full now playing.
+/// Bottom dock for the TV shell — identity + transport.
+///
+/// OK on identity opens the TV now-playing overlay. System Back while that
+/// overlay is open pops it ([PopScope] in [TvNowPlayingScreen]).
 class TvMiniPlayer extends ConsumerWidget {
   const TvMiniPlayer({super.key});
 
@@ -43,6 +46,7 @@ class TvMiniPlayer extends ConsumerWidget {
             child: Row(
               children: [
                 TvFocusable(
+                  key: const Key('tv_mini_open_np'),
                   onSelect: () => openTvNowPlaying(context),
                   child: Row(
                     children: [

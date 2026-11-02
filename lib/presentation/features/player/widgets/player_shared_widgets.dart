@@ -14,6 +14,7 @@ import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/extensions/stat_format.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/on_device_llm_provider.dart';
 import '../../../providers/player_insights_provider.dart';
@@ -208,13 +209,52 @@ Widget buildArtwork(
   );
 }
 
-/// Like-button with animated scale+fade transition.
-Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
+/// Toggles like (song) or saved-episode for [song]. Shared by phone + TV NP.
+void toggleMediaItemLike(BuildContext context, WidgetRef ref, MediaItem song) {
   final track = QueueTrack.fromMediaItem(song);
   final videoId = track.videoId;
   final title = song.title;
   final artist = song.artist ?? AppLocalizations.of(context)!.unknownArtist;
   final thumbnailUrl = song.artUri?.toString();
+  HapticFeedback.lightImpact();
+  if (track.isEpisode) {
+    ref
+        .read(libraryNotifierProvider.notifier)
+        .toggleLikedEpisode(
+          LikedEpisodeModel(
+            videoId: videoId,
+            name: title,
+            podcastName: artist,
+            podcastBrowseId: track.podcastBrowseId,
+            thumbnailUrl: thumbnailUrl,
+            durationSec: song.duration?.inSeconds,
+            date: track.publishDate,
+            addedAt: DateTime.now(),
+          ),
+        );
+    return;
+  }
+  ref
+      .read(libraryNotifierProvider.notifier)
+      .toggleLikedSong(
+        LikedSongModel(
+          videoId: videoId,
+          title: title,
+          artist: artist,
+          artistsJson: track.artistsJson,
+          thumbnailUrl: thumbnailUrl,
+          addedAt: DateTime.now(),
+          duration: song.duration?.inSeconds,
+          isVideo: track.isVideo,
+          isExplicit: track.isExplicit,
+        ),
+      );
+}
+
+/// Like-button with animated scale+fade transition.
+Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
+  final track = QueueTrack.fromMediaItem(song);
+  final videoId = track.videoId;
 
   if (track.isEpisode) {
     final likedAsync = ref.watch(likedEpisodeProvider(videoId));
@@ -238,23 +278,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
               color: isLiked ? Theme.of(context).colorScheme.primary : null,
             ),
           ),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            ref
-                .read(libraryNotifierProvider.notifier)
-                .toggleLikedEpisode(
-                  LikedEpisodeModel(
-                    videoId: videoId,
-                    name: title,
-                    podcastName: artist,
-                    podcastBrowseId: track.podcastBrowseId,
-                    thumbnailUrl: thumbnailUrl,
-                    durationSec: song.duration?.inSeconds,
-                    date: track.publishDate,
-                    addedAt: DateTime.now(),
-                  ),
-                );
-          },
+          onPressed: () => toggleMediaItemLike(context, ref, song),
         );
       },
     );
@@ -283,24 +307,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
             color: isLiked ? Theme.of(context).colorScheme.error : null,
           ),
         ),
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          ref
-              .read(libraryNotifierProvider.notifier)
-              .toggleLikedSong(
-                LikedSongModel(
-                  videoId: videoId,
-                  title: title,
-                  artist: artist,
-                  artistsJson: track.artistsJson,
-                  thumbnailUrl: thumbnailUrl,
-                  addedAt: DateTime.now(),
-                  duration: song.duration?.inSeconds,
-                  isVideo: track.isVideo,
-                  isExplicit: track.isExplicit,
-                ),
-              );
-        },
+        onPressed: () => toggleMediaItemLike(context, ref, song),
       );
     },
   );
@@ -527,6 +534,7 @@ Widget buildBottomActionsRow(
   final showRelated =
       !isEpisode || (podcastBrowseId != null && podcastBrowseId.isNotEmpty);
   final isOffline = ref.watch(isOfflineProvider);
+  final isTv = ref.watch(isAndroidTvProvider);
   final askCaps = ref.watch(askCapabilitiesProvider).asData?.value;
   final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
   final showPlayerAsk =
@@ -553,33 +561,34 @@ Widget buildBottomActionsRow(
         mainAxisAlignment:
             isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
         children: [
-          IconButton(
-            style: actionStyle,
-            icon: Icon(LucideIcons.share2, size: iconSize),
-            onPressed: () async {
-              final currentSong = ref.read(playerStateProvider).currentSong;
-              if (currentSong == null) return;
-              final track = QueueTrack.fromMediaItem(currentSong);
-              final result = await shareSonoraLink(
-                SonoraLink(
-                  kind:
-                      track.isEpisode
-                          ? SonoraLinkKind.episode
-                          : SonoraLinkKind.track,
-                  id: track.videoId,
-                ),
-                title: currentSong.title,
-                subtitle: currentSong.artist,
-              );
-              if (result == SonoraShareResult.copied && context.mounted) {
-                ref
-                    .read(actionFeedbackProvider.notifier)
-                    .report(l10n.linkCopied);
-              }
-            },
-            tooltip: l10n.share,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          if (!isTv)
+            IconButton(
+              style: actionStyle,
+              icon: Icon(LucideIcons.share2, size: iconSize),
+              onPressed: () async {
+                final currentSong = ref.read(playerStateProvider).currentSong;
+                if (currentSong == null) return;
+                final track = QueueTrack.fromMediaItem(currentSong);
+                final result = await shareSonoraLink(
+                  SonoraLink(
+                    kind:
+                        track.isEpisode
+                            ? SonoraLinkKind.episode
+                            : SonoraLinkKind.track,
+                    id: track.videoId,
+                  ),
+                  title: currentSong.title,
+                  subtitle: currentSong.artist,
+                );
+                if (result == SonoraShareResult.copied && context.mounted) {
+                  ref
+                      .read(actionFeedbackProvider.notifier)
+                      .report(l10n.linkCopied);
+                }
+              },
+              tooltip: l10n.share,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           CastButton(
             size: iconSize,
             color: theme.colorScheme.onSurfaceVariant,

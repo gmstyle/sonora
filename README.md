@@ -44,7 +44,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 **Desktop & extras**
 - Adaptive layouts (phone, tablet, wide) with light, dark, and AMOLED themes (Dynamic Color on Android 12+)
-- Android TV sideload shell with D-pad navigation (dedicated 10-foot Home, Search, Library, Now Playing)
+- Android TV sideload shell with D-pad navigation (10-foot Home, Search, Library, Now Playing, Wrapped)
 - Linux tray and MPRIS; auto-update from GitHub Releases with in-app release notes
 - Headless CLI, backup/restore, P2P library sync over Wi-Fi, Sonora Wrapped stats, Italian and English
 

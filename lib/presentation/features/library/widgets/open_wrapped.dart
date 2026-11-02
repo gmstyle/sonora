@@ -5,13 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/on_device_llm_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/stats_provider.dart';
+import '../../tv/widgets/tv_focusable.dart';
 import '../providers/wrapped_narrative_provider.dart';
 import 'sonora_wrapped_view.dart';
 
 /// Opens Wrapped. Cloud Ask preparing gate only when narrative is available.
+///
+/// On Android TV the same fullscreen route is used; the story view and
+/// preparing gate expose D-pad focusable chrome (share stays hidden on TV).
 Future<void> openSonoraWrapped(BuildContext context, WidgetRef ref) async {
   final stats = ref.read(statsProvider);
   if (stats.isLoading || !stats.isWrappedAvailable) return;
@@ -87,27 +92,54 @@ class _WrappedPreparingGateState extends ConsumerState<_WrappedPreparingGate> {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final generating = ref.watch(wrappedNarrativeProvider).generating;
+    final isTv = ref.watch(isAndroidTvProvider);
+
+    final skip =
+        isTv
+            ? TvFocusable(
+              autofocus: true,
+              onSelect: _openWrapped,
+              debugLabel: 'wrapped:skip-prepare',
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Text(
+                  l10n.wrappedPreparingSkip,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            )
+            : TextButton(
+              onPressed: _openWrapped,
+              child: Text(l10n.wrappedPreparingSkip),
+            );
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(isTv ? 48 : 32),
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _openWrapped,
-                  child: Text(l10n.wrappedPreparingSkip),
-                ),
-              ),
+              Align(alignment: Alignment.centerRight, child: skip),
               const Spacer(),
-              Icon(LucideIcons.sparkles, size: 48, color: scheme.primary),
+              Icon(
+                LucideIcons.sparkles,
+                size: isTv ? 64 : 48,
+                color: scheme.primary,
+              ),
               const SizedBox(height: 24),
               Text(
                 l10n.wrappedPreparingTitle,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
+                style:
+                    isTv
+                        ? Theme.of(context).textTheme.headlineMedium
+                        : Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 12),
               Text(
@@ -115,6 +147,7 @@ class _WrappedPreparingGateState extends ConsumerState<_WrappedPreparingGate> {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
+                  fontSize: isTv ? 18 : null,
                 ),
               ),
               const SizedBox(height: 32),

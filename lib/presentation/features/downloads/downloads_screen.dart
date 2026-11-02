@@ -6,11 +6,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/duration_ext.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../providers/android_tv_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../shared/widgets/empty_state_widget.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
+import '../tv/screens/tv_downloads_screen.dart';
 import 'widgets/completed_downloads_view.dart';
 
 class DownloadsScreen extends ConsumerWidget {
@@ -18,6 +20,9 @@ class DownloadsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return const TvDownloadsScreen();
+    }
     final activeDownloads = ref.watch(activeDownloadsProvider);
     final allDownloadsAsync = ref.watch(allDownloadsProvider);
 

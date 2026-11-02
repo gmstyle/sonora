@@ -829,6 +829,9 @@
   "wrappedTopArtistSubtitle": "Il tuo artista preferito in assoluto!",
   "wrappedTopSongsSubtitle": "La colonna sonora dei tuoi giorni",
   "wrappedSummary": "Il tuo profilo musicale",
+  "wrappedRestart": "Ricomincia",
+  "wrappedNext": "Avanti",
+  "wrappedPrevious": "Indietro",
   "plays": "riproduzioni",
 
   "@@sectionMeta": {

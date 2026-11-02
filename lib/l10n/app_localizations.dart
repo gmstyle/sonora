@@ -3739,6 +3739,24 @@ abstract class AppLocalizations {
   /// **'Your music profile'**
   String get wrappedSummary;
 
+  /// No description provided for @wrappedRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start over'**
+  String get wrappedRestart;
+
+  /// No description provided for @wrappedNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get wrappedNext;
+
+  /// No description provided for @wrappedPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get wrappedPrevious;
+
   /// No description provided for @plays.
   ///
   /// In en, this message translates to:

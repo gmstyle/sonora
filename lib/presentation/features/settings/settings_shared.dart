@@ -494,7 +494,7 @@ enum SettingsCategory {
   about,
 }
 
-/// Categories shown in Settings. Hides phone-only sections on Android TV.
+/// Categories shown in Settings. Hides the battery/background category on Android TV.
 List<SettingsCategory> visibleSettingsCategories({
   required bool isAndroid,
   required bool isAndroidTv,

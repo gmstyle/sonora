@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/extensions/duration_ext.dart';
 import '../../../core/extensions/stat_format.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -57,6 +58,46 @@ class SongTile extends ConsumerWidget {
     this.onTap,
   });
 
+  void _openMenu(BuildContext context) {
+    ContextMenuSheet.showForSong(
+      context,
+      videoId: videoId,
+      title: title,
+      artist: artist,
+      thumbnailUrl: thumbnailUrl,
+      duration: duration,
+      isVideo: isVideo,
+      albumName: albumName,
+      artistId: artistId,
+      albumId: albumId,
+      artists: artists,
+      artistsJson: artistsJson,
+      playCount: playCount,
+      viewCount: viewCount,
+      isExplicit: isExplicit,
+      isPlayable: isPlayable,
+    );
+  }
+
+  void _activate(BuildContext context, WidgetRef ref) {
+    if (!isPlayable) {
+      final l10n = AppLocalizations.of(context);
+      if (l10n != null) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.trackUnplayable(title), kind: FeedbackKind.error);
+      }
+      return;
+    }
+    if (onTap != null) {
+      onTap!();
+      return;
+    }
+    ref
+        .read(playerStateProvider.notifier)
+        .playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statLabel = _formatStat();
@@ -96,50 +137,19 @@ class SongTile extends ConsumerWidget {
         ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
       ),
       trailing: _buildTrailing(context),
-      onTap:
-          !isPlayable
-              ? () {
-                final l10n = AppLocalizations.of(context);
-                if (l10n != null) {
-                  ref
-                      .read(actionFeedbackProvider.notifier)
-                      .report(
-                        l10n.trackUnplayable(title),
-                        kind: FeedbackKind.error,
-                      );
-                }
-              }
-              : onTap ??
-                  () => ref
-                      .read(playerStateProvider.notifier)
-                      .playVideoId(
-                        videoId,
-                        isVideo: isVideo,
-                        isExplicit: isExplicit,
-                      ),
-      onLongPress:
-          () => ContextMenuSheet.showForSong(
-            context,
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            albumName: albumName,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            playCount: playCount,
-            viewCount: viewCount,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
+      onTap: () => _activate(context, ref),
+      onLongPress: () => _openMenu(context),
     );
 
-    if (isPlayable) return tile;
-    return Opacity(opacity: 0.5, child: tile);
+    final focusable = MaybeTvFocusable(
+      debugLabel: 'song-tile:$videoId',
+      onSelect: () => _activate(context, ref),
+      onLongSelect: () => _openMenu(context),
+      child: tile,
+    );
+
+    if (isPlayable) return focusable;
+    return Opacity(opacity: 0.5, child: focusable);
   }
 
   Widget _buildLeading(BuildContext context, bool isDownloaded) {

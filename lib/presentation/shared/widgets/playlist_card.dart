@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../features/playlist/providers/playlist_provider.dart';
 import '../../features/library/providers/library_provider.dart';
 import '../../features/library/widgets/playlist_detail_view.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
@@ -85,113 +86,128 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
             ? 'local_playlist_art_${widget.localPlaylistId}'
             : 'playlist_art_${widget.playlistId}');
 
+    void open() {
+      if (widget.onTap != null) {
+        widget.onTap!();
+        return;
+      }
+      if (isLocal) {
+        final playlistModel =
+            widget.localPlaylist ??
+            LocalPlaylistModel(
+              id: widget.localPlaylistId!,
+              name: widget.name,
+              description: widget.artist,
+              createdAt: DateTime.now(),
+            );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => PlaylistDetailView(
+                  playlist: playlistModel,
+                  onUpdated: () {
+                    ref.invalidate(playlistsProvider);
+                  },
+                ),
+          ),
+        );
+      } else {
+        context.push(
+          '/playlist/${widget.playlistId}?heroTag=${Uri.encodeComponent(tag)}',
+        );
+      }
+    }
+
+    void openMenu() {
+      if (isLocal) {
+        final playlistModel =
+            widget.localPlaylist ??
+            LocalPlaylistModel(
+              id: widget.localPlaylistId!,
+              name: widget.name,
+              description: widget.artist,
+              createdAt: DateTime.now(),
+            );
+        ContextMenuSheet.showForCustomPlaylist(
+          context,
+          playlist: playlistModel,
+          onUpdated: () => ref.invalidate(playlistsProvider),
+        );
+      } else {
+        ContextMenuSheet.showForPlaylist(
+          context,
+          playlistId: widget.playlistId!,
+          name: widget.name,
+          artist: widget.artist,
+          thumbnailUrl: widget.thumbnailUrl,
+        );
+      }
+    }
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: ScaleButton(
-        onTap:
-            widget.onTap ??
-            () {
-              if (isLocal) {
-                final playlistModel =
-                    widget.localPlaylist ??
-                    LocalPlaylistModel(
-                      id: widget.localPlaylistId!,
-                      name: widget.name,
-                      description: widget.artist,
-                      createdAt: DateTime.now(),
-                    );
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (_) => PlaylistDetailView(
-                          playlist: playlistModel,
-                          onUpdated: () {
-                            ref.invalidate(playlistsProvider);
-                          },
-                        ),
-                  ),
-                );
-              } else {
-                context.push(
-                  '/playlist/${widget.playlistId}?heroTag=${Uri.encodeComponent(tag)}',
-                );
-              }
-            },
-        onLongPress: () {
-          if (isLocal) {
-            final playlistModel =
-                widget.localPlaylist ??
-                LocalPlaylistModel(
-                  id: widget.localPlaylistId!,
-                  name: widget.name,
-                  description: widget.artist,
-                  createdAt: DateTime.now(),
-                );
-            ContextMenuSheet.showForCustomPlaylist(
-              context,
-              playlist: playlistModel,
-              onUpdated: () => ref.invalidate(playlistsProvider),
-            );
-          } else {
-            ContextMenuSheet.showForPlaylist(
-              context,
-              playlistId: widget.playlistId!,
-              name: widget.name,
-              artist: widget.artist,
-              thumbnailUrl: widget.thumbnailUrl,
-            );
-          }
-        },
-        child: ShelfCardLayout(
-          cardWidth: widget.cardWidth,
-          coverBuilder:
-              (size) => Stack(
-                children: [
-                  Hero(
-                    tag: tag,
-                    child:
-                        isLocal
-                            ? _LocalPlaylistCoverBuilder(
-                              playlistId: widget.localPlaylistId!,
-                              size: size,
-                            )
-                            : ThumbnailWidget(
-                              imageUrl: widget.thumbnailUrl,
-                              size: size,
-                              shape: ThumbnailShape.rounded,
-                            ),
-                  ),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
-                  ),
-                ],
-              ),
-          textBlock: [
-            const SizedBox(height: 8),
-            Text(
-              widget.name,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-            ),
-            if (widget.artist != null && widget.artist!.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                widget.artist!,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+      child: MaybeTvFocusable(
+        debugLabel:
+            'playlist-card:${widget.playlistId ?? widget.localPlaylistId}',
+        onSelect: open,
+        onLongSelect: openMenu,
+        child: ScaleButton(
+          onTap: open,
+          onLongPress: openMenu,
+          child: ShelfCardLayout(
+            cardWidth: widget.cardWidth,
+            coverBuilder:
+                (size) => Stack(
+                  children: [
+                    Hero(
+                      tag: tag,
+                      child:
+                          isLocal
+                              ? _LocalPlaylistCoverBuilder(
+                                playlistId: widget.localPlaylistId!,
+                                size: size,
+                              )
+                              : ThumbnailWidget(
+                                imageUrl: widget.thumbnailUrl,
+                                size: size,
+                                shape: ThumbnailShape.rounded,
+                              ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: HoverPlayButton(
+                        isVisible: _isHovered,
+                        onTap: _play,
+                      ),
+                    ),
+                  ],
                 ),
+            textBlock: [
+              const SizedBox(height: 8),
+              Text(
+                widget.name,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
               ),
+              if (widget.artist != null && widget.artist!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  widget.artist!,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

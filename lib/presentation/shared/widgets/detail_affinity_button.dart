@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/tv/widgets/tv_focusable.dart';
+import '../../providers/android_tv_provider.dart';
 
 /// Shared binary affinity control for detail headers (like / follow / subscribe).
 ///
 /// Compact ([iconOnly]): [IconButton]. Wide: [FilledButton.tonalIcon].
 /// Active state uses [activeIcon] + [activeColor] (and active label when wide).
-class DetailAffinityButton extends StatelessWidget {
+/// On Android TV the control is wrapped in [TvFocusable] so Select toggles.
+class DetailAffinityButton extends ConsumerWidget {
   final bool iconOnly;
   final bool isActive;
   final bool enabled;
@@ -39,24 +44,34 @@ class DetailAffinityButton extends StatelessWidget {
   Color? get _color => isActive ? activeColor : null;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tip = tooltip ?? _label;
+    final Widget button;
     if (iconOnly) {
-      return IconButton(
+      button = IconButton(
         onPressed: enabled ? onPressed : null,
         icon: Icon(_icon),
         color: _color,
         tooltip: tip,
       );
+    } else {
+      button = FilledButton.tonalIcon(
+        onPressed: enabled ? onPressed : null,
+        icon: Icon(_icon),
+        label: Text(_label),
+        style:
+            isActive && activeColor != null
+                ? FilledButton.styleFrom(foregroundColor: activeColor)
+                : null,
+      );
     }
-    return FilledButton.tonalIcon(
-      onPressed: enabled ? onPressed : null,
-      icon: Icon(_icon),
-      label: Text(_label),
-      style:
-          isActive && activeColor != null
-              ? FilledButton.styleFrom(foregroundColor: activeColor)
-              : null,
+
+    if (!ref.watch(isAndroidTvProvider)) return button;
+    return TvFocusable(
+      enabled: enabled && onPressed != null,
+      onSelect: enabled ? onPressed : null,
+      debugLabel: 'detail-affinity:$_label',
+      child: button,
     );
   }
 }

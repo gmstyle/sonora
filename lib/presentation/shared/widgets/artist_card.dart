@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/extensions/stat_format.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import 'context_menu_sheet.dart';
 import 'scale_button.dart';
 import 'shelf_card_layout.dart';
@@ -38,56 +39,68 @@ class ArtistCard extends ConsumerWidget {
     final thumbSize = (cardWidth * 110 / 120).roundToDouble();
     final tag = heroTag ?? 'artist_art_$artistId';
 
-    return ScaleButton(
-      onTap:
-          onTap ??
-          () => context.push(
-            '/artist/$artistId?heroTag=${Uri.encodeComponent(tag)}',
-          ),
-      onLongPress:
-          () => ContextMenuSheet.showForArtist(
-            context,
-            artistId: artistId,
-            name: name,
-            thumbnailUrl: thumbnailUrl,
-            monthlyListeners: monthlyListeners,
-          ),
-      child: ShelfCardLayout(
-        cardWidth: cardWidth,
-        maxCoverSize: thumbSize,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        coverBuilder:
-            (size) => Hero(
-              tag: tag,
-              child: ThumbnailWidget(
-                imageUrl: thumbnailUrl,
-                size: size,
-                shape: ThumbnailShape.circle,
+    void open() {
+      if (onTap != null) {
+        onTap!();
+        return;
+      }
+      context.push('/artist/$artistId?heroTag=${Uri.encodeComponent(tag)}');
+    }
+
+    void openMenu() {
+      ContextMenuSheet.showForArtist(
+        context,
+        artistId: artistId,
+        name: name,
+        thumbnailUrl: thumbnailUrl,
+        monthlyListeners: monthlyListeners,
+      );
+    }
+
+    return MaybeTvFocusable(
+      debugLabel: 'artist-card:$artistId',
+      onSelect: open,
+      onLongSelect: openMenu,
+      child: ScaleButton(
+        onTap: open,
+        onLongPress: openMenu,
+        child: ShelfCardLayout(
+          cardWidth: cardWidth,
+          maxCoverSize: thumbSize,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          coverBuilder:
+              (size) => Hero(
+                tag: tag,
+                child: ThumbnailWidget(
+                  imageUrl: thumbnailUrl,
+                  size: size,
+                  shape: ThumbnailShape.circle,
+                ),
+              ),
+          textBlock: [
+            const SizedBox(height: 10),
+            Text(
+              name,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle ?? '',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w400,
               ),
             ),
-        textBlock: [
-          const SizedBox(height: 10),
-          Text(
-            name,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle ?? '',
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

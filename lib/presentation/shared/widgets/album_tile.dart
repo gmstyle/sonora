@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import 'context_menu_sheet.dart';
 import 'thumbnail_widget.dart';
 
@@ -25,29 +26,38 @@ class AlbumTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ListTile(
-      leading: ThumbnailWidget(
-        imageUrl: thumbnailUrl,
-        size: 48,
-        shape: ThumbnailShape.rounded,
+    void open() => context.push('/album/$albumId');
+    void openMenu() {
+      ContextMenuSheet.showForAlbum(
+        context,
+        albumId: albumId,
+        name: name,
+        artist: artist,
+        artistId: artistId,
+        thumbnailUrl: thumbnailUrl,
+        year: year,
+      );
+    }
+
+    return MaybeTvFocusable(
+      debugLabel: 'album-tile:$albumId',
+      onSelect: open,
+      onLongSelect: openMenu,
+      child: ListTile(
+        leading: ThumbnailWidget(
+          imageUrl: thumbnailUrl,
+          size: 48,
+          shape: ThumbnailShape.rounded,
+        ),
+        title: Text(name, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          [artist, if (year != null) '$year'].join(' · '),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(LucideIcons.chevronRight),
+        onTap: open,
+        onLongPress: openMenu,
       ),
-      title: Text(name, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        [artist, if (year != null) '$year'].join(' · '),
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: const Icon(LucideIcons.chevronRight),
-      onTap: () => context.push('/album/$albumId'),
-      onLongPress:
-          () => ContextMenuSheet.showForAlbum(
-            context,
-            albumId: albumId,
-            name: name,
-            artist: artist,
-            artistId: artistId,
-            thumbnailUrl: thumbnailUrl,
-            year: year,
-          ),
     );
   }
 }

@@ -12,6 +12,7 @@ import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/android_tv_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -531,6 +532,7 @@ class _EpisodeActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < kCompactBreakpoint;
+    final isTv = ref.watch(isAndroidTvProvider);
     final l10n = AppLocalizations.of(context)!;
 
     if (isMobile) {
@@ -550,11 +552,12 @@ class _EpisodeActions extends ConsumerWidget {
                     onPressed:
                         () => context.push('/podcast/${episode.podcastId}'),
                   ),
-                IconButton(
-                  icon: const Icon(LucideIcons.share2),
-                  tooltip: l10n.share,
-                  onPressed: () => _share(context, ref, episode),
-                ),
+                if (!isTv)
+                  IconButton(
+                    icon: const Icon(LucideIcons.share2),
+                    tooltip: l10n.share,
+                    onPressed: () => _share(context, ref, episode),
+                  ),
               ],
             ),
             SizedBox(
@@ -590,11 +593,12 @@ class _EpisodeActions extends ConsumerWidget {
             icon: const Icon(LucideIcons.micVocal),
             label: Text(l10n.goToPodcast),
           ),
-        IconButton(
-          icon: const Icon(LucideIcons.share2),
-          tooltip: l10n.share,
-          onPressed: () => _share(context, ref, episode),
-        ),
+        if (!isTv)
+          IconButton(
+            icon: const Icon(LucideIcons.share2),
+            tooltip: l10n.share,
+            onPressed: () => _share(context, ref, episode),
+          ),
       ],
     );
   }

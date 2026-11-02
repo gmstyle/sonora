@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
@@ -44,132 +45,139 @@ class VideoCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final card = ScaleButton(
-      onTap:
-          !isPlayable
-              ? () {
-                final l10n = AppLocalizations.of(context);
-                if (l10n != null) {
-                  ref
-                      .read(actionFeedbackProvider.notifier)
-                      .report(
-                        l10n.trackUnplayable(title),
-                        kind: FeedbackKind.error,
-                      );
-                }
-              }
-              : onTap ??
-                  () => ref
-                      .read(playerStateProvider.notifier)
-                      .playVideoId(
-                        videoId,
-                        isVideo: true,
-                        isExplicit: isExplicit,
-                      ),
-      onLongPress:
-          () => ContextMenuSheet.showForSong(
-            context,
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            isVideo: true,
-            artistId: artistId,
-            artists: artists,
-            artistsJson: artistsJson,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
-      child: SizedBox(
-        width: cardWidth,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (thumbnailUrl != null)
-                      CachedNetworkImage(
-                        imageUrl: thumbnailUrl!,
-                        fit: BoxFit.cover,
-                        errorWidget:
-                            (_, _, _) => Container(
-                              color: colorScheme.surfaceContainerHighest,
-                              child: Icon(
-                                LucideIcons.music,
-                                color: colorScheme.onSurfaceVariant,
+    void activate() {
+      if (!isPlayable) {
+        final l10n = AppLocalizations.of(context);
+        if (l10n != null) {
+          ref
+              .read(actionFeedbackProvider.notifier)
+              .report(l10n.trackUnplayable(title), kind: FeedbackKind.error);
+        }
+        return;
+      }
+      if (onTap != null) {
+        onTap!();
+        return;
+      }
+      ref
+          .read(playerStateProvider.notifier)
+          .playVideoId(videoId, isVideo: true, isExplicit: isExplicit);
+    }
+
+    void openMenu() {
+      ContextMenuSheet.showForSong(
+        context,
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        isVideo: true,
+        artistId: artistId,
+        artists: artists,
+        artistsJson: artistsJson,
+        isExplicit: isExplicit,
+        isPlayable: isPlayable,
+      );
+    }
+
+    final card = MaybeTvFocusable(
+      debugLabel: 'video-card:$videoId',
+      onSelect: activate,
+      onLongSelect: openMenu,
+      child: ScaleButton(
+        onTap: activate,
+        onLongPress: openMenu,
+        child: SizedBox(
+          width: cardWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (thumbnailUrl != null)
+                        CachedNetworkImage(
+                          imageUrl: thumbnailUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget:
+                              (_, _, _) => Container(
+                                color: colorScheme.surfaceContainerHighest,
+                                child: Icon(
+                                  LucideIcons.music,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                      )
-                    else
-                      Container(
-                        color: colorScheme.surfaceContainerHighest,
-                        child: Icon(
-                          LucideIcons.music,
-                          color: colorScheme.onSurfaceVariant,
+                        )
+                      else
+                        Container(
+                          color: colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            LucideIcons.music,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      const Positioned(
+                        bottom: 4,
+                        left: 4,
+                        child: VideoBadge(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
+                          borderRadius: 3,
                         ),
                       ),
-                    const Positioned(
-                      bottom: 4,
-                      left: 4,
-                      child: VideoBadge(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
+                      if (!isPlayable)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Icon(
+                            LucideIcons.ban,
+                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
                         ),
-                        borderRadius: 3,
-                      ),
-                    ),
-                    if (!isPlayable)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Icon(
-                          LucideIcons.ban,
-                          size: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text.rich(
-              TextSpan(
-                children: [
-                  if (isExplicit)
-                    const WidgetSpan(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 6.0),
-                        child: ExplicitBadge(),
+              const SizedBox(height: 6),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    if (isExplicit)
+                      const WidgetSpan(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: 6.0),
+                          child: ExplicitBadge(),
+                        ),
+                        alignment: PlaceholderAlignment.middle,
                       ),
-                      alignment: PlaceholderAlignment.middle,
-                    ),
-                  TextSpan(text: title),
-                ],
+                    TextSpan(text: title),
+                  ],
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+              const SizedBox(height: 2),
+              Text(
+                artist,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              artist,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

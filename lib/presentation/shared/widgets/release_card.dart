@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/album/providers/album_provider.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
@@ -82,92 +83,106 @@ class _ReleaseCardState extends ConsumerState<ReleaseCard> {
     final textTheme = Theme.of(context).textTheme;
     final tag = widget.heroTag ?? 'album_art_${widget.albumId}';
 
+    void open() {
+      context.push(
+        '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
+      );
+    }
+
+    void openMenu() {
+      ContextMenuSheet.showForAlbum(
+        context,
+        albumId: widget.albumId,
+        name: widget.name,
+        artist: widget.artist,
+        artistId: widget.artistId,
+        thumbnailUrl: widget.thumbnailUrl,
+        year: widget.year,
+      );
+    }
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: ScaleButton(
-        onTap:
-            () => context.push(
-              '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
-            ),
-        onLongPress:
-            () => ContextMenuSheet.showForAlbum(
-              context,
-              albumId: widget.albumId,
-              name: widget.name,
-              artist: widget.artist,
-              artistId: widget.artistId,
-              thumbnailUrl: widget.thumbnailUrl,
-              year: widget.year,
-            ),
-        child: ShelfCardLayout(
-          cardWidth: widget.cardWidth,
-          coverBuilder:
-              (size) => Stack(
-                children: [
-                  Hero(
-                    tag: tag,
-                    child: ThumbnailWidget(
-                      imageUrl: widget.thumbnailUrl,
-                      size: size,
-                      shape: ThumbnailShape.rounded,
+      child: MaybeTvFocusable(
+        debugLabel: 'release-card:${widget.albumId}',
+        onSelect: open,
+        onLongSelect: openMenu,
+        child: ScaleButton(
+          onTap: open,
+          onLongPress: openMenu,
+          child: ShelfCardLayout(
+            cardWidth: widget.cardWidth,
+            coverBuilder:
+                (size) => Stack(
+                  children: [
+                    Hero(
+                      tag: tag,
+                      child: ThumbnailWidget(
+                        imageUrl: widget.thumbnailUrl,
+                        size: size,
+                        shape: ThumbnailShape.rounded,
+                      ),
                     ),
-                  ),
-                  if (widget.badgeText != null)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          widget.badgeText!,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
+                    if (widget.badgeText != null)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            widget.badgeText!,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
                           ),
                         ),
                       ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: HoverPlayButton(
+                        isVisible: _isHovered,
+                        onTap: _play,
+                      ),
                     ),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
-                  ),
-                ],
+                  ],
+                ),
+            textBlock: [
+              const SizedBox(height: 6),
+              Text(
+                widget.name,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-          textBlock: [
-            const SizedBox(height: 6),
-            Text(
-              widget.name,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+              const SizedBox(height: 2),
+              Text(
+                [
+                  if (widget.showArtist) widget.artist,
+                  if (!widget.showArtist) _typeLabel(context),
+                  if (widget.year != null) widget.year.toString(),
+                ].join(' · '),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              [
-                if (widget.showArtist) widget.artist,
-                if (!widget.showArtist) _typeLabel(context),
-                if (widget.year != null) widget.year.toString(),
-              ].join(' · '),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

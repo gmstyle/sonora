@@ -1,13 +1,17 @@
 import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../domain/models/wrapped_narrative.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/stats_provider.dart';
+import '../../tv/tv_metrics.dart';
+import '../../tv/widgets/tv_focusable.dart';
 import '../providers/wrapped_narrative_provider.dart';
 
 class SonoraWrappedView extends ConsumerStatefulWidget {
@@ -135,85 +139,98 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isTv = ref.watch(isAndroidTvProvider);
+    final edge = isTv ? TvMetrics.overscan : 24.0;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTapDown: _handleTapDown,
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Beautiful animated background gradients
-              _buildBackgroundGradient(),
+    final stack = Stack(
+      children: [
+        _buildBackgroundGradient(),
+        Padding(
+          padding: EdgeInsets.only(
+            top: 48,
+            left: edge,
+            right: edge,
+            bottom: isTv ? 88 : 24,
+          ),
+          child: Center(child: _buildSlideContent(l10n, isTv: isTv)),
+        ),
+        Positioned(
+          top: 16,
+          left: edge - 8,
+          right: edge - 8,
+          child: Row(
+            children: List.generate(_totalSlides, (index) {
+              double slideProgress = 0.0;
+              if (index < _currentSlide) {
+                slideProgress = 1.0;
+              } else if (index == _currentSlide) {
+                slideProgress = _progress;
+              }
 
-              // Actual Slide Content
-              Padding(
-                padding: const EdgeInsets.only(
-                  top: 48.0,
-                  left: 24,
-                  right: 24,
-                  bottom: 24,
-                ),
-                child: Center(child: _buildSlideContent(l10n)),
-              ),
-
-              // Progress bars at the top
-              Positioned(
-                top: 16,
-                left: 16,
-                right: 16,
-                child: Row(
-                  children: List.generate(_totalSlides, (index) {
-                    double slideProgress = 0.0;
-                    if (index < _currentSlide) {
-                      slideProgress = 1.0;
-                    } else if (index == _currentSlide) {
-                      slideProgress = _progress;
-                    }
-
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: LinearProgressIndicator(
-                            value: slideProgress,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.25,
-                            ),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                            minHeight: 4,
-                          ),
-                        ),
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: slideProgress,
+                      backgroundColor: Colors.white.withValues(alpha: 0.25),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
                       ),
-                    );
-                  }),
-                ),
-              ),
-
-              // Exit button
-              Positioned(
-                top: 24,
-                right: 16,
-                child: IconButton(
-                  icon: const Icon(
-                    LucideIcons.x,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black.withValues(alpha: 0.4),
+                      minHeight: 4,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              );
+            }),
           ),
         ),
-      ),
+        Positioned(
+          top: 24,
+          right: edge - 8,
+          child:
+              isTv
+                  ? TvFocusable(
+                    onSelect: () => Navigator.of(context).pop(),
+                    debugLabel: 'wrapped:close',
+                    child: _WrappedChromeChip(
+                      icon: LucideIcons.x,
+                      label: l10n.close,
+                    ),
+                  )
+                  : IconButton(
+                    icon: const Icon(
+                      LucideIcons.x,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black.withValues(alpha: 0.4),
+                    ),
+                  ),
+        ),
+        if (isTv)
+          Positioned(
+            left: edge,
+            right: edge,
+            bottom: 16,
+            child: _TvWrappedNavBar(
+              canGoPrev: _currentSlide > 0,
+              isLast: _currentSlide >= _totalSlides - 1,
+              onPrev: _prevSlide,
+              onNext: _nextSlide,
+              onClose: () => Navigator.of(context).pop(),
+            ),
+          ),
+      ],
     );
+
+    final body =
+        isTv ? stack : GestureDetector(onTapDown: _handleTapDown, child: stack);
+
+    return Scaffold(backgroundColor: Colors.black, body: SafeArea(child: body));
   }
 
   Widget _buildBackgroundGradient() {
@@ -254,7 +271,7 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
     );
   }
 
-  Widget _buildSlideContent(AppLocalizations l10n) {
+  Widget _buildSlideContent(AppLocalizations l10n, {required bool isTv}) {
     switch (_currentKind) {
       case 0:
         return _buildIntroSlide(l10n);
@@ -272,7 +289,7 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
         return _buildPodcastTimeSlide(l10n);
       case 7:
       default:
-        return _buildSummarySlide(l10n);
+        return _buildSummarySlide(l10n, isTv: isTv);
     }
   }
 
@@ -738,7 +755,7 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
     );
   }
 
-  Widget _buildSummarySlide(AppLocalizations l10n) {
+  Widget _buildSummarySlide(AppLocalizations l10n, {required bool isTv}) {
     final topArtist =
         widget.stats.topArtists.isNotEmpty
             ? widget.stats.topArtists.first
@@ -751,6 +768,78 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
             : null;
     final theme = Theme.of(context);
 
+    void restart() {
+      setState(() => _currentSlide = 0);
+      _startSlideTimer();
+    }
+
+    final restartButton =
+        isTv
+            ? TvFocusable(
+              onSelect: restart,
+              debugLabel: 'wrapped:restart',
+              child: _WrappedChromeChip(
+                icon: LucideIcons.refreshCw,
+                label: l10n.wrappedRestart,
+              ),
+            )
+            : OutlinedButton.icon(
+              icon: const Icon(
+                LucideIcons.refreshCw,
+                color: Colors.white,
+                size: 18,
+              ),
+              label: Text(
+                l10n.wrappedRestart,
+                style: const TextStyle(color: Colors.white),
+              ),
+              onPressed: restart,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white30),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            );
+
+    final shareButton = ElevatedButton.icon(
+      icon: Icon(
+        LucideIcons.share2,
+        color: theme.colorScheme.onPrimary,
+        size: 18,
+      ),
+      label: Text(
+        l10n.share,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onPrimary,
+        ),
+      ),
+      onPressed: () async {
+        final buffer = StringBuffer(
+          '${l10n.wrappedSummary}\n'
+          '${l10n.listeningTime}: ${widget.stats.totalDurationMinutes} '
+          '${l10n.minutesLabel}\n',
+        );
+        if (topArtist != null) {
+          buffer.writeln('${l10n.topArtists}: ${topArtist.name}');
+        }
+        if (topSong != null) {
+          buffer.writeln('${l10n.topSongs}: ${topSong.title}');
+        }
+        if (topPodcast != null) {
+          buffer.writeln('${l10n.topPodcasts}: ${topPodcast.name}');
+        }
+        buffer.writeln(l10n.appTitle);
+        await SharePlus.instance.share(ShareParams(text: buffer.toString()));
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: theme.colorScheme.primary,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      ),
+    );
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -759,17 +848,16 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
               ? _ai!.closing
               : l10n.wrappedSummary,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 22,
+            fontSize: isTv ? 28 : 22,
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 32),
-        // Summary Card to share
+        SizedBox(height: isTv ? 28 : 32),
         Container(
-          width: 320,
+          width: isTv ? 420 : 320,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -850,76 +938,17 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
             ],
           ),
         ),
-        const SizedBox(height: 40),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            OutlinedButton.icon(
-              icon: const Icon(
-                LucideIcons.refreshCw,
-                color: Colors.white,
-                size: 18,
-              ),
-              label: const Text(
-                'Ricomincia',
-                style: TextStyle(color: Colors.white),
-              ),
-              onPressed: () {
-                setState(() {
-                  _currentSlide = 0;
-                });
-                _startSlideTimer();
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.white30),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            ElevatedButton.icon(
-              icon: Icon(
-                LucideIcons.share2,
-                color: theme.colorScheme.onPrimary,
-                size: 18,
-              ),
-              label: Text(
-                'Condividi',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onPrimary,
-                ),
-              ),
-              onPressed: () async {
-                final buffer = StringBuffer(
-                  'Il mio profilo musicale su Sonora!\n'
-                  'Tempo ascolto: ${widget.stats.totalDurationMinutes} minuti\n',
-                );
-                if (topArtist != null) {
-                  buffer.writeln('Top Artista: ${topArtist.name}');
-                }
-                if (topSong != null) {
-                  buffer.writeln('Top Brano: ${topSong.title}');
-                }
-                if (topPodcast != null) {
-                  buffer.writeln('Top Podcast: ${topPodcast.name}');
-                }
-                buffer.writeln('Ascoltato tramite Sonora Player 🎧');
-                await SharePlus.instance.share(
-                  ShareParams(text: buffer.toString()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-              ),
-            ),
-          ],
+        SizedBox(height: isTv ? 28 : 40),
+        // Extra bottom inset on TV so chrome does not cover actions.
+        Padding(
+          padding: EdgeInsets.only(bottom: isTv ? 72 : 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              restartButton,
+              if (!isTv) ...[const SizedBox(width: 16), shareButton],
+            ],
+          ),
         ),
       ],
     );
@@ -981,6 +1010,113 @@ class _AiBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 10-foot transport under Wrapped slides (D-pad Select advances / exits).
+class _TvWrappedNavBar extends StatelessWidget {
+  const _TvWrappedNavBar({
+    required this.canGoPrev,
+    required this.isLast,
+    required this.onPrev,
+    required this.onNext,
+    required this.onClose,
+  });
+
+  final bool canGoPrev;
+  final bool isLast;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TvFocusable(
+          enabled: canGoPrev,
+          onSelect: canGoPrev ? onPrev : null,
+          debugLabel: 'wrapped:prev',
+          child: _WrappedChromeChip(
+            icon: LucideIcons.chevronLeft,
+            label: l10n.wrappedPrevious,
+            muted: !canGoPrev,
+          ),
+        ),
+        const SizedBox(width: 16),
+        TvFocusable(
+          autofocus: true,
+          onSelect: onNext,
+          debugLabel: 'wrapped:next',
+          child: _WrappedChromeChip(
+            icon: isLast ? LucideIcons.check : LucideIcons.chevronRight,
+            label: isLast ? l10n.close : l10n.wrappedNext,
+            emphasized: true,
+          ),
+        ),
+        const SizedBox(width: 16),
+        TvFocusable(
+          onSelect: onClose,
+          debugLabel: 'wrapped:nav-close',
+          child: _WrappedChromeChip(icon: LucideIcons.x, label: l10n.close),
+        ),
+      ],
+    );
+  }
+}
+
+class _WrappedChromeChip extends StatelessWidget {
+  const _WrappedChromeChip({
+    required this.icon,
+    required this.label,
+    this.emphasized = false,
+    this.muted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool emphasized;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bg =
+        emphasized
+            ? scheme.primary.withValues(alpha: 0.9)
+            : Colors.white.withValues(alpha: muted ? 0.08 : 0.14);
+    final fg =
+        emphasized
+            ? scheme.onPrimary
+            : Colors.white.withValues(alpha: muted ? 0.4 : 0.95);
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 150),
+      opacity: muted ? 0.55 : 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: fg, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: fg,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

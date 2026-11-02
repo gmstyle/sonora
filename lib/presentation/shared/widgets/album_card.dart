@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/album/providers/album_provider.dart';
+import '../../features/tv/widgets/tv_focusable.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'context_menu_sheet.dart';
@@ -63,65 +64,82 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
   Widget build(BuildContext context) {
     final tag = widget.heroTag ?? 'album_art_${widget.albumId}';
 
+    void open() {
+      if (widget.onTap != null) {
+        widget.onTap!();
+        return;
+      }
+      context.push(
+        '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
+      );
+    }
+
+    void openMenu() {
+      ContextMenuSheet.showForAlbum(
+        context,
+        albumId: widget.albumId,
+        name: widget.name,
+        artist: widget.artist,
+        artistId: widget.artistId,
+        thumbnailUrl: widget.thumbnailUrl,
+        year: widget.year,
+      );
+    }
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: ScaleButton(
-        onTap:
-            widget.onTap ??
-            () => context.push(
-              '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
-            ),
-        onLongPress:
-            () => ContextMenuSheet.showForAlbum(
-              context,
-              albumId: widget.albumId,
-              name: widget.name,
-              artist: widget.artist,
-              artistId: widget.artistId,
-              thumbnailUrl: widget.thumbnailUrl,
-              year: widget.year,
-            ),
-        child: ShelfCardLayout(
-          cardWidth: widget.cardWidth,
-          coverBuilder:
-              (size) => Stack(
-                children: [
-                  Hero(
-                    tag: tag,
-                    child: ThumbnailWidget(
-                      imageUrl: widget.thumbnailUrl,
-                      size: size,
-                      shape: ThumbnailShape.rounded,
+      child: MaybeTvFocusable(
+        debugLabel: 'album-card:${widget.albumId}',
+        onSelect: open,
+        onLongSelect: openMenu,
+        child: ScaleButton(
+          onTap: open,
+          onLongPress: openMenu,
+          child: ShelfCardLayout(
+            cardWidth: widget.cardWidth,
+            coverBuilder:
+                (size) => Stack(
+                  children: [
+                    Hero(
+                      tag: tag,
+                      child: ThumbnailWidget(
+                        imageUrl: widget.thumbnailUrl,
+                        size: size,
+                        shape: ThumbnailShape.rounded,
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
-                  ),
-                ],
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: HoverPlayButton(
+                        isVisible: _isHovered,
+                        onTap: _play,
+                      ),
+                    ),
+                  ],
+                ),
+            textBlock: [
+              const SizedBox(height: 8),
+              Text(
+                widget.name,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
               ),
-          textBlock: [
-            const SizedBox(height: 8),
-            Text(
-              widget.name,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              widget.artist,
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 2),
+              Text(
+                widget.artist,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

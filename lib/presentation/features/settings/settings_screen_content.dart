@@ -173,17 +173,13 @@ class SettingsCategoryContent extends ConsumerWidget {
       case SettingsCategory.backup:
         return ListView(
           padding: listPadding,
-          children: [
-            _BackupSection(ref: ref),
-            if (!isTv) _LocalSyncSection(ref: ref),
-          ],
+          children: [_BackupSection(ref: ref), _LocalSyncSection(ref: ref)],
         );
       case SettingsCategory.about:
         return ListView(
           padding: listPadding,
           children: [
-            if (!isTv)
-              _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
+            _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
             _SupportSection(),
             _AboutSection(),
           ],

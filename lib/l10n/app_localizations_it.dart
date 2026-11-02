@@ -2188,6 +2188,15 @@ class AppLocalizationsIt extends AppLocalizations {
   String get wrappedSummary => 'Il tuo profilo musicale';
 
   @override
+  String get wrappedRestart => 'Ricomincia';
+
+  @override
+  String get wrappedNext => 'Avanti';
+
+  @override
+  String get wrappedPrevious => 'Indietro';
+
+  @override
   String get plays => 'riproduzioni';
 
   @override
