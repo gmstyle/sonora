@@ -57,12 +57,15 @@ import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
 import 'presentation/providers/ytmusic_provider.dart';
 import 'presentation/shared/widgets/release_notes_view.dart';
+
 import 'package:go_router/go_router.dart';
 
 /// Cold-start `sonora://` URI from Linux argv (set before [runApp]).
 String? _linuxColdStartUri;
 
 LinuxTrayService? _trayService;
+Window? _linuxWindow;
+ListenerId? _linuxWindowListenerId;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,8 +102,8 @@ Future<void> main() async {
   final db = createAppDatabase();
   final ytmusicDs = YtmusicDatasource();
   final streamDs = StreamDatasource(
-    getDefaultAudioQuality:
-        () => MediaQuality.fromStorage(readStreamAudioQualityPref(prefs)),
+    getDefaultAudioQuality: () =>
+        MediaQuality.fromStorage(readStreamAudioQualityPref(prefs)),
   );
 
   final proxyServer = LocalAudioProxyServer(
@@ -159,20 +162,25 @@ Future<void> main() async {
   }
 
   if (isLinux) {
-    await windowManager.ensureInitialized();
-    const windowOptions = WindowOptions(
-      size: Size(1200, 800),
-      minimumSize: Size(800, 600),
-      center: true,
-      backgroundColor: Colors.transparent,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.normal,
-      title: 'Sonora',
-    );
-    await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
+    final window = WindowManager.instance.getCurrent()!;
+    _linuxWindow = window;
+    window.setSize(const Size(1200, 800).toNative(), false);
+    window.minimumSize = const Size(800, 600).toNative();
+    window.center();
+    window.backgroundColor = Colors.transparent.toNative();
+    window.isVisibleInTaskbar = true;
+    window.titleBarStyle = TitleBarStyle.normal;
+    window.title = 'Sonora';
+    _linuxWindowListenerId = window.addListener((event) {
+      if (event case WindowCloseRequestedEvent(:final request)) {
+        if (!LinuxTrayService.isQuitRequested) {
+          request.cancel();
+          window.hide();
+        }
+      }
     });
+    window.show();
+    window.focus();
 
     _trayService = LinuxTrayService();
     await _trayService!.init();
@@ -203,7 +211,7 @@ class SonoraApp extends ConsumerStatefulWidget {
   ConsumerState<SonoraApp> createState() => _SonoraAppState();
 }
 
-class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
+class _SonoraAppState extends ConsumerState<SonoraApp> {
   late final SonoraLinkHandler _linkHandler;
   StreamSubscription<Uri>? _appLinksSub;
   StreamSubscription<String>? _linuxUriSub;
@@ -212,10 +220,6 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
   void initState() {
     super.initState();
     _linkHandler = SonoraLinkHandler(ref);
-    if (isLinux) {
-      windowManager.addListener(this);
-      windowManager.setPreventClose(true);
-    }
     downloadNotificationActionHandler = _onDownloadNotificationAction;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
@@ -231,7 +235,9 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
     }
     unawaited(_appLinksSub?.cancel());
     unawaited(_linuxUriSub?.cancel());
-    if (isLinux) windowManager.removeListener(this);
+    if (isLinux && _linuxWindowListenerId != null) {
+      _linuxWindow?.removeListener(_linuxWindowListenerId!);
+    }
     super.dispose();
   }
 
@@ -276,8 +282,9 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
 
   Future<void> _onIncomingLinuxUri(String uri) async {
     try {
-      await windowManager.show();
-      await windowManager.focus();
+      final window = WindowManager.instance.getCurrent();
+      window?.show();
+      window?.focus();
     } catch (e) {
       debugPrint('Failed to show/focus window for deep link: $e');
     }
@@ -297,12 +304,6 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
         ctx.go('/downloads');
       }
     }
-  }
-
-  // Intercept the window close button: hide to tray instead of quitting.
-  @override
-  void onWindowClose() async {
-    await windowManager.hide();
   }
 
   Future<void> _checkForUpdates() async {
@@ -668,10 +669,9 @@ class _PairingPinDialogState extends State<_PairingPinDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isIt = Localizations.localeOf(context).languageCode == 'it';
-    final expireText =
-        isIt
-            ? 'Scade in $_secondsRemaining secondi'
-            : 'Expires in $_secondsRemaining seconds';
+    final expireText = isIt
+        ? 'Scade in $_secondsRemaining secondi'
+        : 'Expires in $_secondsRemaining seconds';
 
     return AlertDialog(
       title: Text(widget.titleText),
@@ -699,8 +699,9 @@ class _PairingPinDialogState extends State<_PairingPinDialog> {
           const SizedBox(height: 20),
           LinearProgressIndicator(
             value: _secondsRemaining / 60.0,
-            color:
-                _secondsRemaining < 15 ? Colors.red : theme.colorScheme.primary,
+            color: _secondsRemaining < 15
+                ? Colors.red
+                : theme.colorScheme.primary,
             backgroundColor: theme.colorScheme.surfaceContainerHighest,
           ),
           const SizedBox(height: 8),

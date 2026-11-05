@@ -6,10 +6,8 @@ list(APPEND FLUTTER_PLUGIN_LIST
   app_links_linux
   flutter_edge_ai
   media_kit_libs_linux
-  screen_retriever_linux
   tray_manager
   url_launcher_linux
-  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

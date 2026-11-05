@@ -1,14 +1,24 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
+
 import '../../presentation/features/player/audio_handler.dart';
 
 class LinuxTrayService {
   static LinuxTrayService? _instance;
   static SonoraAudioHandler? _audioHandler;
+  static bool _isQuitRequested = false;
+
+  static bool get isQuitRequested => _isQuitRequested;
+
+  static void closeWindowForQuit() {
+    _isQuitRequested = true;
+    WindowManager.instance.getCurrent()?.close();
+  }
 
   static void setInstance(LinuxTrayService service) {
     _instance = service;
@@ -71,8 +81,9 @@ class LinuxTrayService {
 
     // setToolTip is not implemented on Linux; skip silently
     try {
-      final tooltip =
-          (title != null && artist != null) ? '$artist - $title' : 'Sonora';
+      final tooltip = (title != null && artist != null)
+          ? '$artist - $title'
+          : 'Sonora';
       await trayManager.setToolTip(tooltip);
     } catch (_) {}
   }
@@ -159,24 +170,23 @@ class LinuxTrayService {
         await _cycleRepeatMode();
         break;
       case 'show':
-        await windowManager.show();
-        await windowManager.focus();
+        final window = WindowManager.instance.getCurrent();
+        window?.show();
+        window?.focus();
         break;
       case 'quit':
         if (_audioHandler != null) {
           await _audioHandler!.stop();
         }
-        await windowManager.setPreventClose(false);
-        await windowManager.close();
+        closeWindowForQuit();
         break;
     }
   }
 
   Future<void> _toggleShuffle() async {
-    final newMode =
-        _shuffleMode == AudioServiceShuffleMode.none
-            ? AudioServiceShuffleMode.all
-            : AudioServiceShuffleMode.none;
+    final newMode = _shuffleMode == AudioServiceShuffleMode.none
+        ? AudioServiceShuffleMode.all
+        : AudioServiceShuffleMode.none;
     await _audioHandler?.setShuffleMode(newMode);
   }
 
@@ -221,8 +231,9 @@ class _TrayListener extends TrayListener {
 
   @override
   void onTrayIconMouseDown() {
-    windowManager.show();
-    windowManager.focus();
+    final window = WindowManager.instance.getCurrent();
+    window?.show();
+    window?.focus();
   }
 
   @override
