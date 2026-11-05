@@ -75,8 +75,11 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
             builder: (context, constraints) {
               final viewport = constraints.maxWidth;
               final isWide = viewport >= kExpandedBreakpoint;
+              final horizontalPad = isWide ? kWideContentPadding : 16.0;
               final contentWidth =
-                  isWide && viewport > 1240 ? 1240.0 : viewport;
+                  isWide && viewport > kDocumentContentMaxWidth
+                      ? kDocumentContentMaxWidth
+                      : viewport;
               final columns =
                   contentWidth < kCompactBreakpoint
                       ? 2
@@ -86,7 +89,8 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
                       ? 4
                       : 5;
               final cardWidth =
-                  (contentWidth - 32 - (columns - 1) * 12) / columns;
+                  (contentWidth - horizontalPad * 2 - (columns - 1) * 12) /
+                  columns;
               final releaseType = switch (widget.kind) {
                 ArtistReleaseKind.albums => ReleaseType.album,
                 ArtistReleaseKind.singles => ReleaseType.single,
@@ -105,7 +109,12 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
                   slivers: [
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPad,
+                          12,
+                          horizontalPad,
+                          8,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -158,9 +167,9 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
                     ),
                     SliverPadding(
                       padding: EdgeInsets.fromLTRB(
-                        16,
+                        horizontalPad,
                         0,
-                        16,
+                        horizontalPad,
                         MediaQuery.paddingOf(context).bottom +
                             (isWide ? 48 : 16),
                       ),
@@ -198,7 +207,9 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
               return Align(
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1240),
+                  constraints: const BoxConstraints(
+                    maxWidth: kDocumentContentMaxWidth,
+                  ),
                   child: grid,
                 ),
               );
@@ -224,7 +235,11 @@ class _ReleasesLoadingGrid extends StatelessWidget {
       builder: (context, constraints) {
         final viewport = constraints.maxWidth;
         final isWide = viewport >= kExpandedBreakpoint;
-        final contentWidth = isWide && viewport > 1240 ? 1240.0 : viewport;
+        final horizontalPad = isWide ? kWideContentPadding : 16.0;
+        final contentWidth =
+            isWide && viewport > kDocumentContentMaxWidth
+                ? kDocumentContentMaxWidth
+                : viewport;
         final columns =
             contentWidth < kCompactBreakpoint
                 ? 2
@@ -233,9 +248,10 @@ class _ReleasesLoadingGrid extends StatelessWidget {
                 : contentWidth < kExpandedBreakpoint
                 ? 4
                 : 5;
-        final cardWidth = (contentWidth - 32 - (columns - 1) * 12) / columns;
+        final cardWidth =
+            (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
         final grid = GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: EdgeInsets.fromLTRB(horizontalPad, 16, horizontalPad, 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             crossAxisSpacing: 12,
@@ -253,7 +269,9 @@ class _ReleasesLoadingGrid extends StatelessWidget {
         return Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1240),
+            constraints: const BoxConstraints(
+              maxWidth: kDocumentContentMaxWidth,
+            ),
             child: grid,
           ),
         );

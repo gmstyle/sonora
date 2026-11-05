@@ -111,6 +111,9 @@ class DetailActionsBar extends StatelessWidget {
     final overflowed = secondary.skip(kSecondaryBudget).toList();
     final showMore =
         overflowed.isNotEmpty || (onOverflow != null && alwaysShowOverflow);
+    // Episode has no shuffle. Callers that pass neither callback nor label
+    // keep Play + the secondary actions only.
+    final showShuffle = onShuffle != null || shuffleLabel != null;
 
     void openOverflow() {
       if (onOverflow != null) {
@@ -124,6 +127,7 @@ class DetailActionsBar extends StatelessWidget {
     if (isCompact) {
       return _MobileBar(
         secondary: visibleSecondary,
+        showShuffle: showShuffle,
         onShuffle: onShuffle,
         onPlay: onPlay,
         showMore: showMore,
@@ -146,11 +150,12 @@ class DetailActionsBar extends StatelessWidget {
               icon: const Icon(LucideIcons.play),
               label: Text(playLabel),
             ),
-            FilledButton.tonalIcon(
-              onPressed: onShuffle,
-              icon: const Icon(LucideIcons.shuffle),
-              label: Text(shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle'),
-            ),
+            if (showShuffle)
+              FilledButton.tonalIcon(
+                onPressed: onShuffle,
+                icon: const Icon(LucideIcons.shuffle),
+                label: Text(shuffleLabel ?? l10n?.shufflePlay ?? 'Shuffle'),
+              ),
             for (final action in visibleSecondary)
               _WideSecondary(action: action),
             if (showMore)
@@ -223,6 +228,7 @@ class DetailActionsBar extends StatelessWidget {
 
 class _MobileBar extends StatelessWidget {
   final List<DetailAction> secondary;
+  final bool showShuffle;
   final VoidCallback? onShuffle;
   final VoidCallback? onPlay;
   final bool showMore;
@@ -230,6 +236,7 @@ class _MobileBar extends StatelessWidget {
 
   const _MobileBar({
     required this.secondary,
+    required this.showShuffle,
     required this.onShuffle,
     required this.onPlay,
     required this.showMore,
@@ -248,11 +255,12 @@ class _MobileBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final action in secondary) _MobileSecondary(action: action),
-              IconButton(
-                icon: const Icon(LucideIcons.shuffle),
-                onPressed: onShuffle,
-                tooltip: l10n?.shuffle ?? 'Shuffle',
-              ),
+              if (showShuffle)
+                IconButton(
+                  icon: const Icon(LucideIcons.shuffle),
+                  onPressed: onShuffle,
+                  tooltip: l10n?.shuffle ?? 'Shuffle',
+                ),
               if (showMore)
                 IconButton(
                   icon: const Icon(LucideIcons.moreVertical),

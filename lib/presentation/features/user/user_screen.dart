@@ -13,7 +13,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
+import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/playlist_card.dart';
+import '../../shared/widgets/playlist_tile.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/video_card.dart';
@@ -181,116 +183,164 @@ class _UserContentState extends ConsumerState<_UserContent> {
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (user.videos.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: l10n.videos,
-                      onShowAll:
-                          user.videosParams != null
-                              ? () {
-                                final params = Uri.encodeComponent(
-                                  user.videosParams!,
-                                );
-                                context.push(
-                                  '/user/${user.channelId}/videos?params=$params',
-                                );
-                              }
-                              : null,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 180,
-                      child: HoverCarouselArrows(
-                        controller: _videosScrollController,
-                        scrollAmount: 600.0,
-                        child: ListView.separated(
-                          controller: _videosScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: user.videos.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final video = user.videos[index];
-                            return VideoCard(
-                              videoId: video.videoId,
-                              title: video.name,
-                              artist: displayArtists(video.artists),
-                              thumbnailUrl:
-                                  video.thumbnails.isNotEmpty
-                                      ? video.thumbnails.last.url
-                                      : null,
-                              artistId: primaryArtistId(video.artists),
-                              isExplicit: video.isExplicit,
-                              isPlayable: video.isPlayable,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (user.playlists.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: l10n.playlists,
-                      onShowAll:
-                          user.playlistsParams != null
-                              ? () {
-                                final params = Uri.encodeComponent(
-                                  user.playlistsParams!,
-                                );
-                                context.push(
-                                  '/user/${user.channelId}/playlists?params=$params',
-                                );
-                              }
-                              : null,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 220,
-                      child: HoverCarouselArrows(
-                        controller: _playlistsScrollController,
-                        scrollAmount: 480.0,
-                        child: ListView.separated(
-                          controller: _playlistsScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: user.playlists.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final playlist = user.playlists[index];
-                            return PlaylistCard(
-                              playlistId: playlist.playlistId,
-                              name: playlist.name,
-                              artist: displayArtists(playlist.artists),
-                              thumbnailUrl:
-                                  playlist.thumbnails.isNotEmpty
-                                      ? playlist.thumbnails.last.url
-                                      : null,
-                              cardWidth: 150,
-                              heroTag: 'user_playlist_${playlist.playlistId}',
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (user.videos.isEmpty && user.playlists.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 32),
-                        child: Text(l10n.noContentAvailable),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            padding: entityBodyPadding(wide: widget.isWide),
+            sliver: SliverToBoxAdapter(child: _userBody(user, l10n)),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _userBody(UserFull user, AppLocalizations l10n) {
+    if (user.videos.isEmpty && user.playlists.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Text(l10n.noContentAvailable),
+        ),
+      );
+    }
+
+    final videos = user.videos.isNotEmpty ? _videosShelf(user, l10n) : null;
+    final playlists =
+        user.playlists.isNotEmpty ? _playlistsShelf(user, l10n) : null;
+    final both = videos != null && playlists != null;
+
+    return EntityWideBody(
+      wide: widget.isWide,
+      capList: false,
+      list: videos ?? playlists!,
+      related: both ? playlists : null,
+      relatedRail: both ? _playlistsRail(user, l10n) : null,
+    );
+  }
+
+  Widget _videosShelf(UserFull user, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.videos,
+          onShowAll:
+              user.videosParams != null
+                  ? () {
+                    final params = Uri.encodeComponent(user.videosParams!);
+                    context.push(
+                      '/user/${user.channelId}/videos?params=$params',
+                    );
+                  }
+                  : null,
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 180,
+          child: HoverCarouselArrows(
+            controller: _videosScrollController,
+            scrollAmount: 600,
+            child: ListView.separated(
+              controller: _videosScrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(right: 16),
+              itemCount: user.videos.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final video = user.videos[index];
+                return VideoCard(
+                  videoId: video.videoId,
+                  title: video.name,
+                  artist: displayArtists(video.artists),
+                  thumbnailUrl:
+                      video.thumbnails.isNotEmpty
+                          ? video.thumbnails.last.url
+                          : null,
+                  artistId: primaryArtistId(video.artists),
+                  isExplicit: video.isExplicit,
+                  isPlayable: video.isPlayable,
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _playlistsShelf(UserFull user, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.playlists,
+          onShowAll:
+              user.playlistsParams != null
+                  ? () {
+                    final params = Uri.encodeComponent(user.playlistsParams!);
+                    context.push(
+                      '/user/${user.channelId}/playlists?params=$params',
+                    );
+                  }
+                  : null,
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 220,
+          child: HoverCarouselArrows(
+            controller: _playlistsScrollController,
+            scrollAmount: 480,
+            child: ListView.separated(
+              controller: _playlistsScrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(right: 16),
+              itemCount: user.playlists.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final playlist = user.playlists[index];
+                return PlaylistCard(
+                  playlistId: playlist.playlistId,
+                  name: playlist.name,
+                  artist: displayArtists(playlist.artists),
+                  thumbnailUrl:
+                      playlist.thumbnails.isNotEmpty
+                          ? playlist.thumbnails.last.url
+                          : null,
+                  cardWidth: 150,
+                  heroTag: 'user_playlist_${playlist.playlistId}',
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _playlistsRail(UserFull user, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.playlists,
+          onShowAll:
+              user.playlistsParams != null
+                  ? () {
+                    final params = Uri.encodeComponent(user.playlistsParams!);
+                    context.push(
+                      '/user/${user.channelId}/playlists?params=$params',
+                    );
+                  }
+                  : null,
+        ),
+        for (final playlist in user.playlists)
+          PlaylistTile(
+            playlistId: playlist.playlistId,
+            name: playlist.name,
+            artist: displayArtists(playlist.artists),
+            thumbnailUrl:
+                playlist.thumbnails.isNotEmpty
+                    ? playlist.thumbnails.last.url
+                    : null,
+          ),
+      ],
     );
   }
 }
@@ -496,8 +546,8 @@ class _UserSliverAppBar extends ConsumerWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? 40 : 24,
-          right: isWide ? 40 : 24,
+          left: isWide ? kWideContentPadding : 24,
+          right: isWide ? kWideContentPadding : 24,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

@@ -6,7 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/shimmer_loading.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/feed_grid.dart';
 import 'providers/explore_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 
@@ -124,42 +124,38 @@ class MoodPlaylistsScreen extends ConsumerWidget {
             return Center(child: Text(l10n.noContentAvailable));
           }
 
-          final width = MediaQuery.of(context).size.width;
-          final crossAxisCount =
-              width < kCompactBreakpoint
-                  ? 2
-                  : width < kExpandedBreakpoint
-                  ? 4
-                  : 6;
-          final cardWidth =
-              (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
 
-          return GridView.builder(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              MediaQuery.of(context).padding.bottom + 16,
-            ),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.62,
-            ),
-            itemCount: playlists.length,
-            itemBuilder: (context, index) {
-              final playlist = playlists[index];
-              return PlaylistCard(
-                playlistId: playlist.playlistId,
-                name: playlist.name,
-                artist: displayArtists(playlist.artists),
-                thumbnailUrl:
-                    playlist.thumbnails.isNotEmpty
-                        ? playlist.thumbnails.last.url
-                        : null,
-                cardWidth: cardWidth,
-                heroTag: 'mood_playlist_${playlist.playlistId}',
+              return GridView.builder(
+                padding: EdgeInsets.fromLTRB(
+                  spec.horizontalPadding,
+                  16,
+                  spec.horizontalPadding,
+                  MediaQuery.of(context).padding.bottom + 16,
+                ),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: spec.columns,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.62,
+                ),
+                itemCount: playlists.length,
+                itemBuilder: (context, index) {
+                  final playlist = playlists[index];
+                  return PlaylistCard(
+                    playlistId: playlist.playlistId,
+                    name: playlist.name,
+                    artist: displayArtists(playlist.artists),
+                    thumbnailUrl:
+                        playlist.thumbnails.isNotEmpty
+                            ? playlist.thumbnails.last.url
+                            : null,
+                    cardWidth: spec.cardWidth,
+                    heroTag: 'mood_playlist_${playlist.playlistId}',
+                  );
+                },
               );
             },
           );
@@ -191,34 +187,31 @@ class _MoodPlaylistsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final crossAxisCount =
-        width < kCompactBreakpoint
-            ? 2
-            : width < kExpandedBreakpoint
-            ? 4
-            : 6;
-    final cardWidth = (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
 
-    return GridView.builder(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        MediaQuery.of(context).padding.bottom + 16,
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.62,
-      ),
-      itemCount: crossAxisCount * 3,
-      itemBuilder:
-          (_, _) => ShimmerLoading(
-            variant: ShimmerVariant.card,
-            cardWidth: cardWidth,
+        return GridView.builder(
+          padding: EdgeInsets.fromLTRB(
+            spec.horizontalPadding,
+            16,
+            spec.horizontalPadding,
+            MediaQuery.of(context).padding.bottom + 16,
           ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: spec.columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.62,
+          ),
+          itemCount: spec.columns * 3,
+          itemBuilder:
+              (_, _) => ShimmerLoading(
+                variant: ShimmerVariant.card,
+                cardWidth: spec.cardWidth,
+              ),
+        );
+      },
     );
   }
 }

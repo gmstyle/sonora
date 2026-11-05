@@ -24,9 +24,12 @@ class DownloadsScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
-        final isWide = screenWidth >= kExpandedBreakpoint;
+        // Shell breakpoint is the window. Content width is narrower by the sidebar.
+        final viewport = MediaQuery.sizeOf(context).width;
+        final isWide = viewport >= kExpandedBreakpoint;
         final isTablet = screenWidth >= kCompactBreakpoint;
         final isCompact = screenWidth < kCompactBreakpoint;
+        final pagePadding = isWide ? kWideContentPadding : 16.0;
 
         Widget contentWidget() {
           return allDownloadsAsync.when(
@@ -76,6 +79,7 @@ class DownloadsScreen extends ConsumerWidget {
                       _ActiveDownloadsSection(
                         activeDownloads: activeItems,
                         isTablet: isTablet,
+                        horizontalPadding: pagePadding,
                         ref: ref,
                       ),
                     if (hasCompleted) const CompletedDownloadsSliver(),
@@ -96,6 +100,7 @@ class DownloadsScreen extends ConsumerWidget {
                           _ActiveDownloadsSection(
                             activeDownloads: activeItems,
                             isTablet: isTablet,
+                            horizontalPadding: pagePadding,
                             ref: ref,
                           ),
                         ],
@@ -119,12 +124,13 @@ class DownloadsScreen extends ConsumerWidget {
         }
 
         final theme = Theme.of(context);
-        // Shared title + list for tablet/wide; Card only at >= 1200.
-        final splitContent = Column(
+        // Tablet stays full-bleed. Wide drops the card and uses the facet split.
+        final titleInset = isWide ? kWideContentPadding : 24.0;
+        final body = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              padding: EdgeInsets.fromLTRB(titleInset, 24, titleInset, 8),
               child: Text(
                 AppLocalizations.of(context)!.downloads,
                 style: theme.textTheme.titleLarge?.copyWith(
@@ -135,39 +141,6 @@ class DownloadsScreen extends ConsumerWidget {
             Expanded(child: contentWidget()),
           ],
         );
-
-        // Card + document padding only at >= kExpandedBreakpoint (1200).
-        // Tablet 600–1199: full-bleed content on shell surface.
-        final Widget body =
-            isWide
-                ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48.0,
-                      vertical: 32.0,
-                    ),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1240),
-                      child: Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: theme.colorScheme.outlineVariant.withValues(
-                              alpha: 0.3,
-                            ),
-                          ),
-                        ),
-                        color: theme.colorScheme.surfaceContainerLow,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: splitContent,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-                : splitContent;
 
         return Scaffold(backgroundColor: theme.colorScheme.surface, body: body);
       },
@@ -182,11 +155,13 @@ String _formatBytes(int? bytes) {
 class _ActiveDownloadsSection extends StatelessWidget {
   final List<ActiveDownload> activeDownloads;
   final bool isTablet;
+  final double horizontalPadding;
   final WidgetRef ref;
 
   const _ActiveDownloadsSection({
     required this.activeDownloads,
     required this.isTablet,
+    required this.horizontalPadding,
     required this.ref,
   });
 
@@ -200,7 +175,12 @@ class _ActiveDownloadsSection extends StatelessWidget {
     return SliverMainAxisGroup(
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 16, 8, isTablet ? 4 : 8),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            16,
+            8,
+            isTablet ? 4 : 8,
+          ),
           sliver: SliverToBoxAdapter(
             child: Row(
               children: [
@@ -228,7 +208,7 @@ class _ActiveDownloadsSection extends StatelessWidget {
         for (final group in groups) ...[
           if (group.batchId != null)
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
+              padding: EdgeInsets.fromLTRB(horizontalPadding, 8, 8, 4),
               sliver: SliverToBoxAdapter(
                 child: Row(
                   children: [
@@ -255,7 +235,11 @@ class _ActiveDownloadsSection extends StatelessWidget {
           SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
               final d = group.items[index];
-              return _ActiveDownloadTile(download: d, ref: ref);
+              return _ActiveDownloadTile(
+                download: d,
+                horizontalPadding: horizontalPadding,
+                ref: ref,
+              );
             }, childCount: group.items.length),
           ),
         ],
@@ -334,9 +318,14 @@ class _ActiveGroup {
 
 class _ActiveDownloadTile extends StatelessWidget {
   final ActiveDownload download;
+  final double horizontalPadding;
   final WidgetRef ref;
 
-  const _ActiveDownloadTile({required this.download, required this.ref});
+  const _ActiveDownloadTile({
+    required this.download,
+    required this.horizontalPadding,
+    required this.ref,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -344,7 +333,7 @@ class _ActiveDownloadTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 4),
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(12),

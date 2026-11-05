@@ -17,6 +17,7 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
+import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
@@ -221,7 +222,7 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
             heroTag: widget.heroTag,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
+            padding: entityBodyPadding(wide: widget.isWide),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,26 +231,31 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
                     playlist: widget.playlist,
                     videosAsync: widget.videosAsync,
                   ),
-                  if (widget.playlist.description != null &&
-                      widget.playlist.description!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    ExpandableText(text: widget.playlist.description!),
-                  ],
                   const SizedBox(height: 16),
-                  widget.videosAsync.when(
-                    loading: () => _videoShimmerList(),
-                    error:
-                        (e, _) => ErrorRetryWidget(
-                          message:
-                              AppLocalizations.of(context)!.failedToLoadVideos,
-                          onRetry:
-                              () => ref.invalidate(
-                                playlistVideosProvider(
-                                  widget.playlist.playlistId,
+                  EntityWideBody(
+                    wide: widget.isWide,
+                    about:
+                        widget.playlist.description != null &&
+                                widget.playlist.description!.isNotEmpty
+                            ? ExpandableText(text: widget.playlist.description!)
+                            : null,
+                    list: widget.videosAsync.when(
+                      loading: () => _videoShimmerList(),
+                      error:
+                          (e, _) => ErrorRetryWidget(
+                            message:
+                                AppLocalizations.of(
+                                  context,
+                                )!.failedToLoadVideos,
+                            onRetry:
+                                () => ref.invalidate(
+                                  playlistVideosProvider(
+                                    widget.playlist.playlistId,
+                                  ),
                                 ),
-                              ),
-                        ),
-                    data: (videos) => _VideoTracklist(videos: videos),
+                          ),
+                      data: (videos) => _VideoTracklist(videos: videos),
+                    ),
                   ),
                 ],
               ),
@@ -513,8 +519,8 @@ class _PlaylistSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? 40 : 24,
-          right: isWide ? 40 : 24,
+          left: isWide ? kWideContentPadding : 24,
+          right: isWide ? kWideContentPadding : 24,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

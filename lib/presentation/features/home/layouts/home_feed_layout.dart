@@ -21,11 +21,11 @@ import '../widgets/home_zone_header.dart';
 import 'home_layout_metrics.dart';
 
 class HomeFeedLayout extends ConsumerWidget {
-  final HomeLayoutSize size;
+  final HomeLayoutMetrics metrics;
 
-  const HomeFeedLayout({super.key, required this.size});
+  const HomeFeedLayout({super.key, required this.metrics});
 
-  HomeLayoutMetrics get metrics => HomeLayoutMetrics(size);
+  HomeLayoutSize get size => metrics.size;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -215,9 +215,7 @@ class HomeFeedLayout extends ConsumerWidget {
         cardWidth: metrics.cardWidth,
         horizontalPadding: metrics.horizontalPadding,
         useGrid: metrics.useLikedAlbumsGrid,
-        gridMinColumns: metrics.albumGridMinColumns,
-        gridMaxColumns: metrics.albumGridMaxColumns,
-        gridMinCellWidth: metrics.albumGridMinCellWidth,
+        gridColumns: metrics.albumGridColumns,
         gridMaxItems: metrics.albumGridMaxItems,
         gridSpacing: metrics.albumGridSpacing,
       ),

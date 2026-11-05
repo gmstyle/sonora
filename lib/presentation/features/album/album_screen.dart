@@ -16,6 +16,8 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
+import '../../shared/widgets/album_tile.dart';
+import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
@@ -252,55 +254,35 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
             ),
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
+            padding: entityBodyPadding(wide: widget.isWide),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _AlbumActions(album: widget.album),
-                  if (widget.album.description != null &&
-                      widget.album.description!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    ExpandableText(text: widget.album.description!),
-                  ],
                   const SizedBox(height: 16),
-                  _buildTracklist(context, ref),
-                  if (uniqueRelatedReleases.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _SectionHeader(
-                      title: AppLocalizations.of(context)!.relatedReleases,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 220,
-                      child: HoverCarouselArrows(
-                        controller: _relatedReleasesScrollController,
-                        scrollAmount: 480.0,
-                        child: ListView.separated(
-                          controller: _relatedReleasesScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: uniqueRelatedReleases.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final release = uniqueRelatedReleases[index];
-                            return AlbumCard(
-                              albumId: release.albumId,
-                              name: release.name,
-                              artist: displayArtists(release.artists),
-                              artistId: primaryArtistId(release.artists),
-                              thumbnailUrl:
-                                  release.thumbnails.isNotEmpty
-                                      ? release.thumbnails.last.url
-                                      : null,
-                              year: release.year,
-                              heroTag: 'related_release_${release.albumId}',
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+                  EntityWideBody(
+                    wide: widget.isWide,
+                    about:
+                        widget.album.description != null &&
+                                widget.album.description!.isNotEmpty
+                            ? ExpandableText(text: widget.album.description!)
+                            : null,
+                    list: _buildTracklist(context, ref),
+                    related:
+                        uniqueRelatedReleases.isEmpty
+                            ? null
+                            : _RelatedReleasesCarousel(
+                              releases: uniqueRelatedReleases,
+                              controller: _relatedReleasesScrollController,
+                            ),
+                    relatedRail:
+                        uniqueRelatedReleases.isEmpty
+                            ? null
+                            : _RelatedReleasesRail(
+                              releases: uniqueRelatedReleases,
+                            ),
+                  ),
                 ],
               ),
             ),
@@ -598,8 +580,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? 40 : 24,
-          right: isWide ? 40 : 24,
+          left: isWide ? kWideContentPadding : 24,
+          right: isWide ? kWideContentPadding : 24,
           child: Opacity(
             opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(
@@ -969,6 +951,84 @@ Widget _artworkTopScrim(BuildContext context) {
       ),
     ),
   );
+}
+
+class _RelatedReleasesCarousel extends StatelessWidget {
+  final List<AlbumDetailed> releases;
+  final ScrollController controller;
+
+  const _RelatedReleasesCarousel({
+    required this.releases,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: AppLocalizations.of(context)!.relatedReleases),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 220,
+          child: HoverCarouselArrows(
+            controller: controller,
+            scrollAmount: 480.0,
+            child: ListView.separated(
+              controller: controller,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(right: 16),
+              itemCount: releases.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final release = releases[index];
+                return AlbumCard(
+                  albumId: release.albumId,
+                  name: release.name,
+                  artist: displayArtists(release.artists),
+                  artistId: primaryArtistId(release.artists),
+                  thumbnailUrl:
+                      release.thumbnails.isNotEmpty
+                          ? release.thumbnails.last.url
+                          : null,
+                  year: release.year,
+                  heroTag: 'related_release_${release.albumId}',
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RelatedReleasesRail extends StatelessWidget {
+  final List<AlbumDetailed> releases;
+
+  const _RelatedReleasesRail({required this.releases});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: AppLocalizations.of(context)!.relatedReleases),
+        for (final release in releases)
+          AlbumTile(
+            albumId: release.albumId,
+            name: release.name,
+            artist: displayArtists(release.artists),
+            artistId: primaryArtistId(release.artists),
+            thumbnailUrl:
+                release.thumbnails.isNotEmpty
+                    ? release.thumbnails.last.url
+                    : null,
+            year: release.year,
+          ),
+      ],
+    );
+  }
 }
 
 class _SectionHeader extends StatelessWidget {

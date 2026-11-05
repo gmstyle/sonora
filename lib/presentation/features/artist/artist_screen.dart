@@ -18,6 +18,9 @@ import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/artist_card.dart';
+import '../../shared/widgets/artist_tile.dart';
+import '../../shared/widgets/entity_wide_body.dart';
+import '../../shared/widgets/playlist_tile.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/release_card.dart';
 import '../../shared/widgets/video_card.dart';
@@ -218,228 +221,320 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
             heroTag: widget.heroTag,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
+            padding: entityBodyPadding(wide: widget.isWide),
             sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ArtistActions(artist: artist),
-                  if (artist.description != null &&
-                      artist.description!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    ExpandableText(text: artist.description!),
-                  ],
-                  const SizedBox(height: 24),
-                  if (artist.topSongs.isNotEmpty)
-                    _ArtistTopSongsSection(
-                      songs: artist.topSongs,
-                      artistId: artist.artistId,
-                    ),
-                  if (artist.topAlbums.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: l10n.albums,
-                      onShowAll: () {
-                        final name = Uri.encodeComponent(artist.name);
-                        context.push(
-                          '/artist/${artist.artistId}/albums?name=$name',
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 220,
-                      child: HoverCarouselArrows(
-                        controller: _albumsScrollController,
-                        scrollAmount: 480.0,
-                        child: ListView.separated(
-                          controller: _albumsScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: artist.topAlbums.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final album = artist.topAlbums[index];
-                            return ReleaseCard(
-                              albumId: album.albumId,
-                              name: album.name,
-                              artist: displayArtists(album.artists),
-                              thumbnailUrl:
-                                  album.thumbnails.isNotEmpty
-                                      ? album.thumbnails.last.url
-                                      : null,
-                              year: album.year,
-                              artistId: primaryArtistId(album.artists),
-                              type: ReleaseType.album,
-                              heroTag: 'artist_album_${album.albumId}',
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final description = artist.description;
+                  final hasAbout =
+                      description != null && description.isNotEmpty;
+                  final hasRelatedBlock =
+                      hasAbout ||
+                      artist.featuredOn.isNotEmpty ||
+                      uniqueSimilarArtists.isNotEmpty;
+                  final rail =
+                      widget.isWide &&
+                      EntityWideBody.showRelatedRail(
+                        context,
+                        constraints.maxWidth,
+                        hasRelated: hasRelatedBlock,
+                      );
+                  final about =
+                      description != null && description.isNotEmpty
+                          ? ExpandableText(text: description)
+                          : null;
+                  final topSongs =
+                      artist.topSongs.isEmpty
+                          ? null
+                          : _ArtistTopSongsSection(
+                            songs: artist.topSongs,
+                            artistId: artist.artistId,
+                          );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ArtistActions(artist: artist),
+                      if (widget.isWide) ...[
+                        const SizedBox(height: 16),
+                        EntityWideBody(
+                          wide: true,
+                          about: about,
+                          list: topSongs ?? const SizedBox.shrink(),
+                          relatedRail:
+                              rail
+                                  ? _artistRelatedRail(
+                                    artist,
+                                    uniqueSimilarArtists,
+                                  )
+                                  : null,
+                        ),
+                      ] else ...[
+                        if (about != null) ...[
+                          const SizedBox(height: 16),
+                          about,
+                        ],
+                        const SizedBox(height: 24),
+                        if (topSongs != null) topSongs,
+                      ],
+                      if (artist.topAlbums.isNotEmpty) ...[
+                        _SectionHeader(
+                          title: l10n.albums,
+                          onShowAll: () {
+                            final name = Uri.encodeComponent(artist.name);
+                            context.push(
+                              '/artist/${artist.artistId}/albums?name=$name',
                             );
                           },
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (artist.topSingles.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: l10n.singles,
-                      onShowAll: () {
-                        final name = Uri.encodeComponent(artist.name);
-                        context.push(
-                          '/artist/${artist.artistId}/singles?name=$name',
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 220,
-                      child: HoverCarouselArrows(
-                        controller: _singlesScrollController,
-                        scrollAmount: 480.0,
-                        child: ListView.separated(
-                          controller: _singlesScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: artist.topSingles.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final single = artist.topSingles[index];
-                            return ReleaseCard(
-                              albumId: single.albumId,
-                              name: single.name,
-                              artist: displayArtists(single.artists),
-                              thumbnailUrl:
-                                  single.thumbnails.isNotEmpty
-                                      ? single.thumbnails.last.url
-                                      : null,
-                              year: single.year,
-                              artistId: primaryArtistId(single.artists),
-                              type: ReleaseType.single,
-                              heroTag: 'artist_single_${single.albumId}',
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 220,
+                          child: HoverCarouselArrows(
+                            controller: _albumsScrollController,
+                            scrollAmount: 480.0,
+                            child: ListView.separated(
+                              controller: _albumsScrollController,
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.only(right: 16),
+                              itemCount: artist.topAlbums.length,
+                              separatorBuilder:
+                                  (_, _) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final album = artist.topAlbums[index];
+                                return ReleaseCard(
+                                  albumId: album.albumId,
+                                  name: album.name,
+                                  artist: displayArtists(album.artists),
+                                  thumbnailUrl:
+                                      album.thumbnails.isNotEmpty
+                                          ? album.thumbnails.last.url
+                                          : null,
+                                  year: album.year,
+                                  artistId: primaryArtistId(album.artists),
+                                  type: ReleaseType.album,
+                                  heroTag: 'artist_album_${album.albumId}',
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      if (artist.topSingles.isNotEmpty) ...[
+                        _SectionHeader(
+                          title: l10n.singles,
+                          onShowAll: () {
+                            final name = Uri.encodeComponent(artist.name);
+                            context.push(
+                              '/artist/${artist.artistId}/singles?name=$name',
                             );
                           },
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (artist.topVideos.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: l10n.videos,
-                      onShowAll: () {
-                        final name = Uri.encodeComponent(artist.name);
-                        context.push(
-                          '/artist/${artist.artistId}/videos?name=$name',
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 180,
-                      child: HoverCarouselArrows(
-                        controller: _videosScrollController,
-                        scrollAmount: 600.0,
-                        child: ListView.separated(
-                          controller: _videosScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: artist.topVideos.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final video = artist.topVideos[index];
-                            return VideoCard(
-                              videoId: video.videoId,
-                              title: video.name,
-                              artist: displayArtists(video.artists),
-                              artists: video.artists,
-                              thumbnailUrl:
-                                  video.thumbnails.isNotEmpty
-                                      ? video.thumbnails.last.url
-                                      : null,
-                              artistId: primaryArtistId(video.artists),
-                              isExplicit: video.isExplicit,
-                              isPlayable: video.isPlayable,
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 220,
+                          child: HoverCarouselArrows(
+                            controller: _singlesScrollController,
+                            scrollAmount: 480.0,
+                            child: ListView.separated(
+                              controller: _singlesScrollController,
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.only(right: 16),
+                              itemCount: artist.topSingles.length,
+                              separatorBuilder:
+                                  (_, _) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final single = artist.topSingles[index];
+                                return ReleaseCard(
+                                  albumId: single.albumId,
+                                  name: single.name,
+                                  artist: displayArtists(single.artists),
+                                  thumbnailUrl:
+                                      single.thumbnails.isNotEmpty
+                                          ? single.thumbnails.last.url
+                                          : null,
+                                  year: single.year,
+                                  artistId: primaryArtistId(single.artists),
+                                  type: ReleaseType.single,
+                                  heroTag: 'artist_single_${single.albumId}',
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      if (artist.topVideos.isNotEmpty) ...[
+                        _SectionHeader(
+                          title: l10n.videos,
+                          onShowAll: () {
+                            final name = Uri.encodeComponent(artist.name);
+                            context.push(
+                              '/artist/${artist.artistId}/videos?name=$name',
                             );
                           },
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (artist.featuredOn.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: AppLocalizations.of(context)!.featuredOn,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 220,
-                      child: HoverCarouselArrows(
-                        controller: _featuredOnScrollController,
-                        scrollAmount: 480.0,
-                        child: ListView.separated(
-                          controller: _featuredOnScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: artist.featuredOn.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final playlist = artist.featuredOn[index];
-                            return PlaylistCard(
-                              playlistId: playlist.playlistId,
-                              name: playlist.name,
-                              artist: displayArtists(playlist.artists),
-                              thumbnailUrl:
-                                  playlist.thumbnails.isNotEmpty
-                                      ? playlist.thumbnails.last.url
-                                      : null,
-                              heroTag:
-                                  'artist_featured_playlist_${playlist.playlistId}',
-                            );
-                          },
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 180,
+                          child: HoverCarouselArrows(
+                            controller: _videosScrollController,
+                            scrollAmount: 600.0,
+                            child: ListView.separated(
+                              controller: _videosScrollController,
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.only(right: 16),
+                              itemCount: artist.topVideos.length,
+                              separatorBuilder:
+                                  (_, _) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final video = artist.topVideos[index];
+                                return VideoCard(
+                                  videoId: video.videoId,
+                                  title: video.name,
+                                  artist: displayArtists(video.artists),
+                                  artists: video.artists,
+                                  thumbnailUrl:
+                                      video.thumbnails.isNotEmpty
+                                          ? video.thumbnails.last.url
+                                          : null,
+                                  artistId: primaryArtistId(video.artists),
+                                  isExplicit: video.isExplicit,
+                                  isPlayable: video.isPlayable,
+                                );
+                              },
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (uniqueSimilarArtists.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: AppLocalizations.of(context)!.similarArtists,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 180,
-                      child: HoverCarouselArrows(
-                        controller: _similarArtistsScrollController,
-                        scrollAmount: 360.0,
-                        child: ListView.separated(
-                          controller: _similarArtistsScrollController,
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 16),
-                          itemCount: uniqueSimilarArtists.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final similar = uniqueSimilarArtists[index];
-                            return ArtistCard(
-                              artistId: similar.artistId,
-                              name: similar.name,
-                              thumbnailUrl:
-                                  similar.thumbnails.isNotEmpty
-                                      ? similar.thumbnails.last.url
-                                      : null,
-                              monthlyListeners: similar.monthlyListeners,
-                              heroTag:
-                                  'similar_artists_${similar.artistId}_on_${artist.artistId}',
-                            );
-                          },
+                        const SizedBox(height: 24),
+                      ],
+                      if (!rail && artist.featuredOn.isNotEmpty) ...[
+                        _SectionHeader(
+                          title: AppLocalizations.of(context)!.featuredOn,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ],
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 220,
+                          child: HoverCarouselArrows(
+                            controller: _featuredOnScrollController,
+                            scrollAmount: 480.0,
+                            child: ListView.separated(
+                              controller: _featuredOnScrollController,
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.only(right: 16),
+                              itemCount: artist.featuredOn.length,
+                              separatorBuilder:
+                                  (_, _) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final playlist = artist.featuredOn[index];
+                                return PlaylistCard(
+                                  playlistId: playlist.playlistId,
+                                  name: playlist.name,
+                                  artist: displayArtists(playlist.artists),
+                                  thumbnailUrl:
+                                      playlist.thumbnails.isNotEmpty
+                                          ? playlist.thumbnails.last.url
+                                          : null,
+                                  heroTag:
+                                      'artist_featured_playlist_${playlist.playlistId}',
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      if (!rail && uniqueSimilarArtists.isNotEmpty) ...[
+                        _SectionHeader(
+                          title: AppLocalizations.of(context)!.similarArtists,
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 180,
+                          child: HoverCarouselArrows(
+                            controller: _similarArtistsScrollController,
+                            scrollAmount: 360.0,
+                            child: ListView.separated(
+                              controller: _similarArtistsScrollController,
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.only(right: 16),
+                              itemCount: uniqueSimilarArtists.length,
+                              separatorBuilder:
+                                  (_, _) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final similar = uniqueSimilarArtists[index];
+                                return ArtistCard(
+                                  artistId: similar.artistId,
+                                  name: similar.name,
+                                  thumbnailUrl:
+                                      similar.thumbnails.isNotEmpty
+                                          ? similar.thumbnails.last.url
+                                          : null,
+                                  monthlyListeners: similar.monthlyListeners,
+                                  heroTag:
+                                      'similar_artists_${similar.artistId}_on_${artist.artistId}',
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ],
+                  );
+                },
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget? _artistRelatedRail(ArtistFull artist, List<ArtistDetailed> similar) {
+    if (artist.featuredOn.isEmpty && similar.isEmpty) return null;
+    return _ArtistRelatedRail(artist: artist, similar: similar);
+  }
+}
+
+class _ArtistRelatedRail extends StatelessWidget {
+  final ArtistFull artist;
+  final List<ArtistDetailed> similar;
+
+  const _ArtistRelatedRail({required this.artist, required this.similar});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (artist.featuredOn.isNotEmpty) ...[
+          _SectionHeader(title: l10n.featuredOn),
+          for (final playlist in artist.featuredOn)
+            PlaylistTile(
+              playlistId: playlist.playlistId,
+              name: playlist.name,
+              artist: displayArtists(playlist.artists),
+              thumbnailUrl:
+                  playlist.thumbnails.isNotEmpty
+                      ? playlist.thumbnails.last.url
+                      : null,
+            ),
+          if (similar.isNotEmpty) const SizedBox(height: 24),
+        ],
+        if (similar.isNotEmpty) ...[
+          _SectionHeader(title: l10n.similarArtists),
+          for (final item in similar)
+            ArtistTile(
+              artistId: item.artistId,
+              name: item.name,
+              thumbnailUrl:
+                  item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+              monthlyListeners: item.monthlyListeners,
+            ),
+        ],
+      ],
     );
   }
 }
@@ -788,8 +883,8 @@ class _ArtistSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? 40 : 24,
-          right: isWide ? 40 : 24,
+          left: isWide ? kWideContentPadding : 24,
+          right: isWide ? kWideContentPadding : 24,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

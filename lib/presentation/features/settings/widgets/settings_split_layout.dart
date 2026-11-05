@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/scale_button.dart';
@@ -193,11 +194,13 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
             ? Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 48.0,
+                  horizontal: kWideContentPadding,
                   vertical: 32.0,
                 ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1240),
+                  constraints: const BoxConstraints(
+                    maxWidth: kDocumentContentMaxWidth,
+                  ),
                   child: Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../shared/widgets/facet_wide_scaffold.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../providers/library_provider.dart';
 import 'favorites_tab.dart';
@@ -119,139 +121,79 @@ class LibrarySplitLayout extends ConsumerWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget _tabRail(BuildContext context, WidgetRef ref, {required bool wide}) {
     final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width >= 1200; // kExpandedBreakpoint
     final l10n = AppLocalizations.of(context)!;
-
     final selectedTab = ref.watch(libraryActiveTabProvider);
-    final query = ref.watch(librarySearchQueryProvider);
-    final isSearchActive = query.trim().isNotEmpty;
-    final isListOrGridTab = selectedTab.supportsListGridView;
     final overflowSelected = selectedTab.isOverflow;
+    final headerInset = wide ? 16.0 : 24.0;
 
-    Widget mainRow = Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left Pane - Master List (Library tabs)
-        SizedBox(
-          width: 280,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Text(
-                  l10n.library,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  children: [
-                    for (final tab in LibraryTab.primaryTabs)
-                      _navRow(
-                        context: context,
-                        theme: theme,
-                        isSelected: tab == selectedTab,
-                        icon: _tabMeta(tab).icon,
-                        title: _tabMeta(tab).getTitle(context),
-                        onTap: () {
-                          ref
-                              .read(libraryActiveTabProvider.notifier)
-                              .update(tab);
-                        },
-                      ),
-                    PopupMenuButton<LibraryTab>(
-                      tooltip: l10n.more,
-                      initialValue: overflowSelected ? selectedTab : null,
-                      offset: const Offset(200, 0),
-                      onSelected: (tab) {
-                        ref.read(libraryActiveTabProvider.notifier).update(tab);
-                      },
-                      itemBuilder:
-                          (context) => [
-                            for (final tab in LibraryTab.overflowTabs)
-                              CheckedPopupMenuItem<LibraryTab>(
-                                value: tab,
-                                checked: tab == selectedTab,
-                                child: Text(_tabMeta(tab).getTitle(context)),
-                              ),
-                          ],
-                      child: IgnorePointer(
-                        child: _navRow(
-                          context: context,
-                          theme: theme,
-                          isSelected: overflowSelected,
-                          icon:
-                              overflowSelected
-                                  ? _tabMeta(selectedTab).icon
-                                  : LucideIcons.ellipsis,
-                          title:
-                              overflowSelected
-                                  ? _tabMeta(selectedTab).getTitle(context)
-                                  : l10n.more,
-                          onTap: () {},
-                          trailing: Icon(
-                            LucideIcons.chevronDown,
-                            size: 18,
-                            color:
-                                overflowSelected
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        Padding(
+          padding: EdgeInsets.fromLTRB(headerInset, 24, 12, 8),
+          child: Text(
+            l10n.library,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        // Divider
-        VerticalDivider(
-          width: 1,
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-        // Right Pane - Detail (Library Content)
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             children: [
-              if (selectedTab.showsHeaderControls) ...[
-                LibraryHeaderControls(
-                  showViewSwitcher: !isSearchActive && isListOrGridTab,
+              for (final tab in LibraryTab.primaryTabs)
+                _navRow(
+                  context: context,
+                  theme: theme,
+                  isSelected: tab == selectedTab,
+                  icon: _tabMeta(tab).icon,
+                  title: _tabMeta(tab).getTitle(context),
+                  onTap: () {
+                    ref.read(libraryActiveTabProvider.notifier).update(tab);
+                  },
                 ),
-                const SizedBox(height: 8),
-              ] else
-                const SizedBox(height: 16),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child:
-                      isSearchActive
-                          ? const LibrarySearchResultsView()
-                          : IndexedStack(
-                            index: selectedTab.index,
-                            children: const [
-                              FavoritesTab(),
-                              ArtistsTab(),
-                              PlaylistsTab(),
-                              AlbumsTab(),
-                              PodcastsTab(),
-                              HistoryTab(),
-                              SmartMixesTab(),
-                              StatsTab(),
-                            ],
-                          ),
+              PopupMenuButton<LibraryTab>(
+                tooltip: l10n.more,
+                initialValue: overflowSelected ? selectedTab : null,
+                offset: Offset(wide ? 160 : 200, 0),
+                onSelected: (tab) {
+                  ref.read(libraryActiveTabProvider.notifier).update(tab);
+                },
+                itemBuilder:
+                    (context) => [
+                      for (final tab in LibraryTab.overflowTabs)
+                        CheckedPopupMenuItem<LibraryTab>(
+                          value: tab,
+                          checked: tab == selectedTab,
+                          child: Text(_tabMeta(tab).getTitle(context)),
+                        ),
+                    ],
+                child: IgnorePointer(
+                  child: _navRow(
+                    context: context,
+                    theme: theme,
+                    isSelected: overflowSelected,
+                    icon:
+                        overflowSelected
+                            ? _tabMeta(selectedTab).icon
+                            : LucideIcons.ellipsis,
+                    title:
+                        overflowSelected
+                            ? _tabMeta(selectedTab).getTitle(context)
+                            : l10n.more,
+                    onTap: () {},
+                    trailing: Icon(
+                      LucideIcons.chevronDown,
+                      size: 18,
+                      color:
+                          overflowSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -259,39 +201,109 @@ class LibrarySplitLayout extends ConsumerWidget {
         ),
       ],
     );
+  }
 
-    // Card + document padding only at >= kExpandedBreakpoint (1200).
-    // Tablet 600–1199: full-bleed split on shell surface.
-    final Widget body =
-        isWide
-            ? Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48.0,
-                  vertical: 32.0,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1240),
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.3,
-                        ),
-                      ),
+  Widget _detailPane(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool wide,
+    required bool controlsInRail,
+  }) {
+    final selectedTab = ref.watch(libraryActiveTabProvider);
+    final query = ref.watch(librarySearchQueryProvider);
+    final isSearchActive = query.trim().isNotEmpty;
+    final isListOrGridTab = selectedTab.supportsListGridView;
+    final showControls = selectedTab.showsHeaderControls && !controlsInRail;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showControls) ...[
+          LibraryHeaderControls(
+            showViewSwitcher: !isSearchActive && isListOrGridTab,
+          ),
+          const SizedBox(height: 8),
+        ] else
+          SizedBox(height: wide ? 24 : 16),
+        Expanded(
+          child: Padding(
+            // Wide tabs already inset lists by 16. Facet padding supplies the
+            // rest so the page inset lands on kWideContentPadding.
+            padding: EdgeInsets.symmetric(horizontal: wide ? 0 : 8),
+            child:
+                isSearchActive
+                    ? const LibrarySearchResultsView()
+                    : IndexedStack(
+                      index: selectedTab.index,
+                      children: const [
+                        FavoritesTab(),
+                        ArtistsTab(),
+                        PlaylistsTab(),
+                        AlbumsTab(),
+                        PodcastsTab(),
+                        HistoryTab(),
+                        SmartMixesTab(),
+                        StatsTab(),
+                      ],
                     ),
-                    color: theme.colorScheme.surfaceContainerLow,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: mainRow,
-                    ),
-                  ),
-                ),
-              ),
-            )
-            : mainRow;
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final viewport = MediaQuery.sizeOf(context).width;
+    final isWide = viewport >= kExpandedBreakpoint;
+    final selectedTab = ref.watch(libraryActiveTabProvider);
+    final controlsInRail = isWide && viewport >= kWideContentBreakpoint;
+    final showControlsInRail =
+        controlsInRail && selectedTab.showsHeaderControls;
+    final query = ref.watch(librarySearchQueryProvider);
+    final isSearchActive = query.trim().isNotEmpty;
+    final isListOrGridTab = selectedTab.supportsListGridView;
+
+    final tabRail = _tabRail(context, ref, wide: isWide);
+    final detail = _detailPane(
+      context,
+      ref,
+      wide: isWide,
+      controlsInRail: showControlsInRail,
+    );
+
+    // Tablet 600–1199 keeps the full-bleed split. Wide drops the card.
+    final Widget body;
+    if (!isWide) {
+      body = Row(
+        children: [
+          SizedBox(width: 280, child: tabRail),
+          VerticalDivider(
+            width: 1,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+          Expanded(child: detail),
+        ],
+      );
+    } else {
+      body = FacetWideScaffold(
+        // Tab bodies already pad ~16. 16 here plus that inset is 32.
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: kWideContentPadding - 16,
+        ),
+        showUtility: showControlsInRail,
+        filterRail: tabRail,
+        utilityRail:
+            showControlsInRail
+                ? LibraryHeaderControls(
+                  showViewSwitcher: !isSearchActive && isListOrGridTab,
+                  railLayout: true,
+                )
+                : null,
+        child: detail,
+      );
+    }
 
     return Scaffold(backgroundColor: theme.colorScheme.surface, body: body);
   }

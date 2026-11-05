@@ -8,7 +8,9 @@ import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/player_provider.dart';
+import '../../../shared/widgets/detail_actions_bar.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
+import '../../../shared/widgets/entity_wide_body.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../shared/widgets/song_tile.dart';
@@ -152,7 +154,6 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
         })();
 
     final theme = Theme.of(context);
-    final isTablet = MediaQuery.of(context).size.width >= kCompactBreakpoint;
 
     return Scaffold(
       body: songsAsync.when(
@@ -175,249 +176,231 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
               },
             ),
         data: (songs) {
-          return CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              // ── Header SliverAppBar with Gradient & Icon ─────────────────
-              SliverAppBar(
-                expandedHeight: 260,
-                pinned: true,
-                stretch: true,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                backgroundColor: Colors.transparent,
-                leading: IconButton(
-                  icon: const Icon(LucideIcons.arrowLeft),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                flexibleSpace: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    GlassAppBarBackground(opacity: _scrollProgress),
-                    FlexibleSpaceBar(
-                      centerTitle: true,
-                      title:
-                          _scrollProgress > 0.6
-                              ? Text(
-                                title,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                              : null,
-                      background: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(gradient: gradient),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  theme.colorScheme.surface.withValues(
-                                    alpha: 0.8,
-                                  ),
-                                  theme.colorScheme.surface,
-                                ],
-                                stops: const [0.0, 0.85, 1.0],
-                              ),
-                            ),
-                          ),
-                          Opacity(
-                            opacity: (1.0 - _scrollProgress * 2.0).clamp(
-                              0.0,
-                              1.0,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const SizedBox(height: 32),
-                                Icon(
-                                  _getIcon(mixType),
-                                  size: 72,
-                                  color: SonoraPulseTokens.onBrandGraphic
-                                      .withValues(alpha: 0.95),
-                                ),
-                                const SizedBox(height: 16),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                  ),
-                                  child: Text(
-                                    title,
-                                    style: theme.textTheme.headlineMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                  ),
-                                  child: Text(
-                                    description,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= kExpandedBreakpoint;
+              final pad = entityHorizontalPadding(wide: wide);
+              Widget capTracks(Widget sliver) {
+                if (!wide) return sliver;
+                return SliverConstrainedCrossAxis(
+                  maxExtent: kEntityTrackMaxWidth,
+                  sliver: sliver,
+                );
+              }
 
-              // ── Action Buttons ───────────────────────────────────────────
-              if (songs.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child:
-                        !isTablet
-                            ? Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
+              return CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  // ── Header SliverAppBar with Gradient & Icon ─────────────────
+                  SliverAppBar(
+                    expandedHeight: 260,
+                    pinned: true,
+                    stretch: true,
+                    elevation: 0,
+                    scrolledUnderElevation: 0,
+                    backgroundColor: Colors.transparent,
+                    leading: IconButton(
+                      icon: const Icon(LucideIcons.arrowLeft),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    flexibleSpace: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        GlassAppBarBackground(opacity: _scrollProgress),
+                        FlexibleSpaceBar(
+                          centerTitle: true,
+                          title:
+                              _scrollProgress > 0.6
+                                  ? Text(
+                                    title,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  )
+                                  : null,
+                          background: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(gradient: gradient),
+                              ),
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      theme.colorScheme.surface.withValues(
+                                        alpha: 0.8,
+                                      ),
+                                      theme.colorScheme.surface,
+                                    ],
+                                    stops: const [0.0, 0.85, 1.0],
+                                  ),
+                                ),
+                              ),
+                              Opacity(
+                                opacity: (1.0 - _scrollProgress * 2.0).clamp(
+                                  0.0,
+                                  1.0,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(LucideIcons.listMusic),
-                                      onPressed: () => _addToQueue(songs, l10n),
-                                      tooltip: l10n.addToQueue,
+                                    const SizedBox(height: 32),
+                                    Icon(
+                                      _getIcon(mixType),
+                                      size: 72,
+                                      color: SonoraPulseTokens.onBrandGraphic
+                                          .withValues(alpha: 0.95),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(LucideIcons.shuffle),
-                                      onPressed: () {
-                                        final shuffled = List<dynamic>.from(
-                                          songs,
-                                        )..shuffle();
-                                        _playFrom(shuffled, 0);
-                                      },
-                                      tooltip: l10n.shufflePlay,
+                                    const SizedBox(height: 16),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal:
+                                            wide ? kWideContentPadding : 24,
+                                      ),
+                                      child: Text(
+                                        title,
+                                        style: theme.textTheme.headlineMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                              color:
+                                                  theme.colorScheme.onSurface,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal:
+                                            wide ? kWideContentPadding : 24,
+                                      ),
+                                      child: Text(
+                                        description,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color:
+                                                  theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                      ),
                                     ),
                                   ],
                                 ),
-                                SizedBox(
-                                  width: 56,
-                                  height: 56,
-                                  child: FilledButton(
-                                    onPressed: () => _playFrom(songs, 0),
-                                    style: FilledButton.styleFrom(
-                                      shape: const CircleBorder(),
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                    child: const Icon(
-                                      LucideIcons.play,
-                                      size: 28,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                            : Wrap(
-                              spacing: 12,
-                              runSpacing: 8,
-                              children: [
-                                FilledButton.icon(
-                                  onPressed: () => _playFrom(songs, 0),
-                                  icon: const Icon(LucideIcons.play),
-                                  label: Text(l10n.playAll),
-                                ),
-                                FilledButton.icon(
-                                  onPressed: () {
-                                    final shuffled = List<dynamic>.from(songs)
-                                      ..shuffle();
-                                    _playFrom(shuffled, 0);
-                                  },
-                                  icon: const Icon(LucideIcons.shuffle),
-                                  label: Text(l10n.shufflePlay),
-                                ),
-                                FilledButton.tonalIcon(
-                                  onPressed: () => _addToQueue(songs, l10n),
-                                  icon: const Icon(LucideIcons.listMusic),
-                                  label: Text(l10n.addToQueue),
-                                ),
-                              ],
-                            ),
-                  ),
-                ),
-
-              // ── Song List ────────────────────────────────────────────────
-              if (songs.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: EmptyStateWidget(
-                      icon: LucideIcons.music,
-                      title: "No songs available in this mix yet",
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.only(
-                    bottom: 24 + MediaQuery.of(context).padding.bottom,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final song = songs[index];
-                      final videoId = song.videoId;
-                      final title = song.title;
-                      final artist = song.artist;
-                      final thumbnailUrl = song.thumbnailUrl;
-                      final duration = song.duration;
-                      final isVideo = song.isVideo;
 
-                      final isExplicit = song.isExplicit == true;
-
-                      String? playCountStr;
-                      if (mixType == SmartMixType.mostPlayed &&
-                          song is HistoryModel) {
-                        playCountStr = '${song.playCount}x';
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
+                  // ── Action Buttons ───────────────────────────────────────────
+                  if (songs.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(pad, 8, pad, 16),
+                        child: DetailActionsBar(
+                          secondary: [
+                            DetailAction(
+                              id: DetailActionId.queue,
+                              icon: LucideIcons.listMusic,
+                              label: l10n.addToQueue,
+                              tooltip: l10n.addToQueue,
+                              onPressed: () => _addToQueue(songs, l10n),
+                            ),
+                          ],
+                          onPlay: () => _playFrom(songs, 0),
+                          playLabel: l10n.playAll,
+                          onShuffle: () {
+                            final shuffled = List<dynamic>.from(songs)
+                              ..shuffle();
+                            _playFrom(shuffled, 0);
+                          },
+                          shuffleLabel: l10n.shufflePlay,
                         ),
-                        child: SongTile(
-                          videoId: videoId,
-                          title: title,
-                          artist: artist,
-                          thumbnailUrl: thumbnailUrl,
-                          duration: duration,
-                          isVideo: isVideo,
-                          playCount: playCountStr,
-                          isExplicit: isExplicit,
-                          artistId:
-                              song is LikedSongModel ? song.artistId : null,
-                          albumId: song is LikedSongModel ? song.albumId : null,
-                          onTap:
-                              () => _playSong(
-                                videoId,
+                      ),
+                    ),
+
+                  // ── Song List ────────────────────────────────────────────────
+                  if (songs.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: EmptyStateWidget(
+                          icon: LucideIcons.music,
+                          title: "No songs available in this mix yet",
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        pad,
+                        0,
+                        pad,
+                        24 + MediaQuery.of(context).padding.bottom,
+                      ),
+                      sliver: capTracks(
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final song = songs[index];
+                            final videoId = song.videoId;
+                            final title = song.title;
+                            final artist = song.artist;
+                            final thumbnailUrl = song.thumbnailUrl;
+                            final duration = song.duration;
+                            final isVideo = song.isVideo;
+
+                            final isExplicit = song.isExplicit == true;
+
+                            String? playCountStr;
+                            if (mixType == SmartMixType.mostPlayed &&
+                                song is HistoryModel) {
+                              playCountStr = '${song.playCount}x';
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: SongTile(
+                                videoId: videoId,
+                                title: title,
+                                artist: artist,
+                                thumbnailUrl: thumbnailUrl,
+                                duration: duration,
                                 isVideo: isVideo,
+                                playCount: playCountStr,
                                 isExplicit: isExplicit,
+                                artistId:
+                                    song is LikedSongModel
+                                        ? song.artistId
+                                        : null,
+                                albumId:
+                                    song is LikedSongModel
+                                        ? song.albumId
+                                        : null,
+                                onTap:
+                                    () => _playSong(
+                                      videoId,
+                                      isVideo: isVideo,
+                                      isExplicit: isExplicit,
+                                    ),
                               ),
+                            );
+                          }, childCount: songs.length),
                         ),
-                      );
-                    }, childCount: songs.length),
-                  ),
-                ),
-            ],
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),

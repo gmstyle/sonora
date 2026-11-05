@@ -7,7 +7,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/stat_format.dart';
 
-import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -29,10 +28,8 @@ import 'providers/ask_search_provider.dart';
 import 'providers/search_provider.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../providers/on_device_llm_provider.dart';
-
-/// Content max width for Search on wide shells (≥ [kExpandedBreakpoint]).
-const double _kSearchContentMaxWidth = 1100;
-const double _kSearchFilterColumnWidth = 168;
+import '../../shared/widgets/facet_wide_scaffold.dart';
+import 'search_wide_layout.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -156,38 +153,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: Text(l10n!.askChip),
-              selected: askEnabled && modelReady,
-              avatar: Icon(
-                LucideIcons.sparkles,
-                size: 16,
-                color:
-                    askEnabled && modelReady
-                        ? Theme.of(context).colorScheme.onSecondaryContainer
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              onSelected:
-                  isOffline
-                      ? null
-                      : (selected) {
-                        if (!modelReady) {
-                          ref
-                              .read(actionFeedbackProvider.notifier)
-                              .report(
-                                l10n.askModelRequired,
-                                kind: FeedbackKind.error,
-                              );
-                          return;
-                        }
-                        ref
-                            .read(askModeEnabledProvider.notifier)
-                            .setEnabled(selected);
-                      },
+          if (MediaQuery.sizeOf(context).width < kWideContentBreakpoint)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: SearchAskToggle(),
             ),
-          ),
         ],
       ),
       body: _buildBody(query, activeQuery),
@@ -198,12 +168,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final askInterp = ref.watch(askInterpretationProvider);
     final showingAskResults =
         askInterp != null && query == askInterp.originalQuery;
+    final viewport = MediaQuery.sizeOf(context).width;
+    final inFacet = viewport >= kExpandedBreakpoint;
+    final showUtility = viewport >= kWideContentBreakpoint;
 
+    final Widget center;
     if (query.isEmpty && activeQuery.isEmpty) {
-      return _RecentSearches(onTapSearch: _submitSearch);
-    }
-    if (query.isNotEmpty && query != activeQuery && !showingAskResults) {
-      return _Suggestions(
+      center =
+          showUtility
+              ? const SearchIdlePrompt()
+              : SearchRecentSearches(
+                onTapSearch: _submitSearch,
+                inFacet: inFacet,
+              );
+    } else if (query.isNotEmpty && query != activeQuery && !showingAskResults) {
+      center = _Suggestions(
         query: query,
         onTapSuggestion: _submitSearch,
         onInsertSuggestion: (val) {
@@ -215,91 +194,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           _focusNode.requestFocus();
         },
       );
+    } else {
+      center = _SearchResults(inFacet: inFacet, showAskBanner: !showUtility);
     }
-    return _SearchResults(activeQuery: activeQuery);
-  }
-}
 
-class _RecentSearches extends ConsumerWidget {
-  final ValueChanged<String> onTapSearch;
-
-  const _RecentSearches({required this.onTapSearch});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final recent = ref.watch(recentSearchesProvider);
-    return recent.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (searches) {
-        if (searches.isEmpty) {
-          return Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      LucideIcons.search,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      AppLocalizations.of(context)!.searchForMusic,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      AppLocalizations.of(context)!.searchForMusicHint,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                AppLocalizations.of(context)!.recentSearches,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: searches.length,
-                itemBuilder: (context, index) {
-                  final s = searches[index];
-                  return SearchSuggestionTile(
-                    query: s.query,
-                    isHistory: true,
-                    onTap: () => onTapSearch(s.query),
-                    onDelete: () async {
-                      await ref
-                          .read(libraryNotifierProvider.notifier)
-                          .deleteSearchEntry(s.query);
-                      ref.invalidate(recentSearchesProvider);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
+    if (!inFacet) return center;
+    return SearchWideFacet(
+      onTapSearch: _submitSearch,
+      showUtility: showUtility,
+      child: center,
     );
   }
 }
@@ -341,17 +244,19 @@ class _Suggestions extends ConsumerWidget {
 }
 
 class _SearchResults extends ConsumerWidget {
-  final String activeQuery;
+  final bool inFacet;
+  final bool showAskBanner;
 
-  const _SearchResults({required this.activeQuery});
+  const _SearchResults({this.inFacet = false, this.showAskBanner = true});
 
   Widget _buildSectionHeader(
     BuildContext context, {
     required String title,
     VoidCallback? onSeeAll,
   }) {
+    final inset = inFacet ? 0.0 : 16.0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+      padding: EdgeInsets.fromLTRB(inset, 20, inset, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -473,8 +378,9 @@ class _SearchResults extends ConsumerWidget {
 
     final bool isCircle = result is ArtistDetailed || result is ProfileDetailed;
 
+    final inset = inFacet ? 0.0 : 16.0;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: inset, vertical: 8),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -573,37 +479,27 @@ class _SearchResults extends ConsumerWidget {
     );
   }
 
-  List<String> _filterOptions(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return [
-      l10n.all,
-      l10n.songs,
-      l10n.searchArtists,
-      l10n.searchAlbums,
-      l10n.searchPlaylists,
-      l10n.searchPodcasts,
-      l10n.searchEpisodes,
-      l10n.searchProfiles,
-    ];
-  }
-
   Widget _buildCardGrid({
     required int itemCount,
     required double childAspectRatio,
     required Widget Function(BuildContext context, int index, double cardWidth)
     itemBuilder,
   }) {
+    final inset = inFacet ? 0.0 : 16.0;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: inset),
       child: LayoutBuilder(
         builder: (context, constraints) {
           const gap = 12.0;
-          final cardWidth = (constraints.maxWidth - gap) / 2;
+          final columns = facetMediaColumnCount(constraints.maxWidth);
+          final rawWidth =
+              (constraints.maxWidth - gap * (columns - 1)) / columns;
+          final cardWidth = rawWidth.isFinite && rawWidth > 0 ? rawWidth : 0.0;
           return GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+              crossAxisCount: columns,
               crossAxisSpacing: gap,
               mainAxisSpacing: gap,
               childAspectRatio: childAspectRatio,
@@ -910,133 +806,46 @@ class _SearchResults extends ConsumerWidget {
     );
   }
 
-  Widget _buildAskBanner(BuildContext context, WidgetRef ref) {
-    final interpretation = ref.watch(askInterpretationProvider);
-    if (interpretation == null) return const SizedBox.shrink();
-
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final resultsAsync = ref.watch(searchResultsProvider);
-    final songs =
-        resultsAsync.asData?.value.whereType<SongDetailed>().toList() ??
-        const <SongDetailed>[];
-    final canPlay = songs.isNotEmpty && !ref.watch(isOfflineProvider);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Material(
-        color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-          child: Row(
-            children: [
-              Icon(LucideIcons.sparkles, color: scheme.primary, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.askInterpretedAs,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      interpretation.intent.displayLabel,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              if (canPlay)
-                IconButton.filled(
-                  tooltip: l10n.askPlayResults,
-                  onPressed:
-                      () => ref
-                          .read(playerStateProvider.notifier)
-                          .playAlbum(songs),
-                  icon: const Icon(LucideIcons.play, size: 18),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(searchFilterProvider);
     final resultsAsync = ref.watch(searchResultsProvider);
-    final options = _filterOptions(context);
-    final askBanner = _buildAskBanner(context, ref);
+    final l10n = AppLocalizations.of(context)!;
+    final askBanner =
+        showAskBanner
+            ? SearchAskBanner(
+              padding:
+                  inFacet
+                      ? const EdgeInsets.fromLTRB(0, 12, 0, 4)
+                      : const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            )
+            : const SizedBox.shrink();
+    final resultsContent = _buildResultsContent(
+      context,
+      ref,
+      filter: filter,
+      resultsAsync: resultsAsync,
+      denseAllSections: inFacet,
+    );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= kExpandedBreakpoint;
-        final resultsContent = _buildResultsContent(
-          context,
-          ref,
-          filter: filter,
-          resultsAsync: resultsAsync,
-          denseAllSections: isWide,
-        );
+    if (inFacet) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [askBanner, Expanded(child: resultsContent)],
+      );
+    }
 
-        if (isWide) {
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: _kSearchContentMaxWidth,
-                maxHeight: constraints.maxHeight,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: _kSearchFilterColumnWidth,
-                    child: FilterChipBar(
-                      direction: Axis.vertical,
-                      options: options,
-                      selectedIndex: filter,
-                      onSelected:
-                          (index) => ref
-                              .read(searchFilterProvider.notifier)
-                              .update(index),
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [askBanner, Expanded(child: resultsContent)],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            FilterChipBar(
-              options: options,
-              selectedIndex: filter,
-              onSelected:
-                  (index) =>
-                      ref.read(searchFilterProvider.notifier).update(index),
-            ),
-            askBanner,
-            Expanded(child: resultsContent),
-          ],
-        );
-      },
+    return Column(
+      children: [
+        FilterChipBar(
+          options: searchFilterLabels(l10n),
+          selectedIndex: filter,
+          onSelected:
+              (index) => ref.read(searchFilterProvider.notifier).update(index),
+        ),
+        askBanner,
+        Expanded(child: resultsContent),
+      ],
     );
   }
 

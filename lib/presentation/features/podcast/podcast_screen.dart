@@ -14,6 +14,7 @@ import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/play_podcast_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
+import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/shimmer_loading.dart';
@@ -186,26 +187,37 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
+            padding: entityBodyPadding(wide: widget.isWide),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _PodcastActions(podcast: widget.podcast),
-                  if (widget.podcast.description != null &&
-                      widget.podcast.description!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    ExpandableText(text: widget.podcast.description!),
-                  ],
                   const SizedBox(height: 16),
-                  Text(
-                    '${widget.podcast.episodes.length} ${l10n.episodes}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  EntityWideBody(
+                    wide: widget.isWide,
+                    about:
+                        widget.podcast.description != null &&
+                                widget.podcast.description!.isNotEmpty
+                            ? ExpandableText(text: widget.podcast.description!)
+                            : null,
+                    list: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${widget.podcast.episodes.length} ${l10n.episodes}',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _EpisodeTracklist(podcast: widget.podcast),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _EpisodeTracklist(podcast: widget.podcast),
                 ],
               ),
             ),
@@ -443,8 +455,8 @@ class _PodcastSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? 40 : 24,
-          right: isWide ? 40 : 24,
+          left: isWide ? kWideContentPadding : 24,
+          right: isWide ? kWideContentPadding : 24,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

@@ -40,7 +40,7 @@ lib/
 │       └── history_command.dart
 ├── core/
 │   ├── constants/
-│   │   ├── app_constants.dart         # kAppVersion, kGitHubRepo*, breakpoints
+│   │   ├── app_constants.dart         # kAppVersion, kGitHubRepo*, breakpoints, wide layout tokens
 │   │   └── api_constants.dart         # gl/hl defaults
 │   ├── errors/
 │   │   ├── failures.dart              # sealed class Failure (4 variants)
@@ -658,13 +658,17 @@ Sonora features a software-based **5-Band Equalizer** (`EqualizerController`) wi
 ### 7.1 Breakpoints
 
 ```dart
-const double kCompactBreakpoint  = 600.0;   // → MobileShell (NavigationBar)
-const double kMediumBreakpoint   = 840.0;   // Internal layout (not shell)
-const double kExpandedBreakpoint  = 1200.0;  // → WideShell (NavigationDrawer)
+const double kCompactBreakpoint    = 600.0;  // → MobileShell (NavigationBar)
+const double kMediumBreakpoint     = 840.0;  // Internal layout (not shell)
+const double kExpandedBreakpoint   = 1200.0; // → WideShell (NavigationDrawer)
+const double kWideContentBreakpoint = 1600.0; // Internal content split (not a shell)
 ```
 
 - 600–1200dp → `TabletShell` (NavigationRail collapsed)
 - Every complex feature screen has separate layouts: `*_mobile_layout.dart`, `*_tablet_layout.dart`, `*_wide_layout.dart`
+- Wide content inside `WideShell` follows one of four families (feed, facet, entity, document). Tokens and the screen map are in `docs/DESIGN.md`. `kWideContentBreakpoint` (1600) only reveals a utility or related rail. Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
+
+Family tokens in `lib/core/constants/app_constants.dart`: facet rails `kFacetFilterRailWidth` (200) and `kFacetUtilityRailWidth` (280), entity list cap `kEntityTrackMaxWidth` (960) or related rail `kEntityRelatedRailWidth` (320), document soft max `kDocumentContentMaxWidth` (1320), horizontal pad `kWideContentPadding` (32).
 
 ### 7.1.1 Detail header actions
 
@@ -1202,8 +1206,9 @@ final actionFeedbackProvider =
 1. Create `lib/presentation/features/nome_feature/`
 2. Create 3 layouts: `*_mobile_layout.dart`, `*_tablet_layout.dart`, `*_wide_layout.dart`
 3. Create the main screen using `LayoutBuilder` to select the layout
-4. Add the route in `router.dart`
-5. Create the provider if needed
+4. On wide, pick one family from §7.1 (feed, facet, entity, document). Feed and facet do not use `Center` + `maxWidth`
+5. Add the route in `router.dart`
+6. Create the provider if needed
 
 ### Manual release build
 

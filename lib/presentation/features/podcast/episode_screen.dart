@@ -15,6 +15,8 @@ import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
+import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/shimmer_loading.dart';
@@ -171,17 +173,21 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isWide ? 48 : 16),
+            padding: entityBodyPadding(wide: widget.isWide),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _EpisodeActions(episode: widget.episode),
-                  if (widget.episode.description != null &&
-                      widget.episode.description!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    ExpandableText(text: widget.episode.description!),
-                  ],
+                  const SizedBox(height: 16),
+                  EntityWideBody(
+                    wide: widget.isWide,
+                    list:
+                        widget.episode.description != null &&
+                                widget.episode.description!.isNotEmpty
+                            ? ExpandableText(text: widget.episode.description!)
+                            : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
@@ -415,8 +421,8 @@ class _EpisodeSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? 40 : 24,
-          right: isWide ? 40 : 24,
+          left: isWide ? kWideContentPadding : 24,
+          right: isWide ? kWideContentPadding : 24,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(
@@ -529,69 +535,36 @@ class _EpisodeActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < kCompactBreakpoint;
     final l10n = AppLocalizations.of(context)!;
+    final podcastId = episode.podcastId;
+    final hasPodcast = podcastId != null && podcastId.isNotEmpty;
 
-    if (isMobile) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _SaveEpisodeButton(episode: episode, iconOnly: true),
-                if (episode.podcastId != null && episode.podcastId!.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(LucideIcons.micVocal),
-                    tooltip: l10n.goToPodcast,
-                    onPressed:
-                        () => context.push('/podcast/${episode.podcastId}'),
-                  ),
-                IconButton(
-                  icon: const Icon(LucideIcons.share2),
-                  tooltip: l10n.share,
-                  onPressed: () => _share(context, ref, episode),
-                ),
-              ],
-            ),
-            SizedBox(
-              width: 56,
-              height: 56,
-              child: FilledButton(
-                onPressed: () => _play(context, ref, episode),
-                style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Icon(LucideIcons.play, size: 28),
-              ),
-            ),
-          ],
+    return DetailActionsBar(
+      onPlay: () => _play(context, ref, episode),
+      playLabel: l10n.playNow,
+      onShuffle: null,
+      secondary: [
+        DetailAction(
+          id: DetailActionId.save,
+          icon: LucideIcons.bookmark,
+          label: l10n.saveEpisode,
+          tooltip: l10n.saveEpisode,
+          buildControl:
+              (context, compact) =>
+                  _SaveEpisodeButton(episode: episode, iconOnly: compact),
         ),
-      );
-    }
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        FilledButton.icon(
-          onPressed: () => _play(context, ref, episode),
-          icon: const Icon(LucideIcons.play),
-          label: Text(l10n.playNow),
-        ),
-        _SaveEpisodeButton(episode: episode),
-        if (episode.podcastId != null && episode.podcastId!.isNotEmpty)
-          FilledButton.tonalIcon(
-            onPressed: () => context.push('/podcast/${episode.podcastId}'),
-            icon: const Icon(LucideIcons.micVocal),
-            label: Text(l10n.goToPodcast),
+        if (hasPodcast)
+          DetailAction(
+            id: 'goToPodcast',
+            icon: LucideIcons.micVocal,
+            label: l10n.goToPodcast,
+            tooltip: l10n.goToPodcast,
+            onPressed: () => context.push('/podcast/$podcastId'),
           ),
-        IconButton(
-          icon: const Icon(LucideIcons.share2),
+        DetailAction(
+          id: DetailActionId.share,
+          icon: LucideIcons.share2,
+          label: l10n.share,
           tooltip: l10n.share,
           onPressed: () => _share(context, ref, episode),
         ),

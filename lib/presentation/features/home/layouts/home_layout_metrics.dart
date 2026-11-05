@@ -1,29 +1,54 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/feed_grid.dart';
+
 enum HomeLayoutSize { mobile, tablet, wide }
 
 class HomeLayoutMetrics {
   final HomeLayoutSize size;
 
-  const HomeLayoutMetrics(this.size);
+  /// Width of the home content box. Zero when the caller only knows [size].
+  final double contentWidth;
+
+  const HomeLayoutMetrics(this.size, {this.contentWidth = 0});
 
   factory HomeLayoutMetrics.fromWidth(double width) {
-    if (width < 600) return const HomeLayoutMetrics(HomeLayoutSize.mobile);
-    if (width < 1200) return const HomeLayoutMetrics(HomeLayoutSize.tablet);
-    return const HomeLayoutMetrics(HomeLayoutSize.wide);
+    if (width < kCompactBreakpoint) {
+      return HomeLayoutMetrics(HomeLayoutSize.mobile, contentWidth: width);
+    }
+    if (width < kExpandedBreakpoint) {
+      return HomeLayoutMetrics(HomeLayoutSize.tablet, contentWidth: width);
+    }
+    return HomeLayoutMetrics(HomeLayoutSize.wide, contentWidth: width);
   }
 
   double get horizontalPadding => switch (size) {
     HomeLayoutSize.mobile => 16,
     HomeLayoutSize.tablet => 24,
-    HomeLayoutSize.wide => 32,
+    HomeLayoutSize.wide => kWideContentPadding,
   };
 
-  double get cardWidth => switch (size) {
-    HomeLayoutSize.mobile => 140,
-    HomeLayoutSize.tablet => 160,
-    HomeLayoutSize.wide => 180,
-  };
+  /// Shelf card width.
+  ///
+  /// Compact and tablet stay on the 140 / 160 scale. Wide cards use the same
+  /// width as a fill-width feed grid cell (4 / 5 / 6 columns) so carousels
+  /// match the liked-albums grid. Carousels keep their 8px gap, so the next
+  /// card peeks.
+  double get cardWidth {
+    if (size == HomeLayoutSize.mobile) return 140;
+    if (size == HomeLayoutSize.tablet) return 160;
+    if (contentWidth < kExpandedBreakpoint) return 180;
+    final columns = feedGridColumnCount(contentWidth);
+    final fitted = feedGridCardWidth(
+      contentWidth,
+      columns: columns,
+      horizontalPadding: horizontalPadding,
+      crossAxisSpacing: albumGridSpacing,
+    );
+    if (fitted <= 0) return 180;
+    return fitted;
+  }
 
   /// Space below a square cover for title + artist (matches AlbumCard layout).
   static const double shelfTextHeight = 56;
@@ -35,7 +60,11 @@ class HomeLayoutMetrics {
   static const double episodeShelfHeight = 76;
 
   /// Width for episode tiles in horizontal shelves.
-  double get episodeTileWidth => cardWidth * 2;
+  ///
+  /// Square covers follow the feed column scale on wide. Episode rows stay
+  /// at the previous wide tile so a 76px shelf does not stretch with them.
+  double get episodeTileWidth =>
+      size == HomeLayoutSize.wide ? 360 : cardWidth * 2;
 
   /// Spacing between liked-albums grid cells.
   double get albumGridSpacing => switch (size) {
@@ -44,15 +73,19 @@ class HomeLayoutMetrics {
     HomeLayoutSize.wide => 12,
   };
 
-  int get albumGridMinColumns => 3;
+  /// Fill-width columns for the wide liked-albums grid.
+  ///
+  /// 4 at ≥1200, 5 at ≥1600, 6 at ≥1920, from [contentWidth].
+  int get albumGridColumns {
+    final width =
+        contentWidth >= kExpandedBreakpoint
+            ? contentWidth
+            : kExpandedBreakpoint;
+    return feedGridColumnCount(width);
+  }
 
-  int get albumGridMaxColumns => 6;
-
-  /// Minimum cover width when computing fill-width grid columns on wide.
-  double get albumGridMinCellWidth => 140;
-
-  /// Two full rows at max column count (same cap as other home sections).
-  int get albumGridMaxItems => 12;
+  /// Two full rows at the active column count.
+  int get albumGridMaxItems => albumGridColumns * 2;
 
   double get artistAvatarSize => size == HomeLayoutSize.wide ? 72 : 64;
 

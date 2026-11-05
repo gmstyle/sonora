@@ -1191,9 +1191,7 @@ class HomeLikedAlbums extends ConsumerWidget {
   final double cardWidth;
   final double horizontalPadding;
   final bool useGrid;
-  final int gridMinColumns;
-  final int gridMaxColumns;
-  final double gridMinCellWidth;
+  final int gridColumns;
   final int gridMaxItems;
   final double gridSpacing;
 
@@ -1203,10 +1201,8 @@ class HomeLikedAlbums extends ConsumerWidget {
     this.cardWidth = 140,
     this.horizontalPadding = 16,
     this.useGrid = false,
-    this.gridMinColumns = 3,
-    this.gridMaxColumns = 6,
-    this.gridMinCellWidth = 140,
-    this.gridMaxItems = 12,
+    this.gridColumns = 4,
+    this.gridMaxItems = 8,
     this.gridSpacing = 12,
   });
 
@@ -1237,9 +1233,7 @@ class HomeLikedAlbums extends ConsumerWidget {
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: _HomeAlbumGrid(
                   albums: gridAlbums,
-                  minColumns: gridMinColumns,
-                  maxColumns: gridMaxColumns,
-                  minCellWidth: gridMinCellWidth,
+                  columns: gridColumns,
                   spacing: gridSpacing,
                 ),
               ),
@@ -1613,34 +1607,26 @@ class _HomeSectionHeader extends StatelessWidget {
 
 class _HomeAlbumGrid extends StatelessWidget {
   final List<LikedAlbumModel> albums;
-  final int minColumns;
-  final int maxColumns;
-  final double minCellWidth;
+  final int columns;
   final double spacing;
 
   const _HomeAlbumGrid({
     required this.albums,
-    required this.minColumns,
-    required this.maxColumns,
-    required this.minCellWidth,
+    required this.columns,
     required this.spacing,
   });
 
-  int _columnCount(double maxWidth) {
-    final fitColumns =
-        ((maxWidth + spacing) / (minCellWidth + spacing)).floor();
-    return fitColumns.clamp(minColumns, maxColumns).clamp(1, albums.length);
-  }
+  int get _columns => columns < 1 ? 1 : columns;
 
-  double _cellWidth(double maxWidth, int columns) =>
-      (maxWidth - (columns - 1) * spacing) / columns;
+  double _cellWidth(double maxWidth) =>
+      (maxWidth - (_columns - 1) * spacing) / _columns;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = _columnCount(constraints.maxWidth);
-        final cellWidth = _cellWidth(constraints.maxWidth, columns);
+        final columns = _columns;
+        final cellWidth = _cellWidth(constraints.maxWidth);
         final rows = <Widget>[];
         for (var i = 0; i < albums.length; i += columns) {
           final chunk = albums.skip(i).take(columns).toList();

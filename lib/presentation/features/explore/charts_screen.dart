@@ -2,7 +2,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/feed_grid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/error_retry_widget.dart';
@@ -35,104 +35,118 @@ class ChartsScreen extends ConsumerWidget {
               onRetry: () => ref.invalidate(chartsProvider),
             ),
         data: (charts) {
-          final width = MediaQuery.of(context).size.width;
-          final crossAxisCount =
-              width < kCompactBreakpoint
-                  ? 2
-                  : width < kExpandedBreakpoint
-                  ? 4
-                  : 6;
-          final cardWidth =
-              (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+              final crossAxisCount = spec.columns;
+              final cardWidth = spec.cardWidth;
+              final pad = spec.horizontalPadding;
 
-          return RefreshIndicator(
-            onRefresh: () => ref.refresh(chartsProvider.future),
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _CountryPicker(charts: charts)),
-                ..._playlistSection(
-                  context,
-                  title: l10n.chartVideos,
-                  playlists: charts.videos,
-                  crossAxisCount: crossAxisCount,
-                  cardWidth: cardWidth,
-                ),
-                if (charts.daily != null && charts.daily!.isNotEmpty)
-                  ..._playlistSection(
-                    context,
-                    title: l10n.chartDaily,
-                    playlists: charts.daily!,
-                    crossAxisCount: crossAxisCount,
-                    cardWidth: cardWidth,
-                  ),
-                if (charts.weekly != null && charts.weekly!.isNotEmpty)
-                  ..._playlistSection(
-                    context,
-                    title: l10n.chartWeekly,
-                    playlists: charts.weekly!,
-                    crossAxisCount: crossAxisCount,
-                    cardWidth: cardWidth,
-                  ),
-                if (charts.genres != null && charts.genres!.isNotEmpty)
-                  ..._playlistSection(
-                    context,
-                    title: l10n.chartGenres,
-                    playlists: charts.genres!,
-                    crossAxisCount: crossAxisCount,
-                    cardWidth: cardWidth,
-                  ),
-                if (charts.languages != null && charts.languages!.isNotEmpty)
-                  ..._playlistSection(
-                    context,
-                    title: l10n.chartLanguages,
-                    playlists: charts.languages!,
-                    crossAxisCount: crossAxisCount,
-                    cardWidth: cardWidth,
-                  ),
-                if (charts.artists.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Text(
-                        l10n.topArtists,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+              return RefreshIndicator(
+                onRefresh: () => ref.refresh(chartsProvider.future),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _CountryPicker(
+                        charts: charts,
+                        horizontalPadding: pad,
                       ),
                     ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverGrid(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    ..._playlistSection(
+                      context,
+                      title: l10n.chartVideos,
+                      playlists: charts.videos,
+                      crossAxisCount: crossAxisCount,
+                      cardWidth: cardWidth,
+                      horizontalPadding: pad,
+                    ),
+                    if (charts.daily != null && charts.daily!.isNotEmpty)
+                      ..._playlistSection(
+                        context,
+                        title: l10n.chartDaily,
+                        playlists: charts.daily!,
                         crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.78,
+                        cardWidth: cardWidth,
+                        horizontalPadding: pad,
                       ),
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final artist = charts.artists[index];
-                        return ArtistCard(
-                          artistId: artist.browseId,
-                          name: artist.title,
-                          thumbnailUrl:
-                              artist.thumbnails.isNotEmpty
-                                  ? artist.thumbnails.last.url
-                                  : null,
-                          monthlyListeners: artist.subscribers,
-                          cardWidth: cardWidth,
-                          heroTag: 'chart_artist_${artist.browseId}',
-                        );
-                      }, childCount: charts.artists.length),
+                    if (charts.weekly != null && charts.weekly!.isNotEmpty)
+                      ..._playlistSection(
+                        context,
+                        title: l10n.chartWeekly,
+                        playlists: charts.weekly!,
+                        crossAxisCount: crossAxisCount,
+                        cardWidth: cardWidth,
+                        horizontalPadding: pad,
+                      ),
+                    if (charts.genres != null && charts.genres!.isNotEmpty)
+                      ..._playlistSection(
+                        context,
+                        title: l10n.chartGenres,
+                        playlists: charts.genres!,
+                        crossAxisCount: crossAxisCount,
+                        cardWidth: cardWidth,
+                        horizontalPadding: pad,
+                      ),
+                    if (charts.languages != null &&
+                        charts.languages!.isNotEmpty)
+                      ..._playlistSection(
+                        context,
+                        title: l10n.chartLanguages,
+                        playlists: charts.languages!,
+                        crossAxisCount: crossAxisCount,
+                        cardWidth: cardWidth,
+                        horizontalPadding: pad,
+                      ),
+                    if (charts.artists.isNotEmpty) ...[
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(pad, 16, pad, 8),
+                          child: Text(
+                            l10n.topArtists,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(horizontal: pad),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.78,
+                              ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final artist = charts.artists[index];
+                            return ArtistCard(
+                              artistId: artist.browseId,
+                              name: artist.title,
+                              thumbnailUrl:
+                                  artist.thumbnails.isNotEmpty
+                                      ? artist.thumbnails.last.url
+                                      : null,
+                              monthlyListeners: artist.subscribers,
+                              cardWidth: cardWidth,
+                              heroTag: 'chart_artist_${artist.browseId}',
+                            );
+                          }, childCount: charts.artists.length),
+                        ),
+                      ),
+                    ],
+                    SliverPadding(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom + 24,
+                      ),
                     ),
-                  ),
-                ],
-                SliverPadding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).padding.bottom + 24,
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -145,12 +159,18 @@ class ChartsScreen extends ConsumerWidget {
     required List<ChartPlaylist> playlists,
     required int crossAxisCount,
     required double cardWidth,
+    required double horizontalPadding,
   }) {
     if (playlists.isEmpty) return const [];
     return [
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            16,
+            horizontalPadding,
+            8,
+          ),
           child: Text(
             title,
             style: Theme.of(
@@ -160,7 +180,7 @@ class ChartsScreen extends ConsumerWidget {
         ),
       ),
       SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         sliver: SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
@@ -192,49 +212,51 @@ class _ChartsShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final crossAxisCount =
-        width < kCompactBreakpoint
-            ? 2
-            : width < kExpandedBreakpoint
-            ? 4
-            : 6;
-    final cardWidth = (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+        final crossAxisCount = spec.columns;
+        final cardWidth = spec.cardWidth;
 
-    return CustomScrollView(
-      slivers: [
-        for (var section = 0; section < 2; section++) ...[
-          const SliverToBoxAdapter(
-            child: ShimmerLoading(variant: ShimmerVariant.zoneHeader),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.62,
+        return CustomScrollView(
+          slivers: [
+            for (var section = 0; section < 2; section++) ...[
+              const SliverToBoxAdapter(
+                child: ShimmerLoading(variant: ShimmerVariant.zoneHeader),
               ),
-              delegate: SliverChildBuilderDelegate(
-                (_, _) => ShimmerLoading(
-                  variant: ShimmerVariant.card,
-                  cardWidth: cardWidth,
+              SliverPadding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: spec.horizontalPadding,
                 ),
-                childCount: crossAxisCount * 2,
+                sliver: SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.62,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (_, _) => ShimmerLoading(
+                      variant: ShimmerVariant.card,
+                      cardWidth: cardWidth,
+                    ),
+                    childCount: crossAxisCount * 2,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
-      ],
+            ],
+          ],
+        );
+      },
     );
   }
 }
 
 class _CountryPicker extends ConsumerWidget {
   final ChartsResult charts;
+  final double horizontalPadding;
 
-  const _CountryPicker({required this.charts});
+  const _CountryPicker({required this.charts, required this.horizontalPadding});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -245,7 +267,7 @@ class _CountryPicker extends ConsumerWidget {
         ref.watch(chartsCountryOverrideProvider) ?? charts.countries.selected;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 8, horizontalPadding, 0),
       child: Align(
         alignment: Alignment.centerLeft,
         child: DropdownButtonHideUnderline(

@@ -12,6 +12,7 @@ import '../../../providers/download_provider.dart';
 import '../../../providers/play_video_id_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
+import '../../../shared/widgets/facet_wide_scaffold.dart';
 import '../../../shared/widgets/explicit_badge.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 
@@ -345,68 +346,157 @@ class _SplitCompletedDownloads extends ConsumerWidget {
       });
     }
 
-    return Row(
+    final viewport = MediaQuery.sizeOf(context).width;
+    final isWide = viewport >= kExpandedBreakpoint;
+    final showUtility = viewport >= kWideContentBreakpoint;
+
+    final master = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 300,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 4, 8),
+          child: Row(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.downloadCollections,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    DownloadsSortMenu(currentSort: sort),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: groups.length,
-                  itemBuilder: (context, index) {
-                    final group = groups[index];
-                    final selectedNow = group.key == selected?.key;
-                    return _MasterGroupTile(
-                      group: group,
-                      selected: selectedNow,
-                      onTap:
-                          () => ref
-                              .read(selectedDownloadGroupKeyProvider.notifier)
-                              .select(group.key),
-                    );
-                  },
+                child: Text(
+                  l10n.downloadCollections,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+              if (!showUtility)
+                DownloadsSortMenu(currentSort: sort, iconOnly: isWide),
             ],
           ),
         ),
-        VerticalDivider(
-          width: 1,
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
+        const Divider(height: 1),
         Expanded(
-          child:
-              selected == null
-                  ? Center(
-                    child: Text(
-                      l10n.selectDownloadCollection,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                  : _GroupDetailPane(group: selected, sort: sort),
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: groups.length,
+            itemBuilder: (context, index) {
+              final group = groups[index];
+              final selectedNow = group.key == selected?.key;
+              return _MasterGroupTile(
+                group: group,
+                selected: selectedNow,
+                narrow: isWide,
+                onTap:
+                    () => ref
+                        .read(selectedDownloadGroupKeyProvider.notifier)
+                        .select(group.key),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+
+    final detail =
+        selected == null
+            ? Center(
+              child: Text(
+                l10n.selectDownloadCollection,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            )
+            : _GroupDetailPane(group: selected, sort: sort, edgeToEdge: isWide);
+
+    if (!isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: 300, child: master),
+          VerticalDivider(
+            width: 1,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+          Expanded(child: detail),
+        ],
+      );
+    }
+
+    return FacetWideScaffold(
+      showUtility: showUtility,
+      filterRail: master,
+      utilityRail: _DownloadsUtilityRail(groups: groups, sort: sort),
+      child: detail,
+    );
+  }
+}
+
+class _DownloadsUtilityRail extends ConsumerWidget {
+  final List<DownloadGroup> groups;
+  final DownloadsSort sort;
+
+  const _DownloadsUtilityRail({required this.groups, required this.sort});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final active = ref.watch(activeDownloadsProvider);
+    final downloading =
+        active.values
+            .where((d) => d.status == DownloadStatus.downloading)
+            .length;
+    final queued =
+        active.values.where((d) => d.status == DownloadStatus.pending).length;
+    final failed =
+        active.values.where((d) => d.status == DownloadStatus.error).length;
+    final inProgress = downloading + queued;
+    final totalTracks = groups.fold<int>(0, (sum, g) => sum + g.tracks.length);
+    final totalBytes = groups.fold<int>(0, (sum, g) => sum + g.totalBytes);
+    final labelStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: [
+        Text(
+          l10n.sortDownloads,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: DownloadsSortMenu(currentSort: sort),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          l10n.activeDownloads,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(l10n.downloadsStats(inProgress), style: labelStyle),
+        if (queued > 0)
+          Text('${l10n.downloadQueued} · $queued', style: labelStyle),
+        if (failed > 0)
+          Text('${l10n.downloadFailed} · $failed', style: labelStyle),
+        const SizedBox(height: 20),
+        Text(
+          l10n.downloadCollections,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          [
+            l10n.downloadsStats(totalTracks),
+            if (totalBytes > 0) formatDownloadBytes(totalBytes),
+          ].join(' · '),
+          style: labelStyle,
         ),
       ],
     );
@@ -416,12 +506,14 @@ class _SplitCompletedDownloads extends ConsumerWidget {
 class _MasterGroupTile extends StatelessWidget {
   final DownloadGroup group;
   final bool selected;
+  final bool narrow;
   final VoidCallback onTap;
 
   const _MasterGroupTile({
     required this.group,
     required this.selected,
     required this.onTap,
+    this.narrow = false,
   });
 
   @override
@@ -434,7 +526,7 @@ class _MasterGroupTile extends StatelessWidget {
             : group.name;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: narrow ? 4 : 8, vertical: 2),
       child: Material(
         color:
             selected
@@ -442,12 +534,14 @@ class _MasterGroupTile extends StatelessWidget {
                 : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: ListTile(
+          visualDensity: narrow ? VisualDensity.compact : null,
+          contentPadding: EdgeInsets.symmetric(horizontal: narrow ? 8 : 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           leading: ThumbnailWidget(
             imageUrl: group.thumbnailUrl,
-            size: 44,
+            size: narrow ? 36 : 44,
             shape: ThumbnailShape.rounded,
           ),
           title: Text(
@@ -479,8 +573,13 @@ class _MasterGroupTile extends StatelessWidget {
 class _GroupDetailPane extends ConsumerWidget {
   final DownloadGroup group;
   final DownloadsSort sort;
+  final bool edgeToEdge;
 
-  const _GroupDetailPane({required this.group, required this.sort});
+  const _GroupDetailPane({
+    required this.group,
+    required this.sort,
+    this.edgeToEdge = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -496,7 +595,12 @@ class _GroupDetailPane extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+          padding: EdgeInsets.fromLTRB(
+            edgeToEdge ? 0 : 20,
+            12,
+            edgeToEdge ? 0 : 12,
+            8,
+          ),
           child: Row(
             children: [
               ThumbnailWidget(
@@ -555,10 +659,18 @@ class _GroupDetailPane extends ConsumerWidget {
         const Divider(height: 1),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+            padding: EdgeInsets.fromLTRB(
+              edgeToEdge ? 0 : 12,
+              8,
+              edgeToEdge ? 0 : 12,
+              24,
+            ),
             itemCount: tracks.length,
             itemBuilder: (context, index) {
-              return _CompletedTrackTile(download: tracks[index]);
+              return _CompletedTrackTile(
+                download: tracks[index],
+                edgeToEdge: edgeToEdge,
+              );
             },
           ),
         ),
@@ -570,8 +682,13 @@ class _GroupDetailPane extends ConsumerWidget {
 class _CompletedTrackTile extends ConsumerWidget {
   final DownloadModel download;
   final bool dense;
+  final bool edgeToEdge;
 
-  const _CompletedTrackTile({required this.download, this.dense = false});
+  const _CompletedTrackTile({
+    required this.download,
+    this.dense = false,
+    this.edgeToEdge = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -588,10 +705,13 @@ class _CompletedTrackTile extends ConsumerWidget {
     ];
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: dense ? 8 : 4, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: edgeToEdge ? 0 : (dense ? 8 : 4),
+        vertical: 2,
+      ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(
-          horizontal: dense ? 12 : 16,
+          horizontal: edgeToEdge ? 0 : (dense ? 12 : 16),
           vertical: dense ? 0 : 2,
         ),
         leading: ThumbnailWidget(
@@ -763,7 +883,14 @@ Future<void> confirmDeleteDownloadGroup(
 class DownloadsSortMenu extends ConsumerWidget {
   final DownloadsSort currentSort;
 
-  const DownloadsSortMenu({super.key, required this.currentSort});
+  /// Icon trigger for the 200px facet rail, where the label does not fit.
+  final bool iconOnly;
+
+  const DownloadsSortMenu({
+    super.key,
+    required this.currentSort,
+    this.iconOnly = false,
+  });
 
   Map<DownloadsSort, String> _options(AppLocalizations l10n) => {
     DownloadsSort.newest: l10n.sortNewest,
@@ -780,6 +907,27 @@ class DownloadsSortMenu extends ConsumerWidget {
       color: Theme.of(context).colorScheme.primary,
       fontWeight: FontWeight.w600,
     );
+
+    if (iconOnly && !isMobile) {
+      return PopupMenuButton<DownloadsSort>(
+        tooltip: l10n.sortDownloads,
+        initialValue: currentSort,
+        onSelected:
+            (value) => ref.read(downloadsSortProvider.notifier).update(value),
+        itemBuilder:
+            (context) => [
+              for (final entry in _options(l10n).entries)
+                PopupMenuItem<DownloadsSort>(
+                  value: entry.key,
+                  child: Text(entry.value),
+                ),
+            ],
+        icon: Icon(
+          LucideIcons.arrowUpDown,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      );
+    }
 
     if (isMobile) {
       return TextButton.icon(

@@ -2,7 +2,7 @@
 
 Visual contract for the Flutter app. Source: Stitch project **Sonora UI UX Redesign**, design system **Sonora Pulse** (dark + light). Tokens in code live in `lib/core/theme/sonora_pulse_tokens.dart` and are applied by `AppTheme`.
 
-Android and Linux only. The player overlay is not a route. Three width breakpoints stay as in `AGENTS.md`.
+Android and Linux only. The player overlay is not a route. Three shell breakpoints stay as in `AGENTS.md`. `kWideContentBreakpoint` (1600) is an internal content split inside the wide shell, not a fourth shell.
 
 ## Brand
 
@@ -111,3 +111,45 @@ Plus Jakarta Sans via `google_fonts`, on every text role.
 `reduceEffects` drops blur and heavy motion. `useVinylStyle` still controls the circular art stage. Like stays Material `favorite`. Other chrome icons stay Lucide.
 
 Do not add a Soundscape AI column, a lossless badge, or a multi-band waveform scrubber.
+
+## Wide content families
+
+`WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether a utility or related rail is present. It does not add a layout file or a shell. Compact and tablet layouts are unchanged.
+
+Tokens live in `lib/core/constants/app_constants.dart`:
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `kWideContentBreakpoint` | 1600 | Internal split for utility and related rails. Not a shell |
+| `kFacetFilterRailWidth` | 200 | Facet left rail |
+| `kFacetUtilityRailWidth` | 280 | Facet right rail at ≥1600 |
+| `kEntityTrackMaxWidth` | 960 | Entity track or episode list when no related column |
+| `kEntityRelatedRailWidth` | 320 | Entity related rail at ≥1600 |
+| `kDocumentContentMaxWidth` | 1320 | Document soft max |
+| `kWideContentPadding` | 32 | Horizontal pad for feed, facet, and entity. Same inset as margin-desktop |
+
+### Feed
+
+Edge-to-edge shelves and grids. Horizontal padding is `kWideContentPadding` (32). Column count follows the content width. Do not wrap the page in `Center` plus a `maxWidth`.
+
+Screens: Home, Charts, Moods (including mood playlists), New releases, Browse section.
+
+### Facet
+
+Left filter rail `kFacetFilterRailWidth` (200), a fluid center with padding 32, and at ≥1600 a right utility rail `kFacetUtilityRailWidth` (280). Do not wrap the page in `Center` plus a `maxWidth`, and do not put the wide page in a `Card`. Library search results stay in the library facet pane.
+
+Screens: Search, Library, Downloads.
+
+### Entity
+
+Header and `DetailActionsBar` span the content width (padding 32). There is no second action row. Below 1600, or when the screen has no related block, the track or episode list caps at `kEntityTrackMaxWidth` (960). At ≥1600 the list is fluid beside a related rail `kEntityRelatedRailWidth` (320). Related content is sections that already belong to that screen, moved beside the list.
+
+Screens: Album, artist, YouTube playlist, local playlist, podcast, episode, moment mix, user.
+
+### Document
+
+The only family that clamps the page: soft max `kDocumentContentMaxWidth` (1320) and horizontal padding 32. Settings keeps its card shell (a form surface, not a feed).
+
+Screens: Settings, artist see-all (albums, singles, videos).
+
+The full player overlay and Sonora Wrapped stay immersive. They are not one of these families.

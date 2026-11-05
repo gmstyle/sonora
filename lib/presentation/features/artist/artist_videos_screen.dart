@@ -88,8 +88,11 @@ class _ArtistVideosBody extends ConsumerWidget {
 
           final isMobile = viewportWidth < kCompactBreakpoint;
           final isWide = viewportWidth >= kExpandedBreakpoint;
+          final horizontalPad = isWide ? kWideContentPadding : 16.0;
           final contentWidth =
-              isWide && viewportWidth > 1240 ? 1240.0 : viewportWidth;
+              isWide && viewportWidth > kDocumentContentMaxWidth
+                  ? kDocumentContentMaxWidth
+                  : viewportWidth;
           final columns =
               contentWidth < kCompactBreakpoint
                   ? 2
@@ -98,7 +101,8 @@ class _ArtistVideosBody extends ConsumerWidget {
                   : contentWidth < kExpandedBreakpoint
                   ? 4
                   : 5;
-          final cardWidth = (contentWidth - 32 - (columns - 1) * 12) / columns;
+          final cardWidth =
+              (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
           final canPlay = playableVideos(videos).isNotEmpty;
 
           final grid = RefreshIndicator(
@@ -110,6 +114,7 @@ class _ArtistVideosBody extends ConsumerWidget {
                   child: _VideosHeader(
                     videoCount: videos.length,
                     isMobile: isMobile,
+                    horizontalPadding: horizontalPad,
                     onPlayAll:
                         canPlay
                             ? () => _playFromIndex(context, ref, videos, 0)
@@ -122,9 +127,9 @@ class _ArtistVideosBody extends ConsumerWidget {
                 ),
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
-                    16,
+                    horizontalPad,
                     0,
-                    16,
+                    horizontalPad,
                     MediaQuery.paddingOf(context).bottom + (isWide ? 48 : 16),
                   ),
                   sliver: SliverGrid(
@@ -163,7 +168,9 @@ class _ArtistVideosBody extends ConsumerWidget {
           return Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1240),
+              constraints: const BoxConstraints(
+                maxWidth: kDocumentContentMaxWidth,
+              ),
               child: grid,
             ),
           );
@@ -223,12 +230,14 @@ class _ArtistVideosBody extends ConsumerWidget {
 class _VideosHeader extends StatelessWidget {
   final int videoCount;
   final bool isMobile;
+  final double horizontalPadding;
   final VoidCallback? onPlayAll;
   final VoidCallback? onShuffle;
 
   const _VideosHeader({
     required this.videoCount,
     required this.isMobile,
+    required this.horizontalPadding,
     required this.onPlayAll,
     required this.onShuffle,
   });
@@ -239,7 +248,7 @@ class _VideosHeader extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 12, horizontalPadding, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -305,7 +314,11 @@ class _VideosLoadingGrid extends StatelessWidget {
       builder: (context, constraints) {
         final viewport = constraints.maxWidth;
         final isWide = viewport >= kExpandedBreakpoint;
-        final contentWidth = isWide && viewport > 1240 ? 1240.0 : viewport;
+        final horizontalPad = isWide ? kWideContentPadding : 16.0;
+        final contentWidth =
+            isWide && viewport > kDocumentContentMaxWidth
+                ? kDocumentContentMaxWidth
+                : viewport;
         final columns =
             contentWidth < kCompactBreakpoint
                 ? 2
@@ -314,9 +327,10 @@ class _VideosLoadingGrid extends StatelessWidget {
                 : contentWidth < kExpandedBreakpoint
                 ? 4
                 : 5;
-        final cardWidth = (contentWidth - 32 - (columns - 1) * 12) / columns;
+        final cardWidth =
+            (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
         final grid = GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: EdgeInsets.fromLTRB(horizontalPad, 16, horizontalPad, 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             crossAxisSpacing: 12,
@@ -334,7 +348,9 @@ class _VideosLoadingGrid extends StatelessWidget {
         return Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1240),
+            constraints: const BoxConstraints(
+              maxWidth: kDocumentContentMaxWidth,
+            ),
             child: grid,
           ),
         );
