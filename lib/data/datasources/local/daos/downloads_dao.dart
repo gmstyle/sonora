@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+
 import '../database.dart';
 
 class DownloadsDao extends DatabaseAccessor<AppDatabase> {
@@ -13,26 +14,28 @@ class DownloadsDao extends DatabaseAccessor<AppDatabase> {
         .watch();
   }
 
-  Future<Download?> getDownload(String videoId) =>
-      (select(db.downloads)
-        ..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
+  Future<Download?> getDownload(String videoId) => (select(
+    db.downloads,
+  )..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
 
   Future<void> insertDownload(DownloadsCompanion entry) =>
       into(db.downloads).insertOnConflictUpdate(entry);
 
   Future<void> updateStatus(String videoId, String status) =>
-      (update(db.downloads)..where(
-        (t) => t.videoId.equals(videoId),
-      )).write(DownloadsCompanion(status: Value(status)));
+      (update(db.downloads)..where((t) => t.videoId.equals(videoId))).write(
+        DownloadsCompanion(status: Value(status)),
+      );
 
   Future<List<Download>> getIncompleteDownloads() {
-    return (select(db.downloads)
-      ..where((t) => t.status.equals('completed').not())).get();
+    return (select(
+      db.downloads,
+    )..where((t) => t.status.equals('completed').not())).get();
   }
 
   Future<int> deleteIncompleteDownloads() {
-    return (delete(db.downloads)
-      ..where((t) => t.status.equals('completed').not())).go();
+    return (delete(
+      db.downloads,
+    )..where((t) => t.status.equals('completed').not())).go();
   }
 
   Future<void> deleteDownload(String videoId) =>

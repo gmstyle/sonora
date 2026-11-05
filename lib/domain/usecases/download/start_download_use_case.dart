@@ -161,10 +161,9 @@ class StartDownloadUseCase {
     String? customPath, {
     String? subdirectory,
   }) async {
-    final basePath =
-        (customPath != null && customPath.isNotEmpty)
-            ? customPath
-            : '${(await getDownloadsDirectory())?.path}/Sonora';
+    final basePath = (customPath != null && customPath.isNotEmpty)
+        ? customPath
+        : '${(await getDownloadsDirectory())?.path}/Sonora';
     var dir = Directory(basePath);
     if (subdirectory != null) {
       dir = Directory('${dir.path}/${_sanitizeFilename(subdirectory)}');

@@ -18,7 +18,7 @@ import '../domain/repositories/library_repository.dart';
 import '../domain/repositories/music_repository.dart';
 
 class SonoraCliProvider {
-  SonoraCliProvider({String? databasePath}) : _databasePath = databasePath;
+  SonoraCliProvider({this._databasePath});
 
   final String? _databasePath;
 

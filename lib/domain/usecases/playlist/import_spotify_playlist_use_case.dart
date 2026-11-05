@@ -166,10 +166,9 @@ class ImportSpotifyPlaylistUseCase {
     }
 
     final snapshot = plan.snapshot;
-    final truncatedNote =
-        snapshot.truncated
-            ? ' — first ${snapshot.tracks.length} tracks from the public embed'
-            : '';
+    final truncatedNote = snapshot.truncated
+        ? ' — first ${snapshot.tracks.length} tracks from the public embed'
+        : '';
     final now = DateTime.now();
     final localPlaylistId = await _libraryRepository.createPlaylist(
       snapshot.name,

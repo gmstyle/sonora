@@ -58,17 +58,16 @@ List<DownloadGroup> groupCompletedDownloads(List<DownloadModel> downloads) {
     }
   }
 
-  final groups =
-      buckets.values
-          .map(
-            (b) => DownloadGroup(
-              key: b.key,
-              kind: b.kind,
-              name: b.name,
-              tracks: List<DownloadModel>.unmodifiable(b.tracks),
-            ),
-          )
-          .toList();
+  final groups = buckets.values
+      .map(
+        (b) => DownloadGroup(
+          key: b.key,
+          kind: b.kind,
+          name: b.name,
+          tracks: List<DownloadModel>.unmodifiable(b.tracks),
+        ),
+      )
+      .toList();
 
   groups.sort((a, b) {
     final byKind = a.kind.index.compareTo(b.kind.index);
@@ -127,13 +126,12 @@ String? _inferredFolderName(String? localPath, Set<String> rootParents) {
 }
 
 Set<String> _shallowestParents(List<DownloadModel> downloads) {
-  final parents =
-      downloads
-          .map((d) => d.localPath)
-          .whereType<String>()
-          .where((path) => path.isNotEmpty)
-          .map((path) => p.normalize(p.dirname(path)))
-          .toSet();
+  final parents = downloads
+      .map((d) => d.localPath)
+      .whereType<String>()
+      .where((path) => path.isNotEmpty)
+      .map((path) => p.normalize(p.dirname(path)))
+      .toSet();
   if (parents.isEmpty) return const {};
 
   int depth(String path) =>

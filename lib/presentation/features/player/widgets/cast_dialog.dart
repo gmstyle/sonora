@@ -2,6 +2,7 @@ import 'package:dart_cast/dart_cast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/cast_provider.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -17,10 +18,9 @@ class CastDialog extends ConsumerStatefulWidget {
     if (isWide) {
       return showDialog(
         context: context,
-        builder:
-            (context) => const Dialog(
-              child: SizedBox(width: 450, child: CastDialog(isDialog: true)),
-            ),
+        builder: (context) => const Dialog(
+          child: SizedBox(width: 450, child: CastDialog(isDialog: true)),
+        ),
       );
     } else {
       return showModalBottomSheet(
@@ -148,11 +148,9 @@ class _CastDialogState extends ConsumerState<CastDialog> {
                           OutlinedButton.icon(
                             icon: const Icon(LucideIcons.refreshCw, size: 18),
                             label: Text(l10n.castScanAgain),
-                            onPressed:
-                                () =>
-                                    ref
-                                        .read(castStateProvider.notifier)
-                                        .startDiscovery(),
+                            onPressed: () => ref
+                                .read(castStateProvider.notifier)
+                                .startDiscovery(),
                           ),
                         ],
                       ),
@@ -179,24 +177,21 @@ class _CastDialogState extends ConsumerState<CastDialog> {
                             .last
                             .toUpperCase(),
                       ),
-                      trailing:
-                          isConnecting
-                              ? const CircularProgressIndicator(strokeWidth: 2)
-                              : isConnected
-                              ? Icon(
-                                LucideIcons.check,
-                                color: theme.colorScheme.primary,
-                              )
-                              : null,
-                      onTap:
-                          isConnected
-                              ? () =>
-                                  ref
-                                      .read(castStateProvider.notifier)
-                                      .disconnect()
-                              : () => ref
-                                  .read(castStateProvider.notifier)
-                                  .connect(device),
+                      trailing: isConnecting
+                          ? const CircularProgressIndicator(strokeWidth: 2)
+                          : isConnected
+                          ? Icon(
+                              LucideIcons.check,
+                              color: theme.colorScheme.primary,
+                            )
+                          : null,
+                      onTap: isConnected
+                          ? () => ref
+                                .read(castStateProvider.notifier)
+                                .disconnect()
+                          : () => ref
+                                .read(castStateProvider.notifier)
+                                .connect(device),
                     );
                   }),
                   const Divider(),
@@ -220,11 +215,9 @@ class _CastDialogState extends ConsumerState<CastDialog> {
                       child: OutlinedButton.icon(
                         icon: const Icon(LucideIcons.settings),
                         label: Text(l10n.openBluetoothSettings),
-                        onPressed:
-                            () =>
-                                ref
-                                    .read(castStateProvider.notifier)
-                                    .openBluetoothSettings(),
+                        onPressed: () => ref
+                            .read(castStateProvider.notifier)
+                            .openBluetoothSettings(),
                       ),
                     ),
                   ),
@@ -239,8 +232,8 @@ class _CastDialogState extends ConsumerState<CastDialog> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed:
-                      () => ref.read(castStateProvider.notifier).disconnect(),
+                  onPressed: () =>
+                      ref.read(castStateProvider.notifier).disconnect(),
                   child: Text(l10n.disconnect),
                 ),
               ),

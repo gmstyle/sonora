@@ -30,8 +30,9 @@ class WrappedNarrativeParser {
     return WrappedNarrative(
       title: title,
       hook: hook,
-      artistLine:
-          (artistLine == null || artistLine.isEmpty) ? null : artistLine,
+      artistLine: (artistLine == null || artistLine.isEmpty)
+          ? null
+          : artistLine,
       songLine: (songLine == null || songLine.isEmpty) ? null : songLine,
       closing: closing,
       fromAi: true,

@@ -33,31 +33,25 @@ class ThumbnailWidget extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child:
-            imageUrl != null
-                ? CachedNetworkImage(
-                  imageUrl: imageUrl!,
-                  fit: BoxFit.cover,
-                  placeholder:
-                      (_, _) => Container(
-                        color:
-                            Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                      ),
-                  errorWidget:
-                      (_, _, _) => Icon(
-                        LucideIcons.music,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                )
-                : Container(
+        child: imageUrl != null
+            ? CachedNetworkImage(
+                imageUrl: imageUrl!,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Icon(
-                    LucideIcons.music,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
                 ),
+                errorWidget: (_, _, _) => Icon(
+                  LucideIcons.music,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              )
+            : Container(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Icon(
+                  LucideIcons.music,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
       ),
     );
   }

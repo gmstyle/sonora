@@ -135,11 +135,10 @@ SonoraLink? parseSonoraLink(String raw) {
   if (uri == null) return null;
   if (uri.scheme.toLowerCase() != 'sonora') return null;
 
-  final segments =
-      uri.pathSegments
-          .where((s) => s.isNotEmpty)
-          .map(Uri.decodeComponent)
-          .toList();
+  final segments = uri.pathSegments
+      .where((s) => s.isNotEmpty)
+      .map(Uri.decodeComponent)
+      .toList();
   if (segments.length < 2) return null;
 
   final kind = _kindFromPath(segments.first);

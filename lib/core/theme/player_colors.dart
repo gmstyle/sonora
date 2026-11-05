@@ -144,8 +144,11 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
       topScrimStart: Color.lerp(topScrimStart, other.topScrimStart, t)!,
       topScrimMid: Color.lerp(topScrimMid, other.topScrimMid, t)!,
       shimmerBase: Color.lerp(shimmerBase, other.shimmerBase, t)!,
-      shimmerHighlight:
-          Color.lerp(shimmerHighlight, other.shimmerHighlight, t)!,
+      shimmerHighlight: Color.lerp(
+        shimmerHighlight,
+        other.shimmerHighlight,
+        t,
+      )!,
       accent: Color.lerp(accent, other.accent, t)!,
       accentEnd: Color.lerp(accentEnd, other.accentEnd, t)!,
     );

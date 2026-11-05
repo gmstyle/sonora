@@ -18,10 +18,10 @@ class ImportBackupUseCase {
     final content = utf8.decode(file.content as List<int>);
     final data = jsonDecode(content) as Map<String, dynamic>;
 
-    final likedSongs =
-        (data['likedSongs'] as List<dynamic>).cast<Map<String, dynamic>>();
-    final followedArtists =
-        (data['followedArtists'] as List<dynamic>).cast<Map<String, dynamic>>();
+    final likedSongs = (data['likedSongs'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+    final followedArtists = (data['followedArtists'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
     final likedAlbums =
         (data['likedAlbums'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
         [];
@@ -37,8 +37,8 @@ class ImportBackupUseCase {
         (data['likedEpisodes'] as List<dynamic>?)
             ?.cast<Map<String, dynamic>>() ??
         [];
-    final playlistsRaw =
-        (data['playlists'] as List<dynamic>).cast<Map<String, dynamic>>();
+    final playlistsRaw = (data['playlists'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
     final playlistEntriesRaw =
         data['playlistEntries'] as Map<String, dynamic>? ?? {};
     final history =
@@ -72,10 +72,9 @@ class ImportBackupUseCase {
           artistId: a['artistId'] as String,
           name: a['name'] as String,
           thumbnailUrl: a['thumbnailUrl'] as String?,
-          addedAt:
-              a['addedAt'] != null
-                  ? DateTime.parse(a['addedAt'] as String)
-                  : DateTime.now(),
+          addedAt: a['addedAt'] != null
+              ? DateTime.parse(a['addedAt'] as String)
+              : DateTime.now(),
         ),
       );
     }
@@ -139,10 +138,9 @@ class ImportBackupUseCase {
     final oldToNewId = <int, int>{};
     for (final p in playlistsRaw) {
       final oldId = p['id'] as int;
-      final createdAt =
-          p['createdAt'] != null
-              ? DateTime.tryParse(p['createdAt'] as String) ?? DateTime.now()
-              : DateTime.now();
+      final createdAt = p['createdAt'] != null
+          ? DateTime.tryParse(p['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now();
       final newId = await libraryRepository.createPlaylistWithDate(
         p['name'] as String,
         description: p['description'] as String?,

@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+
 import '../../models/queue_track.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../../core/utils/playable_tracks.dart';
@@ -30,10 +31,9 @@ class PlayPlaylistUseCase {
     final playable = playableVideos(videos);
     if (playable.isEmpty) return [];
 
-    final leadIndex =
-        playIndex < 0
-            ? -1
-            : playableLeadIndex(videos, playIndex, playable: playable);
+    final leadIndex = playIndex < 0
+        ? -1
+        : playableLeadIndex(videos, playIndex, playable: playable);
 
     String? firstUrl;
     if (leadIndex >= 0 && leadIndex < playable.length) {

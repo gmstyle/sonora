@@ -22,18 +22,16 @@ class ChartsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           l10n.charts,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: chartsAsync.when(
         loading: () => const _ChartsShimmer(),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: l10n.failedToLoadExplore,
-              onRetry: () => ref.invalidate(chartsProvider),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: l10n.failedToLoadExplore,
+          onRetry: () => ref.invalidate(chartsProvider),
+        ),
         data: (charts) {
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -126,10 +124,9 @@ class ChartsScreen extends ConsumerWidget {
                             return ArtistCard(
                               artistId: artist.browseId,
                               name: artist.title,
-                              thumbnailUrl:
-                                  artist.thumbnails.isNotEmpty
-                                      ? artist.thumbnails.last.url
-                                      : null,
+                              thumbnailUrl: artist.thumbnails.isNotEmpty
+                                  ? artist.thumbnails.last.url
+                                  : null,
                               monthlyListeners: artist.subscribers,
                               cardWidth: cardWidth,
                               heroTag: 'chart_artist_${artist.browseId}',
@@ -173,9 +170,8 @@ class ChartsScreen extends ConsumerWidget {
           ),
           child: Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -193,10 +189,9 @@ class ChartsScreen extends ConsumerWidget {
             return PlaylistCard(
               playlistId: playlist.playlistId,
               name: playlist.title,
-              thumbnailUrl:
-                  playlist.thumbnails.isNotEmpty
-                      ? playlist.thumbnails.last.url
-                      : null,
+              thumbnailUrl: playlist.thumbnails.isNotEmpty
+                  ? playlist.thumbnails.last.url
+                  : null,
               cardWidth: cardWidth,
               heroTag: 'chart_playlist_${playlist.playlistId}',
             );

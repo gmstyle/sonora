@@ -1,9 +1,11 @@
 import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -63,13 +65,12 @@ class _AlbumMobileLayout extends ConsumerWidget {
 
     return albumAsync.when(
       loading: () => const Scaffold(body: _AlbumShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: 'Failed to load album',
-              onRetry: () => ref.invalidate(albumProvider(albumId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: 'Failed to load album',
+          onRetry: () => ref.invalidate(albumProvider(albumId)),
+        ),
+      ),
       data: (album) => _AlbumContent(album: album, heroTag: heroTag),
     );
   }
@@ -87,16 +88,14 @@ class _AlbumTabletLayout extends ConsumerWidget {
 
     return albumAsync.when(
       loading: () => const Scaffold(body: _AlbumShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: 'Failed to load album',
-              onRetry: () => ref.invalidate(albumProvider(albumId)),
-            ),
-          ),
-      data:
-          (album) =>
-              _AlbumContent(album: album, isTablet: true, heroTag: heroTag),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: 'Failed to load album',
+          onRetry: () => ref.invalidate(albumProvider(albumId)),
+        ),
+      ),
+      data: (album) =>
+          _AlbumContent(album: album, isTablet: true, heroTag: heroTag),
     );
   }
 }
@@ -113,16 +112,14 @@ class _AlbumWideLayout extends ConsumerWidget {
 
     return albumAsync.when(
       loading: () => const Scaffold(body: _AlbumShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: 'Failed to load album',
-              onRetry: () => ref.invalidate(albumProvider(albumId)),
-            ),
-          ),
-      data:
-          (album) =>
-              _AlbumContent(album: album, isWide: true, heroTag: heroTag),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: 'Failed to load album',
+          onRetry: () => ref.invalidate(albumProvider(albumId)),
+        ),
+      ),
+      data: (album) =>
+          _AlbumContent(album: album, isWide: true, heroTag: heroTag),
     );
   }
 }
@@ -167,8 +164,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 340.0;
+    final double expandedHeight = widget.isTablet || widget.isWide
+        ? 360.0
+        : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -189,10 +187,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
       _scrollProgress,
     );
 
-    final thumbnailUrl =
-        widget.album.thumbnails.isNotEmpty
-            ? widget.album.thumbnails.last.url
-            : null;
+    final thumbnailUrl = widget.album.thumbnails.isNotEmpty
+        ? widget.album.thumbnails.last.url
+        : null;
 
     final totalDuration = playableDuration(widget.album.songs);
     final unavailableCount = unplayableSongCount(widget.album.songs);
@@ -215,8 +212,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
             iconTheme: IconThemeData(color: iconColor),
             foregroundColor: iconColor,
             title: AnimatedOpacity(
-              opacity:
-                  _scrollProgress > 0.8 ? (_scrollProgress - 0.8) / 0.2 : 0.0,
+              opacity: _scrollProgress > 0.8
+                  ? (_scrollProgress - 0.8) / 0.2
+                  : 0.0,
               duration: const Duration(milliseconds: 150),
               child: Text.rich(
                 TextSpan(
@@ -265,23 +263,19 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                     wide: widget.isWide,
                     about:
                         widget.album.description != null &&
-                                widget.album.description!.isNotEmpty
-                            ? ExpandableText(text: widget.album.description!)
-                            : null,
+                            widget.album.description!.isNotEmpty
+                        ? ExpandableText(text: widget.album.description!)
+                        : null,
                     list: _buildTracklist(context, ref),
-                    related:
-                        uniqueRelatedReleases.isEmpty
-                            ? null
-                            : _RelatedReleasesCarousel(
-                              releases: uniqueRelatedReleases,
-                              controller: _relatedReleasesScrollController,
-                            ),
-                    relatedRail:
-                        uniqueRelatedReleases.isEmpty
-                            ? null
-                            : _RelatedReleasesRail(
-                              releases: uniqueRelatedReleases,
-                            ),
+                    related: uniqueRelatedReleases.isEmpty
+                        ? null
+                        : _RelatedReleasesCarousel(
+                            releases: uniqueRelatedReleases,
+                            controller: _relatedReleasesScrollController,
+                          ),
+                    relatedRail: uniqueRelatedReleases.isEmpty
+                        ? null
+                        : _RelatedReleasesRail(releases: uniqueRelatedReleases),
                   ),
                 ],
               ),
@@ -293,10 +287,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
   }
 
   Widget _buildTracklist(BuildContext context, WidgetRef ref) {
-    final trackNumberWidth =
-        widget.album.songs.length >= 100
-            ? 36.0
-            : (widget.album.songs.length >= 10 ? 32.0 : 28.0);
+    final trackNumberWidth = widget.album.songs.length >= 100
+        ? 36.0
+        : (widget.album.songs.length >= 10 ? 32.0 : 28.0);
 
     return Column(
       children: [
@@ -321,10 +314,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                     title: widget.album.songs[i].name,
                     artist: displayArtists(widget.album.songs[i].artists),
                     artists: widget.album.songs[i].artists,
-                    thumbnailUrl:
-                        widget.album.songs[i].thumbnails.isNotEmpty
-                            ? widget.album.songs[i].thumbnails.last.url
-                            : null,
+                    thumbnailUrl: widget.album.songs[i].thumbnails.isNotEmpty
+                        ? widget.album.songs[i].thumbnails.last.url
+                        : null,
                     duration: widget.album.songs[i].duration,
                     albumName: widget.album.name,
                     albumId: widget.album.albumId,
@@ -463,8 +455,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                           child: CachedNetworkImage(
                             imageUrl: thumbnailUrl,
                             fit: BoxFit.cover,
-                            errorWidget:
-                                (_, _, _) => _placeholderThumbnail(context),
+                            errorWidget: (_, _, _) =>
+                                _placeholderThumbnail(context),
                           ),
                         ),
                       ),
@@ -523,9 +515,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
                       _formatDuration(totalDuration),
                       if (unavailableCount > 0)
-                        AppLocalizations.of(
-                          context,
-                        )!.tracksUnavailable(unavailableCount),
+                        AppLocalizations.of(context)!
+                            .tracksUnavailable(unavailableCount),
                     ].join(' · '),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: PlayerColors.of(context).labelMuted,
@@ -608,8 +599,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         child: CachedNetworkImage(
                           imageUrl: thumbnailUrl,
                           fit: BoxFit.cover,
-                          errorWidget:
-                              (_, _, _) => _placeholderThumbnail(context),
+                          errorWidget: (_, _, _) =>
+                              _placeholderThumbnail(context),
                         ),
                       ),
                     ),
@@ -645,13 +636,14 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                             TextSpan(text: widget.album.name),
                           ],
                         ),
-                        style: (isWide
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.titlePrimary,
-                            ),
+                        style:
+                            (isWide
+                                    ? theme.textTheme.headlineLarge
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.titlePrimary,
+                                ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -672,9 +664,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                           '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
                           _formatDuration(totalDuration),
                           if (unavailableCount > 0)
-                            AppLocalizations.of(
-                              context,
-                            )!.tracksUnavailable(unavailableCount),
+                            AppLocalizations.of(context)!
+                                .tracksUnavailable(unavailableCount),
                         ].join(' · '),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.subtitle,
@@ -726,9 +717,8 @@ class _AlbumActions extends ConsumerWidget {
         icon: Icons.favorite_border,
         label: l10n.like,
         tooltip: l10n.like,
-        buildControl:
-            (context, compact) =>
-                _LikeAlbumButton(album: album, iconOnly: compact),
+        buildControl: (context, compact) =>
+            _LikeAlbumButton(album: album, iconOnly: compact),
       ),
     ]);
 
@@ -746,8 +736,9 @@ class _AlbumActions extends ConsumerWidget {
           name: album.name,
           artist: displayArtists(album.artists),
           artistId: primaryArtistId(album.artists),
-          thumbnailUrl:
-              album.thumbnails.isNotEmpty ? album.thumbnails.last.url : null,
+          thumbnailUrl: album.thumbnails.isNotEmpty
+              ? album.thumbnails.last.url
+              : null,
           year: album.year,
           omitActionIds: {
             DetailActionId.play,
@@ -846,17 +837,16 @@ class _LikeAlbumButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final likedAsync = ref.watch(likedAlbumProvider(album.albumId));
     return likedAsync.when(
-      loading:
-          () => DetailAffinityButton(
-            iconOnly: iconOnly,
-            isActive: false,
-            enabled: false,
-            idleIcon: DetailAffinityButton.likeIdle,
-            activeIcon: DetailAffinityButton.likeActive,
-            idleLabel: l10n.like,
-            activeLabel: l10n.liked,
-            onPressed: null,
-          ),
+      loading: () => DetailAffinityButton(
+        iconOnly: iconOnly,
+        isActive: false,
+        enabled: false,
+        idleIcon: DetailAffinityButton.likeIdle,
+        activeIcon: DetailAffinityButton.likeActive,
+        idleLabel: l10n.like,
+        activeLabel: l10n.liked,
+        onPressed: null,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
@@ -877,10 +867,9 @@ class _LikeAlbumButton extends ConsumerWidget {
                     name: album.name,
                     artistName: displayArtists(album.artists),
                     artistId: primaryArtistId(album.artists),
-                    thumbnailUrl:
-                        album.thumbnails.isNotEmpty
-                            ? album.thumbnails.last.url
-                            : null,
+                    thumbnailUrl: album.thumbnails.isNotEmpty
+                        ? album.thumbnails.last.url
+                        : null,
                     year: album.year,
                     addedAt: DateTime.now(),
                   ),
@@ -987,10 +976,9 @@ class _RelatedReleasesCarousel extends StatelessWidget {
                   name: release.name,
                   artist: displayArtists(release.artists),
                   artistId: primaryArtistId(release.artists),
-                  thumbnailUrl:
-                      release.thumbnails.isNotEmpty
-                          ? release.thumbnails.last.url
-                          : null,
+                  thumbnailUrl: release.thumbnails.isNotEmpty
+                      ? release.thumbnails.last.url
+                      : null,
                   year: release.year,
                   heroTag: 'related_release_${release.albumId}',
                 );
@@ -1020,10 +1008,9 @@ class _RelatedReleasesRail extends StatelessWidget {
             name: release.name,
             artist: displayArtists(release.artists),
             artistId: primaryArtistId(release.artists),
-            thumbnailUrl:
-                release.thumbnails.isNotEmpty
-                    ? release.thumbnails.last.url
-                    : null,
+            thumbnailUrl: release.thumbnails.isNotEmpty
+                ? release.thumbnails.last.url
+                : null,
             year: release.year,
           ),
       ],
@@ -1042,9 +1029,8 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(left: 4, bottom: 4),
       child: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        style: Theme.of(context).textTheme.titleMedium
+            ?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }

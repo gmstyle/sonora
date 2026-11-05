@@ -303,10 +303,9 @@ class _CollectionAccordionTile extends ConsumerWidget {
                 ],
               ),
               onTap: onToggle,
-              onLongPress:
-                  group.isCollection
-                      ? () => confirmDeleteDownloadGroup(context, ref, group)
-                      : null,
+              onLongPress: group.isCollection
+                  ? () => confirmDeleteDownloadGroup(context, ref, group)
+                  : null,
             ),
             if (expanded)
               for (final track in tracks)
@@ -384,10 +383,9 @@ class _SplitCompletedDownloads extends ConsumerWidget {
                 group: group,
                 selected: selectedNow,
                 narrow: isWide,
-                onTap:
-                    () => ref
-                        .read(selectedDownloadGroupKeyProvider.notifier)
-                        .select(group.key),
+                onTap: () => ref
+                    .read(selectedDownloadGroupKeyProvider.notifier)
+                    .select(group.key),
               );
             },
           ),
@@ -395,17 +393,16 @@ class _SplitCompletedDownloads extends ConsumerWidget {
       ],
     );
 
-    final detail =
-        selected == null
-            ? Center(
-              child: Text(
-                l10n.selectDownloadCollection,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+    final detail = selected == null
+        ? Center(
+            child: Text(
+              l10n.selectDownloadCollection,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-            )
-            : _GroupDetailPane(group: selected, sort: sort, edgeToEdge: isWide);
+            ),
+          )
+        : _GroupDetailPane(group: selected, sort: sort, edgeToEdge: isWide);
 
     if (!isWide) {
       return Row(
@@ -441,14 +438,15 @@ class _DownloadsUtilityRail extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final active = ref.watch(activeDownloadsProvider);
-    final downloading =
-        active.values
-            .where((d) => d.status == DownloadStatus.downloading)
-            .length;
-    final queued =
-        active.values.where((d) => d.status == DownloadStatus.pending).length;
-    final failed =
-        active.values.where((d) => d.status == DownloadStatus.error).length;
+    final downloading = active.values
+        .where((d) => d.status == DownloadStatus.downloading)
+        .length;
+    final queued = active.values
+        .where((d) => d.status == DownloadStatus.pending)
+        .length;
+    final failed = active.values
+        .where((d) => d.status == DownloadStatus.error)
+        .length;
     final inProgress = downloading + queued;
     final totalTracks = groups.fold<int>(0, (sum, g) => sum + g.tracks.length);
     final totalBytes = groups.fold<int>(0, (sum, g) => sum + g.totalBytes);
@@ -520,18 +518,16 @@ class _MasterGroupTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final title =
-        group.kind == DownloadGroupKind.singles
-            ? l10n.downloadSingles
-            : group.name;
+    final title = group.kind == DownloadGroupKind.singles
+        ? l10n.downloadSingles
+        : group.name;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: narrow ? 4 : 8, vertical: 2),
       child: Material(
-        color:
-            selected
-                ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.4)
-                : Colors.transparent,
+        color: selected
+            ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.4)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: ListTile(
           visualDensity: narrow ? VisualDensity.compact : null,
@@ -586,10 +582,9 @@ class _GroupDetailPane extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final tracks = sortDownloadTracks(group.tracks, sort);
-    final title =
-        group.kind == DownloadGroupKind.singles
-            ? l10n.downloadSingles
-            : group.name;
+    final title = group.kind == DownloadGroupKind.singles
+        ? l10n.downloadSingles
+        : group.name;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -649,8 +644,8 @@ class _GroupDetailPane extends ConsumerWidget {
                     LucideIcons.trash2,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
-                  onPressed:
-                      () => confirmDeleteDownloadGroup(context, ref, group),
+                  onPressed: () =>
+                      confirmDeleteDownloadGroup(context, ref, group),
                 ),
               ],
             ],
@@ -699,9 +694,8 @@ class _CompletedTrackTile extends ConsumerWidget {
       download.artist,
       if (download.fileSize != null) formatDownloadBytes(download.fileSize),
       if (download.downloadedAt != null)
-        MaterialLocalizations.of(
-          context,
-        ).formatMediumDate(download.downloadedAt!),
+        MaterialLocalizations.of(context)
+            .formatMediumDate(download.downloadedAt!),
     ];
 
     return Padding(
@@ -757,21 +751,20 @@ class _CompletedTrackTile extends ConsumerWidget {
           onPressed: () async {
             final confirm = await showDialog<bool>(
               context: context,
-              builder:
-                  (ctx) => AlertDialog(
-                    title: Text(l10n.deleteDownload),
-                    content: Text(l10n.deleteDownloadConfirm(download.title)),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: Text(l10n.cancel),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: Text(l10n.delete),
-                      ),
-                    ],
+              builder: (ctx) => AlertDialog(
+                title: Text(l10n.deleteDownload),
+                content: Text(l10n.deleteDownloadConfirm(download.title)),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l10n.cancel),
                   ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l10n.delete),
+                  ),
+                ],
+              ),
             );
             if (confirm == true) {
               await ref
@@ -789,17 +782,16 @@ class _CompletedTrackTile extends ConsumerWidget {
                 isExplicit: download.isExplicit,
               );
         },
-        onLongPress:
-            () => ContextMenuSheet.showForSong(
-              context,
-              videoId: download.videoId,
-              title: download.title,
-              artist: download.artist,
-              artistsJson: download.artistsJson,
-              thumbnailUrl: download.thumbnailUrl,
-              isVideo: download.isVideo,
-              isExplicit: download.isExplicit,
-            ),
+        onLongPress: () => ContextMenuSheet.showForSong(
+          context,
+          videoId: download.videoId,
+          title: download.title,
+          artist: download.artist,
+          artistsJson: download.artistsJson,
+          thumbnailUrl: download.thumbnailUrl,
+          isVideo: download.isVideo,
+          isExplicit: download.isExplicit,
+        ),
       ),
     );
   }
@@ -832,10 +824,9 @@ Future<void> playDownloadGroup(
         artistsJson: d.artistsJson,
         title: d.title,
         artist: d.artist,
-        artUri:
-            d.thumbnailUrl != null && d.thumbnailUrl!.isNotEmpty
-                ? Uri.parse(d.thumbnailUrl!)
-                : null,
+        artUri: d.thumbnailUrl != null && d.thumbnailUrl!.isNotEmpty
+            ? Uri.parse(d.thumbnailUrl!)
+            : null,
       ).toFreshMediaItem(),
     );
   }
@@ -849,29 +840,27 @@ Future<void> confirmDeleteDownloadGroup(
   DownloadGroup group,
 ) async {
   final l10n = AppLocalizations.of(context)!;
-  final name =
-      group.kind == DownloadGroupKind.singles
-          ? l10n.downloadSingles
-          : group.name;
+  final name = group.kind == DownloadGroupKind.singles
+      ? l10n.downloadSingles
+      : group.name;
   final confirm = await showDialog<bool>(
     context: context,
-    builder:
-        (ctx) => AlertDialog(
-          title: Text(l10n.deleteDownloadCollection),
-          content: Text(
-            l10n.deleteDownloadCollectionConfirm(group.tracks.length, name),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.delete),
-            ),
-          ],
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.deleteDownloadCollection),
+      content: Text(
+        l10n.deleteDownloadCollectionConfirm(group.tracks.length, name),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
         ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.delete),
+        ),
+      ],
+    ),
   );
   if (confirm != true) return;
   final notifier = ref.read(activeDownloadsProvider.notifier);
@@ -912,16 +901,15 @@ class DownloadsSortMenu extends ConsumerWidget {
       return PopupMenuButton<DownloadsSort>(
         tooltip: l10n.sortDownloads,
         initialValue: currentSort,
-        onSelected:
-            (value) => ref.read(downloadsSortProvider.notifier).update(value),
-        itemBuilder:
-            (context) => [
-              for (final entry in _options(l10n).entries)
-                PopupMenuItem<DownloadsSort>(
-                  value: entry.key,
-                  child: Text(entry.value),
-                ),
-            ],
+        onSelected: (value) =>
+            ref.read(downloadsSortProvider.notifier).update(value),
+        itemBuilder: (context) => [
+          for (final entry in _options(l10n).entries)
+            PopupMenuItem<DownloadsSort>(
+              value: entry.key,
+              child: Text(entry.value),
+            ),
+        ],
         icon: Icon(
           LucideIcons.arrowUpDown,
           color: Theme.of(context).colorScheme.primary,
@@ -940,16 +928,15 @@ class DownloadsSortMenu extends ConsumerWidget {
     return PopupMenuButton<DownloadsSort>(
       tooltip: l10n.sortDownloads,
       initialValue: currentSort,
-      onSelected:
-          (value) => ref.read(downloadsSortProvider.notifier).update(value),
-      itemBuilder:
-          (context) => [
-            for (final entry in _options(l10n).entries)
-              PopupMenuItem<DownloadsSort>(
-                value: entry.key,
-                child: Text(entry.value),
-              ),
-          ],
+      onSelected: (value) =>
+          ref.read(downloadsSortProvider.notifier).update(value),
+      itemBuilder: (context) => [
+        for (final entry in _options(l10n).entries)
+          PopupMenuItem<DownloadsSort>(
+            value: entry.key,
+            child: Text(entry.value),
+          ),
+      ],
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
@@ -982,9 +969,8 @@ class DownloadsSortMenu extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   l10n.sortBy,
-                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(sheetContext).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
               const Divider(height: 1),
@@ -1007,14 +993,12 @@ class DownloadsSortMenu extends ConsumerWidget {
                         title: Text(
                           entry.value,
                           style: TextStyle(
-                            fontWeight:
-                                entry.key == currentSort
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                            color:
-                                entry.key == currentSort
-                                    ? Theme.of(sheetContext).colorScheme.primary
-                                    : null,
+                            fontWeight: entry.key == currentSort
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: entry.key == currentSort
+                                ? Theme.of(sheetContext).colorScheme.primary
+                                : null,
                           ),
                         ),
                         trailing: Radio<DownloadsSort>(value: entry.key),

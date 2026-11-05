@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/utils/connectivity_utils.dart';
 import 'settings_provider.dart';
 

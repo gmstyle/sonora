@@ -56,11 +56,10 @@ class RelatedView extends ConsumerWidget {
 
     return relatedAsync.when(
       loading: () => const _RelatedShimmer(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: l10n.failedToLoadRelated,
-            onRetry: () => ref.invalidate(songRelatedProvider(videoId)),
-          ),
+      error: (e, _) => ErrorRetryWidget(
+        message: l10n.failedToLoadRelated,
+        onRetry: () => ref.invalidate(songRelatedProvider(videoId)),
+      ),
       data: (sections) {
         if (sections.isEmpty) {
           return Center(
@@ -71,9 +70,8 @@ class RelatedView extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Text(
                   l10n.noRelatedContent,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(color: pc.subtitle),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -107,14 +105,14 @@ class _PodcastEpisodesRelated extends ConsumerWidget {
 
     return podcastAsync.when(
       loading: () => const _RelatedShimmer(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: l10n.failedToLoadRelated,
-            onRetry: () => ref.invalidate(podcastProvider(browseId)),
-          ),
+      error: (e, _) => ErrorRetryWidget(
+        message: l10n.failedToLoadRelated,
+        onRetry: () => ref.invalidate(podcastProvider(browseId)),
+      ),
       data: (podcast) {
-        final episodes =
-            podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+        final episodes = podcast.episodes
+            .where((e) => e.videoId.isNotEmpty)
+            .toList();
         if (episodes.isEmpty) {
           return Center(
             child: Column(
@@ -124,9 +122,8 @@ class _PodcastEpisodesRelated extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Text(
                   l10n.noRelatedContent,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(color: pc.subtitle),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -159,10 +156,9 @@ class _PodcastEpisodesRelated extends ConsumerWidget {
               title: episode.name,
               artist: authorName,
               artistId: podcast.author?.artistId,
-              thumbnailUrl:
-                  episode.thumbnails.isNotEmpty
-                      ? episode.thumbnails.last.url
-                      : null,
+              thumbnailUrl: episode.thumbnails.isNotEmpty
+                  ? episode.thumbnails.last.url
+                  : null,
               duration: seconds,
               playCount: episode.date,
               isVideo: false,
@@ -234,9 +230,8 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             Text(
@@ -265,9 +260,8 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
         if (hasSongs)
@@ -279,20 +273,17 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
               artists: song.artists,
               artistId: primaryArtistId(song.artists),
               albumId: song.album?.albumId,
-              thumbnailUrl:
-                  song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+              thumbnailUrl: song.thumbnails.isNotEmpty
+                  ? song.thumbnails.last.url
+                  : null,
               duration: song.duration,
               isExplicit: song.isExplicit,
               isPlayable: song.isPlayable,
-              onTap:
-                  song.isPlayable
-                      ? () => ref
-                          .read(playerStateProvider.notifier)
-                          .playVideoId(
-                            song.videoId,
-                            isExplicit: song.isExplicit,
-                          )
-                      : null,
+              onTap: song.isPlayable
+                  ? () => ref
+                        .read(playerStateProvider.notifier)
+                        .playVideoId(song.videoId, isExplicit: song.isExplicit)
+                  : null,
             ),
           ),
         if (hasCards)
@@ -327,16 +318,16 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
         name: item.name,
         artist: displayArtists(item.artists),
         artistId: primaryArtistId(item.artists),
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         year: item.year,
         cardWidth: cardWidth,
         heroTag: heroTag,
-        onTap:
-            () => closeFullPlayerAndNavigate(
-              context,
-              '/album/${item.albumId}?heroTag=${Uri.encodeComponent(heroTag)}',
-            ),
+        onTap: () => closeFullPlayerAndNavigate(
+          context,
+          '/album/${item.albumId}?heroTag=${Uri.encodeComponent(heroTag)}',
+        ),
       );
     }
     if (item is ArtistDetailed) {
@@ -344,15 +335,15 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
       return ArtistCard(
         artistId: item.artistId,
         name: item.name,
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         cardWidth: 120,
         heroTag: heroTag,
-        onTap:
-            () => closeFullPlayerAndNavigate(
-              context,
-              '/artist/${item.artistId}?heroTag=${Uri.encodeComponent(heroTag)}',
-            ),
+        onTap: () => closeFullPlayerAndNavigate(
+          context,
+          '/artist/${item.artistId}?heroTag=${Uri.encodeComponent(heroTag)}',
+        ),
       );
     }
     if (item is PlaylistDetailed) {
@@ -361,15 +352,15 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
         playlistId: item.playlistId,
         name: item.name,
         artist: displayArtists(item.artists),
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         cardWidth: cardWidth,
         heroTag: heroTag,
-        onTap:
-            () => closeFullPlayerAndNavigate(
-              context,
-              '/playlist/${item.playlistId}?heroTag=${Uri.encodeComponent(heroTag)}',
-            ),
+        onTap: () => closeFullPlayerAndNavigate(
+          context,
+          '/playlist/${item.playlistId}?heroTag=${Uri.encodeComponent(heroTag)}',
+        ),
       );
     }
     if (item is VideoDetailed) {
@@ -378,8 +369,9 @@ class _RelatedSectionBlockState extends ConsumerState<_RelatedSectionBlock> {
         title: item.name,
         artist: displayArtists(item.artists),
         artists: item.artists,
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         artistId: primaryArtistId(item.artists),
         isExplicit: item.isExplicit,
         isPlayable: item.isPlayable,

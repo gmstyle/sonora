@@ -13,55 +13,49 @@ import 'package:sonora/cli/commands/search_command.dart';
 import 'package:sonora/cli/sonora_cli_provider.dart';
 
 Future<void> main(List<String> arguments) async {
-  final parser =
-      ArgParser()
-        ..addFlag('help', abbr: 'h', help: 'Show usage', negatable: false);
+  final parser = ArgParser()
+    ..addFlag('help', abbr: 'h', help: 'Show usage', negatable: false);
 
   final subcommands = <String, ArgParser>{
-    'search':
-        ArgParser()
-          ..addOption(
-            'type',
-            abbr: 't',
-            help: 'Filter (song/album/artist/playlist/video)',
-          )
-          ..addOption('limit', abbr: 'l', help: 'Max results', defaultsTo: '10')
-          ..addFlag('json', help: 'JSON output', negatable: false)
-          ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
+    'search': ArgParser()
+      ..addOption(
+        'type',
+        abbr: 't',
+        help: 'Filter (song/album/artist/playlist/video)',
+      )
+      ..addOption('limit', abbr: 'l', help: 'Max results', defaultsTo: '10')
+      ..addFlag('json', help: 'JSON output', negatable: false)
+      ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
 
-    'play':
-        ArgParser()
-          ..addOption(
-            'player',
-            help: 'Player (auto/mpv/ffplay/url)',
-            defaultsTo: 'auto',
-          )
-          ..addFlag('json', help: 'JSON output', negatable: false, hide: true)
-          ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
+    'play': ArgParser()
+      ..addOption(
+        'player',
+        help: 'Player (auto/mpv/ffplay/url)',
+        defaultsTo: 'auto',
+      )
+      ..addFlag('json', help: 'JSON output', negatable: false, hide: true)
+      ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
 
-    'library':
-        ArgParser()
-          ..addOption('type', help: 'Type (songs/albums/artists/playlists)')
-          ..addOption('id', help: 'Item ID')
-          ..addOption('title', help: 'Item title')
-          ..addOption('artist', help: 'Artist name')
-          ..addFlag('json', help: 'JSON output', negatable: false)
-          ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
+    'library': ArgParser()
+      ..addOption('type', help: 'Type (songs/albums/artists/playlists)')
+      ..addOption('id', help: 'Item ID')
+      ..addOption('title', help: 'Item title')
+      ..addOption('artist', help: 'Artist name')
+      ..addFlag('json', help: 'JSON output', negatable: false)
+      ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
 
-    'download':
-        ArgParser()
-          ..addOption('title', help: 'Song title')
-          ..addOption('artist', help: 'Artist name')
-          ..addOption('output-dir', help: 'Download directory')
-          ..addFlag('json', help: 'JSON output', negatable: false, hide: true)
-          ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
+    'download': ArgParser()
+      ..addOption('title', help: 'Song title')
+      ..addOption('artist', help: 'Artist name')
+      ..addOption('output-dir', help: 'Download directory')
+      ..addFlag('json', help: 'JSON output', negatable: false, hide: true)
+      ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
 
-    'history':
-        ArgParser()
-          ..addOption('limit', abbr: 'l', help: 'Max entries', defaultsTo: '20')
-          ..addFlag('clear', help: 'Clear history', negatable: false)
-          ..addFlag('json', help: 'JSON output', negatable: false)
-          ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
+    'history': ArgParser()
+      ..addOption('limit', abbr: 'l', help: 'Max entries', defaultsTo: '20')
+      ..addFlag('clear', help: 'Clear history', negatable: false)
+      ..addFlag('json', help: 'JSON output', negatable: false)
+      ..addFlag('help', abbr: 'h', help: 'Show help', negatable: false),
   };
 
   if (arguments.isEmpty) {

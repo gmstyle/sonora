@@ -128,10 +128,9 @@ class YoutubeRequestScheduler {
 
     final now = DateTime.now();
     final earliestStart = _nextAllowedStart;
-    final scheduledStart =
-        (earliestStart != null && earliestStart.isAfter(now))
-            ? earliestStart
-            : now;
+    final scheduledStart = (earliestStart != null && earliestStart.isAfter(now))
+        ? earliestStart
+        : now;
     // Reserve the following slot immediately (synchronously, before any
     // `await` below) so the next caller — even one arriving in the same
     // synchronous burst — sees an up-to-date cursor.

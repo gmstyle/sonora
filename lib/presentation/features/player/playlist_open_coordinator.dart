@@ -46,28 +46,18 @@ class PlaylistOpenCoordinator {
   final void Function(String) _log;
 
   PlaylistOpenCoordinator({
-    required PlaybackEngine engine,
-    required QueueController queueController,
-    required QueueRepository queueRepo,
-    required PlaybackVolumeController volumeController,
-    required PlaybackStatePublisher statePublisher,
-    required PlaybackIntentController intent,
-    required PlayVideoIdUseCase playVideoIdUseCase,
-    required void Function(List<MediaItem>) emitQueue,
-    required bool Function() isStopping,
-    required void Function(bool) setIsStopping,
-    required void Function(String) log,
-  }) : _engine = engine,
-       _queueController = queueController,
-       _queueRepo = queueRepo,
-       _volumeController = volumeController,
-       _statePublisher = statePublisher,
-       _intent = intent,
-       _playVideoIdUseCase = playVideoIdUseCase,
-       _emitQueue = emitQueue,
-       _isStopping = isStopping,
-       _setIsStopping = setIsStopping,
-       _log = log;
+    required this._engine,
+    required this._queueController,
+    required this._queueRepo,
+    required this._volumeController,
+    required this._statePublisher,
+    required this._intent,
+    required this._playVideoIdUseCase,
+    required this._emitQueue,
+    required this._isStopping,
+    required this._setIsStopping,
+    required this._log,
+  });
 
   /// Serialises a playlist rebuild through the queue lock, skipping it entirely
   /// when [shouldAbort] says this caller has been superseded.
@@ -143,8 +133,9 @@ class PlaylistOpenCoordinator {
 
         resolvedItems = await _resolveInitialUrl(resolvedItems, initialIndex);
 
-        final finalMedias =
-            resolvedItems.map(_queueController.toMedia).toList();
+        final finalMedias = resolvedItems
+            .map(_queueController.toMedia)
+            .toList();
         if (initialIndex >= 0 &&
             initialIndex < finalMedias.length &&
             isPlaceholderAudioUri(finalMedias[initialIndex].uri)) {

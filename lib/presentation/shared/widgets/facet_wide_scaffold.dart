@@ -27,9 +27,8 @@ class FacetWideScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final outline = Theme.of(
-      context,
-    ).colorScheme.outlineVariant.withValues(alpha: 0.4);
+    final outline = Theme.of(context).colorScheme.outlineVariant
+        .withValues(alpha: 0.4);
     final showRail = showUtility && utilityRail != null;
 
     return Row(
@@ -37,7 +36,9 @@ class FacetWideScaffold extends StatelessWidget {
       children: [
         SizedBox(width: kFacetFilterRailWidth, child: filterRail),
         VerticalDivider(width: 1, color: outline),
-        Expanded(child: Padding(padding: contentPadding, child: child)),
+        Expanded(
+          child: Padding(padding: contentPadding, child: child),
+        ),
         if (showRail) ...[
           VerticalDivider(width: 1, color: outline),
           SizedBox(width: kFacetUtilityRailWidth, child: utilityRail),

@@ -26,11 +26,10 @@ class FavoritesTab extends ConsumerWidget {
     final async = ref.watch(sortedLikedSongsProvider);
     return async.when(
       loading: () => const _ShimmerSongList(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: AppLocalizations.of(context)!.failedToLoadFavorites,
-            onRetry: () => ref.invalidate(likedSongsProvider),
-          ),
+      error: (e, _) => ErrorRetryWidget(
+        message: AppLocalizations.of(context)!.failedToLoadFavorites,
+        onRetry: () => ref.invalidate(likedSongsProvider),
+      ),
       data: (songs) {
         if (songs.isEmpty) {
           final l10n = AppLocalizations.of(context)!;
@@ -188,16 +187,14 @@ class _FavoritesHeader extends StatelessWidget {
         children: [
           Text(
             l10n.favorites,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 2),
           Text(
             '$songCount ${l10n.songs}',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           if (isMobile)

@@ -92,11 +92,10 @@ class _CachedImage extends StatelessWidget {
       imageUrl: url,
       fit: fit,
       placeholder: (_, _) => Container(color: cs.surfaceContainerHighest),
-      errorWidget:
-          (_, _, _) => Container(
-            color: cs.surfaceContainerHighest,
-            child: Icon(LucideIcons.music, color: cs.onSurfaceVariant),
-          ),
+      errorWidget: (_, _, _) => Container(
+        color: cs.surfaceContainerHighest,
+        child: Icon(LucideIcons.music, color: cs.onSurfaceVariant),
+      ),
     );
   }
 }

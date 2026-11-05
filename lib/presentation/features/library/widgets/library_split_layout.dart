@@ -80,12 +80,9 @@ class LibrarySplitLayout extends ConsumerWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            color:
-                isSelected
-                    ? theme.colorScheme.secondaryContainer.withValues(
-                      alpha: 0.4,
-                    )
-                    : Colors.transparent,
+            color: isSelected
+                ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.4)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -93,10 +90,9 @@ class LibrarySplitLayout extends ConsumerWidget {
             children: [
               Icon(
                 icon,
-                color:
-                    isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
                 size: 20,
               ),
               const SizedBox(width: 12),
@@ -104,16 +100,16 @@ class LibrarySplitLayout extends ConsumerWidget {
                 child: Text(
                   title,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                    color:
-                        isSelected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface,
                   ),
                 ),
               ),
-              if (trailing != null) trailing,
+              ?trailing,
             ],
           ),
         ),
@@ -162,36 +158,32 @@ class LibrarySplitLayout extends ConsumerWidget {
                 onSelected: (tab) {
                   ref.read(libraryActiveTabProvider.notifier).update(tab);
                 },
-                itemBuilder:
-                    (context) => [
-                      for (final tab in LibraryTab.overflowTabs)
-                        CheckedPopupMenuItem<LibraryTab>(
-                          value: tab,
-                          checked: tab == selectedTab,
-                          child: Text(_tabMeta(tab).getTitle(context)),
-                        ),
-                    ],
+                itemBuilder: (context) => [
+                  for (final tab in LibraryTab.overflowTabs)
+                    CheckedPopupMenuItem<LibraryTab>(
+                      value: tab,
+                      checked: tab == selectedTab,
+                      child: Text(_tabMeta(tab).getTitle(context)),
+                    ),
+                ],
                 child: IgnorePointer(
                   child: _navRow(
                     context: context,
                     theme: theme,
                     isSelected: overflowSelected,
-                    icon:
-                        overflowSelected
-                            ? _tabMeta(selectedTab).icon
-                            : LucideIcons.ellipsis,
-                    title:
-                        overflowSelected
-                            ? _tabMeta(selectedTab).getTitle(context)
-                            : l10n.more,
+                    icon: overflowSelected
+                        ? _tabMeta(selectedTab).icon
+                        : LucideIcons.ellipsis,
+                    title: overflowSelected
+                        ? _tabMeta(selectedTab).getTitle(context)
+                        : l10n.more,
                     onTap: () {},
                     trailing: Icon(
                       LucideIcons.chevronDown,
                       size: 18,
-                      color:
-                          overflowSelected
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurfaceVariant,
+                      color: overflowSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -230,22 +222,21 @@ class LibrarySplitLayout extends ConsumerWidget {
             // Wide tabs already inset lists by 16. Facet padding supplies the
             // rest so the page inset lands on kWideContentPadding.
             padding: EdgeInsets.symmetric(horizontal: wide ? 0 : 8),
-            child:
-                isSearchActive
-                    ? const LibrarySearchResultsView()
-                    : IndexedStack(
-                      index: selectedTab.index,
-                      children: const [
-                        FavoritesTab(),
-                        ArtistsTab(),
-                        PlaylistsTab(),
-                        AlbumsTab(),
-                        PodcastsTab(),
-                        HistoryTab(),
-                        SmartMixesTab(),
-                        StatsTab(),
-                      ],
-                    ),
+            child: isSearchActive
+                ? const LibrarySearchResultsView()
+                : IndexedStack(
+                    index: selectedTab.index,
+                    children: const [
+                      FavoritesTab(),
+                      ArtistsTab(),
+                      PlaylistsTab(),
+                      AlbumsTab(),
+                      PodcastsTab(),
+                      HistoryTab(),
+                      SmartMixesTab(),
+                      StatsTab(),
+                    ],
+                  ),
           ),
         ),
       ],
@@ -294,13 +285,12 @@ class LibrarySplitLayout extends ConsumerWidget {
         ),
         showUtility: showControlsInRail,
         filterRail: tabRail,
-        utilityRail:
-            showControlsInRail
-                ? LibraryHeaderControls(
-                  showViewSwitcher: !isSearchActive && isListOrGridTab,
-                  railLayout: true,
-                )
-                : null,
+        utilityRail: showControlsInRail
+            ? LibraryHeaderControls(
+                showViewSwitcher: !isSearchActive && isListOrGridTab,
+                railLayout: true,
+              )
+            : null,
         child: detail,
       );
     }

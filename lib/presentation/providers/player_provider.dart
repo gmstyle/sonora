@@ -6,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/models/library_models.dart';
 import '../../domain/models/queue_track.dart';
 import '../../core/utils/playable_tracks.dart';
@@ -191,10 +192,9 @@ class PlayerState {
       hasError: hasError ?? this.hasError,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       lastPlayError: clearError ? null : (lastPlayError ?? this.lastPlayError),
-      unplayableVideoIds:
-          clearUnplayable
-              ? const {}
-              : (unplayableVideoIds ?? this.unplayableVideoIds),
+      unplayableVideoIds: clearUnplayable
+          ? const {}
+          : (unplayableVideoIds ?? this.unplayableVideoIds),
       currentSong: currentSong ?? this.currentSong,
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
@@ -202,14 +202,12 @@ class PlayerState {
       duration: duration ?? this.duration,
       shuffleMode: shuffleMode ?? this.shuffleMode,
       repeatMode: repeatMode ?? this.repeatMode,
-      sleepTimerRemaining:
-          clearSleepTimer
-              ? null
-              : (sleepTimerRemaining ?? this.sleepTimerRemaining),
-      sleepUntilEndOfTrack:
-          clearSleepTimer
-              ? false
-              : (sleepUntilEndOfTrack ?? this.sleepUntilEndOfTrack),
+      sleepTimerRemaining: clearSleepTimer
+          ? null
+          : (sleepTimerRemaining ?? this.sleepTimerRemaining),
+      sleepUntilEndOfTrack: clearSleepTimer
+          ? false
+          : (sleepUntilEndOfTrack ?? this.sleepUntilEndOfTrack),
       userQueue: userQueue ?? this.userQueue,
       upNextQueue: upNextQueue ?? this.upNextQueue,
       upNextStartIndex: upNextStartIndex ?? this.upNextStartIndex,
@@ -848,8 +846,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       final playable = episodes
           .where((e) => e.videoId.isNotEmpty)
           .toList(growable: false);
-      final initialIndex =
-          startIndex >= 0 && startIndex < playable.length ? startIndex : 0;
+      final initialIndex = startIndex >= 0 && startIndex < playable.length
+          ? startIndex
+          : 0;
       await _handler.playNow(
         items,
         initialIndex: initialIndex,
@@ -1130,15 +1129,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (state.isBlocked) return Future.value();
     final duration = state.duration;
     final raw = state.position + offset;
-    final clamped =
-        duration > Duration.zero
-            ? Duration(
-              milliseconds: raw.inMilliseconds.clamp(
-                0,
-                duration.inMilliseconds,
-              ),
-            )
-            : (raw.isNegative ? Duration.zero : raw);
+    final clamped = duration > Duration.zero
+        ? Duration(
+            milliseconds: raw.inMilliseconds.clamp(0, duration.inMilliseconds),
+          )
+        : (raw.isNegative ? Duration.zero : raw);
     return seek(clamped);
   }
 
@@ -1231,10 +1226,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _handler.setShuffleMode(mode);
 
   Future<void> toggleShuffle() async {
-    final newMode =
-        state.shuffleMode == AudioServiceShuffleMode.none
-            ? AudioServiceShuffleMode.all
-            : AudioServiceShuffleMode.none;
+    final newMode = state.shuffleMode == AudioServiceShuffleMode.none
+        ? AudioServiceShuffleMode.all
+        : AudioServiceShuffleMode.none;
     await _handler.setShuffleMode(newMode);
   }
 

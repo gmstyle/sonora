@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import 'dart:io';
 
 class HoverCarouselArrows extends StatefulWidget {
@@ -73,10 +74,11 @@ class _HoverCarouselArrowsState extends State<HoverCarouselArrows> {
 
   void _scroll(bool left) {
     if (!widget.controller.hasClients) return;
-    final target = (left
-            ? widget.controller.offset - widget.scrollAmount
-            : widget.controller.offset + widget.scrollAmount)
-        .clamp(0.0, widget.controller.position.maxScrollExtent);
+    final target =
+        (left
+                ? widget.controller.offset - widget.scrollAmount
+                : widget.controller.offset + widget.scrollAmount)
+            .clamp(0.0, widget.controller.position.maxScrollExtent);
 
     widget.controller.animateTo(
       target,

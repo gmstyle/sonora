@@ -9,6 +9,7 @@ import 'package:sonora/domain/models/queue_track.dart';
 import 'package:sonora/domain/repositories/queue_repository.dart';
 import 'package:sonora/presentation/features/player/playback_engine.dart';
 import 'package:sonora/presentation/features/player/queue_controller.dart';
+
 import 'helpers/fake_playback_engine.dart';
 
 class _FakeStreamDatasource extends StreamDatasource {
@@ -64,13 +65,12 @@ void main() {
       isForcedOffline: () => true,
     );
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidCache.webm';
-    final item =
-        const QueueTrack(
-          videoId: 'vidCache',
-          title: 'Cached',
-          artist: 'A',
-          url: cacheUrl,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vidCache',
+      title: 'Cached',
+      artist: 'A',
+      url: cacheUrl,
+    ).toFreshMediaItem();
 
     final media = offlineController.toMedia(item);
 
@@ -89,13 +89,12 @@ void main() {
       isForcedOffline: () => true,
     );
     const fileUrl = 'file:///data/Sonora/vidDl.mp3';
-    final item =
-        const QueueTrack(
-          videoId: 'vidDl',
-          title: 'Downloaded',
-          artist: 'A',
-          url: fileUrl,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vidDl',
+      title: 'Downloaded',
+      artist: 'A',
+      url: fileUrl,
+    ).toFreshMediaItem();
 
     final media = offlineController.toMedia(item);
 
@@ -106,13 +105,12 @@ void main() {
   test('toMedia prefers file:// over proxy when proxy is running', () {
     expect(proxy.isRunning, isTrue);
     const fileUrl = 'file:///data/vid1.mp3';
-    final item =
-        const QueueTrack(
-          videoId: 'vid1',
-          title: 'Local',
-          artist: 'A',
-          url: fileUrl,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vid1',
+      title: 'Local',
+      artist: 'A',
+      url: fileUrl,
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -126,13 +124,12 @@ void main() {
 
   test('toMedia uses proxy for remote URLs when proxy is running', () {
     expect(proxy.isRunning, isTrue);
-    final item =
-        const QueueTrack(
-          videoId: 'vid2',
-          title: 'Remote',
-          artist: 'A',
-          url: 'https://example.com/vid2.mp3',
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vid2',
+      title: 'Remote',
+      artist: 'A',
+      url: 'https://example.com/vid2.mp3',
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -144,14 +141,13 @@ void main() {
 
   test('toMedia uses audio proxy for catalog video tracks', () {
     controller.updateStreamPrefs(streamAudioQuality: MediaQuality.high);
-    final item =
-        const QueueTrack(
-          videoId: 'vidVideo',
-          title: 'Video',
-          artist: 'A',
-          isVideo: true,
-          url: 'https://example.com/v.mp4',
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vidVideo',
+      title: 'Video',
+      artist: 'A',
+      isVideo: true,
+      url: 'https://example.com/v.mp4',
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -177,13 +173,12 @@ void main() {
       proxyServer: proxy,
       isForcedOffline: () => true,
     );
-    final item =
-        const QueueTrack(
-          videoId: 'vidOff',
-          title: 'Remote',
-          artist: 'A',
-          needsUrl: true,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vidOff',
+      title: 'Remote',
+      artist: 'A',
+      needsUrl: true,
+    ).toFreshMediaItem();
 
     final media = offlineController.toMedia(item);
 
@@ -193,14 +188,13 @@ void main() {
 
   test('toMedia rejects muxed media-cache mp4 for catalog video tracks', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.mp4';
-    final item =
-        const QueueTrack(
-          videoId: 'vidVideo',
-          title: 'Video',
-          artist: 'A',
-          isVideo: true,
-          url: cacheUrl,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vidVideo',
+      title: 'Video',
+      artist: 'A',
+      isVideo: true,
+      url: cacheUrl,
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -210,14 +204,13 @@ void main() {
 
   test('toMedia keeps audio webm media-cache for catalog video tracks', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidVideo.webm';
-    final item =
-        const QueueTrack(
-          videoId: 'vidVideo',
-          title: 'Video',
-          artist: 'A',
-          isVideo: true,
-          url: cacheUrl,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vidVideo',
+      title: 'Video',
+      artist: 'A',
+      isVideo: true,
+      url: cacheUrl,
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -230,13 +223,12 @@ void main() {
 
   test('toMedia still uses media-cache file for audio-only', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vid1.webm';
-    final item =
-        const QueueTrack(
-          videoId: 'vid1',
-          title: 'Song',
-          artist: 'A',
-          url: cacheUrl,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vid1',
+      title: 'Song',
+      artist: 'A',
+      url: cacheUrl,
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -245,14 +237,13 @@ void main() {
 
   test('toMedia rejects video-only cache without sibling audio', () {
     const cacheUrl = 'file:///tmp/sonora_media_cache/vidOrphan.v.mp4';
-    final item =
-        const QueueTrack(
-          videoId: 'vidOrphan',
-          title: 'Video',
-          artist: 'A',
-          isVideo: true,
-          url: cacheUrl,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vidOrphan',
+      title: 'Video',
+      artist: 'A',
+      isVideo: true,
+      url: cacheUrl,
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -276,14 +267,13 @@ void main() {
         if (await audio.exists()) await audio.delete();
       });
 
-      final item =
-          QueueTrack(
-            videoId: 'vidPair',
-            title: 'Video',
-            artist: 'A',
-            isVideo: true,
-            url: video.uri.toString(),
-          ).toFreshMediaItem();
+      final item = QueueTrack(
+        videoId: 'vidPair',
+        title: 'Video',
+        artist: 'A',
+        isVideo: true,
+        url: video.uri.toString(),
+      ).toFreshMediaItem();
 
       final media = controller.toMedia(item);
 
@@ -317,12 +307,11 @@ void main() {
 
   test('toMedia uses dummy URL when unresolved and proxy is off', () async {
     await proxy.stop();
-    final item =
-        const QueueTrack(
-          videoId: 'vid3',
-          title: 'Pending',
-          needsUrl: true,
-        ).toFreshMediaItem();
+    final item = const QueueTrack(
+      videoId: 'vid3',
+      title: 'Pending',
+      needsUrl: true,
+    ).toFreshMediaItem();
 
     final media = controller.toMedia(item);
 
@@ -352,12 +341,11 @@ void main() {
     await engine.open(items.map(qc.toMedia).toList());
     expect(engine.playlist.medias.length, 3);
 
-    final updated =
-        const QueueTrack(
-          videoId: 'b',
-          title: 'B',
-          url: 'https://example.com/b.mp3',
-        ).toFreshMediaItem();
+    final updated = const QueueTrack(
+      videoId: 'b',
+      title: 'B',
+      url: 'https://example.com/b.mp3',
+    ).toFreshMediaItem();
     final written = await qc.replaceAt(1, qc.toMedia(updated));
 
     expect(written, 1);

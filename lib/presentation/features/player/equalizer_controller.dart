@@ -39,7 +39,7 @@ double interpolateSonoraEqualizerGain(double freqHz, List<double> gains) {
 class EqualizerController {
   final AndroidEqualizer? _equalizer;
 
-  EqualizerController({AndroidEqualizer? equalizer}) : _equalizer = equalizer;
+  EqualizerController({this._equalizer});
 
   Future<void> setEqualizer({
     required bool enabled,
@@ -60,10 +60,9 @@ class EqualizerController {
       await equalizer.setEnabled(enabled);
       final params = await equalizer.parameters;
       for (final band in params.bands) {
-        final raw =
-            enabled
-                ? interpolateSonoraEqualizerGain(band.centerFrequency, gains)
-                : 0.0;
+        final raw = enabled
+            ? interpolateSonoraEqualizerGain(band.centerFrequency, gains)
+            : 0.0;
         final clamped = raw.clamp(params.minDecibels, params.maxDecibels);
         await band.setGain(clamped);
       }

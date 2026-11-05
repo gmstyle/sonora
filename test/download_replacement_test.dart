@@ -52,27 +52,24 @@ void main() {
     );
   }
 
-  test(
-    'promoteOnSuccess deletes the previous file only after the new file is in place',
-    () async {
-      final oldPath = p.join(dir.path, 'Song-vid1.m4a');
-      final newPath = p.join(dir.path, 'Album', 'Song-vid1.m4a');
-      await File(oldPath).writeAsString('old');
-      await Directory(p.dirname(newPath)).create(recursive: true);
-      await File(downloadPartPath(newPath)).writeAsString('new');
-      await seedCompleted(videoId: 'vid1', localPath: oldPath);
+  test('promoteOnSuccess deletes the previous file only after the new file is in place', () async {
+    final oldPath = p.join(dir.path, 'Song-vid1.m4a');
+    final newPath = p.join(dir.path, 'Album', 'Song-vid1.m4a');
+    await File(oldPath).writeAsString('old');
+    await Directory(p.dirname(newPath)).create(recursive: true);
+    await File(downloadPartPath(newPath)).writeAsString('new');
+    await seedCompleted(videoId: 'vid1', localPath: oldPath);
 
-      final replacement = DownloadReplacement.capture(
-        await repo.getDownload('vid1'),
-      );
-      await replacement.promoteOnSuccess(newPath);
+    final replacement = DownloadReplacement.capture(
+      await repo.getDownload('vid1'),
+    );
+    await replacement.promoteOnSuccess(newPath);
 
-      expect(await File(oldPath).exists(), isFalse);
-      expect(await File(newPath).exists(), isTrue);
-      expect(await File(newPath).readAsString(), 'new');
-      expect(await File(downloadPartPath(newPath)).exists(), isFalse);
-    },
-  );
+    expect(await File(oldPath).exists(), isFalse);
+    expect(await File(newPath).exists(), isTrue);
+    expect(await File(newPath).readAsString(), 'new');
+    expect(await File(downloadPartPath(newPath)).exists(), isFalse);
+  });
 
   test(
     'failed replacement restores the completed row and keeps the old file',

@@ -26,39 +26,35 @@ class UserPlaylistsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playlistsAsync = ref.watch(userPlaylistsProvider(_key));
     final l10n = AppLocalizations.of(context)!;
-    final title =
-        userName != null && userName!.isNotEmpty
-            ? '${l10n.playlists} · $userName'
-            : l10n.playlists;
+    final title = userName != null && userName!.isNotEmpty
+        ? '${l10n.playlists} · $userName'
+        : l10n.playlists;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: playlistsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: l10n.failedToLoadPlaylists,
-              onRetry: () => ref.invalidate(userPlaylistsProvider(_key)),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: l10n.failedToLoadPlaylists,
+          onRetry: () => ref.invalidate(userPlaylistsProvider(_key)),
+        ),
         data: (playlists) {
           if (playlists.isEmpty) {
             return Center(child: Text(l10n.noContentAvailable));
           }
 
           final width = MediaQuery.of(context).size.width;
-          final crossAxisCount =
-              width < kCompactBreakpoint
-                  ? 2
-                  : width < kExpandedBreakpoint
-                  ? 4
-                  : 6;
+          final crossAxisCount = width < kCompactBreakpoint
+              ? 2
+              : width < kExpandedBreakpoint
+              ? 4
+              : 6;
           final cardWidth =
               (width - 32 - (crossAxisCount - 1) * 12) / crossAxisCount;
 
@@ -82,10 +78,9 @@ class UserPlaylistsScreen extends ConsumerWidget {
                 playlistId: playlist.playlistId,
                 name: playlist.name,
                 artist: displayArtists(playlist.artists),
-                thumbnailUrl:
-                    playlist.thumbnails.isNotEmpty
-                        ? playlist.thumbnails.last.url
-                        : null,
+                thumbnailUrl: playlist.thumbnails.isNotEmpty
+                    ? playlist.thumbnails.last.url
+                    : null,
                 cardWidth: cardWidth,
                 heroTag: 'user_playlist_all_${playlist.playlistId}',
               );

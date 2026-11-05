@@ -204,17 +204,16 @@ class DetailActionsBar extends StatelessWidget {
       return showDialog<void>(
         context: context,
         useRootNavigator: true,
-        builder:
-            (ctx) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: buildBody(ctx),
-                ),
-              ),
+        builder: (ctx) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: buildBody(ctx),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet<void>(

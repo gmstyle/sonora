@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
@@ -19,11 +20,10 @@ class HistoryTab extends ConsumerWidget {
 
     return async.when(
       loading: () => const _ShimmerSongList(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: l10n.failedToLoadHistory,
-            onRetry: () => ref.invalidate(libraryHistoryProvider),
-          ),
+      error: (e, _) => ErrorRetryWidget(
+        message: l10n.failedToLoadHistory,
+        onRetry: () => ref.invalidate(libraryHistoryProvider),
+      ),
       data: (history) {
         if (history.isEmpty) {
           return EmptyStateWidget(
@@ -52,10 +52,9 @@ class HistoryTab extends ConsumerWidget {
                 duration: h.duration,
                 isVideo: h.isVideo,
                 isExplicit: h.isExplicit,
-                onTap:
-                    isEpisode
-                        ? () => context.push('/episode/${h.videoId}')
-                        : null,
+                onTap: isEpisode
+                    ? () => context.push('/episode/${h.videoId}')
+                    : null,
               );
             },
           ),

@@ -189,15 +189,14 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
-            builder:
-                (context) => Scaffold(
-                  body: Center(
-                    child: TextButton(
-                      onPressed: () => open(context),
-                      child: const Text('Open'),
-                    ),
-                  ),
+            builder: (context) => Scaffold(
+              body: Center(
+                child: TextButton(
+                  onPressed: () => open(context),
+                  child: const Text('Open'),
                 ),
+              ),
+            ),
           ),
         ),
       ),
@@ -232,14 +231,13 @@ void main() {
     final gate = Completer<AlbumFull>();
     final container = await pumpMenu(
       tester,
-      open:
-          (context) => ContextMenuSheet.showForAlbum(
-            context,
-            albumId: 'alb1',
-            name: 'Night Bloom',
-            artist: 'Artist',
-            omitActionIds: _omitBusyActions,
-          ),
+      open: (context) => ContextMenuSheet.showForAlbum(
+        context,
+        albumId: 'alb1',
+        name: 'Night Bloom',
+        artist: 'Artist',
+        omitActionIds: _omitBusyActions,
+      ),
       extraOverrides: [albumProvider.overrideWith((ref, _) => gate.future)],
     );
 
@@ -261,13 +259,12 @@ void main() {
       final gate = Completer<List<VideoDetailed>>();
       final container = await pumpMenu(
         tester,
-        open:
-            (context) => ContextMenuSheet.showForPlaylist(
-              context,
-              playlistId: 'PL1',
-              name: 'Mix',
-              omitActionIds: _omitBusyActions,
-            ),
+        open: (context) => ContextMenuSheet.showForPlaylist(
+          context,
+          playlistId: 'PL1',
+          name: 'Mix',
+          omitActionIds: _omitBusyActions,
+        ),
         extraOverrides: [
           playlistVideosProvider.overrideWith((ref, _) => gate.future),
         ],
@@ -280,9 +277,9 @@ void main() {
 
       final feedback = container.read(actionFeedbackProvider);
       expect(feedback?.message, isNull);
-      final downloads =
-          container.read(activeDownloadsProvider.notifier)
-              as _RecordingDownloads;
+      final downloads = container.read(
+        activeDownloadsProvider.notifier,
+      ) as _RecordingDownloads;
       expect(downloads.started, ['vid1', 'vid2']);
     },
   );
@@ -293,13 +290,12 @@ void main() {
     final gate = Completer<PodcastFull>();
     final container = await pumpMenu(
       tester,
-      open:
-          (context) => ContextMenuSheet.showForPodcast(
-            context,
-            browseId: 'MPSP1',
-            name: 'Cool Show',
-            omitActionIds: _omitBusyActions,
-          ),
+      open: (context) => ContextMenuSheet.showForPodcast(
+        context,
+        browseId: 'MPSP1',
+        name: 'Cool Show',
+        omitActionIds: _omitBusyActions,
+      ),
       extraOverrides: [podcastProvider.overrideWith((ref, _) => gate.future)],
     );
 
@@ -320,15 +316,14 @@ void main() {
   ) async {
     final container = await pumpMenu(
       tester,
-      open:
-          (context) => ContextMenuSheet.showForSong(
-            context,
-            videoId: 'vid1',
-            title: 'Track 1',
-            artist: 'Artist',
-            artistId: 'art1',
-            albumId: 'alb1',
-          ),
+      open: (context) => ContextMenuSheet.showForSong(
+        context,
+        videoId: 'vid1',
+        title: 'Track 1',
+        artist: 'Artist',
+        artistId: 'art1',
+        albumId: 'alb1',
+      ),
       extraOverrides: _songMenuOverrides(),
     );
 
@@ -353,15 +348,14 @@ void main() {
       );
       final container = await pumpMenu(
         tester,
-        open:
-            (context) => ContextMenuSheet.showForSong(
-              context,
-              videoId: 'vid1',
-              title: 'Track 1',
-              artist: 'Artist',
-              artistId: 'art1',
-              albumId: 'alb1',
-            ),
+        open: (context) => ContextMenuSheet.showForSong(
+          context,
+          videoId: 'vid1',
+          title: 'Track 1',
+          artist: 'Artist',
+          artistId: 'art1',
+          albumId: 'alb1',
+        ),
         extraOverrides: _songMenuOverrides(),
         existingDownloads: [existing],
       );
@@ -374,9 +368,9 @@ void main() {
 
       final feedback = container.read(actionFeedbackProvider);
       expect(feedback?.message, isNull);
-      final downloads =
-          container.read(activeDownloadsProvider.notifier)
-              as _RecordingDownloads;
+      final downloads = container.read(
+        activeDownloadsProvider.notifier,
+      ) as _RecordingDownloads;
       expect(downloads.started, ['vid1']);
     },
   );

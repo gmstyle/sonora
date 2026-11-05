@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/link/sonora_link.dart';
 import '../../../core/theme/player_colors.dart';
@@ -55,13 +56,12 @@ class _UserMobileLayout extends ConsumerWidget {
 
     return userAsync.when(
       loading: () => const Scaffold(body: _UserShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadUser,
-              onRetry: () => ref.invalidate(userProvider(channelId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadUser,
+          onRetry: () => ref.invalidate(userProvider(channelId)),
+        ),
+      ),
       data: (user) => _UserContent(user: user),
     );
   }
@@ -78,13 +78,12 @@ class _UserTabletLayout extends ConsumerWidget {
 
     return userAsync.when(
       loading: () => const Scaffold(body: _UserShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadUser,
-              onRetry: () => ref.invalidate(userProvider(channelId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadUser,
+          onRetry: () => ref.invalidate(userProvider(channelId)),
+        ),
+      ),
       data: (user) => _UserContent(user: user, isTablet: true),
     );
   }
@@ -101,13 +100,12 @@ class _UserWideLayout extends ConsumerWidget {
 
     return userAsync.when(
       loading: () => const Scaffold(body: _UserShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadUser,
-              onRetry: () => ref.invalidate(userProvider(channelId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadUser,
+          onRetry: () => ref.invalidate(userProvider(channelId)),
+        ),
+      ),
       data: (user) => _UserContent(user: user, isWide: true),
     );
   }
@@ -154,8 +152,9 @@ class _UserContentState extends ConsumerState<_UserContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 340.0;
+    final double expandedHeight = widget.isTablet || widget.isWide
+        ? 360.0
+        : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -202,8 +201,9 @@ class _UserContentState extends ConsumerState<_UserContent> {
     }
 
     final videos = user.videos.isNotEmpty ? _videosShelf(user, l10n) : null;
-    final playlists =
-        user.playlists.isNotEmpty ? _playlistsShelf(user, l10n) : null;
+    final playlists = user.playlists.isNotEmpty
+        ? _playlistsShelf(user, l10n)
+        : null;
     final both = videos != null && playlists != null;
 
     return EntityWideBody(
@@ -221,15 +221,12 @@ class _UserContentState extends ConsumerState<_UserContent> {
       children: [
         _SectionHeader(
           title: l10n.videos,
-          onShowAll:
-              user.videosParams != null
-                  ? () {
-                    final params = Uri.encodeComponent(user.videosParams!);
-                    context.push(
-                      '/user/${user.channelId}/videos?params=$params',
-                    );
-                  }
-                  : null,
+          onShowAll: user.videosParams != null
+              ? () {
+                  final params = Uri.encodeComponent(user.videosParams!);
+                  context.push('/user/${user.channelId}/videos?params=$params');
+                }
+              : null,
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -249,10 +246,9 @@ class _UserContentState extends ConsumerState<_UserContent> {
                   videoId: video.videoId,
                   title: video.name,
                   artist: displayArtists(video.artists),
-                  thumbnailUrl:
-                      video.thumbnails.isNotEmpty
-                          ? video.thumbnails.last.url
-                          : null,
+                  thumbnailUrl: video.thumbnails.isNotEmpty
+                      ? video.thumbnails.last.url
+                      : null,
                   artistId: primaryArtistId(video.artists),
                   isExplicit: video.isExplicit,
                   isPlayable: video.isPlayable,
@@ -271,15 +267,14 @@ class _UserContentState extends ConsumerState<_UserContent> {
       children: [
         _SectionHeader(
           title: l10n.playlists,
-          onShowAll:
-              user.playlistsParams != null
-                  ? () {
-                    final params = Uri.encodeComponent(user.playlistsParams!);
-                    context.push(
-                      '/user/${user.channelId}/playlists?params=$params',
-                    );
-                  }
-                  : null,
+          onShowAll: user.playlistsParams != null
+              ? () {
+                  final params = Uri.encodeComponent(user.playlistsParams!);
+                  context.push(
+                    '/user/${user.channelId}/playlists?params=$params',
+                  );
+                }
+              : null,
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -299,10 +294,9 @@ class _UserContentState extends ConsumerState<_UserContent> {
                   playlistId: playlist.playlistId,
                   name: playlist.name,
                   artist: displayArtists(playlist.artists),
-                  thumbnailUrl:
-                      playlist.thumbnails.isNotEmpty
-                          ? playlist.thumbnails.last.url
-                          : null,
+                  thumbnailUrl: playlist.thumbnails.isNotEmpty
+                      ? playlist.thumbnails.last.url
+                      : null,
                   cardWidth: 150,
                   heroTag: 'user_playlist_${playlist.playlistId}',
                 );
@@ -320,25 +314,23 @@ class _UserContentState extends ConsumerState<_UserContent> {
       children: [
         _SectionHeader(
           title: l10n.playlists,
-          onShowAll:
-              user.playlistsParams != null
-                  ? () {
-                    final params = Uri.encodeComponent(user.playlistsParams!);
-                    context.push(
-                      '/user/${user.channelId}/playlists?params=$params',
-                    );
-                  }
-                  : null,
+          onShowAll: user.playlistsParams != null
+              ? () {
+                  final params = Uri.encodeComponent(user.playlistsParams!);
+                  context.push(
+                    '/user/${user.channelId}/playlists?params=$params',
+                  );
+                }
+              : null,
         ),
         for (final playlist in user.playlists)
           PlaylistTile(
             playlistId: playlist.playlistId,
             name: playlist.name,
             artist: displayArtists(playlist.artists),
-            thumbnailUrl:
-                playlist.thumbnails.isNotEmpty
-                    ? playlist.thumbnails.last.url
-                    : null,
+            thumbnailUrl: playlist.thumbnails.isNotEmpty
+                ? playlist.thumbnails.last.url
+                : null,
           ),
       ],
     );
@@ -562,13 +554,14 @@ class _UserSliverAppBar extends ConsumerWidget {
                     children: [
                       Text(
                         user.name,
-                        style: (isWide
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.titlePrimary,
-                            ),
+                        style:
+                            (isWide
+                                    ? theme.textTheme.headlineLarge
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.titlePrimary,
+                                ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -644,9 +637,8 @@ class _SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           if (onShowAll != null)

@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+
 import '../../models/queue_track.dart';
 import '../../repositories/music_repository.dart';
 import '../../../core/utils/artists_utils.dart';
@@ -30,8 +31,9 @@ class StartRadioUseCase {
     bool resolveFirstUrl = true,
   }) async {
     final watch = await _musicRepository.getWatchPlaylist(
-      videoId:
-          playlistId == null && seedVideoId.isNotEmpty ? seedVideoId : null,
+      videoId: playlistId == null && seedVideoId.isNotEmpty
+          ? seedVideoId
+          : null,
       playlistId: playlistId,
       radio: playlistId == null && radio,
       shuffle: shuffle,
@@ -45,10 +47,10 @@ class StartRadioUseCase {
     // songs rather than replaying the seed.
     final tracks =
         playlistId == null &&
-                seedVideoId.isNotEmpty &&
-                watch.tracks.first.videoId == seedVideoId
-            ? watch.tracks.skip(1).toList()
-            : watch.tracks;
+            seedVideoId.isNotEmpty &&
+            watch.tracks.first.videoId == seedVideoId
+        ? watch.tracks.skip(1).toList()
+        : watch.tracks;
     if (tracks.isEmpty) throw StateError('No radio items available');
 
     final upNexts = tracks.map(_watchTrackToUpNext).toList();
@@ -84,10 +86,9 @@ class StartRadioUseCase {
       artist: displayArtists(item.artists),
       album: item.album?.name,
       duration: Duration(seconds: item.duration),
-      artUri:
-          item.thumbnails.isNotEmpty
-              ? Uri.parse(item.thumbnails.last.url)
-              : null,
+      artUri: item.thumbnails.isNotEmpty
+          ? Uri.parse(item.thumbnails.last.url)
+          : null,
     );
     return track.toFreshMediaItem();
   }
@@ -105,10 +106,9 @@ class StartRadioUseCase {
       artist: displayArtists(item.artists),
       album: item.album?.name,
       duration: Duration(seconds: item.duration),
-      artUri:
-          item.thumbnails.isNotEmpty
-              ? Uri.parse(item.thumbnails.last.url)
-              : null,
+      artUri: item.thumbnails.isNotEmpty
+          ? Uri.parse(item.thumbnails.last.url)
+          : null,
     );
     return track.toFreshMediaItem();
   }

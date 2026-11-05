@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+
 import '../database.dart';
 
 class LibraryDao extends DatabaseAccessor<AppDatabase> {
@@ -8,13 +9,13 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
 
   Stream<List<LikedSong>> watchAllLikedSongs() => select(db.likedSongs).watch();
 
-  Future<LikedSong?> getLikedSong(String videoId) =>
-      (select(db.likedSongs)
-        ..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
+  Future<LikedSong?> getLikedSong(String videoId) => (select(
+    db.likedSongs,
+  )..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
 
-  Stream<LikedSong?> watchLikedSong(String videoId) =>
-      (select(db.likedSongs)
-        ..where((t) => t.videoId.equals(videoId))).watchSingleOrNull();
+  Stream<LikedSong?> watchLikedSong(String videoId) => (select(
+    db.likedSongs,
+  )..where((t) => t.videoId.equals(videoId))).watchSingleOrNull();
 
   Future<void> insertLikedSong(LikedSongsCompanion entry) =>
       into(db.likedSongs).insertOnConflictUpdate(entry);
@@ -31,8 +32,9 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
     LikedSongsCompanion(
       artistId: Value(artistId),
       albumId: Value(albumId),
-      artistsJson:
-          artistsJson != null ? Value(artistsJson) : const Value.absent(),
+      artistsJson: artistsJson != null
+          ? Value(artistsJson)
+          : const Value.absent(),
     ),
   );
 
@@ -42,20 +44,20 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Stream<List<FollowedArtist>> watchAllFollowedArtists() =>
       select(db.followedArtists).watch();
 
-  Future<FollowedArtist?> getFollowedArtist(String artistId) =>
-      (select(db.followedArtists)
-        ..where((t) => t.artistId.equals(artistId))).getSingleOrNull();
+  Future<FollowedArtist?> getFollowedArtist(String artistId) => (select(
+    db.followedArtists,
+  )..where((t) => t.artistId.equals(artistId))).getSingleOrNull();
 
-  Stream<FollowedArtist?> watchFollowedArtist(String artistId) =>
-      (select(db.followedArtists)
-        ..where((t) => t.artistId.equals(artistId))).watchSingleOrNull();
+  Stream<FollowedArtist?> watchFollowedArtist(String artistId) => (select(
+    db.followedArtists,
+  )..where((t) => t.artistId.equals(artistId))).watchSingleOrNull();
 
   Future<void> insertFollowedArtist(FollowedArtistsCompanion entry) =>
       into(db.followedArtists).insertOnConflictUpdate(entry);
 
-  Future<void> deleteFollowedArtist(String artistId) =>
-      (delete(db.followedArtists)
-        ..where((t) => t.artistId.equals(artistId))).go();
+  Future<void> deleteFollowedArtist(String artistId) => (delete(
+    db.followedArtists,
+  )..where((t) => t.artistId.equals(artistId))).go();
 
   // ── Liked Albums ─────────────────────────────────────────────
 
@@ -64,13 +66,13 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Stream<List<LikedAlbum>> watchAllLikedAlbums() =>
       select(db.likedAlbums).watch();
 
-  Future<LikedAlbum?> getLikedAlbum(String albumId) =>
-      (select(db.likedAlbums)
-        ..where((t) => t.albumId.equals(albumId))).getSingleOrNull();
+  Future<LikedAlbum?> getLikedAlbum(String albumId) => (select(
+    db.likedAlbums,
+  )..where((t) => t.albumId.equals(albumId))).getSingleOrNull();
 
-  Stream<LikedAlbum?> watchLikedAlbum(String albumId) =>
-      (select(db.likedAlbums)
-        ..where((t) => t.albumId.equals(albumId))).watchSingleOrNull();
+  Stream<LikedAlbum?> watchLikedAlbum(String albumId) => (select(
+    db.likedAlbums,
+  )..where((t) => t.albumId.equals(albumId))).watchSingleOrNull();
 
   Future<void> insertLikedAlbum(LikedAlbumsCompanion entry) =>
       into(db.likedAlbums).insertOnConflictUpdate(entry);
@@ -86,27 +88,27 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Stream<List<LikedPlaylist>> watchAllLikedPlaylists() =>
       select(db.likedPlaylists).watch();
 
-  Future<LikedPlaylist?> getLikedPlaylist(String playlistId) =>
-      (select(db.likedPlaylists)
-        ..where((t) => t.playlistId.equals(playlistId))).getSingleOrNull();
+  Future<LikedPlaylist?> getLikedPlaylist(String playlistId) => (select(
+    db.likedPlaylists,
+  )..where((t) => t.playlistId.equals(playlistId))).getSingleOrNull();
 
-  Stream<LikedPlaylist?> watchLikedPlaylist(String playlistId) =>
-      (select(db.likedPlaylists)
-        ..where((t) => t.playlistId.equals(playlistId))).watchSingleOrNull();
+  Stream<LikedPlaylist?> watchLikedPlaylist(String playlistId) => (select(
+    db.likedPlaylists,
+  )..where((t) => t.playlistId.equals(playlistId))).watchSingleOrNull();
 
   Future<void> insertLikedPlaylist(LikedPlaylistsCompanion entry) =>
       into(db.likedPlaylists).insertOnConflictUpdate(entry);
 
-  Future<void> deleteLikedPlaylist(String playlistId) =>
-      (delete(db.likedPlaylists)
-        ..where((t) => t.playlistId.equals(playlistId))).go();
+  Future<void> deleteLikedPlaylist(String playlistId) => (delete(
+    db.likedPlaylists,
+  )..where((t) => t.playlistId.equals(playlistId))).go();
 
   Future<void> updateLikedPlaylistThumbnail(
     String playlistId,
     String thumbnailUrl,
-  ) => (update(db.likedPlaylists)..where(
-    (t) => t.playlistId.equals(playlistId),
-  )).write(LikedPlaylistsCompanion(thumbnailUrl: Value(thumbnailUrl)));
+  ) =>
+      (update(db.likedPlaylists)..where((t) => t.playlistId.equals(playlistId)))
+          .write(LikedPlaylistsCompanion(thumbnailUrl: Value(thumbnailUrl)));
 
   // ── Liked Podcasts ───────────────────────────────────────────
 
@@ -116,20 +118,20 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Stream<List<LikedPodcast>> watchAllLikedPodcasts() =>
       select(db.likedPodcasts).watch();
 
-  Future<LikedPodcast?> getLikedPodcast(String browseId) =>
-      (select(db.likedPodcasts)
-        ..where((t) => t.browseId.equals(browseId))).getSingleOrNull();
+  Future<LikedPodcast?> getLikedPodcast(String browseId) => (select(
+    db.likedPodcasts,
+  )..where((t) => t.browseId.equals(browseId))).getSingleOrNull();
 
-  Stream<LikedPodcast?> watchLikedPodcast(String browseId) =>
-      (select(db.likedPodcasts)
-        ..where((t) => t.browseId.equals(browseId))).watchSingleOrNull();
+  Stream<LikedPodcast?> watchLikedPodcast(String browseId) => (select(
+    db.likedPodcasts,
+  )..where((t) => t.browseId.equals(browseId))).watchSingleOrNull();
 
   Future<void> insertLikedPodcast(LikedPodcastsCompanion entry) =>
       into(db.likedPodcasts).insertOnConflictUpdate(entry);
 
-  Future<void> deleteLikedPodcast(String browseId) =>
-      (delete(db.likedPodcasts)
-        ..where((t) => t.browseId.equals(browseId))).go();
+  Future<void> deleteLikedPodcast(String browseId) => (delete(
+    db.likedPodcasts,
+  )..where((t) => t.browseId.equals(browseId))).go();
 
   // ── Liked Episodes ───────────────────────────────────────────
 
@@ -139,13 +141,13 @@ class LibraryDao extends DatabaseAccessor<AppDatabase> {
   Stream<List<LikedEpisode>> watchAllLikedEpisodes() =>
       select(db.likedEpisodes).watch();
 
-  Future<LikedEpisode?> getLikedEpisode(String videoId) =>
-      (select(db.likedEpisodes)
-        ..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
+  Future<LikedEpisode?> getLikedEpisode(String videoId) => (select(
+    db.likedEpisodes,
+  )..where((t) => t.videoId.equals(videoId))).getSingleOrNull();
 
-  Stream<LikedEpisode?> watchLikedEpisode(String videoId) =>
-      (select(db.likedEpisodes)
-        ..where((t) => t.videoId.equals(videoId))).watchSingleOrNull();
+  Stream<LikedEpisode?> watchLikedEpisode(String videoId) => (select(
+    db.likedEpisodes,
+  )..where((t) => t.videoId.equals(videoId))).watchSingleOrNull();
 
   Future<void> insertLikedEpisode(LikedEpisodesCompanion entry) =>
       into(db.likedEpisodes).insertOnConflictUpdate(entry);

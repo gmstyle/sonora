@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
@@ -24,11 +25,10 @@ class AlbumsTab extends ConsumerWidget {
 
     return async.when(
       loading: () => const _ShimmerSongList(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: AppLocalizations.of(context)!.failedToLoadAlbums,
-            onRetry: () => ref.invalidate(likedAlbumsProvider),
-          ),
+      error: (e, _) => ErrorRetryWidget(
+        message: AppLocalizations.of(context)!.failedToLoadAlbums,
+        onRetry: () => ref.invalidate(likedAlbumsProvider),
+      ),
       data: (albums) {
         if (albums.isEmpty) {
           final l10n = AppLocalizations.of(context)!;
@@ -42,77 +42,74 @@ class AlbumsTab extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () => ref.refresh(likedAlbumsProvider.future),
-          child:
-              isGridView
-                  ? GridView.builder(
-                    padding: EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      top: 16,
-                      bottom: MediaQuery.of(context).padding.bottom + 16,
-                    ),
-                    gridDelegate:
-                        isMobile
-                            ? const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.68,
-                            )
-                            : const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 170.0,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.68,
-                            ),
-                    itemCount: albums.length,
-                    itemBuilder: (context, i) {
-                      final a = albums[i];
-                      return AlbumCard(
+          child: isGridView
+              ? GridView.builder(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                  ),
+                  gridDelegate: isMobile
+                      ? const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.68,
+                        )
+                      : const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 170.0,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.68,
+                        ),
+                  itemCount: albums.length,
+                  itemBuilder: (context, i) {
+                    final a = albums[i];
+                    return AlbumCard(
+                      albumId: a.albumId,
+                      name: a.name,
+                      artist: a.artistName,
+                      artistId: a.artistId,
+                      thumbnailUrl: a.thumbnailUrl,
+                      year: a.year,
+                      heroTag: 'library_album_${a.albumId}',
+                    );
+                  },
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                  ),
+                  itemCount: albums.length,
+                  itemBuilder: (_, i) {
+                    final a = albums[i];
+                    return ListTile(
+                      leading: ThumbnailWidget(
+                        imageUrl: a.thumbnailUrl,
+                        size: 48,
+                        shape: ThumbnailShape.rounded,
+                      ),
+                      title: Text(a.name),
+                      subtitle: Text(
+                        a.year != null
+                            ? '${a.artistName} · ${a.year}'
+                            : a.artistName,
+                      ),
+                      trailing: const Icon(LucideIcons.chevronRight),
+                      onTap: () => context.push('/album/${a.albumId}'),
+                      onLongPress: () => ContextMenuSheet.showForAlbum(
+                        context,
                         albumId: a.albumId,
                         name: a.name,
                         artist: a.artistName,
                         artistId: a.artistId,
                         thumbnailUrl: a.thumbnailUrl,
                         year: a.year,
-                        heroTag: 'library_album_${a.albumId}',
-                      );
-                    },
-                  )
-                  : ListView.builder(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).padding.bottom + 16,
-                    ),
-                    itemCount: albums.length,
-                    itemBuilder: (_, i) {
-                      final a = albums[i];
-                      return ListTile(
-                        leading: ThumbnailWidget(
-                          imageUrl: a.thumbnailUrl,
-                          size: 48,
-                          shape: ThumbnailShape.rounded,
-                        ),
-                        title: Text(a.name),
-                        subtitle: Text(
-                          a.year != null
-                              ? '${a.artistName} · ${a.year}'
-                              : a.artistName,
-                        ),
-                        trailing: const Icon(LucideIcons.chevronRight),
-                        onTap: () => context.push('/album/${a.albumId}'),
-                        onLongPress:
-                            () => ContextMenuSheet.showForAlbum(
-                              context,
-                              albumId: a.albumId,
-                              name: a.name,
-                              artist: a.artistName,
-                              artistId: a.artistId,
-                              thumbnailUrl: a.thumbnailUrl,
-                              year: a.year,
-                            ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                ),
         );
       },
     );

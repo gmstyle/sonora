@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -453,20 +454,16 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
             boxShadow: const [
               BoxShadow(color: Colors.pink, blurRadius: 32, spreadRadius: 2),
             ],
-            image:
-                topArtist.thumbnailUrl != null
-                    ? DecorationImage(
-                      image: CachedNetworkImageProvider(
-                        topArtist.thumbnailUrl!,
-                      ),
-                      fit: BoxFit.cover,
-                    )
-                    : null,
+            image: topArtist.thumbnailUrl != null
+                ? DecorationImage(
+                    image: CachedNetworkImageProvider(topArtist.thumbnailUrl!),
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
-          child:
-              topArtist.thumbnailUrl == null
-                  ? const Icon(LucideIcons.user, size: 64, color: Colors.white)
-                  : null,
+          child: topArtist.thumbnailUrl == null
+              ? const Icon(LucideIcons.user, size: 64, color: Colors.white)
+              : null,
         ),
         const SizedBox(height: 32),
         Text(
@@ -552,19 +549,18 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
                   child: SizedBox(
                     width: 48,
                     height: 48,
-                    child:
-                        song.thumbnailUrl != null
-                            ? CachedNetworkImage(
-                              imageUrl: song.thumbnailUrl!,
-                              fit: BoxFit.cover,
-                            )
-                            : Container(
-                              color: Colors.grey.shade800,
-                              child: const Icon(
-                                LucideIcons.music,
-                                color: Colors.white,
-                              ),
+                    child: song.thumbnailUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: song.thumbnailUrl!,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: Colors.grey.shade800,
+                            child: const Icon(
+                              LucideIcons.music,
+                              color: Colors.white,
                             ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -626,12 +622,8 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
               width: 180,
               height: 180,
               fit: BoxFit.cover,
-              errorBuilder:
-                  (_, _, _) => const Icon(
-                    LucideIcons.mic,
-                    size: 80,
-                    color: Colors.white54,
-                  ),
+              errorBuilder: (_, _, _) =>
+                  const Icon(LucideIcons.mic, size: 80, color: Colors.white54),
             ),
           )
         else
@@ -678,12 +670,11 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
               width: 180,
               height: 180,
               fit: BoxFit.cover,
-              errorBuilder:
-                  (_, _, _) => const Icon(
-                    LucideIcons.micVocal,
-                    size: 80,
-                    color: Colors.white54,
-                  ),
+              errorBuilder: (_, _, _) => const Icon(
+                LucideIcons.micVocal,
+                size: 80,
+                color: Colors.white54,
+              ),
             ),
           )
         else
@@ -739,16 +730,15 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
   }
 
   Widget _buildSummarySlide(AppLocalizations l10n) {
-    final topArtist =
-        widget.stats.topArtists.isNotEmpty
-            ? widget.stats.topArtists.first
-            : null;
-    final topSong =
-        widget.stats.topSongs.isNotEmpty ? widget.stats.topSongs.first : null;
-    final topPodcast =
-        widget.stats.topPodcasts.isNotEmpty
-            ? widget.stats.topPodcasts.first
-            : null;
+    final topArtist = widget.stats.topArtists.isNotEmpty
+        ? widget.stats.topArtists.first
+        : null;
+    final topSong = widget.stats.topSongs.isNotEmpty
+        ? widget.stats.topSongs.first
+        : null;
+    final topPodcast = widget.stats.topPodcasts.isNotEmpty
+        ? widget.stats.topPodcasts.first
+        : null;
     final theme = Theme.of(context);
 
     return Column(

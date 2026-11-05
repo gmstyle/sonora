@@ -43,43 +43,41 @@ class HomeQuickRow extends ConsumerWidget {
       compactGrid: true,
     );
 
-    final mixesColumn =
-        sideBySide
-            ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                HomeWrappedEntry(metrics: metrics, embedded: true),
-                mixesWidget,
-              ],
-            )
-            : mixesWidget;
+    final mixesColumn = sideBySide
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              HomeWrappedEntry(metrics: metrics, embedded: true),
+              mixesWidget,
+            ],
+          )
+        : mixesWidget;
 
     if (showContinue && showMixes) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: metrics.zoneGap / 2),
-        child:
-            sideBySide
-                ? Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: metrics.quickRowPadding,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 55, child: continueWidget),
-                      SizedBox(width: metrics.zoneGap),
-                      Expanded(flex: 45, child: mixesColumn),
-                    ],
-                  ),
-                )
-                : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: sideBySide
+            ? Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: metrics.quickRowPadding,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    continueWidget,
-                    SizedBox(height: metrics.zoneGap),
-                    mixesWidget,
+                    Expanded(flex: 55, child: continueWidget),
+                    SizedBox(width: metrics.zoneGap),
+                    Expanded(flex: 45, child: mixesColumn),
                   ],
                 ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  continueWidget,
+                  SizedBox(height: metrics.zoneGap),
+                  mixesWidget,
+                ],
+              ),
       );
     }
 

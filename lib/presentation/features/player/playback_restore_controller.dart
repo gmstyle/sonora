@@ -3,7 +3,9 @@ import 'dart:developer' as dev;
 
 import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
+
 import 'playback_engine.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/utils/url_staleness.dart';
@@ -110,34 +112,21 @@ class PlaybackRestoreController {
   }
 
   PlaybackRestoreController({
-    required PlaybackEngine engine,
-    required SharedPreferences prefs,
-    required QueueRepository queueRepo,
-    required QueueController queueController,
-    required TrackUrlResolver urlResolver,
-    required PlaybackStatePublisher statePublisher,
-    required PlayVideoIdUseCase playVideoIdUseCase,
-    required void Function(bool) setUserWantsPlaying,
-    required void Function(MediaItem) emitMediaItem,
-    required Future<void> Function(AudioServiceShuffleMode) applyShuffleMode,
-    required Future<void> Function(AudioServiceRepeatMode) applyRepeatMode,
-    required void Function(List<MediaItem>) updateQueueStream,
-    required void Function(bool) setIsStopping,
-    void Function()? onRestoreReady,
-  }) : _engine = engine,
-       _prefs = prefs,
-       _queueRepo = queueRepo,
-       _queueController = queueController,
-       _urlResolver = urlResolver,
-       _statePublisher = statePublisher,
-       _playVideoIdUseCase = playVideoIdUseCase,
-       _setUserWantsPlaying = setUserWantsPlaying,
-       _emitMediaItem = emitMediaItem,
-       _applyShuffleMode = applyShuffleMode,
-       _applyRepeatMode = applyRepeatMode,
-       _updateQueueStream = updateQueueStream,
-       _setIsStopping = setIsStopping,
-       _onRestoreReady = onRestoreReady;
+    required this._engine,
+    required this._prefs,
+    required this._queueRepo,
+    required this._queueController,
+    required this._urlResolver,
+    required this._statePublisher,
+    required this._playVideoIdUseCase,
+    required this._setUserWantsPlaying,
+    required this._emitMediaItem,
+    required this._applyShuffleMode,
+    required this._applyRepeatMode,
+    required this._updateQueueStream,
+    required this._setIsStopping,
+    this._onRestoreReady,
+  });
 
   Future<void> awaitReady() async {
     // Wait for cold/warm restore to finish before play/skip from AA or the
@@ -287,34 +276,30 @@ class PlaybackRestoreController {
     // Honor the current autoplay setting: if the user disabled Up Next
     // between sessions, strip the upnext section from the restored queue.
     final autoplayEnabled = _prefs.getBool(kAutoPlayUpNextKey) ?? true;
-    final filtered =
-        autoplayEnabled
-            ? rawEntries
-            : rawEntries
-                .where((entry) => entry.section == QueueSection.user)
-                .toList();
+    final filtered = autoplayEnabled
+        ? rawEntries
+        : rawEntries
+              .where((entry) => entry.section == QueueSection.user)
+              .toList();
 
     final seenIds = <String>{};
-    final items =
-        filtered.map((entry) {
-          final track = entry.track;
-          final baseItem = track.toFreshMediaItem();
-          final taggedItem =
-              entry.section == QueueSection.upnext
-                  ? QueueController.tagUpNext(baseItem)
-                  : QueueController.tagUser(baseItem);
-          final isLocalAndValid =
-              PlaybackRestoreController.keepLocalUrlOnRestore(track);
-          if (isLocalAndValid) {
-            return _queueController.ensureQueueId(taggedItem, seenIds);
-          }
-          return _queueController.ensureQueueId(
-            track
-                .copyWith(clearUrl: true, needsUrl: true)
-                .toMediaItem(taggedItem),
-            seenIds,
-          );
-        }).toList();
+    final items = filtered.map((entry) {
+      final track = entry.track;
+      final baseItem = track.toFreshMediaItem();
+      final taggedItem = entry.section == QueueSection.upnext
+          ? QueueController.tagUpNext(baseItem)
+          : QueueController.tagUser(baseItem);
+      final isLocalAndValid = PlaybackRestoreController.keepLocalUrlOnRestore(
+        track,
+      );
+      if (isLocalAndValid) {
+        return _queueController.ensureQueueId(taggedItem, seenIds);
+      }
+      return _queueController.ensureQueueId(
+        track.copyWith(clearUrl: true, needsUrl: true).toMediaItem(taggedItem),
+        seenIds,
+      );
+    }).toList();
 
     _updateQueueStream(items);
 
@@ -366,9 +351,8 @@ class PlaybackRestoreController {
 
     try {
       final freshUrl = await _playVideoIdUseCase.resolveUrl(currentItem.id);
-      final track = QueueTrack.fromMediaItem(
-        currentItem,
-      ).copyWith(url: freshUrl, needsUrl: false);
+      final track = QueueTrack.fromMediaItem(currentItem)
+          .copyWith(url: freshUrl, needsUrl: false);
       currentItem = track.toMediaItem(currentItem);
       items[savedIndex] = currentItem;
       _emitMediaItem(currentItem);
@@ -462,8 +446,8 @@ class PlaybackRestoreController {
       final idx = playlist.index;
       final publishIndex =
           (savedIndex >= 0 && savedIndex < playlist.medias.length)
-              ? savedIndex
-              : idx;
+          ? savedIndex
+          : idx;
       if (publishIndex >= 0 && publishIndex < playlist.medias.length) {
         final item = playlist.medias[publishIndex].mediaItem;
         if (item != null) {

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
@@ -75,12 +76,14 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final totalMs = widget.duration.inMilliseconds;
-    final progress = (_dragProgress ??
-            (totalMs > 0 ? widget.position.inMilliseconds / totalMs : 0.0))
-        .clamp(0.0, 1.0);
+    final progress =
+        (_dragProgress ??
+                (totalMs > 0 ? widget.position.inMilliseconds / totalMs : 0.0))
+            .clamp(0.0, 1.0);
     final preview = _previewPosition(totalMs);
-    final remaining =
-        widget.duration > preview ? widget.duration - preview : Duration.zero;
+    final remaining = widget.duration > preview
+        ? widget.duration - preview
+        : Duration.zero;
 
     final trackHeight = switch (widget.density) {
       ProgressBarDensity.compact => 2.0,
@@ -197,14 +200,12 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget>
             HapticFeedback.selectionClick();
             _previewDrag(details.localPosition.dx, width, totalMs);
           },
-          onHorizontalDragUpdate:
-              (details) =>
-                  _previewDrag(details.localPosition.dx, width, totalMs),
+          onHorizontalDragUpdate: (details) =>
+              _previewDrag(details.localPosition.dx, width, totalMs),
           onHorizontalDragEnd: (_) => _commitSeek(totalMs),
           onHorizontalDragCancel: _cancelDrag,
-          onTapDown:
-              (details) =>
-                  _previewDrag(details.localPosition.dx, width, totalMs),
+          onTapDown: (details) =>
+              _previewDrag(details.localPosition.dx, width, totalMs),
           onTapUp: (_) => _commitSeek(totalMs),
           onTapCancel: _cancelDrag,
           child: child,
@@ -267,8 +268,9 @@ class _SeekTrackPainter extends CustomPainter {
     if (w <= 0) return;
 
     // Compact mini docks: pin the 2px track to the top edge; otherwise center.
-    final y =
-        alignToTop ? math.max(trackHeight / 2, thumbRadius) : size.height / 2;
+    final y = alignToTop
+        ? math.max(trackHeight / 2, thumbRadius)
+        : size.height / 2;
 
     final inset = thumbRadius;
     final left = inset;
@@ -276,12 +278,11 @@ class _SeekTrackPainter extends CustomPainter {
     final span = (right - left).clamp(0.0, w);
     final playX = left + progress.clamp(0.0, 1.0) * span;
 
-    final trackPaint =
-        Paint()
-          ..color = trackColor
-          ..strokeWidth = trackHeight
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke;
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..strokeWidth = trackHeight
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
     canvas.drawLine(Offset(left, y), Offset(right, y), trackPaint);
 
     if (progress > 0 && span > 0) {

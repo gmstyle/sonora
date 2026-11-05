@@ -10,10 +10,9 @@ import 'ytmusic_track_matcher.dart';
 class SpotifyYtmMatchPipeline {
   SpotifyYtmMatchPipeline(
     this._musicRepository, {
-    YtMusicTrackMatcher matcher = const YtMusicTrackMatcher(),
-    RewriteSpotifySearchQueryUseCase? rewrite,
-  }) : _matcher = matcher,
-       _rewrite = rewrite;
+    this._matcher = const YtMusicTrackMatcher(),
+    this._rewrite,
+  });
 
   final MusicRepository _musicRepository;
   final YtMusicTrackMatcher _matcher;
@@ -39,8 +38,10 @@ class SpotifyYtmMatchPipeline {
       return outcome;
     }
 
-    final alreadyTried =
-        _matcher.searchQueries(track).map((q) => q.trim()).toSet();
+    final alreadyTried = _matcher
+        .searchQueries(track)
+        .map((q) => q.trim())
+        .toSet();
     if (alreadyTried.contains(rewritten.trim())) {
       return outcome;
     }
@@ -82,8 +83,9 @@ class SpotifyYtmMatchPipeline {
       artist: displayArtists(song.artists),
       artistsJson: encodeArtistsJson(song.artists),
       durationSec: song.duration,
-      thumbnailUrl:
-          song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+      thumbnailUrl: song.thumbnails.isNotEmpty
+          ? song.thumbnails.last.url
+          : null,
       isExplicit: song.isExplicit,
     );
   }

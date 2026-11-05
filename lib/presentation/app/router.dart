@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../features/home/home_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/library/library_screen.dart';
@@ -78,14 +79,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'artist/:artistId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: ArtistScreen(
-                            artistId: state.pathParameters['artistId']!,
-                            heroTag: state.uri.queryParameters['heroTag'],
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: ArtistScreen(
+                        artistId: state.pathParameters['artistId']!,
+                        heroTag: state.uri.queryParameters['heroTag'],
+                      ),
+                    ),
                     routes: [
                       GoRoute(
                         path: 'albums',
@@ -135,43 +135,39 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'album/:albumId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: AlbumScreen(
-                            albumId: state.pathParameters['albumId']!,
-                            heroTag: state.uri.queryParameters['heroTag'],
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: AlbumScreen(
+                        albumId: state.pathParameters['albumId']!,
+                        heroTag: state.uri.queryParameters['heroTag'],
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'playlist/:playlistId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: PlaylistScreen(
-                            playlistId: state.pathParameters['playlistId']!,
-                            heroTag: state.uri.queryParameters['heroTag'],
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: PlaylistScreen(
+                        playlistId: state.pathParameters['playlistId']!,
+                        heroTag: state.uri.queryParameters['heroTag'],
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'smart-mix/:type',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: SmartMixDetailView(
-                            type: state.pathParameters['type']!,
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: SmartMixDetailView(
+                        type: state.pathParameters['type']!,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'moment-mix',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: const MomentMixDetailView(),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: const MomentMixDetailView(),
+                    ),
                   ),
                   GoRoute(
                     path: 'browse-section/:browseId',
@@ -192,19 +188,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'charts',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: const ChartsScreen(),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: const ChartsScreen(),
+                    ),
                   ),
                   GoRoute(
                     path: 'moods',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: const MoodsScreen(),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: const MoodsScreen(),
+                    ),
                     routes: [
                       GoRoute(
                         path: 'playlists',
@@ -226,41 +220,37 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'new-releases',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: const NewReleasesScreen(),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: const NewReleasesScreen(),
+                    ),
                   ),
                   GoRoute(
                     path: 'podcast/:browseId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: PodcastScreen(
-                            browseId: state.pathParameters['browseId']!,
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: PodcastScreen(
+                        browseId: state.pathParameters['browseId']!,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'episode/:videoId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: EpisodeScreen(
-                            videoId: state.pathParameters['videoId']!,
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: EpisodeScreen(
+                        videoId: state.pathParameters['videoId']!,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'user/:channelId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: UserScreen(
-                            channelId: state.pathParameters['channelId']!,
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: UserScreen(
+                        channelId: state.pathParameters['channelId']!,
+                      ),
+                    ),
                     routes: [
                       GoRoute(
                         path: 'videos',
@@ -306,33 +296,30 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'podcast/:browseId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: PodcastScreen(
-                            browseId: state.pathParameters['browseId']!,
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: PodcastScreen(
+                        browseId: state.pathParameters['browseId']!,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'episode/:videoId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: EpisodeScreen(
-                            videoId: state.pathParameters['videoId']!,
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: EpisodeScreen(
+                        videoId: state.pathParameters['videoId']!,
+                      ),
+                    ),
                   ),
                   GoRoute(
                     path: 'user/:channelId',
-                    pageBuilder:
-                        (context, state) => _slideUpPage(
-                          key: state.pageKey,
-                          child: UserScreen(
-                            channelId: state.pathParameters['channelId']!,
-                          ),
-                        ),
+                    pageBuilder: (context, state) => _slideUpPage(
+                      key: state.pageKey,
+                      child: UserScreen(
+                        channelId: state.pathParameters['channelId']!,
+                      ),
+                    ),
                     routes: [
                       GoRoute(
                         path: 'videos',
@@ -391,12 +378,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         parentNavigatorKey: rootNavigatorKey,
-        builder:
-            (context, state) => SettingsScreen(
-              initialCategory: settingsCategoryFromSection(
-                state.uri.queryParameters['section'],
-              ),
-            ),
+        builder: (context, state) => SettingsScreen(
+          initialCategory: settingsCategoryFromSection(
+            state.uri.queryParameters['section'],
+          ),
+        ),
       ),
     ],
   );

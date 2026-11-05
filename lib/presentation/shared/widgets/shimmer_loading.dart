@@ -52,10 +52,12 @@ class ShimmerLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = scheme.brightness == Brightness.dark;
-    final baseColor =
-        isDark ? scheme.surfaceContainer : scheme.surfaceContainerHigh;
-    final highlightColor =
-        isDark ? scheme.surfaceContainerHighest : scheme.surfaceContainerLowest;
+    final baseColor = isDark
+        ? scheme.surfaceContainer
+        : scheme.surfaceContainerHigh;
+    final highlightColor = isDark
+        ? scheme.surfaceContainerHighest
+        : scheme.surfaceContainerLowest;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -255,11 +257,10 @@ class _ShimmerCarousel extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: 5,
-        itemBuilder:
-            (_, _) => Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _ShimmerCard(cardWidth: cardWidth),
-            ),
+        itemBuilder: (_, _) => Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: _ShimmerCard(cardWidth: cardWidth),
+        ),
       ),
     );
   }
@@ -274,8 +275,9 @@ class _ShimmerMiniPlayer extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final height =
-            constraints.maxHeight.isFinite ? constraints.maxHeight : 48.0;
+        final height = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 48.0;
         final art = height < 40 ? height : 40.0;
         final button = height < 32 ? height : 32.0;
         final titleH = height >= 28 ? 12.0 : height * 0.28;
@@ -369,18 +371,17 @@ class _ShimmerChipsBar extends StatelessWidget {
           vertical: 8,
         ),
         itemCount: 6,
-        itemBuilder:
-            (_, _) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Container(
-                width: 80,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
+        itemBuilder: (_, _) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Container(
+            width: 80,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
             ),
+          ),
+        ),
       ),
     );
   }
@@ -449,27 +450,26 @@ class _ShimmerHomeQuickRow extends StatelessWidget {
         horizontal: sideBySide ? horizontalPadding : 0,
         vertical: zoneGap / 2,
       ),
-      child:
-          sideBySide
-              ? Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 55, child: continueBlock),
-                    SizedBox(width: zoneGap),
-                    Expanded(flex: 45, child: mixesBlock),
-                  ],
-                ),
-              )
-              : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: sideBySide
+          ? Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  continueBlock,
-                  SizedBox(height: zoneGap),
-                  mixesBlock,
+                  Expanded(flex: 55, child: continueBlock),
+                  SizedBox(width: zoneGap),
+                  Expanded(flex: 45, child: mixesBlock),
                 ],
               ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                continueBlock,
+                SizedBox(height: zoneGap),
+                mixesBlock,
+              ],
+            ),
     );
   }
 
@@ -570,15 +570,14 @@ class _ShimmerExploreChips extends StatelessWidget {
               scrollDirection: Axis.horizontal,
               itemCount: 3,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder:
-                  (_, _) => Container(
-                    width: 110,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
+              itemBuilder: (_, _) => Container(
+                width: 110,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
             ),
           ),
         ],
@@ -738,11 +737,10 @@ class _ShimmerCardRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       itemCount: 5,
-      itemBuilder:
-          (_, _) => Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _ShimmerCard(cardWidth: cardWidth),
-          ),
+      itemBuilder: (_, _) => Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: _ShimmerCard(cardWidth: cardWidth),
+      ),
     );
   }
 }

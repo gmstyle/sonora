@@ -55,13 +55,12 @@ class PlayerInsightsOverlay {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder:
-          (context) => const SafeArea(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 16),
-              child: PlayerInsightsCard(embeddedInSheet: true),
-            ),
-          ),
+      builder: (context) => const SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(bottom: 16),
+          child: PlayerInsightsCard(embeddedInSheet: true),
+        ),
+      ),
     );
 
     ref.read(playerInsightsProvider.notifier).dismiss();
@@ -96,9 +95,8 @@ class PlayerInsightsCard extends ConsumerWidget {
                   children: [
                     Text(
                       l10n.playerAskCuriosities,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     if (current != null) ...[
                       const SizedBox(height: 4),
@@ -106,9 +104,8 @@ class PlayerInsightsCard extends ConsumerWidget {
                         '${current.title} · ${current.artist ?? ''}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: scheme.onSurfaceVariant),
                       ),
                     ],
                   ],
@@ -225,9 +222,8 @@ class _InsightsEmpty extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             message,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(color: pc.subtitle),
             textAlign: TextAlign.center,
           ),
           if (onRetry != null) ...[
@@ -267,16 +263,14 @@ class _AiDisclaimer extends StatelessWidget {
                 children: [
                   Text(
                     l10n.playerAskAiDisclaimerTitle,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.labelLarge
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     l10n.playerAskAiDisclaimerBody,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -328,9 +322,8 @@ class _InsightsResult extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 l10n.playerAskSources,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Wrap(

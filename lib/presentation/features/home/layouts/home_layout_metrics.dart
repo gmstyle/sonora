@@ -77,10 +77,9 @@ class HomeLayoutMetrics {
   ///
   /// 4 at ≥1200, 5 at ≥1600, 6 at ≥1920, from [contentWidth].
   int get albumGridColumns {
-    final width =
-        contentWidth >= kExpandedBreakpoint
-            ? contentWidth
-            : kExpandedBreakpoint;
+    final width = contentWidth >= kExpandedBreakpoint
+        ? contentWidth
+        : kExpandedBreakpoint;
     return feedGridColumnCount(width);
   }
 

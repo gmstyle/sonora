@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/screen_keep_awake.dart';
 import '../../providers/lyrics_translation_provider.dart';
@@ -20,15 +21,14 @@ void openFullPlayer(
   PlayerSubView subView = PlayerSubView.none,
 }) {
   if (subView != PlayerSubView.none) {
-    ProviderScope.containerOf(
-      context,
-    ).read(playerSubViewProvider.notifier).set(subView);
+    ProviderScope.containerOf(context)
+        .read(playerSubViewProvider.notifier)
+        .set(subView);
   }
   Navigator.of(context).push(
     PageRouteBuilder(
-      pageBuilder:
-          (context, animation, secondaryAnimation) =>
-              FullPlayerContent(initialSubView: subView),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          FullPlayerContent(initialSubView: subView),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final tween = Tween(
           begin: const Offset(0.0, 1.0),
@@ -105,10 +105,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
 
     ref.listen<String?>(
       playerStateProvider.select(
-        (s) =>
-            s.currentSong == null
-                ? null
-                : QueueTrack.fromMediaItem(s.currentSong!).videoId,
+        (s) => s.currentSong == null
+            ? null
+            : QueueTrack.fromMediaItem(s.currentSong!).videoId,
       ),
       (prev, next) {
         if (prev == next) return;

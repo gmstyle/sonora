@@ -71,125 +71,116 @@ class PlayerSheetMobile extends ConsumerWidget {
             // Content sits under the compact seek strip (top-aligned track).
             Positioned.fill(
               top: kMiniPlayerSeekClearance,
-              child:
-                  isSwitching
-                      ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-                      : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(width: 8),
-                            _MiniArtwork(
-                              artUrl: artUrl,
-                              size: 40,
-                              radius: 12,
-                              cs: cs,
-                              isPlaying: isPlaying,
-                              useVinylStyle: useVinylStyle,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          currentSong.title,
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                          style: theme.textTheme.bodyMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                height: 1.15,
-                                              ),
-                                        ),
+              child: isSwitching
+                  ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const SizedBox(width: 8),
+                          _MiniArtwork(
+                            artUrl: artUrl,
+                            size: 40,
+                            radius: 12,
+                            cs: cs,
+                            isPlaying: isPlaying,
+                            useVinylStyle: useVinylStyle,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        currentSong.title,
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              height: 1.15,
+                                            ),
                                       ),
-                                      if (isVideo) ...[
-                                        const SizedBox(width: 4),
-                                        buildMvBadge(context),
-                                      ],
-                                    ],
-                                  ),
-                                  Text(
-                                    currentSong.artist ?? '',
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                      height: 1.15,
                                     ),
+                                    if (isVideo) ...[
+                                      const SizedBox(width: 4),
+                                      buildMvBadge(context),
+                                    ],
+                                  ],
+                                ),
+                                Text(
+                                  currentSong.artist ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: cs.onSurfaceVariant,
+                                    height: 1.15,
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: SonoraPulseTokens.playControlDecoration(
+                              enabled: !isSwitching,
+                              glow: !ref.watch(
+                                settingsProvider.select((s) => s.reduceEffects),
                               ),
                             ),
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration:
-                                  SonoraPulseTokens.playControlDecoration(
-                                    enabled: !isSwitching,
-                                    glow:
-                                        !ref.watch(
-                                          settingsProvider.select(
-                                            (s) => s.reduceEffects,
-                                          ),
-                                        ),
-                                  ),
-                              child: IconButton(
-                                icon: AnimatedPlayPauseIcon(
-                                  isPlaying: isPlaying,
-                                  isLoading: playerState.isRestoring,
-                                  color: SonoraPulseTokens.onPrimary,
-                                  size: 18,
-                                ),
-                                onPressed:
-                                    isSwitching
-                                        ? null
-                                        : () {
-                                          HapticFeedback.lightImpact();
-                                          playerNotifier.togglePlayPause();
-                                        },
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  foregroundColor: SonoraPulseTokens.onPrimary,
-                                  fixedSize: const Size(36, 36),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  padding: EdgeInsets.zero,
-                                  shape: const CircleBorder(),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                LucideIcons.skipForward,
+                            child: IconButton(
+                              icon: AnimatedPlayPauseIcon(
+                                isPlaying: isPlaying,
+                                isLoading: playerState.isRestoring,
+                                color: SonoraPulseTokens.onPrimary,
                                 size: 18,
-                                color:
-                                    isSwitching
-                                        ? cs.onSurfaceVariant.withAlpha(96)
-                                        : cs.onSurfaceVariant,
                               ),
-                              onPressed:
-                                  isSwitching
-                                      ? null
-                                      : () {
-                                        HapticFeedback.lightImpact();
-                                        playerNotifier.skipToNext();
-                                      },
+                              onPressed: isSwitching
+                                  ? null
+                                  : () {
+                                      HapticFeedback.lightImpact();
+                                      playerNotifier.togglePlayPause();
+                                    },
                               style: IconButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: SonoraPulseTokens.onPrimary,
+                                fixedSize: const Size(36, 36),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                minimumSize: const Size(36, 36),
                                 padding: EdgeInsets.zero,
+                                shape: const CircleBorder(),
                               ),
                             ),
-                            const SizedBox(width: 4),
-                          ],
-                        ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              LucideIcons.skipForward,
+                              size: 18,
+                              color: isSwitching
+                                  ? cs.onSurfaceVariant.withAlpha(96)
+                                  : cs.onSurfaceVariant,
+                            ),
+                            onPressed: isSwitching
+                                ? null
+                                : () {
+                                    HapticFeedback.lightImpact();
+                                    playerNotifier.skipToNext();
+                                  },
+                            style: IconButton.styleFrom(
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              minimumSize: const Size(36, 36),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                       ),
+                    ),
             ),
             if (!isSwitching)
               Positioned(
@@ -203,8 +194,9 @@ class PlayerSheetMobile extends ConsumerWidget {
                   disabled: playerState.isRestoring,
                   isPlaying: playerState.isPlaying,
                   density: ProgressBarDensity.compact,
-                  onSeek:
-                      isSwitching ? null : (pos) => playerNotifier.seek(pos),
+                  onSeek: isSwitching
+                      ? null
+                      : (pos) => playerNotifier.seek(pos),
                 ),
               ),
           ],
@@ -246,22 +238,20 @@ class _MiniArtwork extends ConsumerWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child:
-            artUrl != null
-                ? AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: CachedNetworkImage(
-                    key: ValueKey(artUrl),
-                    imageUrl: artUrl!,
-                    fit: BoxFit.cover,
-                    placeholder:
-                        (_, _) => Container(color: cs.surfaceContainerHighest),
-                    errorWidget:
-                        (_, _, _) =>
-                            Icon(LucideIcons.music, color: cs.onSurfaceVariant),
-                  ),
-                )
-                : Icon(LucideIcons.music, color: cs.onSurfaceVariant),
+        child: artUrl != null
+            ? AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: CachedNetworkImage(
+                  key: ValueKey(artUrl),
+                  imageUrl: artUrl!,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) =>
+                      Container(color: cs.surfaceContainerHighest),
+                  errorWidget: (_, _, _) =>
+                      Icon(LucideIcons.music, color: cs.onSurfaceVariant),
+                ),
+              )
+            : Icon(LucideIcons.music, color: cs.onSurfaceVariant),
       ),
     );
   }

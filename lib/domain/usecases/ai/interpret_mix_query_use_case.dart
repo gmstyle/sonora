@@ -31,8 +31,8 @@ Rules:
 class InterpretMixQueryUseCase {
   InterpretMixQueryUseCase(
     this._llm, {
-    MusicSearchIntentParser parser = const MusicSearchIntentParser(),
-  }) : _parser = parser;
+    this._parser = const MusicSearchIntentParser(),
+  });
 
   final LlmCompletionRepository _llm;
   final MusicSearchIntentParser _parser;

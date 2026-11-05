@@ -49,8 +49,8 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(queueItems);
       }
       if (from < 3) {
-        final tableInfo =
-            await customSelect('PRAGMA table_info(queue_items)').get();
+        final tableInfo = await customSelect('PRAGMA table_info(queue_items)')
+            .get();
         final hasStreamUrl = tableInfo.any(
           (row) => row.read<String>('name') == 'stream_url',
         );
@@ -86,8 +86,8 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(queueItems, queueItems.albumId);
       }
       if (from < 11) {
-        final historyInfo =
-            await customSelect('PRAGMA table_info(history)').get();
+        final historyInfo = await customSelect('PRAGMA table_info(history)')
+            .get();
         final hasHistoryIsVideo = historyInfo.any(
           (row) => row.read<String>('name') == 'is_video',
         );
@@ -95,8 +95,8 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(history, history.isVideo);
         }
 
-        final downloadsInfo =
-            await customSelect('PRAGMA table_info(downloads)').get();
+        final downloadsInfo = await customSelect('PRAGMA table_info(downloads)')
+            .get();
         final hasDownloadsIsVideo = downloadsInfo.any(
           (row) => row.read<String>('name') == 'is_video',
         );
@@ -105,8 +105,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 12) {
-        final likedSongsInfo =
-            await customSelect('PRAGMA table_info(liked_songs)').get();
+        final likedSongsInfo = await customSelect(
+          'PRAGMA table_info(liked_songs)',
+        ).get();
         final hasLikedSongsIsVideo = likedSongsInfo.any(
           (row) => row.read<String>('name') == 'is_video',
         );
@@ -114,8 +115,9 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(likedSongs, likedSongs.isVideo);
         }
 
-        final playlistEntriesInfo =
-            await customSelect('PRAGMA table_info(playlist_entries)').get();
+        final playlistEntriesInfo = await customSelect(
+          'PRAGMA table_info(playlist_entries)',
+        ).get();
         final hasPlaylistEntriesIsVideo = playlistEntriesInfo.any(
           (row) => row.read<String>('name') == 'is_video',
         );
@@ -124,8 +126,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 13) {
-        final followedArtistsInfo =
-            await customSelect('PRAGMA table_info(followed_artists)').get();
+        final followedArtistsInfo = await customSelect(
+          'PRAGMA table_info(followed_artists)',
+        ).get();
         final hasFollowedArtistsAddedAt = followedArtistsInfo.any(
           (row) => row.read<String>('name') == 'added_at',
         );
@@ -139,8 +142,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 14) {
-        final likedSongsInfo =
-            await customSelect('PRAGMA table_info(liked_songs)').get();
+        final likedSongsInfo = await customSelect(
+          'PRAGMA table_info(liked_songs)',
+        ).get();
         final hasLikedSongsDuration = likedSongsInfo.any(
           (row) => row.read<String>('name') == 'duration',
         );
@@ -148,8 +152,8 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(likedSongs, likedSongs.duration);
         }
 
-        final historyInfo =
-            await customSelect('PRAGMA table_info(history)').get();
+        final historyInfo = await customSelect('PRAGMA table_info(history)')
+            .get();
         final hasHistoryDuration = historyInfo.any(
           (row) => row.read<String>('name') == 'duration',
         );
@@ -158,40 +162,43 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 15) {
-        final likedSongsInfo =
-            await customSelect('PRAGMA table_info(liked_songs)').get();
+        final likedSongsInfo = await customSelect(
+          'PRAGMA table_info(liked_songs)',
+        ).get();
         if (!likedSongsInfo.any(
           (row) => row.read<String>('name') == 'is_explicit',
         )) {
           await m.addColumn(likedSongs, likedSongs.isExplicit);
         }
 
-        final historyInfo =
-            await customSelect('PRAGMA table_info(history)').get();
+        final historyInfo = await customSelect('PRAGMA table_info(history)')
+            .get();
         if (!historyInfo.any(
           (row) => row.read<String>('name') == 'is_explicit',
         )) {
           await m.addColumn(history, history.isExplicit);
         }
 
-        final downloadsInfo =
-            await customSelect('PRAGMA table_info(downloads)').get();
+        final downloadsInfo = await customSelect('PRAGMA table_info(downloads)')
+            .get();
         if (!downloadsInfo.any(
           (row) => row.read<String>('name') == 'is_explicit',
         )) {
           await m.addColumn(downloads, downloads.isExplicit);
         }
 
-        final playlistEntriesInfo =
-            await customSelect('PRAGMA table_info(playlist_entries)').get();
+        final playlistEntriesInfo = await customSelect(
+          'PRAGMA table_info(playlist_entries)',
+        ).get();
         if (!playlistEntriesInfo.any(
           (row) => row.read<String>('name') == 'is_explicit',
         )) {
           await m.addColumn(playlistEntries, playlistEntries.isExplicit);
         }
 
-        final queueItemsInfo =
-            await customSelect('PRAGMA table_info(queue_items)').get();
+        final queueItemsInfo = await customSelect(
+          'PRAGMA table_info(queue_items)',
+        ).get();
         if (!queueItemsInfo.any(
           (row) => row.read<String>('name') == 'is_explicit',
         )) {
@@ -199,8 +206,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 16) {
-        final playlistEntriesInfo =
-            await customSelect('PRAGMA table_info(playlist_entries)').get();
+        final playlistEntriesInfo = await customSelect(
+          'PRAGMA table_info(playlist_entries)',
+        ).get();
         final hasPlaylistEntriesDuration = playlistEntriesInfo.any(
           (row) => row.read<String>('name') == 'duration',
         );
@@ -209,8 +217,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 17) {
-        final likedAlbumsInfo =
-            await customSelect('PRAGMA table_info(liked_albums)').get();
+        final likedAlbumsInfo = await customSelect(
+          'PRAGMA table_info(liked_albums)',
+        ).get();
         final hasLikedAlbumsArtistId = likedAlbumsInfo.any(
           (row) => row.read<String>('name') == 'artist_id',
         );
@@ -219,8 +228,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 18) {
-        final queueItemsInfo =
-            await customSelect('PRAGMA table_info(queue_items)').get();
+        final queueItemsInfo = await customSelect(
+          'PRAGMA table_info(queue_items)',
+        ).get();
         final hasSection = queueItemsInfo.any(
           (row) => row.read<String>('name') == 'section',
         );
@@ -237,8 +247,8 @@ class AppDatabase extends _$AppDatabase {
       if (from < 20) {
         await m.createTable(likedPodcasts);
         await m.createTable(likedEpisodes);
-        final historyInfo =
-            await customSelect('PRAGMA table_info(history)').get();
+        final historyInfo = await customSelect('PRAGMA table_info(history)')
+            .get();
         if (!historyInfo.any(
           (row) => row.read<String>('name') == 'content_type',
         )) {
@@ -251,22 +261,24 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 21) {
-        final likedSongsInfo =
-            await customSelect('PRAGMA table_info(liked_songs)').get();
+        final likedSongsInfo = await customSelect(
+          'PRAGMA table_info(liked_songs)',
+        ).get();
         if (!likedSongsInfo.any(
           (row) => row.read<String>('name') == 'artists_json',
         )) {
           await m.addColumn(likedSongs, likedSongs.artistsJson);
         }
-        final queueItemsInfo =
-            await customSelect('PRAGMA table_info(queue_items)').get();
+        final queueItemsInfo = await customSelect(
+          'PRAGMA table_info(queue_items)',
+        ).get();
         if (!queueItemsInfo.any(
           (row) => row.read<String>('name') == 'artists_json',
         )) {
           await m.addColumn(queueItems, queueItems.artistsJson);
         }
-        final downloadsInfo =
-            await customSelect('PRAGMA table_info(downloads)').get();
+        final downloadsInfo = await customSelect('PRAGMA table_info(downloads)')
+            .get();
         if (!downloadsInfo.any(
           (row) => row.read<String>('name') == 'artists_json',
         )) {
@@ -274,8 +286,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 22) {
-        final playlistEntriesInfo =
-            await customSelect('PRAGMA table_info(playlist_entries)').get();
+        final playlistEntriesInfo = await customSelect(
+          'PRAGMA table_info(playlist_entries)',
+        ).get();
         if (!playlistEntriesInfo.any(
           (row) => row.read<String>('name') == 'artists_json',
         )) {
@@ -283,8 +296,8 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 23) {
-        final downloadsInfo =
-            await customSelect('PRAGMA table_info(downloads)').get();
+        final downloadsInfo = await customSelect('PRAGMA table_info(downloads)')
+            .get();
         if (!downloadsInfo.any(
           (row) => row.read<String>('name') == 'collection_id',
         )) {
@@ -302,8 +315,9 @@ class AppDatabase extends _$AppDatabase {
         }
       }
       if (from < 24) {
-        final playlistsInfo =
-            await customSelect('PRAGMA table_info(local_playlists)').get();
+        final playlistsInfo = await customSelect(
+          'PRAGMA table_info(local_playlists)',
+        ).get();
         if (!playlistsInfo.any(
           (row) => row.read<String>('name') == 'source_kind',
         )) {
@@ -333,8 +347,8 @@ class AppDatabase extends _$AppDatabase {
         await _backfillPlaylistLinkMeta();
       }
       if (from < 25) {
-        final downloadsInfo =
-            await customSelect('PRAGMA table_info(downloads)').get();
+        final downloadsInfo = await customSelect('PRAGMA table_info(downloads)')
+            .get();
         if (!downloadsInfo.any(
           (row) => row.read<String>('name') == 'collection_index',
         )) {
@@ -380,8 +394,9 @@ class AppDatabase extends _$AppDatabase {
           isExplicit: Value(isExplicit),
         ),
       );
-      await (update(playlistEntries)
-        ..where((t) => t.videoId.equals(videoId))).write(
+      await (update(
+        playlistEntries,
+      )..where((t) => t.videoId.equals(videoId))).write(
         PlaylistEntriesCompanion(
           duration: Value(duration),
           isExplicit: Value(isExplicit),
@@ -419,18 +434,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> getTrackCountMissingMetadata() async {
-    final liked =
-        await customSelect(
-          'SELECT COUNT(*) as c FROM liked_songs WHERE duration IS NULL',
-        ).getSingle();
-    final history =
-        await customSelect(
-          'SELECT COUNT(*) as c FROM history WHERE duration IS NULL',
-        ).getSingle();
-    final playlist =
-        await customSelect(
-          'SELECT COUNT(*) as c FROM playlist_entries WHERE duration IS NULL',
-        ).getSingle();
+    final liked = await customSelect(
+      'SELECT COUNT(*) as c FROM liked_songs WHERE duration IS NULL',
+    ).getSingle();
+    final history = await customSelect(
+      'SELECT COUNT(*) as c FROM history WHERE duration IS NULL',
+    ).getSingle();
+    final playlist = await customSelect(
+      'SELECT COUNT(*) as c FROM playlist_entries WHERE duration IS NULL',
+    ).getSingle();
     return liked.read<int>('c') +
         history.read<int>('c') +
         playlist.read<int>('c');
@@ -446,16 +458,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateAlbumArtistId(String albumId, String artistId) async {
-    await (update(likedAlbums)..where(
-      (t) => t.albumId.equals(albumId),
-    )).write(LikedAlbumsCompanion(artistId: Value(artistId)));
+    await (update(likedAlbums)..where((t) => t.albumId.equals(albumId))).write(
+      LikedAlbumsCompanion(artistId: Value(artistId)),
+    );
   }
 
   Future<int> getAlbumCountMissingArtistId() async {
-    final result =
-        await customSelect(
-          'SELECT COUNT(*) as c FROM liked_albums WHERE artist_id IS NULL',
-        ).getSingle();
+    final result = await customSelect(
+      'SELECT COUNT(*) as c FROM liked_albums WHERE artist_id IS NULL',
+    ).getSingle();
     return result.read<int>('c');
   }
 }

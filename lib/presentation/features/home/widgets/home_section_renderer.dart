@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -176,22 +177,19 @@ class HomeEditorialZone extends ConsumerWidget {
           ),
         editorialAsync.when(
           skipLoadingOnReload: true,
-          loading:
-              () =>
-                  hasChips
-                      ? HomeEditorialLoading(metrics: metrics)
-                      : const SizedBox.shrink(),
-          error:
-              (_, _) => Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: metrics.horizontalPadding,
-                  vertical: 16,
-                ),
-                child: ErrorRetryWidget(
-                  message: l10n.failedToLoadHomeFeed,
-                  onRetry: () => ref.invalidate(homeEditorialSectionsProvider),
-                ),
-              ),
+          loading: () => hasChips
+              ? HomeEditorialLoading(metrics: metrics)
+              : const SizedBox.shrink(),
+          error: (_, _) => Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: metrics.horizontalPadding,
+              vertical: 16,
+            ),
+            child: ErrorRetryWidget(
+              message: l10n.failedToLoadHomeFeed,
+              onRetry: () => ref.invalidate(homeEditorialSectionsProvider),
+            ),
+          ),
           data: (_) {
             if (!hasShelves) return const SizedBox.shrink();
             return Column(
@@ -218,8 +216,9 @@ class HomeEditorialZone extends ConsumerWidget {
     if (section.browseId == null) return null;
     return () {
       final titleEncoded = Uri.encodeComponent(section.title);
-      final paramsEncoded =
-          section.browseParams != null ? '&params=${section.browseParams}' : '';
+      final paramsEncoded = section.browseParams != null
+          ? '&params=${section.browseParams}'
+          : '';
       context.push(
         '/browse-section/${section.browseId}?title=$titleEncoded$paramsEncoded',
       );
@@ -293,12 +292,11 @@ class HomeContinueListening extends ConsumerWidget {
                         children: [
                           Text(
                             showAllLabel,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                           const SizedBox(width: 2),
                           Icon(
@@ -397,9 +395,8 @@ class HomeSectionRow extends ConsumerWidget {
               Expanded(
                 child: Text(
                   section.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
               if (onShowAll != null)
@@ -434,18 +431,17 @@ class HomeSectionRow extends ConsumerWidget {
         ),
         SizedBox(
           height: carouselHeight,
-          child:
-              useHero
-                  ? _HeroCarousel(
-                    items: section.contents,
-                    viewportFraction: metrics.heroViewportFraction,
-                    heroHeight: carouselHeight,
-                  )
-                  : _HorizontalCardRow(
-                    items: section.contents,
-                    metrics: metrics,
-                    shelfId: section.shelfId,
-                  ),
+          child: useHero
+              ? _HeroCarousel(
+                  items: section.contents,
+                  viewportFraction: metrics.heroViewportFraction,
+                  heroHeight: carouselHeight,
+                )
+              : _HorizontalCardRow(
+                  items: section.contents,
+                  metrics: metrics,
+                  shelfId: section.shelfId,
+                ),
         ),
       ],
     );
@@ -508,8 +504,9 @@ class _HeroCarouselState extends State<_HeroCarousel> {
   Widget _buildItem(BuildContext context, dynamic item) {
     if (item is AlbumDetailed) {
       return _HeroCard(
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         title: item.name,
         subtitle: displayArtists(item.artists),
         heroHeight: widget.heroHeight,
@@ -518,8 +515,9 @@ class _HeroCarouselState extends State<_HeroCarousel> {
     }
     if (item is PlaylistDetailed) {
       return _HeroCard(
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         title: item.name,
         subtitle: displayArtists(item.artists),
         heroHeight: widget.heroHeight,
@@ -717,8 +715,9 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
     if (item is SongDetailed) {
       return SongCard(
         videoId: item.videoId,
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         title: item.name,
         artist: displayArtists(item.artists),
         duration: item.duration,
@@ -735,8 +734,9 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
     if (item is VideoDetailed) {
       return SongCard(
         videoId: item.videoId,
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         title: item.name,
         artist: displayArtists(item.artists),
         duration: item.duration,
@@ -754,8 +754,9 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         name: item.name,
         artist: displayArtists(item.artists),
         artistId: primaryArtistId(item.artists),
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         year: item.year,
         cardWidth: cardWidth,
         heroTag: 'home_section_album_${item.albumId}',
@@ -766,8 +767,9 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         playlistId: item.playlistId,
         name: item.name,
         artist: displayArtists(item.artists),
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         cardWidth: cardWidth,
         heroTag: 'home_section_playlist_${item.playlistId}',
       );
@@ -777,8 +779,9 @@ class _HorizontalCardRowState extends State<_HorizontalCardRow> {
         browseId: item.browseId,
         name: item.name,
         author: item.author,
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         cardWidth: cardWidth,
       );
     }
@@ -801,15 +804,16 @@ class _EpisodeHomeTile extends StatelessWidget {
     const padding = EdgeInsets.all(8);
     final contentHeight = height - padding.vertical;
     final thumbSize = contentHeight;
-    final thumbnailUrl =
-        episode.thumbnails.isNotEmpty ? episode.thumbnails.last.url : null;
+    final thumbnailUrl = episode.thumbnails.isNotEmpty
+        ? episode.thumbnails.last.url
+        : null;
     final colorScheme = Theme.of(context).colorScheme;
     final subtitle =
         episode.podcastName != null && episode.podcastName!.isNotEmpty
-            ? episode.podcastName!
-            : (episode.date != null && episode.date!.isNotEmpty
-                ? episode.date!
-                : null);
+        ? episode.podcastName!
+        : (episode.date != null && episode.date!.isNotEmpty
+              ? episode.date!
+              : null);
 
     return ScaleButton(
       onTap: () => context.push('/episode/${episode.videoId}'),
@@ -889,31 +893,28 @@ class _PodcastHomeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScaleButton(
       onTap: () => context.push('/podcast/$browseId'),
-      onLongPress:
-          () => ContextMenuSheet.showForPodcast(
-            context,
-            browseId: browseId,
-            name: name,
-            author: author,
-            thumbnailUrl: thumbnailUrl,
-          ),
+      onLongPress: () => ContextMenuSheet.showForPodcast(
+        context,
+        browseId: browseId,
+        name: name,
+        author: author,
+        thumbnailUrl: thumbnailUrl,
+      ),
       child: ShelfCardLayout(
         cardWidth: cardWidth,
-        coverBuilder:
-            (size) => ThumbnailWidget(
-              imageUrl: thumbnailUrl,
-              size: size,
-              shape: ThumbnailShape.rounded,
-            ),
+        coverBuilder: (size) => ThumbnailWidget(
+          imageUrl: thumbnailUrl,
+          size: size,
+          shape: ThumbnailShape.rounded,
+        ),
         textBlock: [
           const SizedBox(height: 8),
           Text(
             name,
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w500),
           ),
           if (author != null && author!.isNotEmpty) ...[
             const SizedBox(height: 2),
@@ -1018,9 +1019,8 @@ class HomeYourMixes extends ConsumerWidget {
                 if (showHeader) ...[
                   Text(
                     AppLocalizations.of(context)!.yourMixes,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -1110,9 +1110,8 @@ class HomeExplore extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 l10n.explore,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
           SizedBox(
@@ -1305,10 +1304,9 @@ class HomeNewReleases extends StatelessWidget {
               name: album.name,
               artist: displayArtists(album.artists),
               artistId: primaryArtistId(album.artists),
-              thumbnailUrl:
-                  album.thumbnails.isNotEmpty
-                      ? album.thumbnails.last.url
-                      : null,
+              thumbnailUrl: album.thumbnails.isNotEmpty
+                  ? album.thumbnails.last.url
+                  : null,
               year: album.year,
               type: ReleaseType.album,
               cardWidth: cardWidth,
@@ -1352,8 +1350,9 @@ class HomeDiscover extends StatelessWidget {
             final song = suggestions[index];
             return SongCard(
               videoId: song.videoId,
-              thumbnailUrl:
-                  song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+              thumbnailUrl: song.thumbnails.isNotEmpty
+                  ? song.thumbnails.last.url
+                  : null,
               title: song.title,
               artist: displayArtists(song.artists),
               duration: song.duration,
@@ -1469,10 +1468,9 @@ class HomeSimilarArtists extends StatelessWidget {
             return _HomeArtistAvatar(
               artistId: artist.artistId,
               name: artist.name,
-              thumbnailUrl:
-                  artist.thumbnails.isNotEmpty
-                      ? artist.thumbnails.last.url
-                      : null,
+              thumbnailUrl: artist.thumbnails.isNotEmpty
+                  ? artist.thumbnails.last.url
+                  : null,
               avatarSize: avatarSize,
               heroTag: 'home_similar_artists_${artist.artistId}',
             );
@@ -1503,17 +1501,14 @@ class _HomeArtistAvatar extends ConsumerWidget {
     final tag = heroTag ?? 'home_artist_$artistId';
 
     return ScaleButton(
-      onTap:
-          () => context.push(
-            '/artist/$artistId?heroTag=${Uri.encodeComponent(tag)}',
-          ),
-      onLongPress:
-          () => ContextMenuSheet.showForArtist(
-            context,
-            artistId: artistId,
-            name: name,
-            thumbnailUrl: thumbnailUrl,
-          ),
+      onTap: () =>
+          context.push('/artist/$artistId?heroTag=${Uri.encodeComponent(tag)}'),
+      onLongPress: () => ContextMenuSheet.showForArtist(
+        context,
+        artistId: artistId,
+        name: name,
+        thumbnailUrl: thumbnailUrl,
+      ),
       child: SizedBox(
         width: avatarSize + 8,
         child: Column(
@@ -1532,9 +1527,8 @@ class _HomeArtistAvatar extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -1567,9 +1561,8 @@ class _HomeSectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           if (onShowAll != null)
@@ -1778,10 +1771,9 @@ class HomeChipsBar extends ConsumerWidget {
                   selected: isTuttoSelected,
                   showCheckmark: false,
                   side: BorderSide(
-                    color:
-                        isTuttoSelected
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : Theme.of(context).colorScheme.outlineVariant,
+                    color: isTuttoSelected
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.outlineVariant,
                   ),
                   onSelected: (selected) {
                     if (selected) {
@@ -1802,10 +1794,9 @@ class HomeChipsBar extends ConsumerWidget {
                 selected: isSelected,
                 showCheckmark: false,
                 side: BorderSide(
-                  color:
-                      isSelected
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : Theme.of(context).colorScheme.outlineVariant,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.outlineVariant,
                 ),
                 onSelected: (selected) {
                   if (selected) {
@@ -1850,23 +1841,20 @@ class AmbientBackground extends ConsumerWidget {
               key: const ValueKey('light_studio_bg'),
               decoration: BoxDecoration(
                 color: scheme.surface,
-                gradient:
-                    reduceEffects
-                        ? null
-                        : LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            SonoraPulseTokens.gradientStart.withValues(
-                              alpha: 0.05,
-                            ),
-                            scheme.surface,
-                            SonoraPulseTokens.gradientEnd.withValues(
-                              alpha: 0.04,
-                            ),
-                          ],
-                          stops: const [0.0, 0.45, 1.0],
-                        ),
+                gradient: reduceEffects
+                    ? null
+                    : LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          SonoraPulseTokens.gradientStart.withValues(
+                            alpha: 0.05,
+                          ),
+                          scheme.surface,
+                          SonoraPulseTokens.gradientEnd.withValues(alpha: 0.04),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
+                      ),
               ),
             ),
           ),

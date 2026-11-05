@@ -43,17 +43,15 @@ Future<void> showBatteryOptimizationPrompt(
           Text(
             l10n.backgroundPlaybackPromptTitle,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              routeCtx,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(routeCtx).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Text(
             l10n.backgroundPlaybackPromptMessage,
             textAlign: TextAlign.center,
-            style: Theme.of(routeCtx).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: Theme.of(routeCtx).textTheme.bodyMedium
+                ?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -104,14 +102,13 @@ Future<void> showBatteryOptimizationPrompt(
   if (isWide) {
     return showDialog(
       context: context,
-      builder:
-          (ctx) => Dialog(
-            child: Container(
-              width: 400,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: SingleChildScrollView(child: buildContent(ctx)),
-            ),
-          ),
+      builder: (ctx) => Dialog(
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SingleChildScrollView(child: buildContent(ctx)),
+        ),
+      ),
     );
   }
 

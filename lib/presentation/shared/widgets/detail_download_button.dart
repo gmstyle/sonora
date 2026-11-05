@@ -33,8 +33,9 @@ class DetailDownloadButton extends StatelessWidget {
       onPressed: onPressed,
       icon: Icon(icon),
       label: Text(label),
-      style:
-          emphasize ? FilledButton.styleFrom(foregroundColor: primary) : null,
+      style: emphasize
+          ? FilledButton.styleFrom(foregroundColor: primary)
+          : null,
     );
   }
 

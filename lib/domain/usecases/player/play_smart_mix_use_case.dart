@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+
 import '../../../domain/models/library_models.dart';
 import '../../models/queue_track.dart';
 import 'play_video_id_use_case.dart';
@@ -34,14 +35,13 @@ class PlaySmartMixUseCase {
   }
 
   MediaItem _toMediaItem(dynamic s, String? url) {
-    final isExplicit =
-        s is HistoryModel
-            ? s.isExplicit
-            : s is LikedSongModel
-            ? s.isExplicit
-            : s is DownloadModel
-            ? s.isExplicit
-            : false;
+    final isExplicit = s is HistoryModel
+        ? s.isExplicit
+        : s is LikedSongModel
+        ? s.isExplicit
+        : s is DownloadModel
+        ? s.isExplicit
+        : false;
 
     final track = QueueTrack(
       videoId: s.videoId,

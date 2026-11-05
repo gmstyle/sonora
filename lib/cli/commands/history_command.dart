@@ -28,18 +28,17 @@ class HistoryCommand {
 
       final data = {
         'command': 'history',
-        'results':
-            items
-                .map(
-                  (h) => {
-                    'videoId': h.videoId,
-                    'title': h.title,
-                    'artist': h.artist,
-                    'playedAt': h.playedAt.toIso8601String(),
-                    'playCount': h.playCount,
-                  },
-                )
-                .toList(),
+        'results': items
+            .map(
+              (h) => {
+                'videoId': h.videoId,
+                'title': h.title,
+                'artist': h.artist,
+                'playedAt': h.playedAt.toIso8601String(),
+                'playCount': h.playCount,
+              },
+            )
+            .toList(),
       };
 
       if (_json) return CliOutput('', data: data);

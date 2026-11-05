@@ -101,10 +101,10 @@ class EntityWideBody extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (about != null) about!,
+                  ?about,
                   if (about != null && railChild != null)
                     const SizedBox(height: 24),
-                  if (railChild != null) railChild,
+                  ?railChild,
                 ],
               ),
             ),
@@ -120,18 +120,15 @@ class EntityWideBody extends StatelessWidget {
     required Widget? related,
     required bool cap,
   }) {
-    final listChild =
-        cap
-            ? Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: kEntityTrackMaxWidth,
-                ),
-                child: list,
-              ),
-            )
-            : list;
+    final listChild = cap
+        ? Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: kEntityTrackMaxWidth),
+              child: list,
+            ),
+          )
+        : list;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

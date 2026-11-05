@@ -1,9 +1,12 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../core/theme/player_colors.dart';
 import '../../../../l10n/app_localizations.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/lyrics_translation_provider.dart';
 import '../../../providers/music_repository_provider.dart';
@@ -70,22 +73,21 @@ class LyricsView extends ConsumerWidget {
           ),
         ],
         Expanded(
-          child:
-              showTranslated
-                  ? _TranslatedBody(videoId: videoId, state: translation)
-                  : timedAsync.when(
-                    loading: () => const _LyricsLoading(),
-                    error: (_, _) => _buildPlainLyrics(context, fallbackAsync),
-                    data: (timed) {
-                      if (timed != null) {
-                        return _TimedLyricsView(
-                          lyrics: timed,
-                          position: position,
-                        );
-                      }
-                      return _buildPlainLyrics(context, fallbackAsync);
-                    },
-                  ),
+          child: showTranslated
+              ? _TranslatedBody(videoId: videoId, state: translation)
+              : timedAsync.when(
+                  loading: () => const _LyricsLoading(),
+                  error: (_, _) => _buildPlainLyrics(context, fallbackAsync),
+                  data: (timed) {
+                    if (timed != null) {
+                      return _TimedLyricsView(
+                        lyrics: timed,
+                        position: position,
+                      );
+                    }
+                    return _buildPlainLyrics(context, fallbackAsync);
+                  },
+                ),
         ),
       ],
     );
@@ -101,9 +103,8 @@ class LyricsView extends ConsumerWidget {
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.lyricsNotAvailable,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(color: pc.subtitle),
             textAlign: TextAlign.center,
           ),
         ],
@@ -173,13 +174,11 @@ class _TranslateAskAction extends ConsumerWidget {
             ),
           ),
           TextButton(
-            onPressed:
-                loading
-                    ? null
-                    : () =>
-                        ref
-                            .read(lyricsTranslationProvider.notifier)
-                            .showOriginal(),
+            onPressed: loading
+                ? null
+                : () => ref
+                      .read(lyricsTranslationProvider.notifier)
+                      .showOriginal(),
             child: Text(l10n.playerAskOriginal),
           ),
         ],
@@ -189,25 +188,23 @@ class _TranslateAskAction extends ConsumerWidget {
     return Align(
       alignment: Alignment.centerRight,
       child: FilledButton.tonalIcon(
-        onPressed:
-            loading
-                ? null
-                : () {
-                  ref
-                      .read(lyricsTranslationProvider.notifier)
-                      .showTranslated(videoId: videoId, targetLanguage: locale);
-                },
-        icon:
-            loading
-                ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: scheme.onSecondaryContainer,
-                  ),
-                )
-                : const Icon(LucideIcons.sparkles, size: 18),
+        onPressed: loading
+            ? null
+            : () {
+                ref
+                    .read(lyricsTranslationProvider.notifier)
+                    .showTranslated(videoId: videoId, targetLanguage: locale);
+              },
+        icon: loading
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.onSecondaryContainer,
+                ),
+              )
+            : const Icon(LucideIcons.sparkles, size: 18),
         label: Text(l10n.playerAskTranslate),
       ),
     );
@@ -235,9 +232,8 @@ class _TranslationDisclaimer extends StatelessWidget {
                 '${l10n.playerAskAiDisclaimerTitle} — ${l10n.playerAskAiDisclaimerBody}',
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ),
           ],
@@ -397,12 +393,11 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
               duration: const Duration(milliseconds: 300),
               style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                color:
-                    isActive
-                        ? PlayerColors.of(context).titlePrimary
-                        : isPast
-                        ? PlayerColors.of(context).labelMuted
-                        : PlayerColors.of(context).subtitle,
+                color: isActive
+                    ? PlayerColors.of(context).titlePrimary
+                    : isPast
+                    ? PlayerColors.of(context).labelMuted
+                    : PlayerColors.of(context).subtitle,
               ),
               child: Text(line.lyricLine ?? '', textAlign: TextAlign.center),
             ),

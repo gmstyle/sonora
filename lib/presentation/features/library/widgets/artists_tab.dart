@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
@@ -22,11 +23,10 @@ class ArtistsTab extends ConsumerWidget {
 
     return async.when(
       loading: () => const _ShimmerArtistList(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: AppLocalizations.of(context)!.failedToLoadArtists,
-            onRetry: () => ref.invalidate(followedArtistsProvider),
-          ),
+      error: (e, _) => ErrorRetryWidget(
+        message: AppLocalizations.of(context)!.failedToLoadArtists,
+        onRetry: () => ref.invalidate(followedArtistsProvider),
+      ),
       data: (artists) {
         if (artists.isEmpty) {
           final l10n = AppLocalizations.of(context)!;
@@ -40,45 +40,38 @@ class ArtistsTab extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () => ref.refresh(followedArtistsProvider.future),
-          child:
-              isGridView
-                  ? GridView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      16,
-                      16,
-                      bottomPadding + 16,
-                    ),
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 140.0,
-                          childAspectRatio: 0.68,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                    itemCount: artists.length,
-                    itemBuilder: (_, i) {
-                      final a = artists[i];
-                      return ArtistCard(
-                        artistId: a.artistId,
-                        name: a.name,
-                        thumbnailUrl: a.thumbnailUrl,
-                        heroTag: 'library_artists_${a.artistId}',
-                      );
-                    },
-                  )
-                  : ListView.builder(
-                    padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPadding + 8),
-                    itemCount: artists.length,
-                    itemBuilder: (_, i) {
-                      final a = artists[i];
-                      return ArtistTile(
-                        artistId: a.artistId,
-                        name: a.name,
-                        thumbnailUrl: a.thumbnailUrl,
-                      );
-                    },
+          child: isGridView
+              ? GridView.builder(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding + 16),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 140.0,
+                    childAspectRatio: 0.68,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
                   ),
+                  itemCount: artists.length,
+                  itemBuilder: (_, i) {
+                    final a = artists[i];
+                    return ArtistCard(
+                      artistId: a.artistId,
+                      name: a.name,
+                      thumbnailUrl: a.thumbnailUrl,
+                      heroTag: 'library_artists_${a.artistId}',
+                    );
+                  },
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPadding + 8),
+                  itemCount: artists.length,
+                  itemBuilder: (_, i) {
+                    final a = artists[i];
+                    return ArtistTile(
+                      artistId: a.artistId,
+                      name: a.name,
+                      thumbnailUrl: a.thumbnailUrl,
+                    );
+                  },
+                ),
         );
       },
     );
@@ -93,11 +86,10 @@ class _ShimmerArtistList extends StatelessWidget {
     return ListView.builder(
       itemCount: 6,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemBuilder:
-          (_, _) => const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: ShimmerLoading(variant: ShimmerVariant.tile),
-          ),
+      itemBuilder: (_, _) => const Padding(
+        padding: EdgeInsets.only(bottom: 8),
+        child: ShimmerLoading(variant: ShimmerVariant.tile),
+      ),
     );
   }
 }

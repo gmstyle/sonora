@@ -1,9 +1,12 @@
 import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+
 import '../../l10n/app_localizations.dart';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../core/utils/notification_utils.dart';
@@ -76,12 +79,12 @@ class SyncState {
       discoveredDevices: discoveredDevices ?? this.discoveredDevices,
       isServerRunning: isServerRunning ?? this.isServerRunning,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      rawErrorMessage:
-          clearError ? null : (rawErrorMessage ?? this.rawErrorMessage),
-      activeIncomingRequest:
-          clearRequest
-              ? null
-              : (activeIncomingRequest ?? this.activeIncomingRequest),
+      rawErrorMessage: clearError
+          ? null
+          : (rawErrorMessage ?? this.rawErrorMessage),
+      activeIncomingRequest: clearRequest
+          ? null
+          : (activeIncomingRequest ?? this.activeIncomingRequest),
       currentStage: clearStage ? null : (currentStage ?? this.currentStage),
       syncStats: clearStats ? null : (syncStats ?? this.syncStats),
     );
@@ -259,10 +262,9 @@ class SyncNotifier extends Notifier<SyncState> {
         friendlyMessage = 'incorrectPin';
       } else if (e is DioException) {
         final dynamic responseData = e.response?.data;
-        final responseString =
-            responseData is Map
-                ? (responseData['error'] ?? '').toString()
-                : responseData.toString();
+        final responseString = responseData is Map
+            ? (responseData['error'] ?? '').toString()
+            : responseData.toString();
         if (responseString.contains('incorrect_pin')) {
           friendlyMessage = 'incorrectPin';
         } else if (e.response?.statusCode == 403) {

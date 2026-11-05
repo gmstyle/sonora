@@ -77,12 +77,9 @@ class SpotifyPlaylistDatasource {
       throw Exception('The playlist is empty or could not be retrieved');
     }
 
-    final entity =
-        _asMap(
-          _asMap(
-            _asMap(_asMap(json['props'])?['pageProps'])?['state'],
-          )?['data'],
-        )?['entity'];
+    final entity = _asMap(
+      _asMap(_asMap(_asMap(json['props'])?['pageProps'])?['state'])?['data'],
+    )?['entity'];
     final entityMap = _asMap(entity);
     if (entityMap == null || entityMap['type'] != 'playlist') {
       throw Exception('The playlist is empty or could not be retrieved');

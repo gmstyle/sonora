@@ -116,9 +116,8 @@ class _PlaylistImportJobHostState extends ConsumerState<PlaylistImportJobHost> {
                 children: [
                   Text(
                     l10n?.importPlaylist ?? 'Import Playlist',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   ImportProgressBody(
@@ -148,11 +147,9 @@ class _PlaylistImportJobHostState extends ConsumerState<PlaylistImportJobHost> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextButton(
-                          onPressed:
-                              () =>
-                                  ref
-                                      .read(playlistImportJobProvider.notifier)
-                                      .cancel(),
+                          onPressed: () => ref
+                              .read(playlistImportJobProvider.notifier)
+                              .cancel(),
                           child: Text(l10n?.cancel ?? 'Cancel'),
                         ),
                       ),
@@ -186,14 +183,13 @@ class _PlaylistImportJobHostState extends ConsumerState<PlaylistImportJobHost> {
     final feedback = ref.read(actionFeedbackProvider.notifier);
     final importResult = job.importResult;
     if (importResult != null) {
-      final message =
-          importResult.skippedCount > 0
-              ? (l10n?.playlistImportedPartial(
-                    importResult.importedCount,
-                    importResult.totalCount,
-                  ) ??
-                  'Imported ${importResult.importedCount} of ${importResult.totalCount} tracks')
-              : (l10n?.playlistImported ?? 'Playlist imported successfully');
+      final message = importResult.skippedCount > 0
+          ? (l10n?.playlistImportedPartial(
+                  importResult.importedCount,
+                  importResult.totalCount,
+                ) ??
+                'Imported ${importResult.importedCount} of ${importResult.totalCount} tracks')
+          : (l10n?.playlistImported ?? 'Playlist imported successfully');
       feedback.report(message);
       return;
     }
@@ -203,10 +199,9 @@ class _PlaylistImportJobHostState extends ConsumerState<PlaylistImportJobHost> {
         formatPlaylistSyncResult(
           l10n,
           syncResult,
-          sourceKind:
-              job.jobKind == PlaylistImportJobKind.spotifySync
-                  ? 'spotify'
-                  : 'youtube',
+          sourceKind: job.jobKind == PlaylistImportJobKind.spotifySync
+              ? 'spotify'
+              : 'youtube',
         ),
       );
     }

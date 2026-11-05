@@ -21,17 +21,16 @@ class FeedbackToast {
     late OverlayEntry entry;
 
     entry = OverlayEntry(
-      builder:
-          (_) => _FeedbackToastWidget(
-            message: message,
-            kind: kind,
-            onDismiss: () {
-              entry.remove();
-              if (_currentEntry == entry) {
-                _currentEntry = null;
-              }
-            },
-          ),
+      builder: (_) => _FeedbackToastWidget(
+        message: message,
+        kind: kind,
+        onDismiss: () {
+          entry.remove();
+          if (_currentEntry == entry) {
+            _currentEntry = null;
+          }
+        },
+      ),
     );
 
     _currentEntry = entry;
@@ -115,10 +114,9 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
     final topPadding = MediaQuery.of(context).padding.top + 12;
-    final mark =
-        widget.kind == FeedbackKind.error
-            ? colorScheme.error
-            : colorScheme.primaryContainer;
+    final mark = widget.kind == FeedbackKind.error
+        ? colorScheme.error
+        : colorScheme.primaryContainer;
 
     return Positioned(
       top: topPadding,

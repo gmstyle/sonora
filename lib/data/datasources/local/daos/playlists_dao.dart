@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+
 import '../database.dart';
 
 class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
@@ -10,20 +11,21 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
   Stream<List<LocalPlaylist>> watchAllPlaylists() =>
       select(db.localPlaylists).watch();
 
-  Future<LocalPlaylist?> getPlaylist(int id) =>
-      (select(db.localPlaylists)
-        ..where((t) => t.id.equals(id))).getSingleOrNull();
+  Future<LocalPlaylist?> getPlaylist(int id) => (select(
+    db.localPlaylists,
+  )..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<LocalPlaylist?> findLinkedPlaylist(
     String sourceKind,
     String remoteId,
   ) =>
       (select(db.localPlaylists)..where(
-        (t) =>
-            t.sourceKind.equals(sourceKind) &
-            t.remoteId.equals(remoteId) &
-            t.linkStatus.equals('linked'),
-      )).getSingleOrNull();
+            (t) =>
+                t.sourceKind.equals(sourceKind) &
+                t.remoteId.equals(remoteId) &
+                t.linkStatus.equals('linked'),
+          ))
+          .getSingleOrNull();
 
   Future<int> createPlaylist(
     String name, {
@@ -83,8 +85,9 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
       return (update(db.localPlaylists)..where((t) => t.id.equals(id))).write(
         LocalPlaylistsCompanion(
           name: name != null ? Value(name) : const Value.absent(),
-          description:
-              description != null ? Value(description) : const Value.absent(),
+          description: description != null
+              ? Value(description)
+              : const Value.absent(),
           sourceKind: const Value(null),
           remoteId: const Value(null),
           remoteName: const Value(null),
@@ -96,24 +99,30 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
     return (update(db.localPlaylists)..where((t) => t.id.equals(id))).write(
       LocalPlaylistsCompanion(
         name: name != null ? Value(name) : const Value.absent(),
-        description:
-            description != null ? Value(description) : const Value.absent(),
-        sourceKind:
-            sourceKind != null ? Value(sourceKind) : const Value.absent(),
+        description: description != null
+            ? Value(description)
+            : const Value.absent(),
+        sourceKind: sourceKind != null
+            ? Value(sourceKind)
+            : const Value.absent(),
         remoteId: remoteId != null ? Value(remoteId) : const Value.absent(),
-        remoteName:
-            remoteName != null ? Value(remoteName) : const Value.absent(),
-        linkStatus:
-            linkStatus != null ? Value(linkStatus) : const Value.absent(),
-        lastSyncedAt:
-            lastSyncedAt != null ? Value(lastSyncedAt) : const Value.absent(),
+        remoteName: remoteName != null
+            ? Value(remoteName)
+            : const Value.absent(),
+        linkStatus: linkStatus != null
+            ? Value(linkStatus)
+            : const Value.absent(),
+        lastSyncedAt: lastSyncedAt != null
+            ? Value(lastSyncedAt)
+            : const Value.absent(),
       ),
     );
   }
 
   Future<void> deletePlaylist(int id) async {
-    await (delete(db.playlistEntries)
-      ..where((t) => t.playlistId.equals(id))).go();
+    await (delete(
+      db.playlistEntries,
+    )..where((t) => t.playlistId.equals(id))).go();
     await (delete(db.localPlaylists)..where((t) => t.id.equals(id))).go();
   }
 
@@ -174,8 +183,9 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
     entries,
   ) {
     return db.transaction(() async {
-      await (delete(db.playlistEntries)
-        ..where((t) => t.playlistId.equals(playlistId))).go();
+      await (delete(
+        db.playlistEntries,
+      )..where((t) => t.playlistId.equals(playlistId))).go();
       for (var i = 0; i < entries.length; i++) {
         final e = entries[i];
         await into(db.playlistEntries).insert(
@@ -198,22 +208,25 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase> {
 
   Future<void> removeEntry(int playlistId, String videoId) =>
       (delete(db.playlistEntries)..where(
-        (t) => t.playlistId.equals(playlistId) & t.videoId.equals(videoId),
-      )).go();
+            (t) => t.playlistId.equals(playlistId) & t.videoId.equals(videoId),
+          ))
+          .go();
 
   Future<void> reorderEntries(int playlistId, List<String> videoIds) async {
     for (var i = 0; i < videoIds.length; i++) {
       await (update(db.playlistEntries)..where(
-        (t) => t.playlistId.equals(playlistId) & t.videoId.equals(videoIds[i]),
-      )).write(PlaylistEntriesCompanion(position: Value(i)));
+            (t) =>
+                t.playlistId.equals(playlistId) & t.videoId.equals(videoIds[i]),
+          ))
+          .write(PlaylistEntriesCompanion(position: Value(i)));
     }
   }
 
   // ── Spotify match cache ──────────────────────────────────────────
 
-  Future<SpotifyMatchCacheData?> getCachedSpotifyMatch(String uri) =>
-      (select(db.spotifyMatchCache)
-        ..where((t) => t.spotifyTrackUri.equals(uri))).getSingleOrNull();
+  Future<SpotifyMatchCacheData?> getCachedSpotifyMatch(String uri) => (select(
+    db.spotifyMatchCache,
+  )..where((t) => t.spotifyTrackUri.equals(uri))).getSingleOrNull();
 
   Future<void> upsertSpotifyMatch({
     required String spotifyTrackUri,

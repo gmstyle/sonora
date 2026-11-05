@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/link/sonora_link.dart';
 import '../../../core/theme/player_colors.dart';
@@ -54,13 +55,12 @@ class _EpisodeMobileLayout extends ConsumerWidget {
 
     return episodeAsync.when(
       loading: () => const Scaffold(body: _EpisodeShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadEpisode,
-              onRetry: () => ref.invalidate(episodeProvider(videoId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadEpisode,
+          onRetry: () => ref.invalidate(episodeProvider(videoId)),
+        ),
+      ),
       data: (episode) => _EpisodeContent(episode: episode),
     );
   }
@@ -77,13 +77,12 @@ class _EpisodeTabletLayout extends ConsumerWidget {
 
     return episodeAsync.when(
       loading: () => const Scaffold(body: _EpisodeShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadEpisode,
-              onRetry: () => ref.invalidate(episodeProvider(videoId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadEpisode,
+          onRetry: () => ref.invalidate(episodeProvider(videoId)),
+        ),
+      ),
       data: (episode) => _EpisodeContent(episode: episode, isTablet: true),
     );
   }
@@ -100,13 +99,12 @@ class _EpisodeWideLayout extends ConsumerWidget {
 
     return episodeAsync.when(
       loading: () => const Scaffold(body: _EpisodeShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadEpisode,
-              onRetry: () => ref.invalidate(episodeProvider(videoId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadEpisode,
+          onRetry: () => ref.invalidate(episodeProvider(videoId)),
+        ),
+      ),
       data: (episode) => _EpisodeContent(episode: episode, isWide: true),
     );
   }
@@ -147,8 +145,9 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 340.0;
+    final double expandedHeight = widget.isTablet || widget.isWide
+        ? 360.0
+        : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -184,9 +183,9 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
                     wide: widget.isWide,
                     list:
                         widget.episode.description != null &&
-                                widget.episode.description!.isNotEmpty
-                            ? ExpandableText(text: widget.episode.description!)
-                            : const SizedBox.shrink(),
+                            widget.episode.description!.isNotEmpty
+                        ? ExpandableText(text: widget.episode.description!)
+                        : const SizedBox.shrink(),
                   ),
                 ],
               ),
@@ -220,8 +219,9 @@ class _EpisodeSliverAppBar extends StatelessWidget {
       scrollProgress,
     );
 
-    final thumbnailUrl =
-        episode.thumbnails.isNotEmpty ? episode.thumbnails.last.url : null;
+    final thumbnailUrl = episode.thumbnails.isNotEmpty
+        ? episode.thumbnails.last.url
+        : null;
 
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 340,
@@ -470,13 +470,14 @@ class _EpisodeSliverAppBar extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         episode.name,
-                        style: (isWide
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.titlePrimary,
-                            ),
+                        style:
+                            (isWide
+                                    ? theme.textTheme.headlineLarge
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.titlePrimary,
+                                ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -549,9 +550,8 @@ class _EpisodeActions extends ConsumerWidget {
           icon: LucideIcons.bookmark,
           label: l10n.saveEpisode,
           tooltip: l10n.saveEpisode,
-          buildControl:
-              (context, compact) =>
-                  _SaveEpisodeButton(episode: episode, iconOnly: compact),
+          buildControl: (context, compact) =>
+              _SaveEpisodeButton(episode: episode, iconOnly: compact),
         ),
         if (hasPodcast)
           DetailAction(
@@ -639,18 +639,13 @@ class _SaveEpisodeButton extends ConsumerWidget {
     final likedAsync = ref.watch(likedEpisodeProvider(episode.videoId));
 
     return likedAsync.when(
-      loading:
-          () =>
-              iconOnly
-                  ? const IconButton(
-                    onPressed: null,
-                    icon: Icon(LucideIcons.bookmark),
-                  )
-                  : FilledButton.tonalIcon(
-                    onPressed: null,
-                    icon: const Icon(LucideIcons.bookmark),
-                    label: Text(l10n.saveEpisode),
-                  ),
+      loading: () => iconOnly
+          ? const IconButton(onPressed: null, icon: Icon(LucideIcons.bookmark))
+          : FilledButton.tonalIcon(
+              onPressed: null,
+              icon: const Icon(LucideIcons.bookmark),
+              label: Text(l10n.saveEpisode),
+            ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSaved = liked != null;
@@ -670,12 +665,11 @@ class _SaveEpisodeButton extends ConsumerWidget {
             isSaved ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
           ),
           label: Text(isSaved ? l10n.unsaveEpisode : l10n.saveEpisode),
-          style:
-              isSaved
-                  ? FilledButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  )
-                  : null,
+          style: isSaved
+              ? FilledButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                )
+              : null,
         );
       },
     );
@@ -690,8 +684,9 @@ class _SaveEpisodeButton extends ConsumerWidget {
         name: episode.name,
         podcastName: episode.podcastName,
         podcastBrowseId: episode.podcastId,
-        thumbnailUrl:
-            episode.thumbnails.isNotEmpty ? episode.thumbnails.last.url : null,
+        thumbnailUrl: episode.thumbnails.isNotEmpty
+            ? episode.thumbnails.last.url
+            : null,
         durationSec: Parser.parseDuration(episode.duration),
         date: episode.date,
         addedAt: DateTime.now(),

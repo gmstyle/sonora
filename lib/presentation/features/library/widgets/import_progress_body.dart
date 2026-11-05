@@ -110,16 +110,14 @@ class _AiAssistCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final title =
-        modelReady
-            ? (l10n?.importAiAssistReadyTitle ?? 'Ask assist available')
-            : (l10n?.importAiAssistDisabledTitle ?? 'Ask assist is off');
-    final body =
-        modelReady
-            ? (l10n?.importAiAssistReadyBody ??
-                'If a match is uncertain, Ask can rewrite the search — you confirm before anything is saved.')
-            : (l10n?.importAiAssistDisabledBody ??
-                'Download the Ask model in Settings → Ask to improve uncertain Spotify matches.');
+    final title = modelReady
+        ? (l10n?.importAiAssistReadyTitle ?? 'Ask assist available')
+        : (l10n?.importAiAssistDisabledTitle ?? 'Ask assist is off');
+    final body = modelReady
+        ? (l10n?.importAiAssistReadyBody ??
+              'If a match is uncertain, Ask can rewrite the search — you confirm before anything is saved.')
+        : (l10n?.importAiAssistDisabledBody ??
+              'Download the Ask model in Settings → Ask to improve uncertain Spotify matches.');
 
     return Material(
       color: colorScheme.surfaceContainer,
@@ -135,10 +133,9 @@ class _AiAssistCard extends StatelessWidget {
                 Icon(
                   LucideIcons.sparkles,
                   size: 20,
-                  color:
-                      modelReady
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
+                  color: modelReady
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: 10),
                 Expanded(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/cast_provider.dart';
 import '../../../providers/connectivity_provider.dart';
@@ -26,47 +27,43 @@ class CastButton extends ConsumerWidget {
         final l10n = AppLocalizations.of(context);
         final deviceName = state.activeDevice?.name;
         final iconSize = size ?? 24.0;
-        final tooltip =
-            isOffline
-                ? (l10n?.noConnectionMessage)
-                : (isConnected && deviceName != null && l10n != null
-                    ? l10n.castConnectedTo(deviceName)
-                    : null);
+        final tooltip = isOffline
+            ? (l10n?.noConnectionMessage)
+            : (isConnected && deviceName != null && l10n != null
+                  ? l10n.castConnectedTo(deviceName)
+                  : null);
 
         return IconButton(
           style: style,
           tooltip: tooltip,
-          icon:
-              isConnected
-                  ? Badge(
-                    backgroundColor: theme.colorScheme.primaryContainer,
-                    padding: const EdgeInsets.all(2),
-                    label: Icon(
-                      LucideIcons.check,
-                      size: 10,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                    child: Icon(
-                      LucideIcons.cast,
-                      color: theme.colorScheme.primaryContainer,
-                      size: iconSize,
-                    ),
-                  )
-                  : Icon(LucideIcons.cast, color: color, size: iconSize),
-          onPressed:
-              isOffline
-                  ? null
-                  : () {
-                    CastDialog.show(context);
-                  },
+          icon: isConnected
+              ? Badge(
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  padding: const EdgeInsets.all(2),
+                  label: Icon(
+                    LucideIcons.check,
+                    size: 10,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                  child: Icon(
+                    LucideIcons.cast,
+                    color: theme.colorScheme.primaryContainer,
+                    size: iconSize,
+                  ),
+                )
+              : Icon(LucideIcons.cast, color: color, size: iconSize),
+          onPressed: isOffline
+              ? null
+              : () {
+                  CastDialog.show(context);
+                },
         );
       },
-      orElse:
-          () => IconButton(
-            style: style,
-            icon: Icon(LucideIcons.cast, color: color, size: size),
-            onPressed: null,
-          ),
+      orElse: () => IconButton(
+        style: style,
+        icon: Icon(LucideIcons.cast, color: color, size: size),
+        onPressed: null,
+      ),
     );
   }
 }

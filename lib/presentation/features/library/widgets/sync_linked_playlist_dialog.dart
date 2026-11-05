@@ -34,8 +34,8 @@ class SyncLinkedPlaylistDialog extends ConsumerStatefulWidget {
         useSafeArea: true,
         isDismissible: false,
         enableDrag: false,
-        builder:
-            (_) => SyncLinkedPlaylistDialog(playlist: playlist, isSheet: true),
+        builder: (_) =>
+            SyncLinkedPlaylistDialog(playlist: playlist, isSheet: true),
       );
     }
     return showDialog<PlaylistSyncResult>(
@@ -153,10 +153,9 @@ class _SyncLinkedPlaylistDialogState
         job.uiOwner == PlaylistImportUiOwner.dialog &&
         (job.isActive || job.phase == PlaylistImportJobPhase.awaitingReview);
 
-    final overlay =
-        widget.isSheet
-            ? _buildSheet(context, l10n, busy, job)
-            : _buildDialog(context, l10n, busy, job);
+    final overlay = widget.isSheet
+        ? _buildSheet(context, l10n, busy, job)
+        : _buildDialog(context, l10n, busy, job);
     return PopScope(
       canPop: _errorText != null || !busy,
       onPopInvokedWithResult: (didPop, _) {
@@ -183,9 +182,8 @@ class _SyncLinkedPlaylistDialogState
       ),
       title: Text(
         l10n?.syncingPlaylist ?? 'Syncing…',
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.titleLarge
+            ?.copyWith(fontWeight: FontWeight.bold),
       ),
       content: _buildBody(context, l10n, busy, job),
       actions: [
@@ -196,8 +194,8 @@ class _SyncLinkedPlaylistDialogState
           )
         else if (busy) ...[
           TextButton(
-            onPressed:
-                () => ref.read(playlistImportJobProvider.notifier).cancel(),
+            onPressed: () =>
+                ref.read(playlistImportJobProvider.notifier).cancel(),
             child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           TextButton(
@@ -228,9 +226,8 @@ class _SyncLinkedPlaylistDialogState
         children: [
           Text(
             l10n?.syncingPlaylist ?? 'Syncing…',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
           _buildBody(context, l10n, busy, job),
@@ -248,11 +245,8 @@ class _SyncLinkedPlaylistDialogState
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed:
-                        () =>
-                            ref
-                                .read(playlistImportJobProvider.notifier)
-                                .cancel(),
+                    onPressed: () =>
+                        ref.read(playlistImportJobProvider.notifier).cancel(),
                     child: Text(l10n?.cancel ?? 'Cancel'),
                   ),
                 ),
@@ -286,10 +280,9 @@ class _SyncLinkedPlaylistDialogState
       phase: _mapPhase(job.phase),
       current: job.current,
       total: job.total,
-      trackLabel:
-          job.phase == PlaylistImportJobPhase.awaitingReview
-              ? null
-              : job.trackLabel,
+      trackLabel: job.phase == PlaylistImportJobPhase.awaitingReview
+          ? null
+          : job.trackLabel,
       showAiAssist:
           _isSpotify && job.phase != PlaylistImportJobPhase.awaitingReview,
       aiModelReady: job.aiModelReady,

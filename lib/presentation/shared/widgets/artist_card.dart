@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/extensions/stat_format.dart';
 import '../../../l10n/app_localizations.dart';
 import 'context_menu_sheet.dart';
@@ -30,10 +31,9 @@ class ArtistCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final subtitle =
-        monthlyListeners != null && monthlyListeners!.isNotEmpty
-            ? stripYtLabel(monthlyListeners)
-            : AppLocalizations.of(context)!.artists;
+    final subtitle = monthlyListeners != null && monthlyListeners!.isNotEmpty
+        ? stripYtLabel(monthlyListeners)
+        : AppLocalizations.of(context)!.artists;
 
     final thumbSize = (cardWidth * 110 / 120).roundToDouble();
     final tag = heroTag ?? 'artist_art_$artistId';
@@ -44,27 +44,25 @@ class ArtistCard extends ConsumerWidget {
           () => context.push(
             '/artist/$artistId?heroTag=${Uri.encodeComponent(tag)}',
           ),
-      onLongPress:
-          () => ContextMenuSheet.showForArtist(
-            context,
-            artistId: artistId,
-            name: name,
-            thumbnailUrl: thumbnailUrl,
-            monthlyListeners: monthlyListeners,
-          ),
+      onLongPress: () => ContextMenuSheet.showForArtist(
+        context,
+        artistId: artistId,
+        name: name,
+        thumbnailUrl: thumbnailUrl,
+        monthlyListeners: monthlyListeners,
+      ),
       child: ShelfCardLayout(
         cardWidth: cardWidth,
         maxCoverSize: thumbSize,
         crossAxisAlignment: CrossAxisAlignment.center,
-        coverBuilder:
-            (size) => Hero(
-              tag: tag,
-              child: ThumbnailWidget(
-                imageUrl: thumbnailUrl,
-                size: size,
-                shape: ThumbnailShape.circle,
-              ),
-            ),
+        coverBuilder: (size) => Hero(
+          tag: tag,
+          child: ThumbnailWidget(
+            imageUrl: thumbnailUrl,
+            size: size,
+            shape: ThumbnailShape.circle,
+          ),
+        ),
         textBlock: [
           const SizedBox(height: 10),
           Text(
@@ -72,9 +70,8 @@ class ArtistCard extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 2),
           Text(

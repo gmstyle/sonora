@@ -22,18 +22,16 @@ class MoodsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           l10n.moodsAndGenres,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: categoriesAsync.when(
         loading: () => const _MoodCategoriesShimmer(),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: l10n.failedToLoadExplore,
-              onRetry: () => ref.invalidate(moodCategoriesProvider),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: l10n.failedToLoadExplore,
+          onRetry: () => ref.invalidate(moodCategoriesProvider),
+        ),
         data: (result) {
           if (result.sections.isEmpty) {
             return Center(child: Text(l10n.noContentAvailable));
@@ -51,9 +49,8 @@ class MoodsScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
                       entry.key,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
                   Padding(
@@ -107,18 +104,16 @@ class MoodPlaylistsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: playlistsAsync.when(
         loading: () => const _MoodPlaylistsShimmer(),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: l10n.failedToLoadExplore,
-              onRetry: () => ref.invalidate(moodPlaylistsProvider(params)),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: l10n.failedToLoadExplore,
+          onRetry: () => ref.invalidate(moodPlaylistsProvider(params)),
+        ),
         data: (playlists) {
           if (playlists.isEmpty) {
             return Center(child: Text(l10n.noContentAvailable));
@@ -148,10 +143,9 @@ class MoodPlaylistsScreen extends ConsumerWidget {
                     playlistId: playlist.playlistId,
                     name: playlist.name,
                     artist: displayArtists(playlist.artists),
-                    thumbnailUrl:
-                        playlist.thumbnails.isNotEmpty
-                            ? playlist.thumbnails.last.url
-                            : null,
+                    thumbnailUrl: playlist.thumbnails.isNotEmpty
+                        ? playlist.thumbnails.last.url
+                        : null,
                     cardWidth: spec.cardWidth,
                     heroTag: 'mood_playlist_${playlist.playlistId}',
                   );
@@ -205,11 +199,10 @@ class _MoodPlaylistsShimmer extends StatelessWidget {
             childAspectRatio: 0.62,
           ),
           itemCount: spec.columns * 3,
-          itemBuilder:
-              (_, _) => ShimmerLoading(
-                variant: ShimmerVariant.card,
-                cardWidth: spec.cardWidth,
-              ),
+          itemBuilder: (_, _) => ShimmerLoading(
+            variant: ShimmerVariant.card,
+            cardWidth: spec.cardWidth,
+          ),
         );
       },
     );

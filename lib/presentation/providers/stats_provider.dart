@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
+
 import '../../data/datasources/local/database.dart';
 import 'database_provider.dart';
 
@@ -87,9 +89,9 @@ class StatsNotifier extends Notifier<StatsState> {
     final db = ref.watch(databaseProvider);
 
     // Watch the history table stream to update stats in real time
-    final historyStream =
-        (db.select(db.history)
-          ..orderBy([(t) => OrderingTerm.desc(t.playedAt)])).watch();
+    final historyStream = (db.select(
+      db.history,
+    )..orderBy([(t) => OrderingTerm.desc(t.playedAt)])).watch();
 
     _historySubscription = historyStream.listen((rows) {
       if (rows.isEmpty) {
@@ -99,8 +101,9 @@ class StatsNotifier extends Notifier<StatsState> {
 
       // Split rows into music (songs/videos) and podcast episodes.
       final musicRows = rows.where((r) => r.contentType != 'episode').toList();
-      final episodeRows =
-          rows.where((r) => r.contentType == 'episode').toList();
+      final episodeRows = rows
+          .where((r) => r.contentType == 'episode')
+          .toList();
 
       // 1. Calculate total duration (in minutes) — across all rows.
       // If duration is null, assume an average track length of 3.5 minutes

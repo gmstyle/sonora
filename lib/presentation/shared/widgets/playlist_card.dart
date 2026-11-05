@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/playlist/providers/playlist_provider.dart';
@@ -104,13 +105,12 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (_) => PlaylistDetailView(
-                          playlist: playlistModel,
-                          onUpdated: () {
-                            ref.invalidate(playlistsProvider);
-                          },
-                        ),
+                    builder: (_) => PlaylistDetailView(
+                      playlist: playlistModel,
+                      onUpdated: () {
+                        ref.invalidate(playlistsProvider);
+                      },
+                    ),
                   ),
                 );
               } else {
@@ -146,40 +146,37 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
         },
         child: ShelfCardLayout(
           cardWidth: widget.cardWidth,
-          coverBuilder:
-              (size) => Stack(
-                children: [
-                  Hero(
-                    tag: tag,
-                    child:
-                        isLocal
-                            ? _LocalPlaylistCoverBuilder(
-                              playlistId: widget.localPlaylistId!,
-                              size: size,
-                            )
-                            : ThumbnailWidget(
-                              imageUrl: widget.thumbnailUrl,
-                              size: size,
-                              shape: ThumbnailShape.rounded,
-                              borderRadius: 24,
-                            ),
-                  ),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
-                  ),
-                ],
+          coverBuilder: (size) => Stack(
+            children: [
+              Hero(
+                tag: tag,
+                child: isLocal
+                    ? _LocalPlaylistCoverBuilder(
+                        playlistId: widget.localPlaylistId!,
+                        size: size,
+                      )
+                    : ThumbnailWidget(
+                        imageUrl: widget.thumbnailUrl,
+                        size: size,
+                        shape: ThumbnailShape.rounded,
+                        borderRadius: 24,
+                      ),
               ),
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
+              ),
+            ],
+          ),
           textBlock: [
             const SizedBox(height: 8),
             Text(
               widget.name,
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w500),
             ),
             if (widget.artist != null && widget.artist!.isNotEmpty) ...[
               const SizedBox(height: 2),
@@ -213,25 +210,22 @@ class _LocalPlaylistCoverBuilder extends ConsumerWidget {
     final entriesAsync = ref.watch(playlistEntriesProvider(playlistId));
 
     return entriesAsync.when(
-      loading:
-          () => Container(
-            width: size,
-            height: size,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
-      error:
-          (_, _) => Container(
-            width: size,
-            height: size,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          ),
+      loading: () => Container(
+        width: size,
+        height: size,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      error: (_, _) => Container(
+        width: size,
+        height: size,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
       data: (entries) {
-        final urls =
-            entries
-                .map((e) => e.thumbnailUrl)
-                .where((url) => url != null && url.isNotEmpty)
-                .cast<String>()
-                .toList();
+        final urls = entries
+            .map((e) => e.thumbnailUrl)
+            .where((url) => url != null && url.isNotEmpty)
+            .cast<String>()
+            .toList();
 
         return SizedBox(
           width: size,

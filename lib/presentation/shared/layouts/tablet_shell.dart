@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../widgets/action_feedback_listener.dart';
@@ -50,21 +51,19 @@ class TabletShell extends ConsumerWidget {
                                   railConstraints.maxHeight < 280;
                               return NavigationRail(
                                 selectedIndex: navigationShell.currentIndex,
-                                onDestinationSelected:
-                                    (index) => navigationShell.goBranch(index),
-                                labelType:
-                                    compactRail
-                                        ? NavigationRailLabelType.none
-                                        : NavigationRailLabelType.selected,
-                                leading:
-                                    compactRail
-                                        ? null
-                                        : const Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 16,
-                                          ),
-                                          child: SonoraLogo.icon(36),
+                                onDestinationSelected: (index) =>
+                                    navigationShell.goBranch(index),
+                                labelType: compactRail
+                                    ? NavigationRailLabelType.none
+                                    : NavigationRailLabelType.selected,
+                                leading: compactRail
+                                    ? null
+                                    : const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 16,
                                         ),
+                                        child: SonoraLogo.icon(36),
+                                      ),
                                 destinations: [
                                   for (var i = 0; i < _icons.length; i++)
                                     NavigationRailDestination(
@@ -88,9 +87,8 @@ class TabletShell extends ConsumerWidget {
                 ),
                 VerticalDivider(
                   width: 1,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  color: Theme.of(context).colorScheme.outlineVariant
+                      .withValues(alpha: 0.4),
                 ),
                 Expanded(
                   child: Stack(
@@ -134,12 +132,12 @@ class _TabletSettingsEntry extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              backgroundColor:
-                  isSelected
-                      ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
-                      : null,
-              foregroundColor:
-                  isSelected ? colorScheme.primary : colorScheme.onSurface,
+              backgroundColor: isSelected
+                  ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                  : null,
+              foregroundColor: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.onSurface,
               padding: EdgeInsets.zero,
             ),
             onPressed: () => context.push('/settings'),

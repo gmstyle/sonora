@@ -114,21 +114,20 @@ void _enqueueSingleTrackDownload({
   if (!dialogContext.mounted) return;
   showDialog<bool>(
     context: dialogContext,
-    builder:
-        (ctx) => AlertDialog(
-          title: Text(l10n.alreadyDownloaded),
-          content: Text(l10n.alreadyDownloadedConfirm),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.continueAction),
-            ),
-          ],
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.alreadyDownloaded),
+      content: Text(l10n.alreadyDownloadedConfirm),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
         ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.continueAction),
+        ),
+      ],
+    ),
   ).then((proceed) {
     if (proceed == true) start();
   });
@@ -177,56 +176,54 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _SongContextMenuSheet(
-                    videoId: videoId,
-                    title: title,
-                    artist: artist,
-                    thumbnailUrl: thumbnailUrl,
-                    duration: duration,
-                    isVideo: isVideo,
-                    albumName: albumName,
-                    artistId: artistId,
-                    albumId: albumId,
-                    artists: artists,
-                    artistsJson: artistsJson,
-                    playCount: playCount,
-                    viewCount: viewCount,
-                    isExplicit: isExplicit,
-                    isPlayable: isPlayable,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _SongContextMenuSheet(
+                videoId: videoId,
+                title: title,
+                artist: artist,
+                thumbnailUrl: thumbnailUrl,
+                duration: duration,
+                isVideo: isVideo,
+                albumName: albumName,
+                artistId: artistId,
+                albumId: albumId,
+                artists: artists,
+                artistsJson: artistsJson,
+                playCount: playCount,
+                viewCount: viewCount,
+                isExplicit: isExplicit,
+                isPlayable: isPlayable,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _SongContextMenuSheet(
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            albumName: albumName,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            playCount: playCount,
-            viewCount: viewCount,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
+      builder: (_) => _SongContextMenuSheet(
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        albumName: albumName,
+        artistId: artistId,
+        albumId: albumId,
+        artists: artists,
+        artistsJson: artistsJson,
+        playCount: playCount,
+        viewCount: viewCount,
+        isExplicit: isExplicit,
+        isPlayable: isPlayable,
+      ),
     );
   }
 
@@ -243,38 +240,36 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _ArtistContextMenuSheet(
-                    artistId: artistId,
-                    name: name,
-                    thumbnailUrl: thumbnailUrl,
-                    monthlyListeners: monthlyListeners,
-                    hideGoToArtist: hideGoToArtist,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _ArtistContextMenuSheet(
+                artistId: artistId,
+                name: name,
+                thumbnailUrl: thumbnailUrl,
+                monthlyListeners: monthlyListeners,
+                hideGoToArtist: hideGoToArtist,
+                omitActionIds: omitActionIds,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _ArtistContextMenuSheet(
-            artistId: artistId,
-            name: name,
-            thumbnailUrl: thumbnailUrl,
-            monthlyListeners: monthlyListeners,
-            hideGoToArtist: hideGoToArtist,
-            omitActionIds: omitActionIds,
-          ),
+      builder: (_) => _ArtistContextMenuSheet(
+        artistId: artistId,
+        name: name,
+        thumbnailUrl: thumbnailUrl,
+        monthlyListeners: monthlyListeners,
+        hideGoToArtist: hideGoToArtist,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -293,42 +288,40 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _AlbumContextMenuSheet(
-                    albumId: albumId,
-                    name: name,
-                    artist: artist,
-                    artistId: artistId,
-                    thumbnailUrl: thumbnailUrl,
-                    year: year,
-                    hideGoToAlbum: hideGoToAlbum,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _AlbumContextMenuSheet(
+                albumId: albumId,
+                name: name,
+                artist: artist,
+                artistId: artistId,
+                thumbnailUrl: thumbnailUrl,
+                year: year,
+                hideGoToAlbum: hideGoToAlbum,
+                omitActionIds: omitActionIds,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _AlbumContextMenuSheet(
-            albumId: albumId,
-            name: name,
-            artist: artist,
-            artistId: artistId,
-            thumbnailUrl: thumbnailUrl,
-            year: year,
-            hideGoToAlbum: hideGoToAlbum,
-            omitActionIds: omitActionIds,
-          ),
+      builder: (_) => _AlbumContextMenuSheet(
+        albumId: albumId,
+        name: name,
+        artist: artist,
+        artistId: artistId,
+        thumbnailUrl: thumbnailUrl,
+        year: year,
+        hideGoToAlbum: hideGoToAlbum,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -345,38 +338,36 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _PodcastContextMenuSheet(
-                    browseId: browseId,
-                    name: name,
-                    author: author,
-                    thumbnailUrl: thumbnailUrl,
-                    hideGoToPodcast: hideGoToPodcast,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _PodcastContextMenuSheet(
+                browseId: browseId,
+                name: name,
+                author: author,
+                thumbnailUrl: thumbnailUrl,
+                hideGoToPodcast: hideGoToPodcast,
+                omitActionIds: omitActionIds,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _PodcastContextMenuSheet(
-            browseId: browseId,
-            name: name,
-            author: author,
-            thumbnailUrl: thumbnailUrl,
-            hideGoToPodcast: hideGoToPodcast,
-            omitActionIds: omitActionIds,
-          ),
+      builder: (_) => _PodcastContextMenuSheet(
+        browseId: browseId,
+        name: name,
+        author: author,
+        thumbnailUrl: thumbnailUrl,
+        hideGoToPodcast: hideGoToPodcast,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -397,42 +388,40 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _EpisodeContextMenuSheet(
-                    videoId: videoId,
-                    name: name,
-                    podcastName: podcastName,
-                    podcastBrowseId: podcastBrowseId,
-                    thumbnailUrl: thumbnailUrl,
-                    date: date,
-                    onGoToPodcast: onGoToPodcast,
-                    hideGoToPodcast: hideGoToPodcast,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _EpisodeContextMenuSheet(
+                videoId: videoId,
+                name: name,
+                podcastName: podcastName,
+                podcastBrowseId: podcastBrowseId,
+                thumbnailUrl: thumbnailUrl,
+                date: date,
+                onGoToPodcast: onGoToPodcast,
+                hideGoToPodcast: hideGoToPodcast,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _EpisodeContextMenuSheet(
-            videoId: videoId,
-            name: name,
-            podcastName: podcastName,
-            podcastBrowseId: podcastBrowseId,
-            thumbnailUrl: thumbnailUrl,
-            date: date,
-            onGoToPodcast: onGoToPodcast,
-            hideGoToPodcast: hideGoToPodcast,
-          ),
+      builder: (_) => _EpisodeContextMenuSheet(
+        videoId: videoId,
+        name: name,
+        podcastName: podcastName,
+        podcastBrowseId: podcastBrowseId,
+        thumbnailUrl: thumbnailUrl,
+        date: date,
+        onGoToPodcast: onGoToPodcast,
+        hideGoToPodcast: hideGoToPodcast,
+      ),
     );
   }
 
@@ -449,38 +438,36 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _PlaylistContextMenuSheet(
-                    playlistId: playlistId,
-                    name: name,
-                    artist: artist,
-                    thumbnailUrl: thumbnailUrl,
-                    hideGoToPlaylist: hideGoToPlaylist,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _PlaylistContextMenuSheet(
+                playlistId: playlistId,
+                name: name,
+                artist: artist,
+                thumbnailUrl: thumbnailUrl,
+                hideGoToPlaylist: hideGoToPlaylist,
+                omitActionIds: omitActionIds,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _PlaylistContextMenuSheet(
-            playlistId: playlistId,
-            name: name,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            hideGoToPlaylist: hideGoToPlaylist,
-            omitActionIds: omitActionIds,
-          ),
+      builder: (_) => _PlaylistContextMenuSheet(
+        playlistId: playlistId,
+        name: name,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        hideGoToPlaylist: hideGoToPlaylist,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -495,34 +482,32 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _CustomPlaylistContextMenuSheet(
-                    playlist: playlist,
-                    onUpdated: onUpdated,
-                    hideGoToPlaylist: hideGoToPlaylist,
-                    omitActionIds: omitActionIds,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _CustomPlaylistContextMenuSheet(
+                playlist: playlist,
+                onUpdated: onUpdated,
+                hideGoToPlaylist: hideGoToPlaylist,
+                omitActionIds: omitActionIds,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _CustomPlaylistContextMenuSheet(
-            playlist: playlist,
-            onUpdated: onUpdated,
-            hideGoToPlaylist: hideGoToPlaylist,
-            omitActionIds: omitActionIds,
-          ),
+      builder: (_) => _CustomPlaylistContextMenuSheet(
+        playlist: playlist,
+        onUpdated: onUpdated,
+        hideGoToPlaylist: hideGoToPlaylist,
+        omitActionIds: omitActionIds,
+      ),
     );
   }
 
@@ -547,54 +532,52 @@ class ContextMenuSheet {
       return showDialog(
         context: context,
         useRootNavigator: true,
-        builder:
-            (_) => Center(
-              child: SizedBox(
-                width: 360,
-                child: Card(
-                  elevation: 8,
-                  clipBehavior: Clip.hardEdge,
-                  child: _NowPlayingContextMenuSheet(
-                    videoId: videoId,
-                    title: title,
-                    artist: artist,
-                    thumbnailUrl: thumbnailUrl,
-                    duration: duration,
-                    isVideo: isVideo,
-                    albumName: albumName,
-                    artistId: artistId,
-                    albumId: albumId,
-                    artists: artists,
-                    artistsJson: artistsJson,
-                    onGoToArtist: onGoToArtist,
-                    onGoToAlbum: onGoToAlbum,
-                    isExplicit: isExplicit,
-                  ),
-                ),
+        builder: (_) => Center(
+          child: SizedBox(
+            width: 360,
+            child: Card(
+              elevation: 8,
+              clipBehavior: Clip.hardEdge,
+              child: _NowPlayingContextMenuSheet(
+                videoId: videoId,
+                title: title,
+                artist: artist,
+                thumbnailUrl: thumbnailUrl,
+                duration: duration,
+                isVideo: isVideo,
+                albumName: albumName,
+                artistId: artistId,
+                albumId: albumId,
+                artists: artists,
+                artistsJson: artistsJson,
+                onGoToArtist: onGoToArtist,
+                onGoToAlbum: onGoToAlbum,
+                isExplicit: isExplicit,
               ),
             ),
+          ),
+        ),
       );
     }
     return showModalBottomSheet(
       context: context,
       useRootNavigator: true,
-      builder:
-          (_) => _NowPlayingContextMenuSheet(
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            albumName: albumName,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            onGoToArtist: onGoToArtist,
-            onGoToAlbum: onGoToAlbum,
-            isExplicit: isExplicit,
-          ),
+      builder: (_) => _NowPlayingContextMenuSheet(
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        albumName: albumName,
+        artistId: artistId,
+        albumId: albumId,
+        artists: artists,
+        artistsJson: artistsJson,
+        onGoToArtist: onGoToArtist,
+        onGoToAlbum: onGoToAlbum,
+        isExplicit: isExplicit,
+      ),
     );
   }
 }
@@ -804,14 +787,12 @@ class _NowPlayingContextMenuSheet extends ConsumerWidget {
                     },
                   ),
                   _ActionTile(
-                    icon:
-                        isDownloaded
-                            ? LucideIcons.checkCircle
-                            : LucideIcons.download,
-                    label:
-                        isDownloaded
-                            ? AppLocalizations.of(context)!.downloaded
-                            : AppLocalizations.of(context)!.download,
+                    icon: isDownloaded
+                        ? LucideIcons.checkCircle
+                        : LucideIcons.download,
+                    label: isDownloaded
+                        ? AppLocalizations.of(context)!.downloaded
+                        : AppLocalizations.of(context)!.download,
                     enabled: !isOffline,
                     onTap: () {
                       _enqueueSingleTrackDownload(
@@ -1027,12 +1008,12 @@ class _SongContextMenuSheet extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           _formatStat()!,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelSmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1203,14 +1184,12 @@ class _SongContextMenuSheet extends ConsumerWidget {
                   ),
                   if (isPlayable)
                     _ActionTile(
-                      icon:
-                          isDownloaded
-                              ? LucideIcons.checkCircle
-                              : LucideIcons.download,
-                      label:
-                          isDownloaded
-                              ? AppLocalizations.of(context)!.downloaded
-                              : AppLocalizations.of(context)!.download,
+                      icon: isDownloaded
+                          ? LucideIcons.checkCircle
+                          : LucideIcons.download,
+                      label: isDownloaded
+                          ? AppLocalizations.of(context)!.downloaded
+                          : AppLocalizations.of(context)!.download,
                       enabled: !isOffline,
                       onTap: () {
                         _enqueueSingleTrackDownload(
@@ -1319,9 +1298,8 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                     children: [
                       Text(
                         name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1330,12 +1308,12 @@ class _ArtistContextMenuSheet extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           stripYtLabel(monthlyListeners) ?? '',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1649,9 +1627,8 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                     children: [
                       Text(
                         name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1790,8 +1767,10 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
                           actionFeedbackProvider.notifier,
                         );
                         final container = ProviderScope.containerOf(context);
-                        final rootContext =
-                            Navigator.of(context, rootNavigator: true).context;
+                        final rootContext = Navigator.of(
+                          context,
+                          rootNavigator: true,
+                        ).context;
                         Navigator.pop(context);
                         _downloadAlbum(
                           rootContext,
@@ -1907,10 +1886,9 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
       final album = await albumFuture;
       if (album.songs.isEmpty) return;
       final notifier = container.read(activeDownloadsProvider.notifier);
-      final toDownload =
-          playableSongs(
-            album.songs,
-          ).where((s) => !notifier.isDownloading(s.videoId)).toList();
+      final toDownload = playableSongs(album.songs)
+          .where((s) => !notifier.isDownloading(s.videoId))
+          .toList();
       if (toDownload.isEmpty) {
         if (context.mounted) {
           feedback.report(
@@ -1932,32 +1910,29 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
         final l10n = AppLocalizations.of(context)!;
         final proceed = await showDialog<bool>(
           context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: Text(l10n.alreadyDownloaded),
-                content: Text(
-                  l10n.alreadyDownloadedSongs(
-                    alreadyDownloaded.length,
-                    album.name,
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(l10n.cancel),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text(l10n.continueAction),
-                  ),
-                ],
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.alreadyDownloaded),
+            content: Text(
+              l10n.alreadyDownloadedSongs(alreadyDownloaded.length, album.name),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel),
               ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.continueAction),
+              ),
+            ],
+          ),
         );
         if (proceed != true) return;
       }
 
-      final alreadyDownloadedIds =
-          alreadyDownloaded.map((d) => d.videoId).toSet();
+      final alreadyDownloadedIds = alreadyDownloaded
+          .map((d) => d.videoId)
+          .toSet();
       final batchId = 'album:${album.albumId}';
       final batchTotal = toDownload.length;
       final sourceIndex = {
@@ -1974,8 +1949,9 @@ class _AlbumContextMenuSheet extends ConsumerWidget {
             title: song.name,
             artist: displayArtists(song.artists),
             artistsJson: encodeArtistsJson(song.artists),
-            thumbnailUrl:
-                song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null,
+            thumbnailUrl: song.thumbnails.isNotEmpty
+                ? song.thumbnails.last.url
+                : null,
             subdirectory: album.name,
             isExplicit: song.isExplicit,
             batchId: batchId,
@@ -2041,9 +2017,8 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                     children: [
                       Text(
                         name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -2051,12 +2026,12 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           author!,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2156,8 +2131,10 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
                           actionFeedbackProvider.notifier,
                         );
                         final container = ProviderScope.containerOf(context);
-                        final rootContext =
-                            Navigator.of(context, rootNavigator: true).context;
+                        final rootContext = Navigator.of(
+                          context,
+                          rootNavigator: true,
+                        ).context;
                         Navigator.pop(context);
                         _downloadPodcast(
                           rootContext,
@@ -2252,8 +2229,9 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
   ) async {
     try {
       final podcast = await repo.getPodcast(browseId);
-      final episodes =
-          podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+      final episodes = podcast.episodes
+          .where((e) => e.videoId.isNotEmpty)
+          .toList();
       if (episodes.isEmpty) return;
       final items = await useCase.execute(
         episodes,
@@ -2283,8 +2261,9 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
       final podcast = await podcastFuture;
       final notifier = container.read(activeDownloadsProvider.notifier);
       final episodes = podcast.episodes.where((e) => e.videoId.isNotEmpty);
-      final toDownload =
-          episodes.where((e) => !notifier.isDownloading(e.videoId)).toList();
+      final toDownload = episodes
+          .where((e) => !notifier.isDownloading(e.videoId))
+          .toList();
       if (toDownload.isEmpty) {
         if (context.mounted) {
           feedback.report(
@@ -2306,32 +2285,32 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
         final l10n = AppLocalizations.of(context)!;
         final proceed = await showDialog<bool>(
           context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: Text(l10n.alreadyDownloaded),
-                content: Text(
-                  l10n.alreadyDownloadedSongs(
-                    alreadyDownloaded.length,
-                    podcast.name,
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(l10n.cancel),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text(l10n.continueAction),
-                  ),
-                ],
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.alreadyDownloaded),
+            content: Text(
+              l10n.alreadyDownloadedSongs(
+                alreadyDownloaded.length,
+                podcast.name,
               ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.continueAction),
+              ),
+            ],
+          ),
         );
         if (proceed != true) return;
       }
 
-      final alreadyDownloadedIds =
-          alreadyDownloaded.map((d) => d.videoId).toSet();
+      final alreadyDownloadedIds = alreadyDownloaded
+          .map((d) => d.videoId)
+          .toSet();
       final batchId = 'podcast:${podcast.browseId}';
       final batchTotal = toDownload.length;
       final allEpisodes = podcast.episodes.toList();
@@ -2349,10 +2328,9 @@ class _PodcastContextMenuSheet extends ConsumerWidget {
             videoId: episode.videoId,
             title: episode.name,
             artist: podcast.author?.name ?? podcast.name,
-            thumbnailUrl:
-                episode.thumbnails.isNotEmpty
-                    ? episode.thumbnails.last.url
-                    : null,
+            thumbnailUrl: episode.thumbnails.isNotEmpty
+                ? episode.thumbnails.last.url
+                : null,
             subdirectory: podcast.name,
             isVideo: false,
             batchId: batchId,
@@ -2391,13 +2369,12 @@ class _LikePodcastActionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final likedAsync = ref.watch(likedPodcastProvider(browseId));
     return likedAsync.when(
-      loading:
-          () => ListTile(
-            leading: const Icon(LucideIcons.bookmark),
-            title: Text(AppLocalizations.of(context)!.subscribe),
-            enabled: false,
-            dense: true,
-          ),
+      loading: () => ListTile(
+        leading: const Icon(LucideIcons.bookmark),
+        title: Text(AppLocalizations.of(context)!.subscribe),
+        enabled: false,
+        dense: true,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSubscribed = liked != null;
@@ -2484,9 +2461,8 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                     children: [
                       Text(
                         name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -2494,12 +2470,12 @@ class _EpisodeContextMenuSheet extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           podcastName!,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2629,13 +2605,12 @@ class _LikeEpisodeActionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final likedAsync = ref.watch(likedEpisodeProvider(videoId));
     return likedAsync.when(
-      loading:
-          () => ListTile(
-            leading: const Icon(LucideIcons.bookmark),
-            title: Text(AppLocalizations.of(context)!.like),
-            enabled: false,
-            dense: true,
-          ),
+      loading: () => ListTile(
+        leading: const Icon(LucideIcons.bookmark),
+        title: Text(AppLocalizations.of(context)!.like),
+        enabled: false,
+        dense: true,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSaved = liked != null;
@@ -2721,9 +2696,8 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                     children: [
                       Text(
                         name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -2731,12 +2705,12 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                         const SizedBox(height: 2),
                         Text(
                           '$artist · Playlist',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2855,8 +2829,10 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
                           actionFeedbackProvider.notifier,
                         );
                         final container = ProviderScope.containerOf(context);
-                        final rootContext =
-                            Navigator.of(context, rootNavigator: true).context;
+                        final rootContext = Navigator.of(
+                          context,
+                          rootNavigator: true,
+                        ).context;
                         Navigator.pop(context);
                         _downloadPlaylist(
                           rootContext,
@@ -2963,10 +2939,9 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
       final videos = await videosFuture;
       if (videos.isEmpty) return;
       final notifier = container.read(activeDownloadsProvider.notifier);
-      final toDownload =
-          playableVideos(
-            videos,
-          ).where((v) => !notifier.isDownloading(v.videoId)).toList();
+      final toDownload = playableVideos(videos)
+          .where((v) => !notifier.isDownloading(v.videoId))
+          .toList();
       if (toDownload.isEmpty) {
         if (context.mounted) {
           feedback.report(
@@ -2988,29 +2963,29 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
         final l10n = AppLocalizations.of(context)!;
         final proceed = await showDialog<bool>(
           context: context,
-          builder:
-              (ctx) => AlertDialog(
-                title: Text(l10n.alreadyDownloaded),
-                content: Text(
-                  l10n.alreadyDownloadedSongs(alreadyDownloaded.length, name),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: Text(l10n.cancel),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text(l10n.continueAction),
-                  ),
-                ],
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.alreadyDownloaded),
+            content: Text(
+              l10n.alreadyDownloadedSongs(alreadyDownloaded.length, name),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.cancel),
               ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.continueAction),
+              ),
+            ],
+          ),
         );
         if (proceed != true) return;
       }
 
-      final alreadyDownloadedIds =
-          alreadyDownloaded.map((d) => d.videoId).toSet();
+      final alreadyDownloadedIds = alreadyDownloaded
+          .map((d) => d.videoId)
+          .toSet();
       final batchId = 'playlist:$playlistId';
       final batchTotal = toDownload.length;
       final sourceIndex = {
@@ -3027,8 +3002,9 @@ class _PlaylistContextMenuSheet extends ConsumerWidget {
             title: video.name,
             artist: displayArtists(video.artists),
             artistsJson: encodeArtistsJson(video.artists),
-            thumbnailUrl:
-                video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
+            thumbnailUrl: video.thumbnails.isNotEmpty
+                ? video.thumbnails.last.url
+                : null,
             subdirectory: name,
             isExplicit: video.isExplicit,
             isVideo: true,
@@ -3092,9 +3068,8 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                     children: [
                       Text(
                         playlist.name,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -3167,11 +3142,10 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       onTap: () async {
                         final result = await showDialog<String>(
                           context: context,
-                          builder:
-                              (_) => CreatePlaylistDialog(
-                                initialName: playlist.name,
-                                title: l10n.renamePlaylist,
-                              ),
+                          builder: (_) => CreatePlaylistDialog(
+                            initialName: playlist.name,
+                            title: l10n.renamePlaylist,
+                          ),
                         );
                         if (result != null &&
                             result.isNotEmpty &&
@@ -3200,11 +3174,10 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                         onTap: () async {
                           final container = ProviderScope.containerOf(context);
                           final strings = l10n;
-                          final dialogContext =
-                              Navigator.of(
-                                context,
-                                rootNavigator: true,
-                              ).context;
+                          final dialogContext = Navigator.of(
+                            context,
+                            rootNavigator: true,
+                          ).context;
                           if (isSpotifySyncCoolingDown(playlist)) {
                             ref
                                 .read(actionFeedbackProvider.notifier)
@@ -3246,23 +3219,22 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                     onTap: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
-                        builder:
-                            (ctx) => AlertDialog(
-                              title: Text(l10n.deletePlaylist),
-                              content: Text(
-                                l10n.deletePlaylistConfirm(playlist.name),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: Text(l10n.cancel),
-                                ),
-                                FilledButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: Text(l10n.delete),
-                                ),
-                              ],
+                        builder: (ctx) => AlertDialog(
+                          title: Text(l10n.deletePlaylist),
+                          content: Text(
+                            l10n.deletePlaylistConfirm(playlist.name),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: Text(l10n.cancel),
                             ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: Text(l10n.delete),
+                            ),
+                          ],
+                        ),
                       );
                       if (confirm == true) {
                         if (!context.mounted) return;
@@ -3271,10 +3243,9 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                         );
                         // Detail page passes hideGoToPlaylist: leave after delete.
                         final leaveDetail = hideGoToPlaylist;
-                        final nav =
-                            leaveDetail
-                                ? Navigator.of(context, rootNavigator: true)
-                                : null;
+                        final nav = leaveDetail
+                            ? Navigator.of(context, rootNavigator: true)
+                            : null;
                         Navigator.pop(context);
                         await notifier.deletePlaylist(playlist.id);
                         ref.invalidate(playlistsProvider);
@@ -3296,11 +3267,10 @@ class _CustomPlaylistContextMenuSheet extends ConsumerWidget {
                         Navigator.pop(context);
                         nav.push(
                           MaterialPageRoute(
-                            builder:
-                                (_) => PlaylistDetailView(
-                                  playlist: playlist,
-                                  onUpdated: onUpdated,
-                                ),
+                            builder: (_) => PlaylistDetailView(
+                              playlist: playlist,
+                              onUpdated: onUpdated,
+                            ),
                           ),
                         );
                       },
@@ -3462,16 +3432,14 @@ class _LikeActionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final likedAsync = ref.watch(likedSongProvider(videoId));
     return likedAsync.when(
-      loading:
-          () =>
-              isPlayable
-                  ? ListTile(
-                    leading: const Icon(DetailAffinityButton.likeIdle),
-                    title: Text(AppLocalizations.of(context)!.like),
-                    enabled: false,
-                    dense: true,
-                  )
-                  : const SizedBox.shrink(),
+      loading: () => isPlayable
+          ? ListTile(
+              leading: const Icon(DetailAffinityButton.likeIdle),
+              title: Text(AppLocalizations.of(context)!.like),
+              enabled: false,
+              dense: true,
+            )
+          : const SizedBox.shrink(),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
@@ -3531,13 +3499,12 @@ class _FollowArtistActionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final followedAsync = ref.watch(followedArtistProvider(artistId));
     return followedAsync.when(
-      loading:
-          () => ListTile(
-            leading: Icon(LucideIcons.userPlus),
-            title: Text(AppLocalizations.of(context)!.follow),
-            enabled: false,
-            dense: true,
-          ),
+      loading: () => ListTile(
+        leading: Icon(LucideIcons.userPlus),
+        title: Text(AppLocalizations.of(context)!.follow),
+        enabled: false,
+        dense: true,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
         final isFollowing = followed != null;
@@ -3591,13 +3558,12 @@ class _LikeAlbumActionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final likedAsync = ref.watch(likedAlbumProvider(albumId));
     return likedAsync.when(
-      loading:
-          () => ListTile(
-            leading: const Icon(DetailAffinityButton.likeIdle),
-            title: Text(AppLocalizations.of(context)!.like),
-            enabled: false,
-            dense: true,
-          ),
+      loading: () => ListTile(
+        leading: const Icon(DetailAffinityButton.likeIdle),
+        title: Text(AppLocalizations.of(context)!.like),
+        enabled: false,
+        dense: true,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
@@ -3650,13 +3616,12 @@ class _LikePlaylistActionTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final likedAsync = ref.watch(likedPlaylistProvider(playlistId));
     return likedAsync.when(
-      loading:
-          () => ListTile(
-            leading: const Icon(DetailAffinityButton.likeIdle),
-            title: Text(AppLocalizations.of(context)!.like),
-            enabled: false,
-            dense: true,
-          ),
+      loading: () => ListTile(
+        leading: const Icon(DetailAffinityButton.likeIdle),
+        title: Text(AppLocalizations.of(context)!.like),
+        enabled: false,
+        dense: true,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
@@ -3714,9 +3679,8 @@ Future<void> _showArtistPicker(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   AppLocalizations.of(sheetContext)!.goToArtists,
-                  style: Theme.of(
-                    sheetContext,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(sheetContext).textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -3757,16 +3721,15 @@ Future<void> _showPlaylistPicker(
   return showModalBottomSheet(
     context: context,
     useRootNavigator: true,
-    builder:
-        (_) => _PlaylistPickerSheet(
-          videoId: videoId,
-          title: title,
-          artist: artist,
-          artistsJson: artistsJson,
-          thumbnailUrl: thumbnailUrl,
-          isExplicit: isExplicit,
-          duration: duration,
-        ),
+    builder: (_) => _PlaylistPickerSheet(
+      videoId: videoId,
+      title: title,
+      artist: artist,
+      artistsJson: artistsJson,
+      thumbnailUrl: thumbnailUrl,
+      isExplicit: isExplicit,
+      duration: duration,
+    ),
   );
 }
 
@@ -3800,8 +3763,9 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
   @override
   void initState() {
     super.initState();
-    _playlistsFuture =
-        ref.read(libraryNotifierProvider.notifier).getAllPlaylists();
+    _playlistsFuture = ref
+        .read(libraryNotifierProvider.notifier)
+        .getAllPlaylists();
   }
 
   Future<void> _createAndAdd(String name) async {
@@ -3857,12 +3821,10 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                         if (name != null && name.isNotEmpty) {
                           await _createAndAdd(name);
                           if (context.mounted) {
-                            final feedback = ProviderScope.containerOf(
-                              context,
-                            ).read(actionFeedbackProvider.notifier);
-                            final message = AppLocalizations.of(
-                              context,
-                            )!.addedTo(name);
+                            final feedback = ProviderScope.containerOf(context)
+                                .read(actionFeedbackProvider.notifier);
+                            final message = AppLocalizations.of(context)!
+                                .addedTo(name);
                             Navigator.pop(context);
                             feedback.report(message);
                           }
@@ -3906,12 +3868,10 @@ class _PlaylistPickerSheetState extends ConsumerState<_PlaylistPickerSheet> {
                                 isExplicit: widget.isExplicit,
                               );
                           if (context.mounted) {
-                            final feedback = ProviderScope.containerOf(
-                              context,
-                            ).read(actionFeedbackProvider.notifier);
-                            final message = AppLocalizations.of(
-                              context,
-                            )!.addedToPlaylist(playlist.name);
+                            final feedback = ProviderScope.containerOf(context)
+                                .read(actionFeedbackProvider.notifier);
+                            final message = AppLocalizations.of(context)!
+                                .addedToPlaylist(playlist.name);
                             Navigator.pop(context);
                             feedback.report(message);
                           }

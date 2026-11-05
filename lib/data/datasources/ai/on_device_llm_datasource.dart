@@ -154,17 +154,18 @@ class OnDeviceLlmDatasource {
 
     debugPrint('OnDeviceLlm: getActiveModel (cold load)…');
     try {
-      final model = await FlutterEdgeAi.getActiveModel(
-        maxTokens: 2048,
-        preferredBackend: PreferredBackend.cpu,
-      ).timeout(
-        const Duration(seconds: 120),
-        onTimeout: () {
-          throw TimeoutException(
-            'Ask model getActiveModel timed out after 120s',
+      final model =
+          await FlutterEdgeAi.getActiveModel(
+            maxTokens: 2048,
+            preferredBackend: PreferredBackend.cpu,
+          ).timeout(
+            const Duration(seconds: 120),
+            onTimeout: () {
+              throw TimeoutException(
+                'Ask model getActiveModel timed out after 120s',
+              );
+            },
           );
-        },
-      );
       _model = model;
       _modelFuture = null;
       debugPrint('OnDeviceLlm: getActiveModel ready');

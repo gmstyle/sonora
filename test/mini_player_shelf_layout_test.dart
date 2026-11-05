@@ -127,17 +127,16 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder:
-              (_, _) => Scaffold(
-                body: SizedBox(
-                  width: 1200,
-                  height: kMiniPlayerShelfHeight,
-                  child: MiniPlayerContent(
-                    currentSong: albumSong,
-                    playerState: playing,
-                  ),
-                ),
+          builder: (_, _) => Scaffold(
+            body: SizedBox(
+              width: 1200,
+              height: kMiniPlayerShelfHeight,
+              child: MiniPlayerContent(
+                currentSong: albumSong,
+                playerState: playing,
               ),
+            ),
+          ),
         ),
         GoRoute(
           path: '/artist/:id',
@@ -202,17 +201,16 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder:
-              (_, _) => Scaffold(
-                body: SizedBox(
-                  width: 1200,
-                  height: kMiniPlayerShelfHeight,
-                  child: MiniPlayerContent(
-                    currentSong: episode,
-                    playerState: playing,
-                  ),
-                ),
+          builder: (_, _) => Scaffold(
+            body: SizedBox(
+              width: 1200,
+              height: kMiniPlayerShelfHeight,
+              child: MiniPlayerContent(
+                currentSong: episode,
+                playerState: playing,
               ),
+            ),
+          ),
         ),
         GoRoute(
           path: '/podcast/:id',

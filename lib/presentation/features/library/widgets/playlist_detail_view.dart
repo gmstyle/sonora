@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -171,8 +172,9 @@ class _PlaylistDetailContentState
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 340.0;
+    final double expandedHeight = widget.isTablet || widget.isWide
+        ? 360.0
+        : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -210,16 +212,15 @@ class _PlaylistDetailContentState
         allPlaylists.where((p) => p.id == widget.playlist.id).firstOrNull ??
         widget.playlist;
 
-    final thumbnailUrls =
-        entries
-            .map((e) {
-              final liked = _findLiked(likedSongs, e.videoId);
-              return liked?.thumbnailUrl ?? e.thumbnailUrl;
-            })
-            .where((u) => u != null && u.isNotEmpty)
-            .cast<String>()
-            .take(3)
-            .toList();
+    final thumbnailUrls = entries
+        .map((e) {
+          final liked = _findLiked(likedSongs, e.videoId);
+          return liked?.thumbnailUrl ?? e.thumbnailUrl;
+        })
+        .where((u) => u != null && u.isNotEmpty)
+        .cast<String>()
+        .take(3)
+        .toList();
 
     final bottomPad =
         (widget.isWide ? 48.0 : 16.0) + MediaQuery.of(context).padding.bottom;
@@ -247,43 +248,37 @@ class _PlaylistDetailContentState
                 onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
                 onShuffle: entries.isNotEmpty ? () => _shufflePlay() : null,
                 onAddToQueue: entries.isNotEmpty ? () => _addToQueue() : null,
-                onDownload:
-                    entries.isNotEmpty && !ref.watch(isOfflineProvider)
-                        ? () => _downloadAll()
-                        : null,
+                onDownload: entries.isNotEmpty && !ref.watch(isOfflineProvider)
+                    ? () => _downloadAll()
+                    : null,
                 onUpdated: widget.onUpdated,
               ),
             ),
           ),
 
           ...entriesAsync.when<List<Widget>>(
-            loading:
-                () => [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(hPad, 16, hPad, bottomPad),
-                      child: _entryShimmerList(),
+            loading: () => [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(hPad, 16, hPad, bottomPad),
+                  child: _entryShimmerList(),
+                ),
+              ),
+            ],
+            error: (e, _) => [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(hPad, 16, hPad, bottomPad),
+                  child: ErrorRetryWidget(
+                    message: AppLocalizations.of(context)!
+                        .failedToLoadPlaylistEntries,
+                    onRetry: () => ref.invalidate(
+                      playlistEntriesProvider(widget.playlist.id),
                     ),
                   ),
-                ],
-            error:
-                (e, _) => [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(hPad, 16, hPad, bottomPad),
-                      child: ErrorRetryWidget(
-                        message:
-                            AppLocalizations.of(
-                              context,
-                            )!.failedToLoadPlaylistEntries,
-                        onRetry:
-                            () => ref.invalidate(
-                              playlistEntriesProvider(widget.playlist.id),
-                            ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
+              ),
+            ],
             data: (loadedEntries) {
               final displayEntries = _localEntries ?? loadedEntries;
               if (displayEntries.isEmpty) {
@@ -307,9 +302,8 @@ class _PlaylistDetailContentState
                   sliver: _capTrackSliver(
                     SliverReorderableList(
                       itemCount: displayEntries.length,
-                      proxyDecorator:
-                          (child, index, animation) =>
-                              Material(color: Colors.transparent, child: child),
+                      proxyDecorator: (child, index, animation) =>
+                          Material(color: Colors.transparent, child: child),
                       itemBuilder: (context, index) {
                         final entry = displayEntries[index];
                         final liked = _findLiked(likedSongs, entry.videoId);
@@ -349,10 +343,9 @@ class _PlaylistDetailContentState
                                   child: Icon(
                                     LucideIcons.gripVertical,
                                     size: 20,
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                                   ),
                                 ),
                               ),
@@ -368,12 +361,12 @@ class _PlaylistDetailContentState
                                       bottom: 0,
                                       right:
                                           downloadedIds.contains(entry.videoId)
-                                              ? null
-                                              : 0,
+                                          ? null
+                                          : 0,
                                       left:
                                           downloadedIds.contains(entry.videoId)
-                                              ? 0
-                                              : null,
+                                          ? 0
+                                          : null,
                                       child: const VideoBadge(
                                         padding: EdgeInsets.symmetric(
                                           horizontal: 3,
@@ -389,19 +382,17 @@ class _PlaylistDetailContentState
                                       child: Container(
                                         padding: const EdgeInsets.all(2),
                                         decoration: BoxDecoration(
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
                                           shape: BoxShape.circle,
                                         ),
                                         child: Icon(
                                           LucideIcons.checkCircle,
                                           size: 10,
-                                          color:
-                                              Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimary,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary,
                                         ),
                                       ),
                                     ),
@@ -414,18 +405,16 @@ class _PlaylistDetailContentState
                               icon: const Icon(LucideIcons.x, size: 18),
                               onPressed: () => _removeEntry(entry),
                               visualDensity: VisualDensity.compact,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               tooltip: AppLocalizations.of(context)!.remove,
                             ),
                           ],
                         );
                       },
-                      onReorderItem:
-                          (oldIndex, newIndex) =>
-                              _reorder(displayEntries, oldIndex, newIndex),
+                      onReorderItem: (oldIndex, newIndex) =>
+                          _reorder(displayEntries, oldIndex, newIndex),
                     ),
                   ),
                 ),
@@ -544,11 +533,10 @@ class _PlaylistDetailContentState
     final entries = await ref.read(
       playlistEntriesProvider(widget.playlist.id).future,
     );
-    final toDownload =
-        entries
-            .where((e) => !alreadyDownloadedIds.contains(e.videoId))
-            .where((e) => !notifier.isDownloading(e.videoId))
-            .toList();
+    final toDownload = entries
+        .where((e) => !alreadyDownloadedIds.contains(e.videoId))
+        .where((e) => !notifier.isDownloading(e.videoId))
+        .toList();
 
     if (toDownload.isEmpty) {
       ref
@@ -794,9 +782,8 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                     if (playlist.sourceKind == 'spotify') ...[
                       const SizedBox(height: 6),
                       Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.playlistSyncSpotifyRateLimitHint,
+                        AppLocalizations.of(context)!
+                            .playlistSyncSpotifyRateLimitHint,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colors.labelMuted,
                         ),
@@ -912,9 +899,8 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                     children: [
                       Text(
                         playlist.isLinked
-                            ? AppLocalizations.of(
-                              context,
-                            )!.linkedBadge.toUpperCase()
+                            ? AppLocalizations.of(context)!.linkedBadge
+                                  .toUpperCase()
                             : 'PLAYLIST',
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -925,13 +911,14 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         playlist.name,
-                        style: (isWide
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.titlePrimary,
-                            ),
+                        style:
+                            (isWide
+                                    ? theme.textTheme.headlineLarge
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.titlePrimary,
+                                ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -941,9 +928,8 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                         if (playlist.sourceKind == 'spotify') ...[
                           const SizedBox(height: 6),
                           Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.playlistSyncSpotifyRateLimitHint,
+                            AppLocalizations.of(context)!
+                                .playlistSyncSpotifyRateLimitHint,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.labelMuted,
                             ),
@@ -1036,14 +1022,13 @@ class _LocalPlaylistActions extends StatelessWidget {
         label: l10n.downloadPlaylist,
         tooltip: l10n.downloadPlaylist,
         onPressed: onDownload,
-        buildControl:
-            (context, compact) => _LocalPlaylistDownloadButton(
-              playlistId: playlist.id,
-              entryVideoIds: entryVideoIds,
-              idleLabel: l10n.downloadPlaylist,
-              onDownload: onDownload,
-              iconOnly: compact,
-            ),
+        buildControl: (context, compact) => _LocalPlaylistDownloadButton(
+          playlistId: playlist.id,
+          entryVideoIds: entryVideoIds,
+          idleLabel: l10n.downloadPlaylist,
+          onDownload: onDownload,
+          iconOnly: compact,
+        ),
       ),
     ]);
 

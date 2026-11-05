@@ -93,22 +93,21 @@ class WidePlayerLayout extends ConsumerWidget {
                             Expanded(
                               child: AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
-                                child:
-                                    isPanelOpen
-                                        ? buildPlayerSubPanel(
-                                          activeView: activeView,
-                                          videoId: videoId,
-                                          position: playerState.position,
-                                        )
-                                        : insightsOpen
-                                        ? const SingleChildScrollView(
-                                          key: ValueKey('insights'),
-                                          child: PlayerInsightsCard(),
-                                        )
-                                        : PlayerDefaultView(
-                                          key: const ValueKey('empty'),
-                                          tight: tight,
-                                        ),
+                                child: isPanelOpen
+                                    ? buildPlayerSubPanel(
+                                        activeView: activeView,
+                                        videoId: videoId,
+                                        position: playerState.position,
+                                      )
+                                    : insightsOpen
+                                    ? const SingleChildScrollView(
+                                        key: ValueKey('insights'),
+                                        child: PlayerInsightsCard(),
+                                      )
+                                    : PlayerDefaultView(
+                                        key: const ValueKey('empty'),
+                                        tight: tight,
+                                      ),
                               ),
                             ),
                             SizedBox(height: tight ? 2 : 16),

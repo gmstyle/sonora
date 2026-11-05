@@ -2,11 +2,14 @@ import 'package:audio_service/audio_service.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+
 import '../../../../domain/models/queue_track.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../core/extensions/duration_ext.dart';
 import '../../../../l10n/app_localizations.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../providers/player_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/connectivity_provider.dart';
@@ -257,21 +260,20 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n.clearQueueConfirmTitle),
-            content: Text(l10n.clearQueueConfirmMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l10n.clearQueue),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.clearQueueConfirmTitle),
+        content: Text(l10n.clearQueueConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
           ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.clearQueue),
+          ),
+        ],
+      ),
     );
     if (confirmed == true) {
       await notifier.clearQueue();
@@ -330,12 +332,8 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
 
     ref.listen(
       playerStateProvider.select(
-        (s) => (
-          s.currentIndex,
-          s.currentSong?.id,
-          s.isQueueSynced,
-          s.isRestoring,
-        ),
+        (s) =>
+            (s.currentIndex, s.currentSong?.id, s.isQueueSynced, s.isRestoring),
       ),
       (prev, next) {
         final (index, songId, synced, restoring) = next;
@@ -399,19 +397,17 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                     count: userQueue.length,
                     pc: pc,
                     theme: theme,
-                    onClear:
-                        userQueue.isEmpty
-                            ? null
-                            : () => _confirmClearQueue(context, notifier),
+                    onClear: userQueue.isEmpty
+                        ? null
+                        : () => _confirmClearQueue(context, notifier),
                   ),
                 ),
                 if (userQueue.isNotEmpty)
                   SliverReorderableList(
                     itemCount: userQueue.length,
                     itemExtent: _kQueueTileHeight,
-                    proxyDecorator:
-                        (child, index, animation) =>
-                            Material(color: Colors.transparent, child: child),
+                    proxyDecorator: (child, index, animation) =>
+                        Material(color: Colors.transparent, child: child),
                     onReorderItem: (oldIndex, newIndex) {
                       // Items in userQueue live at the head of the global queue
                       // (indices 0 .. upNextStartIndex-1, or the whole queue
@@ -444,20 +440,19 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                           isUnplayable: isUnplayable,
                           pc: pc,
                           onRemove: () => notifier.removeAt(index),
-                          onTap:
-                              isUnplayable
-                                  ? () {
-                                    final l10n = AppLocalizations.of(context);
-                                    if (l10n != null) {
-                                      ref
-                                          .read(actionFeedbackProvider.notifier)
-                                          .report(
-                                            l10n.trackUnplayable(item.title),
-                                            kind: FeedbackKind.error,
-                                          );
-                                    }
+                          onTap: isUnplayable
+                              ? () {
+                                  final l10n = AppLocalizations.of(context);
+                                  if (l10n != null) {
+                                    ref
+                                        .read(actionFeedbackProvider.notifier)
+                                        .report(
+                                          l10n.trackUnplayable(item.title),
+                                          kind: FeedbackKind.error,
+                                        );
                                   }
-                                  : () => notifier.skipToIndex(index),
+                                }
+                              : () => notifier.skipToIndex(index),
                         ),
                       );
                     },
@@ -482,14 +477,13 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                     pc: pc,
                     theme: theme,
                     autoplayEnabled: autoplayEnabled,
-                    onAutoplayToggle:
-                        ref.watch(isOfflineProvider)
-                            ? null
-                            : () {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .setAutoPlayUpNext(!autoplayEnabled);
-                            },
+                    onAutoplayToggle: ref.watch(isOfflineProvider)
+                        ? null
+                        : () {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .setAutoPlayUpNext(!autoplayEnabled);
+                          },
                   ),
                 ),
                 if (upNextQueue.isNotEmpty)
@@ -510,20 +504,19 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                         isUnplayable: isUnplayable,
                         pc: pc,
                         onRemove: null,
-                        onTap:
-                            isUnplayable
-                                ? () {
-                                  final l10n = AppLocalizations.of(context);
-                                  if (l10n != null) {
-                                    ref
-                                        .read(actionFeedbackProvider.notifier)
-                                        .report(
-                                          l10n.trackUnplayable(item.title),
-                                          kind: FeedbackKind.error,
-                                        );
-                                  }
+                        onTap: isUnplayable
+                            ? () {
+                                final l10n = AppLocalizations.of(context);
+                                if (l10n != null) {
+                                  ref
+                                      .read(actionFeedbackProvider.notifier)
+                                      .report(
+                                        l10n.trackUnplayable(item.title),
+                                        kind: FeedbackKind.error,
+                                      );
                                 }
-                                : () => notifier.skipToIndex(globalIndex),
+                              }
+                            : () => notifier.skipToIndex(globalIndex),
                       );
                     }, childCount: upNextQueue.length),
                   )
@@ -532,14 +525,9 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
                     child: SizedBox(
                       height: _kHintExtent,
                       child: _Hint(
-                        text:
-                            autoplayEnabled
-                                ? AppLocalizations.of(
-                                  context,
-                                )!.upNextWillPopulate
-                                : AppLocalizations.of(
-                                  context,
-                                )!.autoplayDisabled,
+                        text: autoplayEnabled
+                            ? AppLocalizations.of(context)!.upNextWillPopulate
+                            : AppLocalizations.of(context)!.autoplayDisabled,
                         pc: pc,
                       ),
                     ),
@@ -557,8 +545,9 @@ class _QueueSheetState extends ConsumerState<QueueSheet> {
               ignoring: !_showNowPlayingChip,
               child: Center(
                 child: AnimatedSlide(
-                  offset:
-                      _showNowPlayingChip ? Offset.zero : const Offset(0, 0.35),
+                  offset: _showNowPlayingChip
+                      ? Offset.zero
+                      : const Offset(0, 0.35),
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOut,
                   child: AnimatedOpacity(
@@ -715,10 +704,9 @@ class _SectionHeader extends StatelessWidget {
               ),
             if (autoplayEnabled != null && onAutoplayToggle != null)
               IconButton(
-                tooltip:
-                    autoplayEnabled!
-                        ? AppLocalizations.of(context)!.autoplayDisable
-                        : AppLocalizations.of(context)!.autoplayEnable,
+                tooltip: autoplayEnabled!
+                    ? AppLocalizations.of(context)!.autoplayDisable
+                    : AppLocalizations.of(context)!.autoplayEnable,
                 icon: Icon(
                   autoplayEnabled!
                       ? LucideIcons.toggleRight
@@ -760,21 +748,21 @@ class _QueueItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final track = QueueTrack.fromMediaItem(item);
     final isUpNext = item.extras?['section'] == 'upnext';
-    final opacity =
-        isUnplayable
-            ? 0.5
-            : isCurrent
-            ? 1.0
-            : isUpNext
-            ? 0.7
-            : 0.9;
+    final opacity = isUnplayable
+        ? 0.5
+        : isCurrent
+        ? 1.0
+        : isUpNext
+        ? 0.7
+        : 0.9;
     final duration = item.duration;
-    final durationLabel =
-        duration != null && duration > Duration.zero ? duration.format() : null;
+    final durationLabel = duration != null && duration > Duration.zero
+        ? duration.format()
+        : null;
     final artist = item.artist ?? '';
     final subtitle = [
       if (artist.isNotEmpty) artist,
-      if (durationLabel != null) durationLabel,
+      ?durationLabel,
     ].join(' · ');
 
     return Opacity(
@@ -792,16 +780,15 @@ class _QueueItem extends StatelessWidget {
                   // Accent rail — reserved width so cover aligns for all rows
                   SizedBox(
                     width: _kAccentRailWidth,
-                    child:
-                        isCurrent
-                            ? DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: pc.iconPrimary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                              child: const SizedBox.expand(),
-                            )
-                            : null,
+                    child: isCurrent
+                        ? DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: pc.iconPrimary,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                            child: const SizedBox.expand(),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 10),
                   ClipRRect(
@@ -814,18 +801,17 @@ class _QueueItem extends StatelessWidget {
                         children: [
                           item.artUri != null
                               ? CachedNetworkImage(
-                                imageUrl: item.artUri!.toString(),
-                                fit: BoxFit.cover,
-                                errorWidget:
-                                    (_, _, _) => Icon(
-                                      LucideIcons.music,
-                                      color: pc.iconSecondary,
-                                    ),
-                              )
+                                  imageUrl: item.artUri!.toString(),
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) => Icon(
+                                    LucideIcons.music,
+                                    color: pc.iconSecondary,
+                                  ),
+                                )
                               : Icon(
-                                LucideIcons.music,
-                                color: pc.iconSecondary,
-                              ),
+                                  LucideIcons.music,
+                                  color: pc.iconSecondary,
+                                ),
                           if (track.isVideo)
                             const Positioned(
                               bottom: 0,
@@ -843,8 +829,8 @@ class _QueueItem extends StatelessWidget {
                               bottom: 0,
                               right: 0,
                               child: _EpisodeQueueBadge(
-                                label:
-                                    AppLocalizations.of(context)!.episodeShort,
+                                label: AppLocalizations.of(context)!
+                                    .episodeShort,
                               ),
                             ),
                         ],
@@ -859,10 +845,12 @@ class _QueueItem extends StatelessWidget {
                       children: [
                         DefaultTextStyle(
                           style: TextStyle(
-                            fontWeight:
-                                isCurrent ? FontWeight.w700 : FontWeight.w500,
-                            color:
-                                isCurrent ? pc.titlePrimary : pc.titleSecondary,
+                            fontWeight: isCurrent
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isCurrent
+                                ? pc.titlePrimary
+                                : pc.titleSecondary,
                             fontSize: 15,
                           ),
                           child: Text.rich(
@@ -968,9 +956,8 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             AppLocalizations.of(context)!.queueIsEmpty,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(color: pc.subtitle),
           ),
         ],
       ),

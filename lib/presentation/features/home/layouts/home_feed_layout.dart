@@ -45,12 +45,12 @@ class HomeFeedLayout extends ConsumerWidget {
     // Desktop escape hatch: F5 / Ctrl+R / Cmd+R (pull-to-refresh covers touch).
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.f5):
-            () => _invalidateHome(ref),
-        const SingleActivator(LogicalKeyboardKey.keyR, control: true):
-            () => _invalidateHome(ref),
-        const SingleActivator(LogicalKeyboardKey.keyR, meta: true):
-            () => _invalidateHome(ref),
+        const SingleActivator(LogicalKeyboardKey.f5): () =>
+            _invalidateHome(ref),
+        const SingleActivator(LogicalKeyboardKey.keyR, control: true): () =>
+            _invalidateHome(ref),
+        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): () =>
+            _invalidateHome(ref),
       },
       child: Focus(
         autofocus: true,
@@ -83,71 +83,64 @@ class HomeFeedLayout extends ConsumerWidget {
             ],
           ),
           body: AmbientBackground(
-            child:
-                isOffline
-                    ? RefreshIndicator(
-                      onRefresh: () => _refreshOffline(ref),
+            child: isOffline
+                ? RefreshIndicator(
+                    onRefresh: () => _refreshOffline(ref),
+                    child: ListView(
+                      padding: _listPadding(context),
+                      children: [
+                        _OfflineBanner(metrics: metrics),
+                        ..._buildRiprendiZone(historyAsync: historyAsync),
+                        ..._buildYourMusicZone(
+                          l10n: l10n,
+                          playlistsAsync: playlistsAsync,
+                          artistsAsync: artistsAsync,
+                          albumsAsync: albumsAsync,
+                          similarArtistsAsync: similarArtistsAsync,
+                          includeSimilarInMusicZone: false,
+                        ),
+                      ],
+                    ),
+                  )
+                : baseSectionsAsync.when(
+                    loading: () => HomeShimmer(metrics: metrics),
+                    error: (_, _) => ErrorRetryWidget(
+                      message: l10n.failedToLoadHomeFeed,
+                      onRetry: () => ref.invalidate(homeBaseResultProvider),
+                    ),
+                    data: (sections) => RefreshIndicator(
+                      onRefresh: () => _refreshHome(ref),
                       child: ListView(
                         padding: _listPadding(context),
                         children: [
-                          _OfflineBanner(metrics: metrics),
                           ..._buildRiprendiZone(historyAsync: historyAsync),
+                          HomeExplore(
+                            horizontalPadding: metrics.horizontalPadding,
+                          ),
                           ..._buildYourMusicZone(
                             l10n: l10n,
                             playlistsAsync: playlistsAsync,
                             artistsAsync: artistsAsync,
                             albumsAsync: albumsAsync,
                             similarArtistsAsync: similarArtistsAsync,
-                            includeSimilarInMusicZone: false,
+                            includeSimilarInMusicZone:
+                                metrics.useSideBySideArtists,
                           ),
+                          ..._buildDiscoverZone(
+                            context: context,
+                            l10n: l10n,
+                            sections: sections,
+                            newReleasesAsync: newReleasesAsync,
+                            discoverAsync: discoverAsync,
+                            similarArtistsAsync: similarArtistsAsync,
+                            showHero: !hideDiscoverHero,
+                            showSimilarArtists: !metrics.useSideBySideArtists,
+                          ),
+                          HomeEditorialZone(metrics: metrics),
                         ],
                       ),
-                    )
-                    : baseSectionsAsync.when(
-                      loading: () => HomeShimmer(metrics: metrics),
-                      error:
-                          (_, _) => ErrorRetryWidget(
-                            message: l10n.failedToLoadHomeFeed,
-                            onRetry:
-                                () => ref.invalidate(homeBaseResultProvider),
-                          ),
-                      data:
-                          (sections) => RefreshIndicator(
-                            onRefresh: () => _refreshHome(ref),
-                            child: ListView(
-                              padding: _listPadding(context),
-                              children: [
-                                ..._buildRiprendiZone(
-                                  historyAsync: historyAsync,
-                                ),
-                                HomeExplore(
-                                  horizontalPadding: metrics.horizontalPadding,
-                                ),
-                                ..._buildYourMusicZone(
-                                  l10n: l10n,
-                                  playlistsAsync: playlistsAsync,
-                                  artistsAsync: artistsAsync,
-                                  albumsAsync: albumsAsync,
-                                  similarArtistsAsync: similarArtistsAsync,
-                                  includeSimilarInMusicZone:
-                                      metrics.useSideBySideArtists,
-                                ),
-                                ..._buildDiscoverZone(
-                                  context: context,
-                                  l10n: l10n,
-                                  sections: sections,
-                                  newReleasesAsync: newReleasesAsync,
-                                  discoverAsync: discoverAsync,
-                                  similarArtistsAsync: similarArtistsAsync,
-                                  showHero: !hideDiscoverHero,
-                                  showSimilarArtists:
-                                      !metrics.useSideBySideArtists,
-                                ),
-                                HomeEditorialZone(metrics: metrics),
-                              ],
-                            ),
-                          ),
                     ),
+                  ),
           ),
         ),
       ),
@@ -184,8 +177,9 @@ class HomeFeedLayout extends ConsumerWidget {
     final hasArtists = asyncListHasContent(artistsAsync);
     final hasAlbums = asyncListHasContent(albumsAsync);
     final hasSimilar = asyncListHasContent(similarArtistsAsync);
-    final hasArtistsBlock =
-        includeSimilarInMusicZone ? (hasArtists || hasSimilar) : hasArtists;
+    final hasArtistsBlock = includeSimilarInMusicZone
+        ? (hasArtists || hasSimilar)
+        : hasArtists;
 
     if (!hasPlaylists && !hasArtistsBlock && !hasAlbums) return const [];
 
@@ -267,8 +261,9 @@ class HomeFeedLayout extends ConsumerWidget {
     if (section.browseId == null) return null;
     return () {
       final titleEncoded = Uri.encodeComponent(section.title);
-      final paramsEncoded =
-          section.browseParams != null ? '&params=${section.browseParams}' : '';
+      final paramsEncoded = section.browseParams != null
+          ? '&params=${section.browseParams}'
+          : '';
       context.push(
         '/browse-section/${section.browseId}?title=$titleEncoded$paramsEncoded',
       );
@@ -327,10 +322,9 @@ class _OfflineBanner extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isManualOffline = ref.watch(settingsProvider).offlineMode;
-    final message =
-        isManualOffline
-            ? l10n.offlineModeActiveMessage
-            : l10n.noConnectionActiveMessage;
+    final message = isManualOffline
+        ? l10n.offlineModeActiveMessage
+        : l10n.noConnectionActiveMessage;
     final mark = isManualOffline ? colorScheme.tertiary : colorScheme.error;
 
     return Padding(
@@ -377,10 +371,9 @@ class _OfflineBanner extends ConsumerWidget {
                 children: [
                   if (isManualOffline)
                     OutlinedButton(
-                      onPressed:
-                          () => ref
-                              .read(settingsProvider.notifier)
-                              .setOfflineMode(false),
+                      onPressed: () => ref
+                          .read(settingsProvider.notifier)
+                          .setOfflineMode(false),
                       child: Text(l10n.disableOfflineMode),
                     ),
                   FilledButton.tonal(

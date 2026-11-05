@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -18,20 +19,19 @@ class SmartMixesTab extends ConsumerWidget {
     final isGridView = ref.watch(settingsProvider).isLibraryGridView;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    final gridDelegate =
-        isMobile
-            ? const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.64,
-            )
-            : const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 170.0,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.64,
-            );
+    final gridDelegate = isMobile
+        ? const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.64,
+          )
+        : const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 170.0,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.64,
+          );
 
     return CustomScrollView(
       slivers: [
@@ -43,9 +43,8 @@ class SmartMixesTab extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Text(
               AppLocalizations.of(context)!.yourMixes,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
         ),

@@ -16,10 +16,9 @@ class PlaybackVolumeController {
   bool _isTransitionMuted = false;
 
   PlaybackVolumeController({
-    required PlaybackEngine engine,
-    required bool Function() isCastConnected,
-  }) : _engine = engine,
-       _isCastConnected = isCastConnected;
+    required this._engine,
+    required this._isCastConnected,
+  });
 
   /// True while a track transition is muted, i.e. between
   /// [prepareTransitionMute] and [endTransitionMute]. Read by the `playing`

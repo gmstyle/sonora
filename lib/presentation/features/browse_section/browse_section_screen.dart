@@ -34,21 +34,18 @@ class BrowseSectionScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: resultAsync.when(
         loading: () => const _BrowseSectionShimmer(),
-        error:
-            (err, _) => ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadHomeFeed,
-              onRetry:
-                  () => ref.invalidate(
-                    browseSectionProvider((browseId: browseId, params: params)),
-                  ),
-            ),
+        error: (err, _) => ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadHomeFeed,
+          onRetry: () => ref.invalidate(
+            browseSectionProvider((browseId: browseId, params: params)),
+          ),
+        ),
         data: (result) {
           if (result.sections.isEmpty) {
             return Center(
@@ -120,8 +117,9 @@ class BrowseSectionScreen extends ConsumerWidget {
     if (item is SongDetailed) {
       return SongCard(
         videoId: item.videoId,
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         title: item.name,
         artist: displayArtists(item.artists),
         artists: item.artists,
@@ -140,8 +138,9 @@ class BrowseSectionScreen extends ConsumerWidget {
         name: item.name,
         artist: displayArtists(item.artists),
         artistId: primaryArtistId(item.artists),
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         year: item.year,
         cardWidth: cardWidth,
         heroTag: 'browse_section_album_${item.albumId}',
@@ -152,8 +151,9 @@ class BrowseSectionScreen extends ConsumerWidget {
         playlistId: item.playlistId,
         name: item.name,
         artist: displayArtists(item.artists),
-        thumbnailUrl:
-            item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+        thumbnailUrl: item.thumbnails.isNotEmpty
+            ? item.thumbnails.last.url
+            : null,
         cardWidth: cardWidth,
         heroTag: 'browse_section_playlist_${item.playlistId}',
       );
@@ -185,11 +185,10 @@ class _BrowseSectionShimmer extends StatelessWidget {
             childAspectRatio: 0.72,
           ),
           itemCount: spec.columns * 3,
-          itemBuilder:
-              (_, _) => ShimmerLoading(
-                variant: ShimmerVariant.card,
-                cardWidth: spec.cardWidth,
-              ),
+          itemBuilder: (_, _) => ShimmerLoading(
+            variant: ShimmerVariant.card,
+            cardWidth: spec.cardWidth,
+          ),
         );
       },
     );

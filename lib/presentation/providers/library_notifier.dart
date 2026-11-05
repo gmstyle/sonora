@@ -146,21 +146,21 @@ class LibraryNotifier extends Notifier<void> {
     _thumbnailRefreshRunning = true;
     try {
       final playlists = await _repo.getAllLikedPlaylists();
-      final stale =
-          playlists
-              .where(
-                (p) =>
-                    p.thumbnailUrl != null &&
-                    _isThumbnailStale(p.thumbnailUrl!) &&
-                    !_recentlyRefreshedPlaylists.contains(p.playlistId),
-              )
-              .toList();
+      final stale = playlists
+          .where(
+            (p) =>
+                p.thumbnailUrl != null &&
+                _isThumbnailStale(p.thumbnailUrl!) &&
+                !_recentlyRefreshedPlaylists.contains(p.playlistId),
+          )
+          .toList();
       if (stale.isEmpty) return;
       for (final playlist in stale) {
         try {
           final fresh = await _musicRepo.getPlaylist(playlist.playlistId);
-          final freshUrl =
-              fresh.thumbnails.isNotEmpty ? fresh.thumbnails.last.url : null;
+          final freshUrl = fresh.thumbnails.isNotEmpty
+              ? fresh.thumbnails.last.url
+              : null;
           if (freshUrl != null && freshUrl != playlist.thumbnailUrl) {
             await _repo.updateLikedPlaylistThumbnail(
               playlist.playlistId,

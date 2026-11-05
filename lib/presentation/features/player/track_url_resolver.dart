@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
+
 import 'playback_engine.dart';
 
 import '../../../data/datasources/remote/stream_datasource.dart';
@@ -72,54 +73,25 @@ class TrackUrlResolver {
   PlayErrorKind? get lastResolveFailureKind => _lastResolveFailureKind;
 
   TrackUrlResolver({
-    required PlaybackEngine engine,
-    required PlayVideoIdUseCase playVideoIdUseCase,
-    required StreamDatasource streamDatasource,
-    required QueueController queueController,
-    required PlaybackVolumeController volumeController,
-    required PlaybackStatePublisher statePublisher,
-    required bool Function() isCastConnected,
-    required bool Function() userWantsPlaying,
-    required bool Function() isStopping,
-    required bool Function() isRestoring,
-    required Future<void> Function() requestPlay,
-    required Future<void> Function(
-      String videoId,
-      String title,
-      PlayErrorKind kind,
-    )
-    onResolveFailed,
-    required void Function(MediaItem item) emitMediaItem,
-    required void Function(bool) setPausedForConnection,
-    required Future<void> Function({
-      required String url,
-      required String title,
-      String? artist,
-      String? album,
-      String? artworkUrl,
-    })
-    castMedia,
-    required Future<void> Function() waitForCastPlaying,
-    required Future<void> Function() castPause,
+    required this._engine,
+    required this._playVideoIdUseCase,
+    required this._streamDatasource,
+    required this._queueController,
+    required this._volumeController,
+    required this._statePublisher,
+    required this._isCastConnected,
+    required this._userWantsPlaying,
+    required this._isStopping,
+    required this._isRestoring,
+    required this._requestPlay,
+    required this._onResolveFailed,
+    required this._emitMediaItem,
+    required this._setPausedForConnection,
+    required this._castMedia,
+    required this._waitForCastPlaying,
+    required this._castPause,
     bool Function()? isForcedOffline,
-  }) : _engine = engine,
-       _playVideoIdUseCase = playVideoIdUseCase,
-       _streamDatasource = streamDatasource,
-       _queueController = queueController,
-       _volumeController = volumeController,
-       _statePublisher = statePublisher,
-       _isCastConnected = isCastConnected,
-       _userWantsPlaying = userWantsPlaying,
-       _isStopping = isStopping,
-       _isRestoring = isRestoring,
-       _isForcedOffline = isForcedOffline ?? (() => false),
-       _requestPlay = requestPlay,
-       _onResolveFailed = onResolveFailed,
-       _emitMediaItem = emitMediaItem,
-       _setPausedForConnection = setPausedForConnection,
-       _castMedia = castMedia,
-       _waitForCastPlaying = waitForCastPlaying,
-       _castPause = castPause;
+  }) : _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// Returns `true` while a resolution for [videoId] is in flight.
   bool isPending(String videoId) => _pendingResolutions.contains(videoId);
@@ -288,7 +260,7 @@ class TrackUrlResolver {
           .timeout(
             isCurrent
                 ? PlayVideoIdUseCase.streamUrlTimeout +
-                    const Duration(seconds: 5)
+                      const Duration(seconds: 5)
                 : const Duration(seconds: 15),
           );
 
@@ -296,8 +268,9 @@ class TrackUrlResolver {
       if (index >= playlist2.medias.length) return;
       final currentMedia = playlist2.medias[index];
       final currentItem = currentMedia.mediaItem;
-      final currentTrack =
-          currentItem != null ? QueueTrack.fromMediaItem(currentItem) : null;
+      final currentTrack = currentItem != null
+          ? QueueTrack.fromMediaItem(currentItem)
+          : null;
       if (currentTrack?.videoId != videoId) return;
       if (!forceResolve && currentTrack?.needsUrl != true) return;
       // Abort background pre-fetch if the user has skipped past this item.

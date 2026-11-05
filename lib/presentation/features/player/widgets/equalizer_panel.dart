@@ -19,8 +19,8 @@ class EqualizerPanel extends ConsumerWidget {
     if (isWide) {
       return showDialog(
         context: context,
-        builder:
-            (context) => const Dialog(child: EqualizerPanel(isDialog: true)),
+        builder: (context) =>
+            const Dialog(child: EqualizerPanel(isDialog: true)),
       );
     } else {
       return showModalBottomSheet(
@@ -186,8 +186,9 @@ class EqualizerPanel extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: List.generate(5, (index) {
                     final gain = eqState.gains[index];
-                    final gainText =
-                        gain > 0 ? '+${gain.round()} dB' : '${gain.round()} dB';
+                    final gainText = gain > 0
+                        ? '+${gain.round()} dB'
+                        : '${gain.round()} dB';
 
                     return Expanded(
                       child: Column(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_service/audio_service.dart';
+
 import '../../../providers/player_provider.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -103,13 +104,12 @@ class PlayerControls extends ConsumerWidget {
           color: iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
-      onPressed:
-          disabled
-              ? null
-              : () {
-                HapticFeedback.lightImpact();
-                notifier.seekBy(offset);
-              },
+      onPressed: disabled
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              notifier.seekBy(offset);
+            },
       tooltip: tooltip,
     );
   }
@@ -123,28 +123,25 @@ class PlayerControls extends ConsumerWidget {
     return IconButton(
       icon: AnimatedSwitcher(
         duration: const Duration(milliseconds: 150),
-        transitionBuilder:
-            (child, anim) => ScaleTransition(
-              scale: anim,
-              child: FadeTransition(opacity: anim, child: child),
-            ),
+        transitionBuilder: (child, anim) => ScaleTransition(
+          scale: anim,
+          child: FadeTransition(opacity: anim, child: child),
+        ),
         child: Icon(
           LucideIcons.shuffle,
           key: ValueKey(isShuffle),
-          color:
-              isShuffle
-                  ? _pulseAccent(context)
-                  : iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
+          color: isShuffle
+              ? _pulseAccent(context)
+              : iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
       onPressed: () {
         HapticFeedback.lightImpact();
         notifier.toggleShuffle();
       },
-      tooltip:
-          isShuffle
-              ? AppLocalizations.of(context)!.shuffleOn
-              : AppLocalizations.of(context)!.shuffleOff,
+      tooltip: isShuffle
+          ? AppLocalizations.of(context)!.shuffleOn
+          : AppLocalizations.of(context)!.shuffleOff,
     );
   }
 
@@ -160,13 +157,12 @@ class PlayerControls extends ConsumerWidget {
         size: 32,
         color: iconColor,
       ),
-      onPressed:
-          disabled
-              ? null
-              : () {
-                HapticFeedback.lightImpact();
-                isNext ? notifier.skipToNext() : notifier.skipToPrevious();
-              },
+      onPressed: disabled
+          ? null
+          : () {
+              HapticFeedback.lightImpact();
+              isNext ? notifier.skipToNext() : notifier.skipToPrevious();
+            },
     );
   }
 
@@ -189,13 +185,12 @@ class PlayerControls extends ConsumerWidget {
           color: SonoraPulseTokens.onPrimary,
           size: 32,
         ),
-        onPressed:
-            isBlocked
-                ? null
-                : () {
-                  HapticFeedback.lightImpact();
-                  notifier.togglePlayPause();
-                },
+        onPressed: isBlocked
+            ? null
+            : () {
+                HapticFeedback.lightImpact();
+                notifier.togglePlayPause();
+              },
         padding: const EdgeInsets.all(12),
       ),
     );
@@ -230,11 +225,10 @@ class PlayerControls extends ConsumerWidget {
     return IconButton(
       icon: AnimatedSwitcher(
         duration: const Duration(milliseconds: 150),
-        transitionBuilder:
-            (child, anim) => ScaleTransition(
-              scale: anim,
-              child: FadeTransition(opacity: anim, child: child),
-            ),
+        transitionBuilder: (child, anim) => ScaleTransition(
+          scale: anim,
+          child: FadeTransition(opacity: anim, child: child),
+        ),
         child: Icon(icon, key: ValueKey('${state.repeatMode}'), color: color),
       ),
       onPressed: () {

@@ -47,9 +47,8 @@ class LibraryMobileLayout extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           l10n.library,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
       ),
@@ -89,15 +88,14 @@ class LibraryMobileLayout extends ConsumerWidget {
                     onSelected: (tab) {
                       ref.read(libraryActiveTabProvider.notifier).update(tab);
                     },
-                    itemBuilder:
-                        (context) => [
-                          for (final tab in LibraryTab.overflowTabs)
-                            CheckedPopupMenuItem<LibraryTab>(
-                              value: tab,
-                              checked: tab == selectedTab,
-                              child: Text(_tabLabel(context, tab)),
-                            ),
-                        ],
+                    itemBuilder: (context) => [
+                      for (final tab in LibraryTab.overflowTabs)
+                        CheckedPopupMenuItem<LibraryTab>(
+                          value: tab,
+                          checked: tab == selectedTab,
+                          child: Text(_tabLabel(context, tab)),
+                        ),
+                    ],
                     child: IgnorePointer(
                       child: ChoiceChip(
                         label: Row(
@@ -127,22 +125,21 @@ class LibraryMobileLayout extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
           Expanded(
-            child:
-                isSearchActive
-                    ? const LibrarySearchResultsView()
-                    : IndexedStack(
-                      index: selectedTab.index,
-                      children: const [
-                        FavoritesTab(),
-                        ArtistsTab(),
-                        PlaylistsTab(),
-                        AlbumsTab(),
-                        PodcastsTab(),
-                        HistoryTab(),
-                        SmartMixesTab(),
-                        StatsTab(),
-                      ],
-                    ),
+            child: isSearchActive
+                ? const LibrarySearchResultsView()
+                : IndexedStack(
+                    index: selectedTab.index,
+                    children: const [
+                      FavoritesTab(),
+                      ArtistsTab(),
+                      PlaylistsTab(),
+                      AlbumsTab(),
+                      PodcastsTab(),
+                      HistoryTab(),
+                      SmartMixesTab(),
+                      StatsTab(),
+                    ],
+                  ),
           ),
         ],
       ),

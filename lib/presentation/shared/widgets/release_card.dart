@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../providers/player_provider.dart';
@@ -86,64 +87,61 @@ class _ReleaseCardState extends ConsumerState<ReleaseCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: ScaleButton(
-        onTap:
-            () => context.push(
-              '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
-            ),
-        onLongPress:
-            () => ContextMenuSheet.showForAlbum(
-              context,
-              albumId: widget.albumId,
-              name: widget.name,
-              artist: widget.artist,
-              artistId: widget.artistId,
-              thumbnailUrl: widget.thumbnailUrl,
-              year: widget.year,
-            ),
+        onTap: () => context.push(
+          '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
+        ),
+        onLongPress: () => ContextMenuSheet.showForAlbum(
+          context,
+          albumId: widget.albumId,
+          name: widget.name,
+          artist: widget.artist,
+          artistId: widget.artistId,
+          thumbnailUrl: widget.thumbnailUrl,
+          year: widget.year,
+        ),
         child: ShelfCardLayout(
           cardWidth: widget.cardWidth,
-          coverBuilder:
-              (size) => Stack(
-                children: [
-                  Hero(
-                    tag: tag,
-                    child: ThumbnailWidget(
-                      imageUrl: widget.thumbnailUrl,
-                      size: size,
-                      shape: ThumbnailShape.rounded,
-                      borderRadius: 24,
+          coverBuilder: (size) => Stack(
+            children: [
+              Hero(
+                tag: tag,
+                child: ThumbnailWidget(
+                  imageUrl: widget.thumbnailUrl,
+                  size: size,
+                  shape: ThumbnailShape.rounded,
+                  borderRadius: 24,
+                ),
+              ),
+              if (widget.badgeText != null)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
                     ),
-                  ),
-                  if (widget.badgeText != null)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          widget.badgeText!,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                        ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      widget.badgeText!,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
                       ),
                     ),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
                   ),
-                ],
+                ),
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
               ),
+            ],
+          ),
           textBlock: [
             const SizedBox(height: 6),
             Text(

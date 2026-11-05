@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
 
 class ErrorRetryWidget extends StatelessWidget {

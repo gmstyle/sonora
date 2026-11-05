@@ -25,14 +25,14 @@ class FilterChipBar extends StatelessWidget {
           final selected = index == selectedIndex;
           final scheme = Theme.of(context).colorScheme;
           return Material(
-            color:
-                selected
-                    ? scheme.primaryContainer.withValues(alpha: 0.28)
-                    : scheme.surfaceContainer.withValues(alpha: 0.85),
+            color: selected
+                ? scheme.primaryContainer.withValues(alpha: 0.28)
+                : scheme.surfaceContainer.withValues(alpha: 0.85),
             shape: StadiumBorder(
               side: BorderSide(
-                color:
-                    selected ? scheme.primaryContainer : scheme.outlineVariant,
+                color: selected
+                    ? scheme.primaryContainer
+                    : scheme.outlineVariant,
               ),
             ),
             child: InkWell(

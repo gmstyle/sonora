@@ -2,6 +2,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/extensions/duration_ext.dart';
 import '../../../core/extensions/stat_format.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
@@ -72,10 +73,9 @@ class SongTile extends ConsumerWidget {
     final isDark = colors.brightness == Brightness.dark;
 
     final tile = ListTile(
-      contentPadding:
-          elevated
-              ? const EdgeInsets.symmetric(horizontal: 10, vertical: 2)
-              : null,
+      contentPadding: elevated
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 2)
+          : null,
       visualDensity: elevated ? VisualDensity.compact : null,
       minVerticalPadding: elevated ? 8 : null,
       leading: leadingOverride ?? _buildLeading(context, isDownloaded),
@@ -97,64 +97,58 @@ class SongTile extends ConsumerWidget {
         maxLines: 1,
       ),
       subtitle: Text(
-        [
-          artist,
-          if (albumName != null) albumName,
-          if (statLabel != null) statLabel,
-        ].join(' · '),
+        [artist, if (albumName != null) albumName, ?statLabel].join(' · '),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+        style: Theme.of(context).textTheme.bodySmall
+            ?.copyWith(color: colors.onSurfaceVariant),
       ),
       trailing: _buildTrailing(context),
-      onTap:
-          !isPlayable
-              ? () {
-                final l10n = AppLocalizations.of(context);
-                if (l10n != null) {
-                  ref
-                      .read(actionFeedbackProvider.notifier)
-                      .report(
-                        l10n.trackUnplayable(title),
-                        kind: FeedbackKind.error,
-                      );
-                }
+      onTap: !isPlayable
+          ? () {
+              final l10n = AppLocalizations.of(context);
+              if (l10n != null) {
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(
+                      l10n.trackUnplayable(title),
+                      kind: FeedbackKind.error,
+                    );
               }
-              : onTap ??
-                  () => ref
-                      .read(playerStateProvider.notifier)
-                      .playVideoId(
-                        videoId,
-                        isVideo: isVideo,
-                        isExplicit: isExplicit,
-                      ),
-      onLongPress:
-          () => ContextMenuSheet.showForSong(
-            context,
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            albumName: albumName,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            playCount: playCount,
-            viewCount: viewCount,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
+            }
+          : onTap ??
+                () => ref
+                    .read(playerStateProvider.notifier)
+                    .playVideoId(
+                      videoId,
+                      isVideo: isVideo,
+                      isExplicit: isExplicit,
+                    ),
+      onLongPress: () => ContextMenuSheet.showForSong(
+        context,
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        albumName: albumName,
+        artistId: artistId,
+        albumId: albumId,
+        artists: artists,
+        artistsJson: artistsJson,
+        playCount: playCount,
+        viewCount: viewCount,
+        isExplicit: isExplicit,
+        isPlayable: isPlayable,
+      ),
     );
 
     Widget result = tile;
     if (elevated) {
-      final cardColor =
-          isDark ? colors.surfaceContainer : colors.surfaceContainerLowest;
+      final cardColor = isDark
+          ? colors.surfaceContainer
+          : colors.surfaceContainerLowest;
       result = Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Material(
@@ -252,31 +246,29 @@ class SongTile extends ConsumerWidget {
   Widget? _buildTrailing(BuildContext context) {
     final hasDuration = duration != null;
     final hasActions = trailingActions != null && trailingActions!.isNotEmpty;
-    final banIcon =
-        !isPlayable
-            ? Icon(
-              LucideIcons.ban,
-              size: 18,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            )
-            : null;
+    final banIcon = !isPlayable
+        ? Icon(
+            LucideIcons.ban,
+            size: 18,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          )
+        : null;
 
     if (!hasDuration && !hasActions && banIcon == null) return null;
 
-    final durationWidget =
-        hasDuration
-            ? Text(
-              Duration(seconds: duration!).format(),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            )
-            : null;
+    final durationWidget = hasDuration
+        ? Text(
+            Duration(seconds: duration!).format(),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          )
+        : null;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (durationWidget != null) durationWidget,
+        ?durationWidget,
         if (banIcon != null) ...[
           if (durationWidget != null) const SizedBox(width: 8),
           banIcon,

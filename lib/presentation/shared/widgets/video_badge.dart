@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../l10n/app_localizations.dart';
 
 /// Shared "MV" badge used across cards, tiles, and the mini-player.

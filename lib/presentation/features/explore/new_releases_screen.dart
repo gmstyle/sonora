@@ -22,18 +22,16 @@ class NewReleasesScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           l10n.newReleases,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: releasesAsync.when(
         loading: () => const _NewReleasesShimmer(),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: l10n.failedToLoadExplore,
-              onRetry: () => ref.invalidate(exploreNewReleasesProvider),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: l10n.failedToLoadExplore,
+          onRetry: () => ref.invalidate(exploreNewReleasesProvider),
+        ),
         data: (result) {
           if (result.albums.isEmpty && result.videos.isEmpty) {
             return Center(child: Text(l10n.noContentAvailable));
@@ -81,10 +79,9 @@ class NewReleasesScreen extends ConsumerWidget {
                               name: album.name,
                               artist: displayArtists(album.artists),
                               artistId: primaryArtistId(album.artists),
-                              thumbnailUrl:
-                                  album.thumbnails.isNotEmpty
-                                      ? album.thumbnails.last.url
-                                      : null,
+                              thumbnailUrl: album.thumbnails.isNotEmpty
+                                  ? album.thumbnails.last.url
+                                  : null,
                               year: album.year,
                               type: ReleaseType.album,
                               cardWidth: cardWidth,
@@ -115,8 +112,8 @@ class NewReleasesScreen extends ConsumerWidget {
                             scrollDirection: Axis.horizontal,
                             padding: EdgeInsets.symmetric(horizontal: pad),
                             itemCount: result.videos.length,
-                            separatorBuilder:
-                                (_, _) => const SizedBox(width: 12),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 12),
                             itemBuilder: (context, index) {
                               final video = result.videos[index];
                               return VideoCard(
@@ -124,10 +121,9 @@ class NewReleasesScreen extends ConsumerWidget {
                                 title: video.name,
                                 artist: displayArtists(video.artists),
                                 artists: video.artists,
-                                thumbnailUrl:
-                                    video.thumbnails.isNotEmpty
-                                        ? video.thumbnails.last.url
-                                        : null,
+                                thumbnailUrl: video.thumbnails.isNotEmpty
+                                    ? video.thumbnails.last.url
+                                    : null,
                                 artistId: primaryArtistId(video.artists),
                                 isExplicit: video.isExplicit,
                                 isPlayable: video.isPlayable,

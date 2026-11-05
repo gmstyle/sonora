@@ -61,18 +61,17 @@ class SearchCommand {
     final data = {
       'command': 'search',
       'type': 'song',
-      'results':
-          items
-              .map(
-                (s) => {
-                  'videoId': s.videoId,
-                  'title': s.name,
-                  'artist': displayArtists(s.artists),
-                  'album': s.album?.name,
-                  'duration': s.duration,
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (s) => {
+              'videoId': s.videoId,
+              'title': s.name,
+              'artist': displayArtists(s.artists),
+              'album': s.album?.name,
+              'duration': s.duration,
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Songs:');
@@ -91,17 +90,16 @@ class SearchCommand {
     final data = {
       'command': 'search',
       'type': 'album',
-      'results':
-          items
-              .map(
-                (a) => {
-                  'albumId': a.albumId,
-                  'title': a.name,
-                  'artist': displayArtists(a.artists),
-                  'year': a.year,
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (a) => {
+              'albumId': a.albumId,
+              'title': a.name,
+              'artist': displayArtists(a.artists),
+              'year': a.year,
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Albums:');
@@ -121,25 +119,23 @@ class SearchCommand {
     final data = {
       'command': 'search',
       'type': 'artist',
-      'results':
-          items
-              .map(
-                (a) => {
-                  'artistId': a.artistId,
-                  'name': a.name,
-                  'monthlyListeners': a.monthlyListeners,
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (a) => {
+              'artistId': a.artistId,
+              'name': a.name,
+              'monthlyListeners': a.monthlyListeners,
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Artists:');
     for (var i = 0; i < items.length; i++) {
       final a = items[i];
-      final listeners =
-          a.monthlyListeners != null
-              ? ' (${a.monthlyListeners} monthly listeners)'
-              : '';
+      final listeners = a.monthlyListeners != null
+          ? ' (${a.monthlyListeners} monthly listeners)'
+          : '';
       buf.writeln('  ${i + 1}. ${a.name}$listeners');
       buf.writeln('     ID: ${a.artistId}');
     }
@@ -151,16 +147,15 @@ class SearchCommand {
     final data = {
       'command': 'search',
       'type': 'playlist',
-      'results':
-          items
-              .map(
-                (p) => {
-                  'playlistId': p.playlistId,
-                  'title': p.name,
-                  'artist': displayArtists(p.artists),
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (p) => {
+              'playlistId': p.playlistId,
+              'title': p.name,
+              'artist': displayArtists(p.artists),
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Playlists:');
@@ -178,17 +173,16 @@ class SearchCommand {
     final data = {
       'command': 'search',
       'type': 'video',
-      'results':
-          items
-              .map(
-                (v) => {
-                  'videoId': v.videoId,
-                  'title': v.name,
-                  'artist': displayArtists(v.artists),
-                  'views': v.viewCount,
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (v) => {
+              'videoId': v.videoId,
+              'title': v.name,
+              'artist': displayArtists(v.artists),
+              'views': v.viewCount,
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Videos:');

@@ -71,16 +71,21 @@ class WrappedNarrativeNotifier extends Notifier<WrappedNarrativeState> {
       locale: locale,
       totalMinutes: stats.totalDurationMinutes,
       podcastMinutes: stats.podcastDurationMinutes,
-      topArtistName:
-          stats.topArtists.isNotEmpty ? stats.topArtists.first.name : null,
-      topArtistPlays:
-          stats.topArtists.isNotEmpty ? stats.topArtists.first.playCount : null,
-      topSongTitle:
-          stats.topSongs.isNotEmpty ? stats.topSongs.first.title : null,
-      topSongArtist:
-          stats.topSongs.isNotEmpty ? stats.topSongs.first.artist : null,
-      topSongPlays:
-          stats.topSongs.isNotEmpty ? stats.topSongs.first.playCount : null,
+      topArtistName: stats.topArtists.isNotEmpty
+          ? stats.topArtists.first.name
+          : null,
+      topArtistPlays: stats.topArtists.isNotEmpty
+          ? stats.topArtists.first.playCount
+          : null,
+      topSongTitle: stats.topSongs.isNotEmpty
+          ? stats.topSongs.first.title
+          : null,
+      topSongArtist: stats.topSongs.isNotEmpty
+          ? stats.topSongs.first.artist
+          : null,
+      topSongPlays: stats.topSongs.isNotEmpty
+          ? stats.topSongs.first.playCount
+          : null,
       peakHourBand: WrappedFacts.peakHourBandFrom(stats.hourlyDistribution),
       peakWeekday: WrappedFacts.peakWeekdayFrom(stats.weeklyDistribution),
     );

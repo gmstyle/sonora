@@ -89,10 +89,9 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         elevation: 8,
-        backgroundColor:
-            scheme.brightness == Brightness.dark
-                ? SonoraPulseTokens.darkSurfaceVariant
-                : SonoraPulseTokens.lightSurface,
+        backgroundColor: scheme.brightness == Brightness.dark
+            ? SonoraPulseTokens.darkSurfaceVariant
+            : SonoraPulseTokens.lightSurface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusDialog),
@@ -140,17 +139,15 @@ class AppTheme {
         backgroundColor: scheme.surfaceContainerLow,
         indicatorColor: scheme.primaryContainer.withValues(alpha: 0.28),
         selectedIconTheme: IconThemeData(
-          color:
-              scheme.brightness == Brightness.dark
-                  ? SonoraPulseTokens.primaryContainer
-                  : scheme.primary,
+          color: scheme.brightness == Brightness.dark
+              ? SonoraPulseTokens.primaryContainer
+              : scheme.primary,
         ),
         unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
         selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
-          color:
-              scheme.brightness == Brightness.dark
-                  ? SonoraPulseTokens.primaryContainer
-                  : scheme.primary,
+          color: scheme.brightness == Brightness.dark
+              ? SonoraPulseTokens.primaryContainer
+              : scheme.primary,
           fontWeight: FontWeight.w700,
         ),
         unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
@@ -164,24 +161,22 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return textTheme.labelMedium?.copyWith(
-            color:
-                selected
-                    ? (scheme.brightness == Brightness.dark
-                        ? SonoraPulseTokens.primaryContainer
-                        : scheme.primary)
-                    : scheme.onSurfaceVariant,
+            color: selected
+                ? (scheme.brightness == Brightness.dark
+                      ? SonoraPulseTokens.primaryContainer
+                      : scheme.primary)
+                : scheme.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color:
-                selected
-                    ? (scheme.brightness == Brightness.dark
-                        ? SonoraPulseTokens.primaryContainer
-                        : scheme.primary)
-                    : scheme.onSurfaceVariant,
+            color: selected
+                ? (scheme.brightness == Brightness.dark
+                      ? SonoraPulseTokens.primaryContainer
+                      : scheme.primary)
+                : scheme.onSurfaceVariant,
           );
         }),
       ),

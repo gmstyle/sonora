@@ -33,19 +33,16 @@ class DownloadsScreen extends ConsumerWidget {
 
         Widget contentWidget() {
           return allDownloadsAsync.when(
-            loading:
-                () => ListView.builder(
-                  itemCount: 6,
-                  padding: const EdgeInsets.only(top: 8),
-                  itemBuilder:
-                      (_, _) =>
-                          const ShimmerLoading(variant: ShimmerVariant.tile),
-                ),
-            error:
-                (e, _) => ErrorRetryWidget(
-                  message: AppLocalizations.of(context)!.failedToLoadDownloads,
-                  onRetry: () => ref.invalidate(allDownloadsProvider),
-                ),
+            loading: () => ListView.builder(
+              itemCount: 6,
+              padding: const EdgeInsets.only(top: 8),
+              itemBuilder: (_, _) =>
+                  const ShimmerLoading(variant: ShimmerVariant.tile),
+            ),
+            error: (e, _) => ErrorRetryWidget(
+              message: AppLocalizations.of(context)!.failedToLoadDownloads,
+              onRetry: () => ref.invalidate(allDownloadsProvider),
+            ),
             data: (completed) {
               final hasActive = activeDownloads.isNotEmpty;
               final hasCompleted = completed.isNotEmpty;
@@ -187,18 +184,14 @@ class _ActiveDownloadsSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     l10n.activeDownloads,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
                 if (showCancelAll)
                   TextButton(
-                    onPressed:
-                        () =>
-                            ref
-                                .read(activeDownloadsProvider.notifier)
-                                .cancelAll(),
+                    onPressed: () =>
+                        ref.read(activeDownloadsProvider.notifier).cancelAll(),
                     child: Text(l10n.cancelAllDownloads),
                   ),
               ],
@@ -222,10 +215,9 @@ class _ActiveDownloadsSection extends StatelessWidget {
                       ),
                     ),
                     TextButton(
-                      onPressed:
-                          () => ref
-                              .read(activeDownloadsProvider.notifier)
-                              .cancelBatch(group.batchId!),
+                      onPressed: () => ref
+                          .read(activeDownloadsProvider.notifier)
+                          .cancelBatch(group.batchId!),
                       child: Text(l10n.cancelBatchDownload),
                     ),
                   ],
@@ -432,9 +424,8 @@ class _ActiveDownloadTile extends StatelessWidget {
                     tween: Tween(begin: 0, end: download.progress),
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOut,
-                    builder:
-                        (context, value, _) =>
-                            LinearProgressIndicator(value: value),
+                    builder: (context, value, _) =>
+                        LinearProgressIndicator(value: value),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -501,10 +492,9 @@ class _ActiveDownloadTile extends StatelessWidget {
           key: const ValueKey('cancel'),
           tooltip: l10n.cancelDownload,
           icon: Icon(LucideIcons.x, color: theme.colorScheme.onSurfaceVariant),
-          onPressed:
-              () => ref
-                  .read(activeDownloadsProvider.notifier)
-                  .cancelDownload(download.videoId),
+          onPressed: () => ref
+              .read(activeDownloadsProvider.notifier)
+              .cancelDownload(download.videoId),
           visualDensity: VisualDensity.compact,
         );
       case DownloadStatus.completed:
@@ -518,10 +508,9 @@ class _ActiveDownloadTile extends StatelessWidget {
         return IconButton(
           key: const ValueKey('retry'),
           icon: Icon(LucideIcons.refreshCw, color: theme.colorScheme.error),
-          onPressed:
-              () => ref
-                  .read(activeDownloadsProvider.notifier)
-                  .retry(download.videoId),
+          onPressed: () => ref
+              .read(activeDownloadsProvider.notifier)
+              .retry(download.videoId),
           visualDensity: VisualDensity.compact,
         );
     }

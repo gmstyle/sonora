@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
@@ -156,12 +157,12 @@ class LibrarySearchResultsView extends ConsumerWidget {
                       title: Text(p.name),
                       subtitle:
                           p.description != null && p.description!.isNotEmpty
-                              ? Text(
-                                p.description!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              )
-                              : null,
+                          ? Text(
+                              p.description!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          : null,
                       trailing: const Icon(LucideIcons.chevronRight),
                       onTap: () => _navigateToPlaylist(context, p),
                     );
@@ -182,10 +183,9 @@ class LibrarySearchResultsView extends ConsumerWidget {
                         shape: ThumbnailShape.rounded,
                       ),
                       title: Text(p.name),
-                      subtitle:
-                          p.videoCount != null
-                              ? Text('${p.videoCount} videos')
-                              : null,
+                      subtitle: p.videoCount != null
+                          ? Text('${p.videoCount} videos')
+                          : null,
                       trailing: const Icon(LucideIcons.chevronRight),
                       onTap: () => context.push('/playlist/${p.playlistId}'),
                     );
@@ -231,8 +231,9 @@ class LibrarySearchResultsView extends ConsumerWidget {
                         shape: ThumbnailShape.rounded,
                       ),
                       title: Text(p.name),
-                      subtitle:
-                          p.authorName != null ? Text(p.authorName!) : null,
+                      subtitle: p.authorName != null
+                          ? Text(p.authorName!)
+                          : null,
                       trailing: const Icon(LucideIcons.chevronRight),
                       onTap: () => context.push('/podcast/${p.browseId}'),
                     );
@@ -331,8 +332,8 @@ class LibrarySearchResultsView extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (_) => PlaylistDetailView(playlist: playlist, onUpdated: () {}),
+        builder: (_) =>
+            PlaylistDetailView(playlist: playlist, onUpdated: () {}),
       ),
     );
   }

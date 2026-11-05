@@ -14,13 +14,12 @@ class RefreshLinkedPlaylistUseCase {
   RefreshLinkedPlaylistUseCase(
     this._musicRepository,
     this._libraryRepository, {
-    Future<SpotifyPlaylistSnapshot> Function(String playlistId)? fetchSpotify,
+    this._fetchSpotify,
     this.searchSpacing = const Duration(milliseconds: 150),
     Future<void> Function(Duration duration)? delay,
     YtMusicTrackMatcher matcher = const YtMusicTrackMatcher(),
     RewriteSpotifySearchQueryUseCase? rewriteSearchQuery,
-  }) : _fetchSpotify = fetchSpotify,
-       _delay = delay ?? Future<void>.delayed,
+  }) : _delay = delay ?? Future<void>.delayed,
        _pipeline = SpotifyYtmMatchPipeline(
          _musicRepository,
          matcher: matcher,
@@ -236,23 +235,23 @@ class RefreshLinkedPlaylistUseCase {
     onProgress?.call(
       PlaylistImportProgress(current: playable.length, total: playable.length),
     );
-    final desired =
-        playable.asMap().entries.map((e) {
-          final video = e.value;
-          return PlaylistEntryModel(
-            playlistId: localPlaylistId,
-            videoId: video.videoId,
-            position: e.key,
-            title: video.name,
-            artist: displayArtists(video.artists),
-            artistsJson: encodeArtistsJson(video.artists),
-            thumbnailUrl:
-                video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null,
-            duration: video.duration,
-            isVideo: false,
-            isExplicit: video.isExplicit,
-          );
-        }).toList();
+    final desired = playable.asMap().entries.map((e) {
+      final video = e.value;
+      return PlaylistEntryModel(
+        playlistId: localPlaylistId,
+        videoId: video.videoId,
+        position: e.key,
+        title: video.name,
+        artist: displayArtists(video.artists),
+        artistsJson: encodeArtistsJson(video.artists),
+        thumbnailUrl: video.thumbnails.isNotEmpty
+            ? video.thumbnails.last.url
+            : null,
+        duration: video.duration,
+        isVideo: false,
+        isExplicit: video.isExplicit,
+      );
+    }).toList();
 
     return _finalizeReplace(
       playlist: playlist,
@@ -390,10 +389,9 @@ class RefreshLinkedPlaylistUseCase {
             videoId: e.videoId,
             position: e.position,
             title: e.title,
-            artist:
-                (e.artist != null && e.artist!.isNotEmpty)
-                    ? e.artist
-                    : prev!.artist,
+            artist: (e.artist != null && e.artist!.isNotEmpty)
+                ? e.artist
+                : prev!.artist,
             artistsJson: e.artistsJson ?? prev!.artistsJson,
             thumbnailUrl: prev!.thumbnailUrl,
             duration: e.duration ?? prev.duration,
@@ -406,8 +404,9 @@ class RefreshLinkedPlaylistUseCase {
 
       try {
         final song = await _musicRepository.getSong(e.videoId);
-        final thumb =
-            song.thumbnails.isNotEmpty ? song.thumbnails.last.url : null;
+        final thumb = song.thumbnails.isNotEmpty
+            ? song.thumbnails.last.url
+            : null;
         final artistName = displayArtists(song.artists);
         out.add(
           PlaylistEntryModel(

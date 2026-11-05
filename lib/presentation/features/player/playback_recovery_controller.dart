@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'playback_engine.dart';
 
 import '../../../core/utils/connectivity_utils.dart';
@@ -86,47 +87,24 @@ class PlaybackRecoveryController {
   }
 
   PlaybackRecoveryController({
-    required PlaybackEngine engine,
-    required PlayVideoIdUseCase playVideoIdUseCase,
-    required QueueController queueController,
-    required PlaybackVolumeController volumeController,
-    required PlaybackStatePublisher statePublisher,
-    required TrackUrlResolver urlResolver,
-    required Connectivity connectivity,
+    required this._engine,
+    required this._playVideoIdUseCase,
+    required this._queueController,
+    required this._volumeController,
+    required this._statePublisher,
+    required this._urlResolver,
+    required this._connectivity,
     bool Function()? isForcedOffline,
-    required bool Function() userWantsPlaying,
-    required bool Function() isStopping,
-    required Future<void> Function() requestPlay,
-    required Future<void> Function(int index) skipToQueueItem,
-    required bool Function() isCastConnected,
-    required void Function(bool) setPausedForConnection,
-    required Future<void> Function({
-      required String url,
-      required String title,
-      String? artist,
-      String? album,
-      String? artworkUrl,
-    })
-    castMedia,
-    required Future<void> Function() waitForCastPlaying,
-    required Future<void> Function() castPause,
-  }) : _engine = engine,
-       _playVideoIdUseCase = playVideoIdUseCase,
-       _queueController = queueController,
-       _volumeController = volumeController,
-       _statePublisher = statePublisher,
-       _urlResolver = urlResolver,
-       _connectivity = connectivity,
-       _isForcedOffline = isForcedOffline ?? (() => false),
-       _userWantsPlaying = userWantsPlaying,
-       _isStopping = isStopping,
-       _requestPlay = requestPlay,
-       _skipToQueueItem = skipToQueueItem,
-       _isCastConnected = isCastConnected,
-       _setPausedForConnection = setPausedForConnection,
-       _castMedia = castMedia,
-       _waitForCastPlaying = waitForCastPlaying,
-       _castPause = castPause;
+    required this._userWantsPlaying,
+    required this._isStopping,
+    required this._requestPlay,
+    required this._skipToQueueItem,
+    required this._isCastConnected,
+    required this._setPausedForConnection,
+    required this._castMedia,
+    required this._waitForCastPlaying,
+    required this._castPause,
+  }) : _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// True when [track] is a completed library download on disk (not media-cache).
   static bool isLibraryDownloadTrack(QueueTrack track) {
@@ -309,10 +287,9 @@ class PlaybackRecoveryController {
       final mediasAfter = _engine.state.playlist.medias;
       if (currentIndex < 0 || currentIndex >= mediasAfter.length) return;
       final itemAtIndex = mediasAfter[currentIndex].mediaItem;
-      final idAtIndex =
-          itemAtIndex != null
-              ? QueueTrack.fromMediaItem(itemAtIndex).videoId
-              : null;
+      final idAtIndex = itemAtIndex != null
+          ? QueueTrack.fromMediaItem(itemAtIndex).videoId
+          : null;
       if (idAtIndex != videoId) {
         return;
       }

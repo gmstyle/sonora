@@ -30,10 +30,9 @@ double importPlaylistDialogWidth(double screenWidth) {
   if (screenWidth < kCompactBreakpoint) {
     return screenWidth;
   }
-  final target =
-      screenWidth < kExpandedBreakpoint
-          ? kImportPlaylistDialogTabletWidth
-          : kImportPlaylistDialogWideWidth;
+  final target = screenWidth < kExpandedBreakpoint
+      ? kImportPlaylistDialogTabletWidth
+      : kImportPlaylistDialogWideWidth;
   return math.min(target, screenWidth - (kImportPlaylistDialogInset * 2));
 }
 
@@ -142,24 +141,23 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
   ) async {
     final sync = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(l10n?.importPlaylist ?? 'Import Playlist'),
-            content: Text(
-              l10n?.playlistAlreadyImported(e.name) ??
-                  'Already imported as "${e.name}". Sync instead?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(l10n?.cancel ?? 'Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(l10n?.syncInstead ?? 'Sync'),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n?.importPlaylist ?? 'Import Playlist'),
+        content: Text(
+          l10n?.playlistAlreadyImported(e.name) ??
+              'Already imported as "${e.name}". Sync instead?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n?.syncInstead ?? 'Sync'),
+          ),
+        ],
+      ),
     );
     if (sync != true || !mounted) return;
 
@@ -284,10 +282,9 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       }
     });
 
-    final overlay =
-        widget.isSheet
-            ? _buildSheet(context, busy, job)
-            : _buildDialog(context, busy, job);
+    final overlay = widget.isSheet
+        ? _buildSheet(context, busy, job)
+        : _buildDialog(context, busy, job);
     return PopScope(
       canPop: !busy,
       onPopInvokedWithResult: (didPop, _) {
@@ -316,35 +313,32 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
       ),
       title: Text(
         l10n?.importPlaylist ?? 'Import Playlist',
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.titleLarge
+            ?.copyWith(fontWeight: FontWeight.bold),
       ),
       content: _buildBody(context, l10n, busy, job),
-      actions:
-          busy
-              ? [
-                TextButton(
-                  onPressed:
-                      () =>
-                          ref.read(playlistImportJobProvider.notifier).cancel(),
-                  child: Text(l10n?.cancel ?? 'Cancel'),
-                ),
-                TextButton(
-                  onPressed: _minimize,
-                  child: Text(l10n?.importJobMinimize ?? 'Run in background'),
-                ),
-              ]
-              : [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n?.cancel ?? 'Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () => _submit(l10n),
-                  child: Text(l10n?.import ?? 'Import'),
-                ),
-              ],
+      actions: busy
+          ? [
+              TextButton(
+                onPressed: () =>
+                    ref.read(playlistImportJobProvider.notifier).cancel(),
+                child: Text(l10n?.cancel ?? 'Cancel'),
+              ),
+              TextButton(
+                onPressed: _minimize,
+                child: Text(l10n?.importJobMinimize ?? 'Run in background'),
+              ),
+            ]
+          : [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n?.cancel ?? 'Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => _submit(l10n),
+                child: Text(l10n?.import ?? 'Import'),
+              ),
+            ],
     );
   }
 
@@ -356,10 +350,9 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final keyboardOpen = bottomInset > 0;
-    final imePadding =
-        Theme.of(context).platform == TargetPlatform.android
-            ? 0.0
-            : bottomInset;
+    final imePadding = Theme.of(context).platform == TargetPlatform.android
+        ? 0.0
+        : bottomInset;
 
     return Padding(
       padding: EdgeInsets.only(bottom: imePadding),
@@ -376,9 +369,8 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
               children: [
                 Text(
                   l10n?.importPlaylist ?? 'Import Playlist',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: keyboardOpen ? 8 : 16),
                 _buildBody(context, l10n, busy, job, compact: keyboardOpen),
@@ -388,11 +380,9 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed:
-                              () =>
-                                  ref
-                                      .read(playlistImportJobProvider.notifier)
-                                      .cancel(),
+                          onPressed: () => ref
+                              .read(playlistImportJobProvider.notifier)
+                              .cancel(),
                           child: Text(l10n?.cancel ?? 'Cancel'),
                         ),
                       ),
@@ -447,10 +437,9 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
         phase: _mapPhase(job.phase),
         current: job.current,
         total: job.total,
-        trackLabel:
-            job.phase == PlaylistImportJobPhase.awaitingReview
-                ? null
-                : job.trackLabel,
+        trackLabel: job.phase == PlaylistImportJobPhase.awaitingReview
+            ? null
+            : job.trackLabel,
         showAiAssist:
             job.isSpotify && job.phase != PlaylistImportJobPhase.awaitingReview,
         aiModelReady: job.aiModelReady,
@@ -466,9 +455,8 @@ class _ImportPlaylistDialogState extends ConsumerState<ImportPlaylistDialog> {
           Text(
             l10n?.importPlaylistHint ??
                 'Paste a YouTube Music or Spotify playlist link.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
         ],

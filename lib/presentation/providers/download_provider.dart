@@ -85,8 +85,9 @@ class ActiveDownload {
       status: status ?? this.status,
       receivedBytes: receivedBytes ?? this.receivedBytes,
       totalBytes: totalBytes ?? this.totalBytes,
-      speedBytesPerSec:
-          clearSpeed ? null : (speedBytesPerSec ?? this.speedBytesPerSec),
+      speedBytesPerSec: clearSpeed
+          ? null
+          : (speedBytesPerSec ?? this.speedBytesPerSec),
       error: error ?? this.error,
       batchId: batchId,
       batchName: batchName,
@@ -165,15 +166,14 @@ final downloadedIdsProvider = Provider<Set<String>>((ref) {
 final downloadBannerSummaryProvider = Provider<DownloadBannerSummary?>((ref) {
   final active = ref.watch(activeDownloadsProvider);
   final batches = ref.watch(downloadBatchesProvider);
-  final working =
-      active.values
-          .where(
-            (d) =>
-                d.status == DownloadStatus.pending ||
-                d.status == DownloadStatus.downloading ||
-                d.status == DownloadStatus.error,
-          )
-          .toList();
+  final working = active.values
+      .where(
+        (d) =>
+            d.status == DownloadStatus.pending ||
+            d.status == DownloadStatus.downloading ||
+            d.status == DownloadStatus.error,
+      )
+      .toList();
   if (working.isEmpty) return null;
 
   final l10n = lookupAppLocalizations(PlatformDispatcher.instance.locale);
@@ -184,10 +184,9 @@ final downloadBannerSummaryProvider = Provider<DownloadBannerSummary?>((ref) {
     final item = working.first;
     final downloading = item.status == DownloadStatus.downloading;
     return DownloadBannerSummary(
-      title:
-          downloading
-              ? '${item.title} · ${(item.progress * 100).round()}%'
-              : '${item.title} · ${l10n.downloadQueued}',
+      title: downloading
+          ? '${item.title} · ${(item.progress * 100).round()}%'
+          : '${item.title} · ${l10n.downloadQueued}',
       subtitle: l10n.tapToOpenDownloads,
       action: DownloadBannerAction.cancelItem,
       targetId: item.videoId,
@@ -202,8 +201,9 @@ final downloadBannerSummaryProvider = Provider<DownloadBannerSummary?>((ref) {
     final total = batch?.total ?? working.first.batchTotal ?? working.length;
     final done = batch?.completed ?? 0;
     final inFlight = working.fold<double>(0, (sum, d) => sum + d.progress);
-    final progress =
-        total > 0 ? ((done + inFlight) / total).clamp(0.0, 1.0) : null;
+    final progress = total > 0
+        ? ((done + inFlight) / total).clamp(0.0, 1.0)
+        : null;
     return DownloadBannerSummary(
       title: l10n.downloadingBatchProgress(name, done, total),
       subtitle: l10n.tapToOpenDownloads,
@@ -384,10 +384,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
       _batches[batchId] = DownloadBatchProgress(
         id: batchId,
         name: batchName,
-        total:
-            existing == null
-                ? batchTotal
-                : (existing.total > batchTotal ? existing.total : batchTotal),
+        total: existing == null
+            ? batchTotal
+            : (existing.total > batchTotal ? existing.total : batchTotal),
         completed: existing?.completed ?? 0,
       );
     }
@@ -433,15 +432,14 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
   }
 
   Future<void> cancelBatch(String batchId) async {
-    final ids =
-        state.entries
-            .where(
-              (e) =>
-                  e.value.batchId == batchId &&
-                  e.value.status != DownloadStatus.completed,
-            )
-            .map((e) => e.key)
-            .toList();
+    final ids = state.entries
+        .where(
+          (e) =>
+              e.value.batchId == batchId &&
+              e.value.status != DownloadStatus.completed,
+        )
+        .map((e) => e.key)
+        .toList();
     for (final id in ids) {
       await cancelDownload(id);
     }
@@ -450,11 +448,10 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
   }
 
   Future<void> cancelAll() async {
-    final ids =
-        state.entries
-            .where((e) => e.value.status != DownloadStatus.completed)
-            .map((e) => e.key)
-            .toList();
+    final ids = state.entries
+        .where((e) => e.value.status != DownloadStatus.completed)
+        .map((e) => e.key)
+        .toList();
     for (final id in ids) {
       await cancelDownload(id);
     }
@@ -710,15 +707,14 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     return DownloadError.unknown;
   }
 
-  List<ActiveDownload> get _working =>
-      state.values
-          .where(
-            (d) =>
-                d.status == DownloadStatus.pending ||
-                d.status == DownloadStatus.downloading ||
-                d.status == DownloadStatus.error,
-          )
-          .toList();
+  List<ActiveDownload> get _working => state.values
+      .where(
+        (d) =>
+            d.status == DownloadStatus.pending ||
+            d.status == DownloadStatus.downloading ||
+            d.status == DownloadStatus.error,
+      )
+      .toList();
 
   Future<void> _syncNotification({bool force = false}) async {
     final now = DateTime.now();
@@ -734,10 +730,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     final l10n = _l10n;
 
     if (working.isEmpty) {
-      final justCompleted =
-          state.values
-              .where((d) => d.status == DownloadStatus.completed)
-              .toList();
+      final justCompleted = state.values
+          .where((d) => d.status == DownloadStatus.completed)
+          .toList();
       if (justCompleted.isEmpty && _batches.isEmpty) {
         _completionDismissTimer?.cancel();
         return;
@@ -747,10 +742,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
         0,
         (sum, b) => sum + b.completed,
       );
-      final totalDone =
-          justCompleted.length > completedFromBatches
-              ? justCompleted.length
-              : completedFromBatches;
+      final totalDone = justCompleted.length > completedFromBatches
+          ? justCompleted.length
+          : completedFromBatches;
 
       try {
         if (totalDone <= 1 && justCompleted.isNotEmpty) {
@@ -786,10 +780,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
 
     if (working.length == 1) {
       final item = working.first;
-      body =
-          item.status == DownloadStatus.downloading
-              ? '${item.title} · ${(item.progress * 100).round()}%'
-              : '${item.title} · ${l10n.downloadQueued}';
+      body = item.status == DownloadStatus.downloading
+          ? '${item.title} · ${(item.progress * 100).round()}%'
+          : '${item.title} · ${l10n.downloadQueued}';
       progress = (item.progress * 100).round();
       maxProgress = 100;
     } else if (!hasSingles && batchIds.length == 1) {
@@ -804,10 +797,9 @@ class DownloadsNotifier extends Notifier<Map<String, ActiveDownload>> {
     } else {
       body = l10n.downloadsInProgress(working.length);
       final sessionTotal = state.length;
-      final done =
-          state.values
-              .where((d) => d.status == DownloadStatus.completed)
-              .length;
+      final done = state.values
+          .where((d) => d.status == DownloadStatus.completed)
+          .length;
       progress = done;
       maxProgress = sessionTotal <= 0 ? working.length : sessionTotal;
     }

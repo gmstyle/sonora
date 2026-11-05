@@ -28,10 +28,9 @@ Rules:
 
 String wrappedNarrativeUserMessage(WrappedFacts facts) {
   final names = facts.allowListedNames.toList()..sort();
-  final namesLine =
-      names.isEmpty
-          ? 'Allowed names: (none — do not invent artists)'
-          : 'Allowed names: ${names.join(', ')}';
+  final namesLine = names.isEmpty
+      ? 'Allowed names: (none — do not invent artists)'
+      : 'Allowed names: ${names.join(', ')}';
   return 'Facts JSON:\n$namesLine\n${jsonEncode(facts.toPromptMap())}';
 }
 
@@ -98,8 +97,8 @@ const _blockedInventedNames = {'ligabue'};
 class GenerateWrappedNarrativeUseCase {
   GenerateWrappedNarrativeUseCase(
     this._llm, {
-    WrappedNarrativeParser parser = const WrappedNarrativeParser(),
-  }) : _parser = parser;
+    this._parser = const WrappedNarrativeParser(),
+  });
 
   final LlmCompletionRepository _llm;
   final WrappedNarrativeParser _parser;

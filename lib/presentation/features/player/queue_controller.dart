@@ -54,24 +54,17 @@ class QueueController {
   static const String _kSectionKey = 'section';
 
   QueueController({
-    required PlaybackEngine engine,
-    required QueueRepository queueRepo,
-    required List<MediaItem> Function() getQueue,
-    required AudioServiceShuffleMode Function() getShuffleMode,
-    required AudioServiceRepeatMode Function() getRepeatMode,
-    required void Function(List<MediaItem>) updateQueueStream,
-    LocalAudioProxyServer? proxyServer,
+    required this._engine,
+    required this._queueRepo,
+    required this._getQueue,
+    required this._getShuffleMode,
+    required this._getRepeatMode,
+    required this._updateQueueStream,
+    this._proxyServer,
     bool Function()? isForcedOffline,
     this.streamAudioQuality = MediaQuality.high,
     this.onResolvingIdle,
-  }) : _engine = engine,
-       _queueRepo = queueRepo,
-       _getQueue = getQueue,
-       _getShuffleMode = getShuffleMode,
-       _getRepeatMode = getRepeatMode,
-       _updateQueueStream = updateQueueStream,
-       _proxyServer = proxyServer,
-       _isForcedOffline = isForcedOffline ?? (() => false);
+  }) : _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// HTTP URL a Chromecast on the LAN can fetch (phone proxy, not loopback).
   Future<String?> lanCastUrlFor(QueueTrack track) async {
@@ -423,10 +416,9 @@ class QueueController {
     final item = media.mediaItem;
     if (item == null) return;
 
-    final target =
-        (boundary == null || newIndex < boundary)
-            ? QueueSection.user
-            : QueueSection.upnext;
+    final target = (boundary == null || newIndex < boundary)
+        ? QueueSection.user
+        : QueueSection.upnext;
     if (sectionOf(item) == target) return;
 
     final retagged = tagSection(item, target);
@@ -479,12 +471,12 @@ class QueueController {
     final playlist = _engine.state.playlist;
     final items = playlist.medias.map((e) => e.mediaItem).nonNulls.toList();
 
-    final newIds =
-        items.map((e) => e.extras?['queueId'] as String? ?? e.id).toList();
-    final currentIds =
-        _getQueue()
-            .map((e) => e.extras?['queueId'] as String? ?? e.id)
-            .toList();
+    final newIds = items
+        .map((e) => e.extras?['queueId'] as String? ?? e.id)
+        .toList();
+    final currentIds = _getQueue()
+        .map((e) => e.extras?['queueId'] as String? ?? e.id)
+        .toList();
     final queueStructureChanged =
         newIds.length != currentIds.length ||
         !const ListEquality().equals(newIds, currentIds);
@@ -531,8 +523,9 @@ class QueueController {
     int initialIndex = 0,
   }) {
     final seenIds = <String>{};
-    final itemsWithKeys =
-        items.map((item) => ensureQueueId(item, seenIds)).toList();
+    final itemsWithKeys = items
+        .map((item) => ensureQueueId(item, seenIds))
+        .toList();
     final medias = itemsWithKeys.map(toMedia).toList();
     return (itemsWithKeys, medias);
   }

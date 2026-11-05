@@ -46,49 +46,47 @@ class Artwork extends ConsumerWidget {
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
     final clampedSize = size.clamp(150.0, 600.0);
 
-    final artworkWidget =
-        useVinylStyle
-            ? Container(
-              width: clampedSize,
-              height: clampedSize,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  if (!reduceEffects)
-                    BoxShadow(
-                      color: dominantColor.withValues(alpha: 0.55),
-                      blurRadius: 32,
-                      spreadRadius: 4,
-                      offset: const Offset(0, 8),
-                    ),
-                ],
-              ),
-              child:
-                  isSwitching
-                      ? ClipOval(
-                        child: SizedBox(
-                          width: clampedSize,
-                          height: clampedSize,
-                          child: const ShimmerLoading(
-                            variant: ShimmerVariant.artworkLarge,
-                          ),
-                        ),
-                      )
-                      : VinylArtwork(
-                        imageUrl: artUrl,
-                        size: clampedSize,
-                        isPlaying: isPlaying,
-                        useShadow: false,
+    final artworkWidget = useVinylStyle
+        ? Container(
+            width: clampedSize,
+            height: clampedSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                if (!reduceEffects)
+                  BoxShadow(
+                    color: dominantColor.withValues(alpha: 0.55),
+                    blurRadius: 32,
+                    spreadRadius: 4,
+                    offset: const Offset(0, 8),
+                  ),
+              ],
+            ),
+            child: isSwitching
+                ? ClipOval(
+                    child: SizedBox(
+                      width: clampedSize,
+                      height: clampedSize,
+                      child: const ShimmerLoading(
+                        variant: ShimmerVariant.artworkLarge,
                       ),
-            )
-            : buildArtwork(
-              context,
-              artUrl,
-              isSwitching,
-              size,
-              dominantColor,
-              reduceEffects: reduceEffects,
-            );
+                    ),
+                  )
+                : VinylArtwork(
+                    imageUrl: artUrl,
+                    size: clampedSize,
+                    isPlaying: isPlaying,
+                    useShadow: false,
+                  ),
+          )
+        : buildArtwork(
+            context,
+            artUrl,
+            isSwitching,
+            size,
+            dominantColor,
+            reduceEffects: reduceEffects,
+          );
 
     return Center(
       child: AspectRatio(

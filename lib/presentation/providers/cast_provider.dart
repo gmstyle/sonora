@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:dart_cast/dart_cast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/utils/android_battery.dart';
 import '../../data/services/cast_service.dart';
 

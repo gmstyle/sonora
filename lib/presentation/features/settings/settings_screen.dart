@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/constants/app_constants.dart';
 import 'layouts/settings_mobile_layout.dart';
 import 'layouts/settings_tablet_layout.dart';

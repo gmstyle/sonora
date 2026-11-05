@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../providers/settings_provider.dart';
 import 'thumbnail_widget.dart';
 import 'scale_button.dart';
@@ -89,16 +90,15 @@ class _VinylArtworkState extends ConsumerState<VinylArtwork>
         height: widget.size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          boxShadow:
-              widget.useShadow
-                  ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ]
-                  : null,
+          boxShadow: widget.useShadow
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
         child: ClipOval(
           child: Stack(

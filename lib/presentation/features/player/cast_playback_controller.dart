@@ -5,6 +5,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:dart_cast/dart_cast.dart';
 import 'package:flutter/foundation.dart';
+
 import 'playback_engine.dart';
 import '../../../data/services/cast_service.dart';
 import '../../../domain/models/queue_track.dart';
@@ -61,18 +62,13 @@ class CastPlaybackController {
   bool _castEndAdvanceInFlight = false;
 
   CastPlaybackController({
-    required PlaybackEngine engine,
-    required PlaybackVolumeController volumeController,
-    required PlayVideoIdUseCase playVideoIdUseCase,
-    required bool Function() userWantsPlaying,
-    required MediaItem? Function() currentMediaItem,
-    required Future<String?> Function(QueueTrack track) lanCastUrl,
-  }) : _engine = engine,
-       _volumeController = volumeController,
-       _playVideoIdUseCase = playVideoIdUseCase,
-       _userWantsPlaying = userWantsPlaying,
-       _currentMediaItem = currentMediaItem,
-       _lanCastUrl = lanCastUrl;
+    required this._engine,
+    required this._volumeController,
+    required this._playVideoIdUseCase,
+    required this._userWantsPlaying,
+    required this._currentMediaItem,
+    required this._lanCastUrl,
+  });
 
   CastState? get castState => _castState;
   SonoraCastService? get castService => _castService;
@@ -356,10 +352,9 @@ class CastPlaybackController {
     SessionState? remoteState,
   }) {
     _castState = CastState(
-      connectionState:
-          connected
-              ? CastConnectionState.connected
-              : CastConnectionState.disconnected,
+      connectionState: connected
+          ? CastConnectionState.connected
+          : CastConnectionState.disconnected,
     );
     _remoteSessionState = remoteState;
   }

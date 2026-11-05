@@ -60,27 +60,24 @@ class _ArtistVideosBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final videosAsync = ref.watch(artistVideosProvider(artistId));
     final l10n = AppLocalizations.of(context)!;
-    final title =
-        artistName != null && artistName!.isNotEmpty
-            ? '${l10n.videos} · $artistName'
-            : l10n.videos;
+    final title = artistName != null && artistName!.isNotEmpty
+        ? '${l10n.videos} · $artistName'
+        : l10n.videos;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: videosAsync.when(
         loading: () => const _VideosLoadingGrid(),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: l10n.failedToLoadVideos,
-              onRetry: () => ref.invalidate(artistVideosProvider(artistId)),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: l10n.failedToLoadVideos,
+          onRetry: () => ref.invalidate(artistVideosProvider(artistId)),
+        ),
         data: (videos) {
           if (videos.isEmpty) {
             return Center(child: Text(l10n.noContentAvailable));
@@ -91,16 +88,15 @@ class _ArtistVideosBody extends ConsumerWidget {
           final horizontalPad = isWide ? kWideContentPadding : 16.0;
           final contentWidth =
               isWide && viewportWidth > kDocumentContentMaxWidth
-                  ? kDocumentContentMaxWidth
-                  : viewportWidth;
-          final columns =
-              contentWidth < kCompactBreakpoint
-                  ? 2
-                  : contentWidth < kMediumBreakpoint
-                  ? 3
-                  : contentWidth < kExpandedBreakpoint
-                  ? 4
-                  : 5;
+              ? kDocumentContentMaxWidth
+              : viewportWidth;
+          final columns = contentWidth < kCompactBreakpoint
+              ? 2
+              : contentWidth < kMediumBreakpoint
+              ? 3
+              : contentWidth < kExpandedBreakpoint
+              ? 4
+              : 5;
           final cardWidth =
               (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
           final canPlay = playableVideos(videos).isNotEmpty;
@@ -115,14 +111,12 @@ class _ArtistVideosBody extends ConsumerWidget {
                     videoCount: videos.length,
                     isMobile: isMobile,
                     horizontalPadding: horizontalPad,
-                    onPlayAll:
-                        canPlay
-                            ? () => _playFromIndex(context, ref, videos, 0)
-                            : null,
-                    onShuffle:
-                        canPlay
-                            ? () => _shufflePlay(context, ref, videos)
-                            : null,
+                    onPlayAll: canPlay
+                        ? () => _playFromIndex(context, ref, videos, 0)
+                        : null,
+                    onShuffle: canPlay
+                        ? () => _shufflePlay(context, ref, videos)
+                        : null,
                   ),
                 ),
                 SliverPadding(
@@ -147,15 +141,14 @@ class _ArtistVideosBody extends ConsumerWidget {
                         artist: displayArtists(video.artists),
                         artists: video.artists,
                         artistId: primaryArtistId(video.artists),
-                        thumbnailUrl:
-                            video.thumbnails.isNotEmpty
-                                ? video.thumbnails.last.url
-                                : null,
+                        thumbnailUrl: video.thumbnails.isNotEmpty
+                            ? video.thumbnails.last.url
+                            : null,
                         isExplicit: video.isExplicit,
                         isPlayable: video.isPlayable,
                         cardWidth: cardWidth,
-                        onTap:
-                            () => _playFromIndex(context, ref, videos, index),
+                        onTap: () =>
+                            _playFromIndex(context, ref, videos, index),
                       );
                     }, childCount: videos.length),
                   ),
@@ -254,9 +247,8 @@ class _VideosHeader extends StatelessWidget {
         children: [
           Text(
             l10n.videoCount(videoCount),
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           if (isMobile)
@@ -315,18 +307,16 @@ class _VideosLoadingGrid extends StatelessWidget {
         final viewport = constraints.maxWidth;
         final isWide = viewport >= kExpandedBreakpoint;
         final horizontalPad = isWide ? kWideContentPadding : 16.0;
-        final contentWidth =
-            isWide && viewport > kDocumentContentMaxWidth
-                ? kDocumentContentMaxWidth
-                : viewport;
-        final columns =
-            contentWidth < kCompactBreakpoint
-                ? 2
-                : contentWidth < kMediumBreakpoint
-                ? 3
-                : contentWidth < kExpandedBreakpoint
-                ? 4
-                : 5;
+        final contentWidth = isWide && viewport > kDocumentContentMaxWidth
+            ? kDocumentContentMaxWidth
+            : viewport;
+        final columns = contentWidth < kCompactBreakpoint
+            ? 2
+            : contentWidth < kMediumBreakpoint
+            ? 3
+            : contentWidth < kExpandedBreakpoint
+            ? 4
+            : 5;
         final cardWidth =
             (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
         final grid = GridView.builder(
@@ -338,11 +328,10 @@ class _VideosLoadingGrid extends StatelessWidget {
             childAspectRatio: cardWidth / (cardWidth * 9 / 16 + 64),
           ),
           itemCount: columns * 3,
-          itemBuilder:
-              (_, _) => ShimmerLoading(
-                variant: ShimmerVariant.videoCard,
-                cardWidth: cardWidth,
-              ),
+          itemBuilder: (_, _) => ShimmerLoading(
+            variant: ShimmerVariant.videoCard,
+            cardWidth: cardWidth,
+          ),
         );
         if (!isWide) return grid;
         return Align(

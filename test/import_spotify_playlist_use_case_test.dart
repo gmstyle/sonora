@@ -602,10 +602,7 @@ void main() {
 }
 
 class _FakeMusicRepository extends Fake implements MusicRepository {
-  _FakeMusicRepository(
-    this._results, {
-    Map<String, (PlaylistFull, List<VideoDetailed>)> playlists = const {},
-  }) : _playlists = playlists;
+  _FakeMusicRepository(this._results, {this._playlists = const {}});
 
   final Map<String, List<SongDetailed>> _results;
   final Map<String, (PlaylistFull, List<VideoDetailed>)> _playlists;

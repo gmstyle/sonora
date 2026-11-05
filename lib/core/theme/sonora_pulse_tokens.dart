@@ -136,15 +136,14 @@ class SonoraPulseTokens {
       shape: BoxShape.circle,
       gradient: enabled ? brandSpectrum : null,
       color: enabled ? null : primaryContainer.withValues(alpha: 0.38),
-      boxShadow:
-          !glow || !enabled
-              ? null
-              : [
-                BoxShadow(
-                  color: gradientStart.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                ),
-              ],
+      boxShadow: !glow || !enabled
+          ? null
+          : [
+              BoxShadow(
+                color: gradientStart.withValues(alpha: 0.35),
+                blurRadius: 18,
+              ),
+            ],
     );
   }
 

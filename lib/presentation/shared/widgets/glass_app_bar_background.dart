@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 /// A reusable frosted-glass background widget for AppBars and SliverAppBars.

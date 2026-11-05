@@ -26,151 +26,141 @@ class ExportBackupUseCase {
     final playlistEntries = <String, List<Map<String, dynamic>>>{};
     for (final p in playlists) {
       final entries = await libraryRepository.getPlaylistEntries(p.id);
-      playlistEntries[p.id.toString()] =
-          entries
-              .map(
-                (e) => {
-                  'playlistId': e.playlistId,
-                  'videoId': e.videoId,
-                  'position': e.position,
-                  'title': e.title,
-                  'artist': e.artist,
-                  'artistsJson': e.artistsJson,
-                  'thumbnailUrl': e.thumbnailUrl,
-                  'duration': e.duration,
-                  'isVideo': e.isVideo,
-                  'isExplicit': e.isExplicit,
-                },
-              )
-              .toList();
+      playlistEntries[p.id.toString()] = entries
+          .map(
+            (e) => {
+              'playlistId': e.playlistId,
+              'videoId': e.videoId,
+              'position': e.position,
+              'title': e.title,
+              'artist': e.artist,
+              'artistsJson': e.artistsJson,
+              'thumbnailUrl': e.thumbnailUrl,
+              'duration': e.duration,
+              'isVideo': e.isVideo,
+              'isExplicit': e.isExplicit,
+            },
+          )
+          .toList();
     }
 
     return <String, dynamic>{
       'version': 3,
       'exportedAt': DateTime.now().toIso8601String(),
-      'likedSongs':
-          likedSongs
-              .map(
-                (s) => {
-                  'videoId': s.videoId,
-                  'title': s.title,
-                  'artist': s.artist,
-                  'thumbnailUrl': s.thumbnailUrl,
-                  'artistId': s.artistId,
-                  'albumId': s.albumId,
-                  'addedAt': s.addedAt.toIso8601String(),
-                  'duration': s.duration,
-                  'isVideo': s.isVideo,
-                  'isExplicit': s.isExplicit,
-                },
-              )
-              .toList(),
-      'followedArtists':
-          followedArtists
-              .map(
-                (a) => {
-                  'artistId': a.artistId,
-                  'name': a.name,
-                  'thumbnailUrl': a.thumbnailUrl,
-                  'addedAt': a.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
-      'likedAlbums':
-          likedAlbums
-              .map(
-                (a) => {
-                  'albumId': a.albumId,
-                  'name': a.name,
-                  'artistName': a.artistName,
-                  'artistId': a.artistId,
-                  'thumbnailUrl': a.thumbnailUrl,
-                  'year': a.year,
-                  'addedAt': a.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
-      'likedPlaylists':
-          likedPlaylists
-              .map(
-                (p) => {
-                  'playlistId': p.playlistId,
-                  'name': p.name,
-                  'thumbnailUrl': p.thumbnailUrl,
-                  'videoCount': p.videoCount,
-                  'addedAt': p.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
-      'likedPodcasts':
-          likedPodcasts
-              .map(
-                (p) => {
-                  'browseId': p.browseId,
-                  'name': p.name,
-                  'authorName': p.authorName,
-                  'authorId': p.authorId,
-                  'thumbnailUrl': p.thumbnailUrl,
-                  'episodeCount': p.episodeCount,
-                  'addedAt': p.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
-      'likedEpisodes':
-          likedEpisodes
-              .map(
-                (e) => {
-                  'videoId': e.videoId,
-                  'browseId': e.browseId,
-                  'name': e.name,
-                  'podcastName': e.podcastName,
-                  'podcastBrowseId': e.podcastBrowseId,
-                  'thumbnailUrl': e.thumbnailUrl,
-                  'durationSec': e.durationSec,
-                  'date': e.date,
-                  'addedAt': e.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
-      'playlists':
-          playlists
-              .map(
-                (p) => {
-                  'id': p.id,
-                  'name': p.name,
-                  'description': p.description,
-                  'createdAt': p.createdAt.toIso8601String(),
-                },
-              )
-              .toList(),
+      'likedSongs': likedSongs
+          .map(
+            (s) => {
+              'videoId': s.videoId,
+              'title': s.title,
+              'artist': s.artist,
+              'thumbnailUrl': s.thumbnailUrl,
+              'artistId': s.artistId,
+              'albumId': s.albumId,
+              'addedAt': s.addedAt.toIso8601String(),
+              'duration': s.duration,
+              'isVideo': s.isVideo,
+              'isExplicit': s.isExplicit,
+            },
+          )
+          .toList(),
+      'followedArtists': followedArtists
+          .map(
+            (a) => {
+              'artistId': a.artistId,
+              'name': a.name,
+              'thumbnailUrl': a.thumbnailUrl,
+              'addedAt': a.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
+      'likedAlbums': likedAlbums
+          .map(
+            (a) => {
+              'albumId': a.albumId,
+              'name': a.name,
+              'artistName': a.artistName,
+              'artistId': a.artistId,
+              'thumbnailUrl': a.thumbnailUrl,
+              'year': a.year,
+              'addedAt': a.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
+      'likedPlaylists': likedPlaylists
+          .map(
+            (p) => {
+              'playlistId': p.playlistId,
+              'name': p.name,
+              'thumbnailUrl': p.thumbnailUrl,
+              'videoCount': p.videoCount,
+              'addedAt': p.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
+      'likedPodcasts': likedPodcasts
+          .map(
+            (p) => {
+              'browseId': p.browseId,
+              'name': p.name,
+              'authorName': p.authorName,
+              'authorId': p.authorId,
+              'thumbnailUrl': p.thumbnailUrl,
+              'episodeCount': p.episodeCount,
+              'addedAt': p.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
+      'likedEpisodes': likedEpisodes
+          .map(
+            (e) => {
+              'videoId': e.videoId,
+              'browseId': e.browseId,
+              'name': e.name,
+              'podcastName': e.podcastName,
+              'podcastBrowseId': e.podcastBrowseId,
+              'thumbnailUrl': e.thumbnailUrl,
+              'durationSec': e.durationSec,
+              'date': e.date,
+              'addedAt': e.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
+      'playlists': playlists
+          .map(
+            (p) => {
+              'id': p.id,
+              'name': p.name,
+              'description': p.description,
+              'createdAt': p.createdAt.toIso8601String(),
+            },
+          )
+          .toList(),
       'playlistEntries': playlistEntries,
-      'history':
-          history
-              .map(
-                (h) => {
-                  'videoId': h.videoId,
-                  'title': h.title,
-                  'artist': h.artist,
-                  'thumbnailUrl': h.thumbnailUrl,
-                  'playedAt': h.playedAt.toIso8601String(),
-                  'playCount': h.playCount,
-                  'duration': h.duration,
-                  'isVideo': h.isVideo,
-                  'isExplicit': h.isExplicit,
-                  'contentType': h.contentType,
-                  'podcastBrowseId': h.podcastBrowseId,
-                },
-              )
-              .toList(),
-      'searchHistory':
-          searchHistory
-              .map(
-                (s) => {
-                  'query': s.query,
-                  'searchedAt': s.searchedAt.toIso8601String(),
-                },
-              )
-              .toList(),
+      'history': history
+          .map(
+            (h) => {
+              'videoId': h.videoId,
+              'title': h.title,
+              'artist': h.artist,
+              'thumbnailUrl': h.thumbnailUrl,
+              'playedAt': h.playedAt.toIso8601String(),
+              'playCount': h.playCount,
+              'duration': h.duration,
+              'isVideo': h.isVideo,
+              'isExplicit': h.isExplicit,
+              'contentType': h.contentType,
+              'podcastBrowseId': h.podcastBrowseId,
+            },
+          )
+          .toList(),
+      'searchHistory': searchHistory
+          .map(
+            (s) => {
+              'query': s.query,
+              'searchedAt': s.searchedAt.toIso8601String(),
+            },
+          )
+          .toList(),
       'settings': settings,
     };
   }

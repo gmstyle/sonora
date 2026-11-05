@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
 
 /// Pops Settings when it was pushed onto the stack; otherwise goes home
@@ -115,15 +116,14 @@ class SettingsDropdownTile extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurface,
           ),
-          items:
-              options.entries
-                  .map(
-                    (e) => DropdownMenuItem<String>(
-                      value: e.key,
-                      child: Text(e.value, overflow: TextOverflow.ellipsis),
-                    ),
-                  )
-                  .toList(),
+          items: options.entries
+              .map(
+                (e) => DropdownMenuItem<String>(
+                  value: e.key,
+                  child: Text(e.value, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
           selectedItemBuilder: (context) {
             return options.entries
                 .map(

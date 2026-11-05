@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -285,14 +286,12 @@ class StatsTab extends ConsumerWidget {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  backgroundImage:
-                      artist.thumbnailUrl != null
-                          ? CachedNetworkImageProvider(artist.thumbnailUrl!)
-                          : null,
-                  child:
-                      artist.thumbnailUrl == null
-                          ? const Icon(LucideIcons.user, size: 18)
-                          : null,
+                  backgroundImage: artist.thumbnailUrl != null
+                      ? CachedNetworkImageProvider(artist.thumbnailUrl!)
+                      : null,
+                  child: artist.thumbnailUrl == null
+                      ? const Icon(LucideIcons.user, size: 18)
+                      : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -352,27 +351,19 @@ class StatsTab extends ConsumerWidget {
                   child: SizedBox(
                     width: 40,
                     height: 40,
-                    child:
-                        song.thumbnailUrl != null
-                            ? CachedNetworkImage(
-                              imageUrl: song.thumbnailUrl!,
-                              fit: BoxFit.cover,
-                              errorWidget:
-                                  (context, url, error) => Container(
-                                    color:
-                                        theme
-                                            .colorScheme
-                                            .surfaceContainerHighest,
-                                    child: const Icon(
-                                      LucideIcons.music,
-                                      size: 16,
-                                    ),
-                                  ),
-                            )
-                            : Container(
+                    child: song.thumbnailUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: song.thumbnailUrl!,
+                            fit: BoxFit.cover,
+                            errorWidget: (context, url, error) => Container(
                               color: theme.colorScheme.surfaceContainerHighest,
                               child: const Icon(LucideIcons.music, size: 16),
                             ),
+                          )
+                        : Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: const Icon(LucideIcons.music, size: 16),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -428,10 +419,9 @@ class StatsTab extends ConsumerWidget {
         ...List.generate(state.topPodcasts.length, (index) {
           final podcast = state.topPodcasts[index];
           return InkWell(
-            onTap:
-                podcast.podcastBrowseId != null
-                    ? () => context.push('/podcast/${podcast.podcastBrowseId}')
-                    : null,
+            onTap: podcast.podcastBrowseId != null
+                ? () => context.push('/podcast/${podcast.podcastBrowseId}')
+                : null,
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -442,28 +432,20 @@ class StatsTab extends ConsumerWidget {
                     child: SizedBox(
                       width: 40,
                       height: 40,
-                      child:
-                          podcast.thumbnailUrl != null
-                              ? CachedNetworkImage(
-                                imageUrl: podcast.thumbnailUrl!,
-                                fit: BoxFit.cover,
-                                errorWidget:
-                                    (context, url, error) => Container(
-                                      color:
-                                          theme
-                                              .colorScheme
-                                              .surfaceContainerHighest,
-                                      child: const Icon(
-                                        LucideIcons.mic,
-                                        size: 16,
-                                      ),
-                                    ),
-                              )
-                              : Container(
+                      child: podcast.thumbnailUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: podcast.thumbnailUrl!,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
                                 color:
                                     theme.colorScheme.surfaceContainerHighest,
                                 child: const Icon(LucideIcons.mic, size: 16),
                               ),
+                            )
+                          : Container(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              child: const Icon(LucideIcons.mic, size: 16),
+                            ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -531,24 +513,11 @@ class StatsTab extends ConsumerWidget {
                     child: SizedBox(
                       width: 40,
                       height: 40,
-                      child:
-                          episode.thumbnailUrl != null
-                              ? CachedNetworkImage(
-                                imageUrl: episode.thumbnailUrl!,
-                                fit: BoxFit.cover,
-                                errorWidget:
-                                    (context, url, error) => Container(
-                                      color:
-                                          theme
-                                              .colorScheme
-                                              .surfaceContainerHighest,
-                                      child: const Icon(
-                                        LucideIcons.micVocal,
-                                        size: 16,
-                                      ),
-                                    ),
-                              )
-                              : Container(
+                      child: episode.thumbnailUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: episode.thumbnailUrl!,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
                                 color:
                                     theme.colorScheme.surfaceContainerHighest,
                                 child: const Icon(
@@ -556,6 +525,11 @@ class StatsTab extends ConsumerWidget {
                                   size: 16,
                                 ),
                               ),
+                            )
+                          : Container(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              child: const Icon(LucideIcons.micVocal, size: 16),
+                            ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -680,10 +654,9 @@ class StatsTab extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
     final maxVal = max(1, weeklyData.reduce(max));
-    final weekdays =
-        Localizations.localeOf(context).languageCode == 'it'
-            ? ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
-            : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final weekdays = Localizations.localeOf(context).languageCode == 'it'
+        ? ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Card(
       child: Padding(

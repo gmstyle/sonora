@@ -583,23 +583,22 @@ class LibraryRepositoryImpl implements LibraryRepository {
     return _playlistsDao
         .watchPlaylistEntries(playlistId)
         .map(
-          (rows) =>
-              rows
-                  .map(
-                    (r) => PlaylistEntryModel(
-                      playlistId: r.playlistId,
-                      videoId: r.videoId,
-                      position: r.position,
-                      title: r.title,
-                      artist: r.artist,
-                      artistsJson: r.artistsJson,
-                      thumbnailUrl: r.thumbnailUrl,
-                      isVideo: r.isVideo,
-                      duration: r.duration,
-                      isExplicit: r.isExplicit,
-                    ),
-                  )
-                  .toList(),
+          (rows) => rows
+              .map(
+                (r) => PlaylistEntryModel(
+                  playlistId: r.playlistId,
+                  videoId: r.videoId,
+                  position: r.position,
+                  title: r.title,
+                  artist: r.artist,
+                  artistsJson: r.artistsJson,
+                  thumbnailUrl: r.thumbnailUrl,
+                  isVideo: r.isVideo,
+                  duration: r.duration,
+                  isExplicit: r.isExplicit,
+                ),
+              )
+              .toList(),
         );
   }
 

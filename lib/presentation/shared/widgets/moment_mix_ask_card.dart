@@ -152,17 +152,16 @@ class _MomentMixAskSectionState extends ConsumerState<MomentMixAskSection> {
                   padding: const EdgeInsets.all(12),
                   shape: const StadiumBorder(),
                 ),
-                child:
-                    busy
-                        ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: SonoraPulseTokens.onPrimary,
-                          ),
-                        )
-                        : const Icon(LucideIcons.sparkles, size: 20),
+                child: busy
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: SonoraPulseTokens.onPrimary,
+                        ),
+                      )
+                    : const Icon(LucideIcons.sparkles, size: 20),
               ),
             ],
           ),
@@ -258,9 +257,8 @@ class _MomentMixResultCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -315,10 +313,7 @@ String momentMixTitle(AppLocalizations l10n, MusicSearchIntent? intent) {
     MixEnergy.unknown => null,
   };
 
-  final parts = <String>[
-    if (moodLabel != null) moodLabel,
-    if (energyLabel != null) energyLabel,
-  ];
+  final parts = <String>[?moodLabel, ?energyLabel];
   if (parts.isEmpty) return l10n.mixForThisMoment;
   return parts.join(' · ');
 }

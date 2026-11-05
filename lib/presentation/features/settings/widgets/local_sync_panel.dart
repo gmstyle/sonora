@@ -21,8 +21,8 @@ class LocalSyncPanel extends ConsumerStatefulWidget {
     if (isWide) {
       return showDialog(
         context: context,
-        builder:
-            (context) => const Dialog(child: LocalSyncPanel(isDialog: true)),
+        builder: (context) =>
+            const Dialog(child: LocalSyncPanel(isDialog: true)),
       );
     } else {
       return showModalBottomSheet(
@@ -64,10 +64,9 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
     final syncState = ref.watch(syncNotifierProvider);
     final syncService = ref.watch(syncServiceProvider);
     final pairedDevices = syncService.getPairedDevicesMetadata();
-    final otherDevices =
-        syncState.discoveredDevices
-            .where((d) => !pairedDevices.any((p) => p.deviceId == d.deviceId))
-            .toList();
+    final otherDevices = syncState.discoveredDevices
+        .where((d) => !pairedDevices.any((p) => p.deviceId == d.deviceId))
+        .toList();
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
@@ -193,9 +192,8 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
           _buildSyncStatsSummary(theme, l10n, syncState.syncStats),
           const SizedBox(height: 24),
           FilledButton(
-            onPressed:
-                () =>
-                    ref.read(syncNotifierProvider.notifier).resetSuccessState(),
+            onPressed: () =>
+                ref.read(syncNotifierProvider.notifier).resetSuccessState(),
             child: Text(l10n.close),
           ),
         ] else if (syncState.status == SyncStatus.error) ...[
@@ -250,11 +248,8 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed:
-                      () =>
-                          ref
-                              .read(syncNotifierProvider.notifier)
-                              .startDiscovery(),
+                  onPressed: () =>
+                      ref.read(syncNotifierProvider.notifier).startDiscovery(),
                   child: Text(l10n.checkNow),
                 ),
               ),
@@ -281,9 +276,8 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
             FilledButton.icon(
               icon: const Icon(LucideIcons.refreshCw),
               label: Text(l10n.checkNow),
-              onPressed:
-                  () =>
-                      ref.read(syncNotifierProvider.notifier).startDiscovery(),
+              onPressed: () =>
+                  ref.read(syncNotifierProvider.notifier).startDiscovery(),
             ),
           ] else ...[
             _buildConflictStrategySelector(theme, l10n, ref),
@@ -370,9 +364,8 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
             OutlinedButton.icon(
               icon: const Icon(LucideIcons.refreshCw),
               label: Text(l10n.checkNow),
-              onPressed:
-                  () =>
-                      ref.read(syncNotifierProvider.notifier).startDiscovery(),
+              onPressed: () =>
+                  ref.read(syncNotifierProvider.notifier).startDiscovery(),
             ),
           ],
           _buildResetPairingsButton(theme, l10n),
@@ -487,21 +480,20 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
           onPressed: () async {
             final confirm = await showDialog<bool>(
               context: context,
-              builder:
-                  (context) => AlertDialog(
-                    title: Text(l10n.resetPairedDevicesConfirmTitle),
-                    content: Text(l10n.resetPairedDevicesConfirmMsg),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: Text(l10n.cancel),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: Text(l10n.confirm),
-                      ),
-                    ],
+              builder: (context) => AlertDialog(
+                title: Text(l10n.resetPairedDevicesConfirmTitle),
+                content: Text(l10n.resetPairedDevicesConfirmMsg),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(l10n.cancel),
                   ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: Text(l10n.confirm),
+                  ),
+                ],
+              ),
             );
             if (confirm != true) return;
 
@@ -524,10 +516,9 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
     required bool isOnline,
     required AppLocalizations l10n,
   }) {
-    final leadingColor =
-        isPaired
-            ? (isOnline ? Colors.green : Colors.grey)
-            : theme.colorScheme.primary;
+    final leadingColor = isPaired
+        ? (isOnline ? Colors.green : Colors.grey)
+        : theme.colorScheme.primary;
 
     final isSmartphone =
         device.name.toLowerCase().contains('android') ||
@@ -541,43 +532,40 @@ class _LocalSyncPanelState extends ConsumerState<LocalSyncPanel> {
           isSmartphone ? LucideIcons.smartphone : LucideIcons.monitor,
           color: leadingColor,
         ),
-        title:
-            isPaired
-                ? Row(
-                  children: [
-                    Expanded(child: Text(device.name)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            isOnline
-                                ? Colors.green.withValues(alpha: 0.12)
-                                : Colors.grey.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color:
-                              isOnline
-                                  ? Colors.green.withValues(alpha: 0.5)
-                                  : Colors.grey.withValues(alpha: 0.5),
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(
-                        isOnline ? l10n.online : l10n.offline,
-                        style: TextStyle(
-                          color: isOnline ? Colors.green : Colors.grey,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+        title: isPaired
+            ? Row(
+                children: [
+                  Expanded(child: Text(device.name)),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isOnline
+                          ? Colors.green.withValues(alpha: 0.12)
+                          : Colors.grey.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isOnline
+                            ? Colors.green.withValues(alpha: 0.5)
+                            : Colors.grey.withValues(alpha: 0.5),
+                        width: 0.5,
                       ),
                     ),
-                  ],
-                )
-                : Text(device.name),
+                    child: Text(
+                      isOnline ? l10n.online : l10n.offline,
+                      style: TextStyle(
+                        color: isOnline ? Colors.green : Colors.grey,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Text(device.name),
         subtitle: Text('${device.ip}:${device.port}'),
         trailing: const Icon(LucideIcons.refreshCw, size: 18),
         onTap: () => ref.read(syncNotifierProvider.notifier).syncWith(device),

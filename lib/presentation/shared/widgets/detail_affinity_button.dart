@@ -53,10 +53,9 @@ class DetailAffinityButton extends StatelessWidget {
       onPressed: enabled ? onPressed : null,
       icon: Icon(_icon),
       label: Text(_label),
-      style:
-          isActive && activeColor != null
-              ? FilledButton.styleFrom(foregroundColor: activeColor)
-              : null,
+      style: isActive && activeColor != null
+          ? FilledButton.styleFrom(foregroundColor: activeColor)
+          : null,
     );
   }
 }

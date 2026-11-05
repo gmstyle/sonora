@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../providers/library_repository_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../../domain/models/library_models.dart';
@@ -89,14 +90,13 @@ final sortedLikedSongsProvider = Provider<AsyncValue<List<LikedSongModel>>>((
   return songsAsync.whenData((songs) {
     var list = List<LikedSongModel>.from(songs);
     if (query.isNotEmpty) {
-      list =
-          list
-              .where(
-                (s) =>
-                    s.title.toLowerCase().contains(query) ||
-                    s.artist.toLowerCase().contains(query),
-              )
-              .toList();
+      list = list
+          .where(
+            (s) =>
+                s.title.toLowerCase().contains(query) ||
+                s.artist.toLowerCase().contains(query),
+          )
+          .toList();
     }
 
     switch (sortType) {
@@ -133,8 +133,9 @@ final sortedFollowedArtistsProvider =
       return artistsAsync.whenData((artists) {
         var list = List<FollowedArtistModel>.from(artists);
         if (query.isNotEmpty) {
-          list =
-              list.where((a) => a.name.toLowerCase().contains(query)).toList();
+          list = list
+              .where((a) => a.name.toLowerCase().contains(query))
+              .toList();
         }
 
         switch (sortType) {
@@ -170,15 +171,14 @@ final sortedPlaylistsProvider = Provider<AsyncValue<List<LocalPlaylistModel>>>((
   return playlistsAsync.whenData((playlists) {
     var list = List<LocalPlaylistModel>.from(playlists);
     if (query.isNotEmpty) {
-      list =
-          list
-              .where(
-                (p) =>
-                    p.name.toLowerCase().contains(query) ||
-                    (p.description != null &&
-                        p.description!.toLowerCase().contains(query)),
-              )
-              .toList();
+      list = list
+          .where(
+            (p) =>
+                p.name.toLowerCase().contains(query) ||
+                (p.description != null &&
+                    p.description!.toLowerCase().contains(query)),
+          )
+          .toList();
     }
 
     switch (sortType) {
@@ -218,14 +218,13 @@ final sortedHistoryProvider = Provider<AsyncValue<List<HistoryModel>>>((ref) {
   return historyAsync.whenData((history) {
     var list = List<HistoryModel>.from(history);
     if (query.isNotEmpty) {
-      list =
-          list
-              .where(
-                (h) =>
-                    h.title.toLowerCase().contains(query) ||
-                    h.artist.toLowerCase().contains(query),
-              )
-              .toList();
+      list = list
+          .where(
+            (h) =>
+                h.title.toLowerCase().contains(query) ||
+                h.artist.toLowerCase().contains(query),
+          )
+          .toList();
     }
 
     switch (sortType) {
@@ -261,14 +260,13 @@ final sortedLikedAlbumsProvider = Provider<AsyncValue<List<LikedAlbumModel>>>((
   return albumsAsync.whenData((albums) {
     var list = List<LikedAlbumModel>.from(albums);
     if (query.isNotEmpty) {
-      list =
-          list
-              .where(
-                (a) =>
-                    a.name.toLowerCase().contains(query) ||
-                    a.artistName.toLowerCase().contains(query),
-              )
-              .toList();
+      list = list
+          .where(
+            (a) =>
+                a.name.toLowerCase().contains(query) ||
+                a.artistName.toLowerCase().contains(query),
+          )
+          .toList();
     }
 
     switch (sortType) {
@@ -303,8 +301,9 @@ final sortedLikedPlaylistsProvider =
       return playlistsAsync.whenData((playlists) {
         var list = List<LikedPlaylistModel>.from(playlists);
         if (query.isNotEmpty) {
-          list =
-              list.where((p) => p.name.toLowerCase().contains(query)).toList();
+          list = list
+              .where((p) => p.name.toLowerCase().contains(query))
+              .toList();
         }
 
         switch (sortType) {
@@ -339,14 +338,13 @@ final sortedLikedPodcastsProvider =
       return podcastsAsync.whenData((podcasts) {
         var list = List<LikedPodcastModel>.from(podcasts);
         if (query.isNotEmpty) {
-          list =
-              list
-                  .where(
-                    (p) =>
-                        p.name.toLowerCase().contains(query) ||
-                        (p.authorName?.toLowerCase().contains(query) ?? false),
-                  )
-                  .toList();
+          list = list
+              .where(
+                (p) =>
+                    p.name.toLowerCase().contains(query) ||
+                    (p.authorName?.toLowerCase().contains(query) ?? false),
+              )
+              .toList();
         }
 
         switch (sortType) {

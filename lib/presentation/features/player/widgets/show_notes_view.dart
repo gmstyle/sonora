@@ -21,16 +21,14 @@ class ShowNotesView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return episodeAsync.when(
-      loading:
-          () => const Padding(
-            padding: EdgeInsets.all(16),
-            child: ShimmerLoading(variant: ShimmerVariant.tile),
-          ),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: l10n.failedToLoadEpisode,
-            onRetry: () => ref.invalidate(episodeProvider(videoId)),
-          ),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: ShimmerLoading(variant: ShimmerVariant.tile),
+      ),
+      error: (e, _) => ErrorRetryWidget(
+        message: l10n.failedToLoadEpisode,
+        onRetry: () => ref.invalidate(episodeProvider(videoId)),
+      ),
       data: (episode) {
         final description = episode.description?.trim();
         if (description == null || description.isEmpty) {
@@ -42,9 +40,8 @@ class ShowNotesView extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Text(
                   l10n.noShowNotes,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(color: pc.subtitle),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(color: pc.subtitle),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -65,10 +62,8 @@ class ShowNotesView extends ConsumerWidget {
             const SizedBox(height: 12),
             SelectableText(
               description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: pc.subtitle,
-                height: 1.45,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: pc.subtitle, height: 1.45),
             ),
           ],
         );

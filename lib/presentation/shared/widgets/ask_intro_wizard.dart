@@ -37,14 +37,13 @@ Future<void> showAskIntroWizard(BuildContext context, WidgetRef ref) {
   if (isWide) {
     return showDialog(
       context: context,
-      builder:
-          (ctx) => Dialog(
-            child: Container(
-              width: 420,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: SingleChildScrollView(child: buildShell(ctx)),
-            ),
-          ),
+      builder: (ctx) => Dialog(
+        child: Container(
+          width: 420,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SingleChildScrollView(child: buildShell(ctx)),
+        ),
+      ),
     );
   }
 
@@ -160,8 +159,9 @@ class _AskIntroWizardBodyState extends State<_AskIntroWizardBody> {
                 height: 6,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(3),
-                  color:
-                      active ? colorScheme.primary : colorScheme.outlineVariant,
+                  color: active
+                      ? colorScheme.primary
+                      : colorScheme.outlineVariant,
                 ),
               );
             }),

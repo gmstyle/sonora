@@ -61,27 +61,24 @@ class _UserVideosBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final videosAsync = ref.watch(userVideosProvider(contentKey));
     final l10n = AppLocalizations.of(context)!;
-    final title =
-        userName != null && userName!.isNotEmpty
-            ? '${l10n.videos} · $userName'
-            : l10n.videos;
+    final title = userName != null && userName!.isNotEmpty
+        ? '${l10n.videos} · $userName'
+        : l10n.videos;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: videosAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: l10n.failedToLoadVideos,
-              onRetry: () => ref.invalidate(userVideosProvider(contentKey)),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: l10n.failedToLoadVideos,
+          onRetry: () => ref.invalidate(userVideosProvider(contentKey)),
+        ),
         data: (videos) {
           if (videos.isEmpty) {
             return Center(child: Text(l10n.noContentAvailable));
@@ -101,14 +98,12 @@ class _UserVideosBody extends ConsumerWidget {
                   return _VideosHeader(
                     videoCount: videos.length,
                     isMobile: isMobile,
-                    onPlayAll:
-                        canPlay
-                            ? () => _playFromIndex(context, ref, videos, 0)
-                            : null,
-                    onShuffle:
-                        canPlay
-                            ? () => _shufflePlay(context, ref, videos)
-                            : null,
+                    onPlayAll: canPlay
+                        ? () => _playFromIndex(context, ref, videos, 0)
+                        : null,
+                    onShuffle: canPlay
+                        ? () => _shufflePlay(context, ref, videos)
+                        : null,
                   );
                 }
 
@@ -120,10 +115,9 @@ class _UserVideosBody extends ConsumerWidget {
                   artist: displayArtists(video.artists),
                   artists: video.artists,
                   artistId: primaryArtistId(video.artists),
-                  thumbnailUrl:
-                      video.thumbnails.isNotEmpty
-                          ? video.thumbnails.last.url
-                          : null,
+                  thumbnailUrl: video.thumbnails.isNotEmpty
+                      ? video.thumbnails.last.url
+                      : null,
                   duration: video.duration,
                   playCount: video.viewCount,
                   isVideo: true,
@@ -224,9 +218,8 @@ class _VideosHeader extends StatelessWidget {
         children: [
           Text(
             l10n.videoCount(videoCount),
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           if (isMobile)

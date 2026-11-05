@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Shared connectivity helpers.
@@ -21,9 +22,8 @@ class ConnectivityUtils {
           (results.length == 1 && results.contains(ConnectivityResult.none))) {
         return true;
       }
-      final address = await InternetAddress.lookup(
-        'google.com',
-      ).timeout(const Duration(milliseconds: 1500));
+      final address = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(milliseconds: 1500));
       return address.isEmpty || address.first.rawAddress.isEmpty;
     } catch (_) {
       return true; // Fallback: assume offline on error or timeout

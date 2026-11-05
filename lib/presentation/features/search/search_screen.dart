@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/stat_format.dart';
@@ -106,12 +107,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             autofocus: false,
             readOnly: isOffline || asking,
             decoration: InputDecoration(
-              hintText:
-                  isOffline
-                      ? (l10n?.noConnectionMessage ?? l10n?.searchHint)
-                      : askEnabled && modelReady
-                      ? l10n!.askSearchHint
-                      : l10n!.searchHint,
+              hintText: isOffline
+                  ? (l10n?.noConnectionMessage ?? l10n?.searchHint)
+                  : askEnabled && modelReady
+                  ? l10n!.askSearchHint
+                  : l10n!.searchHint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide.none,
@@ -131,21 +131,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 maxWidth: 40,
                 maxHeight: 40,
               ),
-              suffixIcon:
-                  asking
-                      ? const Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                      : query.isNotEmpty
-                      ? IconButton(
-                        icon: const Icon(LucideIcons.x, size: 20),
-                        onPressed: _clearSearch,
-                      )
-                      : null,
+              suffixIcon: asking
+                  ? const Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : query.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(LucideIcons.x, size: 20),
+                      onPressed: _clearSearch,
+                    )
+                  : null,
             ),
             style: Theme.of(context).textTheme.bodyLarge,
             onChanged: isOffline || asking ? null : _onSearchChanged,
@@ -174,13 +173,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     final Widget center;
     if (query.isEmpty && activeQuery.isEmpty) {
-      center =
-          showUtility
-              ? const SearchIdlePrompt()
-              : SearchRecentSearches(
-                onTapSearch: _submitSearch,
-                inFacet: inFacet,
-              );
+      center = showUtility
+          ? const SearchIdlePrompt()
+          : SearchRecentSearches(onTapSearch: _submitSearch, inFacet: inFacet);
     } else if (query.isNotEmpty && query != activeQuery && !showingAskResults) {
       center = _Suggestions(
         query: query,
@@ -262,9 +257,8 @@ class _SearchResults extends ConsumerWidget {
         children: [
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           if (onSeeAll != null)
             TextButton(
@@ -302,60 +296,63 @@ class _SearchResults extends ConsumerWidget {
       title = result.name;
       subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.songs;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
-      onTap =
-          () => ref
-              .read(playerStateProvider.notifier)
-              .playVideoId(
-                result.videoId,
-                isVideo: false,
-                isExplicit: result.isExplicit,
-              );
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
+      onTap = () => ref
+          .read(playerStateProvider.notifier)
+          .playVideoId(
+            result.videoId,
+            isVideo: false,
+            isExplicit: result.isExplicit,
+          );
     } else if (result is VideoDetailed) {
       title = result.name;
       subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.videos;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
-      onTap =
-          () => ref
-              .read(playerStateProvider.notifier)
-              .playVideoId(
-                result.videoId,
-                isVideo: true,
-                isExplicit: result.isExplicit,
-              );
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
+      onTap = () => ref
+          .read(playerStateProvider.notifier)
+          .playVideoId(
+            result.videoId,
+            isVideo: true,
+            isExplicit: result.isExplicit,
+          );
     } else if (result is ArtistDetailed) {
       title = result.name;
-      subtitle =
-          result.monthlyListeners != null
-              ? (stripYtLabel(result.monthlyListeners) ?? '')
-              : '';
+      subtitle = result.monthlyListeners != null
+          ? (stripYtLabel(result.monthlyListeners) ?? '')
+          : '';
       type = AppLocalizations.of(context)!.searchArtists;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
       onTap = () => context.push('/artist/${result.artistId}');
     } else if (result is AlbumDetailed) {
       title = result.name;
       subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.searchAlbums;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
       onTap = () => context.push('/album/${result.albumId}');
     } else if (result is PlaylistDetailed) {
       title = result.name;
       subtitle = displayArtists(result.artists);
       type = AppLocalizations.of(context)!.searchPlaylists;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
       onTap = () => context.push('/playlist/${result.playlistId}');
     } else if (result is PodcastDetailed) {
       title = result.name;
       subtitle = result.author ?? '';
       type = AppLocalizations.of(context)!.podcasts;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
       onTap = () => context.push('/podcast/${result.browseId}');
     } else if (result is EpisodeDetailed) {
       title = result.name;
@@ -364,15 +361,17 @@ class _SearchResults extends ConsumerWidget {
         if (result.date != null) result.date!,
       ].join(' · ');
       type = AppLocalizations.of(context)!.episodes;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
       onTap = () => context.push('/episode/${result.videoId}');
     } else if (result is ProfileDetailed) {
       title = result.name;
       subtitle = result.handle ?? '';
       type = AppLocalizations.of(context)!.profiles;
-      imageUrl =
-          result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null;
+      imageUrl = result.thumbnails.isNotEmpty
+          ? result.thumbnails.last.url
+          : null;
       onTap = () => context.push('/user/${result.browseId}');
     }
 
@@ -390,9 +389,8 @@ class _SearchResults extends ConsumerWidget {
             color: Theme.of(context).colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outlineVariant.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.outlineVariant
+                  .withValues(alpha: 0.3),
             ),
           ),
           child: Row(
@@ -400,8 +398,9 @@ class _SearchResults extends ConsumerWidget {
               ThumbnailWidget(
                 imageUrl: imageUrl,
                 size: 72,
-                shape:
-                    isCircle ? ThumbnailShape.circle : ThumbnailShape.rounded,
+                shape: isCircle
+                    ? ThumbnailShape.circle
+                    : ThumbnailShape.rounded,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -420,10 +419,9 @@ class _SearchResults extends ConsumerWidget {
                       child: Text(
                         type,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color:
-                              Theme.of(
-                                context,
-                              ).colorScheme.onSecondaryContainer,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -505,8 +503,8 @@ class _SearchResults extends ConsumerWidget {
               childAspectRatio: childAspectRatio,
             ),
             itemCount: itemCount,
-            itemBuilder:
-                (context, index) => itemBuilder(context, index, cardWidth),
+            itemBuilder: (context, index) =>
+                itemBuilder(context, index, cardWidth),
           );
         },
       ),
@@ -528,8 +526,9 @@ class _SearchResults extends ConsumerWidget {
           return ArtistCard(
             artistId: a.artistId,
             name: a.name,
-            thumbnailUrl:
-                a.thumbnails.isNotEmpty ? a.thumbnails.last.url : null,
+            thumbnailUrl: a.thumbnails.isNotEmpty
+                ? a.thumbnails.last.url
+                : null,
             monthlyListeners: a.monthlyListeners,
             cardWidth: cardWidth,
           );
@@ -549,8 +548,9 @@ class _SearchResults extends ConsumerWidget {
             child: ArtistCard(
               artistId: a.artistId,
               name: a.name,
-              thumbnailUrl:
-                  a.thumbnails.isNotEmpty ? a.thumbnails.last.url : null,
+              thumbnailUrl: a.thumbnails.isNotEmpty
+                  ? a.thumbnails.last.url
+                  : null,
               monthlyListeners: a.monthlyListeners,
               cardWidth: 100,
             ),
@@ -577,8 +577,9 @@ class _SearchResults extends ConsumerWidget {
             name: al.name,
             artist: displayArtists(al.artists),
             artistId: primaryArtistId(al.artists),
-            thumbnailUrl:
-                al.thumbnails.isNotEmpty ? al.thumbnails.last.url : null,
+            thumbnailUrl: al.thumbnails.isNotEmpty
+                ? al.thumbnails.last.url
+                : null,
             year: al.year,
             cardWidth: cardWidth,
             heroTag: 'search_album_${al.albumId}',
@@ -601,8 +602,9 @@ class _SearchResults extends ConsumerWidget {
               name: al.name,
               artist: displayArtists(al.artists),
               artistId: primaryArtistId(al.artists),
-              thumbnailUrl:
-                  al.thumbnails.isNotEmpty ? al.thumbnails.last.url : null,
+              thumbnailUrl: al.thumbnails.isNotEmpty
+                  ? al.thumbnails.last.url
+                  : null,
               year: al.year,
               cardWidth: 120,
               heroTag: 'search_album_${al.albumId}',
@@ -629,8 +631,9 @@ class _SearchResults extends ConsumerWidget {
             playlistId: pl.playlistId,
             name: pl.name,
             artist: displayArtists(pl.artists),
-            thumbnailUrl:
-                pl.thumbnails.isNotEmpty ? pl.thumbnails.last.url : null,
+            thumbnailUrl: pl.thumbnails.isNotEmpty
+                ? pl.thumbnails.last.url
+                : null,
             cardWidth: cardWidth,
             heroTag: 'search_playlist_${pl.playlistId}',
           );
@@ -651,8 +654,9 @@ class _SearchResults extends ConsumerWidget {
               playlistId: pl.playlistId,
               name: pl.name,
               artist: displayArtists(pl.artists),
-              thumbnailUrl:
-                  pl.thumbnails.isNotEmpty ? pl.thumbnails.last.url : null,
+              thumbnailUrl: pl.thumbnails.isNotEmpty
+                  ? pl.thumbnails.last.url
+                  : null,
               cardWidth: 120,
               heroTag: 'search_playlist_${pl.playlistId}',
             ),
@@ -670,17 +674,15 @@ class _SearchResults extends ConsumerWidget {
     required bool denseAllSections,
   }) {
     return resultsAsync.when(
-      loading:
-          () => ListView.builder(
-            itemCount: 6,
-            itemBuilder:
-                (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
-          ),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: AppLocalizations.of(context)!.searchFailed,
-            onRetry: () => ref.invalidate(searchResultsProvider),
-          ),
+      loading: () => ListView.builder(
+        itemCount: 6,
+        itemBuilder: (_, _) =>
+            const ShimmerLoading(variant: ShimmerVariant.tile),
+      ),
+      error: (e, _) => ErrorRetryWidget(
+        message: AppLocalizations.of(context)!.searchFailed,
+        onRetry: () => ref.invalidate(searchResultsProvider),
+      ),
       data: (results) {
         if (results.isEmpty) {
           return EmptyStateWidget(
@@ -697,9 +699,8 @@ class _SearchResults extends ConsumerWidget {
               bottom: MediaQuery.of(context).padding.bottom + 16,
             ),
             itemCount: results.length,
-            itemBuilder:
-                (context, index) =>
-                    _buildResultItem(context, ref, results[index]),
+            itemBuilder: (context, index) =>
+                _buildResultItem(context, ref, results[index]),
           );
         }
 
@@ -727,8 +728,8 @@ class _SearchResults extends ConsumerWidget {
               _buildSectionHeader(
                 context,
                 title: AppLocalizations.of(context)!.songs,
-                onSeeAll:
-                    () => ref.read(searchFilterProvider.notifier).update(1),
+                onSeeAll: () =>
+                    ref.read(searchFilterProvider.notifier).update(1),
               ),
               ...songs.take(4).map((s) => _buildResultItem(context, ref, s)),
             ],
@@ -745,8 +746,8 @@ class _SearchResults extends ConsumerWidget {
               _buildSectionHeader(
                 context,
                 title: AppLocalizations.of(context)!.searchArtists,
-                onSeeAll:
-                    () => ref.read(searchFilterProvider.notifier).update(2),
+                onSeeAll: () =>
+                    ref.read(searchFilterProvider.notifier).update(2),
               ),
               _buildArtistsShelf(context, artists, dense: denseAllSections),
             ],
@@ -755,8 +756,8 @@ class _SearchResults extends ConsumerWidget {
               _buildSectionHeader(
                 context,
                 title: AppLocalizations.of(context)!.searchAlbums,
-                onSeeAll:
-                    () => ref.read(searchFilterProvider.notifier).update(3),
+                onSeeAll: () =>
+                    ref.read(searchFilterProvider.notifier).update(3),
               ),
               _buildAlbumsShelf(context, albums, dense: denseAllSections),
             ],
@@ -765,8 +766,8 @@ class _SearchResults extends ConsumerWidget {
               _buildSectionHeader(
                 context,
                 title: AppLocalizations.of(context)!.searchPlaylists,
-                onSeeAll:
-                    () => ref.read(searchFilterProvider.notifier).update(4),
+                onSeeAll: () =>
+                    ref.read(searchFilterProvider.notifier).update(4),
               ),
               _buildPlaylistsShelf(context, playlists, dense: denseAllSections),
             ],
@@ -775,8 +776,8 @@ class _SearchResults extends ConsumerWidget {
               _buildSectionHeader(
                 context,
                 title: AppLocalizations.of(context)!.podcasts,
-                onSeeAll:
-                    () => ref.read(searchFilterProvider.notifier).update(5),
+                onSeeAll: () =>
+                    ref.read(searchFilterProvider.notifier).update(5),
               ),
               ...podcasts.take(4).map((p) => _buildResultItem(context, ref, p)),
             ],
@@ -785,8 +786,8 @@ class _SearchResults extends ConsumerWidget {
               _buildSectionHeader(
                 context,
                 title: AppLocalizations.of(context)!.episodes,
-                onSeeAll:
-                    () => ref.read(searchFilterProvider.notifier).update(6),
+                onSeeAll: () =>
+                    ref.read(searchFilterProvider.notifier).update(6),
               ),
               ...episodes.take(4).map((e) => _buildResultItem(context, ref, e)),
             ],
@@ -795,8 +796,8 @@ class _SearchResults extends ConsumerWidget {
               _buildSectionHeader(
                 context,
                 title: AppLocalizations.of(context)!.profiles,
-                onSeeAll:
-                    () => ref.read(searchFilterProvider.notifier).update(7),
+                onSeeAll: () =>
+                    ref.read(searchFilterProvider.notifier).update(7),
               ),
               ...profiles.take(4).map((p) => _buildResultItem(context, ref, p)),
             ],
@@ -811,15 +812,13 @@ class _SearchResults extends ConsumerWidget {
     final filter = ref.watch(searchFilterProvider);
     final resultsAsync = ref.watch(searchResultsProvider);
     final l10n = AppLocalizations.of(context)!;
-    final askBanner =
-        showAskBanner
-            ? SearchAskBanner(
-              padding:
-                  inFacet
-                      ? const EdgeInsets.fromLTRB(0, 12, 0, 4)
-                      : const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            )
-            : const SizedBox.shrink();
+    final askBanner = showAskBanner
+        ? SearchAskBanner(
+            padding: inFacet
+                ? const EdgeInsets.fromLTRB(0, 12, 0, 4)
+                : const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          )
+        : const SizedBox.shrink();
     final resultsContent = _buildResultsContent(
       context,
       ref,
@@ -831,7 +830,10 @@ class _SearchResults extends ConsumerWidget {
     if (inFacet) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [askBanner, Expanded(child: resultsContent)],
+        children: [
+          askBanner,
+          Expanded(child: resultsContent),
+        ],
       );
     }
 
@@ -840,8 +842,8 @@ class _SearchResults extends ConsumerWidget {
         FilterChipBar(
           options: searchFilterLabels(l10n),
           selectedIndex: filter,
-          onSelected:
-              (index) => ref.read(searchFilterProvider.notifier).update(index),
+          onSelected: (index) =>
+              ref.read(searchFilterProvider.notifier).update(index),
         ),
         askBanner,
         Expanded(child: resultsContent),
@@ -860,8 +862,9 @@ class _SearchResults extends ConsumerWidget {
         title: result.name,
         artist: displayArtists(result.artists),
         artists: result.artists,
-        thumbnailUrl:
-            result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        thumbnailUrl: result.thumbnails.isNotEmpty
+            ? result.thumbnails.last.url
+            : null,
         duration: result.duration,
         albumName: result.album?.name,
         albumId: result.album?.albumId,
@@ -877,8 +880,9 @@ class _SearchResults extends ConsumerWidget {
         title: result.name,
         artist: displayArtists(result.artists),
         artists: result.artists,
-        thumbnailUrl:
-            result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        thumbnailUrl: result.thumbnails.isNotEmpty
+            ? result.thumbnails.last.url
+            : null,
         duration: result.duration,
         isVideo: true,
         playCount: result.viewCount,
@@ -891,8 +895,9 @@ class _SearchResults extends ConsumerWidget {
       return ArtistTile(
         artistId: result.artistId,
         name: result.name,
-        thumbnailUrl:
-            result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        thumbnailUrl: result.thumbnails.isNotEmpty
+            ? result.thumbnails.last.url
+            : null,
         monthlyListeners: result.monthlyListeners,
       );
     }
@@ -902,8 +907,9 @@ class _SearchResults extends ConsumerWidget {
         name: result.name,
         artist: displayArtists(result.artists),
         artistId: primaryArtistId(result.artists),
-        thumbnailUrl:
-            result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        thumbnailUrl: result.thumbnails.isNotEmpty
+            ? result.thumbnails.last.url
+            : null,
         year: result.year,
       );
     }
@@ -912,15 +918,17 @@ class _SearchResults extends ConsumerWidget {
         playlistId: result.playlistId,
         name: result.name,
         artist: displayArtists(result.artists),
-        thumbnailUrl:
-            result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        thumbnailUrl: result.thumbnails.isNotEmpty
+            ? result.thumbnails.last.url
+            : null,
       );
     }
     if (result is PodcastDetailed) {
       return ListTile(
         leading: ThumbnailWidget(
-          imageUrl:
-              result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+          imageUrl: result.thumbnails.isNotEmpty
+              ? result.thumbnails.last.url
+              : null,
           size: 48,
           shape: ThumbnailShape.rounded,
         ),
@@ -942,8 +950,9 @@ class _SearchResults extends ConsumerWidget {
         videoId: result.videoId,
         title: result.name,
         artist: result.podcastName ?? AppLocalizations.of(context)!.episodes,
-        thumbnailUrl:
-            result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+        thumbnailUrl: result.thumbnails.isNotEmpty
+            ? result.thumbnails.last.url
+            : null,
         playCount: result.date,
         isVideo: false,
         onTap: () => context.push('/episode/${result.videoId}'),
@@ -952,8 +961,9 @@ class _SearchResults extends ConsumerWidget {
     if (result is ProfileDetailed) {
       return ListTile(
         leading: ThumbnailWidget(
-          imageUrl:
-              result.thumbnails.isNotEmpty ? result.thumbnails.last.url : null,
+          imageUrl: result.thumbnails.isNotEmpty
+              ? result.thumbnails.last.url
+              : null,
           size: 48,
           shape: ThumbnailShape.circle,
         ),

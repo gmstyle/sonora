@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+
 import '../database.dart';
 
 class HistoryDao extends DatabaseAccessor<AppDatabase> {

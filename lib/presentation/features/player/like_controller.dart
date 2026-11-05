@@ -13,11 +13,7 @@ class LikeController {
   bool _isCurrentSongLiked = false;
   String? _currentVideoId;
 
-  LikeController({
-    required LibraryRepository libraryRepo,
-    required void Function() onLikeChanged,
-  }) : _libraryRepo = libraryRepo,
-       _onLikeChanged = onLikeChanged;
+  LikeController({required this._libraryRepo, required this._onLikeChanged});
 
   bool get isCurrentSongLiked => _isCurrentSongLiked;
 

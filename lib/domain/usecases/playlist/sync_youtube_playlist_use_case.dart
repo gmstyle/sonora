@@ -60,8 +60,9 @@ class SyncYoutubePlaylistUseCase {
     for (var i = 0; i < playable.length; i++) {
       final video = playable[i];
       final artistName = displayArtists(video.artists);
-      final thumbUrl =
-          video.thumbnails.isNotEmpty ? video.thumbnails.last.url : null;
+      final thumbUrl = video.thumbnails.isNotEmpty
+          ? video.thumbnails.last.url
+          : null;
 
       await _libraryRepository.addEntry(
         localPlaylistId,

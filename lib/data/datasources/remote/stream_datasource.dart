@@ -266,13 +266,12 @@ class StreamDatasource {
       await cache.downloadAudioToCache(
         videoId: videoId,
         extension: stream.container.name,
-        write:
-            (tempPath, token) => downloadStreamToFile(
-              stream,
-              tempPath,
-              cancelToken: token,
-              onProgress: (_, _) {},
-            ),
+        write: (tempPath, token) => downloadStreamToFile(
+          stream,
+          tempPath,
+          cancelToken: token,
+          onProgress: (_, _) {},
+        ),
       );
     } catch (e) {
       if (e is RequestLimitExceededException) {

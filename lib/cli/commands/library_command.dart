@@ -149,17 +149,16 @@ class LibraryCommand {
     final data = {
       'command': 'library',
       'type': 'songs',
-      'results':
-          items
-              .map(
-                (s) => {
-                  'videoId': s.videoId,
-                  'title': s.title,
-                  'artist': s.artist,
-                  'addedAt': s.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (s) => {
+              'videoId': s.videoId,
+              'title': s.title,
+              'artist': s.artist,
+              'addedAt': s.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Liked Songs:');
@@ -174,18 +173,17 @@ class LibraryCommand {
     final data = {
       'command': 'library',
       'type': 'albums',
-      'results':
-          items
-              .map(
-                (a) => {
-                  'albumId': a.albumId,
-                  'title': a.name,
-                  'artist': a.artistName,
-                  'year': a.year,
-                  'addedAt': a.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (a) => {
+              'albumId': a.albumId,
+              'title': a.name,
+              'artist': a.artistName,
+              'year': a.year,
+              'addedAt': a.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Liked Albums:');
@@ -202,16 +200,15 @@ class LibraryCommand {
     final data = {
       'command': 'library',
       'type': 'artists',
-      'results':
-          items
-              .map(
-                (a) => {
-                  'artistId': a.artistId,
-                  'name': a.name,
-                  'addedAt': a.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (a) => {
+              'artistId': a.artistId,
+              'name': a.name,
+              'addedAt': a.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Followed Artists:');
@@ -226,17 +223,16 @@ class LibraryCommand {
     final data = {
       'command': 'library',
       'type': 'playlists',
-      'results':
-          items
-              .map(
-                (p) => {
-                  'playlistId': p.playlistId,
-                  'title': p.name,
-                  'videoCount': p.videoCount,
-                  'addedAt': p.addedAt.toIso8601String(),
-                },
-              )
-              .toList(),
+      'results': items
+          .map(
+            (p) => {
+              'playlistId': p.playlistId,
+              'title': p.name,
+              'videoCount': p.videoCount,
+              'addedAt': p.addedAt.toIso8601String(),
+            },
+          )
+          .toList(),
     };
     if (_json) return CliOutput('', data: data);
     final buf = StringBuffer()..writeln('Liked Playlists:');

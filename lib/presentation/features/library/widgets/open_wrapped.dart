@@ -113,9 +113,8 @@ class _WrappedPreparingGateState extends ConsumerState<_WrappedPreparingGate> {
               Text(
                 l10n.wrappedPreparingBody,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 32),
               if (generating) const CircularProgressIndicator(),

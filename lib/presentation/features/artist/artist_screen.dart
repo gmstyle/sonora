@@ -1,10 +1,12 @@
 import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
@@ -69,13 +71,12 @@ class _ArtistMobileLayout extends ConsumerWidget {
 
     return artistAsync.when(
       loading: () => const Scaffold(body: _ArtistShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadArtist,
-              onRetry: () => ref.invalidate(artistProvider(artistId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadArtist,
+          onRetry: () => ref.invalidate(artistProvider(artistId)),
+        ),
+      ),
       data: (artist) => _ArtistContent(artist: artist, heroTag: heroTag),
     );
   }
@@ -93,16 +94,14 @@ class _ArtistTabletLayout extends ConsumerWidget {
 
     return artistAsync.when(
       loading: () => const Scaffold(body: _ArtistShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadArtist,
-              onRetry: () => ref.invalidate(artistProvider(artistId)),
-            ),
-          ),
-      data:
-          (artist) =>
-              _ArtistContent(artist: artist, isTablet: true, heroTag: heroTag),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadArtist,
+          onRetry: () => ref.invalidate(artistProvider(artistId)),
+        ),
+      ),
+      data: (artist) =>
+          _ArtistContent(artist: artist, isTablet: true, heroTag: heroTag),
     );
   }
 }
@@ -119,16 +118,14 @@ class _ArtistWideLayout extends ConsumerWidget {
 
     return artistAsync.when(
       loading: () => const Scaffold(body: _ArtistShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadArtist,
-              onRetry: () => ref.invalidate(artistProvider(artistId)),
-            ),
-          ),
-      data:
-          (artist) =>
-              _ArtistContent(artist: artist, isWide: true, heroTag: heroTag),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadArtist,
+          onRetry: () => ref.invalidate(artistProvider(artistId)),
+        ),
+      ),
+      data: (artist) =>
+          _ArtistContent(artist: artist, isWide: true, heroTag: heroTag),
     );
   }
 }
@@ -185,8 +182,9 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 340.0;
+    final double expandedHeight = widget.isTablet || widget.isWide
+        ? 360.0
+        : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -239,17 +237,15 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                         constraints.maxWidth,
                         hasRelated: hasRelatedBlock,
                       );
-                  final about =
-                      description != null && description.isNotEmpty
-                          ? ExpandableText(text: description)
-                          : null;
-                  final topSongs =
-                      artist.topSongs.isEmpty
-                          ? null
-                          : _ArtistTopSongsSection(
-                            songs: artist.topSongs,
-                            artistId: artist.artistId,
-                          );
+                  final about = description != null && description.isNotEmpty
+                      ? ExpandableText(text: description)
+                      : null;
+                  final topSongs = artist.topSongs.isEmpty
+                      ? null
+                      : _ArtistTopSongsSection(
+                          songs: artist.topSongs,
+                          artistId: artist.artistId,
+                        );
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -260,13 +256,9 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                           wide: true,
                           about: about,
                           list: topSongs ?? const SizedBox.shrink(),
-                          relatedRail:
-                              rail
-                                  ? _artistRelatedRail(
-                                    artist,
-                                    uniqueSimilarArtists,
-                                  )
-                                  : null,
+                          relatedRail: rail
+                              ? _artistRelatedRail(artist, uniqueSimilarArtists)
+                              : null,
                         ),
                       ] else ...[
                         if (about != null) ...[
@@ -274,7 +266,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                           about,
                         ],
                         const SizedBox(height: 24),
-                        if (topSongs != null) topSongs,
+                        ?topSongs,
                       ],
                       if (artist.topAlbums.isNotEmpty) ...[
                         _SectionHeader(
@@ -297,18 +289,17 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               scrollDirection: Axis.horizontal,
                               padding: const EdgeInsets.only(right: 16),
                               itemCount: artist.topAlbums.length,
-                              separatorBuilder:
-                                  (_, _) => const SizedBox(width: 12),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
                               itemBuilder: (context, index) {
                                 final album = artist.topAlbums[index];
                                 return ReleaseCard(
                                   albumId: album.albumId,
                                   name: album.name,
                                   artist: displayArtists(album.artists),
-                                  thumbnailUrl:
-                                      album.thumbnails.isNotEmpty
-                                          ? album.thumbnails.last.url
-                                          : null,
+                                  thumbnailUrl: album.thumbnails.isNotEmpty
+                                      ? album.thumbnails.last.url
+                                      : null,
                                   year: album.year,
                                   artistId: primaryArtistId(album.artists),
                                   type: ReleaseType.album,
@@ -341,18 +332,17 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               scrollDirection: Axis.horizontal,
                               padding: const EdgeInsets.only(right: 16),
                               itemCount: artist.topSingles.length,
-                              separatorBuilder:
-                                  (_, _) => const SizedBox(width: 12),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
                               itemBuilder: (context, index) {
                                 final single = artist.topSingles[index];
                                 return ReleaseCard(
                                   albumId: single.albumId,
                                   name: single.name,
                                   artist: displayArtists(single.artists),
-                                  thumbnailUrl:
-                                      single.thumbnails.isNotEmpty
-                                          ? single.thumbnails.last.url
-                                          : null,
+                                  thumbnailUrl: single.thumbnails.isNotEmpty
+                                      ? single.thumbnails.last.url
+                                      : null,
                                   year: single.year,
                                   artistId: primaryArtistId(single.artists),
                                   type: ReleaseType.single,
@@ -385,8 +375,8 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               scrollDirection: Axis.horizontal,
                               padding: const EdgeInsets.only(right: 16),
                               itemCount: artist.topVideos.length,
-                              separatorBuilder:
-                                  (_, _) => const SizedBox(width: 12),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
                               itemBuilder: (context, index) {
                                 final video = artist.topVideos[index];
                                 return VideoCard(
@@ -394,10 +384,9 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                                   title: video.name,
                                   artist: displayArtists(video.artists),
                                   artists: video.artists,
-                                  thumbnailUrl:
-                                      video.thumbnails.isNotEmpty
-                                          ? video.thumbnails.last.url
-                                          : null,
+                                  thumbnailUrl: video.thumbnails.isNotEmpty
+                                      ? video.thumbnails.last.url
+                                      : null,
                                   artistId: primaryArtistId(video.artists),
                                   isExplicit: video.isExplicit,
                                   isPlayable: video.isPlayable,
@@ -423,18 +412,17 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               scrollDirection: Axis.horizontal,
                               padding: const EdgeInsets.only(right: 16),
                               itemCount: artist.featuredOn.length,
-                              separatorBuilder:
-                                  (_, _) => const SizedBox(width: 12),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
                               itemBuilder: (context, index) {
                                 final playlist = artist.featuredOn[index];
                                 return PlaylistCard(
                                   playlistId: playlist.playlistId,
                                   name: playlist.name,
                                   artist: displayArtists(playlist.artists),
-                                  thumbnailUrl:
-                                      playlist.thumbnails.isNotEmpty
-                                          ? playlist.thumbnails.last.url
-                                          : null,
+                                  thumbnailUrl: playlist.thumbnails.isNotEmpty
+                                      ? playlist.thumbnails.last.url
+                                      : null,
                                   heroTag:
                                       'artist_featured_playlist_${playlist.playlistId}',
                                 );
@@ -459,17 +447,16 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                               scrollDirection: Axis.horizontal,
                               padding: const EdgeInsets.only(right: 16),
                               itemCount: uniqueSimilarArtists.length,
-                              separatorBuilder:
-                                  (_, _) => const SizedBox(width: 12),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 12),
                               itemBuilder: (context, index) {
                                 final similar = uniqueSimilarArtists[index];
                                 return ArtistCard(
                                   artistId: similar.artistId,
                                   name: similar.name,
-                                  thumbnailUrl:
-                                      similar.thumbnails.isNotEmpty
-                                          ? similar.thumbnails.last.url
-                                          : null,
+                                  thumbnailUrl: similar.thumbnails.isNotEmpty
+                                      ? similar.thumbnails.last.url
+                                      : null,
                                   monthlyListeners: similar.monthlyListeners,
                                   heroTag:
                                       'similar_artists_${similar.artistId}_on_${artist.artistId}',
@@ -516,10 +503,9 @@ class _ArtistRelatedRail extends StatelessWidget {
               playlistId: playlist.playlistId,
               name: playlist.name,
               artist: displayArtists(playlist.artists),
-              thumbnailUrl:
-                  playlist.thumbnails.isNotEmpty
-                      ? playlist.thumbnails.last.url
-                      : null,
+              thumbnailUrl: playlist.thumbnails.isNotEmpty
+                  ? playlist.thumbnails.last.url
+                  : null,
             ),
           if (similar.isNotEmpty) const SizedBox(height: 24),
         ],
@@ -529,8 +515,9 @@ class _ArtistRelatedRail extends StatelessWidget {
             ArtistTile(
               artistId: item.artistId,
               name: item.name,
-              thumbnailUrl:
-                  item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
+              thumbnailUrl: item.thumbnails.isNotEmpty
+                  ? item.thumbnails.last.url
+                  : null,
               monthlyListeners: item.monthlyListeners,
             ),
         ],
@@ -558,10 +545,9 @@ class _ArtistTopSongsSectionState
 
   @override
   Widget build(BuildContext context) {
-    final displaySongs =
-        _expanded && _allSongs != null
-            ? _allSongs!.take(10).toList()
-            : widget.songs.take(5).toList();
+    final displaySongs = _expanded && _allSongs != null
+        ? _allSongs!.take(10).toList()
+        : widget.songs.take(5).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,10 +561,9 @@ class _ArtistTopSongsSectionState
             title: entry.value.name,
             artist: displayArtists(entry.value.artists),
             artists: entry.value.artists,
-            thumbnailUrl:
-                entry.value.thumbnails.isNotEmpty
-                    ? entry.value.thumbnails.last.url
-                    : null,
+            thumbnailUrl: entry.value.thumbnails.isNotEmpty
+                ? entry.value.thumbnails.last.url
+                : null,
             duration: entry.value.duration,
             isVideo: entry.value.type == 'VIDEO',
             albumName: entry.value.album?.name,
@@ -597,24 +582,23 @@ class _ArtistTopSongsSectionState
         if (!_loading)
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            child:
-                _expanded
-                    ? TextButton.icon(
-                      onPressed: () => setState(() => _expanded = false),
-                      icon: const Icon(LucideIcons.chevronUp),
-                      label: Text(AppLocalizations.of(context)!.showLess),
-                    )
-                    : TextButton.icon(
-                      onPressed: () {
-                        if (_allSongs != null) {
-                          setState(() => _expanded = true);
-                        } else {
-                          _fetchAllSongs();
-                        }
-                      },
-                      icon: const Icon(LucideIcons.chevronDown),
-                      label: Text(AppLocalizations.of(context)!.showMore),
-                    ),
+            child: _expanded
+                ? TextButton.icon(
+                    onPressed: () => setState(() => _expanded = false),
+                    icon: const Icon(LucideIcons.chevronUp),
+                    label: Text(AppLocalizations.of(context)!.showLess),
+                  )
+                : TextButton.icon(
+                    onPressed: () {
+                      if (_allSongs != null) {
+                        setState(() => _expanded = true);
+                      } else {
+                        _fetchAllSongs();
+                      }
+                    },
+                    icon: const Icon(LucideIcons.chevronDown),
+                    label: Text(AppLocalizations.of(context)!.showMore),
+                  ),
           ),
         const SizedBox(height: 24),
       ],
@@ -671,8 +655,9 @@ class _ArtistSliverAppBar extends StatelessWidget {
       scrollProgress,
     );
 
-    final thumbnailUrl =
-        artist.thumbnails.isNotEmpty ? artist.thumbnails.last.url : null;
+    final thumbnailUrl = artist.thumbnails.isNotEmpty
+        ? artist.thumbnails.last.url
+        : null;
 
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 340,
@@ -774,16 +759,14 @@ class _ArtistSliverAppBar extends StatelessWidget {
                           child: CachedNetworkImage(
                             imageUrl: thumbnailUrl,
                             fit: BoxFit.cover,
-                            errorWidget:
-                                (_, _, _) => Container(
-                                  color:
-                                      theme.colorScheme.surfaceContainerHighest,
-                                  child: Icon(
-                                    LucideIcons.user,
-                                    size: 60,
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
+                            errorWidget: (_, _, _) => Container(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              child: Icon(
+                                LucideIcons.user,
+                                size: 60,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -910,11 +893,9 @@ class _ArtistSliverAppBar extends StatelessWidget {
                         child: CachedNetworkImage(
                           imageUrl: thumbnailUrl,
                           fit: BoxFit.cover,
-                          errorWidget:
-                              (_, _, _) => Container(
-                                color:
-                                    theme.colorScheme.surfaceContainerHighest,
-                              ),
+                          errorWidget: (_, _, _) => Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                          ),
                         ),
                       ),
                     ),
@@ -960,13 +941,14 @@ class _ArtistSliverAppBar extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         artist.name,
-                        style: (isWide
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.titlePrimary,
-                            ),
+                        style:
+                            (isWide
+                                    ? theme.textTheme.headlineLarge
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.titlePrimary,
+                                ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1032,9 +1014,8 @@ class _ArtistActions extends ConsumerWidget {
         icon: LucideIcons.userPlus,
         label: l10n.follow,
         tooltip: l10n.follow,
-        buildControl:
-            (context, compact) =>
-                _FollowButton(artist: artist, iconOnly: compact),
+        buildControl: (context, compact) =>
+            _FollowButton(artist: artist, iconOnly: compact),
       ),
     ]);
 
@@ -1050,8 +1031,9 @@ class _ArtistActions extends ConsumerWidget {
           context,
           artistId: artist.artistId,
           name: artist.name,
-          thumbnailUrl:
-              artist.thumbnails.isNotEmpty ? artist.thumbnails.last.url : null,
+          thumbnailUrl: artist.thumbnails.isNotEmpty
+              ? artist.thumbnails.last.url
+              : null,
           monthlyListeners: artist.monthlyListeners,
           omitActionIds: {
             DetailActionId.play,
@@ -1132,8 +1114,9 @@ class _ArtistActions extends ConsumerWidget {
 
     try {
       if (artist.shuffleId != null && artist.shuffleId!.isNotEmpty) {
-        final seed =
-            artist.topSongs.isNotEmpty ? artist.topSongs.first.videoId : '';
+        final seed = artist.topSongs.isNotEmpty
+            ? artist.topSongs.first.videoId
+            : '';
         final result = await useCase.execute(
           seed,
           playlistId: artist.shuffleId,
@@ -1188,17 +1171,16 @@ class _FollowButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final followedAsync = ref.watch(followedArtistProvider(artist.artistId));
     return followedAsync.when(
-      loading:
-          () => DetailAffinityButton(
-            iconOnly: iconOnly,
-            isActive: false,
-            enabled: false,
-            idleIcon: LucideIcons.userPlus,
-            activeIcon: LucideIcons.userCheck,
-            idleLabel: l10n.follow,
-            activeLabel: l10n.following,
-            onPressed: null,
-          ),
+      loading: () => DetailAffinityButton(
+        iconOnly: iconOnly,
+        isActive: false,
+        enabled: false,
+        idleIcon: LucideIcons.userPlus,
+        activeIcon: LucideIcons.userCheck,
+        idleLabel: l10n.follow,
+        activeLabel: l10n.following,
+        onPressed: null,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (followed) {
         final isFollowing = followed != null;
@@ -1217,10 +1199,9 @@ class _FollowButton extends ConsumerWidget {
                   FollowedArtistModel(
                     artistId: artist.artistId,
                     name: artist.name,
-                    thumbnailUrl:
-                        artist.thumbnails.isNotEmpty
-                            ? artist.thumbnails.last.url
-                            : null,
+                    thumbnailUrl: artist.thumbnails.isNotEmpty
+                        ? artist.thumbnails.last.url
+                        : null,
                     addedAt: DateTime.now(),
                   ),
                 );
@@ -1248,9 +1229,8 @@ class _SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           if (onShowAll != null)

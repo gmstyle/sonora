@@ -6,16 +6,12 @@ import 'gemini_llm_repository_impl.dart';
 /// Resolves On-device vs Cloud Ask and delegates [complete].
 class RoutingLlmRepository implements LlmCompletionRepository {
   RoutingLlmRepository({
-    required OnDeviceLlmRepository onDevice,
-    required GeminiLlmRepositoryImpl cloud,
-    required AskMode Function() mode,
-    required String? Function() apiKey,
-    required bool Function() isOffline,
-  }) : _onDevice = onDevice,
-       _cloud = cloud,
-       _mode = mode,
-       _apiKey = apiKey,
-       _isOffline = isOffline;
+    required this._onDevice,
+    required this._cloud,
+    required this._mode,
+    required this._apiKey,
+    required this._isOffline,
+  });
 
   final OnDeviceLlmRepository _onDevice;
   final GeminiLlmRepositoryImpl _cloud;

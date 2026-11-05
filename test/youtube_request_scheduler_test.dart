@@ -23,8 +23,9 @@ void main() {
       for (var i = 0; i < 5; i++)
         scheduler.schedule(() async {
           inFlight++;
-          maxObservedInFlight =
-              inFlight > maxObservedInFlight ? inFlight : maxObservedInFlight;
+          maxObservedInFlight = inFlight > maxObservedInFlight
+              ? inFlight
+              : maxObservedInFlight;
           await completers[i].future;
           inFlight--;
           return i;

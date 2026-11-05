@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import '../../../data/services/media_cache_service.dart';
 
 import 'package:audio_service/audio_service.dart';
+
 import '../../../core/utils/connectivity_utils.dart';
 import '../../models/queue_track.dart';
 import '../../repositories/library_repository.dart';
@@ -58,9 +60,9 @@ class PlayVideoIdUseCase {
             artistsJson: download.artistsJson,
             artUri:
                 download.thumbnailUrl != null &&
-                        download.thumbnailUrl!.isNotEmpty
-                    ? Uri.parse(download.thumbnailUrl!)
-                    : null,
+                    download.thumbnailUrl!.isNotEmpty
+                ? Uri.parse(download.thumbnailUrl!)
+                : null,
           ).toFreshMediaItem();
         }
       } catch (_) {}
@@ -111,8 +113,9 @@ class PlayVideoIdUseCase {
       title = video.name;
       artist = displayArtists(video.artists);
       durationSec = video.duration;
-      thumbnailUrl =
-          video.thumbnails.isNotEmpty ? video.thumbnails.last.url : '';
+      thumbnailUrl = video.thumbnails.isNotEmpty
+          ? video.thumbnails.last.url
+          : '';
       isVideo = true;
       viewCount = video.viewCount;
       publishDate = video.publishDate;

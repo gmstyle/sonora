@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
+
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
@@ -53,124 +54,116 @@ class SongCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final statLabel =
-        playCount != null && playCount!.isNotEmpty
-            ? stripYtLabel(playCount)
-            : null;
+    final statLabel = playCount != null && playCount!.isNotEmpty
+        ? stripYtLabel(playCount)
+        : null;
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
 
     final card = ScaleButton(
-      onTap:
-          !isPlayable
-              ? () {
-                final l10n = AppLocalizations.of(context);
-                if (l10n != null) {
-                  ref
-                      .read(actionFeedbackProvider.notifier)
-                      .report(
-                        l10n.trackUnplayable(title),
-                        kind: FeedbackKind.error,
-                      );
-                }
+      onTap: !isPlayable
+          ? () {
+              final l10n = AppLocalizations.of(context);
+              if (l10n != null) {
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(
+                      l10n.trackUnplayable(title),
+                      kind: FeedbackKind.error,
+                    );
               }
-              : () => ref
-                  .read(playerStateProvider.notifier)
-                  .playVideoId(
-                    videoId,
-                    isVideo: isVideo,
-                    isExplicit: isExplicit,
-                  ),
-      onLongPress:
-          () => ContextMenuSheet.showForSong(
-            context,
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            duration: duration,
-            isVideo: isVideo,
-            artistId: artistId,
-            albumId: albumId,
-            artists: artists,
-            artistsJson: artistsJson,
-            playCount: playCount,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
+            }
+          : () => ref
+                .read(playerStateProvider.notifier)
+                .playVideoId(videoId, isVideo: isVideo, isExplicit: isExplicit),
+      onLongPress: () => ContextMenuSheet.showForSong(
+        context,
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        duration: duration,
+        isVideo: isVideo,
+        artistId: artistId,
+        albumId: albumId,
+        artists: artists,
+        artistsJson: artistsJson,
+        playCount: playCount,
+        isExplicit: isExplicit,
+        isPlayable: isPlayable,
+      ),
       child: ShelfCardLayout(
         cardWidth: cardWidth,
-        coverBuilder:
-            (size) => Stack(
-              children: [
-                ThumbnailWidget(
-                  imageUrl: thumbnailUrl,
-                  size: size,
-                  shape: ThumbnailShape.rounded,
-                  borderRadius: 24,
-                ),
-                if (duration != null)
-                  Positioned(
-                    bottom: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.scrim.withValues(alpha: 0.72),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        Duration(seconds: duration!).format(),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: SonoraPulseTokens.onBrandGraphic,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ),
-                if (isDownloaded)
-                  Positioned(
-                    bottom: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        LucideIcons.checkCircle,
-                        size: 12,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ),
-                if (isVideo)
-                  Positioned(
-                    bottom: 6,
-                    left: isDownloaded ? 28 : 6,
-                    child: const VideoBadge(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      borderRadius: 4,
-                    ),
-                  ),
-                if (!isPlayable)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Icon(
-                      LucideIcons.ban,
-                      size: 16,
-                      color: SonoraPulseTokens.onBrandGraphic.withValues(
-                        alpha: 0.9,
-                      ),
-                    ),
-                  ),
-              ],
+        coverBuilder: (size) => Stack(
+          children: [
+            ThumbnailWidget(
+              imageUrl: thumbnailUrl,
+              size: size,
+              shape: ThumbnailShape.rounded,
+              borderRadius: 24,
             ),
+            if (duration != null)
+              Positioned(
+                bottom: 6,
+                right: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.scrim.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    Duration(seconds: duration!).format(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: SonoraPulseTokens.onBrandGraphic,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+            if (isDownloaded)
+              Positioned(
+                bottom: 6,
+                left: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    LucideIcons.checkCircle,
+                    size: 12,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            if (isVideo)
+              Positioned(
+                bottom: 6,
+                left: isDownloaded ? 28 : 6,
+                child: const VideoBadge(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  borderRadius: 4,
+                ),
+              ),
+            if (!isPlayable)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Icon(
+                  LucideIcons.ban,
+                  size: 16,
+                  color: SonoraPulseTokens.onBrandGraphic.withValues(
+                    alpha: 0.9,
+                  ),
+                ),
+              ),
+          ],
+        ),
         textBlock: [
           const SizedBox(height: 6),
           Text.rich(
@@ -195,7 +188,7 @@ class SongCard extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            [artist, if (statLabel != null) statLabel].join(' · '),
+            [artist, ?statLabel].join(' · '),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             style: theme.textTheme.bodySmall?.copyWith(

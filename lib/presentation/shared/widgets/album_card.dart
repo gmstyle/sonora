@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../features/album/providers/album_provider.dart';
 import '../../providers/player_provider.dart';
@@ -72,46 +73,43 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
             () => context.push(
               '/album/${widget.albumId}?heroTag=${Uri.encodeComponent(tag)}',
             ),
-        onLongPress:
-            () => ContextMenuSheet.showForAlbum(
-              context,
-              albumId: widget.albumId,
-              name: widget.name,
-              artist: widget.artist,
-              artistId: widget.artistId,
-              thumbnailUrl: widget.thumbnailUrl,
-              year: widget.year,
-            ),
+        onLongPress: () => ContextMenuSheet.showForAlbum(
+          context,
+          albumId: widget.albumId,
+          name: widget.name,
+          artist: widget.artist,
+          artistId: widget.artistId,
+          thumbnailUrl: widget.thumbnailUrl,
+          year: widget.year,
+        ),
         child: ShelfCardLayout(
           cardWidth: widget.cardWidth,
-          coverBuilder:
-              (size) => Stack(
-                children: [
-                  Hero(
-                    tag: tag,
-                    child: ThumbnailWidget(
-                      imageUrl: widget.thumbnailUrl,
-                      size: size,
-                      shape: ThumbnailShape.rounded,
-                      borderRadius: 24,
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
-                  ),
-                ],
+          coverBuilder: (size) => Stack(
+            children: [
+              Hero(
+                tag: tag,
+                child: ThumbnailWidget(
+                  imageUrl: widget.thumbnailUrl,
+                  size: size,
+                  shape: ThumbnailShape.rounded,
+                  borderRadius: 24,
+                ),
               ),
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: HoverPlayButton(isVisible: _isHovered, onTap: _play),
+              ),
+            ],
+          ),
           textBlock: [
             const SizedBox(height: 8),
             Text(
               widget.name,
               overflow: TextOverflow.ellipsis,
               maxLines: 2,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 2),
             Text(

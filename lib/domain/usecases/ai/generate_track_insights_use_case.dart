@@ -21,8 +21,8 @@ Rules:
 class GenerateTrackInsightsUseCase {
   GenerateTrackInsightsUseCase(
     this._llm, {
-    TrackInsightsParser parser = const TrackInsightsParser(),
-  }) : _parser = parser;
+    this._parser = const TrackInsightsParser(),
+  });
 
   final GroundedLlmRepository _llm;
   final TrackInsightsParser _parser;
@@ -35,10 +35,9 @@ class GenerateTrackInsightsUseCase {
   }) async {
     if (!await _llm.isReady()) return null;
 
-    final albumLine =
-        (album != null && album.trim().isNotEmpty)
-            ? 'Album: ${album.trim()}\n'
-            : '';
+    final albumLine = (album != null && album.trim().isNotEmpty)
+        ? 'Album: ${album.trim()}\n'
+        : '';
     final userMessage =
         'Output language (BCP-47 / language code): $locale\n'
         'Title: $title\n'

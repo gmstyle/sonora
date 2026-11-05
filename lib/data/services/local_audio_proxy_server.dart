@@ -34,11 +34,10 @@ class LocalAudioProxyServer {
   HttpServer? _server;
 
   LocalAudioProxyServer({
-    required StreamDatasource streamDatasource,
+    required this._streamDatasource,
     MediaCacheService? mediaCacheService,
     bool Function()? isForcedOffline,
-  }) : _streamDatasource = streamDatasource,
-       _mediaCacheService = mediaCacheService ?? MediaCacheService.instance,
+  }) : _mediaCacheService = mediaCacheService ?? MediaCacheService.instance,
        _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// Active port allocated by the OS, or 0 if not running.
@@ -139,9 +138,9 @@ class LocalAudioProxyServer {
     if (!isRunning || videoId.isEmpty) return null;
     final ip = await lookupLanIPv4();
     if (ip == null) return null;
-    return Uri.parse(
-      getStreamUrlForVideo(videoId, audioQuality: audioQuality),
-    ).replace(host: ip).toString();
+    return Uri.parse(getStreamUrlForVideo(videoId, audioQuality: audioQuality))
+        .replace(host: ip)
+        .toString();
   }
 
   /// Resolves audio quality from `qa`, falling back to legacy `q`.
@@ -246,10 +245,9 @@ class LocalAudioProxyServer {
       final rangeValue = rangeHeaderStr.substring(6).trim();
       final parts = rangeValue.split('-');
       final start = int.tryParse(parts[0]) ?? 0;
-      final end =
-          (parts.length > 1 && parts[1].isNotEmpty)
-              ? int.tryParse(parts[1]) ?? (fileLength - 1)
-              : (fileLength - 1);
+      final end = (parts.length > 1 && parts[1].isNotEmpty)
+          ? int.tryParse(parts[1]) ?? (fileLength - 1)
+          : (fileLength - 1);
 
       final safeEnd = end >= fileLength ? fileLength - 1 : end;
       final safeStart = start > safeEnd ? 0 : start;

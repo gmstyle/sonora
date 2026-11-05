@@ -66,8 +66,8 @@ class SearchFilterRail extends ConsumerWidget {
       direction: Axis.vertical,
       options: searchFilterLabels(l10n),
       selectedIndex: filter,
-      onSelected:
-          (index) => ref.read(searchFilterProvider.notifier).update(index),
+      onSelected: (index) =>
+          ref.read(searchFilterProvider.notifier).update(index),
     );
   }
 }
@@ -119,18 +119,17 @@ class SearchAskToggle extends ConsumerWidget {
         size: 16,
         color: selected ? scheme.onSecondaryContainer : scheme.onSurfaceVariant,
       ),
-      onSelected:
-          isOffline
-              ? null
-              : (value) {
-                if (!modelReady) {
-                  ref
-                      .read(actionFeedbackProvider.notifier)
-                      .report(l10n.askModelRequired, kind: FeedbackKind.error);
-                  return;
-                }
-                ref.read(askModeEnabledProvider.notifier).setEnabled(value);
-              },
+      onSelected: isOffline
+          ? null
+          : (value) {
+              if (!modelReady) {
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(l10n.askModelRequired, kind: FeedbackKind.error);
+                return;
+              }
+              ref.read(askModeEnabledProvider.notifier).setEnabled(value);
+            },
     );
   }
 }
@@ -173,16 +172,14 @@ class SearchAskBanner extends ConsumerWidget {
                   children: [
                     Text(
                       l10n.askInterpretedAs,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.labelMedium
+                          ?.copyWith(color: scheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       interpretation.intent.displayLabel,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -192,10 +189,8 @@ class SearchAskBanner extends ConsumerWidget {
               if (canPlay)
                 IconButton.filled(
                   tooltip: l10n.askPlayResults,
-                  onPressed:
-                      () => ref
-                          .read(playerStateProvider.notifier)
-                          .playAlbum(songs),
+                  onPressed: () =>
+                      ref.read(playerStateProvider.notifier).playAlbum(songs),
                   icon: const Icon(LucideIcons.play, size: 18),
                 ),
             ],
@@ -236,9 +231,8 @@ class SearchIdlePrompt extends StatelessWidget {
               Text(
                 l10n.searchForMusicHint,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -289,9 +283,8 @@ class SearchRecentSearches extends ConsumerWidget {
               ),
               child: Text(
                 AppLocalizations.of(context)!.recentSearches,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
             Expanded(

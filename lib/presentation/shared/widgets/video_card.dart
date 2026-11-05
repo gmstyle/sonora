@@ -3,6 +3,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
@@ -46,41 +47,39 @@ class VideoCard extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final card = ScaleButton(
-      onTap:
-          !isPlayable
-              ? () {
-                final l10n = AppLocalizations.of(context);
-                if (l10n != null) {
-                  ref
-                      .read(actionFeedbackProvider.notifier)
-                      .report(
-                        l10n.trackUnplayable(title),
-                        kind: FeedbackKind.error,
-                      );
-                }
+      onTap: !isPlayable
+          ? () {
+              final l10n = AppLocalizations.of(context);
+              if (l10n != null) {
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(
+                      l10n.trackUnplayable(title),
+                      kind: FeedbackKind.error,
+                    );
               }
-              : onTap ??
-                  () => ref
-                      .read(playerStateProvider.notifier)
-                      .playVideoId(
-                        videoId,
-                        isVideo: true,
-                        isExplicit: isExplicit,
-                      ),
-      onLongPress:
-          () => ContextMenuSheet.showForSong(
-            context,
-            videoId: videoId,
-            title: title,
-            artist: artist,
-            thumbnailUrl: thumbnailUrl,
-            isVideo: true,
-            artistId: artistId,
-            artists: artists,
-            artistsJson: artistsJson,
-            isExplicit: isExplicit,
-            isPlayable: isPlayable,
-          ),
+            }
+          : onTap ??
+                () => ref
+                    .read(playerStateProvider.notifier)
+                    .playVideoId(
+                      videoId,
+                      isVideo: true,
+                      isExplicit: isExplicit,
+                    ),
+      onLongPress: () => ContextMenuSheet.showForSong(
+        context,
+        videoId: videoId,
+        title: title,
+        artist: artist,
+        thumbnailUrl: thumbnailUrl,
+        isVideo: true,
+        artistId: artistId,
+        artists: artists,
+        artistsJson: artistsJson,
+        isExplicit: isExplicit,
+        isPlayable: isPlayable,
+      ),
       child: SizedBox(
         width: cardWidth,
         child: Column(
@@ -97,14 +96,13 @@ class VideoCard extends ConsumerWidget {
                       CachedNetworkImage(
                         imageUrl: thumbnailUrl!,
                         fit: BoxFit.cover,
-                        errorWidget:
-                            (_, _, _) => Container(
-                              color: colorScheme.surfaceContainerHighest,
-                              child: Icon(
-                                LucideIcons.music,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
+                        errorWidget: (_, _, _) => Container(
+                          color: colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            LucideIcons.music,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       )
                     else
                       Container(

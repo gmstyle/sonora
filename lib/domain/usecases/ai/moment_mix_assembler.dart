@@ -53,12 +53,12 @@ class MomentMixAssembler {
       byId[song.videoId] = _ScoredTrack(track: song, score: score);
     }
 
-    final ranked =
-        byId.values.toList()..sort((a, b) {
-          final byScore = b.score.compareTo(a.score);
-          if (byScore != 0) return byScore;
-          return _tieBreak(a.track, b.track);
-        });
+    final ranked = byId.values.toList()
+      ..sort((a, b) {
+        final byScore = b.score.compareTo(a.score);
+        if (byScore != 0) return byScore;
+        return _tieBreak(a.track, b.track);
+      });
 
     // Prefer tracks that matched something; if nothing scored above baseline,
     // still return a fallback ordered by energy heuristic.
@@ -222,18 +222,16 @@ class MomentMixAssembler {
     final bPlay = b is HistoryModel ? b.playCount : 0;
     final byPlay = bPlay.compareTo(aPlay);
     if (byPlay != 0) return byPlay;
-    final aTitle =
-        a is HistoryModel
-            ? a.title
-            : a is LikedSongModel
-            ? a.title
-            : '';
-    final bTitle =
-        b is HistoryModel
-            ? b.title
-            : b is LikedSongModel
-            ? b.title
-            : '';
+    final aTitle = a is HistoryModel
+        ? a.title
+        : a is LikedSongModel
+        ? a.title
+        : '';
+    final bTitle = b is HistoryModel
+        ? b.title
+        : b is LikedSongModel
+        ? b.title
+        : '';
     return aTitle.compareTo(bTitle);
   }
 

@@ -63,8 +63,9 @@ String formatPlaylistSyncResult(
     return l10n.playlistSyncNoChanges;
   }
   final reorderPart = result.reordered ? l10n.playlistSyncReorderPart : '';
-  final skipPart =
-      result.skipped > 0 ? l10n.playlistSyncSkipPart(result.skipped) : '';
+  final skipPart = result.skipped > 0
+      ? l10n.playlistSyncSkipPart(result.skipped)
+      : '';
   return l10n.playlistSyncResult(
     result.added,
     result.removed,
@@ -81,26 +82,25 @@ Future<bool> confirmSyncLinkedPlaylist(
   final l10n = AppLocalizations.of(context)!;
   final confirm = await showDialog<bool>(
     context: context,
-    builder:
-        (ctx) => AlertDialog(
-          title: Text(syncActionLabel(l10n, playlist)),
-          content: Text(
-            l10n.playlistSyncConfirm(
-              playlist.name,
-              syncSourceShortLabel(l10n, playlist),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.syncInstead),
-            ),
-          ],
+    builder: (ctx) => AlertDialog(
+      title: Text(syncActionLabel(l10n, playlist)),
+      content: Text(
+        l10n.playlistSyncConfirm(
+          playlist.name,
+          syncSourceShortLabel(l10n, playlist),
         ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.syncInstead),
+        ),
+      ],
+    ),
   );
   return confirm == true;
 }
@@ -147,21 +147,20 @@ Future<bool> confirmAndUnlinkPlaylist(
   final l10n = AppLocalizations.of(context)!;
   final confirm = await showDialog<bool>(
     context: context,
-    builder:
-        (ctx) => AlertDialog(
-          title: Text(l10n.unlinkPlaylist),
-          content: Text(l10n.unlinkPlaylistConfirm(playlist.name)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.unlinkPlaylist),
-            ),
-          ],
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.unlinkPlaylist),
+      content: Text(l10n.unlinkPlaylistConfirm(playlist.name)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
         ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.unlinkPlaylist),
+        ),
+      ],
+    ),
   );
   if (confirm != true) return false;
   await container
@@ -188,8 +187,9 @@ class LinkedPlaylistBadge extends StatelessWidget {
     if (!playlist.isLinked) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    final label =
-        compact ? l10n.linkedBadge : linkedSourceLabel(l10n, playlist);
+    final label = compact
+        ? l10n.linkedBadge
+        : linkedSourceLabel(l10n, playlist);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(

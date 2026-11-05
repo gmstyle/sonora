@@ -32,10 +32,9 @@ class TranslateLyricsUseCase {
     if (trimmed.isEmpty) return null;
     if (!await _llm.isReady()) return null;
 
-    final clipped =
-        trimmed.length > kTranslateLyricsMaxChars
-            ? trimmed.substring(0, kTranslateLyricsMaxChars)
-            : trimmed;
+    final clipped = trimmed.length > kTranslateLyricsMaxChars
+        ? trimmed.substring(0, kTranslateLyricsMaxChars)
+        : trimmed;
 
     try {
       final raw = await _llm.complete(

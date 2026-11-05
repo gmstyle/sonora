@@ -104,11 +104,10 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
 
     final name = await showDialog<String>(
       context: context,
-      builder:
-          (_) => CreatePlaylistDialog(
-            initialName: defaultName,
-            title: l10n.createPlaylist,
-          ),
+      builder: (_) => CreatePlaylistDialog(
+        initialName: defaultName,
+        title: l10n.createPlaylist,
+      ),
     );
     if (name == null || name.trim().isEmpty || !mounted) return;
 
@@ -124,11 +123,10 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
           .report(l10n.momentMixSaved(playlist.name));
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder:
-              (_) => PlaylistDetailView(
-                playlist: playlist,
-                onUpdated: () => ref.invalidate(playlistsProvider),
-              ),
+          builder: (_) => PlaylistDetailView(
+            playlist: playlist,
+            onUpdated: () => ref.invalidate(playlistsProvider),
+          ),
         ),
       );
     } catch (e) {
@@ -198,15 +196,14 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                     GlassAppBarBackground(opacity: _scrollProgress),
                     FlexibleSpaceBar(
                       centerTitle: true,
-                      title:
-                          _scrollProgress > 0.6
-                              ? Text(
-                                title,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                              : null,
+                      title: _scrollProgress > 0.6
+                          ? Text(
+                              title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : null,
                       background: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -300,10 +297,9 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                         icon: LucideIcons.listPlus,
                         label: l10n.savePlaylist,
                         tooltip: l10n.savePlaylist,
-                        onPressed:
-                            _saving
-                                ? null
-                                : () => _savePlaylist(l10n, title, songs),
+                        onPressed: _saving
+                            ? null
+                            : () => _savePlaylist(l10n, title, songs),
                       ),
                     ],
                     onPlay: () => _playFrom(songs, 0),
@@ -345,15 +341,15 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                           duration: duration,
                           isVideo: isVideo,
                           isExplicit: isExplicit,
-                          artistId:
-                              song is LikedSongModel ? song.artistId : null,
+                          artistId: song is LikedSongModel
+                              ? song.artistId
+                              : null,
                           albumId: song is LikedSongModel ? song.albumId : null,
-                          onTap:
-                              () => _playSong(
-                                videoId,
-                                isVideo: isVideo,
-                                isExplicit: isExplicit,
-                              ),
+                          onTap: () => _playSong(
+                            videoId,
+                            isVideo: isVideo,
+                            isExplicit: isExplicit,
+                          ),
                         ),
                       );
                     }, childCount: songs.length),

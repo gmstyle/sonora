@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:sonora/core/constants/app_constants.dart';
+
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -141,40 +142,38 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     final description = _getDescription(mixType, l10n);
 
     // Watch the correct stream provider based on type
-    final AsyncValue<List<dynamic>> songsAsync =
-        (() {
-          switch (mixType) {
-            case SmartMixType.mostPlayed:
-              return ref.watch(mostPlayedSongsProvider);
-            case SmartMixType.recentlyPlayed:
-              return ref.watch(recentlyPlayedSongsProvider);
-            case SmartMixType.forgottenFavorites:
-              return ref.watch(forgottenFavoritesProvider);
-          }
-        })();
+    final AsyncValue<List<dynamic>> songsAsync = (() {
+      switch (mixType) {
+        case SmartMixType.mostPlayed:
+          return ref.watch(mostPlayedSongsProvider);
+        case SmartMixType.recentlyPlayed:
+          return ref.watch(recentlyPlayedSongsProvider);
+        case SmartMixType.forgottenFavorites:
+          return ref.watch(forgottenFavoritesProvider);
+      }
+    })();
 
     final theme = Theme.of(context);
 
     return Scaffold(
       body: songsAsync.when(
         loading: () => const _SmartMixShimmer(),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: e.toString(),
-              onRetry: () {
-                switch (mixType) {
-                  case SmartMixType.mostPlayed:
-                    ref.invalidate(mostPlayedSongsProvider);
-                    break;
-                  case SmartMixType.recentlyPlayed:
-                    ref.invalidate(recentlyPlayedSongsProvider);
-                    break;
-                  case SmartMixType.forgottenFavorites:
-                    ref.invalidate(forgottenFavoritesProvider);
-                    break;
-                }
-              },
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: e.toString(),
+          onRetry: () {
+            switch (mixType) {
+              case SmartMixType.mostPlayed:
+                ref.invalidate(mostPlayedSongsProvider);
+                break;
+              case SmartMixType.recentlyPlayed:
+                ref.invalidate(recentlyPlayedSongsProvider);
+                break;
+              case SmartMixType.forgottenFavorites:
+                ref.invalidate(forgottenFavoritesProvider);
+                break;
+            }
+          },
+        ),
         data: (songs) {
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -209,14 +208,14 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                         GlassAppBarBackground(opacity: _scrollProgress),
                         FlexibleSpaceBar(
                           centerTitle: true,
-                          title:
-                              _scrollProgress > 0.6
-                                  ? Text(
-                                    title,
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                  )
-                                  : null,
+                          title: _scrollProgress > 0.6
+                              ? Text(
+                                  title,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                )
+                              : null,
                           background: Stack(
                             fit: StackFit.expand,
                             children: [
@@ -257,8 +256,9 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                                     const SizedBox(height: 16),
                                     Padding(
                                       padding: EdgeInsets.symmetric(
-                                        horizontal:
-                                            wide ? kWideContentPadding : 24,
+                                        horizontal: wide
+                                            ? kWideContentPadding
+                                            : 24,
                                       ),
                                       child: Text(
                                         title,
@@ -274,17 +274,17 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                                     const SizedBox(height: 4),
                                     Padding(
                                       padding: EdgeInsets.symmetric(
-                                        horizontal:
-                                            wide ? kWideContentPadding : 24,
+                                        horizontal: wide
+                                            ? kWideContentPadding
+                                            : 24,
                                       ),
                                       child: Text(
                                         description,
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(
-                                              color:
-                                                  theme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
                                             ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -378,20 +378,17 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                                 isVideo: isVideo,
                                 playCount: playCountStr,
                                 isExplicit: isExplicit,
-                                artistId:
-                                    song is LikedSongModel
-                                        ? song.artistId
-                                        : null,
-                                albumId:
-                                    song is LikedSongModel
-                                        ? song.albumId
-                                        : null,
-                                onTap:
-                                    () => _playSong(
-                                      videoId,
-                                      isVideo: isVideo,
-                                      isExplicit: isExplicit,
-                                    ),
+                                artistId: song is LikedSongModel
+                                    ? song.artistId
+                                    : null,
+                                albumId: song is LikedSongModel
+                                    ? song.albumId
+                                    : null,
+                                onTap: () => _playSong(
+                                  videoId,
+                                  isVideo: isVideo,
+                                  isExplicit: isExplicit,
+                                ),
                               ),
                             );
                           }, childCount: songs.length),

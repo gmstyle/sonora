@@ -5,6 +5,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -66,13 +67,12 @@ class _PodcastMobileLayout extends ConsumerWidget {
 
     return podcastAsync.when(
       loading: () => const Scaffold(body: _PodcastShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadPodcast,
-              onRetry: () => ref.invalidate(podcastProvider(browseId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadPodcast,
+          onRetry: () => ref.invalidate(podcastProvider(browseId)),
+        ),
+      ),
       data: (podcast) => _PodcastContent(podcast: podcast),
     );
   }
@@ -89,13 +89,12 @@ class _PodcastTabletLayout extends ConsumerWidget {
 
     return podcastAsync.when(
       loading: () => const Scaffold(body: _PodcastShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadPodcast,
-              onRetry: () => ref.invalidate(podcastProvider(browseId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadPodcast,
+          onRetry: () => ref.invalidate(podcastProvider(browseId)),
+        ),
+      ),
       data: (podcast) => _PodcastContent(podcast: podcast, isTablet: true),
     );
   }
@@ -112,13 +111,12 @@ class _PodcastWideLayout extends ConsumerWidget {
 
     return podcastAsync.when(
       loading: () => const Scaffold(body: _PodcastShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadPodcast,
-              onRetry: () => ref.invalidate(podcastProvider(browseId)),
-            ),
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadPodcast,
+          onRetry: () => ref.invalidate(podcastProvider(browseId)),
+        ),
+      ),
       data: (podcast) => _PodcastContent(podcast: podcast, isWide: true),
     );
   }
@@ -159,8 +157,9 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 340.0;
+    final double expandedHeight = widget.isTablet || widget.isWide
+        ? 360.0
+        : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -198,20 +197,20 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
                     wide: widget.isWide,
                     about:
                         widget.podcast.description != null &&
-                                widget.podcast.description!.isNotEmpty
-                            ? ExpandableText(text: widget.podcast.description!)
-                            : null,
+                            widget.podcast.description!.isNotEmpty
+                        ? ExpandableText(text: widget.podcast.description!)
+                        : null,
                     list: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           '${widget.podcast.episodes.length} ${l10n.episodes}',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
                         ),
                         const SizedBox(height: 8),
                         _EpisodeTracklist(podcast: widget.podcast),
@@ -250,8 +249,9 @@ class _PodcastSliverAppBar extends StatelessWidget {
       scrollProgress,
     );
 
-    final thumbnailUrl =
-        podcast.thumbnails.isNotEmpty ? podcast.thumbnails.last.url : null;
+    final thumbnailUrl = podcast.thumbnails.isNotEmpty
+        ? podcast.thumbnails.last.url
+        : null;
     final authorName = podcast.author?.name;
 
     return SliverAppBar(
@@ -504,13 +504,14 @@ class _PodcastSliverAppBar extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         podcast.name,
-                        style: (isWide
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.titlePrimary,
-                            ),
+                        style:
+                            (isWide
+                                    ? theme.textTheme.headlineLarge
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.titlePrimary,
+                                ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -582,9 +583,8 @@ class _PodcastActions extends ConsumerWidget {
         icon: LucideIcons.bookmark,
         label: l10n.subscribe,
         tooltip: l10n.subscribe,
-        buildControl:
-            (context, compact) =>
-                _SubscribePodcastButton(podcast: podcast, iconOnly: compact),
+        buildControl: (context, compact) =>
+            _SubscribePodcastButton(podcast: podcast, iconOnly: compact),
       ),
     ]);
 
@@ -601,10 +601,9 @@ class _PodcastActions extends ConsumerWidget {
           browseId: podcast.browseId,
           name: podcast.name,
           author: podcast.author?.name,
-          thumbnailUrl:
-              podcast.thumbnails.isNotEmpty
-                  ? podcast.thumbnails.last.url
-                  : null,
+          thumbnailUrl: podcast.thumbnails.isNotEmpty
+              ? podcast.thumbnails.last.url
+              : null,
           omitActionIds: {
             DetailActionId.play,
             DetailActionId.shuffle,
@@ -620,8 +619,9 @@ class _PodcastActions extends ConsumerWidget {
     final player = ref.read(playerStateProvider.notifier);
     final useCase = ref.read(playPodcastUseCaseProvider);
     try {
-      final episodes =
-          podcast.episodes.where((e) => e.videoId.isNotEmpty).toList();
+      final episodes = podcast.episodes
+          .where((e) => e.videoId.isNotEmpty)
+          .toList();
       if (episodes.isEmpty) return;
       final items = await useCase.execute(
         episodes,
@@ -717,17 +717,16 @@ class _SubscribePodcastButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final likedAsync = ref.watch(likedPodcastProvider(podcast.browseId));
     return likedAsync.when(
-      loading:
-          () => DetailAffinityButton(
-            iconOnly: iconOnly,
-            isActive: false,
-            enabled: false,
-            idleIcon: LucideIcons.bookmark,
-            activeIcon: LucideIcons.bookmarkCheck,
-            idleLabel: l10n.subscribe,
-            activeLabel: l10n.subscribed,
-            onPressed: null,
-          ),
+      loading: () => DetailAffinityButton(
+        iconOnly: iconOnly,
+        isActive: false,
+        enabled: false,
+        idleIcon: LucideIcons.bookmark,
+        activeIcon: LucideIcons.bookmarkCheck,
+        idleLabel: l10n.subscribe,
+        activeLabel: l10n.subscribed,
+        onPressed: null,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSubscribed = liked != null;
@@ -748,10 +747,9 @@ class _SubscribePodcastButton extends ConsumerWidget {
                     name: podcast.name,
                     authorName: podcast.author?.name,
                     authorId: podcast.author?.artistId,
-                    thumbnailUrl:
-                        podcast.thumbnails.isNotEmpty
-                            ? podcast.thumbnails.last.url
-                            : null,
+                    thumbnailUrl: podcast.thumbnails.isNotEmpty
+                        ? podcast.thumbnails.last.url
+                        : null,
                     episodeCount: podcast.episodes.length,
                     addedAt: DateTime.now(),
                   ),
@@ -795,21 +793,19 @@ class _EpisodeTracklist extends ConsumerWidget {
             title: podcast.episodes[i].name,
             artist: authorName,
             artistId: podcast.author?.artistId,
-            thumbnailUrl:
-                podcast.episodes[i].thumbnails.isNotEmpty
-                    ? podcast.episodes[i].thumbnails.last.url
-                    : null,
+            thumbnailUrl: podcast.episodes[i].thumbnails.isNotEmpty
+                ? podcast.episodes[i].thumbnails.last.url
+                : null,
             duration: Parser.parseDuration(podcast.episodes[i].duration),
             playCount: podcast.episodes[i].date,
             isVideo: false,
-            onTap:
-                playableIndexForEpisode(podcast, i) >= 0
-                    ? () => _playFromIndex(
-                      context,
-                      ref,
-                      playableIndexForEpisode(podcast, i),
-                    )
-                    : null,
+            onTap: playableIndexForEpisode(podcast, i) >= 0
+                ? () => _playFromIndex(
+                    context,
+                    ref,
+                    playableIndexForEpisode(podcast, i),
+                  )
+                : null,
           ),
       ],
     );

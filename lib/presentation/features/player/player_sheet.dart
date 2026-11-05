@@ -28,26 +28,23 @@ class PlayerSheet extends ConsumerWidget {
     );
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
-    final fill =
-        isDark
-            ? SonoraPulseTokens.darkSurfaceVariant.withValues(
-              alpha: reduceEffects ? 1 : 0.92,
-            )
-            : cs.surfaceContainerLowest.withValues(
-              alpha: reduceEffects ? 1 : 0.94,
-            );
+    final fill = isDark
+        ? SonoraPulseTokens.darkSurfaceVariant.withValues(
+            alpha: reduceEffects ? 1 : 0.92,
+          )
+        : cs.surfaceContainerLowest.withValues(alpha: reduceEffects ? 1 : 0.94);
 
     final miniPlayerChild = MiniPlayerContent(
       currentSong: currentSong,
       playerState: playerState,
       onTap: () => openFullPlayer(context),
-      onPlayPause:
-          () => ref.read(playerStateProvider.notifier).togglePlayPause(),
+      onPlayPause: () =>
+          ref.read(playerStateProvider.notifier).togglePlayPause(),
       onSkipNext: () => ref.read(playerStateProvider.notifier).skipToNext(),
-      onSkipPrevious:
-          () => ref.read(playerStateProvider.notifier).skipToPrevious(),
-      onOpenLyrics:
-          () => openFullPlayer(context, subView: PlayerSubView.lyrics),
+      onSkipPrevious: () =>
+          ref.read(playerStateProvider.notifier).skipToPrevious(),
+      onOpenLyrics: () =>
+          openFullPlayer(context, subView: PlayerSubView.lyrics),
       onOpenQueue: () => openFullPlayer(context, subView: PlayerSubView.queue),
       onSeek: (pos) => ref.read(playerStateProvider.notifier).seek(pos),
     );
@@ -57,24 +54,22 @@ class PlayerSheet extends ConsumerWidget {
         color: fill,
         border: Border(
           top: BorderSide(
-            color:
-                isDark
-                    ? SonoraPulseTokens.darkBorder.withValues(alpha: 0.6)
-                    : cs.outlineVariant,
+            color: isDark
+                ? SonoraPulseTokens.darkBorder.withValues(alpha: 0.6)
+                : cs.outlineVariant,
           ),
         ),
-        boxShadow:
-            reduceEffects
-                ? null
-                : [
-                  BoxShadow(
-                    color: SonoraPulseTokens.gradientStart.withValues(
-                      alpha: isDark ? 0.08 : 0.14,
-                    ),
-                    blurRadius: 28,
-                    offset: const Offset(0, -2),
+        boxShadow: reduceEffects
+            ? null
+            : [
+                BoxShadow(
+                  color: SonoraPulseTokens.gradientStart.withValues(
+                    alpha: isDark ? 0.08 : 0.14,
                   ),
-                ],
+                  blurRadius: 28,
+                  offset: const Offset(0, -2),
+                ),
+              ],
       ),
       child: SizedBox(
         height: kMiniPlayerShelfHeight,

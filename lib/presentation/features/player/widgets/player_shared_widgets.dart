@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:marquee/marquee.dart';
+
 import '../../../../core/link/sonora_link.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../domain/models/queue_track.dart';
@@ -49,10 +50,9 @@ Widget buildPlayerBackground(
   // Resolve PlayerColors if a context is available; fall back to standard
   // values so the function remains callable without a BuildContext (e.g. from
   // initState or static helpers).
-  final pc =
-      context != null
-          ? PlayerColors.maybeOf(context) ?? PlayerColors.standard()
-          : PlayerColors.standard();
+  final pc = context != null
+      ? PlayerColors.maybeOf(context) ?? PlayerColors.standard()
+      : PlayerColors.standard();
 
   final gradientDecoration = BoxDecoration(
     gradient: LinearGradient(
@@ -151,31 +151,25 @@ Widget buildArtwork(
   } else if (artUrl != null) {
     content = AnimatedSwitcher(
       duration: const Duration(milliseconds: 400),
-      layoutBuilder:
-          (currentChild, previousChildren) => Stack(
-            fit: StackFit.expand,
-            alignment: Alignment.center,
-            children: [
-              ...previousChildren,
-              if (currentChild != null) currentChild,
-            ],
-          ),
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        fit: StackFit.expand,
+        alignment: Alignment.center,
+        children: [...previousChildren, ?currentChild],
+      ),
       child: CachedNetworkImage(
         key: ValueKey(artUrl),
         imageUrl: artUrl,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        placeholder:
-            (_, _) => Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-        errorWidget:
-            (_, _, _) => Icon(
-              LucideIcons.music,
-              size: 80,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+        placeholder: (_, _) => Container(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        ),
+        errorWidget: (_, _, _) => Icon(
+          LucideIcons.music,
+          size: 80,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   } else {
@@ -226,11 +220,10 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
         return IconButton(
           icon: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
-            transitionBuilder:
-                (child, anim) => ScaleTransition(
-                  scale: anim,
-                  child: FadeTransition(opacity: anim, child: child),
-                ),
+            transitionBuilder: (child, anim) => ScaleTransition(
+              scale: anim,
+              child: FadeTransition(opacity: anim, child: child),
+            ),
             child: Icon(
               isLiked ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
               key: ValueKey(isLiked),
@@ -269,11 +262,10 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
       return IconButton(
         icon: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          transitionBuilder:
-              (child, anim) => ScaleTransition(
-                scale: anim,
-                child: FadeTransition(opacity: anim, child: child),
-              ),
+          transitionBuilder: (child, anim) => ScaleTransition(
+            scale: anim,
+            child: FadeTransition(opacity: anim, child: child),
+          ),
           child: Icon(
             isLiked
                 ? DetailAffinityButton.likeActive
@@ -332,18 +324,18 @@ Widget buildTrackInfoAndLikeRow(
   VoidCallback? onTitleTap;
   VoidCallback? onArtistTap;
   if (track.isEpisode) {
-    onTitleTap =
-        () => closeFullPlayerAndNavigate(context, '/episode/${track.videoId}');
+    onTitleTap = () =>
+        closeFullPlayerAndNavigate(context, '/episode/${track.videoId}');
     final browseId = track.podcastBrowseId;
     if (browseId != null && browseId.isNotEmpty) {
-      onArtistTap =
-          () => closeFullPlayerAndNavigate(context, '/podcast/$browseId');
+      onArtistTap = () =>
+          closeFullPlayerAndNavigate(context, '/podcast/$browseId');
     }
   } else {
     final artistId = track.artistId;
     if (artistId != null && artistId.isNotEmpty) {
-      onArtistTap =
-          () => closeFullPlayerAndNavigate(context, '/artist/$artistId');
+      onArtistTap = () =>
+          closeFullPlayerAndNavigate(context, '/artist/$artistId');
     }
   }
 
@@ -396,14 +388,13 @@ Widget buildTrackInfoAndLikeRow(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Flexible(
-                  child:
-                      onTitleTap != null
-                          ? GestureDetector(
-                            onTap: onTitleTap,
-                            behavior: HitTestBehavior.opaque,
-                            child: titleText(titleStyle),
-                          )
-                          : titleText(titleStyle),
+                  child: onTitleTap != null
+                      ? GestureDetector(
+                          onTap: onTitleTap,
+                          behavior: HitTestBehavior.opaque,
+                          child: titleText(titleStyle),
+                        )
+                      : titleText(titleStyle),
                 ),
                 if (track.isExplicit) ...[
                   const SizedBox(width: 8),
@@ -538,20 +529,20 @@ Widget buildBottomActionsRow(
     builder: (context, constraints) {
       final compact = isMobile || constraints.maxWidth < 360;
       final double iconSize = compact ? 18.0 : 22.0;
-      final ButtonStyle? actionStyle =
-          compact
-              ? IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-                minimumSize: const Size(36, 36),
-                padding: const EdgeInsets.all(6),
-              )
-              : null;
+      final ButtonStyle? actionStyle = compact
+          ? IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              minimumSize: const Size(36, 36),
+              padding: const EdgeInsets.all(6),
+            )
+          : null;
 
       final row = Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment:
-            isMobile ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+        mainAxisAlignment: isMobile
+            ? MainAxisAlignment.spaceBetween
+            : MainAxisAlignment.end,
         children: [
           IconButton(
             style: actionStyle,
@@ -562,10 +553,9 @@ Widget buildBottomActionsRow(
               final track = QueueTrack.fromMediaItem(currentSong);
               final result = await shareSonoraLink(
                 SonoraLink(
-                  kind:
-                      track.isEpisode
-                          ? SonoraLinkKind.episode
-                          : SonoraLinkKind.track,
+                  kind: track.isEpisode
+                      ? SonoraLinkKind.episode
+                      : SonoraLinkKind.track,
                   id: track.videoId,
                 ),
                 title: currentSong.title,
@@ -591,10 +581,9 @@ Widget buildBottomActionsRow(
               icon: Icon(
                 LucideIcons.micVocal,
                 size: iconSize,
-                color:
-                    activeView == PlayerSubView.lyrics
-                        ? PlayerColors.of(context).accent
-                        : theme.colorScheme.onSurfaceVariant,
+                color: activeView == PlayerSubView.lyrics
+                    ? PlayerColors.of(context).accent
+                    : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
                 ref.read(playerInsightsProvider.notifier).dismiss();
@@ -614,10 +603,9 @@ Widget buildBottomActionsRow(
               icon: Icon(
                 LucideIcons.fileText,
                 size: iconSize,
-                color:
-                    activeView == PlayerSubView.notes
-                        ? PlayerColors.of(context).accent
-                        : theme.colorScheme.onSurfaceVariant,
+                color: activeView == PlayerSubView.notes
+                    ? PlayerColors.of(context).accent
+                    : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
                 ref.read(playerInsightsProvider.notifier).dismiss();
@@ -637,10 +625,9 @@ Widget buildBottomActionsRow(
               icon: Icon(
                 LucideIcons.sparkles,
                 size: iconSize,
-                color:
-                    insightsOpen
-                        ? PlayerColors.of(context).accent
-                        : theme.colorScheme.onSurfaceVariant,
+                color: insightsOpen
+                    ? PlayerColors.of(context).accent
+                    : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
                 if (insightsOpen) {
@@ -657,24 +644,22 @@ Widget buildBottomActionsRow(
               icon: Icon(
                 LucideIcons.orbit,
                 size: iconSize,
-                color:
-                    activeView == PlayerSubView.related
-                        ? PlayerColors.of(context).accent
-                        : theme.colorScheme.onSurfaceVariant,
+                color: activeView == PlayerSubView.related
+                    ? PlayerColors.of(context).accent
+                    : theme.colorScheme.onSurfaceVariant,
               ),
-              onPressed:
-                  isOffline
-                      ? null
-                      : () {
-                        ref.read(playerInsightsProvider.notifier).dismiss();
-                        ref
-                            .read(playerSubViewProvider.notifier)
-                            .set(
-                              activeView == PlayerSubView.related
-                                  ? PlayerSubView.none
-                                  : PlayerSubView.related,
-                            );
-                      },
+              onPressed: isOffline
+                  ? null
+                  : () {
+                      ref.read(playerInsightsProvider.notifier).dismiss();
+                      ref
+                          .read(playerSubViewProvider.notifier)
+                          .set(
+                            activeView == PlayerSubView.related
+                                ? PlayerSubView.none
+                                : PlayerSubView.related,
+                          );
+                    },
               tooltip: l10n.related,
             ),
           IconButton(
@@ -682,10 +667,9 @@ Widget buildBottomActionsRow(
             icon: Icon(
               LucideIcons.listMusic,
               size: iconSize,
-              color:
-                  activeView == PlayerSubView.queue
-                      ? PlayerColors.of(context).accent
-                      : theme.colorScheme.onSurfaceVariant,
+              color: activeView == PlayerSubView.queue
+                  ? PlayerColors.of(context).accent
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             onPressed: () {
               ref.read(playerInsightsProvider.notifier).dismiss();
@@ -704,10 +688,9 @@ Widget buildBottomActionsRow(
             icon: Icon(
               LucideIcons.sliders,
               size: iconSize,
-              color:
-                  ref.watch(equalizerNotifierProvider).enabled
-                      ? PlayerColors.of(context).accent
-                      : theme.colorScheme.onSurfaceVariant,
+              color: ref.watch(equalizerNotifierProvider).enabled
+                  ? PlayerColors.of(context).accent
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             onPressed: () => EqualizerPanel.show(context),
             tooltip: l10n.equalizer,
@@ -717,10 +700,9 @@ Widget buildBottomActionsRow(
             icon: Icon(
               LucideIcons.timer,
               size: iconSize,
-              color:
-                  hasTimer
-                      ? PlayerColors.of(context).accent
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
+              color: hasTimer
+                  ? PlayerColors.of(context).accent
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             onPressed: () => showPlayerTimerDialog(context, playerNotifier),
             tooltip: hasTimer ? l10n.sleepTimerActive : l10n.sleepTimer,
@@ -825,14 +807,13 @@ void showPlayerTimerDialog(BuildContext context, PlayerNotifier notifier) {
   if (isWide) {
     showDialog(
       context: context,
-      builder:
-          (ctx) => Dialog(
-            child: Container(
-              width: 400,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: SingleChildScrollView(child: buildContent(ctx)),
-            ),
-          ),
+      builder: (ctx) => Dialog(
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: SingleChildScrollView(child: buildContent(ctx)),
+        ),
+      ),
     );
   } else {
     showModalBottomSheet(

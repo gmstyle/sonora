@@ -12,10 +12,9 @@ QueryExecutor _openConnection() {
   return driftDatabase(
     name: 'sonora',
     native: DriftNativeOptions(
-      databaseDirectory:
-          Platform.isLinux
-              ? getApplicationSupportDirectory
-              : getApplicationDocumentsDirectory,
+      databaseDirectory: Platform.isLinux
+          ? getApplicationSupportDirectory
+          : getApplicationDocumentsDirectory,
     ),
   );
 }

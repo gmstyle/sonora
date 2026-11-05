@@ -1,8 +1,10 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet_mobile.dart';
 import '../../providers/player_provider.dart';
@@ -82,16 +84,15 @@ class MobileShell extends ConsumerWidget {
 
     dockBody = ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child:
-          reduceEffects
-              ? ColoredBox(color: cs.surfaceContainerHigh, child: dockBody)
-              : BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: ColoredBox(
-                  color: cs.surfaceContainerHigh.withValues(alpha: 0.88),
-                  child: dockBody,
-                ),
+      child: reduceEffects
+          ? ColoredBox(color: cs.surfaceContainerHigh, child: dockBody)
+          : BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: ColoredBox(
+                color: cs.surfaceContainerHigh.withValues(alpha: 0.88),
+                child: dockBody,
               ),
+            ),
     );
 
     final dock = Column(

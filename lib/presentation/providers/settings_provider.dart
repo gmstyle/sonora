@@ -118,8 +118,9 @@ class Settings {
       streamAudioQuality: streamAudioQuality ?? this.streamAudioQuality,
       mediaCacheSize: mediaCacheSize ?? this.mediaCacheSize,
       downloadQuality: downloadQuality ?? this.downloadQuality,
-      downloadPath:
-          clearDownloadPath ? null : (downloadPath ?? this.downloadPath),
+      downloadPath: clearDownloadPath
+          ? null
+          : (downloadPath ?? this.downloadPath),
       downloadOnlyOnWifi: downloadOnlyOnWifi ?? this.downloadOnlyOnWifi,
       trackHistory: trackHistory ?? this.trackHistory,
       checkUpdatesOnStartup:
@@ -130,8 +131,9 @@ class Settings {
       useVinylStyle: useVinylStyle ?? this.useVinylStyle,
       wrappedSeen: wrappedSeen ?? this.wrappedSeen,
       askMode: askMode ?? this.askMode,
-      geminiApiKey:
-          clearGeminiApiKey ? null : (geminiApiKey ?? this.geminiApiKey),
+      geminiApiKey: clearGeminiApiKey
+          ? null
+          : (geminiApiKey ?? this.geminiApiKey),
       localSyncEnabled: localSyncEnabled ?? this.localSyncEnabled,
       localSyncAutoEnabled: localSyncAutoEnabled ?? this.localSyncAutoEnabled,
       playlistConflictStrategy:

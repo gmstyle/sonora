@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -32,10 +33,9 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
   void initState() {
     super.initState();
     Future(
-      () =>
-          ref
-              .read(libraryNotifierProvider.notifier)
-              .refreshPlaylistThumbnailsIfNeeded(),
+      () => ref
+          .read(libraryNotifierProvider.notifier)
+          .refreshPlaylistThumbnailsIfNeeded(),
     );
   }
 
@@ -65,20 +65,19 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
     final playlists = myAsync.value ?? [];
     final liked = likedAsync.value ?? [];
 
-    final gridDelegate =
-        isMobile
-            ? const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.68,
-            )
-            : const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 170.0,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 0.68,
-            );
+    final gridDelegate = isMobile
+        ? const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.68,
+          )
+        : const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 170.0,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.68,
+          );
 
     return CustomScrollView(
       slivers: [
@@ -130,10 +129,9 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   localPlaylistId: p.id,
                   localPlaylist: p,
                   name: p.name,
-                  artist:
-                      p.isLinked
-                          ? linkedSourceLabel(AppLocalizations.of(context)!, p)
-                          : p.description,
+                  artist: p.isLinked
+                      ? linkedSourceLabel(AppLocalizations.of(context)!, p)
+                      : p.description,
                   heroTag: 'library_local_playlist_${p.id}',
                 );
               }, childCount: playlists.length),
@@ -146,12 +144,11 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
               return _LocalPlaylistTile(
                 playlist: p,
                 onTap: () => _showPlaylistDetail(context, p),
-                onLongPress:
-                    () => ContextMenuSheet.showForCustomPlaylist(
-                      context,
-                      playlist: p,
-                      onUpdated: () => ref.invalidate(playlistsProvider),
-                    ),
+                onLongPress: () => ContextMenuSheet.showForCustomPlaylist(
+                  context,
+                  playlist: p,
+                  onUpdated: () => ref.invalidate(playlistsProvider),
+                ),
               );
             }, childCount: playlists.length),
           ),
@@ -187,8 +184,9 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   playlistId: p.playlistId,
                   name: p.name,
                   thumbnailUrl: p.thumbnailUrl,
-                  artist:
-                      p.videoCount != null ? '${p.videoCount} videos' : null,
+                  artist: p.videoCount != null
+                      ? '${p.videoCount} videos'
+                      : null,
                   heroTag: 'library_liked_playlist_${p.playlistId}',
                 );
               }, childCount: liked.length),
@@ -205,19 +203,17 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
                   shape: ThumbnailShape.rounded,
                 ),
                 title: Text(p.name),
-                subtitle:
-                    p.videoCount != null
-                        ? Text('${p.videoCount} videos')
-                        : null,
+                subtitle: p.videoCount != null
+                    ? Text('${p.videoCount} videos')
+                    : null,
                 trailing: const Icon(LucideIcons.chevronRight),
                 onTap: () => context.push('/playlist/${p.playlistId}'),
-                onLongPress:
-                    () => ContextMenuSheet.showForPlaylist(
-                      context,
-                      playlistId: p.playlistId,
-                      name: p.name,
-                      thumbnailUrl: p.thumbnailUrl,
-                    ),
+                onLongPress: () => ContextMenuSheet.showForPlaylist(
+                  context,
+                  playlistId: p.playlistId,
+                  name: p.name,
+                  thumbnailUrl: p.thumbnailUrl,
+                ),
               );
             }, childCount: liked.length),
           ),
@@ -232,13 +228,12 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (_) => PlaylistDetailView(
-              playlist: playlist,
-              onUpdated: () {
-                ref.invalidate(playlistsProvider);
-              },
-            ),
+        builder: (_) => PlaylistDetailView(
+          playlist: playlist,
+          onUpdated: () {
+            ref.invalidate(playlistsProvider);
+          },
+        ),
       ),
     );
   }
@@ -259,14 +254,13 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
     if (result != null && mounted) {
       ref.invalidate(playlistsProvider);
       final l10n = AppLocalizations.of(context);
-      final message =
-          result.skippedCount > 0
-              ? (l10n?.playlistImportedPartial(
-                    result.importedCount,
-                    result.totalCount,
-                  ) ??
-                  'Imported ${result.importedCount} of ${result.totalCount} tracks')
-              : (l10n?.playlistImported ?? 'Playlist imported successfully');
+      final message = result.skippedCount > 0
+          ? (l10n?.playlistImportedPartial(
+                  result.importedCount,
+                  result.totalCount,
+                ) ??
+                'Imported ${result.importedCount} of ${result.totalCount} tracks')
+          : (l10n?.playlistImported ?? 'Playlist imported successfully');
       ref.read(actionFeedbackProvider.notifier).report(message);
     }
   }
@@ -322,12 +316,11 @@ class _LocalPlaylistTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final subtitle =
-        playlist.isLinked
-            ? linkedSourceLabel(l10n, playlist)
-            : (playlist.description != null && playlist.description!.isNotEmpty
-                ? playlist.description!
-                : null);
+    final subtitle = playlist.isLinked
+        ? linkedSourceLabel(l10n, playlist)
+        : (playlist.description != null && playlist.description!.isNotEmpty
+              ? playlist.description!
+              : null);
     return ListTile(
       leading: _PlaylistCoverBuilder(playlistId: playlist.id, size: 48),
       title: Row(
@@ -345,10 +338,9 @@ class _LocalPlaylistTile extends StatelessWidget {
           ],
         ],
       ),
-      subtitle:
-          subtitle != null
-              ? Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis)
-              : null,
+      subtitle: subtitle != null
+          ? Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis)
+          : null,
       trailing: const Icon(LucideIcons.chevronRight),
       onTap: onTap,
       onLongPress: onLongPress,

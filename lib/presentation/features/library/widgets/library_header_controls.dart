@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/library_notifier.dart';
@@ -72,24 +73,24 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor:
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                fillColor: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest,
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 0,
                   horizontal: 16,
                 ),
                 prefixIcon: const Icon(LucideIcons.search, size: 20),
-                suffixIcon:
-                    query.isNotEmpty
-                        ? IconButton(
-                          icon: const Icon(LucideIcons.x, size: 20),
-                          onPressed: () {
-                            ref
-                                .read(librarySearchQueryProvider.notifier)
-                                .update('');
-                          },
-                        )
-                        : null,
+                suffixIcon: query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(LucideIcons.x, size: 20),
+                        onPressed: () {
+                          ref
+                              .read(librarySearchQueryProvider.notifier)
+                              .update('');
+                        },
+                      )
+                    : null,
               ),
               style: Theme.of(context).textTheme.bodyLarge,
               onChanged: (val) {
@@ -114,10 +115,9 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
                     icon: Icon(
                       isGridView ? LucideIcons.list : LucideIcons.layoutGrid,
                     ),
-                    tooltip:
-                        isGridView
-                            ? AppLocalizations.of(context)!.viewList
-                            : AppLocalizations.of(context)!.viewGrid,
+                    tooltip: isGridView
+                        ? AppLocalizations.of(context)!.viewList
+                        : AppLocalizations.of(context)!.viewGrid,
                     onPressed: () {
                       ref
                           .read(settingsProvider.notifier)
@@ -141,21 +141,20 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
   Future<void> _clearHistory(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.clearHistory),
-            content: Text(AppLocalizations.of(context)!.clearHistoryConfirm),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(AppLocalizations.of(context)!.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(AppLocalizations.of(context)!.clear),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.clearHistory),
+        content: Text(AppLocalizations.of(context)!.clearHistoryConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(AppLocalizations.of(context)!.clear),
+          ),
+        ],
+      ),
     );
     if (confirm == true) {
       await ref.read(libraryNotifierProvider.notifier).clearHistory();
@@ -198,25 +197,24 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
         onSelected: (value) {
           ref.read(librarySortTypeProvider.notifier).update(value);
         },
-        itemBuilder:
-            (context) => [
-              PopupMenuItem(
-                value: LibrarySortType.recentlyAdded,
-                child: Text(l10n.recentlyAdded),
-              ),
-              PopupMenuItem(
-                value: LibrarySortType.leastRecentlyAdded,
-                child: Text(l10n.leastRecentlyAdded),
-              ),
-              PopupMenuItem(
-                value: LibrarySortType.alphabetical,
-                child: Text(l10n.alphabetical),
-              ),
-              PopupMenuItem(
-                value: LibrarySortType.alphabeticalReverse,
-                child: Text(l10n.alphabeticalReverse),
-              ),
-            ],
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: LibrarySortType.recentlyAdded,
+            child: Text(l10n.recentlyAdded),
+          ),
+          PopupMenuItem(
+            value: LibrarySortType.leastRecentlyAdded,
+            child: Text(l10n.leastRecentlyAdded),
+          ),
+          PopupMenuItem(
+            value: LibrarySortType.alphabetical,
+            child: Text(l10n.alphabetical),
+          ),
+          PopupMenuItem(
+            value: LibrarySortType.alphabeticalReverse,
+            child: Text(l10n.alphabeticalReverse),
+          ),
+        ],
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
@@ -269,9 +267,8 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   l10n.sortBy,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
               const Divider(height: 1),

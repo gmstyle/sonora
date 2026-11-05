@@ -70,10 +70,9 @@ class MergeLibraryUseCase {
               artistId: artistId,
               name: a['name'] as String,
               thumbnailUrl: a['thumbnailUrl'] as String?,
-              addedAt:
-                  a['addedAt'] != null
-                      ? DateTime.parse(a['addedAt'] as String)
-                      : DateTime.now(),
+              addedAt: a['addedAt'] != null
+                  ? DateTime.parse(a['addedAt'] as String)
+                  : DateTime.now(),
             ),
           );
           followedArtistsCount++;
@@ -114,10 +113,11 @@ class MergeLibraryUseCase {
             ?.cast<Map<String, dynamic>>() ??
         [];
     if (likedPlaylists.isNotEmpty) {
-      final localLikedPlaylists =
-          await libraryRepository.getAllLikedPlaylists();
-      final localLikedPlaylistIds =
-          localLikedPlaylists.map((p) => p.playlistId).toSet();
+      final localLikedPlaylists = await libraryRepository
+          .getAllLikedPlaylists();
+      final localLikedPlaylistIds = localLikedPlaylists
+          .map((p) => p.playlistId)
+          .toSet();
 
       for (final p in likedPlaylists) {
         final playlistId = p['playlistId'] as String;
@@ -210,10 +210,9 @@ class MergeLibraryUseCase {
     for (final p in playlistsRaw) {
       final playlistName = p['name'] as String;
       final oldId = p['id'] as int;
-      final createdAt =
-          p['createdAt'] != null
-              ? DateTime.tryParse(p['createdAt'] as String) ?? DateTime.now()
-              : DateTime.now();
+      final createdAt = p['createdAt'] != null
+          ? DateTime.tryParse(p['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now();
 
       int targetPlaylistId;
       final existingPlaylistId = nameToIdMap[playlistName.toLowerCase()];
@@ -252,13 +251,12 @@ class MergeLibraryUseCase {
             targetPlaylistId,
           );
           existingVideoIds = localEntries.map((e) => e.videoId).toSet();
-          nextPosition =
-              localEntries.isEmpty
-                  ? 1
-                  : localEntries
-                          .map((e) => e.position)
-                          .reduce((a, b) => a > b ? a : b) +
-                      1;
+          nextPosition = localEntries.isEmpty
+              ? 1
+              : localEntries
+                        .map((e) => e.position)
+                        .reduce((a, b) => a > b ? a : b) +
+                    1;
         }
       } else {
         // Create a new playlist
@@ -305,10 +303,9 @@ class MergeLibraryUseCase {
         (data['history'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
     if (remoteHistory.isNotEmpty) {
       final localHistory = await libraryRepository.getRecentHistory(limit: 500);
-      final historyKeys =
-          localHistory
-              .map((h) => '${h.videoId}_${h.playedAt.millisecondsSinceEpoch}')
-              .toSet();
+      final historyKeys = localHistory
+          .map((h) => '${h.videoId}_${h.playedAt.millisecondsSinceEpoch}')
+          .toSet();
 
       for (final h in remoteHistory) {
         final playedAt = DateTime.parse(h['playedAt'] as String);
@@ -341,13 +338,12 @@ class MergeLibraryUseCase {
       final localSearchHistory = await libraryRepository.getRecentSearches(
         limit: 100,
       );
-      final searchKeys =
-          localSearchHistory
-              .map(
-                (s) =>
-                    '${s.query.toLowerCase()}_${s.searchedAt.millisecondsSinceEpoch}',
-              )
-              .toSet();
+      final searchKeys = localSearchHistory
+          .map(
+            (s) =>
+                '${s.query.toLowerCase()}_${s.searchedAt.millisecondsSinceEpoch}',
+          )
+          .toSet();
 
       for (final s in remoteSearchHistory) {
         final searchedAt = DateTime.parse(s['searchedAt'] as String);

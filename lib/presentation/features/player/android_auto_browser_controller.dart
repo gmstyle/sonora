@@ -112,13 +112,13 @@ class AndroidAutoBrowserController {
     required MusicRepository musicRepo,
     required LibraryRepository libraryRepo,
     required PlayVideoIdUseCase playVideoIdUseCase,
-    required Connectivity connectivity,
+    required this._connectivity,
     bool Function()? isForcedOffline,
-    required List<MediaItem> Function() userQueue,
-    required List<MediaItem> Function() upNextQueue,
-    required MediaItem? Function() currentMediaItem,
-    required Future<void> Function() awaitReady,
-    required Future<void> Function(List<MediaItem> items) playNow,
+    required this._userQueue,
+    required this._upNextQueue,
+    required this._currentMediaItem,
+    required this._awaitReady,
+    required this._playNow,
   }) : _musicRepo = musicRepo,
        _libraryRepo = libraryRepo,
        _playVideoIdUseCase = playVideoIdUseCase,
@@ -133,13 +133,7 @@ class AndroidAutoBrowserController {
        ),
        _getSimilarArtistsSuggestionsUseCase =
            GetSimilarArtistsSuggestionsUseCase(musicRepo, libraryRepo),
-       _connectivity = connectivity,
-       _isForcedOffline = isForcedOffline ?? (() => false),
-       _userQueue = userQueue,
-       _upNextQueue = upNextQueue,
-       _currentMediaItem = currentMediaItem,
-       _awaitReady = awaitReady,
-       _playNow = playNow;
+       _isForcedOffline = isForcedOffline ?? (() => false);
 
   // ═══════════════════════════════════════════════════════════════
   //  Android Auto — getChildren (AA browse tree)
@@ -468,8 +462,9 @@ class AndroidAutoBrowserController {
       if (sections.isNotEmpty) {
         final section = sections[0];
         if (section.contents.isNotEmpty) {
-          final sectionItems =
-              section.contents.expand(_contentToMediaItems).toList();
+          final sectionItems = section.contents
+              .expand(_contentToMediaItems)
+              .toList();
           if (sectionItems.isNotEmpty) {
             items.add(
               MediaItem(
@@ -642,25 +637,23 @@ class AndroidAutoBrowserController {
       try {
         final releases = await _getNewReleasesUseCase.execute();
         if (releases.isNotEmpty) {
-          final releaseItems =
-              releases
-                  .map(
-                    (a) => MediaItem(
-                      id: '$_homeAlbumPrefix${a.albumId}',
-                      title: a.name,
-                      artist: displayArtists(a.artists),
-                      artUri:
-                          a.thumbnails.isNotEmpty
-                              ? Uri.tryParse(a.thumbnails.last.url)
-                              : null,
-                      playable: false,
-                      extras: {
-                        _kContentStyleBrowsable: _kStyleGrid,
-                        _kContentStylePlayable: _kStyleList,
-                      },
-                    ),
-                  )
-                  .toList();
+          final releaseItems = releases
+              .map(
+                (a) => MediaItem(
+                  id: '$_homeAlbumPrefix${a.albumId}',
+                  title: a.name,
+                  artist: displayArtists(a.artists),
+                  artUri: a.thumbnails.isNotEmpty
+                      ? Uri.tryParse(a.thumbnails.last.url)
+                      : null,
+                  playable: false,
+                  extras: {
+                    _kContentStyleBrowsable: _kStyleGrid,
+                    _kContentStylePlayable: _kStyleList,
+                  },
+                ),
+              )
+              .toList();
 
           items.add(
             MediaItem(
@@ -683,25 +676,23 @@ class AndroidAutoBrowserController {
       try {
         final suggestions = await _getDiscoverSuggestionsUseCase.execute();
         if (suggestions.isNotEmpty) {
-          final discoverItems =
-              suggestions.map((song) {
-                final track = QueueTrack(
-                  videoId: song.videoId,
-                  needsUrl: true,
-                  isVideo: song.type == 'VIDEO',
-                  isExplicit: song.isExplicit,
-                  title: song.title,
-                  artist: displayArtists(song.artists),
-                  duration: Duration(seconds: song.duration),
-                  artUri:
-                      song.thumbnails.isNotEmpty
-                          ? Uri.tryParse(song.thumbnails.last.url)
-                          : null,
-                );
-                return track.toFreshMediaItem(
-                  additionalExtras: {_kContentStylePlayable: _kStyleList},
-                );
-              }).toList();
+          final discoverItems = suggestions.map((song) {
+            final track = QueueTrack(
+              videoId: song.videoId,
+              needsUrl: true,
+              isVideo: song.type == 'VIDEO',
+              isExplicit: song.isExplicit,
+              title: song.title,
+              artist: displayArtists(song.artists),
+              duration: Duration(seconds: song.duration),
+              artUri: song.thumbnails.isNotEmpty
+                  ? Uri.tryParse(song.thumbnails.last.url)
+                  : null,
+            );
+            return track.toFreshMediaItem(
+              additionalExtras: {_kContentStylePlayable: _kStyleList},
+            );
+          }).toList();
 
           items.add(
             MediaItem(
@@ -724,24 +715,22 @@ class AndroidAutoBrowserController {
       try {
         final similar = await _getSimilarArtistsSuggestionsUseCase.execute();
         if (similar.isNotEmpty) {
-          final similarItems =
-              similar
-                  .map(
-                    (a) => MediaItem(
-                      id: '$_artistPrefix${a.artistId}',
-                      title: a.name,
-                      artUri:
-                          a.thumbnails.isNotEmpty
-                              ? Uri.tryParse(a.thumbnails.last.url)
-                              : null,
-                      playable: false,
-                      extras: {
-                        _kContentStyleBrowsable: _kStyleGrid,
-                        _kContentStylePlayable: _kStyleList,
-                      },
-                    ),
-                  )
-                  .toList();
+          final similarItems = similar
+              .map(
+                (a) => MediaItem(
+                  id: '$_artistPrefix${a.artistId}',
+                  title: a.name,
+                  artUri: a.thumbnails.isNotEmpty
+                      ? Uri.tryParse(a.thumbnails.last.url)
+                      : null,
+                  playable: false,
+                  extras: {
+                    _kContentStyleBrowsable: _kStyleGrid,
+                    _kContentStylePlayable: _kStyleList,
+                  },
+                ),
+              )
+              .toList();
 
           items.add(
             MediaItem(
@@ -765,8 +754,9 @@ class AndroidAutoBrowserController {
         for (var i = 1; i < sections.length; i++) {
           final section = sections[i];
           if (section.contents.isEmpty) continue;
-          final sectionItems =
-              section.contents.expand(_contentToMediaItems).toList();
+          final sectionItems = section.contents
+              .expand(_contentToMediaItems)
+              .toList();
           if (sectionItems.isEmpty) continue;
           items.add(
             MediaItem(
@@ -799,10 +789,9 @@ class AndroidAutoBrowserController {
         artist: displayArtists(content.artists),
         album: content.album?.name,
         duration: Duration(seconds: content.duration ?? 0),
-        artUri:
-            content.thumbnails.isNotEmpty
-                ? Uri.tryParse(content.thumbnails.last.url)
-                : null,
+        artUri: content.thumbnails.isNotEmpty
+            ? Uri.tryParse(content.thumbnails.last.url)
+            : null,
       );
       return [
         track.toFreshMediaItem(
@@ -817,10 +806,9 @@ class AndroidAutoBrowserController {
         title: content.name,
         artist: displayArtists(content.artists),
         duration: Duration(seconds: content.duration ?? 0),
-        artUri:
-            content.thumbnails.isNotEmpty
-                ? Uri.tryParse(content.thumbnails.last.url)
-                : null,
+        artUri: content.thumbnails.isNotEmpty
+            ? Uri.tryParse(content.thumbnails.last.url)
+            : null,
       );
       return [
         track.toFreshMediaItem(
@@ -833,10 +821,9 @@ class AndroidAutoBrowserController {
           id: '$_homeAlbumPrefix${content.albumId}',
           title: content.name,
           artist: displayArtists(content.artists),
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
+          artUri: content.thumbnails.isNotEmpty
+              ? Uri.tryParse(content.thumbnails.last.url)
+              : null,
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -849,10 +836,9 @@ class AndroidAutoBrowserController {
         MediaItem(
           id: '$_homePlaylistPrefix${content.playlistId}',
           title: content.name,
-          artUri:
-              content.thumbnails.isNotEmpty
-                  ? Uri.tryParse(content.thumbnails.last.url)
-                  : null,
+          artUri: content.thumbnails.isNotEmpty
+              ? Uri.tryParse(content.thumbnails.last.url)
+              : null,
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -876,10 +862,9 @@ class AndroidAutoBrowserController {
     return MediaItem(
       id: '$_artistPrefix${artist.artistId}',
       title: artist.name,
-      artUri:
-          artist.thumbnails.isNotEmpty
-              ? Uri.tryParse(artist.thumbnails.last.url)
-              : null,
+      artUri: artist.thumbnails.isNotEmpty
+          ? Uri.tryParse(artist.thumbnails.last.url)
+          : null,
       playable: false,
       extras: {
         _kContentStyleBrowsable: _kStyleGrid,
@@ -893,10 +878,9 @@ class AndroidAutoBrowserController {
       id: '$_podcastPrefix${podcast.browseId}',
       title: podcast.name,
       artist: podcast.author,
-      artUri:
-          podcast.thumbnails.isNotEmpty
-              ? Uri.tryParse(podcast.thumbnails.last.url)
-              : null,
+      artUri: podcast.thumbnails.isNotEmpty
+          ? Uri.tryParse(podcast.thumbnails.last.url)
+          : null,
       playable: false,
       extras: {
         _kContentStyleBrowsable: _kStyleList,
@@ -916,10 +900,9 @@ class AndroidAutoBrowserController {
       artist: episode.podcastName ?? '',
       album: episode.podcastName,
       publishDate: episode.date,
-      artUri:
-          episode.thumbnails.isNotEmpty
-              ? Uri.tryParse(episode.thumbnails.last.url)
-              : null,
+      artUri: episode.thumbnails.isNotEmpty
+          ? Uri.tryParse(episode.thumbnails.last.url)
+          : null,
     );
     return track.toFreshMediaItem(
       additionalExtras: {_kContentStylePlayable: _kStyleList},
@@ -970,8 +953,9 @@ class AndroidAutoBrowserController {
             isExplicit: d.isExplicit,
             title: d.title,
             artist: d.artist,
-            artUri:
-                d.thumbnailUrl != null ? Uri.tryParse(d.thumbnailUrl!) : null,
+            artUri: d.thumbnailUrl != null
+                ? Uri.tryParse(d.thumbnailUrl!)
+                : null,
             duration: Duration.zero,
           );
           return track.toFreshMediaItem(
@@ -1021,11 +1005,10 @@ class AndroidAutoBrowserController {
   }
 
   Future<List<MediaItem>> _buildPlaylistFolders() async {
-    final (local, liked) =
-        await (
-          _libraryRepo.getAllPlaylists(),
-          _libraryRepo.getAllLikedPlaylists(),
-        ).wait;
+    final (local, liked) = await (
+      _libraryRepo.getAllPlaylists(),
+      _libraryRepo.getAllLikedPlaylists(),
+    ).wait;
 
     return [
       ...local.map(
@@ -1048,12 +1031,11 @@ class AndroidAutoBrowserController {
           id: '$_homePlaylistPrefix${p.playlistId}',
           title: p.name,
           displaySubtitle: 'Liked Playlist',
-          artUri:
-              p.thumbnailUrl != null
-                  ? Uri.tryParse(p.thumbnailUrl!)
-                  : Uri.parse(
-                    'android.resource://com.gmstyle.sonora/drawable/cover_playlist',
-                  ),
+          artUri: p.thumbnailUrl != null
+              ? Uri.tryParse(p.thumbnailUrl!)
+              : Uri.parse(
+                  'android.resource://com.gmstyle.sonora/drawable/cover_playlist',
+                ),
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -1065,11 +1047,10 @@ class AndroidAutoBrowserController {
   }
 
   Future<List<MediaItem>> _localPlaylistToMediaItems(int playlistId) async {
-    final (entries, allLiked) =
-        await (
-          _libraryRepo.getPlaylistEntries(playlistId),
-          _libraryRepo.getAllLikedSongs(),
-        ).wait;
+    final (entries, allLiked) = await (
+      _libraryRepo.getPlaylistEntries(playlistId),
+      _libraryRepo.getAllLikedSongs(),
+    ).wait;
 
     final likedByVideoId = <String, LikedSongModel>{
       for (final s in allLiked) s.videoId: s,
@@ -1152,36 +1133,31 @@ class AndroidAutoBrowserController {
     final mixTypeStr = parentMediaId.substring(_mixPrefix.length);
     final songs = await _fetchMixSongs(mixTypeStr);
 
-    final songItems =
-        songs.map((s) {
-          final isVideo =
-              s is HistoryModel
-                  ? s.isVideo
-                  : s is LikedSongModel
-                  ? s.isVideo
-                  : false;
-          final isExplicit =
-              s is HistoryModel
-                  ? s.isExplicit
-                  : s is LikedSongModel
-                  ? s.isExplicit
-                  : false;
-          final track = QueueTrack(
-            videoId: s.videoId,
-            needsUrl: true,
-            isVideo: isVideo,
-            isExplicit: isExplicit,
-            title: s.title,
-            artist: s.artist,
-            artUri:
-                s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
-            duration:
-                s.duration != null ? Duration(seconds: s.duration!) : null,
-          );
-          return track.toFreshMediaItem(
-            additionalExtras: {_kContentStylePlayable: _kStyleList},
-          );
-        }).toList();
+    final songItems = songs.map((s) {
+      final isVideo = s is HistoryModel
+          ? s.isVideo
+          : s is LikedSongModel
+          ? s.isVideo
+          : false;
+      final isExplicit = s is HistoryModel
+          ? s.isExplicit
+          : s is LikedSongModel
+          ? s.isExplicit
+          : false;
+      final track = QueueTrack(
+        videoId: s.videoId,
+        needsUrl: true,
+        isVideo: isVideo,
+        isExplicit: isExplicit,
+        title: s.title,
+        artist: s.artist,
+        artUri: s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
+        duration: s.duration != null ? Duration(seconds: s.duration!) : null,
+      );
+      return track.toFreshMediaItem(
+        additionalExtras: {_kContentStylePlayable: _kStyleList},
+      );
+    }).toList();
 
     return [
       MediaItem(
@@ -1219,10 +1195,9 @@ class AndroidAutoBrowserController {
           id: '$_homeAlbumPrefix${a.albumId}',
           title: a.name,
           artist: displayArtists(a.artists),
-          artUri:
-              a.thumbnails.isNotEmpty
-                  ? Uri.tryParse(a.thumbnails.last.url)
-                  : null,
+          artUri: a.thumbnails.isNotEmpty
+              ? Uri.tryParse(a.thumbnails.last.url)
+              : null,
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -1239,10 +1214,9 @@ class AndroidAutoBrowserController {
           title: v.name,
           artist: displayArtists(v.artists),
           duration: Duration(seconds: v.duration ?? 0),
-          artUri:
-              v.thumbnails.isNotEmpty
-                  ? Uri.tryParse(v.thumbnails.last.url)
-                  : null,
+          artUri: v.thumbnails.isNotEmpty
+              ? Uri.tryParse(v.thumbnails.last.url)
+              : null,
         );
         return track.toFreshMediaItem(
           additionalExtras: {_kContentStylePlayable: _kStyleList},
@@ -1304,10 +1278,9 @@ class AndroidAutoBrowserController {
                 id: '$_artistPrefix${a.browseId}',
                 title: a.title,
                 artist: a.subscribers,
-                artUri:
-                    a.thumbnails.isNotEmpty
-                        ? Uri.tryParse(a.thumbnails.last.url)
-                        : null,
+                artUri: a.thumbnails.isNotEmpty
+                    ? Uri.tryParse(a.thumbnails.last.url)
+                    : null,
                 playable: false,
                 extras: {
                   _kContentStyleBrowsable: _kStyleList,
@@ -1325,10 +1298,9 @@ class AndroidAutoBrowserController {
     return MediaItem(
       id: '$_homePlaylistPrefix${playlist.playlistId}',
       title: playlist.title,
-      artUri:
-          playlist.thumbnails.isNotEmpty
-              ? Uri.tryParse(playlist.thumbnails.last.url)
-              : null,
+      artUri: playlist.thumbnails.isNotEmpty
+          ? Uri.tryParse(playlist.thumbnails.last.url)
+          : null,
       playable: false,
       extras: {
         _kContentStyleBrowsable: _kStyleList,
@@ -1374,10 +1346,9 @@ class AndroidAutoBrowserController {
             id: '$_homePlaylistPrefix${p.playlistId}',
             title: p.name,
             artist: displayArtists(p.artists),
-            artUri:
-                p.thumbnails.isNotEmpty
-                    ? Uri.tryParse(p.thumbnails.last.url)
-                    : null,
+            artUri: p.thumbnails.isNotEmpty
+                ? Uri.tryParse(p.thumbnails.last.url)
+                : null,
             playable: false,
             extras: {
               _kContentStyleBrowsable: _kStyleList,
@@ -1399,10 +1370,9 @@ class AndroidAutoBrowserController {
         title: song.title,
         artist: displayArtists(song.artists),
         duration: Duration(seconds: song.duration),
-        artUri:
-            song.thumbnails.isNotEmpty
-                ? Uri.tryParse(song.thumbnails.last.url)
-                : null,
+        artUri: song.thumbnails.isNotEmpty
+            ? Uri.tryParse(song.thumbnails.last.url)
+            : null,
       );
       return track.toFreshMediaItem(
         additionalExtras: {_kContentStylePlayable: _kStyleList},
@@ -1417,10 +1387,9 @@ class AndroidAutoBrowserController {
           (a) => MediaItem(
             id: '$_artistPrefix${a.artistId}',
             title: a.name,
-            artUri:
-                a.thumbnails.isNotEmpty
-                    ? Uri.tryParse(a.thumbnails.last.url)
-                    : null,
+            artUri: a.thumbnails.isNotEmpty
+                ? Uri.tryParse(a.thumbnails.last.url)
+                : null,
             playable: false,
             extras: {
               _kContentStyleBrowsable: _kStyleList,
@@ -1470,8 +1439,9 @@ class AndroidAutoBrowserController {
             id: '$_artistPrefix${a.artistId}',
             title: a.name,
             displaySubtitle: 'Artist',
-            artUri:
-                a.thumbnailUrl != null ? Uri.tryParse(a.thumbnailUrl!) : null,
+            artUri: a.thumbnailUrl != null
+                ? Uri.tryParse(a.thumbnailUrl!)
+                : null,
             playable: false,
             extras: {
               _kContentStyleBrowsable: _kStyleList,
@@ -1516,10 +1486,9 @@ class AndroidAutoBrowserController {
         title: song.name,
         artist: displayArtists(song.artists),
         duration: Duration(seconds: song.duration ?? 0),
-        artUri:
-            song.thumbnails.isNotEmpty
-                ? Uri.tryParse(song.thumbnails.last.url)
-                : null,
+        artUri: song.thumbnails.isNotEmpty
+            ? Uri.tryParse(song.thumbnails.last.url)
+            : null,
       );
       mediaItems.add(
         track.toFreshMediaItem(
@@ -1535,10 +1504,9 @@ class AndroidAutoBrowserController {
           id: '$_homeAlbumPrefix${album.albumId}',
           title: album.name,
           artist: 'Album',
-          artUri:
-              album.thumbnails.isNotEmpty
-                  ? Uri.tryParse(album.thumbnails.last.url)
-                  : null,
+          artUri: album.thumbnails.isNotEmpty
+              ? Uri.tryParse(album.thumbnails.last.url)
+              : null,
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -1555,10 +1523,9 @@ class AndroidAutoBrowserController {
           id: '$_homeAlbumPrefix${single.albumId}',
           title: single.name,
           artist: 'Single',
-          artUri:
-              single.thumbnails.isNotEmpty
-                  ? Uri.tryParse(single.thumbnails.last.url)
-                  : null,
+          artUri: single.thumbnails.isNotEmpty
+              ? Uri.tryParse(single.thumbnails.last.url)
+              : null,
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -1575,10 +1542,9 @@ class AndroidAutoBrowserController {
           id: '$_homePlaylistPrefix${playlist.playlistId}',
           title: playlist.name,
           artist: 'Playlist',
-          artUri:
-              playlist.thumbnails.isNotEmpty
-                  ? Uri.tryParse(playlist.thumbnails.last.url)
-                  : null,
+          artUri: playlist.thumbnails.isNotEmpty
+              ? Uri.tryParse(playlist.thumbnails.last.url)
+              : null,
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -1595,10 +1561,9 @@ class AndroidAutoBrowserController {
           id: '$_artistPrefix${related.artistId}',
           title: related.name,
           artist: 'Artist',
-          artUri:
-              related.thumbnails.isNotEmpty
-                  ? Uri.tryParse(related.thumbnails.last.url)
-                  : null,
+          artUri: related.thumbnails.isNotEmpty
+              ? Uri.tryParse(related.thumbnails.last.url)
+              : null,
           playable: false,
           extras: {
             _kContentStyleBrowsable: _kStyleList,
@@ -1619,8 +1584,9 @@ class AndroidAutoBrowserController {
             id: '$_homeAlbumPrefix${a.albumId}',
             title: a.name,
             artist: a.artistName,
-            artUri:
-                a.thumbnailUrl != null ? Uri.tryParse(a.thumbnailUrl!) : null,
+            artUri: a.thumbnailUrl != null
+                ? Uri.tryParse(a.thumbnailUrl!)
+                : null,
             playable: false,
             extras: {
               _kContentStyleBrowsable: _kStyleList,
@@ -1639,8 +1605,9 @@ class AndroidAutoBrowserController {
             id: '$_podcastPrefix${p.browseId}',
             title: p.name,
             artist: p.authorName,
-            artUri:
-                p.thumbnailUrl != null ? Uri.tryParse(p.thumbnailUrl!) : null,
+            artUri: p.thumbnailUrl != null
+                ? Uri.tryParse(p.thumbnailUrl!)
+                : null,
             playable: false,
             extras: {
               _kContentStyleBrowsable: _kStyleList,
@@ -1693,10 +1660,9 @@ class AndroidAutoBrowserController {
           artist: authorName,
           album: podcast.name,
           duration: seconds != null ? Duration(seconds: seconds) : null,
-          artUri:
-              e.thumbnails.isNotEmpty
-                  ? Uri.tryParse(e.thumbnails.last.url)
-                  : null,
+          artUri: e.thumbnails.isNotEmpty
+              ? Uri.tryParse(e.thumbnails.last.url)
+              : null,
           publishDate: e.date,
         );
         return track.toFreshMediaItem(
@@ -1746,10 +1712,9 @@ class AndroidAutoBrowserController {
           artist: displayArtists(s.artists),
           album: album.name,
           duration: Duration(seconds: s.duration ?? 0),
-          artUri:
-              album.thumbnails.isNotEmpty
-                  ? Uri.tryParse(album.thumbnails.last.url)
-                  : null,
+          artUri: album.thumbnails.isNotEmpty
+              ? Uri.tryParse(album.thumbnails.last.url)
+              : null,
         );
         return track.toFreshMediaItem(
           additionalExtras: {_kContentStylePlayable: _kStyleList},
@@ -1796,10 +1761,9 @@ class AndroidAutoBrowserController {
           title: v.name,
           artist: displayArtists(v.artists),
           duration: Duration(seconds: v.duration ?? 0),
-          artUri:
-              v.thumbnails.isNotEmpty
-                  ? Uri.tryParse(v.thumbnails.last.url)
-                  : null,
+          artUri: v.thumbnails.isNotEmpty
+              ? Uri.tryParse(v.thumbnails.last.url)
+              : null,
         );
         return track.toFreshMediaItem(
           additionalExtras: {_kContentStylePlayable: _kStyleList},
@@ -1850,10 +1814,9 @@ class AndroidAutoBrowserController {
               name: album.name,
               artistName: displayArtists(album.artists),
               artistId: primaryArtistId(album.artists),
-              thumbnailUrl:
-                  album.thumbnails.isNotEmpty
-                      ? album.thumbnails.last.url
-                      : null,
+              thumbnailUrl: album.thumbnails.isNotEmpty
+                  ? album.thumbnails.last.url
+                  : null,
               year: album.year,
               addedAt: DateTime.now(),
             ),
@@ -1901,10 +1864,9 @@ class AndroidAutoBrowserController {
             FollowedArtistModel(
               artistId: artistId,
               name: artist.name,
-              thumbnailUrl:
-                  artist.thumbnails.isNotEmpty
-                      ? artist.thumbnails.last.url
-                      : null,
+              thumbnailUrl: artist.thumbnails.isNotEmpty
+                  ? artist.thumbnails.last.url
+                  : null,
               addedAt: DateTime.now(),
             ),
           );
@@ -1960,10 +1922,9 @@ class AndroidAutoBrowserController {
               name: podcast.name,
               authorName: podcast.author?.name,
               authorId: podcast.author?.artistId,
-              thumbnailUrl:
-                  podcast.thumbnails.isNotEmpty
-                      ? podcast.thumbnails.last.url
-                      : null,
+              thumbnailUrl: podcast.thumbnails.isNotEmpty
+                  ? podcast.thumbnails.last.url
+                  : null,
               episodeCount: podcast.episodes.length,
               addedAt: DateTime.now(),
             ),
@@ -1985,9 +1946,8 @@ class AndroidAutoBrowserController {
           var items = await _localPlaylistToMediaItems(localId);
           if (items.isNotEmpty) {
             final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-            final track = QueueTrack.fromMediaItem(
-              items.first,
-            ).copyWith(url: url, needsUrl: false);
+            final track = QueueTrack.fromMediaItem(items.first)
+                .copyWith(url: url, needsUrl: false);
             items = [track.toMediaItem(items.first), ...items.skip(1)];
             await _playNow(items);
           }
@@ -2006,9 +1966,8 @@ class AndroidAutoBrowserController {
           if (items.isNotEmpty) {
             items = List<MediaItem>.from(items)..shuffle();
             final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-            final track = QueueTrack.fromMediaItem(
-              items.first,
-            ).copyWith(url: url, needsUrl: false);
+            final track = QueueTrack.fromMediaItem(items.first)
+                .copyWith(url: url, needsUrl: false);
             items[0] = track.toMediaItem(items.first);
             await _playNow(items);
           }
@@ -2031,10 +1990,9 @@ class AndroidAutoBrowserController {
             LikedPlaylistModel(
               playlistId: playlistId,
               name: playlist.name,
-              thumbnailUrl:
-                  playlist.thumbnails.isNotEmpty
-                      ? playlist.thumbnails.last.url
-                      : null,
+              thumbnailUrl: playlist.thumbnails.isNotEmpty
+                  ? playlist.thumbnails.last.url
+                  : null,
               videoCount: playlist.videoCount,
               addedAt: DateTime.now(),
             ),
@@ -2070,9 +2028,8 @@ class AndroidAutoBrowserController {
         var items = await _buildDownloadMediaItems();
         if (items.isNotEmpty) {
           final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-          final track = QueueTrack.fromMediaItem(
-            items.first,
-          ).copyWith(url: url, needsUrl: false);
+          final track = QueueTrack.fromMediaItem(items.first)
+              .copyWith(url: url, needsUrl: false);
           items = [track.toMediaItem(items.first), ...items.skip(1)];
           await _playNow(items);
         }
@@ -2083,9 +2040,8 @@ class AndroidAutoBrowserController {
         if (items.isNotEmpty) {
           items = List<MediaItem>.from(items)..shuffle();
           final url = await _playVideoIdUseCase.resolveUrl(items.first.id);
-          final track = QueueTrack.fromMediaItem(
-            items.first,
-          ).copyWith(url: url, needsUrl: false);
+          final track = QueueTrack.fromMediaItem(items.first)
+              .copyWith(url: url, needsUrl: false);
           items[0] = track.toMediaItem(items.first);
           await _playNow(items);
         }
@@ -2136,10 +2092,9 @@ class AndroidAutoBrowserController {
             MediaItem(
               id: '$_artistPrefix${result.artistId}',
               title: result.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
+              artUri: result.thumbnails.isNotEmpty
+                  ? Uri.tryParse(result.thumbnails.last.url)
+                  : null,
               playable: false,
               extras: {
                 _kContentStyleBrowsable: _kStyleList,
@@ -2159,10 +2114,9 @@ class AndroidAutoBrowserController {
             title: result.name,
             artist: displayArtists(result.artists),
             duration: Duration(seconds: result.duration ?? 0),
-            artUri:
-                result.thumbnails.isNotEmpty
-                    ? Uri.tryParse(result.thumbnails.last.url)
-                    : null,
+            artUri: result.thumbnails.isNotEmpty
+                ? Uri.tryParse(result.thumbnails.last.url)
+                : null,
           );
           songs.add(
             track.toFreshMediaItem(
@@ -2177,10 +2131,9 @@ class AndroidAutoBrowserController {
             title: result.name,
             artist: displayArtists(result.artists),
             duration: Duration(seconds: result.duration ?? 0),
-            artUri:
-                result.thumbnails.isNotEmpty
-                    ? Uri.tryParse(result.thumbnails.last.url)
-                    : null,
+            artUri: result.thumbnails.isNotEmpty
+                ? Uri.tryParse(result.thumbnails.last.url)
+                : null,
           );
           songs.add(
             track.toFreshMediaItem(
@@ -2198,10 +2151,9 @@ class AndroidAutoBrowserController {
               id: '$_homeAlbumPrefix${result.albumId}',
               title: result.name,
               artist: displayArtists(result.artists),
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
+              artUri: result.thumbnails.isNotEmpty
+                  ? Uri.tryParse(result.thumbnails.last.url)
+                  : null,
               playable: false,
               extras: {
                 _kContentStyleBrowsable: _kStyleList,
@@ -2219,10 +2171,9 @@ class AndroidAutoBrowserController {
             MediaItem(
               id: '$_homePlaylistPrefix${result.playlistId}',
               title: result.name,
-              artUri:
-                  result.thumbnails.isNotEmpty
-                      ? Uri.tryParse(result.thumbnails.last.url)
-                      : null,
+              artUri: result.thumbnails.isNotEmpty
+                  ? Uri.tryParse(result.thumbnails.last.url)
+                  : null,
               playable: false,
               extras: {
                 _kContentStyleBrowsable: _kStyleList,

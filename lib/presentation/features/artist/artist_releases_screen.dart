@@ -42,30 +42,27 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
       ArtistReleaseKind.singles => l10n.singles,
     };
     final artistName = widget.artistName;
-    final title =
-        artistName != null && artistName.isNotEmpty
-            ? '$sectionTitle · $artistName'
-            : sectionTitle;
+    final title = artistName != null && artistName.isNotEmpty
+        ? '$sectionTitle · $artistName'
+        : sectionTitle;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
       body: releasesAsync.when(
         loading: () => const _ReleasesLoadingGrid(),
-        error:
-            (e, _) => ErrorRetryWidget(
-              message: switch (widget.kind) {
-                ArtistReleaseKind.albums => l10n.failedToLoadAlbums,
-                ArtistReleaseKind.singles => l10n.failedToLoadSingles,
-              },
-              onRetry: () => ref.invalidate(artistReleasesProvider(_key)),
-            ),
+        error: (e, _) => ErrorRetryWidget(
+          message: switch (widget.kind) {
+            ArtistReleaseKind.albums => l10n.failedToLoadAlbums,
+            ArtistReleaseKind.singles => l10n.failedToLoadSingles,
+          },
+          onRetry: () => ref.invalidate(artistReleasesProvider(_key)),
+        ),
         data: (releases) {
           if (releases.isEmpty) {
             return Center(child: Text(l10n.noContentAvailable));
@@ -76,18 +73,16 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
               final viewport = constraints.maxWidth;
               final isWide = viewport >= kExpandedBreakpoint;
               final horizontalPad = isWide ? kWideContentPadding : 16.0;
-              final contentWidth =
-                  isWide && viewport > kDocumentContentMaxWidth
-                      ? kDocumentContentMaxWidth
-                      : viewport;
-              final columns =
-                  contentWidth < kCompactBreakpoint
-                      ? 2
-                      : contentWidth < kMediumBreakpoint
-                      ? 3
-                      : contentWidth < kExpandedBreakpoint
-                      ? 4
-                      : 5;
+              final contentWidth = isWide && viewport > kDocumentContentMaxWidth
+                  ? kDocumentContentMaxWidth
+                  : viewport;
+              final columns = contentWidth < kCompactBreakpoint
+                  ? 2
+                  : contentWidth < kMediumBreakpoint
+                  ? 3
+                  : contentWidth < kExpandedBreakpoint
+                  ? 4
+                  : 5;
               final cardWidth =
                   (contentWidth - horizontalPad * 2 - (columns - 1) * 12) /
                   columns;
@@ -102,8 +97,8 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
               final sorted = sortArtistReleases(releases, _sort);
 
               final grid = RefreshIndicator(
-                onRefresh:
-                    () => ref.refresh(artistReleasesProvider(_key).future),
+                onRefresh: () =>
+                    ref.refresh(artistReleasesProvider(_key).future),
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
@@ -127,14 +122,12 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
                                   releases.length,
                                 ),
                               },
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodySmall?.copyWith(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                             ),
                             const SizedBox(height: 8),
                             Wrap(
@@ -146,18 +139,16 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
                                   selected: _sort == ArtistReleaseSort.year,
                                   showCheckmark: false,
                                   visualDensity: VisualDensity.compact,
-                                  onSelected:
-                                      (_) =>
-                                          _selectSort(ArtistReleaseSort.year),
+                                  onSelected: (_) =>
+                                      _selectSort(ArtistReleaseSort.year),
                                 ),
                                 ChoiceChip(
                                   label: Text(l10n.sortByTitle),
                                   selected: _sort == ArtistReleaseSort.title,
                                   showCheckmark: false,
                                   visualDensity: VisualDensity.compact,
-                                  onSelected:
-                                      (_) =>
-                                          _selectSort(ArtistReleaseSort.title),
+                                  onSelected: (_) =>
+                                      _selectSort(ArtistReleaseSort.title),
                                 ),
                               ],
                             ),
@@ -187,10 +178,9 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
                             name: release.name,
                             artist: displayArtists(release.artists),
                             artistId: primaryArtistId(release.artists),
-                            thumbnailUrl:
-                                release.thumbnails.isNotEmpty
-                                    ? release.thumbnails.last.url
-                                    : null,
+                            thumbnailUrl: release.thumbnails.isNotEmpty
+                                ? release.thumbnails.last.url
+                                : null,
                             year: release.year,
                             type: releaseType,
                             cardWidth: cardWidth,
@@ -236,18 +226,16 @@ class _ReleasesLoadingGrid extends StatelessWidget {
         final viewport = constraints.maxWidth;
         final isWide = viewport >= kExpandedBreakpoint;
         final horizontalPad = isWide ? kWideContentPadding : 16.0;
-        final contentWidth =
-            isWide && viewport > kDocumentContentMaxWidth
-                ? kDocumentContentMaxWidth
-                : viewport;
-        final columns =
-            contentWidth < kCompactBreakpoint
-                ? 2
-                : contentWidth < kMediumBreakpoint
-                ? 3
-                : contentWidth < kExpandedBreakpoint
-                ? 4
-                : 5;
+        final contentWidth = isWide && viewport > kDocumentContentMaxWidth
+            ? kDocumentContentMaxWidth
+            : viewport;
+        final columns = contentWidth < kCompactBreakpoint
+            ? 2
+            : contentWidth < kMediumBreakpoint
+            ? 3
+            : contentWidth < kExpandedBreakpoint
+            ? 4
+            : 5;
         final cardWidth =
             (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
         final grid = GridView.builder(
@@ -259,11 +247,10 @@ class _ReleasesLoadingGrid extends StatelessWidget {
             childAspectRatio: cardWidth / (cardWidth + 64),
           ),
           itemCount: columns * 3,
-          itemBuilder:
-              (_, _) => ShimmerLoading(
-                variant: ShimmerVariant.card,
-                cardWidth: cardWidth,
-              ),
+          itemBuilder: (_, _) => ShimmerLoading(
+            variant: ShimmerVariant.card,
+            cardWidth: cardWidth,
+          ),
         );
         if (!isWide) return grid;
         return Align(

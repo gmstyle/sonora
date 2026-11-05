@@ -41,10 +41,9 @@ class LyricsTranslationNotifier extends Notifier<LyricsTranslationState> {
     state = LyricsTranslationState(
       videoId: state.videoId,
       showTranslation: false,
-      phase:
-          state.hasTranslation
-              ? LyricsTranslationPhase.ready
-              : LyricsTranslationPhase.idle,
+      phase: state.hasTranslation
+          ? LyricsTranslationPhase.ready
+          : LyricsTranslationPhase.idle,
       translation: state.translation,
     );
   }

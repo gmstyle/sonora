@@ -27,8 +27,8 @@ class AssembleMomentMixUseCase {
   AssembleMomentMixUseCase(
     this._library,
     this._music, {
-    MomentMixAssembler assembler = const MomentMixAssembler(),
-  }) : _assembler = assembler;
+    this._assembler = const MomentMixAssembler(),
+  });
 
   final LibraryRepository _library;
   final MusicRepository _music;

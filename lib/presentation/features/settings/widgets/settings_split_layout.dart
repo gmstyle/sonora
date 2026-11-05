@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -40,8 +41,8 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
                   children: [
                     IconButton(
                       icon: const Icon(LucideIcons.arrowLeft),
-                      tooltip:
-                          MaterialLocalizations.of(context).backButtonTooltip,
+                      tooltip: MaterialLocalizations.of(context)
+                          .backButtonTooltip,
                       onPressed: () => popSettings(context),
                     ),
                     Expanded(
@@ -61,13 +62,11 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
                     horizontal: 12,
                     vertical: 8,
                   ),
-                  itemCount:
-                      SettingsCategory.values
-                          .where(
-                            (c) =>
-                                c != SettingsCategory.background || isAndroid,
-                          )
-                          .length,
+                  itemCount: SettingsCategory.values
+                      .where(
+                        (c) => c != SettingsCategory.background || isAndroid,
+                      )
+                      .length,
                   itemBuilder: (context, index) {
                     final category = SettingsCategory.values
                         .where(
@@ -85,11 +84,10 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color:
-                                isSelected
-                                    ? theme.colorScheme.secondaryContainer
-                                        .withValues(alpha: 0.4)
-                                    : Colors.transparent,
+                            color: isSelected
+                                ? theme.colorScheme.secondaryContainer
+                                      .withValues(alpha: 0.4)
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           padding: const EdgeInsets.symmetric(
@@ -100,10 +98,9 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
                             children: [
                               Icon(
                                 category.icon,
-                                color:
-                                    isSelected
-                                        ? theme.colorScheme.primary
-                                        : theme.colorScheme.onSurfaceVariant,
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -115,16 +112,12 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
                                       category.getTitle(context),
                                       style: theme.textTheme.bodyMedium
                                           ?.copyWith(
-                                            fontWeight:
-                                                isSelected
-                                                    ? FontWeight.bold
-                                                    : FontWeight.normal,
-                                            color:
-                                                isSelected
-                                                    ? theme.colorScheme.primary
-                                                    : theme
-                                                        .colorScheme
-                                                        .onSurface,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            color: isSelected
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme.onSurface,
                                           ),
                                     ),
                                     const SizedBox(height: 2),
@@ -132,10 +125,9 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
                                       category.getSubtitle(context),
                                       style: theme.textTheme.bodySmall
                                           ?.copyWith(
-                                            color:
-                                                theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
                                             fontSize: 11,
                                           ),
                                       maxLines: 1,
@@ -189,38 +181,37 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
 
     // Card + document padding only at >= kExpandedBreakpoint (1200).
     // Tablet 600–1199: full-bleed split on shell surface.
-    final Widget body =
-        isWide
-            ? Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: kWideContentPadding,
-                  vertical: 32.0,
+    final Widget body = isWide
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: kWideContentPadding,
+                vertical: 32.0,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: kDocumentContentMaxWidth,
                 ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: kDocumentContentMaxWidth,
-                  ),
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.3,
-                        ),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.3,
                       ),
                     ),
-                    color: theme.colorScheme.surfaceContainerLow,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: mainRow,
-                    ),
+                  ),
+                  color: theme.colorScheme.surfaceContainerLow,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: mainRow,
                   ),
                 ),
               ),
-            )
-            : mainRow;
+            ),
+          )
+        : mainRow;
 
     return Scaffold(backgroundColor: theme.colorScheme.surface, body: body);
   }

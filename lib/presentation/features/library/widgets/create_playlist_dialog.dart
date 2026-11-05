@@ -79,9 +79,8 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
     final name = _controller.text.trim();
     if (name.isEmpty) {
       setState(
-        () =>
-            _error =
-                l10n?.playlistNameRequired ?? 'A playlist name is required',
+        () => _error =
+            l10n?.playlistNameRequired ?? 'A playlist name is required',
       );
       return;
     }

@@ -34,27 +34,23 @@ class HomeWrappedEntry extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final child =
-        seen
-            ? _ReplayRow(onTap: () => openSonoraWrapped(context, ref))
-            : SonoraWrappedBanner(
-              onOpen: () => openSonoraWrapped(context, ref),
-            );
+    final child = seen
+        ? _ReplayRow(onTap: () => openSonoraWrapped(context, ref))
+        : SonoraWrappedBanner(onOpen: () => openSonoraWrapped(context, ref));
 
-    final padding =
-        embedded
-            ? EdgeInsets.fromLTRB(
-              metrics.quickRowPadding,
-              0,
-              metrics.quickRowPadding,
-              metrics.zoneGap,
-            )
-            : EdgeInsets.fromLTRB(
-              metrics.horizontalPadding,
-              4,
-              metrics.horizontalPadding,
-              8,
-            );
+    final padding = embedded
+        ? EdgeInsets.fromLTRB(
+            metrics.quickRowPadding,
+            0,
+            metrics.quickRowPadding,
+            metrics.zoneGap,
+          )
+        : EdgeInsets.fromLTRB(
+            metrics.horizontalPadding,
+            4,
+            metrics.horizontalPadding,
+            8,
+          );
 
     return Padding(padding: padding, child: child);
   }

@@ -26,8 +26,9 @@ class PlayPodcastUseCase {
         .toList(growable: false);
     if (playable.isEmpty) return [];
 
-    final resolvedIndex =
-        playIndex >= 0 && playIndex < playable.length ? playIndex : 0;
+    final resolvedIndex = playIndex >= 0 && playIndex < playable.length
+        ? playIndex
+        : 0;
 
     String? firstUrl;
     if (playIndex >= 0) {
@@ -38,20 +39,20 @@ class PlayPodcastUseCase {
       for (int i = 0; i < playable.length; i++)
         i == resolvedIndex && firstUrl != null
             ? _toMediaItem(
-              playable[i],
-              firstUrl,
-              podcastBrowseId: podcastBrowseId,
-              podcastName: podcastName,
-              authorName: authorName,
-              authorId: authorId,
-            )
+                playable[i],
+                firstUrl,
+                podcastBrowseId: podcastBrowseId,
+                podcastName: podcastName,
+                authorName: authorName,
+                authorId: authorId,
+              )
             : _toPendingMediaItem(
-              playable[i],
-              podcastBrowseId: podcastBrowseId,
-              podcastName: podcastName,
-              authorName: authorName,
-              authorId: authorId,
-            ),
+                playable[i],
+                podcastBrowseId: podcastBrowseId,
+                podcastName: podcastName,
+                authorName: authorName,
+                authorId: authorId,
+              ),
     ];
   }
 

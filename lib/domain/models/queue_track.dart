@@ -98,10 +98,9 @@ class QueueTrack {
       viewCount: clearViewCount ? null : (viewCount ?? this.viewCount),
       publishDate: clearPublishDate ? null : (publishDate ?? this.publishDate),
       contentType: contentType ?? this.contentType,
-      podcastBrowseId:
-          clearPodcastBrowseId
-              ? null
-              : (podcastBrowseId ?? this.podcastBrowseId),
+      podcastBrowseId: clearPodcastBrowseId
+          ? null
+          : (podcastBrowseId ?? this.podcastBrowseId),
       title: title ?? this.title,
       artist: clearArtist ? null : (artist ?? this.artist),
       album: clearAlbumField ? null : (album ?? this.album),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/settings_provider.dart';
@@ -64,10 +65,9 @@ class _WideShellState extends ConsumerState<WideShell> {
                                 ),
                                 alignment: Alignment.centerLeft,
                                 child: Row(
-                                  mainAxisAlignment:
-                                      isCollapsed
-                                          ? MainAxisAlignment.center
-                                          : MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: isCollapsed
+                                      ? MainAxisAlignment.center
+                                      : MainAxisAlignment.spaceBetween,
                                   children: [
                                     if (!isCollapsed)
                                       Expanded(
@@ -132,9 +132,8 @@ class _WideShellState extends ConsumerState<WideShell> {
                 ),
                 VerticalDivider(
                   width: 1,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  color: Theme.of(context).colorScheme.outlineVariant
+                      .withValues(alpha: 0.4),
                 ),
                 Expanded(
                   child: Stack(
@@ -176,12 +175,12 @@ class _WideShellState extends ConsumerState<WideShell> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                backgroundColor:
-                    isSelected
-                        ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
-                        : null,
-                foregroundColor:
-                    isSelected ? colorScheme.primary : colorScheme.onSurface,
+                backgroundColor: isSelected
+                    ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                    : null,
+                foregroundColor: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurface,
                 padding: EdgeInsets.zero,
               ),
               onPressed: () => context.push('/settings'),
@@ -199,10 +198,9 @@ class _WideShellState extends ConsumerState<WideShell> {
         child: Container(
           height: 48,
           decoration: BoxDecoration(
-            color:
-                isSelected
-                    ? colorScheme.secondaryContainer.withValues(alpha: 0.4)
-                    : Colors.transparent,
+            color: isSelected
+                ? colorScheme.secondaryContainer.withValues(alpha: 0.4)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -210,10 +208,9 @@ class _WideShellState extends ConsumerState<WideShell> {
             children: [
               Icon(
                 LucideIcons.settings,
-                color:
-                    isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -222,12 +219,12 @@ class _WideShellState extends ConsumerState<WideShell> {
                   maxLines: 1,
                   overflow: TextOverflow.clip,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color:
-                        isSelected
-                            ? colorScheme.primary
-                            : colorScheme.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -257,12 +254,12 @@ class _WideShellState extends ConsumerState<WideShell> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                backgroundColor:
-                    isSelected
-                        ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
-                        : null,
-                foregroundColor:
-                    isSelected ? colorScheme.primary : colorScheme.onSurface,
+                backgroundColor: isSelected
+                    ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
+                    : null,
+                foregroundColor: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurface,
                 padding: EdgeInsets.zero,
               ),
               onPressed: () => widget.navigationShell.goBranch(i),
@@ -282,10 +279,9 @@ class _WideShellState extends ConsumerState<WideShell> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color:
-                    isSelected
-                        ? colorScheme.secondaryContainer.withValues(alpha: 0.4)
-                        : Colors.transparent,
+                color: isSelected
+                    ? colorScheme.secondaryContainer.withValues(alpha: 0.4)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -293,10 +289,9 @@ class _WideShellState extends ConsumerState<WideShell> {
                 children: [
                   Icon(
                     _icons[i],
-                    color:
-                        isSelected
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -305,12 +300,12 @@ class _WideShellState extends ConsumerState<WideShell> {
                       maxLines: 1,
                       overflow: TextOverflow.clip,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
-                        color:
-                            isSelected
-                                ? colorScheme.primary
-                                : colorScheme.onSurface,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurface,
                       ),
                     ),
                   ),

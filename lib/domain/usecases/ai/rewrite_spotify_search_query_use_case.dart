@@ -66,11 +66,10 @@ class RewriteSpotifySearchQueryUseCase {
     }
 
     // First non-empty line, strip surrounding quotes.
-    final line =
-        text
-            .split(RegExp(r'\r?\n'))
-            .firstWhere((l) => l.trim().isNotEmpty, orElse: () => '')
-            .trim();
+    final line = text
+        .split(RegExp(r'\r?\n'))
+        .firstWhere((l) => l.trim().isNotEmpty, orElse: () => '')
+        .trim();
     if (line.isEmpty) return null;
     var query = line;
     if ((query.startsWith('"') && query.endsWith('"')) ||

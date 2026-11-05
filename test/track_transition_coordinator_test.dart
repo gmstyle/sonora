@@ -14,6 +14,7 @@ import 'package:sonora/presentation/features/player/skip_navigator.dart';
 import 'package:sonora/presentation/features/player/track_transition_coordinator.dart';
 import 'package:sonora/presentation/features/player/track_url_resolver.dart';
 import 'package:sonora/presentation/providers/cast_provider.dart';
+
 import 'helpers/fake_playback_engine.dart';
 
 /// Shared log so every fake can record the step it performed, which is what

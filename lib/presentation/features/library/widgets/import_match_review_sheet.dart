@@ -37,8 +37,8 @@ class ImportMatchReviewSheet extends StatefulWidget {
         useSafeArea: true,
         isDismissible: false,
         enableDrag: false,
-        builder:
-            (_) => ImportMatchReviewSheet(ambiguous: ambiguous, isSheet: true),
+        builder: (_) =>
+            ImportMatchReviewSheet(ambiguous: ambiguous, isSheet: true),
       );
     }
     return showDialog<Map<int, ImportedTrackCandidate?>>(
@@ -71,10 +71,9 @@ class _ImportMatchReviewSheetState extends State<ImportMatchReviewSheet> {
   }
 
   void _confirm() {
-    final selected =
-        _current.reviewCandidates
-            .where((c) => c.videoId == _selectedVideoId)
-            .firstOrNull;
+    final selected = _current.reviewCandidates
+        .where((c) => c.videoId == _selectedVideoId)
+        .firstOrNull;
     _choices[_current.index] = selected;
     _advance();
   }
@@ -105,10 +104,9 @@ class _ImportMatchReviewSheetState extends State<ImportMatchReviewSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final overlay =
-        widget.isSheet
-            ? _buildSheet(context, l10n)
-            : _buildDialog(context, l10n);
+    final overlay = widget.isSheet
+        ? _buildSheet(context, l10n)
+        : _buildDialog(context, l10n);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -131,9 +129,8 @@ class _ImportMatchReviewSheetState extends State<ImportMatchReviewSheet> {
       ),
       title: Text(
         l10n?.importMatchReviewTitle ?? 'Choose the right track',
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(context).textTheme.titleLarge
+            ?.copyWith(fontWeight: FontWeight.bold),
       ),
       content: _buildBody(context, l10n),
       actions: _buildActions(context, l10n),
@@ -150,9 +147,8 @@ class _ImportMatchReviewSheetState extends State<ImportMatchReviewSheet> {
         children: [
           Text(
             l10n?.importMatchReviewTitle ?? 'Choose the right track',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           SingleChildScrollView(child: _buildBody(context, l10n)),
@@ -167,8 +163,9 @@ class _ImportMatchReviewSheetState extends State<ImportMatchReviewSheet> {
     final colorScheme = Theme.of(context).colorScheme;
     final track = _current.track;
     final artist = track.primaryArtist;
-    final spotifyLabel =
-        artist.isEmpty ? track.title : '${track.title} · $artist';
+    final spotifyLabel = artist.isEmpty
+        ? track.title
+        : '${track.title} · $artist';
     final progress =
         l10n?.importMatchReviewProgress(_index + 1, widget.ambiguous.length) ??
         'Track ${_index + 1}/${widget.ambiguous.length}';
@@ -179,23 +176,20 @@ class _ImportMatchReviewSheetState extends State<ImportMatchReviewSheet> {
       children: [
         Text(
           progress,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: colorScheme.primary),
+          style: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: colorScheme.primary),
         ),
         const SizedBox(height: 8),
         Text(
           l10n?.importMatchReviewSpotifyLabel ?? 'From Spotify',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(context).textTheme.labelMedium
+              ?.copyWith(color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 4),
         Text(
           spotifyLabel,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         RadioGroup<String>(
@@ -228,13 +222,12 @@ class _ImportMatchReviewSheetState extends State<ImportMatchReviewSheet> {
           selected: selected,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side:
-                selected
-                    ? BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 1.5,
-                    )
-                    : BorderSide.none,
+            side: selected
+                ? BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 1.5,
+                  )
+                : BorderSide.none,
           ),
           secondary: ThumbnailWidget(
             imageUrl: c.thumbnailUrl,

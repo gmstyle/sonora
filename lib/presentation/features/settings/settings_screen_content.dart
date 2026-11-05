@@ -43,10 +43,9 @@ class SettingsScreenContent extends ConsumerWidget {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView.builder(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
-      itemCount:
-          SettingsCategory.values
-              .where((c) => c != SettingsCategory.background || isAndroid)
-              .length,
+      itemCount: SettingsCategory.values
+          .where((c) => c != SettingsCategory.background || isAndroid)
+          .length,
       itemBuilder: (context, index) {
         final category = SettingsCategory.values
             .where((c) => c != SettingsCategory.background || isAndroid)
@@ -79,8 +78,8 @@ class SettingsScreenContent extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (context) => SettingsCategoryScreen(category: category),
+                  builder: (context) =>
+                      SettingsCategoryScreen(category: category),
                 ),
               );
             },
@@ -171,7 +170,10 @@ class SettingsCategoryContent extends ConsumerWidget {
       case SettingsCategory.backup:
         return ListView(
           padding: listPadding,
-          children: [_BackupSection(ref: ref), _LocalSyncSection(ref: ref)],
+          children: [
+            _BackupSection(ref: ref),
+            _LocalSyncSection(ref: ref),
+          ],
         );
       case SettingsCategory.about:
         return ListView(
@@ -218,8 +220,8 @@ class _AppearanceSection extends StatelessWidget {
               ),
             ),
             selected: {current},
-            onSelectionChanged:
-                (selected) => notifier.setThemeMode(selected.first),
+            onSelectionChanged: (selected) =>
+                notifier.setThemeMode(selected.first),
           ),
         ),
         if (current == ThemeMode.dark || current == ThemeMode.system)
@@ -382,12 +384,11 @@ class _PlaybackSection extends ConsumerWidget {
         const Divider(height: 1),
         SettingsButtonTile(
           title: l10n.equalizer,
-          subtitle:
-              isLinux
-                  ? l10n.linuxEqualizerUnavailable
-                  : eqState.enabled
-                  ? '${l10n.onLabel} (${getPresetName(eqState.preset)})'
-                  : l10n.offLabel,
+          subtitle: isLinux
+              ? l10n.linuxEqualizerUnavailable
+              : eqState.enabled
+              ? '${l10n.onLabel} (${getPresetName(eqState.preset)})'
+              : l10n.offLabel,
           icon: LucideIcons.sliders,
           onPressed: () => EqualizerPanel.show(context),
         ),
@@ -433,12 +434,12 @@ class _DownloadSection extends StatelessWidget {
           value: settings.downloadQuality.storageValue,
           icon: LucideIcons.gauge,
           options: {
-            MediaQuality.high.storageValue:
-                AppLocalizations.of(context)!.qualityHigh,
-            MediaQuality.mid.storageValue:
-                AppLocalizations.of(context)!.qualityMid,
-            MediaQuality.low.storageValue:
-                AppLocalizations.of(context)!.qualityLow,
+            MediaQuality.high.storageValue: AppLocalizations.of(context)!
+                .qualityHigh,
+            MediaQuality.mid.storageValue: AppLocalizations.of(context)!
+                .qualityMid,
+            MediaQuality.low.storageValue: AppLocalizations.of(context)!
+                .qualityLow,
           },
           onChanged: (v) {
             if (v != null) {
@@ -592,34 +593,31 @@ class _AiSectionState extends ConsumerState<_AiSection> {
           SettingsButtonTile(
             title: l10n.aiAskModelDownload,
             icon: LucideIcons.download,
-            onPressed:
-                isOffline
-                    ? null
-                    : () async {
-                      await ref
-                          .read(askModelInstallProvider.notifier)
-                          .download();
-                      final phase = ref.read(askModelInstallProvider).phase;
-                      if (phase == AskModelInstallPhase.error) {
-                        ref
-                            .read(actionFeedbackProvider.notifier)
-                            .report(
-                              l10n.aiAskModelFailed,
-                              kind: FeedbackKind.error,
-                            );
-                      } else if (phase == AskModelInstallPhase.ready) {
-                        ref
-                            .read(actionFeedbackProvider.notifier)
-                            .report(l10n.aiAskModelReady);
-                      }
-                    },
+            onPressed: isOffline
+                ? null
+                : () async {
+                    await ref.read(askModelInstallProvider.notifier).download();
+                    final phase = ref.read(askModelInstallProvider).phase;
+                    if (phase == AskModelInstallPhase.error) {
+                      ref
+                          .read(actionFeedbackProvider.notifier)
+                          .report(
+                            l10n.aiAskModelFailed,
+                            kind: FeedbackKind.error,
+                          );
+                    } else if (phase == AskModelInstallPhase.ready) {
+                      ref
+                          .read(actionFeedbackProvider.notifier)
+                          .report(l10n.aiAskModelReady);
+                    }
+                  },
           ),
         if (ready || install.phase == AskModelInstallPhase.ready)
           SettingsButtonTile(
             title: l10n.aiAskModelRemove,
             icon: LucideIcons.trash2,
-            onPressed:
-                () => ref.read(askModelInstallProvider.notifier).uninstall(),
+            onPressed: () =>
+                ref.read(askModelInstallProvider.notifier).uninstall(),
           ),
       ],
     );
@@ -751,23 +749,20 @@ class _PrivacySection extends StatelessWidget {
   Future<void> _clearSearchHistory(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.clearSearchHistory),
-            content: Text(
-              AppLocalizations.of(context)!.clearSearchHistoryConfirm,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(AppLocalizations.of(context)!.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(AppLocalizations.of(context)!.clear),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.clearSearchHistory),
+        content: Text(AppLocalizations.of(context)!.clearSearchHistoryConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(AppLocalizations.of(context)!.clear),
+          ),
+        ],
+      ),
     );
     if (confirm == true) {
       await ref.read(libraryNotifierProvider.notifier).clearSearchHistory();
@@ -783,23 +778,20 @@ class _PrivacySection extends StatelessWidget {
   Future<void> _clearListeningHistory(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.clearListeningHistory),
-            content: Text(
-              AppLocalizations.of(context)!.clearSearchHistoryConfirm,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(AppLocalizations.of(context)!.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(AppLocalizations.of(context)!.clear),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.clearListeningHistory),
+        content: Text(AppLocalizations.of(context)!.clearSearchHistoryConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(AppLocalizations.of(context)!.clear),
+          ),
+        ],
+      ),
     );
     if (confirm == true) {
       await ref.read(libraryNotifierProvider.notifier).clearHistory();
@@ -908,21 +900,20 @@ class _BackupSection extends StatelessWidget {
 
       final confirmed = await showDialog<bool>(
         context: context,
-        builder:
-            (ctx) => AlertDialog(
-              title: Text(AppLocalizations.of(context)!.importBackup),
-              content: Text(AppLocalizations.of(context)!.importBackupConfirm),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(AppLocalizations.of(context)!.cancel),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: Text(AppLocalizations.of(context)!.import),
-                ),
-              ],
+        builder: (ctx) => AlertDialog(
+          title: Text(AppLocalizations.of(context)!.importBackup),
+          content: Text(AppLocalizations.of(context)!.importBackupConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(AppLocalizations.of(context)!.import),
+            ),
+          ],
+        ),
       );
       if (confirmed != true) return;
 
@@ -985,10 +976,8 @@ class _LocalSyncSection extends StatelessWidget {
           subtitle: l10n.localSyncEnabledHint,
           value: settings.localSyncEnabled,
           icon: LucideIcons.wifi,
-          onChanged:
-              (value) => ref
-                  .read(settingsProvider.notifier)
-                  .setLocalSyncEnabled(value),
+          onChanged: (value) =>
+              ref.read(settingsProvider.notifier).setLocalSyncEnabled(value),
         ),
         if (settings.localSyncEnabled) ...[
           const Divider(height: 1),
@@ -997,10 +986,9 @@ class _LocalSyncSection extends StatelessWidget {
             subtitle: l10n.localSyncAutoEnabledHint,
             value: settings.localSyncAutoEnabled,
             icon: LucideIcons.refreshCw,
-            onChanged:
-                (value) => ref
-                    .read(settingsProvider.notifier)
-                    .setLocalSyncAutoEnabled(value),
+            onChanged: (value) => ref
+                .read(settingsProvider.notifier)
+                .setLocalSyncAutoEnabled(value),
           ),
           const Divider(height: 1),
           SettingsDropdownTile(
@@ -1037,21 +1025,20 @@ class _LocalSyncSection extends StatelessWidget {
             onPressed: () async {
               final confirm = await showDialog<bool>(
                 context: context,
-                builder:
-                    (context) => AlertDialog(
-                      title: Text(l10n.resetPairedDevicesConfirmTitle),
-                      content: Text(l10n.resetPairedDevicesConfirmMsg),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: Text(l10n.cancel),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: Text(l10n.confirm),
-                        ),
-                      ],
+                builder: (context) => AlertDialog(
+                  title: Text(l10n.resetPairedDevicesConfirmTitle),
+                  content: Text(l10n.resetPairedDevicesConfirmMsg),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text(l10n.cancel),
                     ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text(l10n.confirm),
+                    ),
+                  ],
+                ),
               );
               if (confirm != true) return;
 
@@ -1342,11 +1329,10 @@ class _SupportSection extends StatelessWidget {
           title: AppLocalizations.of(context)!.donate,
           subtitle: AppLocalizations.of(context)!.donateHint,
           icon: LucideIcons.gift,
-          onPressed:
-              () => launchUrl(
-                Uri.parse(kPaypalDonateUrl),
-                mode: LaunchMode.externalApplication,
-              ),
+          onPressed: () => launchUrl(
+            Uri.parse(kPaypalDonateUrl),
+            mode: LaunchMode.externalApplication,
+          ),
         ),
       ],
     );
@@ -1377,22 +1363,20 @@ class _AboutSection extends StatelessWidget {
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.licenses,
           icon: LucideIcons.fileText,
-          onPressed:
-              () => showLicensePage(
-                context: context,
-                applicationName: AppLocalizations.of(context)!.appTitle,
-              ),
+          onPressed: () => showLicensePage(
+            context: context,
+            applicationName: AppLocalizations.of(context)!.appTitle,
+          ),
         ),
         const Divider(height: 1),
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.gitHubRepository,
           icon: LucideIcons.code2,
           subtitle: kGitHubRepoUrl,
-          onPressed:
-              () => launchUrl(
-                Uri.parse(kGitHubRepoUrl),
-                mode: LaunchMode.externalApplication,
-              ),
+          onPressed: () => launchUrl(
+            Uri.parse(kGitHubRepoUrl),
+            mode: LaunchMode.externalApplication,
+          ),
         ),
       ],
     );

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:audio_service/audio_service.dart';
+
 import 'playback_engine.dart';
 
 import '../../../domain/models/queue_track.dart';
@@ -84,48 +85,30 @@ class TrackTransitionCoordinator {
   bool _shuffleEndArmed = false;
 
   TrackTransitionCoordinator({
-    required PlaybackEngine engine,
-    required PlaybackIntentController intent,
-    required QueueController queueController,
-    required SkipNavigator skipNavigator,
-    required PlaybackStatePublisher statePublisher,
-    required QueueRepository queueRepo,
-    required PlaybackRecoveryController Function() recoveryController,
-    required LikeController likeController,
-    required CastPlaybackController Function() castController,
-    required TrackUrlResolver urlResolver,
-    required PlaybackVolumeController volumeController,
-    required MediaItem? Function() currentMediaItem,
-    required void Function(MediaItem) emitMediaItem,
-    required bool Function() isStopping,
-    required bool Function() isRestoring,
+    required this._engine,
+    required this._intent,
+    required this._queueController,
+    required this._skipNavigator,
+    required this._statePublisher,
+    required this._queueRepo,
+    required this._recoveryController,
+    required this._likeController,
+    required this._castController,
+    required this._urlResolver,
+    required this._volumeController,
+    required this._currentMediaItem,
+    required this._emitMediaItem,
+    required this._isStopping,
+    required this._isRestoring,
     bool Function()? isShuffleAll,
     bool Function()? isRepeatOne,
-    Future<void> Function()? skipToNext,
-    Future<void> Function(int index)? skipToQueueItem,
+    this._skipToNext,
+    this._skipToQueueItem,
     bool Function()? isForcedOffline,
-    Future<void> Function(int index)? enforceForcedOfflineAt,
-  }) : _engine = engine,
-       _intent = intent,
-       _queueController = queueController,
-       _skipNavigator = skipNavigator,
-       _statePublisher = statePublisher,
-       _queueRepo = queueRepo,
-       _recoveryController = recoveryController,
-       _likeController = likeController,
-       _castController = castController,
-       _urlResolver = urlResolver,
-       _volumeController = volumeController,
-       _currentMediaItem = currentMediaItem,
-       _emitMediaItem = emitMediaItem,
-       _isStopping = isStopping,
-       _isRestoring = isRestoring,
-       _isShuffleAll = isShuffleAll ?? (() => false),
+    this._enforceForcedOfflineAt,
+  }) : _isShuffleAll = isShuffleAll ?? (() => false),
        _isRepeatOne = isRepeatOne ?? (() => false),
-       _skipToNext = skipToNext,
-       _skipToQueueItem = skipToQueueItem,
-       _isForcedOffline = isForcedOffline ?? (() => false),
-       _enforceForcedOfflineAt = enforceForcedOfflineAt;
+       _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// Subscribes to engine streams. Called once from the handler constructor.
   void setupListeners() {
@@ -179,8 +162,9 @@ class TrackTransitionCoordinator {
     );
 
     _engine.shuffleStream.listen((shuffled) {
-      final shuffleMode =
-          shuffled ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none;
+      final shuffleMode = shuffled
+          ? AudioServiceShuffleMode.all
+          : AudioServiceShuffleMode.none;
       _statePublisher.updateState((s) => s.copyWith(shuffleMode: shuffleMode));
       rebuildControls();
     });
@@ -330,14 +314,12 @@ class TrackTransitionCoordinator {
     // the "where were we" pointer can never lag behind the actually-playing
     // track, which used to cause resuming into a stale/wrong index after a
     // process restart.
-    final currentMediaItem =
-        index < playlist.medias.length
-            ? playlist.medias[index].mediaItem
-            : null;
-    final videoId =
-        currentMediaItem != null
-            ? QueueTrack.fromMediaItem(currentMediaItem).videoId
-            : null;
+    final currentMediaItem = index < playlist.medias.length
+        ? playlist.medias[index].mediaItem
+        : null;
+    final videoId = currentMediaItem != null
+        ? QueueTrack.fromMediaItem(currentMediaItem).videoId
+        : null;
     // Empty playlist events during cold restore were writing index=0 and
     // videoId=null to QueueMeta *before* restoreMeta() ran, wiping a
     // correct pointer (e.g. Dance Monkey @ 0:55 → Calm Down @ 0:55).
@@ -416,10 +398,12 @@ class TrackTransitionCoordinator {
     }
 
     final current = _currentMediaItem();
-    final playingTrack =
-        playingItem != null ? QueueTrack.fromMediaItem(playingItem) : null;
-    final currentTrack =
-        current != null ? QueueTrack.fromMediaItem(current) : null;
+    final playingTrack = playingItem != null
+        ? QueueTrack.fromMediaItem(playingItem)
+        : null;
+    final currentTrack = current != null
+        ? QueueTrack.fromMediaItem(current)
+        : null;
 
     if (playingTrack != null &&
         playingItem != null &&
@@ -427,9 +411,9 @@ class TrackTransitionCoordinator {
             currentTrack.videoId != playingTrack.videoId)) {
       final updatedTrack =
           (playingTrack.duration != null &&
-                  playingTrack.duration != Duration.zero)
-              ? playingTrack
-              : playingTrack.copyWith(duration: duration);
+              playingTrack.duration != Duration.zero)
+          ? playingTrack
+          : playingTrack.copyWith(duration: duration);
       final updated = updatedTrack.toMediaItem(playingItem);
       _statePublisher.noteEmittedMediaItem(updated, track: updatedTrack);
       _emitMediaItem(updated);

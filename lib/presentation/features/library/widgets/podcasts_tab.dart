@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
@@ -22,11 +23,10 @@ class PodcastsTab extends ConsumerWidget {
 
     return async.when(
       loading: () => const _ShimmerPodcastList(),
-      error:
-          (e, _) => ErrorRetryWidget(
-            message: AppLocalizations.of(context)!.noLikedPodcasts,
-            onRetry: () => ref.invalidate(likedPodcastsProvider),
-          ),
+      error: (e, _) => ErrorRetryWidget(
+        message: AppLocalizations.of(context)!.noLikedPodcasts,
+        onRetry: () => ref.invalidate(likedPodcastsProvider),
+      ),
       data: (podcasts) {
         if (podcasts.isEmpty) {
           final l10n = AppLocalizations.of(context)!;
@@ -40,63 +40,60 @@ class PodcastsTab extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () => ref.refresh(likedPodcastsProvider.future),
-          child:
-              isGridView
-                  ? GridView.builder(
-                    padding: EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      top: 16,
-                      bottom: MediaQuery.of(context).padding.bottom + 16,
-                    ),
-                    gridDelegate:
-                        isMobile
-                            ? const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.68,
-                            )
-                            : const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 170.0,
-                              mainAxisSpacing: 16,
-                              crossAxisSpacing: 16,
-                              childAspectRatio: 0.68,
-                            ),
-                    itemCount: podcasts.length,
-                    itemBuilder: (context, i) {
-                      final p = podcasts[i];
-                      return _PodcastGridTile(
-                        browseId: p.browseId,
-                        name: p.name,
-                        authorName: p.authorName,
-                        thumbnailUrl: p.thumbnailUrl,
-                      );
-                    },
-                  )
-                  : ListView.builder(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).padding.bottom + 16,
-                    ),
-                    itemCount: podcasts.length,
-                    itemBuilder: (_, i) {
-                      final p = podcasts[i];
-                      return ListTile(
-                        leading: ThumbnailWidget(
-                          imageUrl: p.thumbnailUrl,
-                          size: 48,
-                          shape: ThumbnailShape.rounded,
-                        ),
-                        title: Text(p.name),
-                        subtitle: Text(
-                          p.authorName ??
-                              AppLocalizations.of(context)!.podcasts,
-                        ),
-                        trailing: const Icon(LucideIcons.chevronRight),
-                        onTap: () => context.push('/podcast/${p.browseId}'),
-                      );
-                    },
+          child: isGridView
+              ? GridView.builder(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
                   ),
+                  gridDelegate: isMobile
+                      ? const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.68,
+                        )
+                      : const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 170.0,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.68,
+                        ),
+                  itemCount: podcasts.length,
+                  itemBuilder: (context, i) {
+                    final p = podcasts[i];
+                    return _PodcastGridTile(
+                      browseId: p.browseId,
+                      name: p.name,
+                      authorName: p.authorName,
+                      thumbnailUrl: p.thumbnailUrl,
+                    );
+                  },
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                  ),
+                  itemCount: podcasts.length,
+                  itemBuilder: (_, i) {
+                    final p = podcasts[i];
+                    return ListTile(
+                      leading: ThumbnailWidget(
+                        imageUrl: p.thumbnailUrl,
+                        size: 48,
+                        shape: ThumbnailShape.rounded,
+                      ),
+                      title: Text(p.name),
+                      subtitle: Text(
+                        p.authorName ?? AppLocalizations.of(context)!.podcasts,
+                      ),
+                      trailing: const Icon(LucideIcons.chevronRight),
+                      onTap: () => context.push('/podcast/${p.browseId}'),
+                    );
+                  },
+                ),
         );
       },
     );
@@ -137,9 +134,8 @@ class _PodcastGridTile extends StatelessWidget {
             name,
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w500),
           ),
           if (authorName != null) ...[
             const SizedBox(height: 2),

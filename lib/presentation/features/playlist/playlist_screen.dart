@@ -1,9 +1,11 @@
 import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -68,22 +70,20 @@ class _PlaylistMobileLayout extends ConsumerWidget {
 
     return metaAsync.when(
       loading: () => const Scaffold(body: _PlaylistShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadPlaylist,
-              onRetry: () {
-                ref.invalidate(playlistProvider(playlistId));
-                ref.invalidate(playlistVideosProvider(playlistId));
-              },
-            ),
-          ),
-      data:
-          (playlist) => _PlaylistContent(
-            playlist: playlist,
-            videosAsync: videosAsync,
-            heroTag: heroTag,
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadPlaylist,
+          onRetry: () {
+            ref.invalidate(playlistProvider(playlistId));
+            ref.invalidate(playlistVideosProvider(playlistId));
+          },
+        ),
+      ),
+      data: (playlist) => _PlaylistContent(
+        playlist: playlist,
+        videosAsync: videosAsync,
+        heroTag: heroTag,
+      ),
     );
   }
 }
@@ -101,23 +101,21 @@ class _PlaylistTabletLayout extends ConsumerWidget {
 
     return metaAsync.when(
       loading: () => const Scaffold(body: _PlaylistShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadPlaylist,
-              onRetry: () {
-                ref.invalidate(playlistProvider(playlistId));
-                ref.invalidate(playlistVideosProvider(playlistId));
-              },
-            ),
-          ),
-      data:
-          (playlist) => _PlaylistContent(
-            playlist: playlist,
-            videosAsync: videosAsync,
-            isTablet: true,
-            heroTag: heroTag,
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadPlaylist,
+          onRetry: () {
+            ref.invalidate(playlistProvider(playlistId));
+            ref.invalidate(playlistVideosProvider(playlistId));
+          },
+        ),
+      ),
+      data: (playlist) => _PlaylistContent(
+        playlist: playlist,
+        videosAsync: videosAsync,
+        isTablet: true,
+        heroTag: heroTag,
+      ),
     );
   }
 }
@@ -135,23 +133,21 @@ class _PlaylistWideLayout extends ConsumerWidget {
 
     return metaAsync.when(
       loading: () => const Scaffold(body: _PlaylistShimmer()),
-      error:
-          (e, _) => Scaffold(
-            body: ErrorRetryWidget(
-              message: AppLocalizations.of(context)!.failedToLoadPlaylist,
-              onRetry: () {
-                ref.invalidate(playlistProvider(playlistId));
-                ref.invalidate(playlistVideosProvider(playlistId));
-              },
-            ),
-          ),
-      data:
-          (playlist) => _PlaylistContent(
-            playlist: playlist,
-            videosAsync: videosAsync,
-            isWide: true,
-            heroTag: heroTag,
-          ),
+      error: (e, _) => Scaffold(
+        body: ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.failedToLoadPlaylist,
+          onRetry: () {
+            ref.invalidate(playlistProvider(playlistId));
+            ref.invalidate(playlistVideosProvider(playlistId));
+          },
+        ),
+      ),
+      data: (playlist) => _PlaylistContent(
+        playlist: playlist,
+        videosAsync: videosAsync,
+        isWide: true,
+        heroTag: heroTag,
+      ),
     );
   }
 }
@@ -195,8 +191,9 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight =
-        widget.isTablet || widget.isWide ? 360.0 : 340.0;
+    final double expandedHeight = widget.isTablet || widget.isWide
+        ? 360.0
+        : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -236,24 +233,18 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
                     wide: widget.isWide,
                     about:
                         widget.playlist.description != null &&
-                                widget.playlist.description!.isNotEmpty
-                            ? ExpandableText(text: widget.playlist.description!)
-                            : null,
+                            widget.playlist.description!.isNotEmpty
+                        ? ExpandableText(text: widget.playlist.description!)
+                        : null,
                     list: widget.videosAsync.when(
                       loading: () => _videoShimmerList(),
-                      error:
-                          (e, _) => ErrorRetryWidget(
-                            message:
-                                AppLocalizations.of(
-                                  context,
-                                )!.failedToLoadVideos,
-                            onRetry:
-                                () => ref.invalidate(
-                                  playlistVideosProvider(
-                                    widget.playlist.playlistId,
-                                  ),
-                                ),
-                          ),
+                      error: (e, _) => ErrorRetryWidget(
+                        message: AppLocalizations.of(context)!
+                            .failedToLoadVideos,
+                        onRetry: () => ref.invalidate(
+                          playlistVideosProvider(widget.playlist.playlistId),
+                        ),
+                      ),
                       data: (videos) => _VideoTracklist(videos: videos),
                     ),
                   ),
@@ -292,8 +283,9 @@ class _PlaylistSliverAppBar extends StatelessWidget {
     );
 
     final tag = heroTag ?? 'playlist_art_${playlist.playlistId}';
-    final thumbnailUrl =
-        playlist.thumbnails.isNotEmpty ? playlist.thumbnails.last.url : null;
+    final thumbnailUrl = playlist.thumbnails.isNotEmpty
+        ? playlist.thumbnails.last.url
+        : null;
 
     return SliverAppBar(
       expandedHeight: isTablet || isWide ? 360 : 340,
@@ -467,9 +459,8 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.videoCount(playlist.videoCount),
+                    AppLocalizations.of(context)!
+                        .videoCount(playlist.videoCount),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.labelMuted,
                     ),
@@ -583,13 +574,14 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                             TextSpan(text: playlist.name),
                           ],
                         ),
-                        style: (isWide
-                                ? theme.textTheme.headlineLarge
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colors.titlePrimary,
-                            ),
+                        style:
+                            (isWide
+                                    ? theme.textTheme.headlineLarge
+                                    : theme.textTheme.headlineMedium)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors.titlePrimary,
+                                ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -605,9 +597,8 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.videoCount(playlist.videoCount),
+                        AppLocalizations.of(context)!
+                            .videoCount(playlist.videoCount),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.subtitle,
                         ),
@@ -658,12 +649,11 @@ class _PlaylistActions extends ConsumerWidget {
         icon: Icons.favorite_border,
         label: l10n.like,
         tooltip: l10n.like,
-        buildControl:
-            (context, compact) => _LikePlaylistButton(
-              playlist: playlist,
-              videosAsync: videosAsync,
-              iconOnly: compact,
-            ),
+        buildControl: (context, compact) => _LikePlaylistButton(
+          playlist: playlist,
+          videosAsync: videosAsync,
+          iconOnly: compact,
+        ),
       ),
     ]);
 
@@ -680,10 +670,9 @@ class _PlaylistActions extends ConsumerWidget {
           playlistId: playlist.playlistId,
           name: playlist.name,
           artist: displayArtists(playlist.artists),
-          thumbnailUrl:
-              playlist.thumbnails.isNotEmpty
-                  ? playlist.thumbnails.last.url
-                  : null,
+          thumbnailUrl: playlist.thumbnails.isNotEmpty
+              ? playlist.thumbnails.last.url
+              : null,
           omitActionIds: {
             DetailActionId.play,
             DetailActionId.shuffle,
@@ -810,17 +799,16 @@ class _LikePlaylistButton extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final likedAsync = ref.watch(likedPlaylistProvider(playlist.playlistId));
     return likedAsync.when(
-      loading:
-          () => DetailAffinityButton(
-            iconOnly: iconOnly,
-            isActive: false,
-            enabled: false,
-            idleIcon: DetailAffinityButton.likeIdle,
-            activeIcon: DetailAffinityButton.likeActive,
-            idleLabel: l10n.like,
-            activeLabel: l10n.liked,
-            onPressed: null,
-          ),
+      loading: () => DetailAffinityButton(
+        iconOnly: iconOnly,
+        isActive: false,
+        enabled: false,
+        idleIcon: DetailAffinityButton.likeIdle,
+        activeIcon: DetailAffinityButton.likeActive,
+        idleLabel: l10n.like,
+        activeLabel: l10n.liked,
+        onPressed: null,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isLiked = liked != null;
@@ -839,10 +827,9 @@ class _LikePlaylistButton extends ConsumerWidget {
                   LikedPlaylistModel(
                     playlistId: playlist.playlistId,
                     name: playlist.name,
-                    thumbnailUrl:
-                        playlist.thumbnails.isNotEmpty
-                            ? playlist.thumbnails.last.url
-                            : null,
+                    thumbnailUrl: playlist.thumbnails.isNotEmpty
+                        ? playlist.thumbnails.last.url
+                        : null,
                     videoCount: playlist.videoCount,
                     addedAt: DateTime.now(),
                   ),
@@ -883,10 +870,9 @@ class _VideoTracklist extends ConsumerWidget {
             artist: displayArtists(videos[i].artists),
             artists: videos[i].artists,
             artistId: primaryArtistId(videos[i].artists),
-            thumbnailUrl:
-                videos[i].thumbnails.isNotEmpty
-                    ? videos[i].thumbnails.last.url
-                    : null,
+            thumbnailUrl: videos[i].thumbnails.isNotEmpty
+                ? videos[i].thumbnails.last.url
+                : null,
             duration: videos[i].duration,
             isVideo: true,
             isExplicit: videos[i].isExplicit,

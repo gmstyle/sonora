@@ -32,10 +32,9 @@ class QueueRepositoryImpl implements QueueRepository {
     AudioServiceShuffleMode? shuffleMode,
     AudioServiceRepeatMode? repeatMode,
   }) async {
-    final anchorVideoId =
-        currentIndex >= 0 && currentIndex < items.length
-            ? items[currentIndex].id
-            : null;
+    final anchorVideoId = currentIndex >= 0 && currentIndex < items.length
+        ? items[currentIndex].id
+        : null;
 
     // Single transaction: the queue rows and the "where were we" pointer
     // are written together, so a process death mid-write can never leave
@@ -46,8 +45,9 @@ class QueueRepositoryImpl implements QueueRepository {
         for (int i = 0; i < items.length; i++) {
           final item = items[i];
           final track = QueueTrack.fromMediaItem(item);
-          final section =
-              QueueSection.fromTag(item.extras?['section'] as String?).tag;
+          final section = QueueSection.fromTag(
+            item.extras?['section'] as String?,
+          ).tag;
           batch.insert(
             _db.queueItems,
             QueueItemsCompanion.insert(
@@ -77,18 +77,15 @@ class QueueRepositoryImpl implements QueueRepository {
               id: const Value(_metaRowId),
               currentIndex: Value(currentIndex < 0 ? 0 : currentIndex),
               currentVideoId: Value(anchorVideoId),
-              positionMs:
-                  position != null
-                      ? Value(position.inMilliseconds)
-                      : const Value.absent(),
-              shuffleMode:
-                  shuffleMode != null
-                      ? Value(shuffleMode.name)
-                      : const Value.absent(),
-              repeatMode:
-                  repeatMode != null
-                      ? Value(repeatMode.name)
-                      : const Value.absent(),
+              positionMs: position != null
+                  ? Value(position.inMilliseconds)
+                  : const Value.absent(),
+              shuffleMode: shuffleMode != null
+                  ? Value(shuffleMode.name)
+                  : const Value.absent(),
+              repeatMode: repeatMode != null
+                  ? Value(repeatMode.name)
+                  : const Value.absent(),
               updatedAt: Value(DateTime.now()),
             ),
           );
@@ -137,9 +134,9 @@ class QueueRepositoryImpl implements QueueRepository {
 
   @override
   Future<QueuePlaybackMeta> restoreMeta() async {
-    final row =
-        await (_db.select(_db.queueMeta)
-          ..where((t) => t.id.equals(_metaRowId))).getSingleOrNull();
+    final row = await (_db.select(
+      _db.queueMeta,
+    )..where((t) => t.id.equals(_metaRowId))).getSingleOrNull();
     if (row == null) return QueuePlaybackMeta.empty;
 
     return QueuePlaybackMeta(
@@ -163,8 +160,9 @@ class QueueRepositoryImpl implements QueueRepository {
           QueueMetaCompanion.insert(
             id: const Value(_metaRowId),
             currentIndex: Value(index < 0 ? 0 : index),
-            currentVideoId:
-                videoId != null ? Value(videoId) : const Value.absent(),
+            currentVideoId: videoId != null
+                ? Value(videoId)
+                : const Value.absent(),
             updatedAt: Value(DateTime.now()),
           ),
         );
@@ -216,14 +214,12 @@ class QueueRepositoryImpl implements QueueRepository {
         .insertOnConflictUpdate(
           QueueMetaCompanion.insert(
             id: const Value(_metaRowId),
-            shuffleMode:
-                shuffleMode != null
-                    ? Value(shuffleMode.name)
-                    : const Value.absent(),
-            repeatMode:
-                repeatMode != null
-                    ? Value(repeatMode.name)
-                    : const Value.absent(),
+            shuffleMode: shuffleMode != null
+                ? Value(shuffleMode.name)
+                : const Value.absent(),
+            repeatMode: repeatMode != null
+                ? Value(repeatMode.name)
+                : const Value.absent(),
             updatedAt: Value(DateTime.now()),
           ),
         );
@@ -233,8 +229,9 @@ class QueueRepositoryImpl implements QueueRepository {
   Future<void> clearQueue() async {
     await _db.transaction(() async {
       await _db.delete(_db.queueItems).go();
-      await (_db.delete(_db.queueMeta)
-        ..where((t) => t.id.equals(_metaRowId))).go();
+      await (_db.delete(
+        _db.queueMeta,
+      )..where((t) => t.id.equals(_metaRowId))).go();
     });
   }
 

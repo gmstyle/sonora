@@ -23,13 +23,12 @@ void main() {
     await db.close();
   });
 
-  MediaItem song(String id) =>
-      QueueTrack(
-        videoId: id,
-        title: id,
-        artist: 'Artist',
-        url: 'https://example.com/$id.mp3',
-      ).toFreshMediaItem();
+  MediaItem song(String id) => QueueTrack(
+    videoId: id,
+    title: id,
+    artist: 'Artist',
+    url: 'https://example.com/$id.mp3',
+  ).toFreshMediaItem();
 
   group('restoreMeta', () {
     test('returns empty defaults when nothing has been persisted', () async {
@@ -158,14 +157,13 @@ void main() {
   group('persistQueue streamUrl', () {
     test('persists media-cache URLs for video tracks', () async {
       const cacheUrl = 'file:///tmp/sonora_media_cache/vid.mp4';
-      final item =
-          const QueueTrack(
-            videoId: 'vid',
-            title: 'Video',
-            artist: 'A',
-            isVideo: true,
-            url: cacheUrl,
-          ).toFreshMediaItem();
+      final item = const QueueTrack(
+        videoId: 'vid',
+        title: 'Video',
+        artist: 'A',
+        isVideo: true,
+        url: cacheUrl,
+      ).toFreshMediaItem();
       await repo.persistQueue([item], currentIndex: 0);
 
       final restored = await repo.restoreQueue();
@@ -175,13 +173,12 @@ void main() {
 
     test('still persists media-cache URLs for audio tracks', () async {
       const cacheUrl = 'file:///tmp/sonora_media_cache/song.webm';
-      final item =
-          const QueueTrack(
-            videoId: 'song',
-            title: 'Song',
-            artist: 'A',
-            url: cacheUrl,
-          ).toFreshMediaItem();
+      final item = const QueueTrack(
+        videoId: 'song',
+        title: 'Song',
+        artist: 'A',
+        url: cacheUrl,
+      ).toFreshMediaItem();
       await repo.persistQueue([item], currentIndex: 0);
 
       final restored = await repo.restoreQueue();

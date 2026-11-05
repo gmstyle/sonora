@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../l10n/app_localizations.dart';
 
 /// A reusable expandable text block that fades between collapsed (3 lines)
@@ -36,8 +37,9 @@ class _ExpandableTextState extends State<ExpandableText> {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-          crossFadeState:
-              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
         ),
         TextButton.icon(

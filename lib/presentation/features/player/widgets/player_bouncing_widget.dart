@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:ui' as ui;
+
 import 'package:audio_service/audio_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -235,8 +236,9 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     final nextSongFromQueue = hasNextInQueue ? queue[currentIndex + 1] : null;
 
     final upNextQueue = playerState.upNextQueue;
-    final nextSongFromUpNext =
-        upNextQueue.isNotEmpty ? upNextQueue.first : null;
+    final nextSongFromUpNext = upNextQueue.isNotEmpty
+        ? upNextQueue.first
+        : null;
 
     final nextSong = nextSongFromQueue ?? nextSongFromUpNext;
     final hasNext = nextSong != null;
@@ -365,22 +367,20 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
   }) {
     final pc = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final timeStr =
-        untilEndOfTrack
-            ? l10n.sleepEndOfEpisode
-            : () {
-              final r = remaining!;
-              final minutes = r.inMinutes;
-              final seconds = r.inSeconds % 60;
-              return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-            }();
+    final timeStr = untilEndOfTrack
+        ? l10n.sleepEndOfEpisode
+        : () {
+            final r = remaining!;
+            final minutes = r.inMinutes;
+            final seconds = r.inSeconds % 60;
+            return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+          }();
 
     return BouncingWidget(
-      onTap:
-          () => showPlayerTimerDialog(
-            context,
-            ref.read(playerStateProvider.notifier),
-          ),
+      onTap: () => showPlayerTimerDialog(
+        context,
+        ref.read(playerStateProvider.notifier),
+      ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -425,12 +425,11 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
     );
 
     return BouncingWidget(
-      onTap:
-          hasNext
-              ? () {
-                ref.read(playerStateProvider.notifier).skipToNext();
-              }
-              : null,
+      onTap: hasNext
+          ? () {
+              ref.read(playerStateProvider.notifier).skipToNext();
+            }
+          : null,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 400),
         decoration: BoxDecoration(
@@ -467,7 +466,7 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                     alignment: Alignment.centerLeft,
                     children: <Widget>[
                       ...previousChildren.map((c) => Positioned.fill(child: c)),
-                      if (currentChild != null) currentChild,
+                      ?currentChild,
                     ],
                   );
                 },
@@ -501,10 +500,9 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
   }) {
     final l10n = AppLocalizations.of(context)!;
     // We key the content based on nextSong ID to trigger transitions in AnimatedSwitcher.
-    final keyString =
-        nextSong != null
-            ? nextSong.id
-            : 'empty_${isAutoplay}_${hasNext}_$episodeShaped';
+    final keyString = nextSong != null
+        ? nextSong.id
+        : 'empty_${isAutoplay}_${hasNext}_$episodeShaped';
 
     return Row(
       key: ValueKey(keyString),
@@ -515,23 +513,17 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
             child: SizedBox(
               width: 56,
               height: 56,
-              child:
-                  nextSong.artUri != null
-                      ? CachedNetworkImage(
-                        imageUrl: nextSong.artUri!.toString(),
-                        fit: BoxFit.cover,
-                        errorWidget:
-                            (_, _, _) => Icon(
-                              LucideIcons.music,
-                              color: pc.iconSecondary,
-                              size: 28,
-                            ),
-                      )
-                      : Icon(
+              child: nextSong.artUri != null
+                  ? CachedNetworkImage(
+                      imageUrl: nextSong.artUri!.toString(),
+                      fit: BoxFit.cover,
+                      errorWidget: (_, _, _) => Icon(
                         LucideIcons.music,
                         color: pc.iconSecondary,
                         size: 28,
                       ),
+                    )
+                  : Icon(LucideIcons.music, color: pc.iconSecondary, size: 28),
             ),
           ),
           const SizedBox(width: 16),
@@ -616,8 +608,8 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
                   episodeShaped
                       ? l10n.noUpcomingEpisodes
                       : (isAutoplay
-                          ? l10n.autoplayActive
-                          : l10n.noUpcomingSongs),
+                            ? l10n.autoplayActive
+                            : l10n.noUpcomingSongs),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -629,14 +621,13 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
           ),
           if (!isAutoplay && !episodeShaped)
             TextButton(
-              onPressed:
-                  ref.watch(isOfflineProvider)
-                      ? null
-                      : () {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setAutoPlayUpNext(true);
-                      },
+              onPressed: ref.watch(isOfflineProvider)
+                  ? null
+                  : () {
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setAutoPlayUpNext(true);
+                    },
               style: TextButton.styleFrom(
                 foregroundColor: pc.iconPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -843,8 +834,9 @@ class _AudioVisualizerState extends State<AudioVisualizer>
     );
 
     // Dynamic glow shadow opacity based on height and playing status
-    final double glowAlpha =
-        widget.isPlaying ? 0.35 * (heightFactor / _amplitudes[index]) : 0.0;
+    final double glowAlpha = widget.isPlaying
+        ? 0.35 * (heightFactor / _amplitudes[index])
+        : 0.0;
 
     return Container(
       width: 6,
@@ -853,16 +845,15 @@ class _AudioVisualizerState extends State<AudioVisualizer>
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: BorderRadius.circular(3),
-        boxShadow:
-            glowAlpha > 0.01
-                ? [
-                  BoxShadow(
-                    color: vibrantColor.withValues(alpha: glowAlpha),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ]
-                : null,
+        boxShadow: glowAlpha > 0.01
+            ? [
+                BoxShadow(
+                  color: vibrantColor.withValues(alpha: glowAlpha),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
       ),
     );
   }

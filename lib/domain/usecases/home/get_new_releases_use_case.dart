@@ -1,4 +1,5 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+
 import '../../repositories/music_repository.dart';
 
 /// Fetches the global YouTube Music New Releases feed.

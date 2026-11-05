@@ -12,10 +12,9 @@ class PlayerMediaControls {
     PlaybackState current, {
     required bool isLiked,
   }) {
-    final shuffleIcon =
-        current.shuffleMode == AudioServiceShuffleMode.all
-            ? 'drawable/ic_shuffle'
-            : 'drawable/ic_shuffle_off';
+    final shuffleIcon = current.shuffleMode == AudioServiceShuffleMode.all
+        ? 'drawable/ic_shuffle'
+        : 'drawable/ic_shuffle_off';
 
     final repeatIcon = switch (current.repeatMode) {
       AudioServiceRepeatMode.one => 'drawable/ic_repeat_one',
@@ -30,10 +29,9 @@ class PlayerMediaControls {
       MediaControl.skipToNext,
       MediaControl.custom(
         androidIcon: shuffleIcon,
-        label:
-            current.shuffleMode == AudioServiceShuffleMode.all
-                ? 'Shuffle On'
-                : 'Shuffle',
+        label: current.shuffleMode == AudioServiceShuffleMode.all
+            ? 'Shuffle On'
+            : 'Shuffle',
         name: actionShuffle,
       ),
       MediaControl.custom(
@@ -46,8 +44,9 @@ class PlayerMediaControls {
         name: actionRepeat,
       ),
       MediaControl.custom(
-        androidIcon:
-            isLiked ? 'drawable/ic_favorite' : 'drawable/ic_favorite_border',
+        androidIcon: isLiked
+            ? 'drawable/ic_favorite'
+            : 'drawable/ic_favorite_border',
         label: isLiked ? 'Unlike' : 'Like',
         name: actionLike,
       ),

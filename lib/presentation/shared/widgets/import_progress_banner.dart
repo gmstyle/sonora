@@ -27,10 +27,9 @@ class ImportProgressBanner extends ConsumerWidget {
       _ => l10n.importing,
     };
 
-    final subtitle =
-        job.phase == PlaylistImportJobPhase.awaitingReview
-            ? l10n.importJobTapToReview
-            : (job.trackLabel ?? l10n.importJobTapToExpand);
+    final subtitle = job.phase == PlaylistImportJobPhase.awaitingReview
+        ? l10n.importJobTapToReview
+        : (job.trackLabel ?? l10n.importJobTapToExpand);
 
     return DockProgressBanner(
       title: title,

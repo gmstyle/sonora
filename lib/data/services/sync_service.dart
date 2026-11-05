@@ -119,8 +119,8 @@ class SonoraSyncService {
   SonoraSyncService({
     required this.mergeLibraryUseCase,
     required this.exportBackupUseCase,
-    required SyncStorage prefs,
-  }) : _prefs = prefs;
+    required this._prefs,
+  });
 
   /// Retrieves or generates a permanent unique device identifier.
   Future<String> _getOrCreateDeviceId() async {
