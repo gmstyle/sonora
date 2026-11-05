@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
@@ -106,6 +107,7 @@ class SongCard extends ConsumerWidget {
                   imageUrl: thumbnailUrl,
                   size: size,
                   shape: ThumbnailShape.rounded,
+                  borderRadius: 24,
                 ),
                 if (duration != null)
                   Positioned(
@@ -117,13 +119,13 @@ class SongCard extends ConsumerWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black87,
+                        color: theme.colorScheme.scrim.withValues(alpha: 0.72),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         Duration(seconds: duration!).format(),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: SonoraPulseTokens.onBrandGraphic,
                           fontSize: 11,
                         ),
                       ),
@@ -136,13 +138,13 @@ class SongCard extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
+                        color: theme.colorScheme.primaryContainer,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         LucideIcons.checkCircle,
                         size: 12,
-                        color: theme.colorScheme.onPrimary,
+                        color: theme.colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -162,7 +164,9 @@ class SongCard extends ConsumerWidget {
                     child: Icon(
                       LucideIcons.ban,
                       size: 16,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: SonoraPulseTokens.onBrandGraphic.withValues(
+                        alpha: 0.9,
+                      ),
                     ),
                   ),
               ],

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/extensions/duration_ext.dart';
 import '../../../core/extensions/stat_format.dart';
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/download_provider.dart';
@@ -34,6 +35,10 @@ class SongTile extends ConsumerWidget {
   final List<Widget>? trailingActions;
   final VoidCallback? onTap;
 
+  /// Pulse track-row card (Stitch continue-listening): white/surface fill,
+  /// radius 12, light shadow. Flat [ListTile] when false (album/playlist lists).
+  final bool elevated;
+
   const SongTile({
     super.key,
     required this.videoId,
@@ -55,6 +60,7 @@ class SongTile extends ConsumerWidget {
     this.leadingOverride,
     this.trailingActions,
     this.onTap,
+    this.elevated = false,
   });
 
   @override
@@ -63,8 +69,15 @@ class SongTile extends ConsumerWidget {
     final downloadedIds = ref.watch(downloadedIdsProvider);
     final isDownloaded = downloadedIds.contains(videoId);
     final colors = Theme.of(context).colorScheme;
+    final isDark = colors.brightness == Brightness.dark;
 
     final tile = ListTile(
+      contentPadding:
+          elevated
+              ? const EdgeInsets.symmetric(horizontal: 10, vertical: 2)
+              : null,
+      visualDensity: elevated ? VisualDensity.compact : null,
+      minVerticalPadding: elevated ? 8 : null,
       leading: leadingOverride ?? _buildLeading(context, isDownloaded),
       title: Text.rich(
         TextSpan(
@@ -138,8 +151,32 @@ class SongTile extends ConsumerWidget {
           ),
     );
 
-    if (isPlayable) return tile;
-    return Opacity(opacity: 0.5, child: tile);
+    Widget result = tile;
+    if (elevated) {
+      final cardColor =
+          isDark ? colors.surfaceContainer : colors.surfaceContainerLowest;
+      result = Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Material(
+          color: cardColor,
+          elevation: isDark ? 0 : 1,
+          shadowColor: colors.shadow.withValues(alpha: 0.12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusSm),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(
+                alpha: isDark ? 0.5 : 0.9,
+              ),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: tile,
+        ),
+      );
+    }
+
+    if (isPlayable) return result;
+    return Opacity(opacity: 0.5, child: result);
   }
 
   Widget _buildLeading(BuildContext context, bool isDownloaded) {
@@ -167,13 +204,13 @@ class SongTile extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.primaryContainer,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 LucideIcons.download,
                 size: 10,
-                color: Theme.of(context).colorScheme.onPrimary,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
               ),
             ),
           ),

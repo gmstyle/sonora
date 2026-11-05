@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../../domain/models/queue_track.dart';
@@ -82,7 +83,7 @@ class PlayerSheetMobile extends ConsumerWidget {
                             _MiniArtwork(
                               artUrl: artUrl,
                               size: 40,
-                              radius: 8,
+                              radius: 12,
                               cs: cs,
                               isPlaying: isPlaying,
                               useVinylStyle: useVinylStyle,
@@ -125,30 +126,42 @@ class PlayerSheetMobile extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            IconButton(
-                              icon: AnimatedPlayPauseIcon(
-                                isPlaying: isPlaying,
-                                isLoading: playerState.isRestoring,
-                                color: cs.onPrimary,
-                                size: 20,
-                              ),
-                              onPressed:
-                                  isSwitching
-                                      ? null
-                                      : () {
-                                        HapticFeedback.lightImpact();
-                                        playerNotifier.togglePlayPause();
-                                      },
-                              style: IconButton.styleFrom(
-                                backgroundColor:
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration:
+                                  SonoraPulseTokens.playControlDecoration(
+                                    enabled: !isSwitching,
+                                    glow:
+                                        !ref.watch(
+                                          settingsProvider.select(
+                                            (s) => s.reduceEffects,
+                                          ),
+                                        ),
+                                  ),
+                              child: IconButton(
+                                icon: AnimatedPlayPauseIcon(
+                                  isPlaying: isPlaying,
+                                  isLoading: playerState.isRestoring,
+                                  color: SonoraPulseTokens.onPrimary,
+                                  size: 18,
+                                ),
+                                onPressed:
                                     isSwitching
-                                        ? cs.primary.withAlpha(128)
-                                        : cs.primary,
-                                foregroundColor: cs.onPrimary,
-                                fixedSize: const Size(36, 36),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                padding: EdgeInsets.zero,
-                                shape: const CircleBorder(),
+                                        ? null
+                                        : () {
+                                          HapticFeedback.lightImpact();
+                                          playerNotifier.togglePlayPause();
+                                        },
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: SonoraPulseTokens.onPrimary,
+                                  fixedSize: const Size(36, 36),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  padding: EdgeInsets.zero,
+                                  shape: const CircleBorder(),
+                                ),
                               ),
                             ),
                             IconButton(

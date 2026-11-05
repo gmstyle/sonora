@@ -93,6 +93,7 @@ class _AlbumCardState extends ConsumerState<AlbumCard> {
                       imageUrl: widget.thumbnailUrl,
                       size: size,
                       shape: ThumbnailShape.rounded,
+                      borderRadius: 24,
                     ),
                   ),
                   Positioned(

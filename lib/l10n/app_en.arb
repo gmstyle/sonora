@@ -415,8 +415,6 @@
   "appearance": "Appearance",
   "amoledDarkMode": "AMOLED dark mode",
   "amoledDarkModeHint": "Use true black background",
-  "dynamicColor": "Dynamic color",
-  "dynamicColorHint": "Adapt theme to wallpaper (Android 12+)",
   "content": "Content",
   "countryGl": "Country",
   "languageHl": "Language",

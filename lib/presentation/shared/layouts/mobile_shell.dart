@@ -32,7 +32,7 @@ class MobileShell extends ConsumerWidget {
     final isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 100;
     final showPlayer = isPlayerActive && !isKeyboardVisible;
 
-    const double navBarIntrinsic = 60.0;
+    const double navBarIntrinsic = 64.0;
     const double miniBarHeight = PlayerSheetMobile.height;
 
     final mq = MediaQuery.of(context);
@@ -73,7 +73,7 @@ class MobileShell extends ConsumerWidget {
           Divider(
             height: 1,
             thickness: 1,
-            color: cs.outlineVariant.withValues(alpha: 0.25),
+            color: cs.primaryContainer.withValues(alpha: 0.35),
           ),
         ],
         navBar,
@@ -81,14 +81,14 @@ class MobileShell extends ConsumerWidget {
     );
 
     dockBody = ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child:
           reduceEffects
               ? ColoredBox(color: cs.surfaceContainerHigh, child: dockBody)
               : BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: ColoredBox(
-                  color: cs.surfaceContainerHigh.withValues(alpha: 0.82),
+                  color: cs.surfaceContainerHigh.withValues(alpha: 0.88),
                   child: dockBody,
                 ),
               ),

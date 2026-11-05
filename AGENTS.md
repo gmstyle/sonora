@@ -90,7 +90,7 @@ onPressed: () => ref.read(libraryNotifierProvider.notifier).toggleLikedSong(song
 
 ## UI and UX
 
-Material 3 comes from `AppTheme` (`lib/core/theme/app_theme.dart`). Color is `Theme.of(context).colorScheme` or `PlayerColors`. Type is `textTheme` (Montserrat is already applied). Cards are elevation 0, radius 16, `surfaceContainer`. Dialogs are radius 20. Do not introduce a second font, a raw `Colors.blue`, or a one-off radius.
+Material 3 comes from `AppTheme` (`lib/core/theme/app_theme.dart`) using Sonora Pulse tokens in `lib/core/theme/sonora_pulse_tokens.dart`. The human-readable contract is `docs/DESIGN.md`. Color is `Theme.of(context).colorScheme` or `PlayerColors` (cyan accent on the dark player scrim). Type is `textTheme` (Plus Jakarta Sans). Cards are elevation 0, radius 24, `surfaceContainer`. Dialogs are radius 20. Chips and buttons are pills. Do not introduce a second font, a raw `Colors.blue`, Monet, or a one-off radius.
 
 ### Widths
 
@@ -106,7 +106,7 @@ A feature screen is a `LayoutBuilder` that picks one of those three. Home shelve
 
 Shell routes are the indexed stack in `router.dart`: Home `/`, Search `/search`, Library `/library`, Downloads `/downloads`. Settings is a sibling `GoRoute` on the root navigator, opened with `context.push`, not a fifth tab. Sub-routes (artist, album, playlist, podcast, episode, user, charts, moods) hang off the current branch. The player is an overlay above the shell, not a route. Do not add `/player`.
 
-Mobile fuses the mini player with the `NavigationBar` into one dock. Tablet and wide use a floating mini player. `NavNowPlaying` shows identity only (no transport). Catalog context in that row navigates to the album, artist, or podcast.
+Mobile fuses the mini player with the `NavigationBar` into one dock. Tablet and wide use a full-width mini shelf (`kMiniPlayerShelfHeight`, 80) under the rail or sidebar and the content. Artwork, title, artist, album, and like sit on the left of that shelf. Artist, album, and podcast taps on that metadata open the catalog screen. There is no now-playing block in the nav chrome.
 
 ### Detail headers and menus
 

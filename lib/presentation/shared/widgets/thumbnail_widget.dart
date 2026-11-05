@@ -25,7 +25,7 @@ class ThumbnailWidget extends StatelessWidget {
         switch (shape) {
           ThumbnailShape.square => 0.0,
           ThumbnailShape.circle => size / 2,
-          ThumbnailShape.rounded => 8.0,
+          ThumbnailShape.rounded => 12.0,
         };
 
     return ClipRRect(

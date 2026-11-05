@@ -118,7 +118,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     final mark =
         widget.kind == FeedbackKind.error
             ? colorScheme.error
-            : colorScheme.primary;
+            : colorScheme.primaryContainer;
 
     return Positioned(
       top: topPadding,

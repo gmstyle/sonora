@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
@@ -33,11 +34,7 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
   double _scrollProgress = 0.0;
   bool _saving = false;
 
-  static const _gradient = LinearGradient(
-    colors: [Color(0xFF6A1B9A), Color(0xFF26A69A)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  static const _gradient = SonoraPulseTokens.brandSpectrum;
 
   @override
   void initState() {
@@ -225,7 +222,8 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                             Icon(
                               LucideIcons.sparkles,
                               size: 72,
-                              color: Colors.white.withValues(alpha: 0.95),
+                              color: SonoraPulseTokens.onBrandGraphic
+                                  .withValues(alpha: 0.95),
                             ),
                             const SizedBox(height: 16),
                             Padding(

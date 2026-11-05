@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// Promo shared by Home and the statistics tab.
@@ -19,10 +20,21 @@ class SonoraWrappedBanner extends StatelessWidget {
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    return Card(
-      elevation: 0,
-      color: scheme.surfaceContainerHigh,
-      clipBehavior: Clip.antiAlias,
+    final isDark = scheme.brightness == Brightness.dark;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusMedia),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.primaryContainer.withValues(alpha: isDark ? 0.28 : 0.55),
+            scheme.surfaceContainerHigh,
+          ],
+        ),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

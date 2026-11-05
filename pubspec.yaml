@@ -87,9 +87,8 @@ dependencies:
 
   # ── UI-UX ────────────────────────────────────────────────────────
   shimmer: ^4.0.0
-  # 2.x / google_fonts 9.x switch to material_ui ColorScheme/TextTheme and break
+  # google_fonts 9.x switches to material_ui ColorScheme/TextTheme and breaks
   # flutter/material.dart types until Sonora migrates (Flutter 3.47 opt-in).
-  dynamic_color: ^1.9.0
   marquee: ^2.3.0
   palette_generator_master: ^1.1.0
   google_fonts: ^8.2.0

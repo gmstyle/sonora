@@ -6,6 +6,9 @@ import 'package:audio_service/audio_service.dart';
 import '../../../providers/player_provider.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/theme/player_colors.dart';
+import '../../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../providers/settings_provider.dart';
 import 'animated_play_pause_icon.dart';
 
 class PlayerControls extends ConsumerWidget {
@@ -17,6 +20,7 @@ class PlayerControls extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playerState = ref.watch(playerStateProvider);
     final notifier = ref.read(playerStateProvider.notifier);
+    final glow = !ref.watch(settingsProvider.select((s) => s.reduceEffects));
     final current = playerState.currentSong;
     final isEpisode =
         current != null && QueueTrack.fromMediaItem(current).isEpisode;
@@ -50,7 +54,12 @@ class PlayerControls extends ConsumerWidget {
                     notifier,
                     disabled: playerState.isBlocked,
                   ),
-                  _buildPlayPauseButton(context, playerState, notifier),
+                  _buildPlayPauseButton(
+                    context,
+                    playerState,
+                    notifier,
+                    glow: glow,
+                  ),
                   _buildSkipButton(
                     context,
                     true,
@@ -124,7 +133,7 @@ class PlayerControls extends ConsumerWidget {
           key: ValueKey(isShuffle),
           color:
               isShuffle
-                  ? Theme.of(context).colorScheme.primary
+                  ? _pulseAccent(context)
                   : iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
@@ -164,30 +173,20 @@ class PlayerControls extends ConsumerWidget {
   Widget _buildPlayPauseButton(
     BuildContext context,
     PlayerState state,
-    PlayerNotifier notifier,
-  ) {
+    PlayerNotifier notifier, {
+    required bool glow,
+  }) {
     final isBlocked = state.isBlocked;
-    final primaryColor = iconColor ?? Theme.of(context).colorScheme.primary;
-    final onPrimaryColor =
-        iconColor != null
-            ? (ThemeData.estimateBrightnessForColor(iconColor!) ==
-                    Brightness.dark
-                ? Colors.white
-                : Colors.black)
-            : Theme.of(context).colorScheme.onPrimary;
-
     return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isBlocked ? primaryColor.withAlpha(128) : primaryColor,
+      decoration: SonoraPulseTokens.playControlDecoration(
+        enabled: !isBlocked,
+        glow: glow,
       ),
       child: IconButton(
         icon: AnimatedPlayPauseIcon(
           isPlaying: state.isPlaying,
-          // Show a spinner during restore so the user understands something is
-          // happening, rather than seeing a greyed-out play icon with no feedback.
           isLoading: state.isRestoring,
-          color: onPrimaryColor,
+          color: SonoraPulseTokens.onPrimary,
           size: 32,
         ),
         onPressed:
@@ -215,12 +214,12 @@ class PlayerControls extends ConsumerWidget {
       case AudioServiceRepeatMode.all:
         icon = LucideIcons.repeat;
         tooltip = AppLocalizations.of(context)!.repeatAll;
-        color = Theme.of(context).colorScheme.primary;
+        color = _pulseAccent(context);
         break;
       case AudioServiceRepeatMode.one:
         icon = LucideIcons.repeat1;
         tooltip = AppLocalizations.of(context)!.repeatOne;
-        color = Theme.of(context).colorScheme.primary;
+        color = _pulseAccent(context);
         break;
       default:
         icon = LucideIcons.repeat;
@@ -245,4 +244,8 @@ class PlayerControls extends ConsumerWidget {
       tooltip: tooltip,
     );
   }
+
+  Color _pulseAccent(BuildContext context) =>
+      PlayerColors.maybeOf(context)?.accent ??
+      SonoraPulseTokens.primaryContainer;
 }

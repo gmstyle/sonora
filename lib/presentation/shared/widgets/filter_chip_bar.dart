@@ -27,11 +27,16 @@ class FilterChipBar extends StatelessWidget {
           return Material(
             color:
                 selected
-                    ? scheme.secondaryContainer
-                    : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(12),
+                    ? scheme.primaryContainer.withValues(alpha: 0.28)
+                    : scheme.surfaceContainer.withValues(alpha: 0.85),
+            shape: StadiumBorder(
+              side: BorderSide(
+                color:
+                    selected ? scheme.primaryContainer : scheme.outlineVariant,
+              ),
+            ),
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              customBorder: const StadiumBorder(),
               onTap: () => onSelected(index),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -41,10 +46,7 @@ class FilterChipBar extends StatelessWidget {
                 child: Text(
                   options[index],
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color:
-                        selected
-                            ? scheme.onSecondaryContainer
-                            : scheme.onSurfaceVariant,
+                    color: selected ? scheme.primary : scheme.onSurfaceVariant,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),

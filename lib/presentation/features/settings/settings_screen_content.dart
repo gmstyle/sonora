@@ -231,13 +231,6 @@ class _AppearanceSection extends StatelessWidget {
             icon: LucideIcons.moon,
           ),
         SettingsSwitchTile(
-          title: AppLocalizations.of(context)!.dynamicColor,
-          subtitle: AppLocalizations.of(context)!.dynamicColorHint,
-          value: settings.useDynamicColor,
-          onChanged: notifier.setUseDynamicColor,
-          icon: LucideIcons.palette,
-        ),
-        SettingsSwitchTile(
           title: AppLocalizations.of(context)!.reduceEffects,
           subtitle: AppLocalizations.of(context)!.reduceEffectsHint,
           value: settings.reduceEffects,

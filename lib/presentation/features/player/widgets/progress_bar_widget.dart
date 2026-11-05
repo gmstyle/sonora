@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
+import 'package:sonora/core/theme/player_colors.dart';
 
 /// Vertical clearance reserved for a compact mini-dock seek strip.
 ///
@@ -112,11 +113,12 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget>
           size: Size.fromHeight(barHeight),
           painter: _SeekTrackPainter(
             progress: progress,
-            color: cs.primary,
+            color: PlayerColors.maybeOf(context)?.accent ?? cs.primaryContainer,
             trackColor: cs.onSurface.withValues(alpha: 0.18),
             trackHeight: trackHeight,
             thumbRadius: thumb,
-            thumbFill: cs.onPrimary,
+            thumbFill:
+                PlayerColors.maybeOf(context)?.accent ?? cs.primaryContainer,
             alignToTop: alignTrackToTop,
           ),
         );

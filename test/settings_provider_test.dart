@@ -12,7 +12,6 @@ void main() {
     test('default values are correct', () {
       const settings = Settings();
       expect(settings.themeMode, ThemeMode.system);
-      expect(settings.useDynamicColor, true);
       expect(settings.useAmoled, false);
       expect(settings.gl, 'US');
       expect(settings.hl, 'en');
@@ -33,7 +32,6 @@ void main() {
     test('custom constructor values', () {
       const settings = Settings(
         themeMode: ThemeMode.dark,
-        useDynamicColor: false,
         useAmoled: true,
         gl: 'IT',
         hl: 'it',
@@ -46,7 +44,6 @@ void main() {
         checkUpdatesOnStartup: false,
       );
       expect(settings.themeMode, ThemeMode.dark);
-      expect(settings.useDynamicColor, false);
       expect(settings.useAmoled, true);
       expect(settings.gl, 'IT');
       expect(settings.hl, 'it');
@@ -100,7 +97,6 @@ void main() {
 
       final settings = container.read(settingsProvider);
       expect(settings.themeMode, ThemeMode.system);
-      expect(settings.useDynamicColor, true);
       expect(settings.useAmoled, false);
       expect(settings.gl, 'US');
       expect(settings.hl, 'en');
@@ -120,7 +116,7 @@ void main() {
     test('initial state reads persisted values', () async {
       SharedPreferences.setMockInitialValues({
         kThemeModeKey: ThemeMode.dark.index,
-        kUseDynamicColorKey: false,
+        kLegacyUseDynamicColorKey: false,
         kUseAmoledKey: true,
         kGlKey: 'IT',
         kHlKey: 'it',
@@ -143,7 +139,6 @@ void main() {
 
       final settings = container.read(settingsProvider);
       expect(settings.themeMode, ThemeMode.dark);
-      expect(settings.useDynamicColor, false);
       expect(settings.useAmoled, true);
       expect(settings.gl, 'IT');
       expect(settings.hl, 'it');
@@ -175,17 +170,19 @@ void main() {
       expect(prefs.getInt(kThemeModeKey), ThemeMode.dark.index);
     });
 
-    test('setUseDynamicColor updates state and persists', () async {
-      SharedPreferences.setMockInitialValues({});
+    test('legacy dynamic color pref is dropped on startup', () async {
+      SharedPreferences.setMockInitialValues({
+        kLegacyUseDynamicColorKey: false,
+      });
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
       );
       addTearDown(container.dispose);
 
-      await container.read(settingsProvider.notifier).setUseDynamicColor(false);
-      expect(container.read(settingsProvider).useDynamicColor, false);
-      expect(prefs.getBool(kUseDynamicColorKey), false);
+      container.read(settingsProvider);
+      await Future<void>.delayed(Duration.zero);
+      expect(prefs.containsKey(kLegacyUseDynamicColorKey), isFalse);
     });
 
     test('setUseAmoled updates state and persists', () async {
@@ -437,7 +434,6 @@ void main() {
     test('toBackupMap uses k*Key constants and excludes local leftovers', () {
       const settings = Settings(
         themeMode: ThemeMode.dark,
-        useDynamicColor: false,
         useAmoled: true,
         gl: 'IT',
         hl: 'it',
@@ -463,7 +459,7 @@ void main() {
       final map = settings.toBackupMap();
       expect(map.keys.toSet(), kSettingsBackupKeys);
       expect(map[kThemeModeKey], ThemeMode.dark.index);
-      expect(map[kUseDynamicColorKey], false);
+      expect(map.containsKey(kLegacyUseDynamicColorKey), isFalse);
       expect(map[kUseAmoledKey], true);
       expect(map[kGlKey], 'IT');
       expect(map[kHlKey], 'it');
@@ -501,7 +497,6 @@ void main() {
 
         const imported = Settings(
           themeMode: ThemeMode.light,
-          useDynamicColor: false,
           useAmoled: true,
           crossfadeSeconds: 11,
           restoreQueueOnStartup: false,
@@ -523,6 +518,7 @@ void main() {
 
         await container.read(settingsProvider.notifier).applyBackupMap({
           ...imported.toBackupMap(),
+          kLegacyUseDynamicColorKey: false,
           kLegacyEnableVideoPlaybackKey: true,
           kDownloadPathKey: '/should/not/apply',
           kLegacyStreamQualityKey: 'high',
@@ -530,7 +526,6 @@ void main() {
 
         final settings = container.read(settingsProvider);
         expect(settings.themeMode, ThemeMode.light);
-        expect(settings.useDynamicColor, false);
         expect(settings.useAmoled, true);
         expect(settings.crossfadeSeconds, 11);
         expect(settings.restoreQueueOnStartup, false);

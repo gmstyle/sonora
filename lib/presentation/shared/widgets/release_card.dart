@@ -111,6 +111,7 @@ class _ReleaseCardState extends ConsumerState<ReleaseCard> {
                       imageUrl: widget.thumbnailUrl,
                       size: size,
                       shape: ThumbnailShape.rounded,
+                      borderRadius: 24,
                     ),
                   ),
                   if (widget.badgeText != null)
@@ -123,13 +124,13 @@ class _ReleaseCardState extends ConsumerState<ReleaseCard> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: colorScheme.primary,
+                          color: colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           widget.badgeText!,
                           style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onPrimary,
+                            color: colorScheme.onPrimaryContainer,
                             fontWeight: FontWeight.bold,
                             fontSize: 10,
                           ),

@@ -4,7 +4,6 @@ import 'dart:io' show Platform;
 import 'package:app_links/app_links.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
-import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -442,21 +441,17 @@ class _SonoraAppState extends ConsumerState<SonoraApp> with WindowListener {
       });
     });
 
-    return DynamicColorBuilder(
-      builder: (lightDynamic, darkDynamic) {
-        final lightTheme = ref.watch(lightThemeProvider(lightDynamic));
-        final darkTheme = ref.watch(darkThemeProvider(darkDynamic));
+    final lightTheme = ref.watch(lightThemeProvider);
+    final darkTheme = ref.watch(darkThemeProvider);
 
-        return MaterialApp.router(
-          title: AppLocalizations.of(context)?.appTitle ?? 'Sonora',
-          routerConfig: router,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          themeMode: themeMode,
-        );
-      },
+    return MaterialApp.router(
+      title: AppLocalizations.of(context)?.appTitle ?? 'Sonora',
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: themeMode,
     );
   }
 }

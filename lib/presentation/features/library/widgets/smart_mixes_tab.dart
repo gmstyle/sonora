@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/moment_mix_ask_card.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
@@ -79,28 +80,7 @@ class _SmartMixTile extends ConsumerWidget {
 
   const _SmartMixTile({required this.type});
 
-  LinearGradient _getGradient() {
-    switch (type) {
-      case SmartMixType.mostPlayed:
-        return const LinearGradient(
-          colors: [Color(0xFFE53935), Color(0xFFFFB300)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case SmartMixType.recentlyPlayed:
-        return const LinearGradient(
-          colors: [Color(0xFF3949AB), Color(0xFF8E24AA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case SmartMixType.forgottenFavorites:
-        return const LinearGradient(
-          colors: [Color(0xFF00897B), Color(0xFF00ACC1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-    }
-  }
+  LinearGradient _getGradient() => smartMixGradient(type);
 
   IconData _getIcon() {
     switch (type) {
@@ -151,7 +131,13 @@ class _SmartMixTile extends ConsumerWidget {
           gradient: _getGradient(),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Center(child: Icon(_getIcon(), size: 24, color: Colors.white)),
+        child: Center(
+          child: Icon(
+            _getIcon(),
+            size: 24,
+            color: SonoraPulseTokens.onBrandGraphic,
+          ),
+        ),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(title, overflow: TextOverflow.ellipsis, maxLines: 1),

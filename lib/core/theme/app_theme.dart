@@ -2,287 +2,286 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'player_colors.dart';
+import 'sonora_pulse_tokens.dart';
 
+/// Sonora Pulse [ThemeData] builders.
+///
+/// Dark [ColorScheme.primary] is the light cyan tint (`#E0FDFF`) for text and
+/// selected labels. Filled brand controls (play, FAB, progress, badges) must
+/// use [ColorScheme.primaryContainer] / [SonoraPulseTokens.playControlDecoration]
+/// — never paint a solid fill with [ColorScheme.primary] alone.
 class AppTheme {
-  static ThemeData light({ColorScheme? dynamicColorScheme}) {
-    final colorScheme =
-        dynamicColorScheme ??
-        ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.light,
-        );
+  static ThemeData light() => _build(SonoraPulseTokens.lightScheme());
 
-    // Se c'è un dynamicColorScheme (es. Monet su Android o Palette estrattive),
-    // preserviamo intatti i suoi colori dinamici per non rovinare l'effetto tinta.
-    // Se non c'è, applichiamo i nostri grigi alabastro premium come fallback neutro.
-    final refinedColorScheme =
-        dynamicColorScheme != null
-            ? colorScheme
-            : colorScheme.copyWith(
-              surface: const Color(0xFFF8F9FA),
-              surfaceContainerLowest: const Color(0xFFFFFFFF),
-              surfaceContainerLow: const Color(0xFFF1F3F5),
-              surfaceContainer: const Color(0xFFE9ECEF),
-              surfaceContainerHigh: const Color(0xFFDEE2E6),
-              surfaceContainerHighest: const Color(0xFFCED4DA),
-            );
+  static ThemeData dark() => _build(SonoraPulseTokens.darkScheme());
 
-    final baseTheme = ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      colorScheme: refinedColorScheme,
-      scaffoldBackgroundColor: refinedColorScheme.surface,
+  /// Pulse dark with the scaffold and base surface forced to
+  /// [SonoraPulseTokens.surfaceContainerLowest].
+  static ThemeData amoled() {
+    final baseDark = dark();
+    final scheme = baseDark.colorScheme.copyWith(
+      surface: SonoraPulseTokens.surfaceContainerLowest,
+      surfaceContainerLowest: SonoraPulseTokens.surfaceContainerLowest,
     );
-
-    final baseTextTheme = GoogleFonts.montserratTextTheme(baseTheme.textTheme);
-    final customTextTheme = baseTextTheme.copyWith(
-      headlineLarge: baseTextTheme.headlineLarge?.copyWith(
-        fontWeight: FontWeight.w900,
-        letterSpacing: -1.0,
-      ),
-      headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.5,
-      ),
-      titleLarge: baseTextTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.5,
-      ),
-      titleMedium: baseTextTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-      ),
-      bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w400,
-      ),
-      bodySmall: baseTextTheme.bodySmall?.copyWith(fontWeight: FontWeight.w300),
-      labelSmall: baseTextTheme.labelSmall?.copyWith(
-        fontWeight: FontWeight.w400,
-      ),
-    );
-
-    return baseTheme.copyWith(
-      textTheme: customTextTheme,
-      // ── Player colours (full-player + artwork-header overlay) ─────────────
-      extensions: [PlayerColors.standard()],
-      // ── Slider Theme (Ultra-sottile, stile Spotify) ───────────────────────
-      sliderTheme: SliderThemeData(
-        trackHeight: 3.0,
-        activeTrackColor: refinedColorScheme.primary,
-        inactiveTrackColor: refinedColorScheme.primary.withValues(alpha: 0.15),
-        thumbColor: refinedColorScheme.primary,
-        overlayColor: refinedColorScheme.primary.withValues(alpha: 0.12),
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-        trackShape: const RectangularSliderTrackShape(),
-      ),
-      // ── AppBar Theme (Trasparente, simmetrica) ───────────────────────────
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        surfaceTintColor: Colors.transparent,
-      ),
-      // ── Card Theme (Arrotondamento geometrico coerente) ─────────────────────
-      cardTheme: CardThemeData(
-        elevation: 0,
-        color: refinedColorScheme.surfaceContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      // ── Dialog Theme (Elegante, arrotondato) ─────────────────────────────
-      dialogTheme: DialogThemeData(
-        elevation: 12,
-        backgroundColor: refinedColorScheme.surfaceContainerLowest,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      // ── Navigation Rail Theme ──────────────────────────────────────────────
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: refinedColorScheme.surfaceContainerLow,
-        indicatorColor: refinedColorScheme.primaryContainer.withValues(
-          alpha: 0.5,
-        ),
-        selectedIconTheme: IconThemeData(color: refinedColorScheme.primary),
-        unselectedIconTheme: IconThemeData(
-          color: refinedColorScheme.onSurfaceVariant,
-        ),
-        selectedLabelTextStyle: GoogleFonts.montserrat(
-          color: refinedColorScheme.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-        unselectedLabelTextStyle: GoogleFonts.montserrat(
-          color: refinedColorScheme.onSurfaceVariant,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  static ThemeData dark({ColorScheme? dynamicColorScheme}) {
-    final colorScheme =
-        dynamicColorScheme ??
-        ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.dark,
-        );
-
-    // Stessa logica per il tema scuro: se c'è dynamicColorScheme lo preserviamo,
-    // altrimenti andiamo di grigio carbonio scuro premium.
-    final refinedColorScheme =
-        dynamicColorScheme != null
-            ? colorScheme
-            : colorScheme.copyWith(
-              surface: const Color(0xFF0F0F11),
-              surfaceContainerLowest: const Color(0xFF000000),
-              surfaceContainerLow: const Color(0xFF141417),
-              surfaceContainer: const Color(0xFF1A1A1E),
-              surfaceContainerHigh: const Color(0xFF222228),
-              surfaceContainerHighest: const Color(0xFF2E2E36),
-            );
-
-    final baseTheme = ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorScheme: refinedColorScheme,
-      scaffoldBackgroundColor: refinedColorScheme.surface,
-    );
-
-    final baseTextTheme = GoogleFonts.montserratTextTheme(baseTheme.textTheme);
-    final customTextTheme = baseTextTheme.copyWith(
-      headlineLarge: baseTextTheme.headlineLarge?.copyWith(
-        fontWeight: FontWeight.w900,
-        letterSpacing: -1.0,
-      ),
-      headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.5,
-      ),
-      titleLarge: baseTextTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.5,
-      ),
-      titleMedium: baseTextTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-      ),
-      bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-      bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-        fontWeight: FontWeight.w400,
-      ),
-      bodySmall: baseTextTheme.bodySmall?.copyWith(fontWeight: FontWeight.w300),
-      labelSmall: baseTextTheme.labelSmall?.copyWith(
-        fontWeight: FontWeight.w400,
-      ),
-    );
-
-    return baseTheme.copyWith(
-      textTheme: customTextTheme,
-      // ── Player colours (full-player + artwork-header overlay) ─────────────
-      extensions: [PlayerColors.standard()],
-      // ── Slider Theme (Ultra-sottile, stile Spotify) ───────────────────────
-      sliderTheme: SliderThemeData(
-        trackHeight: 3.0,
-        activeTrackColor: refinedColorScheme.primary,
-        inactiveTrackColor: refinedColorScheme.primary.withValues(alpha: 0.15),
-        thumbColor: refinedColorScheme.primary,
-        overlayColor: refinedColorScheme.primary.withValues(alpha: 0.12),
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-        trackShape: const RectangularSliderTrackShape(),
-      ),
-      // ── AppBar Theme (Trasparente, simmetrica) ───────────────────────────
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        surfaceTintColor: Colors.transparent,
-      ),
-      // ── Card Theme (Arrotondamento geometrico coerente) ─────────────────────
-      cardTheme: CardThemeData(
-        elevation: 0,
-        color: refinedColorScheme.surfaceContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      // ── Dialog Theme (Elegante, arrotondato) ─────────────────────────────
-      dialogTheme: DialogThemeData(
-        elevation: 12,
-        backgroundColor: refinedColorScheme.surfaceContainerLow,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      ),
-      // ── Navigation Rail Theme ──────────────────────────────────────────────
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: refinedColorScheme.surfaceContainerLow,
-        indicatorColor: refinedColorScheme.primaryContainer.withValues(
-          alpha: 0.5,
-        ),
-        selectedIconTheme: IconThemeData(color: refinedColorScheme.primary),
-        unselectedIconTheme: IconThemeData(
-          color: refinedColorScheme.onSurfaceVariant,
-        ),
-        selectedLabelTextStyle: GoogleFonts.montserrat(
-          color: refinedColorScheme.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-        unselectedLabelTextStyle: GoogleFonts.montserrat(
-          color: refinedColorScheme.onSurfaceVariant,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  static ThemeData amoled({ColorScheme? dynamicColorScheme}) {
-    final baseDark = dark(dynamicColorScheme: dynamicColorScheme);
-    final amoledColorScheme = baseDark.colorScheme.copyWith(
-      surface: Colors.black,
-      surfaceContainerLowest: Colors.black,
-      surfaceContainerLow: const Color(0xFF0A0A0A),
-      surfaceContainer: const Color(0xFF101010),
-      surfaceContainerHigh: const Color(0xFF1A1A1A),
-      surfaceContainerHighest: const Color(0xFF222222),
-    );
-
     return baseDark.copyWith(
-      scaffoldBackgroundColor: Colors.black,
-      colorScheme: amoledColorScheme,
-      // ── Player colours — re-declared so copyWith does not drop them ────────
+      scaffoldBackgroundColor: SonoraPulseTokens.surfaceContainerLowest,
+      colorScheme: scheme,
       extensions: [PlayerColors.standard()],
-      // ── Slider Theme ───────────────────────────────────────────────────────
-      sliderTheme: baseDark.sliderTheme.copyWith(
-        activeTrackColor: amoledColorScheme.primary,
-        inactiveTrackColor: amoledColorScheme.primary.withValues(alpha: 0.15),
-        thumbColor: amoledColorScheme.primary,
-        overlayColor: amoledColorScheme.primary.withValues(alpha: 0.12),
-      ),
-      // ── Card Theme ─────────────────────────────────────────────────────────
-      cardTheme: baseDark.cardTheme.copyWith(
-        color: amoledColorScheme.surfaceContainer,
-      ),
-      // ── Dialog Theme ───────────────────────────────────────────────────────
+      cardTheme: baseDark.cardTheme.copyWith(color: scheme.surfaceContainer),
       dialogTheme: baseDark.dialogTheme.copyWith(
-        backgroundColor: amoledColorScheme.surfaceContainerLow,
+        backgroundColor: scheme.surfaceContainerLow,
       ),
-      // ── Navigation Rail Theme ──────────────────────────────────────────────
       navigationRailTheme: baseDark.navigationRailTheme.copyWith(
-        backgroundColor: Colors.black,
-        indicatorColor: amoledColorScheme.primaryContainer.withValues(
-          alpha: 0.5,
+        backgroundColor: SonoraPulseTokens.surfaceContainerLowest,
+      ),
+      navigationBarTheme: baseDark.navigationBarTheme.copyWith(
+        backgroundColor: SonoraPulseTokens.surfaceContainerLowest,
+      ),
+    );
+  }
+
+  static ThemeData _build(ColorScheme scheme) {
+    final baseTheme = ThemeData(
+      useMaterial3: true,
+      brightness: scheme.brightness,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: scheme.surface,
+    );
+
+    final textTheme = _textTheme(baseTheme.textTheme, scheme);
+    final pill = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusPill),
+    );
+
+    return baseTheme.copyWith(
+      textTheme: textTheme,
+      primaryTextTheme: textTheme,
+      extensions: [PlayerColors.standard()],
+      splashFactory: InkSparkle.splashFactory,
+      sliderTheme: SliderThemeData(
+        trackHeight: 4,
+        activeTrackColor: SonoraPulseTokens.primaryContainer,
+        inactiveTrackColor: SonoraPulseTokens.primaryContainer.withValues(
+          alpha: 0.22,
         ),
-        selectedIconTheme: IconThemeData(color: amoledColorScheme.primary),
-        unselectedIconTheme: IconThemeData(
-          color: amoledColorScheme.onSurfaceVariant,
+        thumbColor: SonoraPulseTokens.primaryContainer,
+        overlayColor: SonoraPulseTokens.primaryContainer.withValues(
+          alpha: 0.16,
         ),
-        selectedLabelTextStyle: GoogleFonts.montserrat(
-          color: amoledColorScheme.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+        trackShape: const RoundedRectSliderTrackShape(),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: scheme.onSurface,
+        titleTextStyle: textTheme.titleLarge?.copyWith(color: scheme.onSurface),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: scheme.surfaceContainer,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusMedia),
         ),
-        unselectedLabelTextStyle: GoogleFonts.montserrat(
-          color: amoledColorScheme.onSurfaceVariant,
-          fontSize: 12,
+      ),
+      dialogTheme: DialogThemeData(
+        elevation: 8,
+        backgroundColor:
+            scheme.brightness == Brightness.dark
+                ? SonoraPulseTokens.darkSurfaceVariant
+                : SonoraPulseTokens.lightSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusDialog),
         ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: scheme.surfaceContainer,
+        selectedColor: scheme.primaryContainer.withValues(alpha: 0.28),
+        disabledColor: scheme.surfaceContainer.withValues(alpha: 0.5),
+        labelStyle: textTheme.labelLarge?.copyWith(color: scheme.onSurface),
+        secondaryLabelStyle: textTheme.labelLarge?.copyWith(
+          color: scheme.onSurface,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        shape: pill,
+        side: BorderSide(color: scheme.outlineVariant),
+        showCheckmark: false,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: pill,
+          backgroundColor: scheme.primaryContainer,
+          foregroundColor: scheme.onPrimaryContainer,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: pill,
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outlineVariant),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          shape: pill,
+          foregroundColor: scheme.primary,
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: scheme.surfaceContainerLow,
+        indicatorColor: scheme.primaryContainer.withValues(alpha: 0.28),
+        selectedIconTheme: IconThemeData(
+          color:
+              scheme.brightness == Brightness.dark
+                  ? SonoraPulseTokens.primaryContainer
+                  : scheme.primary,
+        ),
+        unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color:
+              scheme.brightness == Brightness.dark
+                  ? SonoraPulseTokens.primaryContainer
+                  : scheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: scheme.surfaceContainerLow,
+        indicatorColor: scheme.primaryContainer.withValues(alpha: 0.28),
+        height: 64,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return textTheme.labelMedium?.copyWith(
+            color:
+                selected
+                    ? (scheme.brightness == Brightness.dark
+                        ? SonoraPulseTokens.primaryContainer
+                        : scheme.primary)
+                    : scheme.onSurfaceVariant,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color:
+                selected
+                    ? (scheme.brightness == Brightness.dark
+                        ? SonoraPulseTokens.primaryContainer
+                        : scheme.primary)
+                    : scheme.onSurfaceVariant,
+          );
+        }),
+      ),
+    );
+  }
+
+  static TextTheme _textTheme(TextTheme base, ColorScheme scheme) {
+    final jakarta = GoogleFonts.plusJakartaSansTextTheme(base);
+    return jakarta.copyWith(
+      displayLarge: jakarta.displayLarge?.copyWith(
+        fontSize: 40,
+        height: 48 / 40,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.8,
+        color: scheme.onSurface,
+      ),
+      displayMedium: jakarta.displayMedium?.copyWith(
+        fontSize: 30,
+        height: 38 / 30,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.45,
+        color: scheme.onSurface,
+      ),
+      headlineLarge: jakarta.headlineLarge?.copyWith(
+        fontSize: 28,
+        height: 36 / 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.28,
+        color: scheme.onSurface,
+      ),
+      headlineMedium: jakarta.headlineMedium?.copyWith(
+        fontSize: 22,
+        height: 28 / 22,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.22,
+        color: scheme.onSurface,
+      ),
+      headlineSmall: jakarta.headlineSmall?.copyWith(
+        fontSize: 20,
+        height: 26 / 20,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.1,
+        color: scheme.onSurface,
+      ),
+      titleLarge: jakarta.titleLarge?.copyWith(
+        fontSize: 17,
+        height: 22 / 17,
+        fontWeight: FontWeight.w600,
+        color: scheme.onSurface,
+      ),
+      titleMedium: jakarta.titleMedium?.copyWith(
+        fontSize: 15,
+        height: 20 / 15,
+        fontWeight: FontWeight.w600,
+        color: scheme.onSurface,
+      ),
+      titleSmall: jakarta.titleSmall?.copyWith(
+        fontSize: 13,
+        height: 18 / 13,
+        fontWeight: FontWeight.w600,
+        color: scheme.onSurface,
+      ),
+      bodyLarge: jakarta.bodyLarge?.copyWith(
+        fontSize: 15,
+        height: 22 / 15,
+        fontWeight: FontWeight.w400,
+        color: scheme.onSurface,
+      ),
+      bodyMedium: jakarta.bodyMedium?.copyWith(
+        fontSize: 13,
+        height: 18 / 13,
+        fontWeight: FontWeight.w400,
+        color: scheme.onSurface,
+      ),
+      bodySmall: jakarta.bodySmall?.copyWith(
+        fontSize: 12,
+        height: 16 / 12,
+        fontWeight: FontWeight.w400,
+        color: scheme.onSurfaceVariant,
+      ),
+      labelLarge: jakarta.labelLarge?.copyWith(
+        fontSize: 13,
+        height: 18 / 13,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.13,
+        color: scheme.onSurface,
+      ),
+      labelMedium: jakarta.labelMedium?.copyWith(
+        fontSize: 11,
+        height: 14 / 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.22,
+        color: scheme.onSurfaceVariant,
+      ),
+      labelSmall: jakarta.labelSmall?.copyWith(
+        fontSize: 10,
+        height: 12 / 10,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+        color: scheme.onSurfaceVariant,
       ),
     );
   }

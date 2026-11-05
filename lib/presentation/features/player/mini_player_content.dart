@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
@@ -17,6 +18,7 @@ import '../../shared/widgets/video_badge.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../providers/settings_provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/cast_button.dart';
 import 'widgets/progress_bar_widget.dart';
@@ -167,139 +169,33 @@ class MiniPlayerContent extends ConsumerWidget {
     );
   }
 
-  // ── Tablet Layout (600–1199px) ──────────────────────────────────
+  // ── Tablet and wide shelf (≥600px) ──────────────────────────────
 
   Widget _tabletLayout(BuildContext context, WidgetRef ref, bool isSwitching) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final track = QueueTrack.fromMediaItem(currentSong);
-    final hideMetadata =
-        MediaQuery.sizeOf(context).width >= kExpandedBreakpoint &&
-        !ref.watch(sidebarCollapsedProvider);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: isSwitching ? null : onTap,
-      onHorizontalDragEnd: (details) {
-        if (isSwitching) return;
-        if (details.primaryVelocity == null) return;
-        if (details.primaryVelocity! < -250) {
-          HapticFeedback.lightImpact();
-          onSkipNext?.call();
-        } else if (details.primaryVelocity! > 250) {
-          HapticFeedback.lightImpact();
-          onSkipPrevious?.call();
-        }
-      },
-      child: Stack(
-        children: [
-          _glassBar(
-            cs: cs,
-            ref: ref,
-            child:
-                isSwitching
-                    ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-                    : Padding(
-                      padding: const EdgeInsets.only(
-                        top: kMiniPlayerSeekClearance,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (!hideMetadata) ...[
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          track.title,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodyLarge
-                                              ?.copyWith(height: 1.15),
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                      if (track.isExplicit)
-                                        const ExplicitBadge(
-                                          leading: SizedBox(width: 6),
-                                        ),
-                                      if (track.isVideo)
-                                        const VideoBadge(
-                                          leading: SizedBox(width: 6),
-                                        ),
-                                    ],
-                                  ),
-                                  Text(
-                                    track.artist ?? '',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                      height: 1.15,
-                                    ),
-                                    maxLines: 1,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ] else
-                            const Spacer(),
-                          _iconButton(
-                            icon: LucideIcons.skipBack,
-                            color: cs.onSurfaceVariant,
-                            onPressed: onSkipPrevious,
-                            size: 20,
-                          ),
-                          _playPauseButton(cs),
-                          _iconButton(
-                            icon: LucideIcons.skipForward,
-                            color: cs.onSurfaceVariant,
-                            onPressed: onSkipNext,
-                            size: 20,
-                          ),
-                          if (hideMetadata) const Spacer(),
-                          _likeButton(context, ref, cs),
-                          CastButton(size: 20, color: cs.onSurfaceVariant),
-                          const SizedBox(width: 4),
-                        ],
-                      ),
-                    ),
-          ),
-          if (!isSwitching)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: kMiniPlayerSeekClearance,
-              child: ProgressBarWidget(
-                position: playerState.position,
-                duration: playerState.duration,
-                disabled: playerState.isRestoring || isSwitching,
-                isPlaying: playerState.isPlaying,
-                density: ProgressBarDensity.compact,
-                onSeek: onSeek,
-              ),
-            ),
-        ],
-      ),
-    );
+    return _shelfLayout(context, ref, isSwitching, compact: true);
   }
 
-  // ── Desktop Layout (≥1200px) ────────────────────────────────────
-
   Widget _desktopLayout(BuildContext context, WidgetRef ref, bool isSwitching) {
+    return _shelfLayout(context, ref, isSwitching, compact: false);
+  }
+
+  /// Edge-to-edge shelf: art + catalog metadata + like on the left, transport
+  /// and seek in the center, lyrics / queue / cast on the right.
+  Widget _shelfLayout(
+    BuildContext context,
+    WidgetRef ref,
+    bool isSwitching, {
+    required bool compact,
+  }) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
     final activeView = ref.watch(playerSubViewProvider);
-    final isSidebarExpanded = !ref.watch(sidebarCollapsedProvider);
+    final accent =
+        cs.brightness == Brightness.dark
+            ? SonoraPulseTokens.primaryContainer
+            : cs.primary;
 
-    // Expanded sidebar: title lives in NavNowPlaying card — hide it here.
-    // Collapsed rail: disc has no text — show title/artist in the mini bar.
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (isSwitching) return;
@@ -312,232 +208,182 @@ class MiniPlayerContent extends ConsumerWidget {
           onSkipPrevious?.call();
         }
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _glassBar(
-            cs: cs,
-            ref: ref,
-            child:
-                isSwitching
-                    ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-                    : Row(
-                      children: [
-                        Expanded(
-                          flex: isSidebarExpanded ? 1 : 3,
-                          child: AnimatedCrossFade(
-                            firstChild: GestureDetector(
-                              onTap: isSwitching ? null : onTap,
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                track.title,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: theme
-                                                    .textTheme
-                                                    .titleSmall
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                maxLines: 1,
-                                              ),
-                                            ),
-                                            if (track.isExplicit)
-                                              const ExplicitBadge(
-                                                leading: SizedBox(width: 6),
-                                              ),
-                                          ],
-                                        ),
-                                        Text(
-                                          track.artist ?? '',
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: cs.onSurfaceVariant,
-                                              ),
-                                          maxLines: 1,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            secondChild: const SizedBox.shrink(),
-                            crossFadeState:
-                                isSidebarExpanded
-                                    ? CrossFadeState.showSecond
-                                    : CrossFadeState.showFirst,
-                            duration: const Duration(milliseconds: 250),
-                          ),
+      child: _glassBar(
+        cs: cs,
+        ref: ref,
+        paintedByParent: true,
+        child:
+            isSwitching
+                ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
+                : Row(
+                  children: [
+                    Expanded(
+                      flex: compact ? 5 : 4,
+                      child: _ShelfIdentity(
+                        track: track,
+                        theme: theme,
+                        cs: cs,
+                        artwork: _artwork(
+                          size: compact ? 48 : 56,
+                          radius: 12,
+                          cs: cs,
+                          ref: ref,
                         ),
-                        // CENTER — controls + progress + time
-                        Expanded(
-                          flex: isSidebarExpanded ? 5 : 4,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                        onOpenPlayer: isSwitching ? null : onTap,
+                        like: _likeButton(context, ref, cs),
+                      ),
+                    ),
+                    Expanded(
+                      flex: compact ? 4 : 5,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _iconButton(
-                                    icon: LucideIcons.skipBack,
-                                    color: cs.onSurfaceVariant,
-                                    onPressed: onSkipPrevious,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _playPauseButton(cs),
-                                  const SizedBox(width: 8),
-                                  _iconButton(
-                                    icon: LucideIcons.skipForward,
-                                    color: cs.onSurfaceVariant,
-                                    onPressed: onSkipNext,
-                                    size: 20,
-                                  ),
-                                ],
+                              _iconButton(
+                                icon: LucideIcons.skipBack,
+                                color: cs.onSurfaceVariant,
+                                onPressed: onSkipPrevious,
+                                size: 20,
                               ),
-                              const SizedBox(height: 2),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: ProgressBarWidget(
-                                  position: playerState.position,
-                                  duration: playerState.duration,
-                                  disabled:
-                                      playerState.isRestoring || isSwitching,
-                                  isPlaying: playerState.isPlaying,
-                                  density: ProgressBarDensity.comfortable,
-                                  onSeek: onSeek,
-                                ),
+                              const SizedBox(width: 4),
+                              _playPauseButton(cs, ref),
+                              const SizedBox(width: 4),
+                              _iconButton(
+                                icon: LucideIcons.skipForward,
+                                color: cs.onSurfaceVariant,
+                                onPressed: onSkipNext,
+                                size: 20,
                               ),
                             ],
                           ),
-                        ),
-                        // RIGHT — full - like + lyrics + queue + more
-                        Expanded(
-                          flex: 3,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _iconButton(
-                                    icon: LucideIcons.maximize2,
-                                    color: cs.onSurfaceVariant,
-                                    onPressed: isSwitching ? null : onTap,
-                                  ),
-                                  _likeButton(context, ref, cs),
-                                  _iconButton(
-                                    icon: LucideIcons.micVocal,
-                                    color:
-                                        activeView == PlayerSubView.lyrics
-                                            ? cs.primary
-                                            : cs.onSurfaceVariant,
-                                    onPressed: onOpenLyrics,
-                                    size: 20,
-                                  ),
-                                  _iconButton(
-                                    icon: LucideIcons.listMusic,
-                                    color:
-                                        activeView == PlayerSubView.queue
-                                            ? cs.primary
-                                            : cs.onSurfaceVariant,
-                                    onPressed: onOpenQueue,
-                                    size: 20,
-                                  ),
-                                  CastButton(
-                                    size: 20,
-                                    color: cs.onSurfaceVariant,
-                                    style: IconButton.styleFrom(
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      visualDensity: VisualDensity.compact,
-                                      minimumSize: const Size(36, 36),
-                                      padding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                  _iconButton(
-                                    icon: LucideIcons.moreVertical,
-                                    color: cs.onSurfaceVariant,
-                                    onPressed: () {
-                                      if (track.isEpisode) {
-                                        ContextMenuSheet.showForEpisode(
-                                          context,
-                                          videoId: track.videoId,
-                                          name: track.title,
-                                          podcastName: track.artist,
-                                          podcastBrowseId:
-                                              track.podcastBrowseId,
-                                          thumbnailUrl:
-                                              track.artUri?.toString(),
-                                          date: track.publishDate,
-                                        );
-                                      } else {
-                                        ContextMenuSheet.showForSong(
-                                          context,
-                                          videoId: track.videoId,
-                                          title: track.title,
-                                          artist: track.artist ?? '',
-                                          artistsJson: track.artistsJson,
-                                          artistId: track.artistId,
-                                          albumId: track.albumId,
-                                          thumbnailUrl:
-                                              track.artUri?.toString(),
-                                          duration: track.duration?.inSeconds,
-                                          albumName: track.album ?? '',
-                                          isVideo: track.isVideo,
-                                          isExplicit: track.isExplicit,
-                                        );
-                                      }
-                                    },
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                ],
-                              ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: ProgressBarWidget(
+                              position: playerState.position,
+                              duration: playerState.duration,
+                              disabled: playerState.isRestoring || isSwitching,
+                              isPlaying: playerState.isPlaying,
+                              density: ProgressBarDensity.comfortable,
+                              onSeek: onSeek,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-          ),
-        ],
+                    Expanded(
+                      flex: 3,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!compact)
+                                _iconButton(
+                                  icon: LucideIcons.maximize2,
+                                  color: cs.onSurfaceVariant,
+                                  onPressed: isSwitching ? null : onTap,
+                                ),
+                              _iconButton(
+                                icon: LucideIcons.micVocal,
+                                color:
+                                    activeView == PlayerSubView.lyrics
+                                        ? accent
+                                        : cs.onSurfaceVariant,
+                                onPressed: onOpenLyrics,
+                                size: 20,
+                              ),
+                              _iconButton(
+                                icon: LucideIcons.listMusic,
+                                color:
+                                    activeView == PlayerSubView.queue
+                                        ? accent
+                                        : cs.onSurfaceVariant,
+                                onPressed: onOpenQueue,
+                                size: 20,
+                              ),
+                              CastButton(
+                                size: 20,
+                                color: cs.onSurfaceVariant,
+                                style: IconButton.styleFrom(
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                  minimumSize: const Size(36, 36),
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ),
+                              if (!compact)
+                                _iconButton(
+                                  icon: LucideIcons.moreVertical,
+                                  color: cs.onSurfaceVariant,
+                                  onPressed:
+                                      () => _openTrackMenu(context, track),
+                                  size: 20,
+                                ),
+                              const SizedBox(width: 8),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
       ),
+    );
+  }
+
+  void _openTrackMenu(BuildContext context, QueueTrack track) {
+    if (track.isEpisode) {
+      ContextMenuSheet.showForEpisode(
+        context,
+        videoId: track.videoId,
+        name: track.title,
+        podcastName: track.artist,
+        podcastBrowseId: track.podcastBrowseId,
+        thumbnailUrl: track.artUri?.toString(),
+        date: track.publishDate,
+      );
+      return;
+    }
+    ContextMenuSheet.showForSong(
+      context,
+      videoId: track.videoId,
+      title: track.title,
+      artist: track.artist ?? '',
+      artistsJson: track.artistsJson,
+      artistId: track.artistId,
+      albumId: track.albumId,
+      thumbnailUrl: track.artUri?.toString(),
+      duration: track.duration?.inSeconds,
+      albumName: track.album ?? '',
+      isVideo: track.isVideo,
+      isExplicit: track.isExplicit,
     );
   }
 
   // ── Shared Widgets ──────────────────────────────────────────────
 
-  /// 72 px semi-transparent bar — the blur is applied by the parent wrapper
-  /// ([PlayerSheet] on tablet/wide, [PlayerSheetMobile] on mobile) so it is
-  /// not duplicated here.  This widget provides only the colour + border.
+  /// Colour and blur live on [PlayerSheet] for the shelf. This only sets the
+  /// height. The mobile layout still paints its own surface.
   Widget _glassBar({
     required ColorScheme cs,
     required Widget child,
     required WidgetRef ref,
+    bool paintedByParent = false,
   }) {
+    if (paintedByParent) {
+      return SizedBox(height: kMiniPlayerShelfHeight, child: child);
+    }
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
     return Container(
-      height: 72,
+      height: kMiniPlayerShelfHeight,
       decoration: BoxDecoration(
         color:
             reduceEffects
@@ -598,29 +444,40 @@ class MiniPlayerContent extends ConsumerWidget {
     );
   }
 
-  Widget _playPauseButton(ColorScheme cs) {
+  Widget _playPauseButton(ColorScheme cs, [WidgetRef? ref]) {
     final blocked = playerState.isBlocked;
-    return IconButton(
-      icon: AnimatedPlayPauseIcon(
-        isPlaying: playerState.isPlaying,
-        isLoading: playerState.isRestoring,
-        color: cs.onPrimary,
-        size: 24,
+    final glow =
+        ref == null ||
+        !ref.watch(settingsProvider.select((s) => s.reduceEffects));
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: SonoraPulseTokens.playControlDecoration(
+        enabled: !blocked,
+        glow: glow,
       ),
-      onPressed:
-          blocked
-              ? null
-              : () {
-                HapticFeedback.lightImpact();
-                onPlayPause?.call();
-              },
-      style: IconButton.styleFrom(
-        backgroundColor: blocked ? cs.primary.withAlpha(128) : cs.primary,
-        foregroundColor: cs.onPrimary,
-        fixedSize: const Size(40, 40),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        padding: EdgeInsets.zero,
-        shape: const CircleBorder(),
+      child: IconButton(
+        icon: AnimatedPlayPauseIcon(
+          isPlaying: playerState.isPlaying,
+          isLoading: playerState.isRestoring,
+          color: SonoraPulseTokens.onPrimary,
+          size: 22,
+        ),
+        onPressed:
+            blocked
+                ? null
+                : () {
+                  HapticFeedback.lightImpact();
+                  onPlayPause?.call();
+                },
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: SonoraPulseTokens.onPrimary,
+          fixedSize: const Size(40, 40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: EdgeInsets.zero,
+          shape: const CircleBorder(),
+        ),
       ),
     );
   }
@@ -785,5 +642,150 @@ class MiniPlayerContent extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+/// Left cluster of the shelf: artwork, tappable title / artist / album, like.
+class _ShelfIdentity extends StatelessWidget {
+  final QueueTrack track;
+  final ThemeData theme;
+  final ColorScheme cs;
+  final Widget artwork;
+  final VoidCallback? onOpenPlayer;
+  final Widget like;
+
+  const _ShelfIdentity({
+    required this.track,
+    required this.theme,
+    required this.cs,
+    required this.artwork,
+    required this.onOpenPlayer,
+    required this.like,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent =
+        cs.brightness == Brightness.dark
+            ? SonoraPulseTokens.primaryContainer
+            : cs.primary;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: cs.onSurfaceVariant,
+      height: 1.15,
+    );
+    final link = muted?.copyWith(color: accent);
+
+    final artistLabel = track.artist ?? '';
+    VoidCallback? artistTap;
+    if (track.isEpisode) {
+      final id = track.podcastBrowseId;
+      if (id != null && id.isNotEmpty) {
+        artistTap = () => context.push('/podcast/$id');
+      }
+    } else {
+      final id = track.artistId;
+      if (id != null && id.isNotEmpty) {
+        artistTap = () => context.push('/artist/$id');
+      }
+    }
+
+    String? albumText;
+    VoidCallback? albumTap;
+    if (!track.isEpisode) {
+      final albumId = track.albumId;
+      final name = track.album;
+      if (name != null && name.isNotEmpty) {
+        albumText = name;
+      }
+      if (albumId != null && albumId.isNotEmpty) {
+        albumTap = () => context.push('/album/$albumId');
+        albumText ??= AppLocalizations.of(context)!.fromTheAlbum;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          GestureDetector(onTap: onOpenPlayer, child: artwork),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: onOpenPlayer,
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          track.title,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
+                      if (track.isExplicit)
+                        const ExplicitBadge(leading: SizedBox(width: 6)),
+                      if (track.isVideo)
+                        const VideoBadge(leading: SizedBox(width: 6)),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: [
+                    if (artistLabel.isNotEmpty)
+                      Flexible(
+                        child: _MetaLink(
+                          key: const ValueKey('mini-artist-link'),
+                          label: artistLabel,
+                          style: artistTap == null ? muted : link,
+                          onTap: artistTap,
+                        ),
+                      ),
+                    if (albumText != null) ...[
+                      if (artistLabel.isNotEmpty) Text(' · ', style: muted),
+                      Flexible(
+                        child: _MetaLink(
+                          key: const ValueKey('mini-album-link'),
+                          label: albumText,
+                          style: albumTap == null ? muted : link,
+                          onTap: albumTap,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          like,
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaLink extends StatelessWidget {
+  final String label;
+  final TextStyle? style;
+  final VoidCallback? onTap;
+
+  const _MetaLink({super.key, required this.label, this.style, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+    if (onTap == null) return text;
+    return GestureDetector(onTap: onTap, child: text);
   }
 }

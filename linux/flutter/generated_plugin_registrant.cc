@@ -7,7 +7,6 @@
 #include "generated_plugin_registrant.h"
 
 #include <app_links_linux/app_links_plugin_linux.h>
-#include <dynamic_color/dynamic_color_plugin.h>
 #include <flutter_edge_ai/flutter_edge_ai_plugin.h>
 #include <media_kit_libs_linux/media_kit_libs_linux_plugin.h>
 #include <screen_retriever_linux/screen_retriever_linux_plugin.h>
@@ -19,9 +18,6 @@ void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) app_links_linux_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "AppLinksPluginLinux");
   app_links_plugin_linux_register_with_registrar(app_links_linux_registrar);
-  g_autoptr(FlPluginRegistrar) dynamic_color_registrar =
-      fl_plugin_registry_get_registrar_for_plugin(registry, "DynamicColorPlugin");
-  dynamic_color_plugin_register_with_registrar(dynamic_color_registrar);
   g_autoptr(FlPluginRegistrar) flutter_edge_ai_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "FlutterEdgeAiPlugin");
   flutter_edge_ai_plugin_register_with_registrar(flutter_edge_ai_registrar);

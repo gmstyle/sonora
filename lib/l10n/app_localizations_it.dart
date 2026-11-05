@@ -876,12 +876,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get amoledDarkModeHint => 'Usa lo sfondo nero puro';
 
   @override
-  String get dynamicColor => 'Colore dinamico';
-
-  @override
-  String get dynamicColorHint => 'Adatta il tema allo sfondo (Android 12+)';
-
-  @override
   String get content => 'Contenuto';
 
   @override

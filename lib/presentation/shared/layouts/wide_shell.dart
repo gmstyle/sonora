@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../features/player/nav_now_playing.dart';
 import '../../features/player/player_sheet.dart';
-import '../../providers/player_provider.dart';
-import '../../providers/playlist_import_job_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
@@ -36,132 +33,126 @@ class _WideShellState extends ConsumerState<WideShell> {
   @override
   Widget build(BuildContext context) {
     final isCollapsed = ref.watch(sidebarCollapsedProvider);
-    final isPlayerActive = ref.watch(playerStateProvider).currentSong != null;
     final colorScheme = Theme.of(context).colorScheme;
     final targetWidth = isCollapsed ? 72.0 : 240.0;
 
     return Scaffold(
-      body: Row(
+      body: Column(
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            width: targetWidth,
-            child: Material(
-              color: colorScheme.surfaceContainerLow,
-              child: ClipRect(
-                child: OverflowBox(
-                  alignment: Alignment.topLeft,
-                  minWidth: targetWidth,
-                  maxWidth: targetWidth,
-                  child: SizedBox(
-                    width: targetWidth,
-                    child: Column(
-                      children: [
-                        Container(
-                          height: 80,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isCollapsed ? 12 : 24,
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            mainAxisAlignment:
-                                isCollapsed
-                                    ? MainAxisAlignment.center
-                                    : MainAxisAlignment.spaceBetween,
+          Expanded(
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  width: targetWidth,
+                  child: Material(
+                    color: colorScheme.surfaceContainerLow,
+                    child: ClipRect(
+                      child: OverflowBox(
+                        alignment: Alignment.topLeft,
+                        minWidth: targetWidth,
+                        maxWidth: targetWidth,
+                        child: SizedBox(
+                          width: targetWidth,
+                          child: Column(
                             children: [
-                              if (!isCollapsed)
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      const SonoraLogo.icon(32),
-                                      const SizedBox(width: 8),
-                                      Flexible(
-                                        child: Text(
-                                          'SONORA',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 2,
-                                            color: colorScheme.primary,
-                                          ),
+                              Container(
+                                height: 80,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isCollapsed ? 12 : 24,
+                                ),
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      isCollapsed
+                                          ? MainAxisAlignment.center
+                                          : MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    if (!isCollapsed)
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            const SonoraLogo.icon(32),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text(
+                                                'SONORA',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      letterSpacing: 2,
+                                                      color:
+                                                          colorScheme.primary,
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    IconButton(
+                                      visualDensity: VisualDensity.compact,
+                                      icon: Icon(
+                                        isCollapsed
+                                            ? LucideIcons.menu
+                                            : LucideIcons.chevronLeft,
+                                      ),
+                                      onPressed: () {
+                                        ref
+                                            .read(
+                                              sidebarCollapsedProvider.notifier,
+                                            )
+                                            .toggle();
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                icon: Icon(
-                                  isCollapsed
-                                      ? LucideIcons.menu
-                                      : LucideIcons.chevronLeft,
-                                ),
-                                onPressed: () {
-                                  ref
-                                      .read(sidebarCollapsedProvider.notifier)
-                                      .toggle();
-                                },
                               ),
+                              Expanded(
+                                child: ListView(
+                                  padding: EdgeInsets.zero,
+                                  children: [
+                                    for (var i = 0; i < _icons.length; i++)
+                                      _buildNavItem(i, context),
+                                  ],
+                                ),
+                              ),
+                              _buildSettingsEntry(context, isCollapsed),
                             ],
                           ),
                         ),
-                        Expanded(
-                          child: ListView(
-                            padding: EdgeInsets.zero,
-                            children: [
-                              for (var i = 0; i < _icons.length; i++)
-                                _buildNavItem(i, context),
-                            ],
-                          ),
-                        ),
-                        _buildSettingsEntry(context, isCollapsed),
-                        NavNowPlaying(expanded: !isCollapsed),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ),
-          VerticalDivider(
-            width: 1,
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-          Expanded(
-            child: Stack(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom:
-                        isPlayerActive
-                            ? 72.0
-                            : (ref.watch(dockBannersVisibleProvider)
-                                ? 72.0
-                                : 0.0),
-                  ),
-                  child: BranchFadeTransition(
-                    navigationShell: widget.navigationShell,
+                VerticalDivider(
+                  width: 1,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                ),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      BranchFadeTransition(
+                        navigationShell: widget.navigationShell,
+                      ),
+                      const PlayerErrorListener(),
+                      const ActionFeedbackListener(),
+                      const PlaylistImportJobHost(),
+                    ],
                   ),
                 ),
-                const PlayerSheet(),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: isPlayerActive ? 72 : 0,
-                  child: const DockStatusBanners(),
-                ),
-                const PlayerErrorListener(),
-                const ActionFeedbackListener(),
-                const PlaylistImportJobHost(),
               ],
             ),
           ),
+          const DockStatusBanners(),
+          const PlayerSheet(),
         ],
       ),
     );

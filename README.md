@@ -43,7 +43,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 - Podcast and episode pages, user/channel pages, search across songs, videos, podcasts, and users
 
 **Desktop & extras**
-- Adaptive layouts (phone, tablet, wide) with light, dark, and AMOLED themes (Dynamic Color on Android 12+)
+- Adaptive layouts (phone, tablet, wide) with Sonora Pulse light, dark, and AMOLED themes
 - Linux tray and MPRIS; auto-update from GitHub Releases with in-app release notes
 - Headless CLI, backup/restore, P2P library sync over Wi-Fi, Sonora Wrapped stats, Italian and English
 

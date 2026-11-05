@@ -50,7 +50,9 @@ lib/
 │   │   ├── stat_format.dart            # int.toCompact(), stripYtLabel(), nullIfEmpty
 │   │   └── string_ext.dart             # String extensions
 │   ├── theme/
-│   │   └── app_theme.dart              # ThemeData light/dark/amoled + dynamic color
+│   │   ├── app_theme.dart              # Pulse ThemeData light/dark/amoled
+│   │   ├── player_colors.dart          # Dark player overlay palette
+│   │   └── sonora_pulse_tokens.dart    # Pulse colors, radii, gradients
 │   ├── utils/
 │   │   ├── backup_utils.dart           # JSON serialize/deserialize (no I/O)
 │   │   ├── linux_single_instance.dart  # Unix-socket single-instance + argv URI forward
@@ -709,9 +711,9 @@ Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.
 
 Artist album and single “show all” routes use `MusicRepository.getArtistAlbums` / `getArtistSingles`. Those `dart_ytmusic_api` methods follow discography browse continuations (up to 10 pages) so the full catalog is returned when YouTube Music paginates the grid. When that call is empty or fails, the screen still lists the releases already shown on the artist page.
 
-`/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear on the Home AppBar (mobile), between the tablet `NavigationRail` and `NavNowPlaying`, and in the wide sidebar header (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
+`/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear on the Home AppBar (mobile and tablet) and in the wide sidebar (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
 
-The player overlay sits **above** the shell and is not a route. Mobile fuses the mini player with the NavigationBar as one glass dock. Tablet and wide keep a floating mini player as the only transport surface. Now-playing identity lives in the nav chrome (`NavNowPlaying`: compact disc on the rail / collapsed sidebar; expanded sidebar shows an identity row plus catalog context for the album, artist, or podcast — no play/skip). Opening the full player is a slide-up push of `FullPlayerContent`. Tapping catalog context navigates to the album, artist, or podcast screen.
+The player overlay sits **above** the shell and is not a route. Mobile fuses the mini player with the NavigationBar as one glass dock. Tablet and wide dock an 80px mini shelf across the full scaffold, under the rail or sidebar and the content. Artwork and catalog metadata (artist, album, or podcast) live on the left of that shelf. Opening the full player is a slide-up push of `FullPlayerContent`. Tapping artist, album, or podcast metadata navigates to that screen. Visual tokens are Sonora Pulse (`docs/DESIGN.md`): Plus Jakarta Sans, fixed light/dark/AMOLED schemes, no Monet.
 
 ### 7.3 Adaptive Overlays (Modal BottomSheets & Dialogs)
 
@@ -974,7 +976,6 @@ Produces:
 | Key | Type | Default | Backup | Side-effect |
 |---|---|---|---|---|
 | `themeMode` | int (ThemeMode enum) | 0 (system) | yes | ThemeProvider |
-| `useDynamicColor` | bool | true | yes | ThemeProvider |
 | `useAmoled` | bool | false | yes | ThemeProvider |
 | `gl` | String | "US" | yes | YTMusic reinitialize + invalidate home |
 | `hl` | String | "en" | yes | YTMusic reinitialize + invalidate home |

@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import 'scale_button.dart';
 
+/// Circular play control shown on card hover. Matches mini / full player
+/// branding via [SonoraPulseTokens.playControlDecoration] — never use
+/// [ColorScheme.primary] as the fill (it is a light tint in dark mode).
 class HoverPlayButton extends StatelessWidget {
   final bool isVisible;
   final VoidCallback onTap;
   final double size;
   final double iconSize;
-  final Color? iconColor;
 
   const HoverPlayButton({
     super.key,
@@ -15,14 +19,10 @@ class HoverPlayButton extends StatelessWidget {
     required this.onTap,
     this.size = 36.0,
     this.iconSize = 20.0,
-    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final effectiveIconColor = iconColor ?? theme.colorScheme.onPrimary;
-
     return AnimatedOpacity(
       opacity: isVisible ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 150),
@@ -31,22 +31,12 @@ class HoverPlayButton extends StatelessWidget {
         child: Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+          decoration: SonoraPulseTokens.playControlDecoration(glow: false),
           child: Center(
             child: Icon(
               LucideIcons.play,
               size: iconSize,
-              color: effectiveIconColor,
+              color: SonoraPulseTokens.onPrimary,
             ),
           ),
         ),

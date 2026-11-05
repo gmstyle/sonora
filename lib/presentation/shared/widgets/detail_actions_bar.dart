@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Canonical ids for [DetailActionsBar] ranking (lower index = higher priority).
@@ -263,13 +264,16 @@ class _MobileBar extends StatelessWidget {
           SizedBox(
             width: 56,
             height: 56,
-            child: FilledButton(
-              onPressed: onPlay,
-              style: FilledButton.styleFrom(
-                shape: const CircleBorder(),
-                padding: EdgeInsets.zero,
+            child: DecoratedBox(
+              decoration: SonoraPulseTokens.playControlDecoration(),
+              child: IconButton(
+                onPressed: onPlay,
+                style: IconButton.styleFrom(
+                  foregroundColor: SonoraPulseTokens.onPrimary,
+                  shape: const CircleBorder(),
+                ),
+                icon: const Icon(LucideIcons.play, size: 28),
               ),
-              child: const Icon(LucideIcons.play, size: 28),
             ),
           ),
         ],

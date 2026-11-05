@@ -58,6 +58,12 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
   /// Highlight / peak colour of the shimmer sweep.
   final Color shimmerHighlight;
 
+  /// Cyan brand accent used for the scrubber, play glow, and active titles.
+  final Color accent;
+
+  /// Azure end of the brand spectrum, paired with [accent] in gradients.
+  final Color accentEnd;
+
   const PlayerColors({
     required this.titlePrimary,
     required this.titleSecondary,
@@ -69,22 +75,27 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
     required this.topScrimMid,
     required this.shimmerBase,
     required this.shimmerHighlight,
+    required this.accent,
+    required this.accentEnd,
   });
 
   /// Standard values used by all three app themes (light / dark / amoled).
   ///
-  /// The player background is always dark so these values are theme-invariant.
+  /// The player background is always a dark Pulse scrim, so these values are
+  /// theme-invariant. [accent] is the brand cyan on that scrim.
   factory PlayerColors.standard() => const PlayerColors(
-    titlePrimary: Color(0xFFFFFFFF), // white 100 %
-    titleSecondary: Color(0xCCFFFFFF), // white  80 %
-    subtitle: Color(0x99FFFFFF), // white  60 %
-    labelMuted: Color(0x66FFFFFF), // white  40 %
-    iconPrimary: Color(0xFFFFFFFF), // white 100 %
-    iconSecondary: Color(0xCCFFFFFF), // white  80 %
-    topScrimStart: Color(0x8A000000), // black  54 %
-    topScrimMid: Color(0x42000000), // black  26 %
-    shimmerBase: Color(0xFF2C2C2E),
-    shimmerHighlight: Color(0xFF48484A),
+    titlePrimary: Color(0xFFFFFFFF),
+    titleSecondary: Color(0xCCFFFFFF),
+    subtitle: Color(0xFF94A3B8),
+    labelMuted: Color(0xB394A3B8),
+    iconPrimary: Color(0xFFFFFFFF),
+    iconSecondary: Color(0xFFB9CACB),
+    topScrimStart: Color(0xCC0F1026),
+    topScrimMid: Color(0x660F1026),
+    shimmerBase: Color(0xFF1E2038),
+    shimmerHighlight: Color(0xFF2D2F54),
+    accent: Color(0xFF00F2FE),
+    accentEnd: Color(0xFF4FACFE),
   );
 
   // ── ThemeExtension contract ───────────────────────────────────────────────
@@ -101,6 +112,8 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
     Color? topScrimMid,
     Color? shimmerBase,
     Color? shimmerHighlight,
+    Color? accent,
+    Color? accentEnd,
   }) {
     return PlayerColors(
       titlePrimary: titlePrimary ?? this.titlePrimary,
@@ -113,6 +126,8 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
       topScrimMid: topScrimMid ?? this.topScrimMid,
       shimmerBase: shimmerBase ?? this.shimmerBase,
       shimmerHighlight: shimmerHighlight ?? this.shimmerHighlight,
+      accent: accent ?? this.accent,
+      accentEnd: accentEnd ?? this.accentEnd,
     );
   }
 
@@ -131,6 +146,8 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
       shimmerBase: Color.lerp(shimmerBase, other.shimmerBase, t)!,
       shimmerHighlight:
           Color.lerp(shimmerHighlight, other.shimmerHighlight, t)!,
+      accent: Color.lerp(accent, other.accent, t)!,
+      accentEnd: Color.lerp(accentEnd, other.accentEnd, t)!,
     );
   }
 

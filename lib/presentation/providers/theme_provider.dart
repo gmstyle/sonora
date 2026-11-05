@@ -8,27 +8,10 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
   return ref.watch(settingsProvider).themeMode;
 });
 
-final lightThemeProvider = Provider.family<ThemeData, ColorScheme?>((
-  ref,
-  dynamicScheme,
-) {
-  final settings = ref.watch(settingsProvider);
-  return AppTheme.light(
-    dynamicColorScheme: settings.useDynamicColor ? dynamicScheme : null,
-  );
-});
+final lightThemeProvider = Provider<ThemeData>((ref) => AppTheme.light());
 
-final darkThemeProvider = Provider.family<ThemeData, ColorScheme?>((
-  ref,
-  dynamicScheme,
-) {
+final darkThemeProvider = Provider<ThemeData>((ref) {
   final settings = ref.watch(settingsProvider);
-  if (settings.useAmoled) {
-    return AppTheme.amoled(
-      dynamicColorScheme: settings.useDynamicColor ? dynamicScheme : null,
-    );
-  }
-  return AppTheme.dark(
-    dynamicColorScheme: settings.useDynamicColor ? dynamicScheme : null,
-  );
+  if (settings.useAmoled) return AppTheme.amoled();
+  return AppTheme.dark();
 });

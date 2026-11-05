@@ -49,7 +49,7 @@ class DockProgressBanner extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: colorScheme.primary,
+                      color: colorScheme.primaryContainer,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -86,7 +86,7 @@ class DockProgressBanner extends StatelessWidget {
                               minHeight: 3,
                               backgroundColor:
                                   colorScheme.surfaceContainerHighest,
-                              color: colorScheme.primary,
+                              color: colorScheme.primaryContainer,
                             ),
                           ),
                         ],

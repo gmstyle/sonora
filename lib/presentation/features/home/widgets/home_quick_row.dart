@@ -24,22 +24,27 @@ class HomeQuickRow extends ConsumerWidget {
 
     if (!showContinue && !showMixes) return const SizedBox.shrink();
 
+    // Side-by-side already insets the Row; children must not re-apply the
+    // same horizontal padding or the two columns drift inward unevenly.
+    final sideBySide = metrics.useSideBySideQuickRow;
+    final childPad = sideBySide ? 0.0 : metrics.quickRowPadding;
+
     final continueWidget = HomeContinueListening(
       historyAsync,
       thumbnailSize: metrics.continueThumbnailSize,
-      horizontalPadding: metrics.quickRowPadding,
-      showHeader: !metrics.useSideBySideQuickRow,
+      horizontalPadding: childPad,
+      showHeader: true,
       maxItems: 5,
     );
 
     final mixesWidget = HomeYourMixes(
-      horizontalPadding: metrics.quickRowPadding,
-      showHeader: !metrics.useSideBySideQuickRow,
+      horizontalPadding: childPad,
+      showHeader: !sideBySide,
       compactGrid: true,
     );
 
     final mixesColumn =
-        metrics.useSideBySideQuickRow
+        sideBySide
             ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -53,7 +58,7 @@ class HomeQuickRow extends ConsumerWidget {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: metrics.zoneGap / 2),
         child:
-            metrics.useSideBySideQuickRow
+            sideBySide
                 ? Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: metrics.quickRowPadding,

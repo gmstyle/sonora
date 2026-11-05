@@ -1490,18 +1490,6 @@ abstract class AppLocalizations {
   /// **'Use true black background'**
   String get amoledDarkModeHint;
 
-  /// No description provided for @dynamicColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Dynamic color'**
-  String get dynamicColor;
-
-  /// No description provided for @dynamicColorHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Adapt theme to wallpaper (Android 12+)'**
-  String get dynamicColorHint;
-
   /// No description provided for @content.
   ///
   /// In en, this message translates to:

@@ -161,6 +161,7 @@ class _PlaylistCardState extends ConsumerState<PlaylistCard> {
                               imageUrl: widget.thumbnailUrl,
                               size: size,
                               shape: ThumbnailShape.rounded,
+                              borderRadius: 24,
                             ),
                   ),
                   Positioned(
@@ -235,7 +236,7 @@ class _LocalPlaylistCoverBuilder extends ConsumerWidget {
         return SizedBox(
           width: size,
           height: size,
-          child: PlaylistCoverCollage(thumbnailUrls: urls, borderRadius: 8),
+          child: PlaylistCoverCollage(thumbnailUrls: urls, borderRadius: 24),
         );
       },
     );

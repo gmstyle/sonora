@@ -20,7 +20,6 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 
 class Settings {
   final ThemeMode themeMode;
-  final bool useDynamicColor;
   final bool useAmoled;
   final String gl;
   final String hl;
@@ -54,7 +53,6 @@ class Settings {
 
   const Settings({
     this.themeMode = ThemeMode.system,
-    this.useDynamicColor = true,
     this.useAmoled = false,
     this.gl = 'US',
     this.hl = 'en',
@@ -82,7 +80,6 @@ class Settings {
 
   Settings copyWith({
     ThemeMode? themeMode,
-    bool? useDynamicColor,
     bool? useAmoled,
     String? gl,
     String? hl,
@@ -111,7 +108,6 @@ class Settings {
   }) {
     return Settings(
       themeMode: themeMode ?? this.themeMode,
-      useDynamicColor: useDynamicColor ?? this.useDynamicColor,
       useAmoled: useAmoled ?? this.useAmoled,
       gl: gl ?? this.gl,
       hl: hl ?? this.hl,
@@ -153,7 +149,6 @@ class Settings {
   Map<String, dynamic> toBackupMap() {
     return <String, dynamic>{
       kThemeModeKey: themeMode.index,
-      kUseDynamicColorKey: useDynamicColor,
       kUseAmoledKey: useAmoled,
       kGlKey: gl,
       kHlKey: hl,
@@ -185,7 +180,6 @@ class SettingsNotifier extends Notifier<Settings> {
     _prefs = ref.read(sharedPreferencesProvider);
     final settings = Settings(
       themeMode: ThemeMode.values[_prefs.getInt(kThemeModeKey) ?? 0],
-      useDynamicColor: _prefs.getBool(kUseDynamicColorKey) ?? true,
       useAmoled: _prefs.getBool(kUseAmoledKey) ?? false,
       gl: _prefs.getString(kGlKey) ?? 'US',
       hl: _prefs.getString(kHlKey) ?? 'en',
@@ -228,7 +222,6 @@ class SettingsNotifier extends Notifier<Settings> {
 
   Future<void> _save() async {
     await _prefs.setInt(kThemeModeKey, state.themeMode.index);
-    await _prefs.setBool(kUseDynamicColorKey, state.useDynamicColor);
     await _prefs.setBool(kUseAmoledKey, state.useAmoled);
     await _prefs.setString(kGlKey, state.gl);
     await _prefs.setString(kHlKey, state.hl);
@@ -276,11 +269,6 @@ class SettingsNotifier extends Notifier<Settings> {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     state = state.copyWith(themeMode: mode);
-    await _save();
-  }
-
-  Future<void> setUseDynamicColor(bool value) async {
-    state = state.copyWith(useDynamicColor: value);
     await _save();
   }
 
@@ -422,20 +410,16 @@ class SettingsNotifier extends Notifier<Settings> {
     await _save();
   }
 
-  /// Applies a `backup.json` settings map. Unknown keys and
-  /// device-local `downloadPath` are ignored. Older zips that only
-  /// have `streamQuality` still apply that value to [streamAudioQuality].
+  /// Applies a `backup.json` settings map. Unknown keys,
+  /// device-local `downloadPath`, and the retired `useDynamicColor`
+  /// key are ignored. Older zips that only have `streamQuality` still
+  /// apply that value to [streamAudioQuality].
   Future<void> applyBackupMap(Map<String, dynamic> map) async {
     final themeIndex = _backupInt(map[kThemeModeKey]);
     if (themeIndex != null &&
         themeIndex >= 0 &&
         themeIndex < ThemeMode.values.length) {
       await setThemeMode(ThemeMode.values[themeIndex]);
-    }
-
-    final useDynamicColor = _backupBool(map[kUseDynamicColorKey]);
-    if (useDynamicColor != null) {
-      await setUseDynamicColor(useDynamicColor);
     }
 
     final useAmoled = _backupBool(map[kUseAmoledKey]);
@@ -546,7 +530,9 @@ final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(
 // ── SharedPreferences keys ───────────────────────────────────────
 
 const kThemeModeKey = 'themeMode';
-const kUseDynamicColorKey = 'useDynamicColor';
+
+/// Retired Monet toggle. Removed on upgrade and ignored in old backups.
+const kLegacyUseDynamicColorKey = 'useDynamicColor';
 const kUseAmoledKey = 'useAmoled';
 const kGlKey = 'gl';
 const kHlKey = 'hl';
@@ -582,6 +568,7 @@ Future<void> migrateLegacySettingsPrefs(SharedPreferences prefs) async {
   }
   await prefs.remove(kLegacyStreamQualityKey);
   await prefs.remove(kLegacyEnableVideoPlaybackKey);
+  await prefs.remove(kLegacyUseDynamicColorKey);
 }
 
 const kMediaCacheSizeKey = 'mediaCacheSize';
@@ -615,7 +602,6 @@ const kAiIntroSeenKey = 'aiIntroSeen';
 /// separately from `EqualizerState.toBackupMap`.
 const kSettingsBackupKeys = <String>{
   kThemeModeKey,
-  kUseDynamicColorKey,
   kUseAmoledKey,
   kGlKey,
   kHlKey,

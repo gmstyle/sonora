@@ -39,16 +39,16 @@ class CastButton extends ConsumerWidget {
           icon:
               isConnected
                   ? Badge(
-                    backgroundColor: theme.colorScheme.primary,
+                    backgroundColor: theme.colorScheme.primaryContainer,
                     padding: const EdgeInsets.all(2),
                     label: Icon(
                       LucideIcons.check,
                       size: 10,
-                      color: theme.colorScheme.onPrimary,
+                      color: theme.colorScheme.onPrimaryContainer,
                     ),
                     child: Icon(
                       LucideIcons.cast,
-                      color: theme.colorScheme.primary,
+                      color: theme.colorScheme.primaryContainer,
                       size: iconSize,
                     ),
                   )

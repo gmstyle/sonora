@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/home_provider.dart';
@@ -13,6 +14,7 @@ import '../../library/providers/library_provider.dart';
 
 import '../../../providers/player_provider.dart';
 import '../../../providers/palette_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/release_card.dart';
 import '../../../shared/widgets/playlist_card.dart';
@@ -324,6 +326,7 @@ class HomeContinueListening extends ConsumerWidget {
                       isVideo: item.isVideo ?? false,
                       isExplicit: item.isExplicit ?? false,
                       playCount: item.playCount?.toString(),
+                      elevated: true,
                     ),
                 ],
               ),
@@ -558,7 +561,7 @@ class _HeroCard extends StatelessWidget {
       child: Container(
         height: heroHeight,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1.0,
@@ -634,22 +637,11 @@ class _HeroCard extends StatelessWidget {
                           child: Container(
                             width: playBtnSize,
                             height: playBtnSize,
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
+                            decoration:
+                                SonoraPulseTokens.playControlDecoration(),
                             child: Icon(
                               LucideIcons.play,
-                              color: colorScheme.onPrimary,
+                              color: SonoraPulseTokens.onPrimary,
                               size: playIconSize,
                             ),
                           ),
@@ -1033,6 +1025,7 @@ class HomeYourMixes extends ConsumerWidget {
                   const SizedBox(height: 8),
                 ],
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (var i = 0; i < 3; i++) ...[
                       if (i > 0) const SizedBox(width: 8),
@@ -1781,12 +1774,12 @@ class HomeChipsBar extends ConsumerWidget {
         if (chips.isEmpty) return const SizedBox.shrink();
 
         return SizedBox(
-          height: 52,
+          height: 44,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,
-              vertical: 8,
+              vertical: 4,
             ),
             itemCount: chips.length + 1,
             separatorBuilder: (_, _) => const SizedBox(width: 8),
@@ -1797,6 +1790,13 @@ class HomeChipsBar extends ConsumerWidget {
                 return ChoiceChip(
                   label: Text(AppLocalizations.of(context)!.all),
                   selected: isTuttoSelected,
+                  showCheckmark: false,
+                  side: BorderSide(
+                    color:
+                        isTuttoSelected
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : Theme.of(context).colorScheme.outlineVariant,
+                  ),
                   onSelected: (selected) {
                     if (selected) {
                       ref
@@ -1814,6 +1814,13 @@ class HomeChipsBar extends ConsumerWidget {
               return ChoiceChip(
                 label: Text(chip.title),
                 selected: isSelected,
+                showCheckmark: false,
+                side: BorderSide(
+                  color:
+                      isSelected
+                          ? Theme.of(context).colorScheme.primaryContainer
+                          : Theme.of(context).colorScheme.outlineVariant,
+                ),
                 onSelected: (selected) {
                   if (selected) {
                     ref
@@ -1841,6 +1848,47 @@ class AmbientBackground extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final isThemeDark = scheme.brightness == Brightness.dark;
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
+
+    // Light Pulse is a studio canvas — no blurred YT photo / palette wash
+    // (they crush contrast on text and non-card chrome). Dark keeps atmosphere.
+    if (!isThemeDark) {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              key: const ValueKey('light_studio_bg'),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                gradient:
+                    reduceEffects
+                        ? null
+                        : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            SonoraPulseTokens.gradientStart.withValues(
+                              alpha: 0.05,
+                            ),
+                            scheme.surface,
+                            SonoraPulseTokens.gradientEnd.withValues(
+                              alpha: 0.04,
+                            ),
+                          ],
+                          stops: const [0.0, 0.45, 1.0],
+                        ),
+              ),
+            ),
+          ),
+          Positioned.fill(child: child),
+        ],
+      );
+    }
+
     final playerState = ref.watch(playerStateProvider);
     final currentSong = playerState.currentSong;
     final paletteMap = ref.watch(paletteNotifierProvider);
@@ -1852,7 +1900,7 @@ class AmbientBackground extends ConsumerWidget {
       error: (_, _) => null,
     );
 
-    Color dominantColor = Theme.of(context).colorScheme.surface;
+    Color dominantColor = scheme.surface;
 
     if (currentSong != null) {
       final videoId = currentSong.id;
@@ -1871,11 +1919,9 @@ class AmbientBackground extends ConsumerWidget {
       }
     }
 
-    final isThemeDark = Theme.of(context).brightness == Brightness.dark;
-
     Widget backgroundWidget;
 
-    if (backgroundUrl != null && backgroundUrl.isNotEmpty) {
+    if (!reduceEffects && backgroundUrl != null && backgroundUrl.isNotEmpty) {
       backgroundWidget = Align(
         alignment: Alignment.topCenter,
         child: Container(
@@ -1887,11 +1933,9 @@ class AmbientBackground extends ConsumerWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Theme.of(context).colorScheme.surface.withValues(
-                  alpha: isThemeDark ? 0.15 : 0.08,
-                ),
-                Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
-                Theme.of(context).colorScheme.surface,
+                scheme.surface.withValues(alpha: 0.15),
+                scheme.surface.withValues(alpha: 0.75),
+                scheme.surface,
               ],
               stops: const [0.0, 0.6, 1.0],
             ),
@@ -1906,10 +1950,8 @@ class AmbientBackground extends ConsumerWidget {
           ),
         ),
       );
-    } else if (currentSong != null) {
-      final ambientColor = dominantColor.withValues(
-        alpha: isThemeDark ? 0.15 : 0.08,
-      );
+    } else if (!reduceEffects && currentSong != null) {
+      final ambientColor = dominantColor.withValues(alpha: 0.15);
       backgroundWidget = AnimatedContainer(
         key: const ValueKey('gradient_bg'),
         duration: const Duration(milliseconds: 600),
@@ -1917,15 +1959,15 @@ class AmbientBackground extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [ambientColor, Theme.of(context).colorScheme.surface],
+            colors: [ambientColor, scheme.surface],
             stops: const [0.0, 0.45],
           ),
         ),
       );
     } else {
-      backgroundWidget = Container(
-        key: const ValueKey('empty_bg'),
-        color: Theme.of(context).colorScheme.surface,
+      backgroundWidget = const DecoratedBox(
+        key: ValueKey('empty_bg'),
+        decoration: BoxDecoration(gradient: SonoraPulseTokens.darkAtmosphere),
       );
     }
 

@@ -67,9 +67,7 @@ class HomeFeedLayout extends ConsumerWidget {
                 const SonoraLogo.icon(22),
                 Text(
                   _getGreeting(context),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ],
             ),

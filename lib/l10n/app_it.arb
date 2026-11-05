@@ -321,8 +321,6 @@
   "appearance": "Aspetto",
   "amoledDarkMode": "Modalità scura AMOLED",
   "amoledDarkModeHint": "Usa lo sfondo nero puro",
-  "dynamicColor": "Colore dinamico",
-  "dynamicColorHint": "Adatta il tema allo sfondo (Android 12+)",
   "content": "Contenuto",
   "countryGl": "Paese",
   "languageHl": "Lingua",

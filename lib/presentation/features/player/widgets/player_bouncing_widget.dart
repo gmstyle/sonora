@@ -94,7 +94,8 @@ class _PulsingDotState extends State<PulsingDot>
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final primaryColor =
+        PlayerColors.maybeOf(context)?.accent ?? PlayerColors.standard().accent;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -383,21 +384,17 @@ class _PlayerDefaultViewState extends ConsumerState<PlayerDefaultView>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+          color: pc.accent.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            color: pc.accent.withValues(alpha: 0.35),
             width: 1.0,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              LucideIcons.timer,
-              size: 16,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            Icon(LucideIcons.timer, size: 16, color: pc.accent),
             const SizedBox(width: 8),
             Text(
               timeStr,

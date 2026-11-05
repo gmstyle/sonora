@@ -2,6 +2,9 @@ const double kCompactBreakpoint = 600.0;
 const double kMediumBreakpoint = 840.0;
 const double kExpandedBreakpoint = 1200.0;
 
+/// Edge-to-edge mini-player shelf on tablet and wide layouts.
+const double kMiniPlayerShelfHeight = 80.0;
+
 /// Max number of downloads running at the same time. Higher concurrency
 /// triggers YouTube Music 429 (rate limit) responses, mirroring the batch
 /// size already used by album/playlist bulk download loops.

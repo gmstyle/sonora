@@ -870,12 +870,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get amoledDarkModeHint => 'Use true black background';
 
   @override
-  String get dynamicColor => 'Dynamic color';
-
-  @override
-  String get dynamicColorHint => 'Adapt theme to wallpaper (Android 12+)';
-
-  @override
   String get content => 'Content';
 
   @override

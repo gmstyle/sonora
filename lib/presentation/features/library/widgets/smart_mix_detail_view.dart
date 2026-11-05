@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:sonora/core/constants/app_constants.dart';
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
@@ -62,28 +63,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     );
   }
 
-  LinearGradient _getGradient(SmartMixType type) {
-    switch (type) {
-      case SmartMixType.mostPlayed:
-        return const LinearGradient(
-          colors: [Color(0xFFE53935), Color(0xFFFFB300)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case SmartMixType.recentlyPlayed:
-        return const LinearGradient(
-          colors: [Color(0xFF3949AB), Color(0xFF8E24AA)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-      case SmartMixType.forgottenFavorites:
-        return const LinearGradient(
-          colors: [Color(0xFF00897B), Color(0xFF00ACC1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        );
-    }
-  }
+  LinearGradient _getGradient(SmartMixType type) => smartMixGradient(type);
 
   IconData _getIcon(SmartMixType type) {
     switch (type) {
@@ -259,7 +239,8 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                                 Icon(
                                   _getIcon(mixType),
                                   size: 72,
-                                  color: Colors.white.withValues(alpha: 0.95),
+                                  color: SonoraPulseTokens.onBrandGraphic
+                                      .withValues(alpha: 0.95),
                                 ),
                                 const SizedBox(height: 16),
                                 Padding(
@@ -449,11 +430,10 @@ class _SmartMixShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor =
-        isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE0E0E0);
-    final highlightColor =
-        isDark ? const Color(0xFF48484A) : const Color(0xFFF5F5F5);
+    final scheme = Theme.of(context).colorScheme;
+    final baseColor = scheme.surfaceContainerHighest;
+    final highlightColor = scheme.surfaceContainerHigh;
+    final bone = scheme.surfaceContainerHighest;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -463,7 +443,7 @@ class _SmartMixShimmer extends StatelessWidget {
           SliverAppBar(
             expandedHeight: 260,
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(color: Colors.white12),
+              background: ColoredBox(color: bone),
             ),
           ),
           SliverToBoxAdapter(
@@ -475,7 +455,7 @@ class _SmartMixShimmer extends StatelessWidget {
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.white12,
+                        color: bone,
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
@@ -485,7 +465,7 @@ class _SmartMixShimmer extends StatelessWidget {
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.white12,
+                        color: bone,
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
@@ -502,13 +482,16 @@ class _SmartMixShimmer extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     children: [
-                      Container(width: 24, height: 24, color: Colors.white12),
+                      ColoredBox(
+                        color: bone,
+                        child: const SizedBox(width: 24, height: 24),
+                      ),
                       const SizedBox(width: 8),
                       Container(
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Colors.white12,
+                          color: bone,
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -517,16 +500,14 @@ class _SmartMixShimmer extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 150,
-                              height: 16,
-                              color: Colors.white12,
+                            ColoredBox(
+                              color: bone,
+                              child: const SizedBox(width: 150, height: 16),
                             ),
                             const SizedBox(height: 8),
-                            Container(
-                              width: 100,
-                              height: 12,
-                              color: Colors.white12,
+                            ColoredBox(
+                              color: bone,
+                              child: const SizedBox(width: 100, height: 12),
                             ),
                           ],
                         ),

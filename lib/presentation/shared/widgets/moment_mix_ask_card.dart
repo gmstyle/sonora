@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../domain/models/music_search_intent.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -133,7 +134,7 @@ class _MomentMixAskSectionState extends ConsumerState<MomentMixAskSection> {
                     filled: true,
                     fillColor: scheme.surfaceContainer,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(24),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -149,9 +150,7 @@ class _MomentMixAskSectionState extends ConsumerState<MomentMixAskSection> {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size(48, 48),
                   padding: const EdgeInsets.all(12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  shape: const StadiumBorder(),
                 ),
                 child:
                     busy
@@ -160,7 +159,7 @@ class _MomentMixAskSectionState extends ConsumerState<MomentMixAskSection> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: scheme.onPrimary,
+                            color: SonoraPulseTokens.onPrimary,
                           ),
                         )
                         : const Icon(LucideIcons.sparkles, size: 20),
@@ -210,11 +209,7 @@ class _MomentMixResultCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onPlay;
 
-  static const _gradient = LinearGradient(
-    colors: [Color(0xFF6A1B9A), Color(0xFF26A69A)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  static const _gradient = SonoraPulseTokens.brandSpectrum;
 
   @override
   Widget build(BuildContext context) {
@@ -233,13 +228,13 @@ class _MomentMixResultCard extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       gradient: _gradient,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(24),
                     ),
                     child: const Center(
                       child: Icon(
                         LucideIcons.sparkles,
                         size: 28,
-                        color: Colors.white,
+                        color: SonoraPulseTokens.onBrandGraphic,
                       ),
                     ),
                   ),
@@ -251,7 +246,6 @@ class _MomentMixResultCard extends StatelessWidget {
                       onTap: onPlay,
                       size: 28,
                       iconSize: 14,
-                      iconColor: Colors.white,
                     ),
                   ),
                 ],

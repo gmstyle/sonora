@@ -50,19 +50,12 @@ class ShimmerLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // On dark themes the highlight must be lighter than the base; on light
-    // themes it must be lighter still.  Using fixed opacity steps on white/black
-    // guarantees visible contrast regardless of the accent palette.
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = scheme.brightness == Brightness.dark;
     final baseColor =
-        isDark
-            ? const Color(0xFF2C2C2E) // dark: mid-grey base
-            : const Color(0xFFE0E0E0); // light: light-grey base
+        isDark ? scheme.surfaceContainer : scheme.surfaceContainerHigh;
     final highlightColor =
-        isDark
-            ? const Color(0xFF48484A) // dark: noticeably lighter sweep
-            : const Color(0xFFF5F5F5); // light: near-white sweep
+        isDark ? scheme.surfaceContainerHighest : scheme.surfaceContainerLowest;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -545,7 +538,7 @@ class _ShimmerHero extends StatelessWidget {
         child: const DecoratedBox(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.all(Radius.circular(16)),
+            borderRadius: BorderRadius.all(Radius.circular(24)),
           ),
         ),
       ),

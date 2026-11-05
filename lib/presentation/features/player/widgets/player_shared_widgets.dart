@@ -235,7 +235,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
               isLiked ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
               key: ValueKey(isLiked),
               size: 28,
-              color: isLiked ? Theme.of(context).colorScheme.primary : null,
+              color: isLiked ? Theme.of(context).colorScheme.error : null,
             ),
           ),
           onPressed: () {
@@ -593,7 +593,7 @@ Widget buildBottomActionsRow(
                 size: iconSize,
                 color:
                     activeView == PlayerSubView.lyrics
-                        ? theme.colorScheme.primary
+                        ? PlayerColors.of(context).accent
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
@@ -616,7 +616,7 @@ Widget buildBottomActionsRow(
                 size: iconSize,
                 color:
                     activeView == PlayerSubView.notes
-                        ? theme.colorScheme.primary
+                        ? PlayerColors.of(context).accent
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
@@ -639,7 +639,7 @@ Widget buildBottomActionsRow(
                 size: iconSize,
                 color:
                     insightsOpen
-                        ? theme.colorScheme.primary
+                        ? PlayerColors.of(context).accent
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
@@ -659,7 +659,7 @@ Widget buildBottomActionsRow(
                 size: iconSize,
                 color:
                     activeView == PlayerSubView.related
-                        ? theme.colorScheme.primary
+                        ? PlayerColors.of(context).accent
                         : theme.colorScheme.onSurfaceVariant,
               ),
               onPressed:
@@ -684,7 +684,7 @@ Widget buildBottomActionsRow(
               size: iconSize,
               color:
                   activeView == PlayerSubView.queue
-                      ? theme.colorScheme.primary
+                      ? PlayerColors.of(context).accent
                       : theme.colorScheme.onSurfaceVariant,
             ),
             onPressed: () {
@@ -706,7 +706,7 @@ Widget buildBottomActionsRow(
               size: iconSize,
               color:
                   ref.watch(equalizerNotifierProvider).enabled
-                      ? Theme.of(context).colorScheme.primary
+                      ? PlayerColors.of(context).accent
                       : theme.colorScheme.onSurfaceVariant,
             ),
             onPressed: () => EqualizerPanel.show(context),
@@ -719,7 +719,7 @@ Widget buildBottomActionsRow(
               size: iconSize,
               color:
                   hasTimer
-                      ? Theme.of(context).colorScheme.primary
+                      ? PlayerColors.of(context).accent
                       : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             onPressed: () => showPlayerTimerDialog(context, playerNotifier),

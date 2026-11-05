@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../features/player/nav_now_playing.dart';
 import '../../features/player/player_sheet.dart';
-import '../../providers/player_provider.dart';
-import '../../providers/playlist_import_job_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
 import '../widgets/dock_status_banners.dart';
@@ -28,94 +25,88 @@ class TabletShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPlayerActive = ref.watch(playerStateProvider).currentSong != null;
-
     // Bound rail width (Row leaves non-flex children unbounded horizontally).
     final railWidth = NavigationRailTheme.of(context).minWidth ?? 72.0;
 
     return Scaffold(
-      body: Row(
+      body: Column(
         children: [
-          ColoredBox(
-            color: Theme.of(context).colorScheme.surface,
-            child: SizedBox(
-              width: railWidth,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, railConstraints) {
-                        // Short windows (split-screen / short tablet): drop
-                        // logo + labels so destinations fit without overflow.
-                        final compactRail = railConstraints.maxHeight < 280;
-                        return NavigationRail(
-                          selectedIndex: navigationShell.currentIndex,
-                          onDestinationSelected:
-                              (index) => navigationShell.goBranch(index),
-                          labelType:
-                              compactRail
-                                  ? NavigationRailLabelType.none
-                                  : NavigationRailLabelType.selected,
-                          leading:
-                              compactRail
-                                  ? null
-                                  : const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                    child: SonoraLogo.icon(36),
-                                  ),
-                          destinations: [
-                            for (var i = 0; i < _icons.length; i++)
-                              NavigationRailDestination(
-                                icon: Icon(_icons[i]),
-                                label: Text(
-                                  _getLabel(AppLocalizations.of(context)!, i),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
+          Expanded(
+            child: Row(
+              children: [
+                ColoredBox(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: SizedBox(
+                    width: railWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, railConstraints) {
+                              // Short windows (split-screen / short tablet): drop
+                              // logo + labels so destinations fit without overflow.
+                              final compactRail =
+                                  railConstraints.maxHeight < 280;
+                              return NavigationRail(
+                                selectedIndex: navigationShell.currentIndex,
+                                onDestinationSelected:
+                                    (index) => navigationShell.goBranch(index),
+                                labelType:
+                                    compactRail
+                                        ? NavigationRailLabelType.none
+                                        : NavigationRailLabelType.selected,
+                                leading:
+                                    compactRail
+                                        ? null
+                                        : const Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 16,
+                                          ),
+                                          child: SonoraLogo.icon(36),
+                                        ),
+                                destinations: [
+                                  for (var i = 0; i < _icons.length; i++)
+                                    NavigationRailDestination(
+                                      icon: Icon(_icons[i]),
+                                      label: Text(
+                                        _getLabel(
+                                          AppLocalizations.of(context)!,
+                                          i,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        const _TabletSettingsEntry(),
+                      ],
                     ),
                   ),
-                  const _TabletSettingsEntry(),
-                  const NavNowPlaying(expanded: false),
-                ],
-              ),
-            ),
-          ),
-          VerticalDivider(
-            width: 1,
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-          Expanded(
-            child: Stack(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom:
-                        isPlayerActive
-                            ? 72.0
-                            : (ref.watch(dockBannersVisibleProvider)
-                                ? 72.0
-                                : 0.0),
+                ),
+                VerticalDivider(
+                  width: 1,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+                ),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      BranchFadeTransition(navigationShell: navigationShell),
+                      const PlayerErrorListener(),
+                      const ActionFeedbackListener(),
+                      const PlaylistImportJobHost(),
+                    ],
                   ),
-                  child: BranchFadeTransition(navigationShell: navigationShell),
                 ),
-                const PlayerSheet(),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: isPlayerActive ? 72 : 0,
-                  child: const DockStatusBanners(),
-                ),
-                const PlayerErrorListener(),
-                const ActionFeedbackListener(),
-                const PlaylistImportJobHost(),
               ],
             ),
           ),
+          const DockStatusBanners(),
+          const PlayerSheet(),
         ],
       ),
     );

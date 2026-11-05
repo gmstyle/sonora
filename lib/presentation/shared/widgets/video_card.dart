@@ -3,6 +3,7 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/action_feedback_provider.dart';
@@ -131,7 +132,9 @@ class VideoCard extends ConsumerWidget {
                         child: Icon(
                           LucideIcons.ban,
                           size: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: SonoraPulseTokens.onBrandGraphic.withValues(
+                            alpha: 0.9,
+                          ),
                         ),
                       ),
                   ],
