@@ -213,10 +213,19 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
   if (track.isEpisode) {
     final likedAsync = ref.watch(likedEpisodeProvider(videoId));
     return likedAsync.when(
-      loading: () => const Icon(LucideIcons.bookmark, size: 28),
-      error: (_, _) => const Icon(LucideIcons.bookmark, size: 28),
+      loading: () => Icon(
+        DetailAffinityButton.bookmarkIdle,
+        size: 28,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      error: (_, _) => Icon(
+        DetailAffinityButton.bookmarkIdle,
+        size: 28,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       data: (liked) {
         final isLiked = liked != null;
+        final scheme = Theme.of(context).colorScheme;
         return IconButton(
           icon: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
@@ -225,10 +234,16 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
               child: FadeTransition(opacity: anim, child: child),
             ),
             child: Icon(
-              isLiked ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
+              isLiked
+                  ? DetailAffinityButton.bookmarkActive
+                  : DetailAffinityButton.bookmarkIdle,
               key: ValueKey(isLiked),
               size: 28,
-              color: isLiked ? Theme.of(context).colorScheme.error : null,
+              color: DetailAffinityButton.glyphColor(
+                scheme,
+                isActive: isLiked,
+                activeColor: DetailAffinityButton.brandColor(scheme),
+              ),
             ),
           ),
           onPressed: () {
@@ -259,6 +274,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
     error: (_, _) => const Icon(DetailAffinityButton.likeIdle, size: 28),
     data: (liked) {
       final isLiked = liked != null;
+      final scheme = Theme.of(context).colorScheme;
       return IconButton(
         icon: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
@@ -272,7 +288,11 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
                 : DetailAffinityButton.likeIdle,
             key: ValueKey(isLiked),
             size: 28,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+            color: DetailAffinityButton.glyphColor(
+              scheme,
+              isActive: isLiked,
+              activeColor: DetailAffinityButton.likeColor(scheme),
+            ),
           ),
         ),
         onPressed: () {

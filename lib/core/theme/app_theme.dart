@@ -115,15 +115,53 @@ class AppTheme {
         backgroundColor: scheme.surfaceContainer,
         selectedColor: brandFill.withValues(alpha: 0.28),
         disabledColor: scheme.surfaceContainer.withValues(alpha: 0.5),
-        checkmarkColor: brandOnFill,
-        labelStyle: textTheme.labelLarge?.copyWith(color: scheme.onSurface),
+        checkmarkColor: scheme.primary,
+        // [FilterChip] resolves [TextStyle.color] through
+        // [WidgetStateProperty]. [ChoiceChip] uses [secondaryLabelStyle]
+        // only while selected.
+        labelStyle: textTheme.labelLarge?.copyWith(
+          color: WidgetStateColor.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return scheme.onSurface.withValues(alpha: 0.38);
+            }
+            if (states.contains(WidgetState.selected)) {
+              return scheme.primary;
+            }
+            return scheme.onSurfaceVariant;
+          }),
+        ),
         secondaryLabelStyle: textTheme.labelLarge?.copyWith(
-          color: scheme.onSurface,
+          color: scheme.primary,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8),
         shape: pill,
         side: BorderSide(color: scheme.outlineVariant),
         showCheckmark: false,
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return scheme.onSurface.withValues(alpha: 0.12);
+            }
+            if (states.contains(WidgetState.selected)) {
+              return brandFill.withValues(alpha: 0.28);
+            }
+            return Colors.transparent;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return scheme.onSurface.withValues(alpha: 0.38);
+            }
+            if (states.contains(WidgetState.selected)) {
+              return scheme.primary;
+            }
+            return scheme.onSurfaceVariant;
+          }),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: scheme.outlineVariant),
+          ),
+        ),
       ),
       // Colors come from ColorScheme: filled → primary/onPrimary (brand),
       // tonal → secondaryContainer/onSecondaryContainer. Do not set

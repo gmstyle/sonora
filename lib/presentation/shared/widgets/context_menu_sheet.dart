@@ -2380,8 +2380,16 @@ class _LikePodcastActionTile extends ConsumerWidget {
         final isSubscribed = liked != null;
         return ListTile(
           leading: Icon(
-            isSubscribed ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
-            color: isSubscribed ? Theme.of(context).colorScheme.primary : null,
+            isSubscribed
+                ? DetailAffinityButton.bookmarkActive
+                : DetailAffinityButton.bookmarkIdle,
+            color: DetailAffinityButton.glyphColor(
+              Theme.of(context).colorScheme,
+              isActive: isSubscribed,
+              activeColor: DetailAffinityButton.brandColor(
+                Theme.of(context).colorScheme,
+              ),
+            ),
           ),
           title: Text(
             isSubscribed
@@ -2616,8 +2624,16 @@ class _LikeEpisodeActionTile extends ConsumerWidget {
         final isSaved = liked != null;
         return ListTile(
           leading: Icon(
-            isSaved ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
-            color: isSaved ? Theme.of(context).colorScheme.primary : null,
+            isSaved
+                ? DetailAffinityButton.bookmarkActive
+                : DetailAffinityButton.bookmarkIdle,
+            color: DetailAffinityButton.glyphColor(
+              Theme.of(context).colorScheme,
+              isActive: isSaved,
+              activeColor: DetailAffinityButton.brandColor(
+                Theme.of(context).colorScheme,
+              ),
+            ),
           ),
           title: Text(
             isSaved
@@ -3451,7 +3467,13 @@ class _LikeActionTile extends ConsumerWidget {
             isLiked
                 ? DetailAffinityButton.likeActive
                 : DetailAffinityButton.likeIdle,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+            color: DetailAffinityButton.glyphColor(
+              Theme.of(context).colorScheme,
+              isActive: isLiked,
+              activeColor: DetailAffinityButton.likeColor(
+                Theme.of(context).colorScheme,
+              ),
+            ),
           ),
           title: Text(
             isLiked
@@ -3510,8 +3532,16 @@ class _FollowArtistActionTile extends ConsumerWidget {
         final isFollowing = followed != null;
         return ListTile(
           leading: Icon(
-            isFollowing ? LucideIcons.userCheck : LucideIcons.userPlus,
-            color: isFollowing ? Theme.of(context).colorScheme.primary : null,
+            isFollowing
+                ? DetailAffinityButton.followActive
+                : DetailAffinityButton.followIdle,
+            color: DetailAffinityButton.glyphColor(
+              Theme.of(context).colorScheme,
+              isActive: isFollowing,
+              activeColor: DetailAffinityButton.brandColor(
+                Theme.of(context).colorScheme,
+              ),
+            ),
           ),
           title: Text(
             isFollowing
@@ -3572,7 +3602,13 @@ class _LikeAlbumActionTile extends ConsumerWidget {
             isLiked
                 ? DetailAffinityButton.likeActive
                 : DetailAffinityButton.likeIdle,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+            color: DetailAffinityButton.glyphColor(
+              Theme.of(context).colorScheme,
+              isActive: isLiked,
+              activeColor: DetailAffinityButton.likeColor(
+                Theme.of(context).colorScheme,
+              ),
+            ),
           ),
           title: Text(
             isLiked
@@ -3630,7 +3666,13 @@ class _LikePlaylistActionTile extends ConsumerWidget {
             isLiked
                 ? DetailAffinityButton.likeActive
                 : DetailAffinityButton.likeIdle,
-            color: isLiked ? Theme.of(context).colorScheme.error : null,
+            color: DetailAffinityButton.glyphColor(
+              Theme.of(context).colorScheme,
+              isActive: isLiked,
+              activeColor: DetailAffinityButton.likeColor(
+                Theme.of(context).colorScheme,
+              ),
+            ),
           ),
           title: Text(
             isLiked

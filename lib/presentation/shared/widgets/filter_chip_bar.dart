@@ -22,35 +22,12 @@ class FilterChipBar extends StatelessWidget {
         itemCount: options.length,
         separatorBuilder: (_, _) => const SizedBox(height: 4),
         itemBuilder: (context, index) {
-          final selected = index == selectedIndex;
-          final scheme = Theme.of(context).colorScheme;
-          return Material(
-            color: selected
-                ? scheme.primaryContainer.withValues(alpha: 0.28)
-                : scheme.surfaceContainer.withValues(alpha: 0.85),
-            shape: StadiumBorder(
-              side: BorderSide(
-                color: selected
-                    ? scheme.primaryContainer
-                    : scheme.outlineVariant,
-              ),
-            ),
-            child: InkWell(
-              customBorder: const StadiumBorder(),
-              onTap: () => onSelected(index),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                child: Text(
-                  options[index],
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: selected ? scheme.primary : scheme.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-              ),
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: FilterChip(
+              label: Text(options[index]),
+              selected: index == selectedIndex,
+              onSelected: (_) => onSelected(index),
             ),
           );
         },

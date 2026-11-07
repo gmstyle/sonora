@@ -16,6 +16,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
+import '../../shared/widgets/detail_affinity_button.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/entity_wide_body.dart';
@@ -677,46 +678,40 @@ class _SaveEpisodeButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     final likedAsync = ref.watch(likedEpisodeProvider(episode.videoId));
 
     return likedAsync.when(
-      loading: () => iconOnly
-          ? const IconButton(onPressed: null, icon: Icon(LucideIcons.bookmark))
-          : FilledButton.tonalIcon(
-              onPressed: null,
-              icon: const Icon(LucideIcons.bookmark),
-              label: Text(l10n.saveEpisode),
-            ),
+      loading: () => DetailAffinityButton(
+        iconOnly: iconOnly,
+        isActive: false,
+        enabled: false,
+        idleIcon: DetailAffinityButton.bookmarkIdle,
+        activeIcon: DetailAffinityButton.bookmarkActive,
+        idleLabel: l10n.saveEpisode,
+        activeLabel: l10n.unsaveEpisode,
+        activeColor: DetailAffinityButton.brandColor(scheme),
+        onPressed: null,
+      ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSaved = liked != null;
-        if (iconOnly) {
-          return IconButton(
-            onPressed: () => _toggle(ref, isSaved),
-            icon: Icon(
-              isSaved ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
-            ),
-            color: isSaved ? Theme.of(context).colorScheme.primary : null,
-            tooltip: isSaved ? l10n.unsaveEpisode : l10n.saveEpisode,
-          );
-        }
-        return FilledButton.tonalIcon(
-          onPressed: () => _toggle(ref, isSaved),
-          icon: Icon(
-            isSaved ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
-          ),
-          label: Text(isSaved ? l10n.unsaveEpisode : l10n.saveEpisode),
-          style: isSaved
-              ? FilledButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                )
-              : null,
+        return DetailAffinityButton(
+          iconOnly: iconOnly,
+          isActive: isSaved,
+          idleIcon: DetailAffinityButton.bookmarkIdle,
+          activeIcon: DetailAffinityButton.bookmarkActive,
+          idleLabel: l10n.saveEpisode,
+          activeLabel: l10n.unsaveEpisode,
+          activeColor: DetailAffinityButton.brandColor(scheme),
+          tooltip: isSaved ? l10n.unsaveEpisode : l10n.saveEpisode,
+          onPressed: () => _toggle(ref),
         );
       },
     );
   }
 
-  Future<void> _toggle(WidgetRef ref, bool isSaved) async {
+  Future<void> _toggle(WidgetRef ref) async {
     final notifier = ref.read(libraryNotifierProvider.notifier);
     await notifier.toggleLikedEpisode(
       LikedEpisodeModel(

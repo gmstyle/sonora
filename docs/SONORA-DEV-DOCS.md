@@ -701,11 +701,11 @@ Primary slots (play-centric + affinity):
 
 Header `onOverflow` passes `omitActionIds` for the four bar actions so More does not duplicate them. Long-press / list context menus keep the full sheet (empty omit set). Self-navigation tiles still use `hideGoTo*` when already on that entity page.
 
-Affinity icons (shared [`DetailAffinityButton`](lib/presentation/shared/widgets/detail_affinity_button.dart)):
+Affinity controls (shared [`DetailAffinityButton`](lib/presentation/shared/widgets/detail_affinity_button.dart)): compact is an `IconButton`; tablet and wide are `FilledButton.tonalIcon` whose fill stays `secondaryContainer`. Active state swaps the icon and tints the glyph and label. Idle glyphs use `onSurfaceVariant`. Context menus and the player share the same pairs and tints.
 
 | Action | Idle → Active | Active color | Surfaces |
 |---|---|---|---|
-| Like (album, YT playlist, song) | Material `favorite_border` → `favorite` | `colorScheme.error` | Detail bar, context sheet, player |
+| Like (album, YT playlist, song) | Material `favorite_border` → `favorite` | `colorScheme.primary` | Detail bar, context sheet, player |
 | Follow (artist) | Lucide `userPlus` → `userCheck` | `colorScheme.primary` | Detail bar, context sheet |
 | Subscribe (podcast) / save episode | Lucide `bookmark` → `bookmarkCheck` | `colorScheme.primary` | Detail bar, context sheet, player (episodes) |
 

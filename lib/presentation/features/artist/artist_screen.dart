@@ -1228,10 +1228,13 @@ class _FollowButton extends ConsumerWidget {
         iconOnly: iconOnly,
         isActive: false,
         enabled: false,
-        idleIcon: LucideIcons.userPlus,
-        activeIcon: LucideIcons.userCheck,
+        idleIcon: DetailAffinityButton.followIdle,
+        activeIcon: DetailAffinityButton.followActive,
         idleLabel: l10n.follow,
         activeLabel: l10n.following,
+        activeColor: DetailAffinityButton.brandColor(
+          Theme.of(context).colorScheme,
+        ),
         onPressed: null,
       ),
       error: (e, _) => const SizedBox.shrink(),
@@ -1240,11 +1243,13 @@ class _FollowButton extends ConsumerWidget {
         return DetailAffinityButton(
           iconOnly: iconOnly,
           isActive: isFollowing,
-          idleIcon: LucideIcons.userPlus,
-          activeIcon: LucideIcons.userCheck,
+          idleIcon: DetailAffinityButton.followIdle,
+          activeIcon: DetailAffinityButton.followActive,
           idleLabel: l10n.follow,
           activeLabel: l10n.following,
-          activeColor: Theme.of(context).colorScheme.primary,
+          activeColor: DetailAffinityButton.brandColor(
+            Theme.of(context).colorScheme,
+          ),
           onPressed: () async {
             await ref
                 .read(libraryNotifierProvider.notifier)

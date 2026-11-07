@@ -212,6 +212,7 @@ class _AppearanceSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: SegmentedButton<ThemeMode>(
+            showSelectedIcon: false,
             segments: List.generate(
               values.length,
               (i) => ButtonSegment<ThemeMode>(

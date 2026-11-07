@@ -118,7 +118,7 @@ class SearchAskToggle extends ConsumerWidget {
       avatar: Icon(
         LucideIcons.sparkles,
         size: 16,
-        color: selected ? scheme.onSecondaryContainer : scheme.onSurfaceVariant,
+        color: selected ? scheme.primary : scheme.onSurfaceVariant,
       ),
       onSelected: isOffline
           ? null

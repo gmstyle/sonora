@@ -845,6 +845,9 @@ class _LikePlaylistButton extends ConsumerWidget {
         activeIcon: DetailAffinityButton.likeActive,
         idleLabel: l10n.like,
         activeLabel: l10n.liked,
+        activeColor: DetailAffinityButton.likeColor(
+          Theme.of(context).colorScheme,
+        ),
         onPressed: null,
       ),
       error: (e, _) => const SizedBox.shrink(),
@@ -857,7 +860,9 @@ class _LikePlaylistButton extends ConsumerWidget {
           activeIcon: DetailAffinityButton.likeActive,
           idleLabel: l10n.like,
           activeLabel: l10n.liked,
-          activeColor: Theme.of(context).colorScheme.error,
+          activeColor: DetailAffinityButton.likeColor(
+            Theme.of(context).colorScheme,
+          ),
           onPressed: () async {
             await ref
                 .read(libraryNotifierProvider.notifier)

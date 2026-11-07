@@ -509,13 +509,13 @@ class MiniPlayerContent extends ConsumerWidget {
       final likedAsync = ref.watch(likedEpisodeProvider(videoId));
       return likedAsync.when(
         loading: () => _iconButton(
-          icon: LucideIcons.bookmark,
+          icon: DetailAffinityButton.bookmarkIdle,
           color: cs.onSurfaceVariant,
           onPressed: null,
           size: 20,
         ),
         error: (_, _) => _iconButton(
-          icon: LucideIcons.bookmark,
+          icon: DetailAffinityButton.bookmarkIdle,
           color: cs.onSurfaceVariant,
           onPressed: null,
           size: 20,
@@ -530,7 +530,9 @@ class MiniPlayerContent extends ConsumerWidget {
                 child: FadeTransition(opacity: anim, child: child),
               ),
               child: Icon(
-                isLiked ? LucideIcons.bookmarkCheck : LucideIcons.bookmark,
+                isLiked
+                    ? DetailAffinityButton.bookmarkActive
+                    : DetailAffinityButton.bookmarkIdle,
                 key: ValueKey(isLiked),
                 color: isLiked ? cs.primary : cs.onSurfaceVariant,
                 size: 20,

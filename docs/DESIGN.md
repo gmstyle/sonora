@@ -111,6 +111,18 @@ Plus Jakarta Sans via `google_fonts`, on every text role.
 
 `reduceEffects` drops blur and heavy motion. `useVinylStyle` still controls the circular art stage. Like stays Material `favorite`. Other chrome icons stay Lucide.
 
+Affinity (like, follow, subscribe, save episode) uses one rule on compact, tablet, and wide: swap the icon pair and tint the glyph (and the labeled tonal text) with `primary`. The tonal fill stays `secondaryContainer`. Idle glyphs are `onSurfaceVariant`. The heart, person, and bookmark pairs distinguish the action. `error` stays on destructive actions and error states.
+
+Other controls share five intents:
+
+| Intent | Widget | Selected / pressed |
+|---|---|---|
+| Commit | `FilledButton` | `primary` fill, `onPrimary` glyph (Play) |
+| Companion | `FilledButton.tonal` | `secondaryContainer` fill (Shuffle, Queue, affinity). Active affinity tints the glyph only |
+| Quiet | `TextButton` | No fill. Dark label is `primaryTint` |
+| Select | `FilterChip`, `ChoiceChip`, `SegmentedButton` | 28% `primaryContainer` fill, `primary` label, no checkmark. Idle label is `onSurfaceVariant` |
+| Binary | `Switch` | `primary` track, `onPrimary` thumb |
+
 Do not add a Soundscape AI column, a lossless badge, or a multi-band waveform scrubber.
 
 ## Wide content families

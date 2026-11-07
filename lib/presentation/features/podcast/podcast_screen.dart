@@ -765,10 +765,13 @@ class _SubscribePodcastButton extends ConsumerWidget {
         iconOnly: iconOnly,
         isActive: false,
         enabled: false,
-        idleIcon: LucideIcons.bookmark,
-        activeIcon: LucideIcons.bookmarkCheck,
+        idleIcon: DetailAffinityButton.bookmarkIdle,
+        activeIcon: DetailAffinityButton.bookmarkActive,
         idleLabel: l10n.subscribe,
         activeLabel: l10n.subscribed,
+        activeColor: DetailAffinityButton.brandColor(
+          Theme.of(context).colorScheme,
+        ),
         onPressed: null,
       ),
       error: (e, _) => const SizedBox.shrink(),
@@ -777,11 +780,13 @@ class _SubscribePodcastButton extends ConsumerWidget {
         return DetailAffinityButton(
           iconOnly: iconOnly,
           isActive: isSubscribed,
-          idleIcon: LucideIcons.bookmark,
-          activeIcon: LucideIcons.bookmarkCheck,
+          idleIcon: DetailAffinityButton.bookmarkIdle,
+          activeIcon: DetailAffinityButton.bookmarkActive,
           idleLabel: l10n.subscribe,
           activeLabel: l10n.subscribed,
-          activeColor: Theme.of(context).colorScheme.primary,
+          activeColor: DetailAffinityButton.brandColor(
+            Theme.of(context).colorScheme,
+          ),
           onPressed: () async {
             await ref
                 .read(libraryNotifierProvider.notifier)

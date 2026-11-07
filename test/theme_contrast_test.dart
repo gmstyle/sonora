@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sonora/core/theme/app_theme.dart';
 import 'package:sonora/core/theme/sonora_pulse_tokens.dart';
+import 'package:sonora/presentation/shared/widgets/detail_affinity_button.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,48 @@ void main() {
 
     final textFg = theme.textButtonTheme.style?.foregroundColor?.resolve({});
     expect(textFg, SonoraPulseTokens.primaryTint);
+  });
+
+  test('selection controls use brand primary, and like matches them', () {
+    final theme = AppTheme.dark();
+    final scheme = theme.colorScheme;
+    final labelColor = theme.chipTheme.labelStyle?.color;
+
+    expect(
+      WidgetStateProperty.resolveAs<Color?>(labelColor, const {}),
+      scheme.onSurfaceVariant,
+    );
+    expect(
+      WidgetStateProperty.resolveAs<Color?>(labelColor, {WidgetState.selected}),
+      scheme.primary,
+    );
+    expect(
+      theme.chipTheme.selectedColor,
+      scheme.primaryContainer.withValues(alpha: 0.28),
+    );
+    expect(theme.chipTheme.showCheckmark, isFalse);
+    expect(theme.chipTheme.secondaryLabelStyle?.color, scheme.primary);
+
+    final segmented = theme.segmentedButtonTheme.style;
+    expect(
+      segmented?.backgroundColor?.resolve({WidgetState.selected}),
+      scheme.primaryContainer.withValues(alpha: 0.28),
+    );
+    expect(
+      segmented?.foregroundColor?.resolve({WidgetState.selected}),
+      scheme.primary,
+    );
+    expect(
+      segmented?.foregroundColor?.resolve(const {}),
+      scheme.onSurfaceVariant,
+    );
+
+    expect(DetailAffinityButton.likeColor(scheme), scheme.primary);
+    expect(
+      DetailAffinityButton.likeColor(scheme),
+      DetailAffinityButton.brandColor(scheme),
+    );
+    expect(DetailAffinityButton.likeColor(scheme), isNot(scheme.error));
   });
 
   test('light FAB still uses dark glyph on brand cyan', () {

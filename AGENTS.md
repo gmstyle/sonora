@@ -123,13 +123,15 @@ Album, YouTube playlist, artist, podcast, and local playlist headers use `Detail
 
 `onOverflow` passes `omitActionIds` for actions already in the bar. Long-press and list menus use the full sheet (empty omit set). Entity menus are `ContextMenuSheet.showForSong` / `showForArtist` / `showForAlbum` / `showForPodcast` / `showForEpisode` / `showForPlaylist` / `showForCustomPlaylist` / `showForNowPlaying`.
 
-Affinity controls are `DetailAffinityButton`:
+Affinity controls are `DetailAffinityButton`. The fill never carries the active signal: compact is a transparent `IconButton`, tablet and wide stay `FilledButton.tonalIcon` on `secondaryContainer`. Active state swaps the icon and tints the glyph (and the label, when present). Idle glyphs use `onSurfaceVariant`. Context menus and the player use the same icon pair and tint.
 
 | Action | Icon | Active color |
 |---|---|---|
-| Like (song, album, YouTube playlist) | Material `favorite_border` → `favorite` | `colorScheme.error` |
+| Like (song, album, YouTube playlist) | Material `favorite_border` → `favorite` | `colorScheme.primary` |
 | Follow (artist) | Lucide `userPlus` → `userCheck` | `colorScheme.primary` |
 | Subscribe (podcast) / save episode | Lucide `bookmark` → `bookmarkCheck` | `colorScheme.primary` |
+
+`colorScheme.error` stays on destructive actions and error states. The heart is the like signal; it does not use a second tint.
 
 Product chrome icons are Lucide (`lucide_icons_flutter`). Like stays Material `favorite`. Do not add a third icon set.
 

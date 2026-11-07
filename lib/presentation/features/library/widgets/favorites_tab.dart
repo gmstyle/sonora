@@ -230,7 +230,7 @@ class _FavoritesHeader extends StatelessWidget {
                   icon: const Icon(LucideIcons.play),
                   label: Text(l10n.playAll),
                 ),
-                OutlinedButton.icon(
+                FilledButton.tonalIcon(
                   onPressed: onShuffle,
                   icon: const Icon(LucideIcons.shuffle),
                   label: Text(l10n.shufflePlay),
