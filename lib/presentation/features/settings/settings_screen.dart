@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import 'layouts/settings_mobile_layout.dart';
 import 'layouts/settings_tablet_layout.dart';
 import 'layouts/settings_wide_layout.dart';
@@ -16,9 +17,10 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < kCompactBreakpoint) {
+        final size = MediaQuery.sizeOf(context);
+        if (isCompactShell(size)) {
           return SettingsMobileLayout(initialCategory: initialCategory);
-        } else if (constraints.maxWidth < kExpandedBreakpoint) {
+        } else if (size.width < kExpandedBreakpoint) {
           return SettingsTabletLayout(initialCategory: initialCategory);
         } else {
           return SettingsWideLayout(initialCategory: initialCategory);

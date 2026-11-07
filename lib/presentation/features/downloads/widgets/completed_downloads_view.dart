@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../domain/models/download_group.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../domain/models/queue_track.dart';
@@ -891,7 +892,7 @@ class DownloadsSortMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final label = _options(l10n)[currentSort]!;
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final isMobile = isCompactShell(MediaQuery.sizeOf(context));
     final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
       color: Theme.of(context).colorScheme.primary,
       fontWeight: FontWeight.w600,

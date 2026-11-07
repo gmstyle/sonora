@@ -13,7 +13,7 @@ Brand fills:
 - Vertical (equalizer, play control): `#00F2FE` → `#4FACFE`
 - Horizontal (scrubber, badges): `#00F2FE` → `#4FACFE`
 
-**Do not fill controls with dark `primary` (`#E0FDFF`).** That role is a light tint for labels and selected text. Circular play overlays, FABs, scrubbers, and status badges use `primaryContainer` / `SonoraPulseTokens.playControlDecoration` with `onPrimary` (`#00373A`) for the glyph. Glyphs sitting on brand gradient art use `onBrandGraphic` (white).
+Dark `ColorScheme.primary` is brand cyan (`#00F2FE`) so Material filled controls (FAB, Switch, `IconButton.filled`, `FilledButton`, …) get a readable fill with `onPrimary` (`#00373A`). Ice (`#E0FDFF`) is `SonoraPulseTokens.primaryTint` for TextButtons and quiet label accents — never a solid control fill. `FilledButtonTheme` must not set fill/foreground colors: it also applies to `FilledButton.tonal` (Follow / Like / Shuffle), which must keep `secondaryContainer`. Circular play overlays use `playControlDecoration` with `onPrimary` for the glyph. Glyphs on brand gradient art use `onBrandGraphic` (white).
 
 There is no Monet / dynamic color. Wallpaper does not recolor the scheme.
 
@@ -33,10 +33,11 @@ There is no Monet / dynamic color. Wallpaper does not recolor the scheme.
 | on-surface-variant | `#B9CACB` |
 | outline | `#849495` |
 | outline-variant | `#3A494B` |
-| primary | `#E0FDFF` |
+| primary | `#00F2FE` (brand fill; Material interactive) |
 | on-primary | `#00373A` |
 | primary-container | `#00F2FE` |
-| on-primary-container | `#006A70` |
+| on-primary-container | `#00373A` |
+| primaryTint (token, not a ColorScheme role) | `#E0FDFF` (ice labels) |
 | secondary | `#9BCBFF` |
 | secondary-container | `#3196E6` |
 | tertiary | `#FAF6FF` |
@@ -97,7 +98,7 @@ Plus Jakarta Sans via `google_fonts`, on every text role.
 | media | 24 | Album, playlist, and mix cards |
 | sm | 12 | Track rows |
 | dialog | 20 | Dialogs (tighter than media cards) |
-| gutter | 20 | Mobile shelves |
+| gutter | 16 | Mobile shelves (`kCompactContentPadding`) |
 | gutter-desktop | 24 | Desktop shelves |
 | margin | 16 | Mobile page inset |
 | margin-desktop | 32 | Desktop page inset |
@@ -116,12 +117,29 @@ Do not add a Soundscape AI column, a lossless badge, or a multi-band waveform sc
 
 `WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether a utility or related rail is present. It does not add a layout file or a shell.
 
+Shell family selection matches `AppShell`: compact when `shortestSide < 600` (`isCompactShell`), then tablet vs wide on window width. Content boxes still measure padding and rails from `LayoutBuilder`. Landscape phones stay on mobile family layouts (pad 16, max 2 feed columns, icon `DetailActionsBar`, Library chips — not the tablet split).
+
+### Mobile
+
+`MobileShell` fuses the mini player (56) with the `NavigationBar` (64) into one dock. There is no master rail and no utility or related rail. The four families stay stacked and chip-driven.
+
+| Rule | Mobile (`shortestSide` &lt; 600) |
+|------|--------------------------------|
+| Horizontal pad | `kCompactContentPadding` (16) |
+| Master / utility rail | None |
+| Feed columns | Always 2, even when content width is ≥ 600 (landscape) |
+| Facet | Horizontal chips (Library, Downloads, Search) — not a tablet master–detail split |
+| Entity | Stacked header and list. Icon `DetailActionsBar` (not labeled) |
+| Document | Settings is a category list that pushes detail — no master rail |
+
+Home carousels stay on `HomeLayoutMetrics` mobile (pad 16, card 140).
+
 ### Tablet
 
 `TabletShell` stays the collapsed rail and the 80px shelf. The same four families use a tighter budget. There is no utility rail and no related rail under 1200. Compact layouts stay on the 16 inset.
 
-| Rule | Tablet (600–1199) |
-|------|-------------------|
+| Rule | Tablet (600–1199, `shortestSide` ≥ 600) |
+|------|-----------------------------------------|
 | Horizontal pad | `kTabletContentPadding` (24) |
 | Master rail | `kFacetFilterRailWidth` (200) for Library, Downloads, and Settings |
 | Feed columns | 3 when the content box is under `kFeedFourColumnContentWidth` (800); 4 from 800 until the wide splits. 800 is a content-box threshold, not a shell |
@@ -144,6 +162,7 @@ Tokens live in `lib/core/constants/app_constants.dart`:
 | `kDocumentContentMaxWidth` | 1320 | Document soft max on wide |
 | `kWideContentPadding` | 32 | Horizontal pad for wide feed, facet, and entity. Same inset as margin-desktop |
 | `kTabletContentPadding` | 24 | Horizontal pad on tablet |
+| `kCompactContentPadding` | 16 | Horizontal pad on compact / MobileShell |
 
 ### Feed
 

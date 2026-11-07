@@ -58,7 +58,10 @@ class BrowseSectionScreen extends ConsumerWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+              final spec = FeedGridSpec.fromWidth(
+                constraints.maxWidth,
+                shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+              );
 
               return CustomScrollView(
                 slivers: [
@@ -169,7 +172,10 @@ class _BrowseSectionShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+        final spec = FeedGridSpec.fromWidth(
+          constraints.maxWidth,
+          shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
 
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(

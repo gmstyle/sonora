@@ -37,6 +37,10 @@ const double kWideContentPadding = 32.0;
 /// Home already uses 24 through `HomeLayoutMetrics`.
 const double kTabletContentPadding = 24.0;
 
+/// Horizontal padding for compact (MobileShell) feed, facet, and entity content.
+/// Matches Home mobile shelves. Prefer this over a bare `16`.
+const double kCompactContentPadding = 16.0;
+
 /// Edge-to-edge mini-player shelf on tablet and wide layouts.
 const double kMiniPlayerShelfHeight = 80.0;
 

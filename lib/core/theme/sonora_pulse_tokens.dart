@@ -57,11 +57,24 @@ class SonoraPulseTokens {
   static const Color outlineVariant = Color(0xFF3A494B);
   static const Color surfaceTint = Color(0xFF00DCE6);
 
-  static const Color primary = Color(0xFFE0FDFF);
+  /// Ice tint for labels / selected text on dark surfaces.
+  /// Not a solid control fill — Material maps [ColorScheme.primary] to fills.
+  static const Color primaryTint = Color(0xFFE0FDFF);
+
+  /// Dark glyph on brand fills (`#00F2FE` / gradient).
   static const Color onPrimary = Color(0xFF00373A);
+
+  /// Brand cyan. Dark [ColorScheme.primary] and [ColorScheme.primaryContainer].
   static const Color primaryContainer = Color(0xFF00F2FE);
-  static const Color onPrimaryContainer = Color(0xFF006A70);
+
+  /// Readable teal for light [ColorScheme.primary] and inverse roles.
   static const Color inversePrimary = Color(0xFF00696F);
+
+  /// Ice tint alias — prefer [primaryTint] in new code.
+  static const Color primary = primaryTint;
+
+  /// Glyph-on-brand alias — same as [onPrimary].
+  static const Color onPrimaryContainer = onPrimary;
 
   static const Color secondary = Color(0xFF9BCBFF);
   static const Color onSecondary = Color(0xFF003256);
@@ -147,13 +160,29 @@ class SonoraPulseTokens {
     );
   }
 
+  /// Style for [IconButton.filled] — brand fill + dark glyph.
+  ///
+  /// Prefer this over bare [IconButton.filled]: ambient [IconTheme] can still
+  /// inject a light foreground that washes out on cyan. Widget style wins.
+  static ButtonStyle filledIconButtonStyle(ColorScheme scheme) {
+    return IconButton.styleFrom(
+      backgroundColor: scheme.primaryContainer,
+      foregroundColor: onPrimary,
+      disabledBackgroundColor: scheme.onSurface.withValues(alpha: 0.12),
+      disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
+    );
+  }
+
   static ColorScheme darkScheme() {
+    // primary = brand cyan so Material filled controls (IconButton.filled,
+    // Switch, FAB defaults, etc.) never paint the ice label tint as a fill.
+    // Ice for labels lives on [primaryTint] / TextButton theme.
     return const ColorScheme(
       brightness: Brightness.dark,
-      primary: primary,
+      primary: primaryContainer,
       onPrimary: onPrimary,
       primaryContainer: primaryContainer,
-      onPrimaryContainer: onPrimaryContainer,
+      onPrimaryContainer: onPrimary,
       secondary: secondary,
       onSecondary: onSecondary,
       secondaryContainer: secondaryContainer,

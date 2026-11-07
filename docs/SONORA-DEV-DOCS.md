@@ -662,29 +662,32 @@ Sonora features a software-based **5-Band Equalizer** (`EqualizerController`) wi
 ### 7.1 Breakpoints
 
 ```dart
-const double kCompactBreakpoint    = 600.0;  // → MobileShell (NavigationBar)
+const double kCompactBreakpoint    = 600.0;  // → MobileShell when shortestSide < 600
 const double kMediumBreakpoint     = 840.0;  // Internal layout (not shell)
 const double kExpandedBreakpoint   = 1200.0; // → WideShell (NavigationDrawer)
 const double kWideContentBreakpoint = 1600.0; // Internal content split (not a shell)
+const double kCompactContentPadding = 16.0;  // Mobile family horizontal pad
 ```
 
-- 600–1200dp → `TabletShell` (NavigationRail collapsed)
+Helpers in [`layout_breakpoints.dart`](lib/core/utils/layout_breakpoints.dart): `isCompactShell` / `isTabletShell` / `isWideShell`. `AppShell` and feature family layouts use these — compact is **`shortestSide < 600`**, not content `maxWidth < 600`, so landscape phones keep mobile layouts.
+
+- not compact and width 600–1200 → `TabletShell` (NavigationRail collapsed)
 - Every complex feature screen has separate layouts: `*_mobile_layout.dart`, `*_tablet_layout.dart`, `*_wide_layout.dart`
 - Wide content inside `WideShell` follows one of four families (feed, facet, entity, document). Tokens and the screen map are in `docs/DESIGN.md`. `kWideContentBreakpoint` (1600) only reveals a utility or related rail. Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
 
-Family tokens in `lib/core/constants/app_constants.dart`: facet rails `kFacetFilterRailWidth` (200) and `kFacetUtilityRailWidth` (280), entity list cap `kEntityTrackMaxWidth` (960) or related rail `kEntityRelatedRailWidth` (320), document soft max `kDocumentContentMaxWidth` (1320), wide pad `kWideContentPadding` (32), tablet pad `kTabletContentPadding` (24). `kFeedFourColumnContentWidth` (800) is a content-box threshold, not a shell: feed grids use 3 columns below it.
+Family tokens in `lib/core/constants/app_constants.dart`: facet rails `kFacetFilterRailWidth` (200) and `kFacetUtilityRailWidth` (280), entity list cap `kEntityTrackMaxWidth` (960) or related rail `kEntityRelatedRailWidth` (320), document soft max `kDocumentContentMaxWidth` (1320), wide pad `kWideContentPadding` (32), tablet pad `kTabletContentPadding` (24), compact pad `kCompactContentPadding` (16). `kFeedFourColumnContentWidth` (800) is a content-box threshold, not a shell: feed grids use 3 columns below it (unless the shell is compact → always 2).
 
-Tablet (600–1199) uses the same four families on that tighter budget: master rail 200, Search on chips, entity content stacked, document clamp wide-only. No utility or related rail under 1200.
+Mobile (`shortestSide` &lt; 600) uses the same four families without rails: pad 16, max 2 feed columns, facet chips, stacked entity + icon `DetailActionsBar`, Settings list→push. Tablet (not compact, width 600–1199): master rail 200, Search on chips, entity content stacked, document clamp wide-only. No utility or related rail under 1200.
 
 ### 7.1.1 Detail header actions
 
 Album, YouTube playlist, artist, podcast, and local playlist detail screens share [`DetailActionsBar`](lib/presentation/shared/widgets/detail_actions_bar.dart).
 
-Chrome is **fixed on all breakpoints** (no per-width secondary budget):
+Chrome is **fixed on all breakpoints** (no per-width secondary budget). Compact follows `isCompactShell` (shortestSide), not window width:
 
 | Layout | Chrome |
 |---|---|
-| Compact (&lt;600) | Queue + Save icons + Shuffle + ⋮ + circular Play |
+| Compact (`shortestSide` &lt; 600) | Queue + Save icons + Shuffle + ⋮ + circular Play |
 | Tablet / wide | Play + Shuffle + Queue + Save (labeled) + ⋮ |
 
 Primary slots (play-centric + affinity):

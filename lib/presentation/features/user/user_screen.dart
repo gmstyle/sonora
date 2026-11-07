@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/link/sonora_link.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
@@ -33,12 +34,13 @@ class UserScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < kCompactBreakpoint) {
+        final size = MediaQuery.sizeOf(context);
+        if (isCompactShell(size)) {
           return _UserMobileLayout(
             channelId: channelId,
             contentWidth: constraints.maxWidth,
           );
-        } else if (constraints.maxWidth < kExpandedBreakpoint) {
+        } else if (size.width < kExpandedBreakpoint) {
           return _UserTabletLayout(
             channelId: channelId,
             contentWidth: constraints.maxWidth,
@@ -205,7 +207,10 @@ class _UserContentState extends ConsumerState<_UserContent> {
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: entityBodyPadding(widget.contentWidth),
+            padding: entityBodyPadding(
+              widget.contentWidth,
+              shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+            ),
             sliver: SliverToBoxAdapter(child: _userBody(user, l10n)),
           ),
         ],
@@ -441,7 +446,10 @@ class _UserSliverAppBar extends ConsumerWidget {
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(contentWidth);
+    final horizontalPad = entityHorizontalPadding(
+      contentWidth,
+      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+    );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;

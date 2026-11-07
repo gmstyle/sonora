@@ -39,7 +39,10 @@ class NewReleasesScreen extends ConsumerWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+              final spec = FeedGridSpec.fromWidth(
+                constraints.maxWidth,
+                shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+              );
               final crossAxisCount = spec.columns;
               final cardWidth = spec.cardWidth;
               final pad = spec.horizontalPadding;
@@ -156,7 +159,10 @@ class _NewReleasesShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+        final spec = FeedGridSpec.fromWidth(
+          constraints.maxWidth,
+          shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
 
         return CustomScrollView(
           slivers: [

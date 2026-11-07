@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
@@ -19,7 +19,7 @@ class PodcastsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(sortedLikedPodcastsProvider);
     final isGridView = ref.watch(settingsProvider).isLibraryGridView;
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final isMobile = isCompactShell(MediaQuery.sizeOf(context));
 
     return async.when(
       loading: () => const _ShimmerPodcastList(),

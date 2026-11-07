@@ -76,7 +76,10 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
               final contentWidth = isWide && viewport > kDocumentContentMaxWidth
                   ? kDocumentContentMaxWidth
                   : viewport;
-              final spec = FeedGridSpec.fromWidth(contentWidth);
+              final spec = FeedGridSpec.fromWidth(
+                contentWidth,
+                shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+              );
               final horizontalPad = spec.horizontalPadding;
               final columns = spec.columns;
               final cardWidth = spec.cardWidth;
@@ -222,7 +225,10 @@ class _ReleasesLoadingGrid extends StatelessWidget {
         final contentWidth = isWide && viewport > kDocumentContentMaxWidth
             ? kDocumentContentMaxWidth
             : viewport;
-        final spec = FeedGridSpec.fromWidth(contentWidth);
+        final spec = FeedGridSpec.fromWidth(
+          contentWidth,
+          shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
         final horizontalPad = spec.horizontalPadding;
         final columns = spec.columns;
         final cardWidth = spec.cardWidth;

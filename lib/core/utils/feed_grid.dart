@@ -4,13 +4,20 @@ import '../constants/app_constants.dart';
 /// Not a shell breakpoint.
 const double _kFeedSixColumnWidth = 1920;
 
+bool _isCompactShellShortest(double? shellShortestSide) =>
+    shellShortestSide != null && shellShortestSide < kCompactBreakpoint;
+
 /// Column count for feed shelves and fill-width grids.
 ///
 /// Compact content is 2. From [kCompactBreakpoint] until
 /// [kFeedFourColumnContentWidth] the count is 3. Four columns run from
 /// there until [kWideContentBreakpoint]. Five columns start at 1600, six
 /// at 1920. Pass the content box width, not the window width.
-int feedGridColumnCount(double contentWidth) {
+///
+/// When [shellShortestSide] indicates a compact shell (phone, including
+/// landscape), always return 2 columns even if [contentWidth] is ≥ 600.
+int feedGridColumnCount(double contentWidth, {double? shellShortestSide}) {
+  if (_isCompactShellShortest(shellShortestSide)) return 2;
   if (!contentWidth.isFinite || contentWidth < kCompactBreakpoint) return 2;
   if (contentWidth >= _kFeedSixColumnWidth) return 6;
   if (contentWidth >= kWideContentBreakpoint) return 5;
@@ -22,20 +29,26 @@ int feedGridColumnCount(double contentWidth) {
 ///
 /// Wide content (≥ [kExpandedBreakpoint]) uses [kWideContentPadding].
 /// Tablet content (≥ [kCompactBreakpoint]) uses [kTabletContentPadding].
-/// Compact pages keep 16. Home keeps its own 16 / 24 / 32 scale instead
-/// of this helper.
-double feedHorizontalPadding(double contentWidth) {
-  if (!contentWidth.isFinite) return 16;
+/// Compact pages keep [kCompactContentPadding]. Home keeps its own
+/// 16 / 24 / 32 scale instead of this helper.
+///
+/// When [shellShortestSide] indicates a compact shell, always return
+/// [kCompactContentPadding] even if [contentWidth] is ≥ 600.
+double feedHorizontalPadding(double contentWidth, {double? shellShortestSide}) {
+  if (_isCompactShellShortest(shellShortestSide)) {
+    return kCompactContentPadding;
+  }
+  if (!contentWidth.isFinite) return kCompactContentPadding;
   if (contentWidth >= kExpandedBreakpoint) return kWideContentPadding;
   if (contentWidth >= kCompactBreakpoint) return kTabletContentPadding;
-  return 16;
+  return kCompactContentPadding;
 }
 
 /// Width of one grid cell that fills [contentWidth] after padding and gaps.
 double feedGridCardWidth(
   double contentWidth, {
   required int columns,
-  double horizontalPadding = 16,
+  double horizontalPadding = kCompactContentPadding,
   double crossAxisSpacing = 12,
 }) {
   if (!contentWidth.isFinite || columns <= 0) return 0;
@@ -60,9 +73,16 @@ class FeedGridSpec {
   factory FeedGridSpec.fromWidth(
     double contentWidth, {
     double crossAxisSpacing = 12,
+    double? shellShortestSide,
   }) {
-    final columns = feedGridColumnCount(contentWidth);
-    final horizontalPadding = feedHorizontalPadding(contentWidth);
+    final columns = feedGridColumnCount(
+      contentWidth,
+      shellShortestSide: shellShortestSide,
+    );
+    final horizontalPadding = feedHorizontalPadding(
+      contentWidth,
+      shellShortestSide: shellShortestSide,
+    );
     return FeedGridSpec(
       columns: columns,
       horizontalPadding: horizontalPadding,

@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../widgets/ask_intro_gate.dart';
 import '../widgets/battery_prompt_gate.dart';
 import '../widgets/offline_banner.dart';
@@ -24,10 +24,10 @@ class AppShell extends ConsumerWidget {
             // Phones in landscape often have width ≥600 but a short side
             // still under compact — keep MobileShell so the rail never
             // fights a ~360px-tall window (A1 / similar).
-            final shortestSide = constraints.biggest.shortestSide;
-            if (shortestSide < kCompactBreakpoint) {
+            final size = constraints.biggest;
+            if (isCompactShell(size)) {
               return MobileShell(navigationShell: navigationShell);
-            } else if (constraints.maxWidth < kExpandedBreakpoint) {
+            } else if (isTabletShell(size)) {
               return TabletShell(navigationShell: navigationShell);
             } else {
               return WideShell(navigationShell: navigationShell);

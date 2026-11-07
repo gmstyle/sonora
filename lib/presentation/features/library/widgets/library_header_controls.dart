@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/settings_provider.dart';
@@ -165,7 +165,7 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
   Widget _buildSortButton(BuildContext context, {bool expandLabel = false}) {
     final l10n = AppLocalizations.of(context)!;
     final activeSort = ref.watch(librarySortTypeProvider);
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final isMobile = isCompactShell(MediaQuery.sizeOf(context));
 
     String label = '';
     switch (activeSort) {

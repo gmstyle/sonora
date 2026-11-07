@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
@@ -44,7 +44,7 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
     final myAsync = ref.watch(sortedPlaylistsProvider);
     final likedAsync = ref.watch(sortedLikedPlaylistsProvider);
     final isGridView = ref.watch(settingsProvider).isLibraryGridView;
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final isMobile = isCompactShell(MediaQuery.sizeOf(context));
 
     if (myAsync.isLoading || likedAsync.isLoading) {
       return const _ShimmerPlaylistList();

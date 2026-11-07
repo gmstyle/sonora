@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -46,13 +47,14 @@ class PlaylistDetailView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < kCompactBreakpoint) {
+        final size = MediaQuery.sizeOf(context);
+        if (isCompactShell(size)) {
           return _PlaylistDetailMobileLayout(
             playlist: playlist,
             onUpdated: onUpdated,
             contentWidth: constraints.maxWidth,
           );
-        } else if (constraints.maxWidth < kExpandedBreakpoint) {
+        } else if (size.width < kExpandedBreakpoint) {
           return _PlaylistDetailTabletLayout(
             playlist: playlist,
             onUpdated: onUpdated,
@@ -238,7 +240,10 @@ class _PlaylistDetailContentState
 
     final bottomPad =
         (widget.isWide ? 48.0 : 16.0) + MediaQuery.of(context).padding.bottom;
-    final hPad = entityHorizontalPadding(widget.contentWidth);
+    final hPad = entityHorizontalPadding(
+      widget.contentWidth,
+      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+    );
 
     return Scaffold(
       body: CustomScrollView(
@@ -693,7 +698,10 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
 
   Widget _buildHeaderBackground(BuildContext context) {
     final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(contentWidth);
+    final horizontalPad = entityHorizontalPadding(
+      contentWidth,
+      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+    );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
 

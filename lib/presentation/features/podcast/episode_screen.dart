@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/link/sonora_link.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -32,12 +33,13 @@ class EpisodeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < kCompactBreakpoint) {
+        final size = MediaQuery.sizeOf(context);
+        if (isCompactShell(size)) {
           return _EpisodeMobileLayout(
             videoId: videoId,
             contentWidth: constraints.maxWidth,
           );
-        } else if (constraints.maxWidth < kExpandedBreakpoint) {
+        } else if (size.width < kExpandedBreakpoint) {
           return _EpisodeTabletLayout(
             videoId: videoId,
             contentWidth: constraints.maxWidth,
@@ -202,7 +204,10 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: entityBodyPadding(widget.contentWidth),
+            padding: entityBodyPadding(
+              widget.contentWidth,
+              shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+            ),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,7 +292,10 @@ class _EpisodeSliverAppBar extends StatelessWidget {
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(contentWidth);
+    final horizontalPad = entityHorizontalPadding(
+      contentWidth,
+      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+    );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;

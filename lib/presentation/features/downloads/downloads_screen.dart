@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/duration_ext.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
 import '../../shared/widgets/empty_state_widget.dart';
@@ -23,17 +24,17 @@ class DownloadsScreen extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-        // Shell breakpoint is the window. Content width is narrower by the sidebar.
-        final viewport = MediaQuery.sizeOf(context).width;
-        final isWide = viewport >= kExpandedBreakpoint;
-        final isTablet = screenWidth >= kCompactBreakpoint;
-        final isCompact = screenWidth < kCompactBreakpoint;
+        // Shell family follows the window (shortestSide for compact).
+        // Content width is narrower by the sidebar on tablet/wide.
+        final size = MediaQuery.sizeOf(context);
+        final isWide = isWideShell(size);
+        final isTablet = isTabletShell(size);
+        final isCompact = isCompactShell(size);
         final pagePadding = isWide
             ? kWideContentPadding
             : isTablet
             ? kTabletContentPadding
-            : 16.0;
+            : kCompactContentPadding;
 
         Widget contentWidget() {
           return allDownloadsAsync.when(

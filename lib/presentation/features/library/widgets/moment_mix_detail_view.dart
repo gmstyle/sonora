@@ -166,7 +166,10 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= kExpandedBreakpoint;
-        final pad = entityHorizontalPadding(constraints.maxWidth);
+        final pad = entityHorizontalPadding(
+          constraints.maxWidth,
+          shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
         Widget capTracks(Widget sliver) {
           if (!wide) return sliver;
           return SliverConstrainedCrossAxis(

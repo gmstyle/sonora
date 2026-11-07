@@ -121,7 +121,10 @@ class MoodPlaylistsScreen extends ConsumerWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+              final spec = FeedGridSpec.fromWidth(
+                constraints.maxWidth,
+                shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+              );
 
               return GridView.builder(
                 padding: EdgeInsets.fromLTRB(
@@ -183,7 +186,10 @@ class _MoodPlaylistsShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+        final spec = FeedGridSpec.fromWidth(
+          constraints.maxWidth,
+          shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
 
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(

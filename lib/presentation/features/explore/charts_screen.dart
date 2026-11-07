@@ -35,7 +35,10 @@ class ChartsScreen extends ConsumerWidget {
         data: (charts) {
           return LayoutBuilder(
             builder: (context, constraints) {
-              final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+              final spec = FeedGridSpec.fromWidth(
+                constraints.maxWidth,
+                shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+              );
               final crossAxisCount = spec.columns;
               final cardWidth = spec.cardWidth;
               final pad = spec.horizontalPadding;
@@ -209,7 +212,10 @@ class _ChartsShimmer extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final spec = FeedGridSpec.fromWidth(constraints.maxWidth);
+        final spec = FeedGridSpec.fromWidth(
+          constraints.maxWidth,
+          shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
         final crossAxisCount = spec.columns;
         final cardWidth = spec.cardWidth;
 

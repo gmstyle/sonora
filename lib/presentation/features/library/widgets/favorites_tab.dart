@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -178,7 +178,7 @@ class _FavoritesHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final isMobile = isCompactShell(MediaQuery.sizeOf(context));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),

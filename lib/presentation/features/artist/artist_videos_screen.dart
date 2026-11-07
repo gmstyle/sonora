@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/feed_grid.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/music_repository_provider.dart';
@@ -84,13 +85,17 @@ class _ArtistVideosBody extends ConsumerWidget {
             return Center(child: Text(l10n.noContentAvailable));
           }
 
-          final isMobile = viewportWidth < kCompactBreakpoint;
-          final isWide = viewportWidth >= kExpandedBreakpoint;
+          final size = MediaQuery.sizeOf(context);
+          final isMobile = isCompactShell(size);
+          final isWide = isWideShell(size);
           final contentWidth =
               isWide && viewportWidth > kDocumentContentMaxWidth
               ? kDocumentContentMaxWidth
               : viewportWidth;
-          final spec = FeedGridSpec.fromWidth(contentWidth);
+          final spec = FeedGridSpec.fromWidth(
+            contentWidth,
+            shellShortestSide: size.shortestSide,
+          );
           final horizontalPad = spec.horizontalPadding;
           final columns = spec.columns;
           final cardWidth = spec.cardWidth;
@@ -304,7 +309,10 @@ class _VideosLoadingGrid extends StatelessWidget {
         final contentWidth = isWide && viewport > kDocumentContentMaxWidth
             ? kDocumentContentMaxWidth
             : viewport;
-        final spec = FeedGridSpec.fromWidth(contentWidth);
+        final spec = FeedGridSpec.fromWidth(
+          contentWidth,
+          shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
         final horizontalPad = spec.horizontalPadding;
         final columns = spec.columns;
         final cardWidth = spec.cardWidth;

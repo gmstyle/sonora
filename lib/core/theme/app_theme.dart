@@ -6,10 +6,12 @@ import 'sonora_pulse_tokens.dart';
 
 /// Sonora Pulse [ThemeData] builders.
 ///
-/// Dark [ColorScheme.primary] is the light cyan tint (`#E0FDFF`) for text and
-/// selected labels. Filled brand controls (play, FAB, progress, badges) must
-/// use [ColorScheme.primaryContainer] / [SonoraPulseTokens.playControlDecoration]
-/// — never paint a solid fill with [ColorScheme.primary] alone.
+/// Dark [ColorScheme.primary] is brand cyan (`#00F2FE`) so Material filled
+/// controls (FAB, Switch, [IconButton.filled], …) get a readable fill + dark
+/// [ColorScheme.onPrimary] glyph. Ice label tint is
+/// [SonoraPulseTokens.primaryTint] (TextButton / quiet accents). Brand fills
+/// also use [SonoraPulseTokens.playControlDecoration] and
+/// [SonoraPulseTokens.filledIconButtonStyle] when a widget style is required.
 class AppTheme {
   static ThemeData light() => _build(SonoraPulseTokens.lightScheme());
 
@@ -52,25 +54,35 @@ class AppTheme {
     final pill = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusPill),
     );
+    final isDark = scheme.brightness == Brightness.dark;
+    final labelAccent = isDark ? SonoraPulseTokens.primaryTint : scheme.primary;
+    final brandFill = scheme.primaryContainer;
+    final brandOnFill = SonoraPulseTokens.onPrimary;
 
     return baseTheme.copyWith(
       textTheme: textTheme,
       primaryTextTheme: textTheme,
       extensions: [PlayerColors.standard()],
       splashFactory: InkSparkle.splashFactory,
+      // Same sentinel Material uses so [IconButton.filled] keeps
+      // [ColorScheme.onPrimary] instead of a non-default light IconTheme color.
+      iconTheme: IconThemeData(
+        color: isDark ? kDefaultIconLightColor : kDefaultIconDarkColor,
+      ),
       sliderTheme: SliderThemeData(
         trackHeight: 4,
-        activeTrackColor: SonoraPulseTokens.primaryContainer,
-        inactiveTrackColor: SonoraPulseTokens.primaryContainer.withValues(
-          alpha: 0.22,
-        ),
-        thumbColor: SonoraPulseTokens.primaryContainer,
-        overlayColor: SonoraPulseTokens.primaryContainer.withValues(
-          alpha: 0.16,
-        ),
+        activeTrackColor: brandFill,
+        inactiveTrackColor: brandFill.withValues(alpha: 0.22),
+        thumbColor: brandFill,
+        overlayColor: brandFill.withValues(alpha: 0.16),
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
         trackShape: const RoundedRectSliderTrackShape(),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: brandFill,
+        linearTrackColor: brandFill.withValues(alpha: 0.22),
+        circularTrackColor: brandFill.withValues(alpha: 0.22),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -79,6 +91,8 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         foregroundColor: scheme.onSurface,
         titleTextStyle: textTheme.titleLarge?.copyWith(color: scheme.onSurface),
+        iconTheme: IconThemeData(color: scheme.onSurface),
+        actionsIconTheme: IconThemeData(color: scheme.onSurface),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -89,7 +103,7 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         elevation: 8,
-        backgroundColor: scheme.brightness == Brightness.dark
+        backgroundColor: isDark
             ? SonoraPulseTokens.darkSurfaceVariant
             : SonoraPulseTokens.lightSurface,
         surfaceTintColor: Colors.transparent,
@@ -99,8 +113,9 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: scheme.surfaceContainer,
-        selectedColor: scheme.primaryContainer.withValues(alpha: 0.28),
+        selectedColor: brandFill.withValues(alpha: 0.28),
         disabledColor: scheme.surfaceContainer.withValues(alpha: 0.5),
+        checkmarkColor: brandOnFill,
         labelStyle: textTheme.labelLarge?.copyWith(color: scheme.onSurface),
         secondaryLabelStyle: textTheme.labelLarge?.copyWith(
           color: scheme.onSurface,
@@ -110,14 +125,38 @@ class AppTheme {
         side: BorderSide(color: scheme.outlineVariant),
         showCheckmark: false,
       ),
+      // Colors come from ColorScheme: filled → primary/onPrimary (brand),
+      // tonal → secondaryContainer/onSecondaryContainer. Do not set
+      // backgroundColor/foregroundColor here — FilledButtonTheme applies to
+      // both variants and would turn Follow/Like tonal pills into brand fills
+      // (then activeColor: primary washes out on the same cyan).
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           shape: pill,
-          backgroundColor: scheme.primaryContainer,
-          foregroundColor: scheme.onPrimaryContainer,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           textStyle: textTheme.labelLarge,
         ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: pill,
+          backgroundColor: brandFill,
+          foregroundColor: brandOnFill,
+          disabledBackgroundColor: scheme.onSurface.withValues(alpha: 0.12),
+          disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: brandFill,
+        foregroundColor: brandOnFill,
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
+        shape: const CircleBorder(),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -131,23 +170,69 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           shape: pill,
-          foregroundColor: scheme.primary,
+          foregroundColor: labelAccent,
           textStyle: textTheme.labelLarge,
         ),
       ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.38);
+          }
+          if (states.contains(WidgetState.selected)) {
+            return brandOnFill;
+          }
+          return scheme.outline;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.12);
+          }
+          if (states.contains(WidgetState.selected)) {
+            return brandFill;
+          }
+          return scheme.surfaceContainerHighest;
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.transparent;
+          }
+          return scheme.outline;
+        }),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.12);
+          }
+          if (states.contains(WidgetState.selected)) {
+            return brandFill;
+          }
+          return Colors.transparent;
+        }),
+        checkColor: WidgetStatePropertyAll(brandOnFill),
+        side: BorderSide(color: scheme.outline, width: 2),
+      ),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return scheme.onSurface.withValues(alpha: 0.38);
+          }
+          if (states.contains(WidgetState.selected)) {
+            return brandFill;
+          }
+          return scheme.outline;
+        }),
+      ),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: scheme.surfaceContainerLow,
-        indicatorColor: scheme.primaryContainer.withValues(alpha: 0.28),
+        indicatorColor: brandFill.withValues(alpha: 0.28),
         selectedIconTheme: IconThemeData(
-          color: scheme.brightness == Brightness.dark
-              ? SonoraPulseTokens.primaryContainer
-              : scheme.primary,
+          color: isDark ? brandFill : scheme.primary,
         ),
         unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
         selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
-          color: scheme.brightness == Brightness.dark
-              ? SonoraPulseTokens.primaryContainer
-              : scheme.primary,
+          color: isDark ? brandFill : scheme.primary,
           fontWeight: FontWeight.w700,
         ),
         unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
@@ -156,15 +241,13 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surfaceContainerLow,
-        indicatorColor: scheme.primaryContainer.withValues(alpha: 0.28),
+        indicatorColor: brandFill.withValues(alpha: 0.28),
         height: 64,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return textTheme.labelMedium?.copyWith(
             color: selected
-                ? (scheme.brightness == Brightness.dark
-                      ? SonoraPulseTokens.primaryContainer
-                      : scheme.primary)
+                ? (isDark ? brandFill : scheme.primary)
                 : scheme.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           );
@@ -173,9 +256,7 @@ class AppTheme {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
             color: selected
-                ? (scheme.brightness == Brightness.dark
-                      ? SonoraPulseTokens.primaryContainer
-                      : scheme.primary)
+                ? (isDark ? brandFill : scheme.primary)
                 : scheme.onSurfaceVariant,
           );
         }),

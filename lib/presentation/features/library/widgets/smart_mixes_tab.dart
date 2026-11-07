@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/constants/app_constants.dart';
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/moment_mix_ask_card.dart';
@@ -15,7 +15,7 @@ class SmartMixesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isMobile = MediaQuery.of(context).size.width < kCompactBreakpoint;
+    final isMobile = isCompactShell(MediaQuery.sizeOf(context));
     final isGridView = ref.watch(settingsProvider).isLibraryGridView;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 

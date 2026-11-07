@@ -13,7 +13,15 @@ class HomeLayoutMetrics {
 
   const HomeLayoutMetrics(this.size, {this.contentWidth = 0});
 
-  factory HomeLayoutMetrics.fromWidth(double width) {
+  /// Picks mobile / tablet / wide metrics.
+  ///
+  /// When [shortestSide] indicates a compact shell (phone, including
+  /// landscape), always returns [HomeLayoutSize.mobile] even if [width]
+  /// is ≥ 600.
+  factory HomeLayoutMetrics.fromWidth(double width, {double? shortestSide}) {
+    if (shortestSide != null && shortestSide < kCompactBreakpoint) {
+      return HomeLayoutMetrics(HomeLayoutSize.mobile, contentWidth: width);
+    }
     if (width < kCompactBreakpoint) {
       return HomeLayoutMetrics(HomeLayoutSize.mobile, contentWidth: width);
     }
@@ -24,7 +32,7 @@ class HomeLayoutMetrics {
   }
 
   double get horizontalPadding => switch (size) {
-    HomeLayoutSize.mobile => 16,
+    HomeLayoutSize.mobile => kCompactContentPadding,
     HomeLayoutSize.tablet => 24,
     HomeLayoutSize.wide => kWideContentPadding,
   };

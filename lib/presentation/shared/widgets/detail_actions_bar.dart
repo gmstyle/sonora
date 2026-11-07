@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Canonical ids for [DetailActionsBar] ranking (lower index = higher priority).
@@ -104,8 +105,7 @@ class DetailActionsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < kCompactBreakpoint;
+    final isCompact = isCompactShell(MediaQuery.sizeOf(context));
 
     final visibleSecondary = secondary.take(kSecondaryBudget).toList();
     final overflowed = secondary.skip(kSecondaryBudget).toList();

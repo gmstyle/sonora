@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../domain/models/library_models.dart';
@@ -47,13 +48,14 @@ class ArtistScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < kCompactBreakpoint) {
+        final size = MediaQuery.sizeOf(context);
+        if (isCompactShell(size)) {
           return _ArtistMobileLayout(
             artistId: artistId,
             heroTag: heroTag,
             contentWidth: constraints.maxWidth,
           );
-        } else if (constraints.maxWidth < kExpandedBreakpoint) {
+        } else if (size.width < kExpandedBreakpoint) {
           return _ArtistTabletLayout(
             artistId: artistId,
             heroTag: heroTag,
@@ -261,7 +263,10 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
             heroTag: widget.heroTag,
           ),
           SliverPadding(
-            padding: entityBodyPadding(widget.contentWidth),
+            padding: entityBodyPadding(
+              widget.contentWidth,
+              shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+            ),
             sliver: SliverToBoxAdapter(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -733,7 +738,10 @@ class _ArtistSliverAppBar extends StatelessWidget {
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(contentWidth);
+    final horizontalPad = entityHorizontalPadding(
+      contentWidth,
+      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
+    );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
 

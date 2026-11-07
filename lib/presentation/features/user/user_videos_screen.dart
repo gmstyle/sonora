@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/player_provider.dart';
@@ -31,8 +31,9 @@ class UserVideosScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < kCompactBreakpoint;
-        final isWide = constraints.maxWidth >= kExpandedBreakpoint;
+        final size = MediaQuery.sizeOf(context);
+        final isMobile = isCompactShell(size);
+        final isWide = isWideShell(size);
         return _UserVideosBody(
           contentKey: _key,
           userName: userName,

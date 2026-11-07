@@ -94,19 +94,19 @@ Material 3 comes from `AppTheme` (`lib/core/theme/app_theme.dart`) using Sonora 
 
 ### Widths
 
-Breakpoints in `lib/core/constants/app_constants.dart`:
+Breakpoints in `lib/core/constants/app_constants.dart`. Shell and family selection use helpers in `lib/core/utils/layout_breakpoints.dart` (`isCompactShell` / `isTabletShell` / `isWideShell`):
 
-| Width | Shell | Feature layout |
+| Window | Shell | Feature layout |
 |---|---|---|
-| `< 600` (`kCompactBreakpoint`) | `MobileShell` — `NavigationBar` | `*_mobile_layout.dart` |
-| `600–1200` | `TabletShell` — collapsed `NavigationRail` | `*_tablet_layout.dart`. `kMediumBreakpoint` (840) is an internal split, not a new shell |
-| `≥ 1200` (`kExpandedBreakpoint`) | `WideShell` — navigation drawer | `*_wide_layout.dart` |
+| `shortestSide < 600` (`kCompactBreakpoint`) | `MobileShell` — `NavigationBar` | `*_mobile_layout.dart` |
+| not compact and width `600–1200` | `TabletShell` — collapsed `NavigationRail` | `*_tablet_layout.dart`. `kMediumBreakpoint` (840) is an internal split, not a new shell |
+| not compact and width `≥ 1200` (`kExpandedBreakpoint`) | `WideShell` — navigation drawer | `*_wide_layout.dart` |
 
-A feature screen is a `LayoutBuilder` that picks one of those three. Home shelves use `HomeLayoutMetrics` (padding 16 / 24 / 32, card widths 140 / 160 / 180). Reuse that scale. Do not add a fourth shell. `kMediumBreakpoint` (840) and `kWideContentBreakpoint` (1600) are internal content splits, not new shells.
+A feature screen picks one of those three with `isCompactShell(MediaQuery.sizeOf(context))`, then `size.width` for tablet vs wide — not `constraints.maxWidth < 600`. Landscape phones stay compact (pad 16, max 2 feed columns, icon `DetailActionsBar`, Library chips). `contentWidth` for padding and rails still comes from `LayoutBuilder`. Home shelves use `HomeLayoutMetrics` (padding 16 / 24 / 32, card widths 140 / 160 / 180). Reuse that scale. Do not add a fourth shell. `kMediumBreakpoint` (840) and `kWideContentBreakpoint` (1600) are internal content splits, not new shells.
 
-Wide content uses four families — feed, facet, entity, document — specified in `docs/DESIGN.md`. Tokens live in `app_constants.dart` (`kFacetFilterRailWidth`, `kFacetUtilityRailWidth`, `kEntityTrackMaxWidth`, `kEntityRelatedRailWidth`, `kDocumentContentMaxWidth`, `kWideContentPadding`, `kTabletContentPadding`, `kFeedFourColumnContentWidth`). Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
+Wide content uses four families — feed, facet, entity, document — specified in `docs/DESIGN.md`. Tokens live in `app_constants.dart` (`kFacetFilterRailWidth`, `kFacetUtilityRailWidth`, `kEntityTrackMaxWidth`, `kEntityRelatedRailWidth`, `kDocumentContentMaxWidth`, `kWideContentPadding`, `kTabletContentPadding`, `kCompactContentPadding`, `kFeedFourColumnContentWidth`). Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
 
-Tablet uses the same families: pad `kTabletContentPadding` (24), master rail 200, feed grids at 3 columns when the content box is under `kFeedFourColumnContentWidth` (800). That 800 value is a content-box threshold, not a shell. Search stays on chips, entity content stacks, and the document clamp is wide-only.
+Mobile uses the same families without rails: pad `kCompactContentPadding` (16), always 2 feed columns, facet chips, stacked entity + icon bar, Settings list→push. Tablet: pad `kTabletContentPadding` (24), master rail 200, feed grids at 3 columns when the content box is under `kFeedFourColumnContentWidth` (800). That 800 value is a content-box threshold, not a shell. Search stays on chips, entity content stacks, and the document clamp is wide-only.
 
 Shell routes are the indexed stack in `router.dart`: Home `/`, Search `/search`, Library `/library`, Downloads `/downloads`. Settings is a sibling `GoRoute` on the root navigator, opened with `context.push`, not a fifth tab. Sub-routes (artist, album, playlist, podcast, episode, user, charts, moods) hang off the current branch. The player is an overlay above the shell, not a route. Do not add `/player`.
 

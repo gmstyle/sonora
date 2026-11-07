@@ -10,7 +10,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final metrics = HomeLayoutMetrics.fromWidth(constraints.maxWidth);
+        final metrics = HomeLayoutMetrics.fromWidth(
+          constraints.maxWidth,
+          shortestSide: MediaQuery.sizeOf(context).shortestSide,
+        );
         return HomeFeedLayout(metrics: metrics);
       },
     );
