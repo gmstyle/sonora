@@ -672,7 +672,9 @@ const double kWideContentBreakpoint = 1600.0; // Internal content split (not a s
 - Every complex feature screen has separate layouts: `*_mobile_layout.dart`, `*_tablet_layout.dart`, `*_wide_layout.dart`
 - Wide content inside `WideShell` follows one of four families (feed, facet, entity, document). Tokens and the screen map are in `docs/DESIGN.md`. `kWideContentBreakpoint` (1600) only reveals a utility or related rail. Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
 
-Family tokens in `lib/core/constants/app_constants.dart`: facet rails `kFacetFilterRailWidth` (200) and `kFacetUtilityRailWidth` (280), entity list cap `kEntityTrackMaxWidth` (960) or related rail `kEntityRelatedRailWidth` (320), document soft max `kDocumentContentMaxWidth` (1320), horizontal pad `kWideContentPadding` (32).
+Family tokens in `lib/core/constants/app_constants.dart`: facet rails `kFacetFilterRailWidth` (200) and `kFacetUtilityRailWidth` (280), entity list cap `kEntityTrackMaxWidth` (960) or related rail `kEntityRelatedRailWidth` (320), document soft max `kDocumentContentMaxWidth` (1320), wide pad `kWideContentPadding` (32), tablet pad `kTabletContentPadding` (24). `kFeedFourColumnContentWidth` (800) is a content-box threshold, not a shell: feed grids use 3 columns below it.
+
+Tablet (600–1199) uses the same four families on that tighter budget: master rail 200, Search on chips, entity content stacked, document clamp wide-only. No utility or related rail under 1200.
 
 ### 7.1.1 Detail header actions
 

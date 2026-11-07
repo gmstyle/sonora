@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/feed_grid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/music_repository_provider.dart';
@@ -85,20 +86,14 @@ class _ArtistVideosBody extends ConsumerWidget {
 
           final isMobile = viewportWidth < kCompactBreakpoint;
           final isWide = viewportWidth >= kExpandedBreakpoint;
-          final horizontalPad = isWide ? kWideContentPadding : 16.0;
           final contentWidth =
               isWide && viewportWidth > kDocumentContentMaxWidth
               ? kDocumentContentMaxWidth
               : viewportWidth;
-          final columns = contentWidth < kCompactBreakpoint
-              ? 2
-              : contentWidth < kMediumBreakpoint
-              ? 3
-              : contentWidth < kExpandedBreakpoint
-              ? 4
-              : 5;
-          final cardWidth =
-              (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
+          final spec = FeedGridSpec.fromWidth(contentWidth);
+          final horizontalPad = spec.horizontalPadding;
+          final columns = spec.columns;
+          final cardWidth = spec.cardWidth;
           final canPlay = playableVideos(videos).isNotEmpty;
 
           final grid = RefreshIndicator(
@@ -306,19 +301,13 @@ class _VideosLoadingGrid extends StatelessWidget {
       builder: (context, constraints) {
         final viewport = constraints.maxWidth;
         final isWide = viewport >= kExpandedBreakpoint;
-        final horizontalPad = isWide ? kWideContentPadding : 16.0;
         final contentWidth = isWide && viewport > kDocumentContentMaxWidth
             ? kDocumentContentMaxWidth
             : viewport;
-        final columns = contentWidth < kCompactBreakpoint
-            ? 2
-            : contentWidth < kMediumBreakpoint
-            ? 3
-            : contentWidth < kExpandedBreakpoint
-            ? 4
-            : 5;
-        final cardWidth =
-            (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
+        final spec = FeedGridSpec.fromWidth(contentWidth);
+        final horizontalPad = spec.horizontalPadding;
+        final columns = spec.columns;
+        final cardWidth = spec.cardWidth;
         final grid = GridView.builder(
           padding: EdgeInsets.fromLTRB(horizontalPad, 16, horizontalPad, 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

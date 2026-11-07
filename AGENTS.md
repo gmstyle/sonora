@@ -104,7 +104,9 @@ Breakpoints in `lib/core/constants/app_constants.dart`:
 
 A feature screen is a `LayoutBuilder` that picks one of those three. Home shelves use `HomeLayoutMetrics` (padding 16 / 24 / 32, card widths 140 / 160 / 180). Reuse that scale. Do not add a fourth shell. `kMediumBreakpoint` (840) and `kWideContentBreakpoint` (1600) are internal content splits, not new shells.
 
-Wide content uses four families — feed, facet, entity, document — specified in `docs/DESIGN.md`. Tokens live in `app_constants.dart` (`kFacetFilterRailWidth`, `kFacetUtilityRailWidth`, `kEntityTrackMaxWidth`, `kEntityRelatedRailWidth`, `kDocumentContentMaxWidth`, `kWideContentPadding`). Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
+Wide content uses four families — feed, facet, entity, document — specified in `docs/DESIGN.md`. Tokens live in `app_constants.dart` (`kFacetFilterRailWidth`, `kFacetUtilityRailWidth`, `kEntityTrackMaxWidth`, `kEntityRelatedRailWidth`, `kDocumentContentMaxWidth`, `kWideContentPadding`, `kTabletContentPadding`, `kFeedFourColumnContentWidth`). Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
+
+Tablet uses the same families: pad `kTabletContentPadding` (24), master rail 200, feed grids at 3 columns when the content box is under `kFeedFourColumnContentWidth` (800). That 800 value is a content-box threshold, not a shell. Search stays on chips, entity content stacks, and the document clamp is wide-only.
 
 Shell routes are the indexed stack in `router.dart`: Home `/`, Search `/search`, Library `/library`, Downloads `/downloads`. Settings is a sibling `GoRoute` on the root navigator, opened with `context.push`, not a fifth tab. Sub-routes (artist, album, playlist, podcast, episode, user, charts, moods) hang off the current branch. The player is an overlay above the shell, not a route. Do not add `/player`.
 

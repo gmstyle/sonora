@@ -29,7 +29,11 @@ class DownloadsScreen extends ConsumerWidget {
         final isWide = viewport >= kExpandedBreakpoint;
         final isTablet = screenWidth >= kCompactBreakpoint;
         final isCompact = screenWidth < kCompactBreakpoint;
-        final pagePadding = isWide ? kWideContentPadding : 16.0;
+        final pagePadding = isWide
+            ? kWideContentPadding
+            : isTablet
+            ? kTabletContentPadding
+            : 16.0;
 
         Widget contentWidget() {
           return allDownloadsAsync.when(

@@ -166,7 +166,7 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= kExpandedBreakpoint;
-        final pad = entityHorizontalPadding(wide: wide);
+        final pad = entityHorizontalPadding(constraints.maxWidth);
         Widget capTracks(Widget sliver) {
           if (!wide) return sliver;
           return SliverConstrainedCrossAxis(
@@ -246,7 +246,7 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                                 const SizedBox(height: 16),
                                 Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: wide ? kWideContentPadding : 24,
+                                    horizontal: pad,
                                   ),
                                   child: Text(
                                     title,
@@ -261,7 +261,7 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                                 const SizedBox(height: 4),
                                 Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: wide ? kWideContentPadding : 24,
+                                    horizontal: pad,
                                   ),
                                   child: Text(
                                     l10n.momentMixTrackCount(songs.length),

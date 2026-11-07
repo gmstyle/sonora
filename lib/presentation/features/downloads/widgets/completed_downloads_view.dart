@@ -408,7 +408,7 @@ class _SplitCompletedDownloads extends ConsumerWidget {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(width: 300, child: master),
+          SizedBox(width: kFacetFilterRailWidth, child: master),
           VerticalDivider(
             width: 1,
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),

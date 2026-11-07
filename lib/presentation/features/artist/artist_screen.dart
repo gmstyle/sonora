@@ -48,11 +48,23 @@ class ArtistScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _ArtistMobileLayout(artistId: artistId, heroTag: heroTag);
+          return _ArtistMobileLayout(
+            artistId: artistId,
+            heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
+          );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _ArtistTabletLayout(artistId: artistId, heroTag: heroTag);
+          return _ArtistTabletLayout(
+            artistId: artistId,
+            heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
+          );
         } else {
-          return _ArtistWideLayout(artistId: artistId, heroTag: heroTag);
+          return _ArtistWideLayout(
+            artistId: artistId,
+            heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
+          );
         }
       },
     );
@@ -62,8 +74,13 @@ class ArtistScreen extends ConsumerWidget {
 class _ArtistMobileLayout extends ConsumerWidget {
   final String artistId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _ArtistMobileLayout({required this.artistId, this.heroTag});
+  const _ArtistMobileLayout({
+    required this.artistId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,7 +94,11 @@ class _ArtistMobileLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(artistProvider(artistId)),
         ),
       ),
-      data: (artist) => _ArtistContent(artist: artist, heroTag: heroTag),
+      data: (artist) => _ArtistContent(
+        artist: artist,
+        heroTag: heroTag,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -85,8 +106,13 @@ class _ArtistMobileLayout extends ConsumerWidget {
 class _ArtistTabletLayout extends ConsumerWidget {
   final String artistId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _ArtistTabletLayout({required this.artistId, this.heroTag});
+  const _ArtistTabletLayout({
+    required this.artistId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -100,8 +126,12 @@ class _ArtistTabletLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(artistProvider(artistId)),
         ),
       ),
-      data: (artist) =>
-          _ArtistContent(artist: artist, isTablet: true, heroTag: heroTag),
+      data: (artist) => _ArtistContent(
+        artist: artist,
+        isTablet: true,
+        heroTag: heroTag,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -109,8 +139,13 @@ class _ArtistTabletLayout extends ConsumerWidget {
 class _ArtistWideLayout extends ConsumerWidget {
   final String artistId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _ArtistWideLayout({required this.artistId, this.heroTag});
+  const _ArtistWideLayout({
+    required this.artistId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -124,8 +159,12 @@ class _ArtistWideLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(artistProvider(artistId)),
         ),
       ),
-      data: (artist) =>
-          _ArtistContent(artist: artist, isWide: true, heroTag: heroTag),
+      data: (artist) => _ArtistContent(
+        artist: artist,
+        isWide: true,
+        heroTag: heroTag,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -134,10 +173,12 @@ class _ArtistContent extends ConsumerStatefulWidget {
   final ArtistFull artist;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final String? heroTag;
 
   const _ArtistContent({
     required this.artist,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     this.heroTag,
@@ -215,11 +256,12 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
             artist: artist,
             isTablet: widget.isTablet,
             isWide: widget.isWide,
+            contentWidth: widget.contentWidth,
             scrollProgress: _scrollProgress,
             heroTag: widget.heroTag,
           ),
           SliverPadding(
-            padding: entityBodyPadding(wide: widget.isWide),
+            padding: entityBodyPadding(widget.contentWidth),
             sliver: SliverToBoxAdapter(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -635,11 +677,13 @@ class _ArtistSliverAppBar extends StatelessWidget {
   final ArtistFull artist;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final double scrollProgress;
   final String? heroTag;
 
   const _ArtistSliverAppBar({
     required this.artist,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
@@ -689,6 +733,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
+    final horizontalPad = entityHorizontalPadding(contentWidth);
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
 
@@ -731,8 +776,8 @@ class _ArtistSliverAppBar extends StatelessWidget {
           Positioned(
             top: 56 + MediaQuery.of(context).padding.top,
             bottom: 12,
-            left: 24,
-            right: 24,
+            left: horizontalPad,
+            right: horizontalPad,
             child: Opacity(
               opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
               child: Column(
@@ -866,8 +911,8 @@ class _ArtistSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? kWideContentPadding : 24,
-          right: isWide ? kWideContentPadding : 24,
+          left: horizontalPad,
+          right: horizontalPad,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

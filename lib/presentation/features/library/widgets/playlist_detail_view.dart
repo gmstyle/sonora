@@ -50,16 +50,19 @@ class PlaylistDetailView extends ConsumerWidget {
           return _PlaylistDetailMobileLayout(
             playlist: playlist,
             onUpdated: onUpdated,
+            contentWidth: constraints.maxWidth,
           );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
           return _PlaylistDetailTabletLayout(
             playlist: playlist,
             onUpdated: onUpdated,
+            contentWidth: constraints.maxWidth,
           );
         } else {
           return _PlaylistDetailWideLayout(
             playlist: playlist,
             onUpdated: onUpdated,
+            contentWidth: constraints.maxWidth,
           );
         }
       },
@@ -72,10 +75,12 @@ class PlaylistDetailView extends ConsumerWidget {
 class _PlaylistDetailMobileLayout extends ConsumerWidget {
   final LocalPlaylistModel playlist;
   final VoidCallback onUpdated;
+  final double contentWidth;
 
   const _PlaylistDetailMobileLayout({
     required this.playlist,
     required this.onUpdated,
+    required this.contentWidth,
   });
 
   @override
@@ -85,6 +90,7 @@ class _PlaylistDetailMobileLayout extends ConsumerWidget {
       onUpdated: onUpdated,
       isTablet: false,
       isWide: false,
+      contentWidth: contentWidth,
     );
   }
 }
@@ -92,10 +98,12 @@ class _PlaylistDetailMobileLayout extends ConsumerWidget {
 class _PlaylistDetailTabletLayout extends ConsumerWidget {
   final LocalPlaylistModel playlist;
   final VoidCallback onUpdated;
+  final double contentWidth;
 
   const _PlaylistDetailTabletLayout({
     required this.playlist,
     required this.onUpdated,
+    required this.contentWidth,
   });
 
   @override
@@ -105,6 +113,7 @@ class _PlaylistDetailTabletLayout extends ConsumerWidget {
       onUpdated: onUpdated,
       isTablet: true,
       isWide: false,
+      contentWidth: contentWidth,
     );
   }
 }
@@ -112,10 +121,12 @@ class _PlaylistDetailTabletLayout extends ConsumerWidget {
 class _PlaylistDetailWideLayout extends ConsumerWidget {
   final LocalPlaylistModel playlist;
   final VoidCallback onUpdated;
+  final double contentWidth;
 
   const _PlaylistDetailWideLayout({
     required this.playlist,
     required this.onUpdated,
+    required this.contentWidth,
   });
 
   @override
@@ -125,6 +136,7 @@ class _PlaylistDetailWideLayout extends ConsumerWidget {
       onUpdated: onUpdated,
       isTablet: false,
       isWide: true,
+      contentWidth: contentWidth,
     );
   }
 }
@@ -136,10 +148,12 @@ class _PlaylistDetailContent extends ConsumerStatefulWidget {
   final VoidCallback onUpdated;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
 
   const _PlaylistDetailContent({
     required this.playlist,
     required this.onUpdated,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
   });
@@ -224,7 +238,7 @@ class _PlaylistDetailContentState
 
     final bottomPad =
         (widget.isWide ? 48.0 : 16.0) + MediaQuery.of(context).padding.bottom;
-    final hPad = entityHorizontalPadding(wide: widget.isWide);
+    final hPad = entityHorizontalPadding(widget.contentWidth);
 
     return Scaffold(
       body: CustomScrollView(
@@ -237,6 +251,7 @@ class _PlaylistDetailContentState
             scrollProgress: _scrollProgress,
             isTablet: widget.isTablet,
             isWide: widget.isWide,
+            contentWidth: widget.contentWidth,
           ),
 
           SliverToBoxAdapter(
@@ -620,12 +635,14 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
   final double scrollProgress;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
 
   const _LocalPlaylistSliverAppBar({
     required this.playlist,
     required this.thumbnailUrls,
     required this.entryCount,
     required this.scrollProgress,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
   });
@@ -676,6 +693,7 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
 
   Widget _buildHeaderBackground(BuildContext context) {
     final isTabletOrWide = isTablet || isWide;
+    final horizontalPad = entityHorizontalPadding(contentWidth);
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
 
@@ -718,8 +736,8 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
           Positioned(
             top: 56 + MediaQuery.of(context).padding.top,
             bottom: 12,
-            left: 24,
-            right: 24,
+            left: horizontalPad,
+            right: horizontalPad,
             child: Opacity(
               opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
               child: Column(
@@ -857,8 +875,8 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? kWideContentPadding : 24,
-          right: isWide ? kWideContentPadding : 24,
+          left: horizontalPad,
+          right: horizontalPad,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

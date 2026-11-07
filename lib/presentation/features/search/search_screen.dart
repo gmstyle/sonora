@@ -244,12 +244,21 @@ class _SearchResults extends ConsumerWidget {
 
   const _SearchResults({this.inFacet = false, this.showAskBanner = true});
 
+  /// Page inset outside the wide facet scaffold. Compact stays 16; tablet
+  /// uses [kTabletContentPadding]. The facet scaffold supplies its own inset.
+  double _contentInset(BuildContext context) {
+    if (inFacet) return 0;
+    final width = MediaQuery.sizeOf(context).width;
+    if (width >= kCompactBreakpoint) return kTabletContentPadding;
+    return 16;
+  }
+
   Widget _buildSectionHeader(
     BuildContext context, {
     required String title,
     VoidCallback? onSeeAll,
   }) {
-    final inset = inFacet ? 0.0 : 16.0;
+    final inset = _contentInset(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(inset, 20, inset, 8),
       child: Row(
@@ -377,7 +386,7 @@ class _SearchResults extends ConsumerWidget {
 
     final bool isCircle = result is ArtistDetailed || result is ProfileDetailed;
 
-    final inset = inFacet ? 0.0 : 16.0;
+    final inset = _contentInset(context);
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: inset, vertical: 8),
       child: InkWell(
@@ -477,13 +486,14 @@ class _SearchResults extends ConsumerWidget {
     );
   }
 
-  Widget _buildCardGrid({
+  Widget _buildCardGrid(
+    BuildContext context, {
     required int itemCount,
     required double childAspectRatio,
     required Widget Function(BuildContext context, int index, double cardWidth)
     itemBuilder,
   }) {
-    final inset = inFacet ? 0.0 : 16.0;
+    final inset = _contentInset(context);
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: inset),
       child: LayoutBuilder(
@@ -519,6 +529,7 @@ class _SearchResults extends ConsumerWidget {
     final count = artists.length > 8 ? 8 : artists.length;
     if (dense) {
       return _buildCardGrid(
+        context,
         itemCount: count,
         childAspectRatio: 0.78,
         itemBuilder: (context, idx, cardWidth) {
@@ -539,7 +550,7 @@ class _SearchResults extends ConsumerWidget {
       height: 155,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: _contentInset(context)),
         itemCount: count,
         itemBuilder: (context, idx) {
           final a = artists[idx];
@@ -568,6 +579,7 @@ class _SearchResults extends ConsumerWidget {
     final count = albums.length > 8 ? 8 : albums.length;
     if (dense) {
       return _buildCardGrid(
+        context,
         itemCount: count,
         childAspectRatio: 0.72,
         itemBuilder: (context, idx, cardWidth) {
@@ -591,7 +603,7 @@ class _SearchResults extends ConsumerWidget {
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: _contentInset(context)),
         itemCount: count,
         itemBuilder: (context, idx) {
           final al = albums[idx];
@@ -623,6 +635,7 @@ class _SearchResults extends ConsumerWidget {
     final count = playlists.length > 8 ? 8 : playlists.length;
     if (dense) {
       return _buildCardGrid(
+        context,
         itemCount: count,
         childAspectRatio: 0.68,
         itemBuilder: (context, idx, cardWidth) {
@@ -644,7 +657,7 @@ class _SearchResults extends ConsumerWidget {
       height: 230,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: _contentInset(context)),
         itemCount: count,
         itemBuilder: (context, idx) {
           final pl = playlists[idx];
@@ -812,12 +825,9 @@ class _SearchResults extends ConsumerWidget {
     final filter = ref.watch(searchFilterProvider);
     final resultsAsync = ref.watch(searchResultsProvider);
     final l10n = AppLocalizations.of(context)!;
+    final inset = _contentInset(context);
     final askBanner = showAskBanner
-        ? SearchAskBanner(
-            padding: inFacet
-                ? const EdgeInsets.fromLTRB(0, 12, 0, 4)
-                : const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          )
+        ? SearchAskBanner(padding: EdgeInsets.fromLTRB(inset, 12, inset, 4))
         : const SizedBox.shrink();
     final resultsContent = _buildResultsContent(
       context,

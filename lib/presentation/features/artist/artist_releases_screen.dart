@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/artists_utils.dart';
+import '../../../core/utils/feed_grid.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/release_card.dart';
@@ -72,20 +73,13 @@ class _ArtistReleasesScreenState extends ConsumerState<ArtistReleasesScreen> {
             builder: (context, constraints) {
               final viewport = constraints.maxWidth;
               final isWide = viewport >= kExpandedBreakpoint;
-              final horizontalPad = isWide ? kWideContentPadding : 16.0;
               final contentWidth = isWide && viewport > kDocumentContentMaxWidth
                   ? kDocumentContentMaxWidth
                   : viewport;
-              final columns = contentWidth < kCompactBreakpoint
-                  ? 2
-                  : contentWidth < kMediumBreakpoint
-                  ? 3
-                  : contentWidth < kExpandedBreakpoint
-                  ? 4
-                  : 5;
-              final cardWidth =
-                  (contentWidth - horizontalPad * 2 - (columns - 1) * 12) /
-                  columns;
+              final spec = FeedGridSpec.fromWidth(contentWidth);
+              final horizontalPad = spec.horizontalPadding;
+              final columns = spec.columns;
+              final cardWidth = spec.cardWidth;
               final releaseType = switch (widget.kind) {
                 ArtistReleaseKind.albums => ReleaseType.album,
                 ArtistReleaseKind.singles => ReleaseType.single,
@@ -225,19 +219,13 @@ class _ReleasesLoadingGrid extends StatelessWidget {
       builder: (context, constraints) {
         final viewport = constraints.maxWidth;
         final isWide = viewport >= kExpandedBreakpoint;
-        final horizontalPad = isWide ? kWideContentPadding : 16.0;
         final contentWidth = isWide && viewport > kDocumentContentMaxWidth
             ? kDocumentContentMaxWidth
             : viewport;
-        final columns = contentWidth < kCompactBreakpoint
-            ? 2
-            : contentWidth < kMediumBreakpoint
-            ? 3
-            : contentWidth < kExpandedBreakpoint
-            ? 4
-            : 5;
-        final cardWidth =
-            (contentWidth - horizontalPad * 2 - (columns - 1) * 12) / columns;
+        final spec = FeedGridSpec.fromWidth(contentWidth);
+        final horizontalPad = spec.horizontalPadding;
+        final columns = spec.columns;
+        final cardWidth = spec.cardWidth;
         final grid = GridView.builder(
           padding: EdgeInsets.fromLTRB(horizontalPad, 16, horizontalPad, 16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

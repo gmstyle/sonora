@@ -2,13 +2,21 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/constants/app_constants.dart';
 
-/// Horizontal inset for an entity page. Wide uses [kWideContentPadding].
-double entityHorizontalPadding({required bool wide}) =>
-    wide ? kWideContentPadding : 16;
+/// Horizontal inset for an entity page.
+///
+/// Compact content (< [kCompactBreakpoint]) is 16. Tablet content is
+/// [kTabletContentPadding]. Wide content (≥ [kExpandedBreakpoint]) is
+/// [kWideContentPadding]. Pass the content box width, not the window.
+double entityHorizontalPadding(double contentWidth) {
+  if (!contentWidth.isFinite || contentWidth < kCompactBreakpoint) return 16;
+  if (contentWidth < kExpandedBreakpoint) return kTabletContentPadding;
+  return kWideContentPadding;
+}
 
 /// Body padding under an entity header. Wide keeps the dock clearance (48).
-EdgeInsets entityBodyPadding({required bool wide, double top = 16}) {
-  final horizontal = entityHorizontalPadding(wide: wide);
+EdgeInsets entityBodyPadding(double contentWidth, {double top = 16}) {
+  final horizontal = entityHorizontalPadding(contentWidth);
+  final wide = contentWidth >= kExpandedBreakpoint;
   return EdgeInsets.fromLTRB(horizontal, top, horizontal, wide ? 48 : 16);
 }
 

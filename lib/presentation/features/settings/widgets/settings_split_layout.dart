@@ -31,7 +31,7 @@ class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
       children: [
         // Left Pane - Master List (Categories)
         SizedBox(
-          width: 280,
+          width: kFacetFilterRailWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -34,11 +34,20 @@ class UserScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _UserMobileLayout(channelId: channelId);
+          return _UserMobileLayout(
+            channelId: channelId,
+            contentWidth: constraints.maxWidth,
+          );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _UserTabletLayout(channelId: channelId);
+          return _UserTabletLayout(
+            channelId: channelId,
+            contentWidth: constraints.maxWidth,
+          );
         } else {
-          return _UserWideLayout(channelId: channelId);
+          return _UserWideLayout(
+            channelId: channelId,
+            contentWidth: constraints.maxWidth,
+          );
         }
       },
     );
@@ -47,8 +56,12 @@ class UserScreen extends ConsumerWidget {
 
 class _UserMobileLayout extends ConsumerWidget {
   final String channelId;
+  final double contentWidth;
 
-  const _UserMobileLayout({required this.channelId});
+  const _UserMobileLayout({
+    required this.channelId,
+    required this.contentWidth,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,15 +75,19 @@ class _UserMobileLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(userProvider(channelId)),
         ),
       ),
-      data: (user) => _UserContent(user: user),
+      data: (user) => _UserContent(user: user, contentWidth: contentWidth),
     );
   }
 }
 
 class _UserTabletLayout extends ConsumerWidget {
   final String channelId;
+  final double contentWidth;
 
-  const _UserTabletLayout({required this.channelId});
+  const _UserTabletLayout({
+    required this.channelId,
+    required this.contentWidth,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -84,15 +101,17 @@ class _UserTabletLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(userProvider(channelId)),
         ),
       ),
-      data: (user) => _UserContent(user: user, isTablet: true),
+      data: (user) =>
+          _UserContent(user: user, isTablet: true, contentWidth: contentWidth),
     );
   }
 }
 
 class _UserWideLayout extends ConsumerWidget {
   final String channelId;
+  final double contentWidth;
 
-  const _UserWideLayout({required this.channelId});
+  const _UserWideLayout({required this.channelId, required this.contentWidth});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -106,7 +125,8 @@ class _UserWideLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(userProvider(channelId)),
         ),
       ),
-      data: (user) => _UserContent(user: user, isWide: true),
+      data: (user) =>
+          _UserContent(user: user, isWide: true, contentWidth: contentWidth),
     );
   }
 }
@@ -115,9 +135,11 @@ class _UserContent extends ConsumerStatefulWidget {
   final UserFull user;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
 
   const _UserContent({
     required this.user,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
   });
@@ -179,10 +201,11 @@ class _UserContentState extends ConsumerState<_UserContent> {
             user: user,
             isTablet: widget.isTablet,
             isWide: widget.isWide,
+            contentWidth: widget.contentWidth,
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: entityBodyPadding(wide: widget.isWide),
+            padding: entityBodyPadding(widget.contentWidth),
             sliver: SliverToBoxAdapter(child: _userBody(user, l10n)),
           ),
         ],
@@ -351,10 +374,12 @@ class _UserSliverAppBar extends ConsumerWidget {
   final UserFull user;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final double scrollProgress;
 
   const _UserSliverAppBar({
     required this.user,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
@@ -416,6 +441,7 @@ class _UserSliverAppBar extends ConsumerWidget {
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
+    final horizontalPad = entityHorizontalPadding(contentWidth);
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -459,8 +485,8 @@ class _UserSliverAppBar extends ConsumerWidget {
           Positioned(
             top: 56 + MediaQuery.of(context).padding.top,
             bottom: 12,
-            left: 24,
-            right: 24,
+            left: horizontalPad,
+            right: horizontalPad,
             child: Opacity(
               opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
               child: Column(
@@ -538,8 +564,8 @@ class _UserSliverAppBar extends ConsumerWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? kWideContentPadding : 24,
-          right: isWide ? kWideContentPadding : 24,
+          left: horizontalPad,
+          right: horizontalPad,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

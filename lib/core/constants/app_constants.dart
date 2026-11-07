@@ -6,23 +6,36 @@ const double kExpandedBreakpoint = 1200.0;
 /// Not a shell breakpoint. Shells stay compact, tablet, and wide.
 const double kWideContentBreakpoint = 1600.0;
 
+/// Content-box width where feed grids step from three columns to four.
+/// Not a shell breakpoint. Measure the content box, not the window.
+/// Below this, explore grids use 3 columns; from here until
+/// [kWideContentBreakpoint] they use 4.
+const double kFeedFourColumnContentWidth = 800.0;
+
 /// Left filter rail on wide facet screens (Search, Library, Downloads).
+/// Also the tablet master rail for Library, Downloads, and Settings.
 const double kFacetFilterRailWidth = 200.0;
 
 /// Right utility rail on wide facet screens at [kWideContentBreakpoint] and above.
 const double kFacetUtilityRailWidth = 280.0;
 
-/// Track or episode list cap on entity screens when the related rail is absent.
+/// Track or episode list cap on wide entity screens when the related rail
+/// is absent. Tablet stacks the list and does not use this cap.
 const double kEntityTrackMaxWidth = 960.0;
 
 /// Related rail on entity screens at [kWideContentBreakpoint] and above.
 const double kEntityRelatedRailWidth = 320.0;
 
-/// Soft content max width for document screens (Settings, artist see-all).
+/// Soft content max for wide document screens (Settings, artist see-all).
+/// The clamp does not apply on tablet.
 const double kDocumentContentMaxWidth = 1320.0;
 
 /// Horizontal padding for wide feed, facet, and entity content.
 const double kWideContentPadding = 32.0;
+
+/// Horizontal padding for tablet feed, facet, entity, and document content.
+/// Home already uses 24 through `HomeLayoutMetrics`.
+const double kTabletContentPadding = 24.0;
 
 /// Edge-to-edge mini-player shelf on tablet and wide layouts.
 const double kMiniPlayerShelfHeight = 80.0;

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -270,7 +271,14 @@ class SearchRecentSearches extends ConsumerWidget {
           return const SearchIdlePrompt();
         }
 
-        final horizontal = inFacet && !inRail ? 0.0 : 16.0;
+        final width = MediaQuery.sizeOf(context).width;
+        final horizontal = inRail
+            ? 16.0
+            : inFacet
+            ? 0.0
+            : width >= kCompactBreakpoint
+            ? kTabletContentPadding
+            : 16.0;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

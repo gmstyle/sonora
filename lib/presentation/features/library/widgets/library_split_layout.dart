@@ -269,7 +269,7 @@ class LibrarySplitLayout extends ConsumerWidget {
     if (!isWide) {
       body = Row(
         children: [
-          SizedBox(width: 280, child: tabRail),
+          SizedBox(width: kFacetFilterRailWidth, child: tabRail),
           VerticalDivider(
             width: 1,
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),

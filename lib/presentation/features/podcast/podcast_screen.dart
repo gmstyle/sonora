@@ -45,11 +45,20 @@ class PodcastScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _PodcastMobileLayout(browseId: browseId);
+          return _PodcastMobileLayout(
+            browseId: browseId,
+            contentWidth: constraints.maxWidth,
+          );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _PodcastTabletLayout(browseId: browseId);
+          return _PodcastTabletLayout(
+            browseId: browseId,
+            contentWidth: constraints.maxWidth,
+          );
         } else {
-          return _PodcastWideLayout(browseId: browseId);
+          return _PodcastWideLayout(
+            browseId: browseId,
+            contentWidth: constraints.maxWidth,
+          );
         }
       },
     );
@@ -58,8 +67,12 @@ class PodcastScreen extends ConsumerWidget {
 
 class _PodcastMobileLayout extends ConsumerWidget {
   final String browseId;
+  final double contentWidth;
 
-  const _PodcastMobileLayout({required this.browseId});
+  const _PodcastMobileLayout({
+    required this.browseId,
+    required this.contentWidth,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,15 +86,20 @@ class _PodcastMobileLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(podcastProvider(browseId)),
         ),
       ),
-      data: (podcast) => _PodcastContent(podcast: podcast),
+      data: (podcast) =>
+          _PodcastContent(podcast: podcast, contentWidth: contentWidth),
     );
   }
 }
 
 class _PodcastTabletLayout extends ConsumerWidget {
   final String browseId;
+  final double contentWidth;
 
-  const _PodcastTabletLayout({required this.browseId});
+  const _PodcastTabletLayout({
+    required this.browseId,
+    required this.contentWidth,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -95,15 +113,23 @@ class _PodcastTabletLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(podcastProvider(browseId)),
         ),
       ),
-      data: (podcast) => _PodcastContent(podcast: podcast, isTablet: true),
+      data: (podcast) => _PodcastContent(
+        podcast: podcast,
+        isTablet: true,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
 
 class _PodcastWideLayout extends ConsumerWidget {
   final String browseId;
+  final double contentWidth;
 
-  const _PodcastWideLayout({required this.browseId});
+  const _PodcastWideLayout({
+    required this.browseId,
+    required this.contentWidth,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -117,7 +143,11 @@ class _PodcastWideLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(podcastProvider(browseId)),
         ),
       ),
-      data: (podcast) => _PodcastContent(podcast: podcast, isWide: true),
+      data: (podcast) => _PodcastContent(
+        podcast: podcast,
+        isWide: true,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -126,9 +156,11 @@ class _PodcastContent extends ConsumerStatefulWidget {
   final PodcastFull podcast;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
 
   const _PodcastContent({
     required this.podcast,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
   });
@@ -183,10 +215,11 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
             podcast: widget.podcast,
             isTablet: widget.isTablet,
             isWide: widget.isWide,
+            contentWidth: widget.contentWidth,
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: entityBodyPadding(wide: widget.isWide),
+            padding: entityBodyPadding(widget.contentWidth),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,10 +264,12 @@ class _PodcastSliverAppBar extends StatelessWidget {
   final PodcastFull podcast;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final double scrollProgress;
 
   const _PodcastSliverAppBar({
     required this.podcast,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
@@ -292,6 +327,7 @@ class _PodcastSliverAppBar extends StatelessWidget {
     String? authorName,
   ) {
     final isTabletOrWide = isTablet || isWide;
+    final horizontalPad = entityHorizontalPadding(contentWidth);
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -335,8 +371,8 @@ class _PodcastSliverAppBar extends StatelessWidget {
           Positioned(
             top: 56 + MediaQuery.of(context).padding.top,
             bottom: 12,
-            left: 24,
-            right: 24,
+            left: horizontalPad,
+            right: horizontalPad,
             child: Opacity(
               opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
               child: Column(
@@ -455,8 +491,8 @@ class _PodcastSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? kWideContentPadding : 24,
-          right: isWide ? kWideContentPadding : 24,
+          left: horizontalPad,
+          right: horizontalPad,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

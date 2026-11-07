@@ -43,14 +43,20 @@ class PlaylistScreen extends ConsumerWidget {
           return _PlaylistMobileLayout(
             playlistId: playlistId,
             heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
           );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
           return _PlaylistTabletLayout(
             playlistId: playlistId,
             heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
           );
         } else {
-          return _PlaylistWideLayout(playlistId: playlistId, heroTag: heroTag);
+          return _PlaylistWideLayout(
+            playlistId: playlistId,
+            heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
+          );
         }
       },
     );
@@ -60,8 +66,13 @@ class PlaylistScreen extends ConsumerWidget {
 class _PlaylistMobileLayout extends ConsumerWidget {
   final String playlistId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _PlaylistMobileLayout({required this.playlistId, this.heroTag});
+  const _PlaylistMobileLayout({
+    required this.playlistId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,6 +94,7 @@ class _PlaylistMobileLayout extends ConsumerWidget {
         playlist: playlist,
         videosAsync: videosAsync,
         heroTag: heroTag,
+        contentWidth: contentWidth,
       ),
     );
   }
@@ -91,8 +103,13 @@ class _PlaylistMobileLayout extends ConsumerWidget {
 class _PlaylistTabletLayout extends ConsumerWidget {
   final String playlistId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _PlaylistTabletLayout({required this.playlistId, this.heroTag});
+  const _PlaylistTabletLayout({
+    required this.playlistId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -115,6 +132,7 @@ class _PlaylistTabletLayout extends ConsumerWidget {
         videosAsync: videosAsync,
         isTablet: true,
         heroTag: heroTag,
+        contentWidth: contentWidth,
       ),
     );
   }
@@ -123,8 +141,13 @@ class _PlaylistTabletLayout extends ConsumerWidget {
 class _PlaylistWideLayout extends ConsumerWidget {
   final String playlistId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _PlaylistWideLayout({required this.playlistId, this.heroTag});
+  const _PlaylistWideLayout({
+    required this.playlistId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -147,6 +170,7 @@ class _PlaylistWideLayout extends ConsumerWidget {
         videosAsync: videosAsync,
         isWide: true,
         heroTag: heroTag,
+        contentWidth: contentWidth,
       ),
     );
   }
@@ -157,11 +181,13 @@ class _PlaylistContent extends ConsumerStatefulWidget {
   final AsyncValue<List<VideoDetailed>> videosAsync;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final String? heroTag;
 
   const _PlaylistContent({
     required this.playlist,
     required this.videosAsync,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     this.heroTag,
@@ -215,11 +241,12 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
             playlist: widget.playlist,
             isTablet: widget.isTablet,
             isWide: widget.isWide,
+            contentWidth: widget.contentWidth,
             scrollProgress: _scrollProgress,
             heroTag: widget.heroTag,
           ),
           SliverPadding(
-            padding: entityBodyPadding(wide: widget.isWide),
+            padding: entityBodyPadding(widget.contentWidth),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,11 +289,13 @@ class _PlaylistSliverAppBar extends StatelessWidget {
   final PlaylistFull playlist;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final double scrollProgress;
   final String? heroTag;
 
   const _PlaylistSliverAppBar({
     required this.playlist,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
@@ -333,6 +362,7 @@ class _PlaylistSliverAppBar extends StatelessWidget {
     String tag,
   ) {
     final isTabletOrWide = isTablet || isWide;
+    final horizontalPad = entityHorizontalPadding(contentWidth);
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
 
@@ -376,8 +406,8 @@ class _PlaylistSliverAppBar extends StatelessWidget {
           Positioned(
             top: 56 + MediaQuery.of(context).padding.top,
             bottom: 12,
-            left: 24,
-            right: 24,
+            left: horizontalPad,
+            right: horizontalPad,
             child: Opacity(
               opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
               child: Column(
@@ -510,8 +540,8 @@ class _PlaylistSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? kWideContentPadding : 24,
-          right: isWide ? kWideContentPadding : 24,
+          left: horizontalPad,
+          right: horizontalPad,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

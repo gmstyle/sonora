@@ -6,25 +6,28 @@ const double _kFeedSixColumnWidth = 1920;
 
 /// Column count for feed shelves and fill-width grids.
 ///
-/// Compact content is 2. From [kCompactBreakpoint] through the wide band
-/// below [kWideContentBreakpoint] the count is 4. Five columns start at
-/// 1600, six at 1920. Pass the content box width, not the window width.
+/// Compact content is 2. From [kCompactBreakpoint] until
+/// [kFeedFourColumnContentWidth] the count is 3. Four columns run from
+/// there until [kWideContentBreakpoint]. Five columns start at 1600, six
+/// at 1920. Pass the content box width, not the window width.
 int feedGridColumnCount(double contentWidth) {
   if (!contentWidth.isFinite || contentWidth < kCompactBreakpoint) return 2;
   if (contentWidth >= _kFeedSixColumnWidth) return 6;
   if (contentWidth >= kWideContentBreakpoint) return 5;
+  if (contentWidth < kFeedFourColumnContentWidth) return 3;
   return 4;
 }
 
 /// Horizontal padding for explore feed pages.
 ///
 /// Wide content (≥ [kExpandedBreakpoint]) uses [kWideContentPadding].
-/// Narrower pages keep the existing 16. Home keeps its own 16 / 24 / 32
-/// scale instead of this helper.
+/// Tablet content (≥ [kCompactBreakpoint]) uses [kTabletContentPadding].
+/// Compact pages keep 16. Home keeps its own 16 / 24 / 32 scale instead
+/// of this helper.
 double feedHorizontalPadding(double contentWidth) {
-  if (contentWidth.isFinite && contentWidth >= kExpandedBreakpoint) {
-    return kWideContentPadding;
-  }
+  if (!contentWidth.isFinite) return 16;
+  if (contentWidth >= kExpandedBreakpoint) return kWideContentPadding;
+  if (contentWidth >= kCompactBreakpoint) return kTabletContentPadding;
   return 16;
 }
 

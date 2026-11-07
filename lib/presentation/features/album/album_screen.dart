@@ -42,11 +42,23 @@ class AlbumScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _AlbumMobileLayout(albumId: albumId, heroTag: heroTag);
+          return _AlbumMobileLayout(
+            albumId: albumId,
+            heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
+          );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _AlbumTabletLayout(albumId: albumId, heroTag: heroTag);
+          return _AlbumTabletLayout(
+            albumId: albumId,
+            heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
+          );
         } else {
-          return _AlbumWideLayout(albumId: albumId, heroTag: heroTag);
+          return _AlbumWideLayout(
+            albumId: albumId,
+            heroTag: heroTag,
+            contentWidth: constraints.maxWidth,
+          );
         }
       },
     );
@@ -56,8 +68,13 @@ class AlbumScreen extends ConsumerWidget {
 class _AlbumMobileLayout extends ConsumerWidget {
   final String albumId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _AlbumMobileLayout({required this.albumId, this.heroTag});
+  const _AlbumMobileLayout({
+    required this.albumId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,7 +88,11 @@ class _AlbumMobileLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(albumProvider(albumId)),
         ),
       ),
-      data: (album) => _AlbumContent(album: album, heroTag: heroTag),
+      data: (album) => _AlbumContent(
+        album: album,
+        heroTag: heroTag,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -79,8 +100,13 @@ class _AlbumMobileLayout extends ConsumerWidget {
 class _AlbumTabletLayout extends ConsumerWidget {
   final String albumId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _AlbumTabletLayout({required this.albumId, this.heroTag});
+  const _AlbumTabletLayout({
+    required this.albumId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -94,8 +120,12 @@ class _AlbumTabletLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(albumProvider(albumId)),
         ),
       ),
-      data: (album) =>
-          _AlbumContent(album: album, isTablet: true, heroTag: heroTag),
+      data: (album) => _AlbumContent(
+        album: album,
+        isTablet: true,
+        heroTag: heroTag,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -103,8 +133,13 @@ class _AlbumTabletLayout extends ConsumerWidget {
 class _AlbumWideLayout extends ConsumerWidget {
   final String albumId;
   final String? heroTag;
+  final double contentWidth;
 
-  const _AlbumWideLayout({required this.albumId, this.heroTag});
+  const _AlbumWideLayout({
+    required this.albumId,
+    required this.contentWidth,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -118,8 +153,12 @@ class _AlbumWideLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(albumProvider(albumId)),
         ),
       ),
-      data: (album) =>
-          _AlbumContent(album: album, isWide: true, heroTag: heroTag),
+      data: (album) => _AlbumContent(
+        album: album,
+        isWide: true,
+        heroTag: heroTag,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -128,10 +167,12 @@ class _AlbumContent extends ConsumerStatefulWidget {
   final AlbumFull album;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final String? heroTag;
 
   const _AlbumContent({
     required this.album,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     this.heroTag,
@@ -252,7 +293,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
             ),
           ),
           SliverPadding(
-            padding: entityBodyPadding(wide: widget.isWide),
+            padding: entityBodyPadding(widget.contentWidth),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,6 +426,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     int unavailableCount,
   ) {
     final isTabletOrWide = widget.isTablet || widget.isWide;
+    final horizontalPad = entityHorizontalPadding(widget.contentWidth);
     if (!isTabletOrWide) {
       final theme = Theme.of(context);
       return Stack(
@@ -425,8 +467,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
           Positioned(
             top: 56 + MediaQuery.of(context).padding.top,
             bottom: 12,
-            left: 24,
-            right: 24,
+            left: horizontalPad,
+            right: horizontalPad,
             child: Opacity(
               opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
               child: Column(
@@ -571,8 +613,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? kWideContentPadding : 24,
-          right: isWide ? kWideContentPadding : 24,
+          left: horizontalPad,
+          right: horizontalPad,
           child: Opacity(
             opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(

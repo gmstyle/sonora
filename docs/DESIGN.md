@@ -114,19 +114,36 @@ Do not add a Soundscape AI column, a lossless badge, or a multi-band waveform sc
 
 ## Wide content families
 
-`WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether a utility or related rail is present. It does not add a layout file or a shell. Compact and tablet layouts are unchanged.
+`WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether a utility or related rail is present. It does not add a layout file or a shell.
+
+### Tablet
+
+`TabletShell` stays the collapsed rail and the 80px shelf. The same four families use a tighter budget. There is no utility rail and no related rail under 1200. Compact layouts stay on the 16 inset.
+
+| Rule | Tablet (600–1199) |
+|------|-------------------|
+| Horizontal pad | `kTabletContentPadding` (24) |
+| Master rail | `kFacetFilterRailWidth` (200) for Library, Downloads, and Settings |
+| Feed columns | 3 when the content box is under `kFeedFourColumnContentWidth` (800); 4 from 800 until the wide splits. 800 is a content-box threshold, not a shell |
+| Search | Horizontal chips |
+| Entity | Stacked header and list at pad 24. No track-list cap |
+| Document | Master rail 200. The 1320 clamp is wide-only |
+
+Home carousels stay on `HomeLayoutMetrics` (pad 24, card 160).
 
 Tokens live in `lib/core/constants/app_constants.dart`:
 
 | Token | Value | Use |
 |-------|-------|-----|
 | `kWideContentBreakpoint` | 1600 | Internal split for utility and related rails. Not a shell |
-| `kFacetFilterRailWidth` | 200 | Facet left rail |
+| `kFeedFourColumnContentWidth` | 800 | Content-box width where feed grids go from 3 columns to 4. Not a shell |
+| `kFacetFilterRailWidth` | 200 | Facet and tablet master rail |
 | `kFacetUtilityRailWidth` | 280 | Facet right rail at ≥1600 |
-| `kEntityTrackMaxWidth` | 960 | Entity track or episode list when no related column |
+| `kEntityTrackMaxWidth` | 960 | Wide entity track or episode list when no related column |
 | `kEntityRelatedRailWidth` | 320 | Entity related rail at ≥1600 |
-| `kDocumentContentMaxWidth` | 1320 | Document soft max |
-| `kWideContentPadding` | 32 | Horizontal pad for feed, facet, and entity. Same inset as margin-desktop |
+| `kDocumentContentMaxWidth` | 1320 | Document soft max on wide |
+| `kWideContentPadding` | 32 | Horizontal pad for wide feed, facet, and entity. Same inset as margin-desktop |
+| `kTabletContentPadding` | 24 | Horizontal pad on tablet |
 
 ### Feed
 
@@ -142,13 +159,13 @@ Screens: Search, Library, Downloads.
 
 ### Entity
 
-Header and `DetailActionsBar` span the content width (padding 32). There is no second action row. Below 1600, or when the screen has no related block, the track or episode list caps at `kEntityTrackMaxWidth` (960). At ≥1600 the list is fluid beside a related rail `kEntityRelatedRailWidth` (320). Related content is sections that already belong to that screen, moved beside the list.
+Header and `DetailActionsBar` span the content width (padding 32). There is no second action row. On wide below 1600, or when the screen has no related block, the track or episode list caps at `kEntityTrackMaxWidth` (960). At ≥1600 the list is fluid beside a related rail `kEntityRelatedRailWidth` (320). Related content is sections that already belong to that screen, moved beside the list. Tablet stacks the header and the list and does not use this cap.
 
 Screens: Album, artist, YouTube playlist, local playlist, podcast, episode, moment mix, user.
 
 ### Document
 
-The only family that clamps the page: soft max `kDocumentContentMaxWidth` (1320) and horizontal padding 32. Settings keeps its card shell (a form surface, not a feed).
+On wide, this is the only family that clamps the page: soft max `kDocumentContentMaxWidth` (1320) and horizontal padding 32. Settings keeps its card shell (a form surface, not a feed).
 
 Screens: Settings, artist see-all (albums, singles, videos).
 

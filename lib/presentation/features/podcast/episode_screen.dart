@@ -33,11 +33,20 @@ class EpisodeScreen extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < kCompactBreakpoint) {
-          return _EpisodeMobileLayout(videoId: videoId);
+          return _EpisodeMobileLayout(
+            videoId: videoId,
+            contentWidth: constraints.maxWidth,
+          );
         } else if (constraints.maxWidth < kExpandedBreakpoint) {
-          return _EpisodeTabletLayout(videoId: videoId);
+          return _EpisodeTabletLayout(
+            videoId: videoId,
+            contentWidth: constraints.maxWidth,
+          );
         } else {
-          return _EpisodeWideLayout(videoId: videoId);
+          return _EpisodeWideLayout(
+            videoId: videoId,
+            contentWidth: constraints.maxWidth,
+          );
         }
       },
     );
@@ -46,8 +55,12 @@ class EpisodeScreen extends ConsumerWidget {
 
 class _EpisodeMobileLayout extends ConsumerWidget {
   final String videoId;
+  final double contentWidth;
 
-  const _EpisodeMobileLayout({required this.videoId});
+  const _EpisodeMobileLayout({
+    required this.videoId,
+    required this.contentWidth,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,15 +74,20 @@ class _EpisodeMobileLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(episodeProvider(videoId)),
         ),
       ),
-      data: (episode) => _EpisodeContent(episode: episode),
+      data: (episode) =>
+          _EpisodeContent(episode: episode, contentWidth: contentWidth),
     );
   }
 }
 
 class _EpisodeTabletLayout extends ConsumerWidget {
   final String videoId;
+  final double contentWidth;
 
-  const _EpisodeTabletLayout({required this.videoId});
+  const _EpisodeTabletLayout({
+    required this.videoId,
+    required this.contentWidth,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,15 +101,20 @@ class _EpisodeTabletLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(episodeProvider(videoId)),
         ),
       ),
-      data: (episode) => _EpisodeContent(episode: episode, isTablet: true),
+      data: (episode) => _EpisodeContent(
+        episode: episode,
+        isTablet: true,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
 
 class _EpisodeWideLayout extends ConsumerWidget {
   final String videoId;
+  final double contentWidth;
 
-  const _EpisodeWideLayout({required this.videoId});
+  const _EpisodeWideLayout({required this.videoId, required this.contentWidth});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -105,7 +128,11 @@ class _EpisodeWideLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(episodeProvider(videoId)),
         ),
       ),
-      data: (episode) => _EpisodeContent(episode: episode, isWide: true),
+      data: (episode) => _EpisodeContent(
+        episode: episode,
+        isWide: true,
+        contentWidth: contentWidth,
+      ),
     );
   }
 }
@@ -114,9 +141,11 @@ class _EpisodeContent extends ConsumerStatefulWidget {
   final EpisodeFull episode;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
 
   const _EpisodeContent({
     required this.episode,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
   });
@@ -169,10 +198,11 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
             episode: widget.episode,
             isTablet: widget.isTablet,
             isWide: widget.isWide,
+            contentWidth: widget.contentWidth,
             scrollProgress: _scrollProgress,
           ),
           SliverPadding(
-            padding: entityBodyPadding(wide: widget.isWide),
+            padding: entityBodyPadding(widget.contentWidth),
             sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,10 +231,12 @@ class _EpisodeSliverAppBar extends StatelessWidget {
   final EpisodeFull episode;
   final bool isTablet;
   final bool isWide;
+  final double contentWidth;
   final double scrollProgress;
 
   const _EpisodeSliverAppBar({
     required this.episode,
+    required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
@@ -255,6 +287,7 @@ class _EpisodeSliverAppBar extends StatelessWidget {
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
+    final horizontalPad = entityHorizontalPadding(contentWidth);
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
@@ -298,8 +331,8 @@ class _EpisodeSliverAppBar extends StatelessWidget {
           Positioned(
             top: 56 + MediaQuery.of(context).padding.top,
             bottom: 12,
-            left: 24,
-            right: 24,
+            left: horizontalPad,
+            right: horizontalPad,
             child: Opacity(
               opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
               child: Column(
@@ -421,8 +454,8 @@ class _EpisodeSliverAppBar extends StatelessWidget {
         Positioned(
           top: 80 + MediaQuery.of(context).padding.top,
           bottom: 24,
-          left: isWide ? kWideContentPadding : 24,
-          right: isWide ? kWideContentPadding : 24,
+          left: horizontalPad,
+          right: horizontalPad,
           child: Opacity(
             opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
             child: Row(
