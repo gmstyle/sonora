@@ -48,7 +48,7 @@ dependencies:
   window_manager: ^0.6.0
 
   # ── State Management ──────────────────────────────────────────
-  flutter_riverpod: ^3.3.1
+  flutter_riverpod: ^3.5.0
   collection: ^1.19.1
 
   # ── Navigation ────────────────────────────────────────────────
@@ -66,6 +66,7 @@ dependencies:
   dio: ^5.9.2
   # Direct import in ytm_session_http_client (shared YTM cookie jar for streams).
   http: ^1.6.0
+  # 7.3.2+ needs nm ^0.6 → dbus ^0.8; audio_service_mpris 0.2.1 pins dbus ^0.7.
   connectivity_plus: ^7.3.1
 
   # ── Images ──────────────────────────────────────────────────
@@ -74,8 +75,7 @@ dependencies:
 
   # ── Sharing & Deep Links ──────────────────────────────────────
   share_plus: ^13.3.1
-  # 6.x keeps SDK <3.12; 7.x needs Dart 3.12+.
-  app_links: ^6.4.1
+  app_links: ^7.2.2
 
   # ── App Info & Update Check ───────────────────────────────────
   package_info_plus: ^10.2.1
@@ -87,13 +87,13 @@ dependencies:
   flutter_multicast_lock: ^1.2.1
 
   # ── UI-UX ────────────────────────────────────────────────────────
+  material_ui: ^1.10.0
   shimmer: ^4.0.0
-  # google_fonts 9.x switches to material_ui ColorScheme/TextTheme and breaks
-  # flutter/material.dart types until Sonora migrates (Flutter 3.47 opt-in).
+  # Still on flutter/material.dart; MaterialUiCompatibilityBridge covers it.
   marquee: ^2.3.0
   palette_generator_master: ^1.1.0
-  google_fonts: ^8.2.0
-  lucide_icons_flutter: ^3.1.24
+  google_fonts: ^9.0.0
+  lucide_icons_flutter: ^4.0.2
 
   # ── Settings ─────────────────────────────────────────────────
   shared_preferences: ^2.5.6
@@ -104,11 +104,11 @@ dependencies:
   archive: ^4.2.0
 
   # ── File Picker ──────────────────────────────────────────────
-  file_picker: ^12.1.3
+  file_picker: ^13.3.2
 
   # ── Notifications ────────────────────────────────────────────────
-  flutter_local_notifications: ^22.3.0
-  flutter_local_notifications_linux: ^8.0.1
+  flutter_local_notifications: ^23.0.0
+  flutter_local_notifications_linux: ^9.0.0
   
   # ── Local Synchronization ────────────────────────────────────────
   shelf: ^1.4.2
