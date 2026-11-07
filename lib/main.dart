@@ -458,10 +458,6 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeMode,
-      // marquee (and any other leaf still on flutter/material.dart) needs
-      // legacy ThemeData / MaterialLocalizations via the temporary bridge.
-      // ignore: deprecated_member_use
-      builder: (context, child) => MaterialUiCompatibilityBridge(child: child!),
     );
   }
 }

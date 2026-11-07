@@ -6,7 +6,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:marquee/marquee.dart';
 
 import '../../../../core/link/sonora_link.dart';
 import '../../../../core/theme/player_colors.dart';
@@ -19,10 +18,12 @@ import '../../../providers/library_notifier.dart';
 import '../../../providers/on_device_llm_provider.dart';
 import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../shared/widgets/detail_affinity_button.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/explicit_badge.dart';
+import 'overflow_title.dart';
 import 'progress_bar_widget.dart';
 import 'cast_button.dart';
 import '../../../providers/equalizer_provider.dart';
@@ -318,7 +319,7 @@ Widget buildLikeButton(BuildContext context, WidgetRef ref, MediaItem song) {
   );
 }
 
-/// Track title (with optional marquee), artist, MV badge and view-count stats.
+/// Track title (scrolls when it overflows), artist, MV badge and view-count stats.
 Widget buildTrackInfoAndLikeRow(
   BuildContext context,
   WidgetRef ref,
@@ -340,6 +341,9 @@ Widget buildTrackInfoAndLikeRow(
 
   // Colours from PlayerColors — always readable on the dark player background.
   final pc = PlayerColors.of(context);
+  final reduceEffects = ref.watch(
+    settingsProvider.select((s) => s.reduceEffects),
+  );
 
   VoidCallback? onTitleTap;
   VoidCallback? onArtistTap;
@@ -360,34 +364,10 @@ Widget buildTrackInfoAndLikeRow(
   }
 
   Widget titleText(TextStyle? titleStyle) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tp = TextPainter(
-          text: TextSpan(text: song.title, style: titleStyle),
-          maxLines: 1,
-          textDirection: TextDirection.ltr,
-        )..layout(maxWidth: double.infinity);
-        if (tp.width > constraints.maxWidth) {
-          return SizedBox(
-            height: 32,
-            child: Marquee(
-              text: song.title,
-              style: titleStyle,
-              blankSpace: 48.0,
-              velocity: 40.0,
-              pauseAfterRound: const Duration(seconds: 2),
-              fadingEdgeStartFraction: 0.05,
-              fadingEdgeEndFraction: 0.1,
-            ),
-          );
-        }
-        return Text(
-          song.title,
-          style: titleStyle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
+    return OverflowTitle(
+      text: song.title,
+      style: titleStyle,
+      reduceEffects: reduceEffects,
     );
   }
 

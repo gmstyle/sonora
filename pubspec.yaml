@@ -89,8 +89,6 @@ dependencies:
   # ── UI-UX ────────────────────────────────────────────────────────
   material_ui: ^1.10.0
   shimmer: ^4.0.0
-  # Still on flutter/material.dart; MaterialUiCompatibilityBridge covers it.
-  marquee: ^2.3.0
   palette_generator_master: ^1.1.0
   google_fonts: ^9.0.0
   lucide_icons_flutter: ^4.0.2
