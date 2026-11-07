@@ -1,18 +1,55 @@
 import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/player_colors.dart';
+import '../../../../domain/models/queue_track.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/player_insights_panel.dart';
 import '../widgets/player_shared_widgets.dart';
+import '../widgets/progress_bar_widget.dart';
+import '../widgets/queue_sheet.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
-import '../widgets/player_bouncing_widget.dart';
+import '../widgets/up_next_companion.dart';
+import '../widgets/wide_context_panels.dart';
 
+/// Neighbor covers sit beside the current one, smaller, with a clear gap.
+const _neighborScale = 0.62;
+const _neighborGap = 0.22;
+
+double get _artworkStageFactor => 1 + 2 * (_neighborScale + _neighborGap);
+
+/// Queue drawer width and hero cap for the wide full player.
+///
+/// Below [kWideContentBreakpoint] the drawer is narrower and the disc caps
+/// earlier, so the canvas stays readable beside the queue.
+({double queue, double insights, double artMax}) widePlayerFrame(double width) {
+  final roomy = width >= kWideContentBreakpoint;
+  return (
+    queue: roomy ? 380.0 : 320.0,
+    insights: roomy ? 560.0 : 480.0,
+    artMax: roomy ? 520.0 : 420.0,
+  );
+}
+
+/// Wide full player in the shape of a desktop now-playing screen.
+///
+/// The canvas is a scroll: the current disc fills the first screen, with the
+/// previous and next covers set apart on either side. Below that, artist and album
+/// share the left column and related is the right one. Lyrics and notes
+/// replace that scroll. Curiosities open as a right drawer, wider than the
+/// queue. Track info, transport, and the action row sit in the
+/// bottom bar, each in its own third.
 class WidePlayerLayout extends ConsumerWidget {
   const WidePlayerLayout({
     super.key,
@@ -45,93 +82,527 @@ class WidePlayerLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tight = availHeight < 600;
-    final isPanelOpen = activeView != PlayerSubView.none;
+    final tight = availHeight < 720;
+    final drawer = ref.watch(playerQueueDrawerProvider);
+    final queueOpen = wideQueueOpen(drawer: drawer, view: activeView);
+    final canvas = wideCanvasView(activeView);
     final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
+    final frame = widePlayerFrame(availWidth);
+
+    ref.listen(playerSubViewProvider, (prev, next) {
+      if (next != PlayerSubView.queue) return;
+      ref.read(playerQueueDrawerProvider.notifier).set(true);
+      ref.read(playerSubViewProvider.notifier).set(PlayerSubView.none);
+    });
+    ref.listen(playerInsightsProvider.select((state) => state.isOpen), (
+      prev,
+      open,
+    ) {
+      if (open) ref.read(playerQueueDrawerProvider.notifier).set(false);
+    });
+    ref.listen(playerQueueDrawerProvider, (prev, open) {
+      if (open) ref.read(playerInsightsProvider.notifier).dismiss();
+    });
+    if (activeView == PlayerSubView.queue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        ref.read(playerQueueDrawerProvider.notifier).set(true);
+        if (ref.read(playerSubViewProvider) == PlayerSubView.queue) {
+          ref.read(playerSubViewProvider.notifier).set(PlayerSubView.none);
+        }
+      });
+    }
 
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 64.0,
-          vertical: tight ? 8.0 : 32.0,
-        ),
-        child: Column(
-          children: [
-            TopBar(currentSong: currentSong, albumName: albumName),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Artwork(
-                          key: artworkKey,
-                          artUrl: artUrl,
-                          size: min(
-                            availHeight - (tight ? 100 : 150),
-                            availWidth / 2 - 100,
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(8, tight ? 4 : 8, 8, 0),
+            child: TopBar(currentSong: currentSong, albumName: albumName),
+          ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _canvas(
+                    context,
+                    ref,
+                    canvas: canvas,
+                    artMax: frame.artMax,
+                  ),
+                ),
+                if (queueOpen && !insightsOpen)
+                  SizedBox(width: frame.queue, child: const _QueueDrawer()),
+                ClipRect(
+                  child: AnimatedAlign(
+                    alignment: Alignment.centerRight,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    widthFactor: insightsOpen ? 1 : 0,
+                    child: SizedBox(
+                      width: frame.insights,
+                      child: const _InsightsDrawer(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _BottomBar(
+            currentSong: currentSong,
+            videoId: videoId,
+            artUrl: artUrl,
+            playerState: playerState,
+            playerNotifier: playerNotifier,
+            hasSleepTimer: hasSleepTimer,
+            activeView: activeView,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _canvas(
+    BuildContext context,
+    WidgetRef ref, {
+    required PlayerSubView canvas,
+    required double artMax,
+  }) {
+    if (canvas != PlayerSubView.none) {
+      return buildPlayerSubPanel(
+        activeView: canvas,
+        videoId: videoId,
+        position: playerState.position,
+      );
+    }
+    final offline = ref.watch(isOfflineProvider);
+    final track = QueueTrack.fromMediaItem(currentSong);
+    final catalog = !offline && !track.isEpisode;
+    return _NowPlayingPage(
+      artworkKey: artworkKey,
+      artUrl: artUrl,
+      videoId: videoId,
+      playerState: playerState,
+      artMax: artMax,
+      artistId: catalog ? track.artistId : null,
+      albumId: catalog ? track.albumId : null,
+      showRelated: !offline,
+    );
+  }
+}
+
+class _NowPlayingPage extends ConsumerWidget {
+  const _NowPlayingPage({
+    required this.artworkKey,
+    required this.artUrl,
+    required this.videoId,
+    required this.playerState,
+    required this.artMax,
+    required this.artistId,
+    required this.albumId,
+    required this.showRelated,
+  });
+
+  final GlobalKey artworkKey;
+  final String? artUrl;
+  final String videoId;
+  final PlayerState playerState;
+  final double artMax;
+  final String? artistId;
+  final String? albumId;
+  final bool showRelated;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = constraints.maxHeight;
+        final inner = max(72.0, constraints.maxWidth - 96);
+        final side = min(
+          inner / _artworkStageFactor,
+          viewport * 0.62,
+        ).clamp(72.0, artMax);
+        final blocked = playerState.isBlocked;
+        final previous = _previousTrack(playerState);
+        final upcoming = upcomingTracks(playerState, limit: 1);
+        final next = upcoming.isEmpty ? null : upcoming.first.item;
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: viewport,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(48, 8, 48, 28),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: _ArtworkStage(
+                            artworkKey: artworkKey,
+                            artUrl: artUrl,
+                            videoId: videoId,
+                            size: side,
+                            isSwitching: playerState.isSwitching,
+                            previous: previous,
+                            next: next,
+                            onPrevious: blocked
+                                ? null
+                                : () => ref
+                                      .read(playerStateProvider.notifier)
+                                      .skipToPrevious(),
+                            onNext: blocked
+                                ? null
+                                : () => ref
+                                      .read(playerStateProvider.notifier)
+                                      .skipToNext(),
                           ),
-                          videoId: videoId,
-                          isSwitching: playerState.isSwitching,
                         ),
-                      ],
-                    ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          artistId != null && artistId!.isNotEmpty
+                              ? l10n.aboutTheArtist
+                              : (showRelated ? l10n.related : l10n.upNext),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 80),
-                  Expanded(
-                    flex: 5,
-                    child: LayoutBuilder(
-                      builder: (context, rightConstraints) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: tight ? 2 : 32),
-                            buildTrackInfoAndLikeRow(context, ref, currentSong),
-                            Expanded(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                child: isPanelOpen
-                                    ? buildPlayerSubPanel(
-                                        activeView: activeView,
-                                        videoId: videoId,
-                                        position: playerState.position,
-                                      )
-                                    : insightsOpen
-                                    ? const SingleChildScrollView(
-                                        key: ValueKey('insights'),
-                                        child: PlayerInsightsCard(),
-                                      )
-                                    : PlayerDefaultView(
-                                        key: const ValueKey('empty'),
-                                        tight: tight,
-                                      ),
-                              ),
-                            ),
-                            SizedBox(height: tight ? 2 : 16),
-                            buildProgressBar(context, ref, playerState),
-                            SizedBox(height: tight ? 2 : 24),
-                            const PlayerControls(),
-                            SizedBox(height: tight ? 2 : 16),
-                            buildBottomActionsRow(
-                              context,
-                              ref,
-                              hasSleepTimer,
-                              playerNotifier,
-                              activeView,
-                            ),
-                            SizedBox(height: tight ? 2 : 16),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: WideContextPanels(
+                videoId: videoId,
+                artistId: artistId,
+                albumId: albumId,
+                showRelated: showRelated,
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+MediaItem? _previousTrack(PlayerState state) {
+  final index = state.currentIndex - 1;
+  if (index < 0 || index >= state.queue.length) return null;
+  return state.queue[index];
+}
+
+/// Current cover, with the previous and next covers peeking behind it.
+class _ArtworkStage extends StatelessWidget {
+  const _ArtworkStage({
+    required this.artworkKey,
+    required this.artUrl,
+    required this.videoId,
+    required this.size,
+    required this.isSwitching,
+    required this.previous,
+    required this.next,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final GlobalKey artworkKey;
+  final String? artUrl;
+  final String videoId;
+  final double size;
+  final bool isSwitching;
+  final MediaItem? previous;
+  final MediaItem? next;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final peek = size * _neighborScale;
+    final wing = size * (_neighborScale + _neighborGap);
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      width: size + wing * 2,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (previous != null)
+            Positioned(
+              left: 0,
+              top: (size - peek) / 2,
+              child: _NeighborArtwork(
+                item: previous!,
+                size: peek,
+                tooltip: l10n.previousTrack,
+                onTap: onPrevious,
+              ),
+            ),
+          if (next != null)
+            Positioned(
+              right: 0,
+              top: (size - peek) / 2,
+              child: _NeighborArtwork(
+                item: next!,
+                size: peek,
+                tooltip: l10n.nextTrack,
+                onTap: onNext,
+              ),
+            ),
+          Artwork(
+            key: artworkKey,
+            artUrl: artUrl,
+            size: size,
+            minSize: min(size, 72),
+            videoId: videoId,
+            isSwitching: isSwitching,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NeighborArtwork extends StatelessWidget {
+  const _NeighborArtwork({
+    required this.item,
+    required this.size,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final MediaItem item;
+  final double size;
+  final String tooltip;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pc = PlayerColors.of(context);
+    final art = item.artUri?.toString();
+    return Opacity(
+      opacity: 0.72,
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: art == null
+                  ? ColoredBox(
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                      child: Icon(LucideIcons.music, color: pc.iconSecondary),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: art,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, _, _) =>
+                          Icon(LucideIcons.music, color: pc.iconSecondary),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QueueDrawer extends ConsumerWidget {
+  const _QueueDrawer();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        border: Border(
+          left: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 56,
+            child: Row(
+              children: [
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(l10n.queue, style: theme.textTheme.titleMedium),
+                ),
+                IconButton(
+                  tooltip: l10n.close,
+                  onPressed: () {
+                    ref.read(playerQueueDrawerProvider.notifier).set(false);
+                    if (ref.read(playerSubViewProvider) ==
+                        PlayerSubView.queue) {
+                      ref
+                          .read(playerSubViewProvider.notifier)
+                          .set(PlayerSubView.none);
+                    }
+                  },
+                  icon: Icon(
+                    LucideIcons.x,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Expanded(child: QueueSheet()),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightsDrawer extends StatelessWidget {
+  const _InsightsDrawer();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        border: Border(
+          left: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+      ),
+      child: const SingleChildScrollView(child: PlayerInsightsCard()),
+    );
+  }
+}
+
+class _BottomBar extends ConsumerWidget {
+  const _BottomBar({
+    required this.currentSong,
+    required this.videoId,
+    required this.artUrl,
+    required this.playerState,
+    required this.playerNotifier,
+    required this.hasSleepTimer,
+    required this.activeView,
+  });
+
+  final MediaItem currentSong;
+  final String videoId;
+  final String? artUrl;
+  final PlayerState playerState;
+  final PlayerNotifier playerNotifier;
+  final bool hasSleepTimer;
+  final PlayerSubView activeView;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final pc = PlayerColors.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+        child: SizedBox(
+          height: 96,
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Artwork(
+                        artUrl: artUrl,
+                        size: 56,
+                        minSize: 48,
+                        videoId: videoId,
+                        isSwitching: playerState.isSwitching,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currentSong.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: pc.titlePrimary,
+                            ),
+                          ),
+                          Text(
+                            currentSong.artist ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: pc.subtitle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    buildLikeButton(context, ref, currentSong),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ProgressBarWidget(
+                      position: playerState.position,
+                      duration: playerState.duration,
+                      disabled: playerState.isRestoring,
+                      isPlaying: playerState.isPlaying,
+                      density: ProgressBarDensity.comfortable,
+                      onSeek: (pos) =>
+                          ref.read(playerStateProvider.notifier).seek(pos),
+                    ),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: const PlayerControls(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: buildBottomActionsRow(
+                  context,
+                  ref,
+                  hasSleepTimer,
+                  playerNotifier,
+                  activeView,
+                  queueOpensDrawer: true,
+                  showRelatedToggle: false,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

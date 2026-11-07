@@ -499,6 +499,44 @@ Widget buildPlayerSubPanel({
   }
 }
 
+bool _queueActionActive(
+  WidgetRef ref,
+  PlayerSubView activeView,
+  bool queueOpensDrawer,
+) {
+  if (!queueOpensDrawer) return activeView == PlayerSubView.queue;
+  return wideQueueOpen(
+    drawer: ref.watch(playerQueueDrawerProvider),
+    view: activeView,
+  );
+}
+
+void _toggleQueue(
+  WidgetRef ref,
+  PlayerSubView activeView,
+  bool queueOpensDrawer,
+) {
+  if (!queueOpensDrawer) {
+    ref.read(playerInsightsProvider.notifier).dismiss();
+    ref
+        .read(playerSubViewProvider.notifier)
+        .set(
+          activeView == PlayerSubView.queue
+              ? PlayerSubView.none
+              : PlayerSubView.queue,
+        );
+    return;
+  }
+  final open = wideQueueOpen(
+    drawer: ref.read(playerQueueDrawerProvider),
+    view: activeView,
+  );
+  ref.read(playerQueueDrawerProvider.notifier).set(!open);
+  if (activeView == PlayerSubView.queue) {
+    ref.read(playerSubViewProvider.notifier).set(PlayerSubView.none);
+  }
+}
+
 /// Row of actions: share, cast, lyrics/notes toggle, related, queue, sleep timer.
 Widget buildBottomActionsRow(
   BuildContext context,
@@ -507,6 +545,8 @@ Widget buildBottomActionsRow(
   PlayerNotifier playerNotifier,
   PlayerSubView activeView, {
   bool isMobile = false,
+  bool queueOpensDrawer = false,
+  bool showRelatedToggle = true,
 }) {
   final theme = Theme.of(context);
   final l10n = AppLocalizations.of(context)!;
@@ -638,7 +678,7 @@ Widget buildBottomActionsRow(
               },
               tooltip: l10n.playerAskCuriosities,
             ),
-          if (showRelated)
+          if (showRelated && showRelatedToggle)
             IconButton(
               style: actionStyle,
               icon: Icon(
@@ -667,20 +707,11 @@ Widget buildBottomActionsRow(
             icon: Icon(
               LucideIcons.listMusic,
               size: iconSize,
-              color: activeView == PlayerSubView.queue
+              color: _queueActionActive(ref, activeView, queueOpensDrawer)
                   ? PlayerColors.of(context).accent
                   : theme.colorScheme.onSurfaceVariant,
             ),
-            onPressed: () {
-              ref.read(playerInsightsProvider.notifier).dismiss();
-              ref
-                  .read(playerSubViewProvider.notifier)
-                  .set(
-                    activeView == PlayerSubView.queue
-                        ? PlayerSubView.none
-                        : PlayerSubView.queue,
-                  );
-            },
+            onPressed: () => _toggleQueue(ref, activeView, queueOpensDrawer),
             tooltip: l10n.queue,
           ),
           IconButton(

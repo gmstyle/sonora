@@ -18,6 +18,7 @@ import '../../shared/widgets/vinyl_artwork.dart';
 import '../../shared/widgets/video_badge.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../providers/settings_provider.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import 'widgets/animated_play_pause_icon.dart';
@@ -51,11 +52,11 @@ class MiniPlayerContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSwitching = playerState.isBlocked;
-    final shellWidth = MediaQuery.sizeOf(context).width;
+    final window = MediaQuery.sizeOf(context);
 
-    if (shellWidth < kCompactBreakpoint) {
+    if (isCompactShell(window)) {
       return _mobileLayout(context, ref, isSwitching);
-    } else if (shellWidth < kExpandedBreakpoint) {
+    } else if (isTabletShell(window)) {
       return _tabletLayout(context, ref, isSwitching);
     }
     return _desktopLayout(context, ref, isSwitching);
@@ -595,11 +596,19 @@ class MiniPlayerContent extends ConsumerWidget {
                   ? DetailAffinityButton.likeActive
                   : DetailAffinityButton.likeIdle,
               key: ValueKey(isLiked),
-              color: isLiked ? cs.error : cs.onSurfaceVariant,
+              color: DetailAffinityButton.glyphColor(
+                cs,
+                isActive: isLiked,
+                activeColor: DetailAffinityButton.likeColor(cs),
+              ),
               size: 20,
             ),
           ),
-          color: isLiked ? cs.error : cs.onSurfaceVariant,
+          color: DetailAffinityButton.glyphColor(
+            cs,
+            isActive: isLiked,
+            activeColor: DetailAffinityButton.likeColor(cs),
+          ),
           onPressed: () {
             HapticFeedback.lightImpact();
             ref

@@ -33,7 +33,10 @@ final songRelatedProvider = FutureProvider.family<List<RelatedSection>, String>(
 class RelatedView extends ConsumerWidget {
   final String videoId;
 
-  const RelatedView({super.key, required this.videoId});
+  /// Renders the shelves in a [Column] so a parent scroll can own them.
+  final bool embedded;
+
+  const RelatedView({super.key, required this.videoId, this.embedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,6 +50,7 @@ class RelatedView extends ConsumerWidget {
       return _PodcastEpisodesRelated(
         key: ValueKey('podcast_related_$browseId'),
         browseId: browseId,
+        embedded: embedded,
       );
     }
 
@@ -55,37 +59,61 @@ class RelatedView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return relatedAsync.when(
-      loading: () => const _RelatedShimmer(),
-      error: (e, _) => ErrorRetryWidget(
-        message: l10n.failedToLoadRelated,
-        onRetry: () => ref.invalidate(songRelatedProvider(videoId)),
-      ),
+      loading: () => embedded
+          ? const Column(
+              children: [
+                ShimmerLoading(variant: ShimmerVariant.tile),
+                ShimmerLoading(variant: ShimmerVariant.tile),
+                ShimmerLoading(variant: ShimmerVariant.carousel),
+              ],
+            )
+          : const _RelatedShimmer(),
+      error: (e, _) => embedded
+          ? Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => ref.invalidate(songRelatedProvider(videoId)),
+                child: Text(l10n.failedToLoadRelated),
+              ),
+            )
+          : ErrorRetryWidget(
+              message: l10n.failedToLoadRelated,
+              onRetry: () => ref.invalidate(songRelatedProvider(videoId)),
+            ),
       data: (sections) {
         if (sections.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(LucideIcons.orbit, size: 48, color: pc.labelMuted),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.noRelatedContent,
-                  style: Theme.of(context).textTheme.bodyLarge
-                      ?.copyWith(color: pc.subtitle),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+          final empty = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(LucideIcons.orbit, size: 48, color: pc.labelMuted),
+              const SizedBox(height: 16),
+              Text(
+                l10n.noRelatedContent,
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(color: pc.subtitle),
+                textAlign: TextAlign.center,
+              ),
+            ],
           );
+          return embedded
+              ? Padding(padding: const EdgeInsets.all(24), child: empty)
+              : Center(child: empty);
         }
 
-        return ListView.builder(
+        final blocks = [
+          for (final section in sections)
+            _RelatedSectionBlock(section: section),
+          const SizedBox(height: 24),
+        ];
+        if (embedded) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: blocks,
+          );
+        }
+        return ListView(
           padding: const EdgeInsets.only(bottom: 24),
-          itemCount: sections.length,
-          itemBuilder: (context, index) {
-            final section = sections[index];
-            return _RelatedSectionBlock(section: section);
-          },
+          children: blocks,
         );
       },
     );
@@ -94,8 +122,13 @@ class RelatedView extends ConsumerWidget {
 
 class _PodcastEpisodesRelated extends ConsumerWidget {
   final String browseId;
+  final bool embedded;
 
-  const _PodcastEpisodesRelated({super.key, required this.browseId});
+  const _PodcastEpisodesRelated({
+    super.key,
+    required this.browseId,
+    this.embedded = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -104,82 +137,111 @@ class _PodcastEpisodesRelated extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return podcastAsync.when(
-      loading: () => const _RelatedShimmer(),
-      error: (e, _) => ErrorRetryWidget(
-        message: l10n.failedToLoadRelated,
-        onRetry: () => ref.invalidate(podcastProvider(browseId)),
-      ),
+      loading: () => embedded
+          ? const Column(
+              children: [
+                ShimmerLoading(variant: ShimmerVariant.tile),
+                ShimmerLoading(variant: ShimmerVariant.tile),
+                ShimmerLoading(variant: ShimmerVariant.tile),
+              ],
+            )
+          : const _RelatedShimmer(),
+      error: (e, _) => embedded
+          ? Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => ref.invalidate(podcastProvider(browseId)),
+                child: Text(l10n.failedToLoadRelated),
+              ),
+            )
+          : ErrorRetryWidget(
+              message: l10n.failedToLoadRelated,
+              onRetry: () => ref.invalidate(podcastProvider(browseId)),
+            ),
       data: (podcast) {
         final episodes = podcast.episodes
             .where((e) => e.videoId.isNotEmpty)
             .toList();
         if (episodes.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(LucideIcons.orbit, size: 48, color: pc.labelMuted),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.noRelatedContent,
-                  style: Theme.of(context).textTheme.bodyLarge
-                      ?.copyWith(color: pc.subtitle),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+          final empty = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(LucideIcons.orbit, size: 48, color: pc.labelMuted),
+              const SizedBox(height: 16),
+              Text(
+                l10n.noRelatedContent,
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(color: pc.subtitle),
+                textAlign: TextAlign.center,
+              ),
+            ],
           );
+          return embedded
+              ? Padding(padding: const EdgeInsets.all(24), child: empty)
+              : Center(child: empty);
         }
 
         final authorName = podcast.author?.name ?? podcast.name;
 
+        Widget itemAt(int index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                l10n.moreFromPodcast,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: pc.titlePrimary,
+                ),
+              ),
+            );
+          }
+          final episode = episodes[index - 1];
+          final seconds = Parser.parseDuration(episode.duration);
+          return SongTile(
+            videoId: episode.videoId,
+            title: episode.name,
+            artist: authorName,
+            artistId: podcast.author?.artistId,
+            thumbnailUrl: episode.thumbnails.isNotEmpty
+                ? episode.thumbnails.last.url
+                : null,
+            duration: seconds,
+            playCount: episode.date,
+            isVideo: false,
+            onTap: () async {
+              final playableIndex = episodes.indexWhere(
+                (e) => e.videoId == episode.videoId,
+              );
+              if (playableIndex < 0) return;
+              await ref
+                  .read(playerStateProvider.notifier)
+                  .playPodcast(
+                    episodes,
+                    podcastBrowseId: browseId,
+                    podcastName: podcast.name,
+                    authorName: authorName,
+                    authorId: podcast.author?.artistId,
+                    startIndex: playableIndex,
+                  );
+            },
+          );
+        }
+
+        if (embedded) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < episodes.length + 1; i++) itemAt(i),
+              const SizedBox(height: 24),
+            ],
+          );
+        }
+
         return ListView.builder(
           padding: const EdgeInsets.only(bottom: 24),
           itemCount: episodes.length + 1,
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  l10n.moreFromPodcast,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: pc.titlePrimary,
-                  ),
-                ),
-              );
-            }
-            final episode = episodes[index - 1];
-            final seconds = Parser.parseDuration(episode.duration);
-            return SongTile(
-              videoId: episode.videoId,
-              title: episode.name,
-              artist: authorName,
-              artistId: podcast.author?.artistId,
-              thumbnailUrl: episode.thumbnails.isNotEmpty
-                  ? episode.thumbnails.last.url
-                  : null,
-              duration: seconds,
-              playCount: episode.date,
-              isVideo: false,
-              onTap: () async {
-                final playableIndex = episodes.indexWhere(
-                  (e) => e.videoId == episode.videoId,
-                );
-                if (playableIndex < 0) return;
-                await ref
-                    .read(playerStateProvider.notifier)
-                    .playPodcast(
-                      episodes,
-                      podcastBrowseId: browseId,
-                      podcastName: podcast.name,
-                      authorName: authorName,
-                      authorId: podcast.author?.artistId,
-                      startIndex: playableIndex,
-                    );
-              },
-            );
-          },
+          itemBuilder: (context, index) => itemAt(index),
         );
       },
     );

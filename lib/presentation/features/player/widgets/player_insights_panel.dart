@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../domain/models/grounded_llm_result.dart';
 import '../../../../domain/models/queue_track.dart';
@@ -13,18 +12,12 @@ import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 
-/// Opens curiosities in one tap.
+/// Opens curiosities in the full player.
 ///
-/// Compact / portrait: modal bottom sheet. Tablet & wide landscape: layouts
-/// show [PlayerInsightsCard] inline when [PlayerInsightsState.isOpen].
+/// Compact and tablet replace the up-next area. Wide opens a right drawer
+/// wider than the queue.
 class PlayerInsightsOverlay {
   PlayerInsightsOverlay._();
-
-  static bool _useSheet(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    // Matches full_player MobilePlayerLayout selection.
-    return size.width < kCompactBreakpoint || size.height >= size.width;
-  }
 
   static Future<void> open(BuildContext context, WidgetRef ref) async {
     final current = ref.read(playerStateProvider).currentSong;
@@ -35,8 +28,7 @@ class PlayerInsightsOverlay {
     ref.read(playerSubViewProvider.notifier).set(PlayerSubView.none);
 
     final locale = Localizations.localeOf(context).languageCode;
-    // Fire generation; UI watches [playerInsightsProvider].
-    final pending = ref
+    await ref
         .read(playerInsightsProvider.notifier)
         .openInsights(
           videoId: track.videoId,
@@ -45,25 +37,6 @@ class PlayerInsightsOverlay {
           album: track.album ?? current.album,
           locale: locale,
         );
-
-    if (!_useSheet(context)) {
-      await pending;
-      return;
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => const SafeArea(
-        child: Padding(
-          padding: EdgeInsets.only(bottom: 16),
-          child: PlayerInsightsCard(embeddedInSheet: true),
-        ),
-      ),
-    );
-
-    ref.read(playerInsightsProvider.notifier).dismiss();
   }
 }
 

@@ -18,6 +18,7 @@ class Artwork extends ConsumerWidget {
     required this.videoId,
     this.isSwitching = false,
     this.showFlipIndicator = false,
+    this.minSize = 150,
   });
 
   final String? artUrl;
@@ -25,6 +26,9 @@ class Artwork extends ConsumerWidget {
   final String videoId;
   final bool isSwitching;
   final bool showFlipIndicator;
+
+  /// Lower bound for [size]. The full-player header uses a value under 150.
+  final double minSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,7 +48,7 @@ class Artwork extends ConsumerWidget {
         current != null && QueueTrack.fromMediaItem(current).isEpisode;
     final useVinylStyle = useVinylSetting && !isEpisode;
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
-    final clampedSize = size.clamp(150.0, 600.0);
+    final clampedSize = size.clamp(minSize, 600.0);
 
     final artworkWidget = useVinylStyle
         ? Container(

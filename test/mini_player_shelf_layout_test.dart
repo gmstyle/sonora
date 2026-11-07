@@ -328,4 +328,20 @@ void main() {
     expect(find.byType(AnimatedPlayPauseIcon), findsOneWidget);
     expect(tester.getSize(find.byType(PlayerSheetMobile)).height, 56);
   });
+
+  testWidgets('landscape phone keeps the fused dock, not the shelf', (
+    tester,
+  ) async {
+    final albumSong = MediaItem(
+      id: 'vid1',
+      title: 'Above Water',
+      artist: 'Jah Lil',
+      album: 'Night Bloom',
+      extras: const {'videoId': 'vid1', 'artistId': 'art1', 'albumId': 'alb1'},
+    );
+    await pumpShelf(tester, size: const Size(780, 360), item: albumSong);
+    expect(find.byKey(const ValueKey('mini-artist-link')), findsNothing);
+    expect(find.byIcon(LucideIcons.skipForward), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

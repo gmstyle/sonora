@@ -5,14 +5,21 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../widgets/player_controls.dart';
+import '../widgets/player_insights_panel.dart';
 import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
-import '../widgets/player_bouncing_widget.dart';
+import '../widgets/up_next_companion.dart';
 
-class MobilePlayerLayout extends ConsumerStatefulWidget {
+/// Compact full player, same column as before.
+///
+/// The center slot shows the disc and the up-next card together. Lyrics,
+/// queue, related, notes, and insights replace that whole slot. Title, seek,
+/// transport, and actions stay underneath.
+class MobilePlayerLayout extends ConsumerWidget {
   const MobilePlayerLayout({
     super.key,
     required this.artworkKey,
@@ -43,15 +50,12 @@ class MobilePlayerLayout extends ConsumerStatefulWidget {
   final PlayerSubView activeView;
 
   @override
-  ConsumerState<MobilePlayerLayout> createState() => _MobilePlayerLayoutState();
-}
-
-class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
-  bool _showDashboard = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
+    final panelOpen = activeView != PlayerSubView.none;
+    final tight = availHeight < 600;
+    final gap = tight ? 8.0 : 16.0;
 
     return SafeArea(
       child: GestureDetector(
@@ -62,14 +66,14 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
           }
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
               Center(
                 child: Container(
                   width: 36,
                   height: 4,
-                  margin: const EdgeInsets.only(top: 8, bottom: 4),
+                  margin: EdgeInsets.only(top: tight ? 4 : 8, bottom: 4),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.3,
@@ -78,130 +82,88 @@ class _MobilePlayerLayoutState extends ConsumerState<MobilePlayerLayout> {
                   ),
                 ),
               ),
-              TopBar(
-                currentSong: widget.currentSong,
-                albumName: widget.albumName,
-              ),
-              const SizedBox(height: 24),
+              TopBar(currentSong: currentSong, albumName: albumName),
+              SizedBox(height: tight ? 8 : 16),
               Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: widget.activeView == PlayerSubView.none
-                      ? Center(
-                          key: const ValueKey('none_view'),
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _showDashboard = !_showDashboard;
-                              });
-                            },
-                            onHorizontalDragEnd: (details) {
-                              if (widget.playerState.isBlocked ||
-                                  details.primaryVelocity == null) {
-                                return;
-                              }
-                              if (details.primaryVelocity! < -250) {
-                                HapticFeedback.lightImpact();
-                                widget.playerNotifier.skipToNext();
-                              } else if (details.primaryVelocity! > 250) {
-                                HapticFeedback.lightImpact();
-                                widget.playerNotifier.skipToPrevious();
-                              }
-                            },
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500),
-                              transitionBuilder: (child, animation) {
-                                return AnimatedBuilder(
-                                  animation: animation,
-                                  builder: (context, child) {
-                                    if (animation.value <= 0.5) {
-                                      return const SizedBox.shrink();
-                                    }
-
-                                    final isDashboard =
-                                        child?.key ==
-                                        const ValueKey('dashboard');
-                                    final angle = isDashboard
-                                        ? (animation.value - 1.0) * pi
-                                        : (1.0 - animation.value) * pi;
-
-                                    if (angle == 0.0) {
-                                      return child ?? const SizedBox.shrink();
-                                    }
-
-                                    return Transform(
-                                      transform: Matrix4.identity()
-                                        ..setEntry(3, 2, 0.0015)
-                                        ..rotateY(angle),
-                                      alignment: Alignment.center,
-                                      child: child,
-                                    );
-                                  },
-                                  child: child,
-                                );
-                              },
-                              layoutBuilder: (currentChild, previousChildren) =>
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      ...previousChildren,
-                                      ?currentChild,
-                                    ],
-                                  ),
-                              child: _showDashboard
-                                  ? PlayerDefaultView(
-                                      key: const ValueKey('dashboard'),
-                                      tight: widget.availHeight < 600,
-                                      size: min(
-                                        widget.availWidth - 48,
-                                        widget.availHeight - 360,
-                                      ),
-                                      showFlipIndicator: true,
-                                    )
-                                  : Artwork(
-                                      key: widget.artworkKey,
-                                      artUrl: widget.artUrl,
-                                      size: min(
-                                        widget.availWidth - 48,
-                                        widget.availHeight - 360,
-                                      ),
-                                      videoId: widget.videoId,
-                                      isSwitching:
-                                          widget.playerState.isSwitching,
-                                      showFlipIndicator: true,
-                                    ),
-                            ),
-                          ),
-                        )
-                      : buildPlayerSubPanel(
-                          activeView: widget.activeView,
-                          videoId: widget.videoId,
-                          position: widget.playerState.position,
-                        ),
-                ),
+                child: panelOpen
+                    ? buildPlayerSubPanel(
+                        activeView: activeView,
+                        videoId: videoId,
+                        position: playerState.position,
+                      )
+                    : insightsOpen
+                    ? const SingleChildScrollView(child: PlayerInsightsCard())
+                    : _center(),
               ),
-              const SizedBox(height: 32),
-              buildTrackInfoAndLikeRow(context, ref, widget.currentSong),
-              const SizedBox(height: 16),
-              buildProgressBar(context, ref, widget.playerState),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
+              buildTrackInfoAndLikeRow(context, ref, currentSong),
+              SizedBox(height: gap),
+              buildProgressBar(context, ref, playerState),
+              SizedBox(height: gap),
               const PlayerControls(),
               const SizedBox(height: 8),
               buildBottomActionsRow(
                 context,
                 ref,
-                widget.playerState.hasSleepTimer,
-                widget.playerNotifier,
-                widget.activeView,
+                hasSleepTimer,
+                playerNotifier,
+                activeView,
                 isMobile: true,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: tight ? 8 : 16),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Disc above the up-next card. The disc takes the leftover height.
+  Widget _center() {
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final side = min(
+                constraints.maxWidth,
+                constraints.maxHeight,
+              ).clamp(72.0, 360.0);
+              return Center(
+                child: GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                    if (playerState.isBlocked ||
+                        details.primaryVelocity == null) {
+                      return;
+                    }
+                    if (details.primaryVelocity! < -250) {
+                      HapticFeedback.lightImpact();
+                      playerNotifier.skipToNext();
+                    } else if (details.primaryVelocity! > 250) {
+                      HapticFeedback.lightImpact();
+                      playerNotifier.skipToPrevious();
+                    }
+                  },
+                  child: Artwork(
+                    key: artworkKey,
+                    artUrl: artUrl,
+                    size: side,
+                    minSize: min(side, 72),
+                    videoId: videoId,
+                    isSwitching: playerState.isSwitching,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        const UpNextCompanion(
+          maxItems: 1,
+          showSleepBadge: true,
+          shrinkWrap: true,
+        ),
+      ],
     );
   }
 }

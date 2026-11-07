@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/utils/screen_keep_awake.dart';
 import '../../providers/lyrics_translation_provider.dart';
 import '../../providers/player_insights_provider.dart';
@@ -13,7 +13,6 @@ import 'widgets/player_shared_widgets.dart';
 import 'layouts/mobile_player_layout.dart';
 import 'layouts/tablet_player_layout.dart';
 import 'layouts/wide_player_layout.dart';
-import 'layouts/fullscreen_overlay_layout.dart';
 
 /// Pushes [FullPlayerContent] with the same slide-up used by every shell.
 void openFullPlayer(
@@ -57,6 +56,7 @@ class FullPlayerContent extends ConsumerStatefulWidget {
 
 class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   late final PlayerSubViewNotifier _subViewNotifier;
+  late final PlayerQueueDrawerNotifier _queueDrawer;
   final GlobalKey _artworkKey = GlobalKey(debugLabel: 'player_artwork');
 
   /// Last sub-view applied to [ScreenKeepAwake]; avoids spam on rebuilds.
@@ -66,6 +66,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   void initState() {
     super.initState();
     _subViewNotifier = ref.read(playerSubViewProvider.notifier);
+    _queueDrawer = ref.read(playerQueueDrawerProvider.notifier);
     if (widget.initialSubView != PlayerSubView.none) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _subViewNotifier.set(widget.initialSubView);
@@ -77,7 +78,10 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
   void dispose() {
     // Fire-and-forget: leave the sheet must never leave FLAG_KEEP_SCREEN_ON.
     ScreenKeepAwake.disable();
-    Future.microtask(() => _subViewNotifier.set(PlayerSubView.none));
+    Future.microtask(() {
+      _subViewNotifier.set(PlayerSubView.none);
+      _queueDrawer.set(false);
+    });
     super.dispose();
   }
 
@@ -150,15 +154,69 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
           final availableHeight =
               constraints.maxHeight - padding.top - padding.bottom;
           final availableWidth = constraints.maxWidth;
-          final isPortrait = constraints.maxHeight > constraints.maxWidth;
-          final isLandscapeMobile =
-              !isPortrait &&
-              (availableWidth < kCompactBreakpoint ||
-                  availableHeight < kCompactBreakpoint);
-          final showFullscreenOverlay =
-              isLandscapeMobile && activeView != PlayerSubView.none;
-          final showLandscapeSplit =
-              isLandscapeMobile && activeView == PlayerSubView.none;
+          final window = MediaQuery.sizeOf(context);
+          final layoutArgs = (
+            artworkKey: _artworkKey,
+            currentSong: currentSong,
+            videoId: videoId,
+            artUrl: artUrl,
+            albumName: albumName,
+            playerState: playerState,
+            playerNotifier: playerNotifier,
+            hasSleepTimer: hasSleepTimer,
+            availHeight: availableHeight,
+            availWidth: availableWidth,
+            bottomInset: padding.bottom,
+            activeView: activeView,
+          );
+
+          final Widget layout;
+          if (isCompactShell(window)) {
+            layout = MobilePlayerLayout(
+              artworkKey: layoutArgs.artworkKey,
+              currentSong: layoutArgs.currentSong,
+              videoId: layoutArgs.videoId,
+              artUrl: layoutArgs.artUrl,
+              albumName: layoutArgs.albumName,
+              playerState: layoutArgs.playerState,
+              playerNotifier: layoutArgs.playerNotifier,
+              hasSleepTimer: layoutArgs.hasSleepTimer,
+              availHeight: layoutArgs.availHeight,
+              availWidth: layoutArgs.availWidth,
+              bottomInset: layoutArgs.bottomInset,
+              activeView: layoutArgs.activeView,
+            );
+          } else if (isWideShell(window)) {
+            layout = WidePlayerLayout(
+              artworkKey: layoutArgs.artworkKey,
+              currentSong: layoutArgs.currentSong,
+              videoId: layoutArgs.videoId,
+              artUrl: layoutArgs.artUrl,
+              albumName: layoutArgs.albumName,
+              playerState: layoutArgs.playerState,
+              playerNotifier: layoutArgs.playerNotifier,
+              hasSleepTimer: layoutArgs.hasSleepTimer,
+              availHeight: layoutArgs.availHeight,
+              availWidth: layoutArgs.availWidth,
+              bottomInset: layoutArgs.bottomInset,
+              activeView: layoutArgs.activeView,
+            );
+          } else {
+            layout = TabletPlayerLayout(
+              artworkKey: layoutArgs.artworkKey,
+              currentSong: layoutArgs.currentSong,
+              videoId: layoutArgs.videoId,
+              artUrl: layoutArgs.artUrl,
+              albumName: layoutArgs.albumName,
+              playerState: layoutArgs.playerState,
+              playerNotifier: layoutArgs.playerNotifier,
+              hasSleepTimer: layoutArgs.hasSleepTimer,
+              availHeight: layoutArgs.availHeight,
+              availWidth: layoutArgs.availWidth,
+              bottomInset: layoutArgs.bottomInset,
+              activeView: layoutArgs.activeView,
+            );
+          }
 
           return Stack(
             fit: StackFit.expand,
@@ -171,79 +229,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   isDark,
                 ),
               ),
-              if (showFullscreenOverlay)
-                FullscreenOverlayLayout(
-                  currentSong: currentSong,
-                  videoId: videoId,
-                  artUrl: artUrl,
-                  albumName: albumName,
-                  playerState: playerState,
-                  playerNotifier: playerNotifier,
-                  hasSleepTimer: hasSleepTimer,
-                  bottomInset: padding.bottom,
-                  activeView: activeView,
-                  onClose: () => _subViewNotifier.set(PlayerSubView.none),
-                )
-              else if (showLandscapeSplit)
-                TabletPlayerLayout(
-                  artworkKey: _artworkKey,
-                  currentSong: currentSong,
-                  videoId: videoId,
-                  artUrl: artUrl,
-                  albumName: albumName,
-                  playerState: playerState,
-                  playerNotifier: playerNotifier,
-                  hasSleepTimer: hasSleepTimer,
-                  availHeight: availableHeight,
-                  availWidth: availableWidth,
-                  bottomInset: padding.bottom,
-                  activeView: activeView,
-                )
-              else if (availableWidth < kCompactBreakpoint || isPortrait)
-                MobilePlayerLayout(
-                  artworkKey: _artworkKey,
-                  currentSong: currentSong,
-                  videoId: videoId,
-                  artUrl: artUrl,
-                  albumName: albumName,
-                  playerState: playerState,
-                  playerNotifier: playerNotifier,
-                  hasSleepTimer: hasSleepTimer,
-                  availHeight: availableHeight,
-                  availWidth: availableWidth,
-                  bottomInset: padding.bottom,
-                  activeView: activeView,
-                )
-              else if (availableWidth < kExpandedBreakpoint)
-                TabletPlayerLayout(
-                  artworkKey: _artworkKey,
-                  currentSong: currentSong,
-                  videoId: videoId,
-                  artUrl: artUrl,
-                  albumName: albumName,
-                  playerState: playerState,
-                  playerNotifier: playerNotifier,
-                  hasSleepTimer: hasSleepTimer,
-                  availHeight: availableHeight,
-                  availWidth: availableWidth,
-                  bottomInset: padding.bottom,
-                  activeView: activeView,
-                )
-              else
-                WidePlayerLayout(
-                  artworkKey: _artworkKey,
-                  currentSong: currentSong,
-                  videoId: videoId,
-                  artUrl: artUrl,
-                  albumName: albumName,
-                  playerState: playerState,
-                  playerNotifier: playerNotifier,
-                  hasSleepTimer: hasSleepTimer,
-                  availHeight: availableHeight,
-                  availWidth: availableWidth,
-                  bottomInset: padding.bottom,
-                  activeView: activeView,
-                ),
+              layout,
             ],
           );
         },

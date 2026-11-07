@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/palette_provider.dart';
 import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../widgets/player_controls.dart';
@@ -12,7 +13,11 @@ import '../widgets/player_shared_widgets.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/artwork.dart';
 import '../widgets/player_bouncing_widget.dart';
+import '../widgets/up_next_companion.dart';
 
+/// Tablet full player: disc on the left, controls then up next on the right.
+///
+/// A panel replaces the list. The disc and the transport stay.
 class TabletPlayerLayout extends ConsumerWidget {
   const TabletPlayerLayout({
     super.key,
@@ -47,84 +52,74 @@ class TabletPlayerLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tight = availHeight < 600;
     final narrow = availWidth < 720;
-    final isPanelOpen = activeView != PlayerSubView.none;
     final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
+    final panelOpen = activeView != PlayerSubView.none;
+    final exclusive = panelOpen || insightsOpen;
     final hPad = narrow ? 16.0 : 32.0;
-    final colGap = narrow ? 16.0 : 48.0;
+    final colGap = narrow ? 16.0 : 32.0;
+    final artSide = min(360.0, availWidth * 0.46);
+    final artSize = min(
+      artSide - 8,
+      availHeight * (tight ? 0.46 : 0.58),
+    ).clamp(120.0, 360.0);
 
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: hPad,
-          vertical: tight ? 4.0 : 16.0,
+          vertical: tight ? 4 : 16,
         ),
         child: Column(
           children: [
             TopBar(currentSong: currentSong, albumName: albumName),
             Expanded(
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    flex: 1,
-                    child: Artwork(
-                      key: artworkKey,
-                      artUrl: artUrl,
-                      size: min(
-                        availHeight - (tight ? 70 : 100),
-                        availWidth / 2 - colGap,
-                      ).clamp(0.0, double.infinity),
-                      videoId: videoId,
-                      isSwitching: playerState.isSwitching,
+                  SizedBox(
+                    width: artSide,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Artwork(
+                          key: artworkKey,
+                          artUrl: artUrl,
+                          size: artSize,
+                          minSize: min(artSize, 150),
+                          videoId: videoId,
+                          isSwitching: playerState.isSwitching,
+                        ),
+                        SizedBox(height: tight ? 8 : 16),
+                        _visualizer(context, ref),
+                        const PlayerSleepBadge(),
+                      ],
                     ),
                   ),
                   SizedBox(width: colGap),
                   Expanded(
-                    flex: 1,
-                    child: LayoutBuilder(
-                      builder: (context, rightConstraints) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: tight ? 2 : 24),
-                            buildTrackInfoAndLikeRow(context, ref, currentSong),
-                            SizedBox(height: tight ? 2 : 16),
-                            Expanded(
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                child: isPanelOpen
-                                    ? buildPlayerSubPanel(
-                                        activeView: activeView,
-                                        videoId: videoId,
-                                        position: playerState.position,
-                                      )
-                                    : insightsOpen
-                                    ? const SingleChildScrollView(
-                                        key: ValueKey('insights'),
-                                        child: PlayerInsightsCard(),
-                                      )
-                                    : PlayerDefaultView(
-                                        key: const ValueKey('empty'),
-                                        tight: tight,
-                                      ),
-                              ),
-                            ),
-                            SizedBox(height: tight ? 2 : 16),
-                            buildProgressBar(context, ref, playerState),
-                            SizedBox(height: tight ? 2 : 16),
-                            const PlayerControls(),
-                            SizedBox(height: tight ? 0 : 8),
-                            buildBottomActionsRow(
-                              context,
-                              ref,
-                              hasSleepTimer,
-                              playerNotifier,
-                              activeView,
-                            ),
-                            SizedBox(height: tight ? 2 : 16),
-                          ],
-                        );
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: tight ? 4 : 12),
+                        buildTrackInfoAndLikeRow(context, ref, currentSong),
+                        SizedBox(height: tight ? 8 : 12),
+                        buildProgressBar(context, ref, playerState),
+                        SizedBox(height: tight ? 4 : 12),
+                        const PlayerControls(),
+                        buildBottomActionsRow(
+                          context,
+                          ref,
+                          hasSleepTimer,
+                          playerNotifier,
+                          activeView,
+                        ),
+                        SizedBox(height: tight ? 8 : 12),
+                        Expanded(
+                          child: exclusive
+                              ? _exclusive(panelOpen)
+                              : const UpNextCompanion(maxItems: 6),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -134,5 +129,25 @@ class TabletPlayerLayout extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _exclusive(bool panelOpen) {
+    if (panelOpen) {
+      return buildPlayerSubPanel(
+        activeView: activeView,
+        videoId: videoId,
+        position: playerState.position,
+      );
+    }
+    return const SingleChildScrollView(child: PlayerInsightsCard());
+  }
+
+  Widget _visualizer(BuildContext context, WidgetRef ref) {
+    final palette = ref.watch(paletteNotifierProvider)[videoId];
+    final color =
+        palette?.dominantColor ??
+        Theme.of(context).colorScheme.primaryContainer;
+    final playing = playerState.isPlaying && !playerState.isLoading;
+    return AudioVisualizer(isPlaying: playing, color: color, height: 36);
   }
 }

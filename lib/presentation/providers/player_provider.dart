@@ -50,6 +50,33 @@ final playerSubViewProvider =
       PlayerSubViewNotifier.new,
     );
 
+/// Wide full player queue drawer. Independent of [PlayerSubView], so lyrics
+/// and the queue can stay open together.
+class PlayerQueueDrawerNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool open) => state = open;
+}
+
+final playerQueueDrawerProvider =
+    NotifierProvider<PlayerQueueDrawerNotifier, bool>(
+      PlayerQueueDrawerNotifier.new,
+    );
+
+/// Queue panel visibility on the wide full player.
+bool wideQueueOpen({required bool drawer, required PlayerSubView view}) =>
+    drawer || view == PlayerSubView.queue;
+
+/// Canvas behind the wide queue drawer.
+///
+/// The queue is the drawer. Related is always the right column of the scroll,
+/// so neither replaces the canvas.
+PlayerSubView wideCanvasView(PlayerSubView view) => switch (view) {
+  PlayerSubView.queue || PlayerSubView.related => PlayerSubView.none,
+  _ => view,
+};
+
 class PlayerState {
   final bool isPlaying;
   final bool isLoading;
