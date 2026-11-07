@@ -14,8 +14,8 @@ import '../../../shared/widgets/error_retry_widget.dart';
 
 /// Opens curiosities in the full player.
 ///
-/// Compact and tablet replace the up-next area. Wide opens a right drawer
-/// wider than the queue.
+/// Compact replaces the up-next area. Tablet and wide open a right drawer.
+/// The tablet drawer is capped at half the window.
 class PlayerInsightsOverlay {
   PlayerInsightsOverlay._();
 

@@ -103,6 +103,7 @@ void main() {
     await pumpShelf(tester, size: const Size(800, 600));
     expect(find.text('Above Water'), findsOneWidget);
     expect(find.byIcon(LucideIcons.music), findsOneWidget);
+    expect(find.byIcon(LucideIcons.maximize2), findsOneWidget);
     expect(find.byType(AnimatedPlayPauseIcon), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

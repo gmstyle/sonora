@@ -25,12 +25,16 @@ class WideContextPanels extends ConsumerWidget {
     required this.artistId,
     required this.albumId,
     required this.showRelated,
+    this.stacked = false,
   });
 
   final String videoId;
   final String? artistId;
   final String? albumId;
   final bool showRelated;
+
+  /// Artist, album, and related in one column. Tablet uses this.
+  final bool stacked;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,7 +63,10 @@ class WideContextPanels extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(32, 8, 32, 8),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (info != null && related != null && constraints.maxWidth >= 720) {
+          if (!stacked &&
+              info != null &&
+              related != null &&
+              constraints.maxWidth >= 720) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

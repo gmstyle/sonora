@@ -42,6 +42,18 @@ double get _artworkStageFactor => 1 + 2 * (_neighborScale + _neighborGap);
   );
 }
 
+/// Tablet drawer widths. The queue stays narrow. Curiosities take half the
+/// window, capped so the disc remains visible.
+({double queue, double insights, double artMax}) tabletPlayerFrame(
+  double width,
+) {
+  return (
+    queue: 300.0,
+    insights: (width * 0.5).clamp(320.0, 420.0),
+    artMax: width < 900 ? 340.0 : 400.0,
+  );
+}
+
 /// Wide full player in the shape of a desktop now-playing screen.
 ///
 /// The canvas is a scroll: the current disc fills the first screen, with the
@@ -65,6 +77,7 @@ class WidePlayerLayout extends ConsumerWidget {
     required this.availWidth,
     required this.bottomInset,
     required this.activeView,
+    this.tablet = false,
   });
 
   final GlobalKey artworkKey;
@@ -80,6 +93,10 @@ class WidePlayerLayout extends ConsumerWidget {
   final double bottomInset;
   final PlayerSubView activeView;
 
+  /// Same page as wide, with neighbor covers, a single content column, and
+  /// narrower drawers.
+  final bool tablet;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tight = availHeight < 720;
@@ -87,7 +104,9 @@ class WidePlayerLayout extends ConsumerWidget {
     final queueOpen = wideQueueOpen(drawer: drawer, view: activeView);
     final canvas = wideCanvasView(activeView);
     final insightsOpen = ref.watch(playerInsightsProvider).isOpen;
-    final frame = widePlayerFrame(availWidth);
+    final frame = tablet
+        ? tabletPlayerFrame(availWidth)
+        : widePlayerFrame(availWidth);
 
     ref.listen(playerSubViewProvider, (prev, next) {
       if (next != PlayerSubView.queue) return;
@@ -130,6 +149,8 @@ class WidePlayerLayout extends ConsumerWidget {
                     ref,
                     canvas: canvas,
                     artMax: frame.artMax,
+                    neighbors: true,
+                    stackContext: tablet,
                   ),
                 ),
                 if (queueOpen && !insightsOpen)
@@ -157,6 +178,7 @@ class WidePlayerLayout extends ConsumerWidget {
             playerNotifier: playerNotifier,
             hasSleepTimer: hasSleepTimer,
             activeView: activeView,
+            compactActions: tablet,
           ),
         ],
       ),
@@ -168,6 +190,8 @@ class WidePlayerLayout extends ConsumerWidget {
     WidgetRef ref, {
     required PlayerSubView canvas,
     required double artMax,
+    required bool neighbors,
+    required bool stackContext,
   }) {
     if (canvas != PlayerSubView.none) {
       return buildPlayerSubPanel(
@@ -188,6 +212,8 @@ class WidePlayerLayout extends ConsumerWidget {
       artistId: catalog ? track.artistId : null,
       albumId: catalog ? track.albumId : null,
       showRelated: !offline,
+      neighbors: neighbors,
+      stackContext: stackContext,
     );
   }
 }
@@ -202,6 +228,8 @@ class _NowPlayingPage extends ConsumerWidget {
     required this.artistId,
     required this.albumId,
     required this.showRelated,
+    required this.neighbors,
+    required this.stackContext,
   });
 
   final GlobalKey artworkKey;
@@ -212,6 +240,8 @@ class _NowPlayingPage extends ConsumerWidget {
   final String? artistId;
   final String? albumId;
   final bool showRelated;
+  final bool neighbors;
+  final bool stackContext;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -219,11 +249,13 @@ class _NowPlayingPage extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = constraints.maxHeight;
-        final inner = max(72.0, constraints.maxWidth - 96);
-        final side = min(
-          inner / _artworkStageFactor,
-          viewport * 0.62,
-        ).clamp(72.0, artMax);
+        final pad = neighbors ? 48.0 : 32.0;
+        final inner = max(72.0, constraints.maxWidth - pad * 2);
+        final side =
+            (neighbors
+                    ? min(inner / _artworkStageFactor, viewport * 0.62)
+                    : min(inner * 0.72, viewport * 0.62))
+                .clamp(neighbors ? 72.0 : 120.0, artMax);
         final blocked = playerState.isBlocked;
         final previous = _previousTrack(playerState);
         final upcoming = upcomingTracks(playerState, limit: 1);
@@ -234,30 +266,39 @@ class _NowPlayingPage extends ConsumerWidget {
               child: SizedBox(
                 height: viewport,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(48, 8, 48, 28),
+                  padding: EdgeInsets.fromLTRB(pad, 8, pad, 28),
                   child: Column(
                     children: [
                       Expanded(
                         child: Center(
-                          child: _ArtworkStage(
-                            artworkKey: artworkKey,
-                            artUrl: artUrl,
-                            videoId: videoId,
-                            size: side,
-                            isSwitching: playerState.isSwitching,
-                            previous: previous,
-                            next: next,
-                            onPrevious: blocked
-                                ? null
-                                : () => ref
-                                      .read(playerStateProvider.notifier)
-                                      .skipToPrevious(),
-                            onNext: blocked
-                                ? null
-                                : () => ref
-                                      .read(playerStateProvider.notifier)
-                                      .skipToNext(),
-                          ),
+                          child: neighbors
+                              ? _ArtworkStage(
+                                  artworkKey: artworkKey,
+                                  artUrl: artUrl,
+                                  videoId: videoId,
+                                  size: side,
+                                  isSwitching: playerState.isSwitching,
+                                  previous: previous,
+                                  next: next,
+                                  onPrevious: blocked
+                                      ? null
+                                      : () => ref
+                                            .read(playerStateProvider.notifier)
+                                            .skipToPrevious(),
+                                  onNext: blocked
+                                      ? null
+                                      : () => ref
+                                            .read(playerStateProvider.notifier)
+                                            .skipToNext(),
+                                )
+                              : Artwork(
+                                  key: artworkKey,
+                                  artUrl: artUrl,
+                                  size: side,
+                                  minSize: min(side, 120),
+                                  videoId: videoId,
+                                  isSwitching: playerState.isSwitching,
+                                ),
                         ),
                       ),
                       Align(
@@ -280,6 +321,7 @@ class _NowPlayingPage extends ConsumerWidget {
                 artistId: artistId,
                 albumId: albumId,
                 showRelated: showRelated,
+                stacked: stackContext,
               ),
             ),
           ],
@@ -496,6 +538,7 @@ class _BottomBar extends ConsumerWidget {
     required this.playerNotifier,
     required this.hasSleepTimer,
     required this.activeView,
+    required this.compactActions,
   });
 
   final MediaItem currentSong;
@@ -505,6 +548,7 @@ class _BottomBar extends ConsumerWidget {
   final PlayerNotifier playerNotifier;
   final bool hasSleepTimer;
   final PlayerSubView activeView;
+  final bool compactActions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -599,6 +643,7 @@ class _BottomBar extends ConsumerWidget {
                   activeView,
                   queueOpensDrawer: true,
                   showRelatedToggle: false,
+                  compactActions: compactActions,
                 ),
               ),
             ],

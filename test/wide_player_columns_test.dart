@@ -36,4 +36,18 @@ void main() {
   test('related stays on the scroll instead of replacing it', () {
     expect(wideCanvasView(PlayerSubView.related), PlayerSubView.none);
   });
+
+  test('tablet curiosities drawer stays within half the window', () {
+    final narrow = tabletPlayerFrame(768);
+
+    expect(narrow.queue, 300);
+    expect(narrow.insights, 384);
+    expect(narrow.artMax, 340);
+
+    final roomy = tabletPlayerFrame(1100);
+
+    expect(roomy.queue, 300);
+    expect(roomy.insights, 420);
+    expect(roomy.artMax, 400);
+  });
 }

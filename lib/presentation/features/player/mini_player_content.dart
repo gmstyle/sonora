@@ -181,7 +181,7 @@ class MiniPlayerContent extends ConsumerWidget {
   }
 
   /// Edge-to-edge shelf: art + catalog metadata + like on the left, transport
-  /// and seek in the center, lyrics / queue / cast on the right.
+  /// and seek in the center, expand / lyrics / queue / cast on the right.
   Widget _shelfLayout(
     BuildContext context,
     WidgetRef ref,
@@ -281,12 +281,12 @@ class MiniPlayerContent extends ConsumerWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (!compact)
-                              _iconButton(
-                                icon: LucideIcons.maximize2,
-                                color: cs.onSurfaceVariant,
-                                onPressed: isSwitching ? null : onTap,
-                              ),
+                            _iconButton(
+                              icon: LucideIcons.maximize2,
+                              color: cs.onSurfaceVariant,
+                              onPressed: isSwitching ? null : onTap,
+                              tooltip: AppLocalizations.of(context)!.openPlayer,
+                            ),
                             _iconButton(
                               icon: LucideIcons.micVocal,
                               color: activeView == PlayerSubView.lyrics
@@ -479,10 +479,12 @@ class MiniPlayerContent extends ConsumerWidget {
     required VoidCallback? onPressed,
     double size = 20,
     bool haptic = false,
+    String? tooltip,
   }) {
     return IconButton(
       icon: Icon(icon, size: size),
       color: color,
+      tooltip: tooltip,
       onPressed: onPressed != null && haptic
           ? () {
               HapticFeedback.lightImpact();

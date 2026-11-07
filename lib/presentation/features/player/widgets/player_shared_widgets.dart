@@ -547,6 +547,7 @@ Widget buildBottomActionsRow(
   bool isMobile = false,
   bool queueOpensDrawer = false,
   bool showRelatedToggle = true,
+  bool compactActions = false,
 }) {
   final theme = Theme.of(context);
   final l10n = AppLocalizations.of(context)!;
@@ -567,7 +568,7 @@ Widget buildBottomActionsRow(
   // overflow. Compact + FittedBox whenever width is tight, not only mobile.
   return LayoutBuilder(
     builder: (context, constraints) {
-      final compact = isMobile || constraints.maxWidth < 360;
+      final compact = compactActions || isMobile || constraints.maxWidth < 360;
       final double iconSize = compact ? 18.0 : 22.0;
       final ButtonStyle? actionStyle = compact
           ? IconButton.styleFrom(
