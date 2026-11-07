@@ -8,15 +8,19 @@ Sonora is a cross-platform Flutter music streaming app that uses **YouTube Music
 
 | Component | Library | Version |
 |---|---|---|
-| Framework | Flutter | 3.47.2 (stable) |
-| State Management | `flutter_riverpod` | ^3.3.1 |
+| Framework | Flutter | 3.47.x (stable) |
+| Design system | `material_ui` | ^1.10.0 |
+| State Management | `flutter_riverpod` | ^3.5.0 |
 | Navigation | `go_router` | ^18.0.1 |
-| Local Database | `drift` + `drift_flutter` | ^2.34.4 / ^0.3.1 |
+| Local Database | `drift` + `drift_flutter` | ^2.35.2 / ^0.3.1 |
 | Media Playback | `just_audio` + `audio_service` | ^0.10.4 / ^0.18.18 |
 | Linux audio backend | `just_audio_media_kit` + `media_kit_libs_linux` | ^2.1.0 / ^1.1.3 |
+| Fonts | `google_fonts` | ^9.0.0 |
 | YTM Data | `dart_ytmusic_api` | git (`gmstyle/dart_ytmusic_api`) |
 | Stream URL | `youtube_explode_dart` | git (`gmstyle/youtube_explode_dart`, fork with `androidVr` adaptive fix) |
 | Casting | `dart_cast` | ^0.7.3 |
+
+**Material UI.** Sonora imports `package:material_ui/material_ui.dart` (not `package:flutter/material.dart`). Themes and widgets use `material_ui` types (`ThemeData`, `ColorScheme`, `TextTheme`). `MaterialApp.router` in `main.dart` sets `localizationsDelegates` to `AppLocalizations.delegate` plus `GlobalMaterialLocalizations.delegates` from `material_ui` (do not use the generated `AppLocalizations.localizationsDelegates` list, which still pulls legacy SDK Material/Cupertino delegates). Until `marquee` migrates off the SDK Material library, `MaterialApp.builder` wraps the tree in `MaterialUiCompatibilityBridge` so legacy leaf widgets can resolve theme and Material localizations.
 
 **Why `just_audio`.** In-app video playback was removed: catalog music videos still exist and play as **audio**. Android uses ExoPlayer through `just_audio` (no `libmpv.so` in the APK). Linux uses `just_audio_media_kit` (libmpv). Controllers talk to a vendor-neutral `PlaybackEngine`; `audio_service` still owns the MediaSession, notification, Android Auto, and MPRIS. Sonora's `LocalAudioProxyServer` + `MediaCacheService` stay in front of YouTube (403/429, Range, LRU lookahead) — `LockCachingAudioSource` is not used. Shuffle stays in `SkipNavigator` because `just_audio_media_kit` ignores `shuffleOrder`.
 

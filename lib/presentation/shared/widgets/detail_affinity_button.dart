@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shared binary affinity control for detail headers (like / follow / subscribe).
 ///

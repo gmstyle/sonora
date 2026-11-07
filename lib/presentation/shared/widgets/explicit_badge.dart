@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A small inline badge displaying "E" for explicit content.
 class ExplicitBadge extends StatelessWidget {

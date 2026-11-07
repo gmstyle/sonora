@@ -5,7 +5,7 @@ import 'package:app_links/app_links.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -448,11 +448,20 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? 'Sonora',
       routerConfig: router,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      // gen-l10n still lists legacy flutter_localizations Material/Cupertino
+      // delegates; use material_ui's bundle instead.
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: themeMode,
+      // marquee (and any other leaf still on flutter/material.dart) needs
+      // legacy ThemeData / MaterialLocalizations via the temporary bridge.
+      // ignore: deprecated_member_use
+      builder: (context, child) => MaterialUiCompatibilityBridge(child: child!),
     );
   }
 }

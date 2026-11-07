@@ -1,5 +1,5 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/l10n/app_localizations.dart';
@@ -32,7 +32,10 @@ Future<void> _pump(
       ],
       child: MaterialApp(
         locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
         supportedLocales: AppLocalizations.supportedLocales,
         home: ArtistReleasesScreen(
           artistId: 'artist',

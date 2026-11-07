@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A reusable frosted-glass background widget for AppBars and SliverAppBars.
 /// It uses a native hardware-accelerated [BackdropFilter] for blur,

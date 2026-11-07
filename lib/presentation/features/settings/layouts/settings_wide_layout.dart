@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../settings_shared.dart';
 import '../widgets/settings_split_layout.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Custom [ThemeExtension] that centralises every colour token used by the
 /// full-player surface and any screen that overlays artwork (Album, Artist,
