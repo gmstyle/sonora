@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Sibling packages from sonora-workspace.code-workspace.
+  // They stay outside the project Location and are exposed as named references.
+  "references": {
+    "dart_ytmusic_api": {
+      "path": "../dart_ytmusic_api",
+      "description": "Local checkout of the dart_ytmusic_api package (YouTube Music catalog: search, album, artist, playlist, podcast, radio models). Read it to confirm request/response parsing, model fields, and exceptions before changing Sonora catalog code. Follow its AGENTS.md when touching it."
+    },
+    "youtube_explode_dart": {
+      "path": "../youtube_explode_dart",
+      "description": "Local checkout of youtube_explode_dart (stream URL resolution, manifests, formats). Read it to confirm how Sonora resolves playable URLs, muxed audio, and expiry. Follow its AGENTS.md when touching it."
+    }
+  }
+}
