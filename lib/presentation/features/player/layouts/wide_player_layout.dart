@@ -8,12 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/player_colors.dart';
+import '../../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../providers/settings_provider.dart';
+import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
-import '../../../providers/settings_provider.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/player_insights_panel.dart';
 import '../widgets/player_shared_widgets.dart';
@@ -57,8 +59,9 @@ double get _artworkStageFactor => 1 + 2 * (_neighborScale + _neighborGap);
 
 /// Wide full player in the shape of a desktop now-playing screen.
 ///
-/// The canvas is a scroll: the current disc fills the first screen, with the
-/// previous and next covers set apart on either side. Below that, artist and album
+/// The canvas scrolls: the current disc fills the first screen and collapses
+/// into a pinned glass bar, the same sliver header artist and album use.
+/// Previous and next covers sit apart on either side. Below that, artist and album
 /// share the left column and related is the right one. Lyrics and notes
 /// replace that scroll. Queue and curiosities share one right-hand card that
 /// slides in from the edge. Track info, transport, and the action row sit in
@@ -204,6 +207,7 @@ class WidePlayerLayout extends ConsumerWidget {
       artworkKey: artworkKey,
       artUrl: artUrl,
       videoId: videoId,
+      title: currentSong.title,
       playerState: playerState,
       artMax: artMax,
       artistId: catalog ? track.artistId : null,
@@ -215,11 +219,12 @@ class WidePlayerLayout extends ConsumerWidget {
   }
 }
 
-class _NowPlayingPage extends ConsumerWidget {
+class _NowPlayingPage extends ConsumerStatefulWidget {
   const _NowPlayingPage({
     required this.artworkKey,
     required this.artUrl,
     required this.videoId,
+    required this.title,
     required this.playerState,
     required this.artMax,
     required this.artistId,
@@ -232,6 +237,7 @@ class _NowPlayingPage extends ConsumerWidget {
   final GlobalKey artworkKey;
   final String? artUrl;
   final String videoId;
+  final String title;
   final PlayerState playerState;
   final double artMax;
   final String? artistId;
@@ -241,84 +247,173 @@ class _NowPlayingPage extends ConsumerWidget {
   final bool stackContext;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_NowPlayingPage> createState() => _NowPlayingPageState();
+}
+
+class _NowPlayingPageState extends ConsumerState<_NowPlayingPage> {
+  final ScrollController _scrollController = ScrollController();
+  double _scrollProgress = 0;
+  double _expandedHeight = 360;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final delta = max(1.0, _expandedHeight - kToolbarHeight);
+    final progress = (_scrollController.offset / delta).clamp(0.0, 1.0);
+    if (progress == _scrollProgress) return;
+    setState(() => _scrollProgress = progress);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
+    final pc = PlayerColors.of(context);
+    final titleOpacity = _scrollProgress > 0.8
+        ? (_scrollProgress - 0.8) / 0.2
+        : 0.0;
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = constraints.maxHeight;
-        final pad = neighbors ? 48.0 : 32.0;
+        if (viewport != _expandedHeight && viewport > kToolbarHeight) {
+          _expandedHeight = viewport;
+          WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
+        }
+        final pad = widget.neighbors ? 48.0 : 32.0;
         final inner = max(72.0, constraints.maxWidth - pad * 2);
         final side =
-            (neighbors
+            (widget.neighbors
                     ? min(inner / _artworkStageFactor, viewport * 0.62)
                     : min(inner * 0.72, viewport * 0.62))
-                .clamp(neighbors ? 72.0 : 120.0, artMax);
-        final blocked = playerState.isBlocked;
-        final previous = _previousTrack(playerState);
-        final upcoming = upcomingTracks(playerState, limit: 1);
+                .clamp(widget.neighbors ? 72.0 : 120.0, widget.artMax);
+        final blocked = widget.playerState.isBlocked;
+        final previous = _previousTrack(widget.playerState);
+        final upcoming = upcomingTracks(widget.playerState, limit: 1);
         final next = upcoming.isEmpty ? null : upcoming.first.item;
+        final sectionLabel =
+            widget.artistId != null && widget.artistId!.isNotEmpty
+            ? l10n.aboutTheArtist
+            : (widget.showRelated ? l10n.related : l10n.upNext);
+        final headerFade = (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0);
         return CustomScrollView(
+          controller: _scrollController,
           slivers: [
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: viewport,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(pad, 8, pad, 28),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: neighbors
-                              ? _ArtworkStage(
-                                  artworkKey: artworkKey,
-                                  artUrl: artUrl,
-                                  videoId: videoId,
-                                  size: side,
-                                  isSwitching: playerState.isSwitching,
-                                  previous: previous,
-                                  next: next,
-                                  onPrevious: blocked
-                                      ? null
-                                      : () => ref
-                                            .read(playerStateProvider.notifier)
-                                            .skipToPrevious(),
-                                  onNext: blocked
-                                      ? null
-                                      : () => ref
-                                            .read(playerStateProvider.notifier)
-                                            .skipToNext(),
-                                )
-                              : Artwork(
-                                  key: artworkKey,
-                                  artUrl: artUrl,
-                                  size: side,
-                                  minSize: min(side, 120),
-                                  videoId: videoId,
-                                  isSwitching: playerState.isSwitching,
-                                ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          artistId != null && artistId!.isNotEmpty
-                              ? l10n.aboutTheArtist
-                              : (showRelated ? l10n.related : l10n.upNext),
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
+            SliverAppBar(
+              primary: false,
+              pinned: true,
+              automaticallyImplyLeading: false,
+              expandedHeight: _expandedHeight,
+              toolbarHeight: kToolbarHeight,
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              title: AnimatedOpacity(
+                opacity: titleOpacity,
+                duration: const Duration(milliseconds: 150),
+                child: Text(
+                  widget.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: pc.titlePrimary,
                   ),
                 ),
+              ),
+              flexibleSpace: Stack(
+                fit: StackFit.expand,
+                children: [
+                  GlassAppBarBackground(
+                    opacity: _scrollProgress,
+                    color: SonoraPulseTokens.surface,
+                    blur: !reduceEffects,
+                  ),
+                  FlexibleSpaceBar(
+                    collapseMode: CollapseMode.parallax,
+                    background: Opacity(
+                      opacity: headerFade,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(pad, 8, pad, 28),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Center(
+                                child: widget.neighbors
+                                    ? _ArtworkStage(
+                                        artworkKey: widget.artworkKey,
+                                        artUrl: widget.artUrl,
+                                        videoId: widget.videoId,
+                                        size: side,
+                                        isSwitching:
+                                            widget.playerState.isSwitching,
+                                        previous: previous,
+                                        next: next,
+                                        onPrevious: blocked
+                                            ? null
+                                            : () => ref
+                                                  .read(
+                                                    playerStateProvider
+                                                        .notifier,
+                                                  )
+                                                  .skipToPrevious(),
+                                        onNext: blocked
+                                            ? null
+                                            : () => ref
+                                                  .read(
+                                                    playerStateProvider
+                                                        .notifier,
+                                                  )
+                                                  .skipToNext(),
+                                      )
+                                    : Artwork(
+                                        key: widget.artworkKey,
+                                        artUrl: widget.artUrl,
+                                        size: side,
+                                        minSize: min(side, 120),
+                                        videoId: widget.videoId,
+                                        isSwitching:
+                                            widget.playerState.isSwitching,
+                                      ),
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                sectionLabel,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(color: pc.titlePrimary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             SliverToBoxAdapter(
               child: WideContextPanels(
-                videoId: videoId,
-                artistId: artistId,
-                albumId: albumId,
-                showRelated: showRelated,
-                stacked: stackContext,
+                videoId: widget.videoId,
+                artistId: widget.artistId,
+                albumId: widget.albumId,
+                showRelated: widget.showRelated,
+                stacked: widget.stackContext,
               ),
             ),
           ],

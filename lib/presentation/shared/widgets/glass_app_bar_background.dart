@@ -8,14 +8,28 @@ import 'package:material_ui/material_ui.dart';
 class GlassAppBarBackground extends StatelessWidget {
   final double opacity;
 
-  const GlassAppBarBackground({super.key, this.opacity = 1.0});
+  /// Tint over the blur. Defaults to [ColorScheme.surface].
+  final Color? color;
+
+  /// Skip the backdrop blur when motion and effects are reduced.
+  final bool blur;
+
+  const GlassAppBarBackground({
+    super.key,
+    this.opacity = 1.0,
+    this.color,
+    this.blur = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (opacity <= 0.0) return const SizedBox.shrink();
 
-    final theme = Theme.of(context);
-    final surfaceColor = theme.colorScheme.surface;
+    final surfaceColor = color ?? Theme.of(context).colorScheme.surface;
+    final tint = Container(
+      color: surfaceColor.withValues(alpha: 0.65 * opacity),
+    );
+    if (!blur) return tint;
 
     return ClipRect(
       child: BackdropFilter(
@@ -23,7 +37,7 @@ class GlassAppBarBackground extends StatelessWidget {
           sigmaX: 15.0 * opacity,
           sigmaY: 15.0 * opacity,
         ),
-        child: Container(color: surfaceColor.withValues(alpha: 0.65 * opacity)),
+        child: tint,
       ),
     );
   }
