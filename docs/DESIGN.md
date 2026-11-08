@@ -184,7 +184,7 @@ Home mood chips sit in the `AppBar` bottom on compact, tablet, and wide, and sta
 
 ### Facet
 
-Left filter rail `kFacetFilterRailWidth` (200), a fluid center with padding 32, and at ≥1600 a right utility rail `kFacetUtilityRailWidth` (280). Do not wrap the page in `Center` plus a `maxWidth`, and do not put the wide page in a `Card`. Library search results stay in the library facet pane.
+Left filter rail `kFacetFilterRailWidth` (200), a fluid center with padding 32, and at ≥1600 a right utility rail `kFacetUtilityRailWidth` (280). Do not wrap the page in `Center` plus a `maxWidth`, and do not put the wide page in a `Card`. Library matches stay on Search, above the catalog results. The Library page is browse-only.
 
 Screens: Search, Library, Downloads.
 

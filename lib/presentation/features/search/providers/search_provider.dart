@@ -1,6 +1,7 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/connectivity_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/library_repository_provider.dart';
 import '../../../providers/music_repository_provider.dart';
@@ -73,7 +74,7 @@ final recentSearchesProvider = FutureProvider((ref) {
 
 final searchSuggestionsProvider = FutureProvider<List<String>>((ref) {
   final query = ref.watch(searchQueryProvider);
-  if (query.length < 2) return [];
+  if (query.length < 2 || ref.watch(isOfflineProvider)) return [];
   final repo = ref.watch(musicRepositoryProvider);
   return repo.getSearchSuggestions(query);
 });
@@ -84,7 +85,7 @@ final searchSuggestionsProvider = FutureProvider<List<String>>((ref) {
 final searchResultsProvider = FutureProvider<List<SearchResult>>((ref) async {
   final query = ref.watch(activeSearchQueryProvider);
   final filter = ref.watch(searchFilterProvider);
-  if (query.isEmpty) return [];
+  if (query.isEmpty || ref.watch(isOfflineProvider)) return [];
   final repo = ref.watch(musicRepositoryProvider);
 
   switch (filter) {

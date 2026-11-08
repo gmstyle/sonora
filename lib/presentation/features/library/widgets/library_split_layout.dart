@@ -16,7 +16,6 @@ import 'history_tab.dart';
 import 'smart_mixes_tab.dart';
 import 'stats_tab.dart';
 import 'library_header_controls.dart';
-import 'library_search_results_view.dart';
 
 class _TabItem {
   final String Function(BuildContext) getTitle;
@@ -202,8 +201,6 @@ class LibrarySplitLayout extends ConsumerWidget {
     required bool controlsInRail,
   }) {
     final selectedTab = ref.watch(libraryActiveTabProvider);
-    final query = ref.watch(librarySearchQueryProvider);
-    final isSearchActive = query.trim().isNotEmpty;
     final isListOrGridTab = selectedTab.supportsListGridView;
     final showControls = selectedTab.showsHeaderControls && !controlsInRail;
 
@@ -211,9 +208,7 @@ class LibrarySplitLayout extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (showControls) ...[
-          LibraryHeaderControls(
-            showViewSwitcher: !isSearchActive && isListOrGridTab,
-          ),
+          LibraryHeaderControls(showViewSwitcher: isListOrGridTab),
           const SizedBox(height: 8),
         ] else
           SizedBox(height: wide ? 24 : 16),
@@ -222,21 +217,19 @@ class LibrarySplitLayout extends ConsumerWidget {
             // Wide tabs already inset lists by 16. Facet padding supplies the
             // rest so the page inset lands on kWideContentPadding.
             padding: EdgeInsets.symmetric(horizontal: wide ? 0 : 8),
-            child: isSearchActive
-                ? const LibrarySearchResultsView()
-                : IndexedStack(
-                    index: selectedTab.index,
-                    children: const [
-                      FavoritesTab(),
-                      ArtistsTab(),
-                      PlaylistsTab(),
-                      AlbumsTab(),
-                      PodcastsTab(),
-                      HistoryTab(),
-                      SmartMixesTab(),
-                      StatsTab(),
-                    ],
-                  ),
+            child: IndexedStack(
+              index: selectedTab.index,
+              children: const [
+                FavoritesTab(),
+                ArtistsTab(),
+                PlaylistsTab(),
+                AlbumsTab(),
+                PodcastsTab(),
+                HistoryTab(),
+                SmartMixesTab(),
+                StatsTab(),
+              ],
+            ),
           ),
         ),
       ],
@@ -252,8 +245,6 @@ class LibrarySplitLayout extends ConsumerWidget {
     final controlsInRail = isWide && viewport >= kWideContentBreakpoint;
     final showControlsInRail =
         controlsInRail && selectedTab.showsHeaderControls;
-    final query = ref.watch(librarySearchQueryProvider);
-    final isSearchActive = query.trim().isNotEmpty;
     final isListOrGridTab = selectedTab.supportsListGridView;
 
     final tabRail = _tabRail(context, ref, wide: isWide);
@@ -287,7 +278,7 @@ class LibrarySplitLayout extends ConsumerWidget {
         filterRail: tabRail,
         utilityRail: showControlsInRail
             ? LibraryHeaderControls(
-                showViewSwitcher: !isSearchActive && isListOrGridTab,
+                showViewSwitcher: isListOrGridTab,
                 railLayout: true,
               )
             : null,

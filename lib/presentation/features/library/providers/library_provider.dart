@@ -11,24 +11,6 @@ enum LibrarySortType {
   leastRecentlyAdded,
 }
 
-class LibrarySearchQueryNotifier extends Notifier<String> {
-  @override
-  String build() => '';
-  void update(String value) {
-    state = value;
-    if (value.trim().isEmpty) {
-      ref
-          .read(librarySearchFilterProvider.notifier)
-          .update(LibrarySearchFilter.all);
-    }
-  }
-}
-
-final librarySearchQueryProvider =
-    NotifierProvider<LibrarySearchQueryNotifier, String>(
-      LibrarySearchQueryNotifier.new,
-    );
-
 const _kSortTypeKey = 'librarySortType';
 
 class LibrarySortTypeNotifier extends Notifier<LibrarySortType> {
@@ -54,27 +36,6 @@ final librarySortTypeProvider =
       LibrarySortTypeNotifier.new,
     );
 
-enum LibrarySearchFilter {
-  all,
-  songs,
-  artists,
-  playlists,
-  albums,
-  podcasts,
-  history,
-}
-
-class LibrarySearchFilterNotifier extends Notifier<LibrarySearchFilter> {
-  @override
-  LibrarySearchFilter build() => LibrarySearchFilter.all;
-  void update(LibrarySearchFilter value) => state = value;
-}
-
-final librarySearchFilterProvider =
-    NotifierProvider<LibrarySearchFilterNotifier, LibrarySearchFilter>(
-      LibrarySearchFilterNotifier.new,
-    );
-
 final likedSongsProvider = StreamProvider<List<LikedSongModel>>((ref) {
   final repo = ref.watch(libraryRepositoryProvider);
   return repo.watchAllLikedSongs();
@@ -84,20 +45,10 @@ final sortedLikedSongsProvider = Provider<AsyncValue<List<LikedSongModel>>>((
   ref,
 ) {
   final songsAsync = ref.watch(likedSongsProvider);
-  final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
   final sortType = ref.watch(librarySortTypeProvider);
 
   return songsAsync.whenData((songs) {
-    var list = List<LikedSongModel>.from(songs);
-    if (query.isNotEmpty) {
-      list = list
-          .where(
-            (s) =>
-                s.title.toLowerCase().contains(query) ||
-                s.artist.toLowerCase().contains(query),
-          )
-          .toList();
-    }
+    final list = List<LikedSongModel>.from(songs);
 
     switch (sortType) {
       case LibrarySortType.alphabetical:
@@ -127,16 +78,10 @@ final followedArtistsProvider = StreamProvider<List<FollowedArtistModel>>((
 final sortedFollowedArtistsProvider =
     Provider<AsyncValue<List<FollowedArtistModel>>>((ref) {
       final artistsAsync = ref.watch(followedArtistsProvider);
-      final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
       final sortType = ref.watch(librarySortTypeProvider);
 
       return artistsAsync.whenData((artists) {
-        var list = List<FollowedArtistModel>.from(artists);
-        if (query.isNotEmpty) {
-          list = list
-              .where((a) => a.name.toLowerCase().contains(query))
-              .toList();
-        }
+        final list = List<FollowedArtistModel>.from(artists);
 
         switch (sortType) {
           case LibrarySortType.alphabetical:
@@ -165,21 +110,10 @@ final sortedPlaylistsProvider = Provider<AsyncValue<List<LocalPlaylistModel>>>((
   ref,
 ) {
   final playlistsAsync = ref.watch(playlistsProvider);
-  final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
   final sortType = ref.watch(librarySortTypeProvider);
 
   return playlistsAsync.whenData((playlists) {
-    var list = List<LocalPlaylistModel>.from(playlists);
-    if (query.isNotEmpty) {
-      list = list
-          .where(
-            (p) =>
-                p.name.toLowerCase().contains(query) ||
-                (p.description != null &&
-                    p.description!.toLowerCase().contains(query)),
-          )
-          .toList();
-    }
+    final list = List<LocalPlaylistModel>.from(playlists);
 
     switch (sortType) {
       case LibrarySortType.alphabetical:
@@ -212,20 +146,10 @@ final libraryHistoryProvider = StreamProvider<List<HistoryModel>>((ref) {
 
 final sortedHistoryProvider = Provider<AsyncValue<List<HistoryModel>>>((ref) {
   final historyAsync = ref.watch(libraryHistoryProvider);
-  final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
   final sortType = ref.watch(librarySortTypeProvider);
 
   return historyAsync.whenData((history) {
-    var list = List<HistoryModel>.from(history);
-    if (query.isNotEmpty) {
-      list = list
-          .where(
-            (h) =>
-                h.title.toLowerCase().contains(query) ||
-                h.artist.toLowerCase().contains(query),
-          )
-          .toList();
-    }
+    final list = List<HistoryModel>.from(history);
 
     switch (sortType) {
       case LibrarySortType.alphabetical:
@@ -254,20 +178,10 @@ final sortedLikedAlbumsProvider = Provider<AsyncValue<List<LikedAlbumModel>>>((
   ref,
 ) {
   final albumsAsync = ref.watch(likedAlbumsProvider);
-  final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
   final sortType = ref.watch(librarySortTypeProvider);
 
   return albumsAsync.whenData((albums) {
-    var list = List<LikedAlbumModel>.from(albums);
-    if (query.isNotEmpty) {
-      list = list
-          .where(
-            (a) =>
-                a.name.toLowerCase().contains(query) ||
-                a.artistName.toLowerCase().contains(query),
-          )
-          .toList();
-    }
+    final list = List<LikedAlbumModel>.from(albums);
 
     switch (sortType) {
       case LibrarySortType.alphabetical:
@@ -295,16 +209,10 @@ final likedPlaylistsProvider = StreamProvider<List<LikedPlaylistModel>>((ref) {
 final sortedLikedPlaylistsProvider =
     Provider<AsyncValue<List<LikedPlaylistModel>>>((ref) {
       final playlistsAsync = ref.watch(likedPlaylistsProvider);
-      final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
       final sortType = ref.watch(librarySortTypeProvider);
 
       return playlistsAsync.whenData((playlists) {
-        var list = List<LikedPlaylistModel>.from(playlists);
-        if (query.isNotEmpty) {
-          list = list
-              .where((p) => p.name.toLowerCase().contains(query))
-              .toList();
-        }
+        final list = List<LikedPlaylistModel>.from(playlists);
 
         switch (sortType) {
           case LibrarySortType.alphabetical:
@@ -332,20 +240,10 @@ final likedPodcastsProvider = StreamProvider<List<LikedPodcastModel>>((ref) {
 final sortedLikedPodcastsProvider =
     Provider<AsyncValue<List<LikedPodcastModel>>>((ref) {
       final podcastsAsync = ref.watch(likedPodcastsProvider);
-      final query = ref.watch(librarySearchQueryProvider).trim().toLowerCase();
       final sortType = ref.watch(librarySortTypeProvider);
 
       return podcastsAsync.whenData((podcasts) {
-        var list = List<LikedPodcastModel>.from(podcasts);
-        if (query.isNotEmpty) {
-          list = list
-              .where(
-                (p) =>
-                    p.name.toLowerCase().contains(query) ||
-                    (p.authorName?.toLowerCase().contains(query) ?? false),
-              )
-              .toList();
-        }
+        final list = List<LikedPodcastModel>.from(podcasts);
 
         switch (sortType) {
           case LibrarySortType.alphabetical:

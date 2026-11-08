@@ -455,9 +455,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clear => 'Clear';
 
   @override
-  String get searchLibraryHint => 'Search in library...';
-
-  @override
   String get sortBy => 'Sort by';
 
   @override
@@ -710,6 +707,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get topResult => 'Top Result';
+
+  @override
+  String get yourLibrary => 'Your library';
 
   @override
   String get featuredTrack => 'Featured Track';

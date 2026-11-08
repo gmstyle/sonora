@@ -153,7 +153,7 @@ lib/
     │   └── widgets/                      # shared widgets (incl. ContextMenuSheet.showForPodcast/Episode)
     └── features/
         ├── home/                         # HomeScreen + 3 layouts + HomeSectionRenderer (podcast/episode cards)
-        ├── search/                       # SearchScreen + filter chips (songs/albums/…/podcasts/episodes/users)
+        ├── search/                       # SearchScreen: catalog results plus local library matches
         ├── explore/                      # ChartsScreen, MoodsScreen, MoodPlaylistsScreen, NewReleasesScreen
         ├── browse_section/               # BrowseSectionScreen (generic section browser)
         ├── artist/                       # ArtistScreen + stats row + description + albums/singles/videos show-all
@@ -638,7 +638,7 @@ Sonora monitors network state globally using `connectivity_plus` and Settings `o
   - Mid-session toggle ON: keeps the **current** track playing (even if streaming); cancels in-flight media-cache prefetch for other slots. On skip / engine auto-advance, `_enforceForcedOfflineAt` / `skipToQueueItem` always re-resolve via `resolveUrl` — only a library download may continue; otherwise playback **stops** (no hunting for a later download). Toggle OFF: resolve/proxy resume normally from the current queue position; no forced rebuild.
   - Android Auto `_isOffline()` ORs Settings `offlineMode` with physical disconnect.
   - `PlaylistOpenCoordinator.playNow` refuses to start if the initial engine URI is still a placeholder after resolve.
-- **Network CTA gating**: when `isOfflineProvider` is true, UI disables radio/download/cast/search submit/autoplay/related/sync entry points (context menus, CastButton, search field, queue autoplay, settings local-sync open, etc.). Local library actions (like/follow/subscribe, local playlists) stay enabled.
+- **Network CTA gating**: when `isOfflineProvider` is true, UI disables radio/download/cast/catalog search/autoplay/related/sync entry points (context menus, CastButton, queue autoplay, settings local-sync open, etc.). The Search field stays editable and still matches the local library. Like, follow, subscribe, and local playlists stay enabled.
 - **Status chips** (same surface language as `FeedbackToast`: `surfaceContainerHigh`, radius 20, role mark):
   - `OfflineBanner` in `AppShell`: top-right on all layouts (not in the wide sidebar). Manual offline → tap calls `setOfflineMode(false)`; physical offline is informational; connection restored auto-dismisses after 2 s.
   - Home offline card: role mark + `offlineModeActiveMessage` / `noConnectionActiveMessage`; when manual offline, also `disableOfflineMode`; always offers `goToDownloads`.

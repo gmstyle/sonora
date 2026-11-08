@@ -752,12 +752,6 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get clear;
 
-  /// No description provided for @searchLibraryHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Search in library...'**
-  String get searchLibraryHint;
-
   /// No description provided for @sortBy.
   ///
   /// In en, this message translates to:
@@ -1177,6 +1171,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Top Result'**
   String get topResult;
+
+  /// No description provided for @yourLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library'**
+  String get yourLibrary;
 
   /// No description provided for @featuredTrack.
   ///

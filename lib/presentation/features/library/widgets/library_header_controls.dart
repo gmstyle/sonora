@@ -28,112 +28,45 @@ class LibraryHeaderControls extends ConsumerStatefulWidget {
 }
 
 class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
-  late final TextEditingController _searchController;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController = TextEditingController(
-      text: ref.read(librarySearchQueryProvider),
-    );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final query = ref.watch(librarySearchQueryProvider);
     final isGridView = ref.watch(settingsProvider).isLibraryGridView;
     final activeTab = ref.watch(libraryActiveTabProvider);
 
-    ref.listen<String>(librarySearchQueryProvider, (prev, next) {
-      if (next != _searchController.text) {
-        _searchController.text = next;
-      }
-    });
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 🔍 Search Bar
-          SizedBox(
-            height: 44,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.searchLibraryHint,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          children: [
+            if (widget.railLayout)
+              Expanded(child: _buildSortButton(context, expandLabel: true))
+            else ...[
+              _buildSortButton(context),
+              const Spacer(),
+            ],
+            if (widget.showViewSwitcher)
+              IconButton(
+                icon: Icon(
+                  isGridView ? LucideIcons.list : LucideIcons.layoutGrid,
                 ),
-                filled: true,
-                fillColor: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
-                ),
-                prefixIcon: const Icon(LucideIcons.search, size: 20),
-                suffixIcon: query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(LucideIcons.x, size: 20),
-                        onPressed: () {
-                          ref
-                              .read(librarySearchQueryProvider.notifier)
-                              .update('');
-                        },
-                      )
-                    : null,
+                tooltip: isGridView
+                    ? AppLocalizations.of(context)!.viewList
+                    : AppLocalizations.of(context)!.viewGrid,
+                onPressed: () {
+                  ref
+                      .read(settingsProvider.notifier)
+                      .setLibraryGridView(!isGridView);
+                },
               ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              onChanged: (val) {
-                ref.read(librarySearchQueryProvider.notifier).update(val);
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          // ⇵ Sorting and View Switcher Row
-          SizedBox(
-            height: 48,
-            child: Row(
-              children: [
-                if (widget.railLayout)
-                  Expanded(child: _buildSortButton(context, expandLabel: true))
-                else ...[
-                  _buildSortButton(context),
-                  const Spacer(),
-                ],
-                if (widget.showViewSwitcher)
-                  IconButton(
-                    icon: Icon(
-                      isGridView ? LucideIcons.list : LucideIcons.layoutGrid,
-                    ),
-                    tooltip: isGridView
-                        ? AppLocalizations.of(context)!.viewList
-                        : AppLocalizations.of(context)!.viewGrid,
-                    onPressed: () {
-                      ref
-                          .read(settingsProvider.notifier)
-                          .setLibraryGridView(!isGridView);
-                    },
-                  ),
-                if (activeTab.showsClearHistory)
-                  IconButton(
-                    onPressed: () => _clearHistory(context),
-                    icon: const Icon(LucideIcons.trash),
-                    tooltip: AppLocalizations.of(context)!.clear,
-                  ),
-              ],
-            ),
-          ),
-        ],
+            if (activeTab.showsClearHistory)
+              IconButton(
+                onPressed: () => _clearHistory(context),
+                icon: const Icon(LucideIcons.trash),
+                tooltip: AppLocalizations.of(context)!.clear,
+              ),
+          ],
+        ),
       ),
     );
   }

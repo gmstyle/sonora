@@ -231,7 +231,6 @@
   "clearHistory": "Clear history",
   "clearHistoryConfirm": "Are you sure you want to clear all listening history?",
   "clear": "Clear",
-  "searchLibraryHint": "Search in library...",
   "sortBy": "Sort by",
   "recentlyAdded": "Recently added",
   "leastRecentlyAdded": "Least recently added",
@@ -359,6 +358,7 @@
   "noResults": "No results",
   "noResultsHint": "Try a different search term",
   "topResult": "Top Result",
+  "yourLibrary": "Your library",
   "featuredTrack": "Featured Track",
   "featuredArtist": "Featured Artist",
 

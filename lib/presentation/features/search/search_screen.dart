@@ -10,7 +10,6 @@ import '../../../core/extensions/stat_format.dart';
 
 import '../../providers/player_provider.dart';
 import '../../providers/connectivity_provider.dart';
-import '../../providers/action_feedback_provider.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/artist_card.dart';
@@ -26,7 +25,10 @@ import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import 'providers/ask_search_provider.dart';
+import 'providers/library_matches_provider.dart';
 import 'providers/search_provider.dart';
+import 'library_match_section.dart';
+import 'library_matches.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../providers/on_device_llm_provider.dart';
 import '../../shared/widgets/facet_wide_scaffold.dart';
@@ -59,20 +61,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Future<void> _submitSearch(String query) async {
+    final trimmed = query.trim();
+    _searchController.text = trimmed;
+    _searchController.selection = TextSelection.fromPosition(
+      TextPosition(offset: trimmed.length),
+    );
+    ref.read(searchQueryProvider.notifier).update(trimmed);
+    _focusNode.unfocus();
     if (ref.read(isOfflineProvider)) {
-      final l10n = AppLocalizations.of(context)!;
-      ref
-          .read(actionFeedbackProvider.notifier)
-          .report(l10n.noConnectionMessage, kind: FeedbackKind.error);
+      ref.read(askInterpretationProvider.notifier).clear();
+      await ref.read(activeSearchQueryProvider.notifier).submit(trimmed);
       return;
     }
-    _searchController.text = query;
-    _searchController.selection = TextSelection.fromPosition(
-      TextPosition(offset: query.length),
-    );
-    ref.read(searchQueryProvider.notifier).update(query);
-    _focusNode.unfocus();
-    await ref.read(askSearchSubmitProvider.notifier).submit(query);
+    await ref.read(askSearchSubmitProvider.notifier).submit(trimmed);
   }
 
   void _clearSearch() {
@@ -87,7 +88,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final query = ref.watch(searchQueryProvider);
     final activeQuery = ref.watch(activeSearchQueryProvider);
-    final isOffline = ref.watch(isOfflineProvider);
     final l10n = AppLocalizations.of(context);
 
     final askEnabled = ref.watch(askModeEnabledProvider);
@@ -105,11 +105,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             controller: _searchController,
             focusNode: _focusNode,
             autofocus: false,
-            readOnly: isOffline || asking,
+            readOnly: asking,
             decoration: InputDecoration(
-              hintText: isOffline
-                  ? (l10n?.noConnectionMessage ?? l10n?.searchHint)
-                  : askEnabled && modelReady
+              hintText: askEnabled && modelReady
                   ? l10n!.askSearchHint
                   : l10n!.searchHint,
               border: OutlineInputBorder(
@@ -147,8 +145,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   : null,
             ),
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: isOffline || asking ? null : _onSearchChanged,
-            onSubmitted: isOffline || asking ? null : _submitSearch,
+            onChanged: asking ? null : _onSearchChanged,
+            onSubmitted: asking ? null : _submitSearch,
           ),
         ),
         actions: [
@@ -216,25 +214,49 @@ class _Suggestions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final suggestionsAsync = ref.watch(searchSuggestionsProvider);
+    final matches = ref.watch(libraryMatchesProvider(query));
+    final library = matches.isEmpty
+        ? null
+        : LibraryMatchSection(
+            matches: matches,
+            filter: 0,
+            cap: kLibraryMatchPreviewLimit,
+            inset: _suggestionInset(context),
+          );
+
     return suggestionsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
+      loading: () => _suggestionList(library),
+      error: (_, _) => _suggestionList(library),
       data: (suggestions) {
-        if (suggestions.isEmpty) return const SizedBox.shrink();
-        return ListView.builder(
-          itemCount: suggestions.length,
-          itemBuilder: (context, index) {
-            final suggestion = suggestions[index];
-            return SearchSuggestionTile(
-              query: suggestion,
-              isHistory: false,
-              onTap: () => onTapSuggestion(suggestion),
-              onInsert: () => onInsertSuggestion(suggestion),
-            );
-          },
+        if (suggestions.isEmpty && library == null) {
+          return const SizedBox.shrink();
+        }
+        return ListView(
+          children: [
+            ?library,
+            for (final suggestion in suggestions)
+              SearchSuggestionTile(
+                query: suggestion,
+                isHistory: false,
+                onTap: () => onTapSuggestion(suggestion),
+                onInsert: () => onInsertSuggestion(suggestion),
+              ),
+          ],
         );
       },
     );
+  }
+
+  Widget _suggestionList(Widget? library) {
+    if (library == null) return const SizedBox.shrink();
+    return ListView(children: [library]);
+  }
+
+  double _suggestionInset(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (width >= kExpandedBreakpoint) return 0;
+    if (width >= kCompactBreakpoint) return kTabletContentPadding;
+    return 16;
   }
 }
 
@@ -679,6 +701,21 @@ class _SearchResults extends ConsumerWidget {
     );
   }
 
+  Widget? _libraryBlock(BuildContext context, WidgetRef ref, int filter) {
+    final query = ref.watch(activeSearchQueryProvider);
+    final matches = ref.watch(libraryMatchesProvider(query));
+    if (matches.isEmptyFor(filter)) return null;
+    return LibraryMatchSection(
+      matches: matches,
+      filter: filter,
+      cap: filter == 0 ? kLibraryMatchPreviewLimit : null,
+      inset: _contentInset(context),
+      onSeeAll: filter == 0
+          ? (index) => ref.read(searchFilterProvider.notifier).update(index)
+          : null,
+    );
+  }
+
   Widget _buildResultsContent(
     BuildContext context,
     WidgetRef ref, {
@@ -686,18 +723,37 @@ class _SearchResults extends ConsumerWidget {
     required AsyncValue<List<SearchResult>> resultsAsync,
     required bool denseAllSections,
   }) {
+    final library = _libraryBlock(context, ref, filter);
+    final bottom = MediaQuery.of(context).padding.bottom + 16;
     return resultsAsync.when(
-      loading: () => ListView.builder(
-        itemCount: 6,
-        itemBuilder: (_, _) =>
+      loading: () => ListView(
+        padding: EdgeInsets.only(bottom: bottom),
+        children: [
+          ?library,
+          for (var i = 0; i < 6; i++)
             const ShimmerLoading(variant: ShimmerVariant.tile),
+        ],
       ),
-      error: (e, _) => ErrorRetryWidget(
-        message: AppLocalizations.of(context)!.searchFailed,
-        onRetry: () => ref.invalidate(searchResultsProvider),
-      ),
+      error: (e, _) {
+        if (library != null) {
+          return ListView(
+            padding: EdgeInsets.only(bottom: bottom),
+            children: [library],
+          );
+        }
+        return ErrorRetryWidget(
+          message: AppLocalizations.of(context)!.searchFailed,
+          onRetry: () => ref.invalidate(searchResultsProvider),
+        );
+      },
       data: (results) {
         if (results.isEmpty) {
+          if (library != null) {
+            return ListView(
+              padding: EdgeInsets.only(bottom: bottom),
+              children: [library],
+            );
+          }
           return EmptyStateWidget(
             icon: LucideIcons.searchX,
             title: AppLocalizations.of(context)!.noResults,
@@ -706,14 +762,13 @@ class _SearchResults extends ConsumerWidget {
         }
 
         if (filter > 0) {
-          return ListView.builder(
-            padding: EdgeInsets.only(
-              top: 4,
-              bottom: MediaQuery.of(context).padding.bottom + 16,
-            ),
-            itemCount: results.length,
-            itemBuilder: (context, index) =>
-                _buildResultItem(context, ref, results[index]),
+          return ListView(
+            padding: EdgeInsets.only(top: 4, bottom: bottom),
+            children: [
+              ?library,
+              for (final result in results)
+                _buildResultItem(context, ref, result),
+            ],
           );
         }
 
@@ -731,6 +786,7 @@ class _SearchResults extends ConsumerWidget {
             bottom: MediaQuery.of(context).padding.bottom + 24,
           ),
           children: [
+            ?library,
             _buildSectionHeader(
               context,
               title: AppLocalizations.of(context)!.topResult,
