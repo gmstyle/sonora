@@ -17,6 +17,7 @@ import '../../../providers/library_notifier.dart';
 import '../../../providers/play_local_playlist_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
+import '../../../shared/widgets/entity_banner_header.dart';
 import '../../../shared/widgets/entity_wide_body.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/playlist_cover_collage.dart';
@@ -189,7 +190,7 @@ class _PlaylistDetailContentState
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final double expandedHeight = widget.isTablet || widget.isWide
-        ? 360.0
+        ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
         : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
@@ -257,24 +258,41 @@ class _PlaylistDetailContentState
             isTablet: widget.isTablet,
             isWide: widget.isWide,
             contentWidth: widget.contentWidth,
+            actions: widget.isTablet || widget.isWide
+                ? _LocalPlaylistActions(
+                    playlist: freshPlaylist,
+                    entryVideoIds: entries.map((e) => e.videoId).toList(),
+                    onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
+                    onShuffle: entries.isNotEmpty ? () => _shufflePlay() : null,
+                    onAddToQueue: entries.isNotEmpty
+                        ? () => _addToQueue()
+                        : null,
+                    onDownload:
+                        entries.isNotEmpty && !ref.watch(isOfflineProvider)
+                        ? () => _downloadAll()
+                        : null,
+                    onUpdated: widget.onUpdated,
+                  )
+                : null,
           ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(hPad, 16, hPad, 0),
-              child: _LocalPlaylistActions(
-                playlist: freshPlaylist,
-                entryVideoIds: entries.map((e) => e.videoId).toList(),
-                onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
-                onShuffle: entries.isNotEmpty ? () => _shufflePlay() : null,
-                onAddToQueue: entries.isNotEmpty ? () => _addToQueue() : null,
-                onDownload: entries.isNotEmpty && !ref.watch(isOfflineProvider)
-                    ? () => _downloadAll()
-                    : null,
-                onUpdated: widget.onUpdated,
+          if (!widget.isTablet && !widget.isWide)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(hPad, 16, hPad, 0),
+                child: _LocalPlaylistActions(
+                  playlist: freshPlaylist,
+                  entryVideoIds: entries.map((e) => e.videoId).toList(),
+                  onPlayAll: entries.isNotEmpty ? () => _playAll() : null,
+                  onShuffle: entries.isNotEmpty ? () => _shufflePlay() : null,
+                  onAddToQueue: entries.isNotEmpty ? () => _addToQueue() : null,
+                  onDownload:
+                      entries.isNotEmpty && !ref.watch(isOfflineProvider)
+                      ? () => _downloadAll()
+                      : null,
+                  onUpdated: widget.onUpdated,
+                ),
               ),
             ),
-          ),
 
           ...entriesAsync.when<List<Widget>>(
             loading: () => [
@@ -641,6 +659,7 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
   final bool isTablet;
   final bool isWide;
   final double contentWidth;
+  final Widget? actions;
 
   const _LocalPlaylistSliverAppBar({
     required this.playlist,
@@ -650,6 +669,7 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
     required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
+    this.actions,
   });
 
   @override
@@ -662,7 +682,9 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
     );
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide ? 360 : 340,
+      expandedHeight: isTablet || isWide
+          ? EntityBannerHeader.expandedHeight(wide: isWide)
+          : 340,
       pinned: true,
       iconTheme: IconThemeData(color: iconColor),
       foregroundColor: iconColor,
@@ -686,15 +708,6 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
       ),
     );
   }
-
-  Widget _placeholder(BuildContext context) => Container(
-    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-    child: Icon(
-      LucideIcons.listVideo,
-      size: 80,
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-    ),
-  );
 
   Widget _buildHeaderBackground(BuildContext context) {
     final isTabletOrWide = isTablet || isWide;
@@ -847,150 +860,56 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
       );
     }
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (thumbnailUrls.isNotEmpty)
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Opacity(
-                opacity: 0.35,
-                child: PlaylistCoverCollage(
-                  thumbnailUrls: thumbnailUrls,
-                  borderRadius: 0,
+    final l10n = AppLocalizations.of(context)!;
+    return EntityBannerHeader(
+      eyebrow: l10n.entityKindPlaylist,
+      title: playlist.name,
+      meta: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (playlist.isLinked) ...[
+            LinkedPlaylistBadge(playlist: playlist),
+            if (playlist.sourceKind == 'spotify') ...[
+              const SizedBox(height: 6),
+              Text(
+                l10n.playlistSyncSpotifyRateLimitHint,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.labelMuted,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
+            ],
+            const SizedBox(height: 6),
+          ] else if (playlist.description != null &&
+              playlist.description!.isNotEmpty) ...[
+            Text(
+              playlist.description!,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colors.titleSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          )
-        else
-          Positioned.fill(
-            child: Container(color: theme.colorScheme.surfaceContainerHighest),
+            const SizedBox(height: 6),
+          ],
+          Text(
+            l10n.videoCount(entryCount),
+            style: theme.textTheme.bodyMedium?.copyWith(color: colors.subtitle),
           ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.45),
-                theme.colorScheme.surface.withValues(alpha: 0.95),
-              ],
-            ),
-          ),
-        ),
-        _artworkTopScrim(context),
-        Positioned(
-          top: 80 + MediaQuery.of(context).padding.top,
-          bottom: 24,
-          left: horizontalPad,
-          right: horizontalPad,
-          child: Opacity(
-            opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (thumbnailUrls.isNotEmpty)
-                  Hero(
-                    tag: 'local_playlist_art_${playlist.id}',
-                    child: Container(
-                      width: isWide ? 190 : 150,
-                      height: isWide ? 190 : 150,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: PlaylistCoverCollage(
-                          thumbnailUrls: thumbnailUrls,
-                          borderRadius: 16,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  _placeholder(context),
-                const SizedBox(width: 28),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        playlist.isLinked
-                            ? AppLocalizations.of(context)!.linkedBadge
-                                  .toUpperCase()
-                            : 'PLAYLIST',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.5,
-                          color: colors.labelMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        playlist.name,
-                        style:
-                            (isWide
-                                    ? theme.textTheme.headlineLarge
-                                    : theme.textTheme.headlineMedium)
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.titlePrimary,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 10),
-                      if (playlist.isLinked) ...[
-                        LinkedPlaylistBadge(playlist: playlist),
-                        if (playlist.sourceKind == 'spotify') ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            AppLocalizations.of(context)!
-                                .playlistSyncSpotifyRateLimitHint,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colors.labelMuted,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: 6),
-                      ] else if (playlist.description != null &&
-                          playlist.description!.isNotEmpty) ...[
-                        Text(
-                          playlist.description!,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colors.titleSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-                      Text(
-                        AppLocalizations.of(context)!.videoCount(entryCount),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.subtitle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
+      imageUrl: thumbnailUrls.isEmpty ? null : thumbnailUrls.first,
+      art: thumbnailUrls.isEmpty
+          ? null
+          : PlaylistCoverCollage(thumbnailUrls: thumbnailUrls, borderRadius: 0),
+      heroTag: 'local_playlist_art_${playlist.id}',
+      placeholderIcon: LucideIcons.listMusic,
+      scrollProgress: scrollProgress,
+      wide: isWide,
+      contentWidth: contentWidth,
+      actions: actions,
     );
   }
 }

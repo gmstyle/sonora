@@ -1,6 +1,3 @@
-import 'dart:ui';
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +35,7 @@ import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/artist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
@@ -45,9 +43,8 @@ import '../../../core/utils/playable_tracks.dart';
 
 class ArtistScreen extends ConsumerWidget {
   final String artistId;
-  final String? heroTag;
 
-  const ArtistScreen({super.key, required this.artistId, this.heroTag});
+  const ArtistScreen({super.key, required this.artistId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,19 +54,16 @@ class ArtistScreen extends ConsumerWidget {
         if (isCompactShell(size)) {
           return _ArtistMobileLayout(
             artistId: artistId,
-            heroTag: heroTag,
             contentWidth: constraints.maxWidth,
           );
         } else if (size.width < kExpandedBreakpoint) {
           return _ArtistTabletLayout(
             artistId: artistId,
-            heroTag: heroTag,
             contentWidth: constraints.maxWidth,
           );
         } else {
           return _ArtistWideLayout(
             artistId: artistId,
-            heroTag: heroTag,
             contentWidth: constraints.maxWidth,
           );
         }
@@ -80,13 +74,11 @@ class ArtistScreen extends ConsumerWidget {
 
 class _ArtistMobileLayout extends ConsumerWidget {
   final String artistId;
-  final String? heroTag;
   final double contentWidth;
 
   const _ArtistMobileLayout({
     required this.artistId,
     required this.contentWidth,
-    this.heroTag,
   });
 
   @override
@@ -101,24 +93,19 @@ class _ArtistMobileLayout extends ConsumerWidget {
           onRetry: () => ref.invalidate(artistProvider(artistId)),
         ),
       ),
-      data: (artist) => _ArtistContent(
-        artist: artist,
-        heroTag: heroTag,
-        contentWidth: contentWidth,
-      ),
+      data: (artist) =>
+          _ArtistContent(artist: artist, contentWidth: contentWidth),
     );
   }
 }
 
 class _ArtistTabletLayout extends ConsumerWidget {
   final String artistId;
-  final String? heroTag;
   final double contentWidth;
 
   const _ArtistTabletLayout({
     required this.artistId,
     required this.contentWidth,
-    this.heroTag,
   });
 
   @override
@@ -136,7 +123,6 @@ class _ArtistTabletLayout extends ConsumerWidget {
       data: (artist) => _ArtistContent(
         artist: artist,
         isTablet: true,
-        heroTag: heroTag,
         contentWidth: contentWidth,
       ),
     );
@@ -145,14 +131,9 @@ class _ArtistTabletLayout extends ConsumerWidget {
 
 class _ArtistWideLayout extends ConsumerWidget {
   final String artistId;
-  final String? heroTag;
   final double contentWidth;
 
-  const _ArtistWideLayout({
-    required this.artistId,
-    required this.contentWidth,
-    this.heroTag,
-  });
+  const _ArtistWideLayout({required this.artistId, required this.contentWidth});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -169,7 +150,6 @@ class _ArtistWideLayout extends ConsumerWidget {
       data: (artist) => _ArtistContent(
         artist: artist,
         isWide: true,
-        heroTag: heroTag,
         contentWidth: contentWidth,
       ),
     );
@@ -181,14 +161,12 @@ class _ArtistContent extends ConsumerStatefulWidget {
   final bool isTablet;
   final bool isWide;
   final double contentWidth;
-  final String? heroTag;
 
   const _ArtistContent({
     required this.artist,
     required this.contentWidth,
     this.isTablet = false,
     this.isWide = false,
-    this.heroTag,
   });
 
   @override
@@ -233,6 +211,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
     if (!_scrollController.hasClients) return;
     final double expandedHeight = _artistHeaderHeight(
       tall: widget.isTablet || widget.isWide,
+      wide: widget.isWide,
     );
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
@@ -266,7 +245,9 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
             isWide: widget.isWide,
             contentWidth: widget.contentWidth,
             scrollProgress: _scrollProgress,
-            heroTag: widget.heroTag,
+            actions: widget.isTablet || widget.isWide
+                ? _ArtistActions(artist: artist)
+                : null,
           ),
           SliverPadding(
             padding: entityBodyPadding(
@@ -301,7 +282,8 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ArtistActions(artist: artist),
+                      if (!widget.isTablet && !widget.isWide)
+                        _ArtistActions(artist: artist),
                       if (about != null) ...[const SizedBox(height: 16), about],
                       const SizedBox(height: 24),
                       if (split)
@@ -696,7 +678,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
   final bool isWide;
   final double contentWidth;
   final double scrollProgress;
-  final String? heroTag;
+  final Widget? actions;
 
   const _ArtistSliverAppBar({
     required this.artist,
@@ -704,7 +686,7 @@ class _ArtistSliverAppBar extends StatelessWidget {
     this.isTablet = false,
     this.isWide = false,
     required this.scrollProgress,
-    this.heroTag,
+    this.actions,
   });
 
   @override
@@ -721,7 +703,10 @@ class _ArtistSliverAppBar extends StatelessWidget {
         : null;
 
     return SliverAppBar(
-      expandedHeight: _artistHeaderHeight(tall: isTablet || isWide),
+      expandedHeight: _artistHeaderHeight(
+        tall: isTablet || isWide,
+        wide: isWide,
+      ),
       pinned: true,
       iconTheme: IconThemeData(color: iconColor),
       foregroundColor: iconColor,
@@ -749,269 +734,22 @@ class _ArtistSliverAppBar extends StatelessWidget {
   }
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
-    final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(
-      contentWidth,
-      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
-    );
-    final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
 
-    if (!isTabletOrWide) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          if (thumbnailUrl != null)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: CachedNetworkImage(
-                    imageUrl: thumbnailUrl,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            )
-          else
-            Positioned.fill(
-              child: Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.45),
-                  theme.colorScheme.surface.withValues(alpha: 0.95),
-                ],
-              ),
-            ),
-          ),
-          _artworkTopScrim(context),
-          Positioned(
-            top: 56 + MediaQuery.of(context).padding.top,
-            bottom: 12,
-            left: horizontalPad,
-            right: horizontalPad,
-            child: Opacity(
-              opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (thumbnailUrl != null)
-                    Hero(
-                      tag: heroTag ?? 'artist_art_${artist.artistId}',
-                      child: Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: thumbnailUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => Container(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              child: Icon(
-                                LucideIcons.user,
-                                size: 60,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: theme.colorScheme.surfaceContainerHighest,
-                      ),
-                      child: Icon(
-                        LucideIcons.user,
-                        size: 60,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  Text(
-                    artist.name,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colors.titlePrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 10),
-                  _ArtistStatRow(
-                    artist: artist,
-                    centered: true,
-                    valueColor: colors.titleSecondary,
-                    labelColor: colors.labelMuted,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (thumbnailUrl != null)
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Opacity(
-                opacity: 0.35,
-                child: CachedNetworkImage(
-                  imageUrl: thumbnailUrl,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          )
-        else
-          Positioned.fill(
-            child: Container(color: theme.colorScheme.surfaceContainerHighest),
-          ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.45),
-                theme.colorScheme.surface.withValues(alpha: 0.95),
-              ],
-            ),
-          ),
-        ),
-        _artworkTopScrim(context),
-        Positioned(
-          top: 80 + MediaQuery.of(context).padding.top,
-          bottom: 24,
-          left: horizontalPad,
-          right: horizontalPad,
-          child: Opacity(
-            opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (thumbnailUrl != null)
-                  Hero(
-                    tag: heroTag ?? 'artist_art_${artist.artistId}',
-                    child: Container(
-                      width: isWide ? 190 : 150,
-                      height: isWide ? 190 : 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: thumbnailUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, _, _) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    width: isWide ? 190 : 150,
-                    height: isWide ? 190 : 150,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                    ),
-                    child: Icon(
-                      LucideIcons.user,
-                      size: 64,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                const SizedBox(width: 28),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            LucideIcons.badgeCheck,
-                            size: 16,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'ARTIST',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2.5,
-                              color: colors.labelMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        artist.name,
-                        style:
-                            (isWide
-                                    ? theme.textTheme.headlineLarge
-                                    : theme.textTheme.headlineMedium)
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.titlePrimary,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      _ArtistStatRow(
-                        artist: artist,
-                        valueColor: colors.titleSecondary,
-                        labelColor: colors.labelMuted,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return EntityBannerHeader(
+      layout: EntityBannerLayout.photo,
+      title: artist.name,
+      meta: _ArtistStatRow(
+        artist: artist,
+        valueColor: colors.titleSecondary,
+        labelColor: colors.labelMuted,
+      ),
+      imageUrl: thumbnailUrl,
+      placeholderIcon: LucideIcons.user,
+      scrollProgress: scrollProgress,
+      wide: isWide,
+      contentWidth: contentWidth,
+      actions: actions,
     );
   }
 }
@@ -1244,11 +982,15 @@ class _FollowButton extends ConsumerWidget {
   }
 }
 
-double _artistHeaderHeight({required bool tall}) => tall ? 400 : 380;
+double _artistHeaderHeight({required bool tall, required bool wide}) =>
+    EntityBannerHeader.expandedHeight(
+      wide: wide,
+      hasActions: tall,
+      layout: EntityBannerLayout.photo,
+    );
 
 class _ArtistStatRow extends StatelessWidget {
   final ArtistFull artist;
-  final bool centered;
   final Color valueColor;
   final Color labelColor;
 
@@ -1256,7 +998,6 @@ class _ArtistStatRow extends StatelessWidget {
     required this.artist,
     required this.valueColor,
     required this.labelColor,
-    this.centered = false,
   });
 
   @override
@@ -1273,20 +1014,14 @@ class _ArtistStatRow extends StatelessWidget {
     if (stats.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
-    final align = centered
-        ? CrossAxisAlignment.center
-        : CrossAxisAlignment.start;
 
     return Row(
-      mainAxisAlignment: centered
-          ? MainAxisAlignment.center
-          : MainAxisAlignment.start,
       children: [
         for (var i = 0; i < stats.length; i++) ...[
           if (i > 0) const SizedBox(width: 16),
           Flexible(
             child: Column(
-              crossAxisAlignment: align,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   stats[i].value,
@@ -1512,19 +1247,4 @@ class _ArtistShimmer extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Top dark scrim for artwork headers — reads colours from [PlayerColors].
-Widget _artworkTopScrim(BuildContext context) {
-  final pc = PlayerColors.of(context);
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        stops: const [0.0, 0.20, 0.32],
-        colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
-      ),
-    ),
-  );
 }

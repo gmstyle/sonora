@@ -85,7 +85,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                       key: state.pageKey,
                       child: ArtistScreen(
                         artistId: state.pathParameters['artistId']!,
-                        heroTag: state.uri.queryParameters['heroTag'],
                       ),
                     ),
                     routes: [

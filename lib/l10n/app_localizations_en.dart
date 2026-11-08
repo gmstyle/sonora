@@ -2286,4 +2286,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get episodeShort => 'EP';
+
+  @override
+  String get entityKindAlbum => 'Album';
+
+  @override
+  String get entityKindPlaylist => 'Playlist';
+
+  @override
+  String get entityKindPodcast => 'Podcast';
+
+  @override
+  String get entityKindEpisode => 'Episode';
+
+  @override
+  String get entityKindProfile => 'Profile';
 }

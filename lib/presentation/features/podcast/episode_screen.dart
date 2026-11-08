@@ -19,6 +19,7 @@ import '../../providers/player_provider.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
@@ -178,7 +179,7 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final double expandedHeight = widget.isTablet || widget.isWide
-        ? 360.0
+        ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
         : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
@@ -213,7 +214,8 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _EpisodeActions(episode: widget.episode),
+                  if (!widget.isTablet && !widget.isWide)
+                    _EpisodeActions(episode: widget.episode),
                   const SizedBox(height: 16),
                   EntityWideBody(
                     wide: widget.isWide,
@@ -262,7 +264,9 @@ class _EpisodeSliverAppBar extends StatelessWidget {
         : null;
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide ? 360 : 340,
+      expandedHeight: isTablet || isWide
+          ? EntityBannerHeader.expandedHeight(wide: isWide)
+          : 340,
       pinned: true,
       iconTheme: IconThemeData(color: iconColor),
       foregroundColor: iconColor,
@@ -299,7 +303,6 @@ class _EpisodeSliverAppBar extends StatelessWidget {
     );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
-    final l10n = AppLocalizations.of(context)!;
 
     if (!isTabletOrWide) {
       return Stack(
@@ -427,132 +430,41 @@ class _EpisodeSliverAppBar extends StatelessWidget {
       );
     }
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (thumbnailUrl != null)
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Opacity(
-                opacity: 0.35,
-                child: CachedNetworkImage(
-                  imageUrl: thumbnailUrl,
-                  fit: BoxFit.cover,
-                ),
+    final l10n = AppLocalizations.of(context)!;
+    return EntityBannerHeader(
+      eyebrow: l10n.entityKindEpisode,
+      title: episode.name,
+      meta: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (episode.podcastName != null &&
+              episode.podcastName!.isNotEmpty) ...[
+            Text(
+              episode.podcastName!,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colors.titleSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+          ],
+          if (episode.date != null)
+            Text(
+              episode.date!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.subtitle,
               ),
             ),
-          )
-        else
-          Positioned.fill(
-            child: Container(color: theme.colorScheme.surfaceContainerHighest),
-          ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.45),
-                theme.colorScheme.surface.withValues(alpha: 0.95),
-              ],
-            ),
-          ),
-        ),
-        _artworkTopScrim(context),
-        Positioned(
-          top: 80 + MediaQuery.of(context).padding.top,
-          bottom: 24,
-          left: horizontalPad,
-          right: horizontalPad,
-          child: Opacity(
-            opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (thumbnailUrl != null)
-                  Container(
-                    width: isWide ? 190 : 150,
-                    height: isWide ? 190 : 150,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: CachedNetworkImage(
-                        imageUrl: thumbnailUrl,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => _placeholder(context),
-                      ),
-                    ),
-                  )
-                else
-                  _placeholder(context),
-                const SizedBox(width: 28),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        l10n.episode.toUpperCase(),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.5,
-                          color: colors.labelMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        episode.name,
-                        style:
-                            (isWide
-                                    ? theme.textTheme.headlineLarge
-                                    : theme.textTheme.headlineMedium)
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.titlePrimary,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (episode.podcastName != null &&
-                          episode.podcastName!.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          episode.podcastName!,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colors.titleSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      if (episode.date != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          episode.date!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colors.subtitle,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
+      imageUrl: thumbnailUrl,
+      placeholderIcon: LucideIcons.headphones,
+      scrollProgress: scrollProgress,
+      wide: isWide,
+      contentWidth: contentWidth,
+      actions: _EpisodeActions(episode: episode),
     );
   }
 

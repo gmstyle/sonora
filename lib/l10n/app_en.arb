@@ -1038,5 +1038,10 @@
   "nextEpisode": "Next episode",
   "noUpcomingEpisodes": "No upcoming episodes",
   "moreFromPodcast": "More from this podcast",
-  "episodeShort": "EP"
+  "episodeShort": "EP",
+  "entityKindAlbum": "Album",
+  "entityKindPlaylist": "Playlist",
+  "entityKindPodcast": "Podcast",
+  "entityKindEpisode": "Episode",
+  "entityKindProfile": "Profile"
 }

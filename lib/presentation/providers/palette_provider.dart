@@ -10,11 +10,16 @@ class PaletteData {
 }
 
 class PaletteNotifier extends Notifier<Map<String, PaletteData>> {
+  final Set<String> _pending = {};
+
   @override
-  Map<String, PaletteData> build() => {};
+  Map<String, PaletteData> build() {
+    _pending.clear();
+    return {};
+  }
 
   Future<void> extractPalette(String id, String imageUrl) async {
-    if (state.containsKey(id)) return;
+    if (state.containsKey(id) || !_pending.add(id)) return;
 
     try {
       final paletteGenerator = await PaletteGeneratorMaster.fromImageProvider(
@@ -42,6 +47,8 @@ class PaletteNotifier extends Notifier<Map<String, PaletteData>> {
         ...state,
         id: const PaletteData(dominantColor: Colors.black87, isDark: true),
       };
+    } finally {
+      _pending.remove(id);
     }
   }
 }

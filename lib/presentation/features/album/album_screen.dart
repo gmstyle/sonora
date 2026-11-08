@@ -28,6 +28,7 @@ import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
+import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/album_provider.dart';
 import '../../../core/utils/artists_utils.dart';
@@ -209,7 +210,7 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final double expandedHeight = widget.isTablet || widget.isWide
-        ? 360.0
+        ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
         : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
@@ -251,7 +252,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
         controller: _scrollController,
         slivers: [
           SliverAppBar(
-            expandedHeight: widget.isTablet || widget.isWide ? 360 : 340,
+            expandedHeight: widget.isTablet || widget.isWide
+                ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
+                : 340,
             pinned: true,
             iconTheme: IconThemeData(color: iconColor),
             foregroundColor: iconColor,
@@ -304,7 +307,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _AlbumActions(album: widget.album),
+                  if (!widget.isTablet && !widget.isWide)
+                    _AlbumActions(album: widget.album),
                   if (widget.album.description != null &&
                       widget.album.description!.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -592,159 +596,46 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
 
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
-    final isWide = widget.isWide;
+    final l10n = AppLocalizations.of(context)!;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (thumbnailUrl != null)
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Opacity(
-                opacity: 0.35,
-                child: CachedNetworkImage(
-                  imageUrl: thumbnailUrl,
-                  fit: BoxFit.cover,
-                ),
-              ),
+    return EntityBannerHeader(
+      eyebrow: l10n.entityKindAlbum,
+      title: widget.album.name,
+      explicit: widget.album.isExplicit,
+      meta: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            displayArtists(widget.album.artists),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: colors.titleSecondary,
             ),
-          )
-        else
-          Positioned.fill(
-            child: Container(color: theme.colorScheme.surfaceContainerHighest),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.45),
-                theme.colorScheme.surface.withValues(alpha: 0.95),
-              ],
-            ),
+          const SizedBox(height: 6),
+          Text(
+            [
+              if (widget.album.year != null) '${widget.album.year}',
+              l10n.songCount(widget.album.songs.length),
+              _formatDuration(totalDuration),
+              if (unavailableCount > 0)
+                l10n.tracksUnavailable(unavailableCount),
+            ].join(' · '),
+            style: theme.textTheme.bodyMedium?.copyWith(color: colors.subtitle),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-        ),
-        _artworkTopScrim(context),
-        Positioned(
-          top: 80 + MediaQuery.of(context).padding.top,
-          bottom: 24,
-          left: horizontalPad,
-          right: horizontalPad,
-          child: Opacity(
-            opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (thumbnailUrl != null)
-                  Hero(
-                    tag: widget.heroTag ?? 'album_art_${widget.album.albumId}',
-                    child: Container(
-                      width: isWide ? 190 : 150,
-                      height: isWide ? 190 : 150,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          SonoraPulseTokens.radiusMedia,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          SonoraPulseTokens.radiusMedia,
-                        ),
-                        child: CachedNetworkImage(
-                          imageUrl: thumbnailUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, _, _) =>
-                              _placeholderThumbnail(context),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  _placeholderThumbnail(context),
-                const SizedBox(width: 28),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'ALBUM',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2.5,
-                          color: colors.labelMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            if (widget.album.isExplicit)
-                              const WidgetSpan(
-                                child: Padding(
-                                  padding: EdgeInsets.only(right: 6.0),
-                                  child: ExplicitBadge(),
-                                ),
-                                alignment: PlaceholderAlignment.middle,
-                              ),
-                            TextSpan(text: widget.album.name),
-                          ],
-                        ),
-                        style:
-                            (isWide
-                                    ? theme.textTheme.headlineLarge
-                                    : theme.textTheme.headlineMedium)
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.titlePrimary,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        displayArtists(widget.album.artists),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colors.titleSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        [
-                          if (widget.album.year != null) '${widget.album.year}',
-                          AppLocalizations.of(context)!
-                              .songCount(widget.album.songs.length),
-                          _formatDuration(totalDuration),
-                          if (unavailableCount > 0)
-                            AppLocalizations.of(context)!
-                                .tracksUnavailable(unavailableCount),
-                        ].join(' · '),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.subtitle,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
+      imageUrl: thumbnailUrl,
+      heroTag: widget.heroTag ?? 'album_art_${widget.album.albumId}',
+      placeholderIcon: LucideIcons.disc,
+      scrollProgress: _scrollProgress,
+      wide: widget.isWide,
+      contentWidth: widget.contentWidth,
+      actions: _AlbumActions(album: widget.album),
     );
   }
 

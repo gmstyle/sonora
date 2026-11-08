@@ -3930,6 +3930,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'EP'**
   String get episodeShort;
+
+  /// No description provided for @entityKindAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Album'**
+  String get entityKindAlbum;
+
+  /// No description provided for @entityKindPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get entityKindPlaylist;
+
+  /// No description provided for @entityKindPodcast.
+  ///
+  /// In en, this message translates to:
+  /// **'Podcast'**
+  String get entityKindPodcast;
+
+  /// No description provided for @entityKindEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode'**
+  String get entityKindEpisode;
+
+  /// No description provided for @entityKindProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get entityKindProfile;
 }
 
 class _AppLocalizationsDelegate

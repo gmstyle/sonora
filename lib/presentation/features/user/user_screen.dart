@@ -15,6 +15,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
+import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/playlist_tile.dart';
@@ -177,7 +178,10 @@ class _UserContentState extends ConsumerState<_UserContent> {
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final double expandedHeight = widget.isTablet || widget.isWide
-        ? 360.0
+        ? EntityBannerHeader.expandedHeight(
+            wide: widget.isWide,
+            hasActions: false,
+          )
         : 340.0;
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
@@ -402,7 +406,9 @@ class _UserSliverAppBar extends ConsumerWidget {
     final thumbnailUrl = _userThumbnailUrl(user);
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide ? 360 : 340,
+      expandedHeight: isTablet || isWide
+          ? EntityBannerHeader.expandedHeight(wide: isWide, hasActions: false)
+          : 340,
       pinned: true,
       iconTheme: IconThemeData(color: iconColor),
       foregroundColor: iconColor,
@@ -534,92 +540,27 @@ class _UserSliverAppBar extends ConsumerWidget {
       );
     }
 
-    final avatarSize = isWide ? 190.0 : 150.0;
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (thumbnailUrl != null)
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Opacity(
-                opacity: 0.35,
-                child: CachedNetworkImage(
-                  imageUrl: thumbnailUrl,
-                  fit: BoxFit.cover,
-                ),
+    final avatarUrl = thumbnailUrl;
+    return EntityBannerHeader(
+      eyebrow: l10n.entityKindProfile,
+      title: user.name,
+      meta: user.subscriberCount != null && user.subscriberCount!.isNotEmpty
+          ? Text(
+              '${user.subscriberCount} ${l10n.subscribers}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colors.titleSecondary,
               ),
-            ),
-          )
-        else
-          Positioned.fill(
-            child: Container(color: theme.colorScheme.surfaceContainerHighest),
-          ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.45),
-                theme.colorScheme.surface.withValues(alpha: 0.95),
-              ],
-            ),
-          ),
-        ),
-        _artworkTopScrim(context),
-        Positioned(
-          top: 80 + MediaQuery.of(context).padding.top,
-          bottom: 24,
-          left: horizontalPad,
-          right: horizontalPad,
-          child: Opacity(
-            opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _UserAvatar(thumbnailUrl: thumbnailUrl, size: avatarSize),
-                const SizedBox(width: 28),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        user.name,
-                        style:
-                            (isWide
-                                    ? theme.textTheme.headlineLarge
-                                    : theme.textTheme.headlineMedium)
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colors.titlePrimary,
-                                ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (user.subscriberCount != null &&
-                          user.subscriberCount!.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          '${user.subscriberCount} ${l10n.subscribers}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colors.titleSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : null,
+      imageUrl: avatarUrl,
+      shape: EntityBannerArtShape.circle,
+      placeholderIcon: LucideIcons.user,
+      scrollProgress: scrollProgress,
+      wide: isWide,
+      contentWidth: contentWidth,
     );
   }
 }
