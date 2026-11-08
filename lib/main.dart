@@ -3,7 +3,6 @@ import 'dart:io' show Platform;
 
 import 'package:app_links/app_links.dart';
 import 'package:audio_service/audio_service.dart';
-import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -91,8 +90,6 @@ Future<void> main() async {
         handleDownloadNotificationResponseBackground,
   );
 
-  await YTMusic().initialize();
-
   final prefs = await SharedPreferences.getInstance();
   await migrateLegacySettingsPrefs(prefs);
 
@@ -101,6 +98,12 @@ Future<void> main() async {
   // tree is rendered.
   final db = createAppDatabase();
   final ytmusicDs = YtmusicDatasource();
+  // First init wins. A bare YTMusic().initialize() would lock HL to the
+  // English homepage and ignore the saved country and content language.
+  await ytmusicDs.initialize(
+    gl: prefs.getString(kGlKey) ?? 'US',
+    hl: prefs.getString(kHlKey) ?? 'en',
+  );
   final streamDs = StreamDatasource(
     getDefaultAudioQuality: () =>
         MediaQuality.fromStorage(readStreamAudioQualityPref(prefs)),

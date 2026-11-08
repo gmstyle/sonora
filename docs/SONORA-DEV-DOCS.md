@@ -992,8 +992,8 @@ Produces:
 |---|---|---|---|---|
 | `themeMode` | int (ThemeMode enum) | 0 (system) | yes | ThemeProvider |
 | `useAmoled` | bool | false | yes | ThemeProvider |
-| `gl` | String | "US" | yes | YTMusic reinitialize + invalidate home |
-| `hl` | String | "en" | yes | YTMusic reinitialize + invalidate home |
+| `gl` | String | "US" | yes | Applied when YTMusic initializes at startup; reinitialize + invalidate home on change |
+| `hl` | String | "en" | yes | Applied when YTMusic initializes at startup; reinitialize + invalidate home on change |
 | `crossfadeSeconds` | int | 2 | yes | `PlaybackVolumeController` crossfade |
 | `restoreQueueOnStartup` | bool | true | yes | Restore at boot |
 | `autoPlayUpNext` | bool | true | yes | PlayerNotifier auto-play |
