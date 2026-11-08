@@ -123,18 +123,20 @@ class LyricsView extends ConsumerWidget {
         if (text == null || text.isEmpty) {
           return _buildNotAvailable(context);
         }
-        final pc = PlayerColors.of(context);
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              height: 1.8,
-              color: pc.titleSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: _lyricHorizontalPad(constraints.maxWidth),
+                vertical: 32,
+              ),
+              child: Text(
+                text,
+                style: _lyricStyle(context, constraints.maxWidth),
+                textAlign: TextAlign.start,
+              ),
+            );
+          },
         );
       },
     );
@@ -252,7 +254,6 @@ class _TranslatedBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final pc = PlayerColors.of(context);
     final locale = Localizations.localeOf(context).languageCode;
 
     if (state.phase == LyricsTranslationPhase.loading) {
@@ -277,17 +278,20 @@ class _TranslatedBody extends ConsumerWidget {
     }
 
     final text = state.translation ?? '';
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          height: 1.8,
-          color: pc.titleSecondary,
-          fontWeight: FontWeight.w500,
-        ),
-        textAlign: TextAlign.center,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: _lyricHorizontalPad(constraints.maxWidth),
+            vertical: 32,
+          ),
+          child: Text(
+            text,
+            style: _lyricStyle(context, constraints.maxWidth),
+            textAlign: TextAlign.start,
+          ),
+        );
+      },
     );
   }
 }
@@ -356,7 +360,7 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
           context,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeOutCubic,
-          alignment: 0.5,
+          alignment: 0.38,
         );
       }
     });
@@ -375,37 +379,81 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
       }
     }
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(
-        vertical: MediaQuery.of(context).size.height * 0.35,
-      ),
-      child: Column(
-        children: List.generate(data.length, (index) {
-          final line = data[index];
-          final isActive = index == activeIndex;
-          final isPast = index < activeIndex;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final viewport = constraints.maxHeight;
+        final pad = viewport.isFinite ? viewport * 0.36 : 120.0;
+        final size = _lyricSize(width);
 
-          return Container(
-            key: _keys[index],
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              style: Theme.of(context).textTheme.headlineSmall!.copyWith(
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                color: isActive
-                    ? PlayerColors.of(context).titlePrimary
-                    : isPast
-                    ? PlayerColors.of(context).labelMuted
-                    : PlayerColors.of(context).subtitle,
-              ),
-              child: Text(line.lyricLine ?? '', textAlign: TextAlign.center),
-            ),
-          );
-        }),
-      ),
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            _lyricHorizontalPad(width),
+            pad,
+            _lyricHorizontalPad(width),
+            pad,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(data.length, (index) {
+              final line = data[index];
+              final text = line.lyricLine?.trim() ?? '';
+              final isActive = index == activeIndex;
+              final isPast = index < activeIndex;
+
+              if (text.isEmpty) {
+                return SizedBox(key: _keys[index], height: size * 0.7);
+              }
+
+              return Padding(
+                key: _keys[index],
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 300),
+                  style: _lyricStyle(
+                    context,
+                    width,
+                    active: isActive,
+                    past: isPast,
+                  ),
+                  child: Text(text, textAlign: TextAlign.start),
+                ),
+              );
+            }),
+          ),
+        );
+      },
     );
   }
+}
+
+double _lyricSize(double width) {
+  if (width >= 1200) return 48;
+  if (width >= 600) return 36;
+  return 30;
+}
+
+double _lyricHorizontalPad(double width) => width >= 1200 ? 64 : 8;
+
+TextStyle _lyricStyle(
+  BuildContext context,
+  double width, {
+  bool active = false,
+  bool past = false,
+}) {
+  final colors = PlayerColors.of(context);
+  final family = Theme.of(context).textTheme.displaySmall;
+  return (family ?? const TextStyle()).copyWith(
+    fontSize: _lyricSize(width),
+    height: 1.18,
+    fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+    color: active
+        ? colors.titlePrimary
+        : past
+        ? colors.labelMuted
+        : colors.subtitle,
+  );
 }
 
 class _LyricsLoading extends StatelessWidget {
