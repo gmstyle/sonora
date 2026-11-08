@@ -8,6 +8,8 @@ import '../features/library/library_screen.dart';
 import '../features/downloads/downloads_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/settings/settings_shared.dart';
+import '../features/artist/artist_featured_screen.dart';
+import '../features/artist/artist_songs_screen.dart';
 import '../features/artist/artist_releases_screen.dart';
 import '../features/artist/artist_screen.dart';
 import '../features/artist/artist_videos_screen.dart';
@@ -125,6 +127,34 @@ final routerProvider = Provider<GoRouter>((ref) {
                           return _slideUpPage(
                             key: state.pageKey,
                             child: ArtistVideosScreen(
+                              artistId: artistId,
+                              artistName: name,
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'songs',
+                        pageBuilder: (context, state) {
+                          final artistId = state.pathParameters['artistId']!;
+                          final name = state.uri.queryParameters['name'];
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: ArtistSongsScreen(
+                              artistId: artistId,
+                              artistName: name,
+                            ),
+                          );
+                        },
+                      ),
+                      GoRoute(
+                        path: 'featured',
+                        pageBuilder: (context, state) {
+                          final artistId = state.pathParameters['artistId']!;
+                          final name = state.uri.queryParameters['name'];
+                          return _slideUpPage(
+                            key: state.pageKey,
+                            child: ArtistFeaturedScreen(
                               artistId: artistId,
                               artistName: name,
                             ),

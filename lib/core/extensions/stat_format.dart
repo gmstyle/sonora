@@ -33,6 +33,21 @@ String? stripYtLabel(String? value) {
       .nullIfEmpty;
 }
 
+/// Leading count from a YouTube stat line.
+///
+/// "7.28M subscribers" and "46.6M monthly listeners" both become the figure.
+/// Returns null when the text does not start with a count, so a subtitle
+/// fragment such as "&" is not shown as a stat.
+String? statFigure(String? value) {
+  final stripped = stripYtLabel(value);
+  if (stripped == null) return null;
+  final first = stripped.split(RegExp(r'\s+')).first;
+  if (RegExp(r'^[\d.,]+(?:[KMB])?$', caseSensitive: false).hasMatch(first)) {
+    return first;
+  }
+  return null;
+}
+
 extension StringX on String {
   String? get nullIfEmpty => isEmpty ? null : this;
 }

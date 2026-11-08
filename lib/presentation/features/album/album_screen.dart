@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -304,14 +305,14 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _AlbumActions(album: widget.album),
+                  if (widget.album.description != null &&
+                      widget.album.description!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ExpandableText(text: widget.album.description!),
+                  ],
                   const SizedBox(height: 16),
                   EntityWideBody(
                     wide: widget.isWide,
-                    about:
-                        widget.album.description != null &&
-                            widget.album.description!.isNotEmpty
-                        ? ExpandableText(text: widget.album.description!)
-                        : null,
                     list: _buildTracklist(context, ref),
                     related: uniqueRelatedReleases.isEmpty
                         ? null
@@ -364,7 +365,6 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         ? widget.album.songs[i].thumbnails.last.url
                         : null,
                     duration: widget.album.songs[i].duration,
-                    albumName: widget.album.name,
                     albumId: widget.album.albumId,
                     artistId:
                         primaryArtistId(widget.album.songs[i].artists) ??
@@ -491,7 +491,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         width: 140,
                         height: 140,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                            SonoraPulseTokens.radiusMedia,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.35),
@@ -501,7 +503,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                           ],
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                            SonoraPulseTokens.radiusMedia,
+                          ),
                           child: CachedNetworkImage(
                             imageUrl: thumbnailUrl,
                             fit: BoxFit.cover,
@@ -516,7 +520,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       width: 140,
                       height: 140,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          SonoraPulseTokens.radiusMedia,
+                        ),
                         color: theme.colorScheme.surfaceContainerHighest,
                       ),
                       child: Icon(
@@ -562,7 +568,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                   Text(
                     [
                       if (widget.album.year != null) '${widget.album.year}',
-                      '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
+                      AppLocalizations.of(context)!
+                          .songCount(widget.album.songs.length),
                       _formatDuration(totalDuration),
                       if (unavailableCount > 0)
                         AppLocalizations.of(context)!
@@ -572,6 +579,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       color: PlayerColors.of(context).labelMuted,
                     ),
                     textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -635,7 +644,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       width: isWide ? 190 : 150,
                       height: isWide ? 190 : 150,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(
+                          SonoraPulseTokens.radiusMedia,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.4),
@@ -645,7 +656,9 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(
+                          SonoraPulseTokens.radiusMedia,
+                        ),
                         child: CachedNetworkImage(
                           imageUrl: thumbnailUrl,
                           fit: BoxFit.cover,
@@ -711,7 +724,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       Text(
                         [
                           if (widget.album.year != null) '${widget.album.year}',
-                          '${widget.album.songs.length} ${widget.album.songs.length == 1 ? 'song' : 'songs'}',
+                          AppLocalizations.of(context)!
+                              .songCount(widget.album.songs.length),
                           _formatDuration(totalDuration),
                           if (unavailableCount > 0)
                             AppLocalizations.of(context)!
@@ -720,6 +734,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.subtitle,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

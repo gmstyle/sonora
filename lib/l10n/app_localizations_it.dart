@@ -113,6 +113,29 @@ class AppLocalizationsIt extends AppLocalizations {
   String get subscribers => 'iscritti';
 
   @override
+  String get monthlyListeners => 'Ascoltatori mensili';
+
+  @override
+  String get totalViews => 'Visualizzazioni totali';
+
+  @override
+  String get latestRelease => 'Ultima uscita';
+
+  @override
+  String get discography => 'Discografia';
+
+  @override
+  String songCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brani',
+      one: '1 brano',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get views => 'visualizzazioni';
 
   @override
@@ -151,6 +174,17 @@ class AppLocalizationsIt extends AppLocalizations {
       locale: localeName,
       other: '$count album',
       one: '1 album',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playlistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlist',
+      one: '1 playlist',
     );
     return '$_temp0';
   }

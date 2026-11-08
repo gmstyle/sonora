@@ -51,6 +51,16 @@
   "artistRadio": "Artist Radio",
   "failedToStartArtistRadio": "Failed to start artist radio: {error}",
   "subscribers": "subscribers",
+  "monthlyListeners": "Monthly listeners",
+  "totalViews": "Total views",
+  "latestRelease": "Latest release",
+  "discography": "Discography",
+  "songCount": "{count, plural, =1{1 song} other{{count} songs}}",
+  "@songCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "views": "views",
   "description": "Description",
   "@failedToStartArtistRadio": {
@@ -74,6 +84,12 @@
     }
   },
   "albumCount": "{count, plural, =1{1 album} other{{count} albums}}",
+  "playlistCount": "{count, plural, =1{1 playlist} other{{count} playlists}}",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "@albumCount": {
     "placeholders": {
       "count": {"type": "int"}

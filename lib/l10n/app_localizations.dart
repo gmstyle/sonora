@@ -290,6 +290,36 @@ abstract class AppLocalizations {
   /// **'subscribers'**
   String get subscribers;
 
+  /// No description provided for @monthlyListeners.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly listeners'**
+  String get monthlyListeners;
+
+  /// No description provided for @totalViews.
+  ///
+  /// In en, this message translates to:
+  /// **'Total views'**
+  String get totalViews;
+
+  /// No description provided for @latestRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest release'**
+  String get latestRelease;
+
+  /// No description provided for @discography.
+  ///
+  /// In en, this message translates to:
+  /// **'Discography'**
+  String get discography;
+
+  /// No description provided for @songCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 song} other{{count} songs}}'**
+  String songCount(int count);
+
   /// No description provided for @views.
   ///
   /// In en, this message translates to:
@@ -343,6 +373,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 album} other{{count} albums}}'**
   String albumCount(int count);
+
+  /// No description provided for @playlistCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 playlist} other{{count} playlists}}'**
+  String playlistCount(int count);
 
   /// No description provided for @singleCount.
   ///
