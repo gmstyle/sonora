@@ -35,18 +35,18 @@ class SmartMixesTab extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        const SliverToBoxAdapter(
-          child: MomentMixAskSection(horizontalPadding: 16, topPadding: 12),
-        ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Text(
               AppLocalizations.of(context)!.yourMixes,
               style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
+        ),
+        const SliverToBoxAdapter(
+          child: MomentMixAskSection(horizontalPadding: 16),
         ),
         if (isGridView)
           SliverPadding(

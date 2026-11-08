@@ -39,7 +39,7 @@ class HomeQuickRow extends ConsumerWidget {
 
     final mixesWidget = HomeYourMixes(
       horizontalPadding: childPad,
-      showHeader: !sideBySide,
+      showHeader: true,
       compactGrid: true,
     );
 

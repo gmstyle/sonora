@@ -1006,42 +1006,48 @@ class HomeYourMixes extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final header = showHeader
+        ? Padding(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              12,
+              horizontalPadding,
+              6,
+            ),
+            child: Text(
+              l10n.yourMixes,
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          )
+        : null;
+    final ask = MomentMixAskSection(horizontalPadding: horizontalPadding);
+
     if (compactGrid) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MomentMixAskSection(horizontalPadding: horizontalPadding),
+          ?header,
+          ask,
           Padding(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (showHeader) ...[
-                  Text(
-                    AppLocalizations.of(context)!.yourMixes,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                for (var i = 0; i < 3; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SmartMixCard(
+                          type: SmartMixType.values[i],
+                          cardWidth: constraints.maxWidth,
+                        );
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 8),
                 ],
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var i = 0; i < 3; i++) ...[
-                      if (i > 0) const SizedBox(width: 8),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return SmartMixCard(
-                              type: SmartMixType.values[i],
-                              cardWidth: constraints.maxWidth,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
               ],
             ),
           ),
@@ -1054,21 +1060,17 @@ class HomeYourMixes extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MomentMixAskSection(horizontalPadding: horizontalPadding),
+        ?header,
+        ask,
         _HomeCarouselSection(
-          title: AppLocalizations.of(context)!.yourMixes,
+          title: l10n.yourMixes,
           height: height,
           horizontalPadding: horizontalPadding,
+          showHeader: false,
           itemCount: 3,
           itemBuilder: (context, index) {
             final type = SmartMixType.values[index];
             return SmartMixCard(type: type, cardWidth: cardWidth);
-          },
-          onShowAll: () {
-            ref
-                .read(libraryActiveTabProvider.notifier)
-                .update(LibraryTab.mixes);
-            context.go('/library');
           },
         ),
       ],

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet_mobile.dart';
 import '../../providers/player_provider.dart';
@@ -35,7 +36,6 @@ class MobileShell extends ConsumerWidget {
     final showPlayer = isPlayerActive && !isKeyboardVisible;
 
     const double navBarIntrinsic = 64.0;
-    const double miniBarHeight = PlayerSheetMobile.height;
 
     final mq = MediaQuery.of(context);
     final childMq = mq.copyWith(
@@ -67,37 +67,35 @@ class MobileShell extends ConsumerWidget {
 
     final hasDockBanners = ref.watch(dockBannersVisibleProvider);
 
-    Widget dockBody = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (showPlayer) ...[
-          const PlayerSheetMobile(),
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: cs.primaryContainer.withValues(alpha: 0.35),
-          ),
-        ],
-        navBar,
-      ],
-    );
-
-    dockBody = ClipRRect(
+    final navChrome = ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       child: reduceEffects
-          ? ColoredBox(color: cs.surfaceContainerHigh, child: dockBody)
+          ? ColoredBox(color: cs.surfaceContainerHigh, child: navBar)
           : BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: ColoredBox(
                 color: cs.surfaceContainerHigh.withValues(alpha: 0.88),
-                child: dockBody,
+                child: navBar,
               ),
             ),
     );
 
     final dock = Column(
       mainAxisSize: MainAxisSize.min,
-      children: [if (hasDockBanners) const DockStatusBanners(), dockBody],
+      children: [
+        if (hasDockBanners) const DockStatusBanners(),
+        if (showPlayer)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              kCompactContentPadding,
+              0,
+              kCompactContentPadding,
+              PlayerSheetMobile.dockGap,
+            ),
+            child: PlayerSheetMobile(),
+          ),
+        navChrome,
+      ],
     );
 
     return Scaffold(
@@ -105,7 +103,9 @@ class MobileShell extends ConsumerWidget {
       body: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.only(bottom: showPlayer ? miniBarHeight : 0.0),
+            padding: EdgeInsets.only(
+              bottom: showPlayer ? PlayerSheetMobile.reservedHeight : 0.0,
+            ),
             child: MediaQuery(
               data: childMq,
               child: BranchFadeTransition(navigationShell: navigationShell),

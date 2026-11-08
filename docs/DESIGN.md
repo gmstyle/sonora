@@ -107,7 +107,7 @@ Plus Jakarta Sans via `google_fonts`, on every text role.
 
 - **Wide:** sidebar 72px collapsed / 240px expanded. No now-playing block in the sidebar. Mini player is an 80px edge-to-edge shelf under sidebar and content. Art sits on the left of that shelf.
 - **Tablet:** collapsed rail, same full-width 80px shelf.
-- **Mobile:** mini player stays fused with the bottom navigation. Restyle uses Pulse cyan and pill geometry. Navigation bar height is 64.
+- **Mobile:** mini player is a floating card above the bottom navigation. The card uses the media radius, a 95% surface with blur, and the brand gradient on the 2px seek strip. Navigation bar height is 64.
 
 `reduceEffects` drops blur and heavy motion. `useVinylStyle` still controls the circular art stage. Like stays Material `favorite`. Other chrome icons stay Lucide.
 
@@ -133,7 +133,7 @@ Shell family selection matches `AppShell`: compact when `shortestSide < 600` (`i
 
 ### Mobile
 
-`MobileShell` fuses the mini player (56) with the `NavigationBar` (64) into one dock. There is no master rail and no utility or related rail. The four families stay stacked and chip-driven.
+`MobileShell` keeps the `NavigationBar` (64) as the dock. The mini player is a separate card above it: 60 tall, inset `kCompactContentPadding`, with an 8 gap above the bar. Light fill is `surfaceContainerLowest` at 95%. Dark fill is `surfaceContainerLow` at 95% with `darkBorder`. Artwork is 44 at radius 12. Like and the gradient play control sit on the right. There is no master rail and no utility or related rail. The four families stay stacked and chip-driven.
 
 | Rule | Mobile (`shortestSide` &lt; 600) |
 |------|--------------------------------|

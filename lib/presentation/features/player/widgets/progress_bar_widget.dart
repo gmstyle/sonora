@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/theme/player_colors.dart';
+import 'package:sonora/core/theme/sonora_pulse_tokens.dart';
 
 /// Vertical clearance reserved for a compact mini-dock seek strip.
 ///
@@ -112,17 +113,21 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget>
       animation: _scrub,
       builder: (context, child) {
         final thumb = ui.lerpDouble(restThumb, activeThumb, _scrub.value)!;
+        final accent =
+            PlayerColors.maybeOf(context)?.accent ?? cs.primaryContainer;
         return CustomPaint(
           size: Size.fromHeight(barHeight),
           painter: _SeekTrackPainter(
             progress: progress,
-            color: PlayerColors.maybeOf(context)?.accent ?? cs.primaryContainer,
+            color: accent,
             trackColor: cs.onSurface.withValues(alpha: 0.18),
             trackHeight: trackHeight,
             thumbRadius: thumb,
-            thumbFill:
-                PlayerColors.maybeOf(context)?.accent ?? cs.primaryContainer,
+            thumbFill: accent,
             alignToTop: alignTrackToTop,
+            activeGradient: widget.density == ProgressBarDensity.compact
+                ? SonoraPulseTokens.brandSpectrumHorizontal
+                : null,
           ),
         );
       },
@@ -251,6 +256,7 @@ class _SeekTrackPainter extends CustomPainter {
   final double thumbRadius;
   final Color thumbFill;
   final bool alignToTop;
+  final Gradient? activeGradient;
 
   _SeekTrackPainter({
     required this.progress,
@@ -260,6 +266,7 @@ class _SeekTrackPainter extends CustomPainter {
     required this.thumbRadius,
     required this.thumbFill,
     this.alignToTop = false,
+    this.activeGradient,
   });
 
   @override
@@ -286,15 +293,19 @@ class _SeekTrackPainter extends CustomPainter {
     canvas.drawLine(Offset(left, y), Offset(right, y), trackPaint);
 
     if (progress > 0 && span > 0) {
-      canvas.drawLine(
-        Offset(left, y),
-        Offset(playX, y),
-        Paint()
-          ..color = color
-          ..strokeWidth = trackHeight
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke,
-      );
+      final active = Paint()
+        ..strokeWidth = trackHeight
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      final gradient = activeGradient;
+      if (gradient != null) {
+        active.shader = gradient.createShader(
+          Rect.fromLTWH(left, y - trackHeight / 2, span, trackHeight),
+        );
+      } else {
+        active.color = color;
+      }
+      canvas.drawLine(Offset(left, y), Offset(playX, y), active);
     }
 
     if (thumbRadius > 0.5) {
@@ -315,6 +326,7 @@ class _SeekTrackPainter extends CustomPainter {
         trackHeight != oldDelegate.trackHeight ||
         thumbRadius != oldDelegate.thumbRadius ||
         thumbFill != oldDelegate.thumbFill ||
-        alignToTop != oldDelegate.alignToTop;
+        alignToTop != oldDelegate.alignToTop ||
+        activeGradient != oldDelegate.activeGradient;
   }
 }

@@ -110,7 +110,7 @@ Mobile uses the same families without rails: pad `kCompactContentPadding` (16), 
 
 Shell routes are the indexed stack in `router.dart`: Home `/`, Search `/search`, Library `/library`, Downloads `/downloads`. Settings is a sibling `GoRoute` on the root navigator, opened with `context.push`, not a fifth tab. Sub-routes (artist, album, playlist, podcast, episode, user, charts, moods) hang off the current branch. The player is an overlay above the shell, not a route. Do not add `/player`.
 
-Mobile fuses the mini player with the `NavigationBar` into one dock. Tablet and wide use a full-width mini shelf (`kMiniPlayerShelfHeight`, 80) under the rail or sidebar and the content. Artwork, title, artist, album, and like sit on the left of that shelf. Artist, album, and podcast taps on that metadata open the catalog screen. There is no now-playing block in the nav chrome.
+Mobile floats a mini-player card above the `NavigationBar` (60 tall, inset 16, 8 gap). Tablet and wide use a full-width mini shelf (`kMiniPlayerShelfHeight`, 80) under the rail or sidebar and the content. Artwork, title, artist, album, and like sit on the left of that shelf. Artist, album, and podcast taps on that metadata open the catalog screen. There is no now-playing block in the nav chrome.
 
 ### Detail headers and menus
 

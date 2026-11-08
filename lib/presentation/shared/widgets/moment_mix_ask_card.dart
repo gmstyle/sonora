@@ -13,10 +13,10 @@ import '../../providers/on_device_llm_provider.dart';
 import 'hover_play_button.dart';
 import 'scale_button.dart';
 
-/// Ask → Mix for this moment entry + result card.
+/// Ask field and result for a moment mix.
 ///
-/// Hidden when the Ask model is not installed. Shared by Home Your mixes and
-/// Library Smart mixes.
+/// Hidden when the Ask model is not installed. The parent section supplies
+/// the "Your mixes" heading; this widget does not open a second section.
 class MomentMixAskSection extends ConsumerStatefulWidget {
   const MomentMixAskSection({
     super.key,
@@ -108,11 +108,6 @@ class _MomentMixAskSectionState extends ConsumerState<MomentMixAskSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.mixForThisMoment,
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
           Text(
             l10n.mixForThisMomentHint,
             style: textTheme.bodySmall?.copyWith(

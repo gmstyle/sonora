@@ -7,11 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../domain/models/queue_track.dart';
-import '../../../domain/models/library_models.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../providers/library_notifier.dart';
 import '../../providers/player_provider.dart';
-import '../../shared/widgets/detail_affinity_button.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/vinyl_artwork.dart';
@@ -21,8 +18,10 @@ import '../../providers/settings_provider.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
+import 'player_sheet_mobile.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/cast_button.dart';
+import 'widgets/player_shared_widgets.dart';
 import 'widgets/progress_bar_widget.dart';
 
 class MiniPlayerContent extends ConsumerWidget {
@@ -55,119 +54,11 @@ class MiniPlayerContent extends ConsumerWidget {
     final window = MediaQuery.sizeOf(context);
 
     if (isCompactShell(window)) {
-      return _mobileLayout(context, ref, isSwitching);
+      return const PlayerSheetMobile();
     } else if (isTabletShell(window)) {
       return _tabletLayout(context, ref, isSwitching);
     }
     return _desktopLayout(context, ref, isSwitching);
-  }
-
-  // ── Mobile Layout (<600px) ──────────────────────────────────────
-
-  Widget _mobileLayout(BuildContext context, WidgetRef ref, bool isSwitching) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final track = QueueTrack.fromMediaItem(currentSong);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: isSwitching ? null : onTap,
-      onHorizontalDragEnd: (details) {
-        if (isSwitching) return;
-        if (details.primaryVelocity == null) return;
-        if (details.primaryVelocity! < -250) {
-          HapticFeedback.lightImpact();
-          onSkipNext?.call();
-        } else if (details.primaryVelocity! > 250) {
-          HapticFeedback.lightImpact();
-          onSkipPrevious?.call();
-        }
-      },
-      child: Stack(
-        children: [
-          _glassBar(
-            cs: cs,
-            ref: ref,
-            child: isSwitching
-                ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
-                : Padding(
-                    padding: const EdgeInsets.only(
-                      top: kMiniPlayerSeekClearance,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(width: 12),
-                        _artwork(size: 52, radius: 8, cs: cs, ref: ref),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      track.title,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(height: 1.15),
-                                      maxLines: 1,
-                                    ),
-                                  ),
-                                  if (track.isExplicit)
-                                    const ExplicitBadge(
-                                      leading: SizedBox(width: 6),
-                                    ),
-                                  if (track.isVideo)
-                                    const VideoBadge(
-                                      leading: SizedBox(width: 6),
-                                    ),
-                                ],
-                              ),
-                              Text(
-                                track.artist ?? '',
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                  height: 1.15,
-                                ),
-                                maxLines: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                        _playPauseButton(cs),
-                        _iconButton(
-                          icon: LucideIcons.skipForward,
-                          color: cs.onSurfaceVariant,
-                          onPressed: onSkipNext,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                    ),
-                  ),
-          ),
-          if (!isSwitching)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: kMiniPlayerSeekClearance,
-              child: ProgressBarWidget(
-                position: playerState.position,
-                duration: playerState.duration,
-                disabled: playerState.isRestoring || isSwitching,
-                isPlaying: playerState.isPlaying,
-                density: ProgressBarDensity.compact,
-                onSeek: onSeek,
-              ),
-            ),
-        ],
-      ),
-    );
   }
 
   // ── Tablet and wide shelf (≥600px) ──────────────────────────────
@@ -209,9 +100,6 @@ class MiniPlayerContent extends ConsumerWidget {
         }
       },
       child: _glassBar(
-        cs: cs,
-        ref: ref,
-        paintedByParent: true,
         child: isSwitching
             ? const ShimmerLoading(variant: ShimmerVariant.miniPlayer)
             : Row(
@@ -229,7 +117,7 @@ class MiniPlayerContent extends ConsumerWidget {
                         ref: ref,
                       ),
                       onOpenPlayer: isSwitching ? null : onTap,
-                      like: _likeButton(context, ref, cs),
+                      like: MiniPlayerAffinityButton(song: currentSong),
                     ),
                   ),
                   Expanded(
@@ -363,35 +251,9 @@ class MiniPlayerContent extends ConsumerWidget {
 
   // ── Shared Widgets ──────────────────────────────────────────────
 
-  /// Colour and blur live on [PlayerSheet] for the shelf. This only sets the
-  /// height. The mobile layout still paints its own surface.
-  Widget _glassBar({
-    required ColorScheme cs,
-    required Widget child,
-    required WidgetRef ref,
-    bool paintedByParent = false,
-  }) {
-    if (paintedByParent) {
-      return SizedBox(height: kMiniPlayerShelfHeight, child: child);
-    }
-    final reduceEffects = ref.watch(
-      settingsProvider.select((s) => s.reduceEffects),
-    );
-    return Container(
-      height: kMiniPlayerShelfHeight,
-      decoration: BoxDecoration(
-        color: reduceEffects
-            ? cs.surfaceContainerHigh
-            : cs.surfaceContainerHigh.withValues(alpha: 0.82),
-        border: Border(
-          top: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.35),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: child,
-    );
+  /// Shelf height. Colour and blur live on [PlayerSheet].
+  Widget _glassBar({required Widget child}) {
+    return SizedBox(height: kMiniPlayerShelfHeight, child: child);
   }
 
   Widget _artwork({
@@ -498,145 +360,6 @@ class MiniPlayerContent extends ConsumerWidget {
         minimumSize: const Size(36, 36),
         padding: EdgeInsets.zero,
       ),
-    );
-  }
-
-  Widget _likeButton(BuildContext context, WidgetRef ref, ColorScheme cs) {
-    final track = QueueTrack.fromMediaItem(currentSong);
-    final videoId = track.videoId;
-    final title = track.title;
-    final artist = track.artist ?? AppLocalizations.of(context)!.unknownArtist;
-    final thumbnailUrl = track.artUri?.toString();
-
-    if (track.isEpisode) {
-      final likedAsync = ref.watch(likedEpisodeProvider(videoId));
-      return likedAsync.when(
-        loading: () => _iconButton(
-          icon: DetailAffinityButton.bookmarkIdle,
-          color: cs.onSurfaceVariant,
-          onPressed: null,
-          size: 20,
-        ),
-        error: (_, _) => _iconButton(
-          icon: DetailAffinityButton.bookmarkIdle,
-          color: cs.onSurfaceVariant,
-          onPressed: null,
-          size: 20,
-        ),
-        data: (liked) {
-          final isLiked = liked != null;
-          return IconButton(
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder: (child, anim) => ScaleTransition(
-                scale: anim,
-                child: FadeTransition(opacity: anim, child: child),
-              ),
-              child: Icon(
-                isLiked
-                    ? DetailAffinityButton.bookmarkActive
-                    : DetailAffinityButton.bookmarkIdle,
-                key: ValueKey(isLiked),
-                color: isLiked ? cs.primary : cs.onSurfaceVariant,
-                size: 20,
-              ),
-            ),
-            color: isLiked ? cs.primary : cs.onSurfaceVariant,
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              ref
-                  .read(libraryNotifierProvider.notifier)
-                  .toggleLikedEpisode(
-                    LikedEpisodeModel(
-                      videoId: videoId,
-                      name: title,
-                      podcastName: artist,
-                      podcastBrowseId: track.podcastBrowseId,
-                      thumbnailUrl: thumbnailUrl,
-                      durationSec: currentSong.duration?.inSeconds,
-                      date: track.publishDate,
-                      addedAt: DateTime.now(),
-                    ),
-                  );
-            },
-            style: IconButton.styleFrom(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              minimumSize: const Size(36, 36),
-              padding: EdgeInsets.zero,
-            ),
-          );
-        },
-      );
-    }
-
-    final likedAsync = ref.watch(likedSongProvider(videoId));
-    return likedAsync.when(
-      loading: () => _iconButton(
-        icon: DetailAffinityButton.likeIdle,
-        color: cs.onSurfaceVariant,
-        onPressed: null,
-        size: 20,
-      ),
-      error: (_, _) => _iconButton(
-        icon: DetailAffinityButton.likeIdle,
-        color: cs.onSurfaceVariant,
-        onPressed: null,
-        size: 20,
-      ),
-      data: (liked) {
-        final isLiked = liked != null;
-        return IconButton(
-          icon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, anim) => ScaleTransition(
-              scale: anim,
-              child: FadeTransition(opacity: anim, child: child),
-            ),
-            child: Icon(
-              isLiked
-                  ? DetailAffinityButton.likeActive
-                  : DetailAffinityButton.likeIdle,
-              key: ValueKey(isLiked),
-              color: DetailAffinityButton.glyphColor(
-                cs,
-                isActive: isLiked,
-                activeColor: DetailAffinityButton.likeColor(cs),
-              ),
-              size: 20,
-            ),
-          ),
-          color: DetailAffinityButton.glyphColor(
-            cs,
-            isActive: isLiked,
-            activeColor: DetailAffinityButton.likeColor(cs),
-          ),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            ref
-                .read(libraryNotifierProvider.notifier)
-                .toggleLikedSong(
-                  LikedSongModel(
-                    videoId: videoId,
-                    title: title,
-                    artist: artist,
-                    artistsJson: track.artistsJson,
-                    thumbnailUrl: thumbnailUrl,
-                    addedAt: DateTime.now(),
-                    duration: currentSong.duration?.inSeconds,
-                    isVideo: track.isVideo,
-                    isExplicit: track.isExplicit,
-                  ),
-                );
-          },
-          style: IconButton.styleFrom(
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            minimumSize: const Size(36, 36),
-            padding: EdgeInsets.zero,
-          ),
-        );
-      },
     );
   }
 }

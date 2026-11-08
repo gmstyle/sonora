@@ -312,6 +312,8 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           playerStateProvider.overrideWith(_FakePlayer.new),
+          likedSongProvider.overrideWith((ref, id) => Stream.value(null)),
+          likedEpisodeProvider.overrideWith((ref, id) => Stream.value(null)),
         ],
         child: const MaterialApp(
           locale: Locale('en'),
@@ -327,10 +329,12 @@ void main() {
     await tester.pump();
     expect(find.text('Above Water'), findsOneWidget);
     expect(find.byType(AnimatedPlayPauseIcon), findsOneWidget);
-    expect(tester.getSize(find.byType(PlayerSheetMobile)).height, 56);
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+    expect(find.byIcon(LucideIcons.skipForward), findsNothing);
+    expect(tester.getSize(find.byType(PlayerSheetMobile)).height, 60);
   });
 
-  testWidgets('landscape phone keeps the fused dock, not the shelf', (
+  testWidgets('landscape phone keeps the floating card, not the shelf', (
     tester,
   ) async {
     final albumSong = MediaItem(
@@ -342,7 +346,8 @@ void main() {
     );
     await pumpShelf(tester, size: const Size(780, 360), item: albumSong);
     expect(find.byKey(const ValueKey('mini-artist-link')), findsNothing);
-    expect(find.byIcon(LucideIcons.skipForward), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+    expect(find.byIcon(LucideIcons.skipForward), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

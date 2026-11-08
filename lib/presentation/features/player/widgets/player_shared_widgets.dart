@@ -857,3 +857,150 @@ void showPlayerTimerDialog(BuildContext context, PlayerNotifier notifier) {
     );
   }
 }
+
+/// Like or save-episode control for the mini player.
+///
+/// Songs use the Material heart. Episodes use the bookmark pair. Active
+/// glyphs take [DetailAffinityButton.likeColor]; idle glyphs stay
+/// [ColorScheme.onSurfaceVariant].
+class MiniPlayerAffinityButton extends ConsumerWidget {
+  final MediaItem song;
+  final double iconSize;
+
+  const MiniPlayerAffinityButton({
+    super.key,
+    required this.song,
+    this.iconSize = 20,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final track = QueueTrack.fromMediaItem(song);
+    final videoId = track.videoId;
+    final title = track.title;
+    final artist = track.artist ?? AppLocalizations.of(context)!.unknownArtist;
+    final thumbnailUrl = track.artUri?.toString();
+
+    if (track.isEpisode) {
+      final likedAsync = ref.watch(likedEpisodeProvider(videoId));
+      return likedAsync.when(
+        loading: () => _idle(
+          icon: DetailAffinityButton.bookmarkIdle,
+          color: cs.onSurfaceVariant,
+        ),
+        error: (_, _) => _idle(
+          icon: DetailAffinityButton.bookmarkIdle,
+          color: cs.onSurfaceVariant,
+        ),
+        data: (liked) {
+          final isLiked = liked != null;
+          return IconButton(
+            icon: _glyph(
+              isLiked
+                  ? DetailAffinityButton.bookmarkActive
+                  : DetailAffinityButton.bookmarkIdle,
+              isLiked ? cs.primary : cs.onSurfaceVariant,
+              isLiked,
+            ),
+            color: isLiked ? cs.primary : cs.onSurfaceVariant,
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              ref
+                  .read(libraryNotifierProvider.notifier)
+                  .toggleLikedEpisode(
+                    LikedEpisodeModel(
+                      videoId: videoId,
+                      name: title,
+                      podcastName: artist,
+                      podcastBrowseId: track.podcastBrowseId,
+                      thumbnailUrl: thumbnailUrl,
+                      durationSec: song.duration?.inSeconds,
+                      date: track.publishDate,
+                      addedAt: DateTime.now(),
+                    ),
+                  );
+            },
+            style: _style,
+          );
+        },
+      );
+    }
+
+    final likedAsync = ref.watch(likedSongProvider(videoId));
+    return likedAsync.when(
+      loading: () => _idle(
+        icon: DetailAffinityButton.likeIdle,
+        color: cs.onSurfaceVariant,
+      ),
+      error: (_, _) => _idle(
+        icon: DetailAffinityButton.likeIdle,
+        color: cs.onSurfaceVariant,
+      ),
+      data: (liked) {
+        final isLiked = liked != null;
+        final color = DetailAffinityButton.glyphColor(
+          cs,
+          isActive: isLiked,
+          activeColor: DetailAffinityButton.likeColor(cs),
+        );
+        return IconButton(
+          icon: _glyph(
+            isLiked
+                ? DetailAffinityButton.likeActive
+                : DetailAffinityButton.likeIdle,
+            color,
+            isLiked,
+          ),
+          color: color,
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedSong(
+                  LikedSongModel(
+                    videoId: videoId,
+                    title: title,
+                    artist: artist,
+                    artistsJson: track.artistsJson,
+                    thumbnailUrl: thumbnailUrl,
+                    addedAt: DateTime.now(),
+                    duration: song.duration?.inSeconds,
+                    isVideo: track.isVideo,
+                    isExplicit: track.isExplicit,
+                  ),
+                );
+          },
+          style: _style,
+        );
+      },
+    );
+  }
+
+  ButtonStyle get _style => IconButton.styleFrom(
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
+    minimumSize: const Size(36, 36),
+    padding: EdgeInsets.zero,
+  );
+
+  Widget _idle({required IconData icon, required Color color}) {
+    return IconButton(
+      icon: Icon(icon, size: iconSize),
+      color: color,
+      onPressed: null,
+      style: _style,
+    );
+  }
+
+  Widget _glyph(IconData icon, Color color, bool isActive) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      transitionBuilder: (child, anim) => ScaleTransition(
+        scale: anim,
+        child: FadeTransition(opacity: anim, child: child),
+      ),
+      child: Icon(icon, key: ValueKey(isActive), color: color, size: iconSize),
+    );
+  }
+}

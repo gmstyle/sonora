@@ -13,7 +13,7 @@ import 'mini_player_content.dart';
 /// Full-width mini-player shelf used by [TabletShell] and [WideShell].
 ///
 /// Sits under the navigation column and the content pane. Mobile shells use
-/// [PlayerSheetMobile] inside the fused nav dock.
+/// [PlayerSheetMobile] as a card above the navigation bar.
 class PlayerSheet extends ConsumerWidget {
   const PlayerSheet({super.key});
 
