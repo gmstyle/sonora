@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:sonora/core/constants/app_constants.dart';
 import 'package:sonora/presentation/features/player/layouts/wide_player_layout.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
@@ -35,6 +36,11 @@ void main() {
 
   test('related stays on the scroll instead of replacing it', () {
     expect(wideCanvasView(PlayerSubView.related), PlayerSubView.none);
+  });
+
+  test('wide context columns share the height under the pinned bar', () {
+    expect(wideContextColumnHeight(800), 800 - kToolbarHeight);
+    expect(wideContextColumnHeight(40), 0);
   });
 
   test('tablet curiosities drawer stays within half the window', () {

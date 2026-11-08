@@ -19,6 +19,7 @@ import 'related_view.dart';
 /// Artist, album, and related shelves for the wide now-playing scroll.
 ///
 /// Artist and album share the left column. Related is the right column.
+/// On wide the two columns share [columnHeight] and each scrolls its overflow.
 class WideContextPanels extends ConsumerWidget {
   const WideContextPanels({
     super.key,
@@ -27,6 +28,8 @@ class WideContextPanels extends ConsumerWidget {
     required this.albumId,
     required this.showRelated,
     this.stacked = false,
+    this.columnHeight,
+    this.pageScroll,
   });
 
   final String videoId;
@@ -36,6 +39,12 @@ class WideContextPanels extends ConsumerWidget {
 
   /// Artist, album, and related in one column. Tablet uses this.
   final bool stacked;
+
+  /// Shared height of the side-by-side columns. Null keeps them content-sized.
+  final double? columnHeight;
+
+  /// Page scroll that receives a column's leftover drag, so the disc returns.
+  final ScrollController? pageScroll;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,31 +71,107 @@ class WideContextPanels extends ConsumerWidget {
         : null;
     if (info == null && related == null) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 8, 32, 8),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (!stacked &&
-              info != null &&
-              related != null &&
-              constraints.maxWidth >= 720) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: info),
-                const SizedBox(width: 16),
-                Expanded(child: related),
-              ],
-            );
-          }
-          return Column(
+    final height = columnHeight;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final sideBySide =
+            !stacked &&
+            info != null &&
+            related != null &&
+            height != null &&
+            height > 0 &&
+            constraints.maxWidth >= 720;
+        if (sideBySide) {
+          return SizedBox(
+            height: height,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 8, 32, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _ColumnScroll(outer: pageScroll, child: info),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _ColumnScroll(outer: pageScroll, child: related),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(32, 8, 32, 8),
+          child: Column(
             children: [
               ?info,
               if (info != null && related != null) const SizedBox(height: 16),
               ?related,
             ],
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// One now-playing column. Extra content scrolls here.
+///
+/// A drag past either edge moves [outer], so the disc above can come back
+/// and a short column still scrolls the page.
+class _ColumnScroll extends StatefulWidget {
+  const _ColumnScroll({required this.child, this.outer});
+
+  final Widget child;
+  final ScrollController? outer;
+
+  @override
+  State<_ColumnScroll> createState() => _ColumnScrollState();
+}
+
+class _ColumnScrollState extends State<_ColumnScroll> {
+  final ScrollController _controller = ScrollController();
+  bool _handingOff = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool _onOverscroll(OverscrollNotification notification) {
+    if (_handingOff || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    final outer = widget.outer;
+    if (outer == null || !outer.hasClients || notification.overscroll == 0) {
+      return false;
+    }
+    final position = outer.position;
+    final target = (position.pixels + notification.overscroll).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (target == position.pixels) return true;
+    _handingOff = true;
+    position.jumpTo(target);
+    _handingOff = false;
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<OverscrollNotification>(
+      onNotification: _onOverscroll,
+      child: Scrollbar(
+        controller: _controller,
+        child: SingleChildScrollView(
+          controller: _controller,
+          primary: false,
+          physics: const ClampingScrollPhysics(),
+          child: widget.child,
+        ),
       ),
     );
   }

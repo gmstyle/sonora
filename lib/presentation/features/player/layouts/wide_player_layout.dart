@@ -57,15 +57,23 @@ double get _artworkStageFactor => 1 + 2 * (_neighborScale + _neighborGap);
   );
 }
 
+/// Height shared by the wide now-playing columns.
+///
+/// They sit under the pinned bar, so the frame is the canvas minus that bar.
+/// A longer column scrolls inside the frame instead of growing the page.
+double wideContextColumnHeight(double viewport) =>
+    max(0, viewport - kToolbarHeight);
+
 /// Wide full player in the shape of a desktop now-playing screen.
 ///
 /// The canvas scrolls: the current disc fills the first screen and collapses
 /// into a pinned glass bar, the same sliver header artist and album use.
-/// Previous and next covers sit apart on either side. Below that, artist and album
-/// share the left column and related is the right one. Lyrics and notes
-/// replace that scroll. Queue and curiosities share one right-hand card that
-/// slides in from the edge. Track info, transport, and the action row sit in
-/// the bottom bar, each in its own third.
+/// Previous and next covers sit apart on either side. Below that, artist and
+/// album share the left column and related is the right one. Both columns are
+/// the height under the pinned bar, and the longer one scrolls on its own.
+/// Lyrics and notes replace that scroll. Queue and curiosities share one
+/// right-hand card that slides in from the edge. Track info, transport, and
+/// the action row sit in the bottom bar, each in its own third.
 class WidePlayerLayout extends ConsumerWidget {
   const WidePlayerLayout({
     super.key,
@@ -414,6 +422,8 @@ class _NowPlayingPageState extends ConsumerState<_NowPlayingPage> {
                 albumId: widget.albumId,
                 showRelated: widget.showRelated,
                 stacked: widget.stackContext,
+                columnHeight: wideContextColumnHeight(viewport),
+                pageScroll: _scrollController,
               ),
             ),
           ],
