@@ -363,12 +363,13 @@ class _ShimmerChipsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 52,
+      height: 44,
       child: ListView.builder(
+        primary: false,
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(
           horizontal: horizontalPadding,
-          vertical: 8,
+          vertical: 4,
         ),
         itemCount: 6,
         itemBuilder: (_, _) => Padding(

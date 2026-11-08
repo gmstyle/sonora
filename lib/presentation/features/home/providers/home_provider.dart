@@ -34,7 +34,10 @@ final homeBaseSectionsProvider = FutureProvider<List<HomeSection>>((ref) async {
   return result.sections;
 });
 
-/// Editorial shelves — filtered when a chip is selected, otherwise base sublist.
+/// Shelves under the pinned home chips.
+///
+/// No chip: the base feed after the discover hero (`sections.sublist(1)`).
+/// A chip: `getHome(params:)` for that mood, which replaces the home body.
 final homeEditorialSectionsProvider = FutureProvider<List<HomeSection>>((
   ref,
 ) async {

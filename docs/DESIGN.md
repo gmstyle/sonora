@@ -182,6 +182,8 @@ Edge-to-edge shelves and grids. Horizontal padding is `kWideContentPadding` (32)
 
 Screens: Home, Charts, Moods (including mood playlists), New releases, Browse section.
 
+Home mood chips sit in the `AppBar` bottom on compact, tablet, and wide, and stay pinned while the feed scrolls. All is the personal home: resume, Explore, your music, discover, then the default shelves with no extra zone title. A selected chip replaces that body with that mood's shelves, scrolls to the top, and shows a shelf shimmer while the feed loads. Explore (charts, moods, new releases) stays on All. The chip row hides while offline.
+
 ### Facet
 
 Left filter rail `kFacetFilterRailWidth` (200), a fluid center with padding 32, and at ≥1600 a right utility rail `kFacetUtilityRailWidth` (280). Do not wrap the page in `Center` plus a `maxWidth`, and do not put the wide page in a `Card`. Library search results stay in the library facet pane.

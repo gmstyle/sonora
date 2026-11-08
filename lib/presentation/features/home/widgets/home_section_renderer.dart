@@ -31,7 +31,6 @@ import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shelf_card_layout.dart';
 import '../layouts/home_layout_metrics.dart';
-import 'home_zone_header.dart';
 import '../../../../core/utils/artists_utils.dart';
 
 /// True when async list data is loaded and non-empty (loading/error → false).
@@ -55,7 +54,14 @@ bool asyncHistoryHasContent(AsyncValue async) {
 class HomeShimmer extends StatelessWidget {
   final HomeLayoutMetrics metrics;
 
-  const HomeShimmer({super.key, required this.metrics});
+  /// Reserves the pinned chip row when it is showing in the app bar.
+  final bool reserveChipBar;
+
+  const HomeShimmer({
+    super.key,
+    required this.metrics,
+    this.reserveChipBar = false,
+  });
 
   ShimmerLoading _homeShimmer(ShimmerVariant variant) {
     return ShimmerLoading(
@@ -72,7 +78,9 @@ class HomeShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top + kToolbarHeight;
+    final chipBar = reserveChipBar ? HomeChipsBar.height : 0.0;
+    final topPadding =
+        MediaQuery.of(context).padding.top + kToolbarHeight + chipBar;
     return ListView(
       padding: EdgeInsets.only(top: topPadding + 8, bottom: 16),
       children: [
@@ -86,9 +94,6 @@ class HomeShimmer extends StatelessWidget {
         _homeShimmer(ShimmerVariant.exploreChips),
         _homeShimmer(ShimmerVariant.section),
         _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.zoneHeader),
-        _homeShimmer(ShimmerVariant.chipsBar),
         _homeShimmer(ShimmerVariant.section),
         _homeShimmer(ShimmerVariant.section),
         _homeShimmer(ShimmerVariant.section),
@@ -118,96 +123,60 @@ class HomeEditorialLoading extends StatelessWidget {
   }
 }
 
-class HomeEditorialZone extends ConsumerWidget {
+/// Shelves for the pinned home chip.
+///
+/// [chipFeed] is the whole page under a selected chip: loading replaces the
+/// previous mood instead of keeping it on screen. The unselected feed uses
+/// the same shelves as the tail of All, with no zone title.
+class HomeFeedShelves extends ConsumerWidget {
   final HomeLayoutMetrics metrics;
+  final bool chipFeed;
 
-  const HomeEditorialZone({super.key, required this.metrics});
+  const HomeFeedShelves({
+    super.key,
+    required this.metrics,
+    this.chipFeed = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final baseResultAsync = ref.watch(homeBaseResultProvider);
     final editorialAsync = ref.watch(homeEditorialSectionsProvider);
-    final activeChipParams = ref.watch(homeSelectedChipParamsProvider);
 
-    final hasChips = baseResultAsync.when(
-      data: (data) => data.chips.isNotEmpty,
-      loading: () => false,
-      error: (_, _) => false,
-    );
-
-    final editorialSections = editorialAsync.when(
-      data: (sections) => sections.where((s) => s.contents.isNotEmpty).toList(),
-      loading: () => const <HomeSection>[],
-      error: (_, _) => const <HomeSection>[],
-    );
-    final hasShelves = editorialSections.isNotEmpty;
-    final editorialLoading =
-        editorialAsync.isLoading && !editorialAsync.hasValue;
-    final editorialError = editorialAsync.hasError && !editorialAsync.hasValue;
-
-    if (!hasChips && !hasShelves) {
-      if (editorialLoading) return const SizedBox.shrink();
-      if (editorialError) {
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: metrics.horizontalPadding,
-            vertical: 16,
-          ),
-          child: ErrorRetryWidget(
-            message: l10n.failedToLoadHomeFeed,
-            onRetry: () => ref.invalidate(homeEditorialSectionsProvider),
-          ),
-        );
-      }
-      return const SizedBox.shrink();
+    if (editorialAsync.isLoading) {
+      return chipFeed
+          ? HomeEditorialLoading(metrics: metrics)
+          : const SizedBox.shrink();
+    }
+    if (editorialAsync.hasError) {
+      if (!chipFeed) return const SizedBox.shrink();
+      final l10n = AppLocalizations.of(context)!;
+      return Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: metrics.horizontalPadding,
+          vertical: 16,
+        ),
+        child: ErrorRetryWidget(
+          message: l10n.failedToLoadHomeFeed,
+          onRetry: () => ref.invalidate(homeEditorialSectionsProvider),
+        ),
+      );
     }
 
+    final sections = (editorialAsync.value ?? const <HomeSection>[])
+        .where((section) => section.contents.isNotEmpty)
+        .toList();
+    if (sections.isEmpty) return const SizedBox.shrink();
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        HomeZoneHeader(title: l10n.editorialZone, metrics: metrics),
-        if (hasChips)
-          HomeChipsBar(horizontalPadding: metrics.horizontalPadding),
-        if (editorialAsync.isReloading)
-          LinearProgressIndicator(
-            minHeight: 2,
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-            backgroundColor: Colors.transparent,
+        for (var i = 0; i < sections.length; i++)
+          HomeSectionRow(
+            section: sections[i],
+            isFirst:
+                chipFeed && i == 0 && _sectionUsesHeroCarousel(sections[i]),
+            metrics: metrics,
+            onShowAll: _browseCallback(context, sections[i]),
           ),
-        editorialAsync.when(
-          skipLoadingOnReload: true,
-          loading: () => hasChips
-              ? HomeEditorialLoading(metrics: metrics)
-              : const SizedBox.shrink(),
-          error: (_, _) => Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: metrics.horizontalPadding,
-              vertical: 16,
-            ),
-            child: ErrorRetryWidget(
-              message: l10n.failedToLoadHomeFeed,
-              onRetry: () => ref.invalidate(homeEditorialSectionsProvider),
-            ),
-          ),
-          data: (_) {
-            if (!hasShelves) return const SizedBox.shrink();
-            return Column(
-              children: [
-                for (var i = 0; i < editorialSections.length; i++)
-                  HomeSectionRow(
-                    section: editorialSections[i],
-                    isFirst:
-                        activeChipParams != null &&
-                        i == 0 &&
-                        _sectionUsesHeroCarousel(editorialSections[i]),
-                    metrics: metrics,
-                    onShowAll: _browseCallback(context, editorialSections[i]),
-                  ),
-              ],
-            );
-          },
-        ),
       ],
     );
   }
@@ -1737,17 +1706,25 @@ class _HomeCarouselSectionState extends State<_HomeCarouselSection> {
   }
 }
 
-class HomeChipsBar extends ConsumerWidget {
+class HomeChipsBar extends ConsumerWidget implements PreferredSizeWidget {
+  static const double height = 44;
+
   final double horizontalPadding;
 
   const HomeChipsBar({super.key, this.horizontalPadding = 16});
+
+  @override
+  Size get preferredSize => const Size.fromHeight(height);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resultAsync = ref.watch(homeBaseResultProvider);
 
     return resultAsync.when(
-      loading: () => const SizedBox.shrink(),
+      loading: () => ShimmerLoading(
+        variant: ShimmerVariant.chipsBar,
+        horizontalPadding: horizontalPadding,
+      ),
       error: (_, _) => const SizedBox.shrink(),
       data: (data) {
         final chips = data.chips;
@@ -1755,8 +1732,9 @@ class HomeChipsBar extends ConsumerWidget {
         if (chips.isEmpty) return const SizedBox.shrink();
 
         return SizedBox(
-          height: 44,
+          height: height,
           child: ListView.separated(
+            primary: false,
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(
               horizontal: horizontalPadding,

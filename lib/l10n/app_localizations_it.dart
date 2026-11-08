@@ -1620,9 +1620,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get discoverZone => 'Scopri';
 
   @override
-  String get editorialZone => 'Editoriale';
-
-  @override
   String get refresh => 'Aggiorna';
 
   @override

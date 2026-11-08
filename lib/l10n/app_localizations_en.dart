@@ -1611,9 +1611,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoverZone => 'Discover';
 
   @override
-  String get editorialZone => 'Editorial';
-
-  @override
   String get refresh => 'Refresh';
 
   @override

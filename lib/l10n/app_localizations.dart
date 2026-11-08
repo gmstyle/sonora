@@ -2738,12 +2738,6 @@ abstract class AppLocalizations {
   /// **'Discover'**
   String get discoverZone;
 
-  /// No description provided for @editorialZone.
-  ///
-  /// In en, this message translates to:
-  /// **'Editorial'**
-  String get editorialZone;
-
   /// No description provided for @refresh.
   ///
   /// In en, this message translates to:

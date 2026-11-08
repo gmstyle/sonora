@@ -20,16 +20,36 @@ import '../widgets/home_section_renderer.dart';
 import '../widgets/home_zone_header.dart';
 import 'home_layout_metrics.dart';
 
-class HomeFeedLayout extends ConsumerWidget {
+class HomeFeedLayout extends ConsumerStatefulWidget {
   final HomeLayoutMetrics metrics;
 
   const HomeFeedLayout({super.key, required this.metrics});
 
+  @override
+  ConsumerState<HomeFeedLayout> createState() => _HomeFeedLayoutState();
+}
+
+class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
+  final ScrollController _scrollController = ScrollController();
+
+  HomeLayoutMetrics get metrics => widget.metrics;
+
   HomeLayoutSize get size => metrics.size;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<String?>(homeSelectedChipParamsProvider, (previous, next) {
+      if (previous == next) return;
+      _scrollFeedToTop();
+    });
     ref.watch(appLifecycleProvider);
+    final baseResult = ref.watch(homeBaseResultProvider);
     final baseSectionsAsync = ref.watch(homeBaseSectionsProvider);
     final historyAsync = ref.watch(recentHistoryProvider);
     final playlistsAsync = ref.watch(homeRandomPlaylistsProvider);
@@ -38,8 +58,13 @@ class HomeFeedLayout extends ConsumerWidget {
     final newReleasesAsync = ref.watch(homeRandomNewReleasesProvider);
     final discoverAsync = ref.watch(homeDiscoverProvider);
     final similarArtistsAsync = ref.watch(homeSimilarArtistsProvider);
-    final hideDiscoverHero = ref.watch(homeSelectedChipParamsProvider) != null;
+    final selectedChip = ref.watch(homeSelectedChipParamsProvider);
     final isOffline = ref.watch(isOfflineProvider);
+    final showChipBar =
+        !isOffline &&
+        (baseResult.isLoading ||
+            (baseResult.asData?.value.chips.isNotEmpty ?? false));
+    final chipFeed = !isOffline && selectedChip != null;
     final l10n = AppLocalizations.of(context)!;
 
     // Desktop escape hatch: F5 / Ctrl+R / Cmd+R (pull-to-refresh covers touch).
@@ -72,6 +97,9 @@ class HomeFeedLayout extends ConsumerWidget {
               ],
             ),
             centerTitle: false,
+            bottom: showChipBar
+                ? HomeChipsBar(horizontalPadding: metrics.horizontalPadding)
+                : null,
             actions: [
               // Wide: settings gear lives in the sidebar only.
               if (size != HomeLayoutSize.wide)
@@ -87,7 +115,7 @@ class HomeFeedLayout extends ConsumerWidget {
                 ? RefreshIndicator(
                     onRefresh: () => _refreshOffline(ref),
                     child: ListView(
-                      padding: _listPadding(context),
+                      padding: _listPadding(context, showChipBar: false),
                       children: [
                         _OfflineBanner(metrics: metrics),
                         ..._buildRiprendiZone(historyAsync: historyAsync),
@@ -103,7 +131,10 @@ class HomeFeedLayout extends ConsumerWidget {
                     ),
                   )
                 : baseSectionsAsync.when(
-                    loading: () => HomeShimmer(metrics: metrics),
+                    loading: () => HomeShimmer(
+                      metrics: metrics,
+                      reserveChipBar: showChipBar,
+                    ),
                     error: (_, _) => ErrorRetryWidget(
                       message: l10n.failedToLoadHomeFeed,
                       onRetry: () => ref.invalidate(homeBaseResultProvider),
@@ -111,32 +142,40 @@ class HomeFeedLayout extends ConsumerWidget {
                     data: (sections) => RefreshIndicator(
                       onRefresh: () => _refreshHome(ref),
                       child: ListView(
-                        padding: _listPadding(context),
+                        controller: _scrollController,
+                        padding: _listPadding(
+                          context,
+                          showChipBar: showChipBar,
+                        ),
                         children: [
-                          ..._buildRiprendiZone(historyAsync: historyAsync),
-                          HomeExplore(
-                            horizontalPadding: metrics.horizontalPadding,
-                          ),
-                          ..._buildYourMusicZone(
-                            l10n: l10n,
-                            playlistsAsync: playlistsAsync,
-                            artistsAsync: artistsAsync,
-                            albumsAsync: albumsAsync,
-                            similarArtistsAsync: similarArtistsAsync,
-                            includeSimilarInMusicZone:
-                                metrics.useSideBySideArtists,
-                          ),
-                          ..._buildDiscoverZone(
-                            context: context,
-                            l10n: l10n,
-                            sections: sections,
-                            newReleasesAsync: newReleasesAsync,
-                            discoverAsync: discoverAsync,
-                            similarArtistsAsync: similarArtistsAsync,
-                            showHero: !hideDiscoverHero,
-                            showSimilarArtists: !metrics.useSideBySideArtists,
-                          ),
-                          HomeEditorialZone(metrics: metrics),
+                          if (chipFeed)
+                            HomeFeedShelves(metrics: metrics, chipFeed: true)
+                          else ...[
+                            ..._buildRiprendiZone(historyAsync: historyAsync),
+                            HomeExplore(
+                              horizontalPadding: metrics.horizontalPadding,
+                            ),
+                            ..._buildYourMusicZone(
+                              l10n: l10n,
+                              playlistsAsync: playlistsAsync,
+                              artistsAsync: artistsAsync,
+                              albumsAsync: albumsAsync,
+                              similarArtistsAsync: similarArtistsAsync,
+                              includeSimilarInMusicZone:
+                                  metrics.useSideBySideArtists,
+                            ),
+                            ..._buildDiscoverZone(
+                              context: context,
+                              l10n: l10n,
+                              sections: sections,
+                              newReleasesAsync: newReleasesAsync,
+                              discoverAsync: discoverAsync,
+                              similarArtistsAsync: similarArtistsAsync,
+                              showHero: true,
+                              showSimilarArtists: !metrics.useSideBySideArtists,
+                            ),
+                            HomeFeedShelves(metrics: metrics),
+                          ],
                         ],
                       ),
                     ),
@@ -147,9 +186,18 @@ class HomeFeedLayout extends ConsumerWidget {
     );
   }
 
-  EdgeInsets _listPadding(BuildContext context) {
+  void _scrollFeedToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_scrollController.hasClients) return;
+      _scrollController.jumpTo(0);
+    });
+  }
+
+  EdgeInsets _listPadding(BuildContext context, {required bool showChipBar}) {
+    final chipBar = showChipBar ? HomeChipsBar.height : 0.0;
     return EdgeInsets.only(
-      top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+      top: MediaQuery.of(context).padding.top + kToolbarHeight + chipBar + 8,
       bottom: MediaQuery.of(context).padding.bottom + 16,
     );
   }

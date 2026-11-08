@@ -726,6 +726,8 @@ Artist album and single “show all” routes use `MusicRepository.getArtistAlbu
 
 `/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear on the Home AppBar (mobile and tablet) and in the wide sidebar (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
 
+Home mood chips are [`HomeChipsBar`](lib/presentation/features/home/widgets/home_section_renderer.dart) in `HomeFeedLayout`'s `AppBar.bottom` (`homeSelectedChipParamsProvider`). `homeBaseResultProvider` is the unfiltered feed: the discover hero is `sections.first`, plus the chip list and ambient art. `homeEditorialSectionsProvider` is `sections.sublist(1)` when no chip is selected, and `getHome(params:)` when one is. A selected chip replaces the scroll body and jumps it to the top. All keeps resume, Explore, your music, discover, and those default shelves. Offline hides the chip row. The shelf shimmer replaces the previous mood while a chip feed loads.
+
 The player overlay sits **above** the shell and is not a route. Mobile floats a 60px mini-player card above the NavigationBar (inset 16, 8 gap). Tablet and wide dock an 80px mini shelf across the full scaffold, under the rail or sidebar and the content. Artwork and catalog metadata (artist, album, or podcast) live on the left of that shelf. Opening the full player is a slide-up push of `FullPlayerContent`. Tapping artist, album, or podcast metadata navigates to that screen. Visual tokens are Sonora Pulse (`docs/DESIGN.md`): Plus Jakarta Sans, fixed light/dark/AMOLED schemes, no Monet.
 
 ### 7.3 Adaptive Overlays (Modal BottomSheets & Dialogs)
