@@ -13,7 +13,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../../domain/models/library_models.dart';
 import '../../providers/action_feedback_provider.dart';
 import '../../providers/library_notifier.dart';
-import '../../providers/music_repository_provider.dart';
 import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
@@ -843,9 +842,7 @@ class _ArtistActions extends ConsumerWidget {
     ArtistFull artist,
   ) async {
     try {
-      final songs = await ref
-          .read(musicRepositoryProvider)
-          .getArtistSongs(artist.artistId);
+      final songs = await ref.read(artistSongsProvider(artist.artistId).future);
       if (songs.isNotEmpty) return songs;
     } catch (_) {}
     return artist.topSongs;

@@ -1,13 +1,9 @@
-import 'dart:ui';
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/theme/player_colors.dart';
 import '../../../domain/models/library_models.dart';
@@ -208,9 +204,12 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight = widget.isTablet || widget.isWide
-        ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
-        : 340.0;
+    final double expandedHeight = EntityBannerHeader.expandedHeight(
+      wide: widget.isWide,
+      layout: widget.isTablet || widget.isWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
+    );
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -251,9 +250,12 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
         controller: _scrollController,
         slivers: [
           SliverAppBar(
-            expandedHeight: widget.isTablet || widget.isWide
-                ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
-                : 340,
+            expandedHeight: EntityBannerHeader.expandedHeight(
+              wide: widget.isWide,
+              layout: widget.isTablet || widget.isWide
+                  ? EntityBannerLayout.cover
+                  : EntityBannerLayout.centered,
+            ),
             pinned: true,
             iconTheme: IconThemeData(color: iconColor),
             foregroundColor: iconColor,
@@ -430,186 +432,38 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
     int unavailableCount,
   ) {
     final isTabletOrWide = widget.isTablet || widget.isWide;
-    final horizontalPad = entityHorizontalPadding(
-      widget.contentWidth,
-      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
-    );
-    if (!isTabletOrWide) {
-      final theme = Theme.of(context);
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          if (thumbnailUrl != null)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: CachedNetworkImage(
-                    imageUrl: thumbnailUrl,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            )
-          else
-            Positioned.fill(
-              child: Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.45),
-                  theme.colorScheme.surface.withValues(alpha: 0.95),
-                ],
-              ),
-            ),
-          ),
-          _artworkTopScrim(context),
-          Positioned(
-            top: 56 + MediaQuery.of(context).padding.top,
-            bottom: 12,
-            left: horizontalPad,
-            right: horizontalPad,
-            child: Opacity(
-              opacity: (1.0 - _scrollProgress * 1.5).clamp(0.0, 1.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (thumbnailUrl != null)
-                    Hero(
-                      tag:
-                          widget.heroTag ?? 'album_art_${widget.album.albumId}',
-                      child: Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(
-                            SonoraPulseTokens.radiusMedia,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            SonoraPulseTokens.radiusMedia,
-                          ),
-                          child: CachedNetworkImage(
-                            imageUrl: thumbnailUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) =>
-                                _placeholderThumbnail(context),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          SonoraPulseTokens.radiusMedia,
-                        ),
-                        color: theme.colorScheme.surfaceContainerHighest,
-                      ),
-                      child: Icon(
-                        LucideIcons.disc,
-                        size: 60,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        if (widget.album.isExplicit)
-                          const WidgetSpan(
-                            child: Padding(
-                              padding: EdgeInsets.only(right: 6.0),
-                              child: ExplicitBadge(),
-                            ),
-                            alignment: PlaceholderAlignment.middle,
-                          ),
-                        TextSpan(text: widget.album.name),
-                      ],
-                    ),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: PlayerColors.of(context).titlePrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    displayArtists(widget.album.artists),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: PlayerColors.of(context).titleSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    [
-                      if (widget.album.year != null) '${widget.album.year}',
-                      AppLocalizations.of(context)!
-                          .songCount(widget.album.songs.length),
-                      _formatDuration(totalDuration),
-                      if (unavailableCount > 0)
-                        AppLocalizations.of(context)!
-                            .tracksUnavailable(unavailableCount),
-                    ].join(' · '),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: PlayerColors.of(context).labelMuted,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final textAlign = isTabletOrWide ? TextAlign.start : TextAlign.center;
 
     return EntityBannerHeader(
+      layout: isTabletOrWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
       eyebrow: l10n.entityKindAlbum,
       title: widget.album.name,
       explicit: widget.album.isExplicit,
       meta: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: isTabletOrWide
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
           Text(
             displayArtists(widget.album.artists),
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colors.titleSecondary,
-            ),
+            style:
+                (isTabletOrWide
+                        ? theme.textTheme.titleMedium
+                        : theme.textTheme.bodyMedium)
+                    ?.copyWith(
+                      fontWeight: isTabletOrWide ? FontWeight.w600 : null,
+                      color: colors.titleSecondary,
+                    ),
+            textAlign: textAlign,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: isTabletOrWide ? 6 : 4),
           Text(
             [
               if (widget.album.year != null) '${widget.album.year}',
@@ -618,7 +472,16 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
               if (unavailableCount > 0)
                 l10n.tracksUnavailable(unavailableCount),
             ].join(' · '),
-            style: theme.textTheme.bodyMedium?.copyWith(color: colors.subtitle),
+            style:
+                (isTabletOrWide
+                        ? theme.textTheme.bodyMedium
+                        : theme.textTheme.bodySmall)
+                    ?.copyWith(
+                      color: isTabletOrWide
+                          ? colors.subtitle
+                          : colors.labelMuted,
+                    ),
+            textAlign: textAlign,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -631,17 +494,6 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
       wide: widget.isWide,
       contentWidth: widget.contentWidth,
       actions: _AlbumActions(album: widget.album),
-    );
-  }
-
-  Widget _placeholderThumbnail(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Icon(
-        LucideIcons.disc,
-        size: 80,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
     );
   }
 }
@@ -881,22 +733,6 @@ class _AlbumShimmer extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Top dark scrim for artwork headers — reads colours from [PlayerColors] so
-/// changes to the design token propagate here automatically.
-Widget _artworkTopScrim(BuildContext context) {
-  final pc = PlayerColors.of(context);
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        stops: const [0.0, 0.20, 0.32],
-        colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
-      ),
-    ),
-  );
 }
 
 class _RelatedReleasesCarousel extends StatelessWidget {

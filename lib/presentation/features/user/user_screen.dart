@@ -1,6 +1,3 @@
-import 'dart:ui';
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +16,6 @@ import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/shimmer_loading.dart';
-import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/video_card.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'providers/user_provider.dart';
@@ -176,12 +172,13 @@ class _UserContentState extends ConsumerState<_UserContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight = widget.isTablet || widget.isWide
-        ? EntityBannerHeader.expandedHeight(
-            wide: widget.isWide,
-            hasActions: false,
-          )
-        : 340.0;
+    final double expandedHeight = EntityBannerHeader.expandedHeight(
+      wide: widget.isWide,
+      hasActions: false,
+      layout: widget.isTablet || widget.isWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
+    );
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -374,9 +371,13 @@ class _UserSliverAppBar extends ConsumerWidget {
     final thumbnailUrl = _userThumbnailUrl(user);
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide
-          ? EntityBannerHeader.expandedHeight(wide: isWide, hasActions: false)
-          : 340,
+      expandedHeight: EntityBannerHeader.expandedHeight(
+        wide: isWide,
+        hasActions: false,
+        layout: isTablet || isWide
+            ? EntityBannerLayout.cover
+            : EntityBannerLayout.centered,
+      ),
       pinned: true,
       iconTheme: IconThemeData(color: iconColor),
       foregroundColor: iconColor,
@@ -420,145 +421,40 @@ class _UserSliverAppBar extends ConsumerWidget {
 
   Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(
-      contentWidth,
-      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
-    );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    if (!isTabletOrWide) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          if (thumbnailUrl != null)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: CachedNetworkImage(
-                    imageUrl: thumbnailUrl,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            )
-          else
-            Positioned.fill(
-              child: Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.45),
-                  theme.colorScheme.surface.withValues(alpha: 0.95),
-                ],
-              ),
-            ),
-          ),
-          _artworkTopScrim(context),
-          Positioned(
-            top: 56 + MediaQuery.of(context).padding.top,
-            bottom: 12,
-            left: horizontalPad,
-            right: horizontalPad,
-            child: Opacity(
-              opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _UserAvatar(thumbnailUrl: thumbnailUrl, size: 140),
-                  const SizedBox(height: 14),
-                  Text(
-                    user.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colors.titlePrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (user.subscriberCount != null &&
-                      user.subscriberCount!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '${user.subscriberCount} ${l10n.subscribers}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.labelMuted,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    final avatarUrl = thumbnailUrl;
     return EntityBannerHeader(
+      layout: isTabletOrWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
       eyebrow: l10n.entityKindProfile,
       title: user.name,
       meta: user.subscriberCount != null && user.subscriberCount!.isNotEmpty
           ? Text(
               '${user.subscriberCount} ${l10n.subscribers}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colors.titleSecondary,
-              ),
+              style:
+                  (isTabletOrWide
+                          ? theme.textTheme.titleMedium
+                          : theme.textTheme.bodySmall)
+                      ?.copyWith(
+                        fontWeight: isTabletOrWide ? FontWeight.w600 : null,
+                        color: isTabletOrWide
+                            ? colors.titleSecondary
+                            : colors.labelMuted,
+                      ),
+              textAlign: isTabletOrWide ? TextAlign.start : TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             )
           : null,
-      imageUrl: avatarUrl,
+      imageUrl: thumbnailUrl,
       shape: EntityBannerArtShape.circle,
       placeholderIcon: LucideIcons.user,
       scrollProgress: scrollProgress,
       wide: isWide,
       contentWidth: contentWidth,
-    );
-  }
-}
-
-class _UserAvatar extends StatelessWidget {
-  final String? thumbnailUrl;
-  final double size;
-
-  const _UserAvatar({required this.thumbnailUrl, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: size > 150 ? 18 : 16,
-            offset: Offset(0, size > 150 ? 8 : 6),
-          ),
-        ],
-      ),
-      child: ThumbnailWidget(
-        imageUrl: thumbnailUrl,
-        size: size,
-        shape: ThumbnailShape.circle,
-      ),
     );
   }
 }
@@ -650,19 +546,4 @@ class _UserShimmer extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Top dark scrim for artwork headers — reads colours from [PlayerColors].
-Widget _artworkTopScrim(BuildContext context) {
-  final pc = PlayerColors.of(context);
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        stops: const [0.0, 0.20, 0.32],
-        colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
-      ),
-    ),
-  );
 }

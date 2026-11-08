@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -189,9 +188,12 @@ class _PlaylistDetailContentState
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight = widget.isTablet || widget.isWide
-        ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
-        : 340.0;
+    final double expandedHeight = EntityBannerHeader.expandedHeight(
+      wide: widget.isWide,
+      layout: widget.isTablet || widget.isWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
+    );
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -669,9 +671,12 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
     );
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide
-          ? EntityBannerHeader.expandedHeight(wide: isWide)
-          : 340,
+      expandedHeight: EntityBannerHeader.expandedHeight(
+        wide: isWide,
+        layout: isTablet || isWide
+            ? EntityBannerLayout.cover
+            : EntityBannerLayout.centered,
+      ),
       pinned: true,
       iconTheme: IconThemeData(color: iconColor),
       foregroundColor: iconColor,
@@ -698,161 +703,20 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
 
   Widget _buildHeaderBackground(BuildContext context) {
     final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(
-      contentWidth,
-      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
-    );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
-
-    if (!isTabletOrWide) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          if (thumbnailUrls.isNotEmpty)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: PlaylistCoverCollage(
-                    thumbnailUrls: thumbnailUrls,
-                    borderRadius: 0,
-                  ),
-                ),
-              ),
-            )
-          else
-            Positioned.fill(
-              child: Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.45),
-                  theme.colorScheme.surface.withValues(alpha: 0.95),
-                ],
-              ),
-            ),
-          ),
-          _artworkTopScrim(context),
-          Positioned(
-            top: 56 + MediaQuery.of(context).padding.top,
-            bottom: 12,
-            left: horizontalPad,
-            right: horizontalPad,
-            child: Opacity(
-              opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (thumbnailUrls.isNotEmpty)
-                    Hero(
-                      tag: 'local_playlist_art_${playlist.id}',
-                      child: Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: PlaylistCoverCollage(
-                            thumbnailUrls: thumbnailUrls,
-                            borderRadius: 12,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: theme.colorScheme.surfaceContainerHighest,
-                      ),
-                      child: Icon(
-                        LucideIcons.listVideo,
-                        size: 60,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  Text(
-                    playlist.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colors.titlePrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (playlist.isLinked) ...[
-                    const SizedBox(height: 6),
-                    LinkedPlaylistBadge(playlist: playlist),
-                    if (playlist.sourceKind == 'spotify') ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        AppLocalizations.of(context)!
-                            .playlistSyncSpotifyRateLimitHint,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.labelMuted,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ] else if (playlist.description != null &&
-                      playlist.description!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      playlist.description!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colors.titleSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 4),
-                  Text(
-                    AppLocalizations.of(context)!.videoCount(entryCount),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.labelMuted,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
     final l10n = AppLocalizations.of(context)!;
+    final textAlign = isTabletOrWide ? TextAlign.start : TextAlign.center;
     return EntityBannerHeader(
+      layout: isTabletOrWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
       eyebrow: l10n.entityKindPlaylist,
       title: playlist.name,
       meta: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: isTabletOrWide
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
           if (playlist.isLinked) ...[
             LinkedPlaylistBadge(playlist: playlist),
@@ -863,31 +727,49 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colors.labelMuted,
                 ),
-                maxLines: 2,
+                textAlign: textAlign,
+                maxLines: isTabletOrWide ? 2 : 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
-            const SizedBox(height: 6),
+            SizedBox(height: isTabletOrWide ? 6 : 4),
           ] else if (playlist.description != null &&
               playlist.description!.isNotEmpty) ...[
             Text(
               playlist.description!,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colors.titleSecondary,
-              ),
+              style:
+                  (isTabletOrWide
+                          ? theme.textTheme.titleMedium
+                          : theme.textTheme.bodyMedium)
+                      ?.copyWith(
+                        fontWeight: isTabletOrWide ? FontWeight.w600 : null,
+                        color: colors.titleSecondary,
+                      ),
+              textAlign: textAlign,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: isTabletOrWide ? 6 : 4),
           ],
           Text(
             l10n.videoCount(entryCount),
-            style: theme.textTheme.bodyMedium?.copyWith(color: colors.subtitle),
+            style:
+                (isTabletOrWide
+                        ? theme.textTheme.bodyMedium
+                        : theme.textTheme.bodySmall)
+                    ?.copyWith(
+                      color: isTabletOrWide
+                          ? colors.subtitle
+                          : colors.labelMuted,
+                    ),
+            textAlign: textAlign,
           ),
         ],
       ),
       imageUrl: thumbnailUrls.isEmpty ? null : thumbnailUrls.first,
+      background: !isTabletOrWide && thumbnailUrls.isNotEmpty
+          ? PlaylistCoverCollage(thumbnailUrls: thumbnailUrls, borderRadius: 0)
+          : null,
       art: thumbnailUrls.isEmpty
           ? null
           : PlaylistCoverCollage(thumbnailUrls: thumbnailUrls, borderRadius: 0),
@@ -899,20 +781,6 @@ class _LocalPlaylistSliverAppBar extends StatelessWidget {
       actions: actions,
     );
   }
-}
-
-Widget _artworkTopScrim(BuildContext context) {
-  final pc = PlayerColors.of(context);
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        stops: const [0.0, 0.20, 0.32],
-        colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
-      ),
-    ),
-  );
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────

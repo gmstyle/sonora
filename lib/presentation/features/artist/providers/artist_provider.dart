@@ -10,3 +10,18 @@ final artistProvider = FutureProvider.family<ArtistFull, String>((
   final repo = ref.watch(musicRepositoryProvider);
   return repo.getArtist(artistId);
 });
+
+final artistSongsProvider = FutureProvider.family<List<SongDetailed>, String>((
+  ref,
+  artistId,
+) {
+  final repo = ref.watch(musicRepositoryProvider);
+  return repo.getArtistSongs(artistId);
+});
+
+final artistVideosProvider = FutureProvider.family<List<VideoDetailed>, String>(
+  (ref, artistId) {
+    final repo = ref.watch(musicRepositoryProvider);
+    return repo.getArtistVideos(artistId);
+  },
+);

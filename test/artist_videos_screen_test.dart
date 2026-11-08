@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 import 'package:sonora/presentation/features/artist/artist_videos_screen.dart';
+import 'package:sonora/presentation/features/artist/providers/artist_provider.dart';
 import 'package:sonora/presentation/shared/widgets/song_tile.dart';
 import 'package:sonora/presentation/shared/widgets/video_card.dart';
 

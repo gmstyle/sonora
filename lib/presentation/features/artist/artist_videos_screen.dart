@@ -8,20 +8,13 @@ import '../../../core/utils/feed_grid.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
-import '../../providers/music_repository_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/video_card.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../../core/utils/playable_tracks.dart';
-
-final artistVideosProvider = FutureProvider.family<List<VideoDetailed>, String>(
-  (ref, artistId) {
-    final repo = ref.watch(musicRepositoryProvider);
-    return repo.getArtistVideos(artistId);
-  },
-);
+import 'providers/artist_provider.dart';
 
 class ArtistVideosScreen extends ConsumerWidget {
   final String artistId;

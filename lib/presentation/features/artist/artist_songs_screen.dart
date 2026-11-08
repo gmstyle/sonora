@@ -1,4 +1,3 @@
-import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,18 +6,10 @@ import '../../../core/extensions/stat_format.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../../core/utils/feed_grid.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../providers/music_repository_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
-
-final artistSongsProvider = FutureProvider.family<List<SongDetailed>, String>((
-  ref,
-  artistId,
-) {
-  final repo = ref.watch(musicRepositoryProvider);
-  return repo.getArtistSongs(artistId);
-});
+import 'providers/artist_provider.dart';
 
 class ArtistSongsScreen extends ConsumerWidget {
   final String artistId;

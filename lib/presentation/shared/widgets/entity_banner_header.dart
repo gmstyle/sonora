@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +10,7 @@ import '../../providers/palette_provider.dart';
 import 'entity_wide_body.dart';
 import 'explicit_badge.dart';
 
-/// Cover shape for [EntityBannerHeader] when the layout is [EntityBannerLayout.cover].
+/// Cover shape for [EntityBannerHeader] when the layout is not [EntityBannerLayout.photo].
 enum EntityBannerArtShape { circle, rounded }
 
 /// Entity header banner.
@@ -17,9 +19,11 @@ enum EntityBannerArtShape { circle, rounded }
 /// Artist uses it on compact, tablet, and wide.
 /// [EntityBannerLayout.cover] paints a flat field from the cover's dominant
 /// color and puts the cover on the left. Album, playlist, podcast, episode,
-/// and profile use it on tablet and wide. Those compact screens keep a
-/// centered header.
-enum EntityBannerLayout { photo, cover }
+/// and profile use it on tablet and wide.
+/// [EntityBannerLayout.centered] is the compact header for those same
+/// entities: blurred cover wash, centered 140 cover, title and meta below.
+/// Actions stay in the body on compact.
+enum EntityBannerLayout { photo, cover, centered }
 
 class EntityBannerHeader extends ConsumerWidget {
   final EntityBannerLayout layout;
@@ -30,8 +34,12 @@ class EntityBannerHeader extends ConsumerWidget {
   final String? imageUrl;
 
   /// Replaces the default cover tile. Local playlists pass a collage.
-  /// [imageUrl] is still used to sample the field color.
+  /// [imageUrl] is still used to sample the field color on [EntityBannerLayout.cover].
   final Widget? art;
+
+  /// Optional blurred backdrop. When null, the centered wash uses [imageUrl].
+  /// Local playlists pass a [PlaylistCoverCollage] here.
+  final Widget? background;
   final String? heroTag;
   final EntityBannerArtShape shape;
   final IconData placeholderIcon;
@@ -49,6 +57,7 @@ class EntityBannerHeader extends ConsumerWidget {
     this.meta,
     this.imageUrl,
     this.art,
+    this.background,
     this.heroTag,
     this.shape = EntityBannerArtShape.rounded,
     required this.placeholderIcon,
@@ -66,6 +75,7 @@ class EntityBannerHeader extends ConsumerWidget {
     bool hasActions = true,
     EntityBannerLayout layout = EntityBannerLayout.cover,
   }) {
+    if (layout == EntityBannerLayout.centered) return 340;
     final actionBlock = hasActions ? 72.0 : 0.0;
     if (layout == EntityBannerLayout.photo) {
       final photo = wide ? 248.0 : 200.0;
@@ -75,7 +85,10 @@ class EntityBannerHeader extends ConsumerWidget {
     return kToolbarHeight + 20 + art + actionBlock + 12;
   }
 
-  double get _artSize => wide ? 180 : 148;
+  double get _artSize {
+    if (layout == EntityBannerLayout.centered) return 140;
+    return wide ? 180 : 148;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -85,8 +98,37 @@ class EntityBannerHeader extends ConsumerWidget {
       contentWidth,
       shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
     );
-    final top = MediaQuery.paddingOf(context).top + kToolbarHeight + 12;
     final fade = (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0);
+
+    if (layout == EntityBannerLayout.centered) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          _centeredWash(theme),
+          const _EntityBannerScrim(stops: [0.0, 0.20, 0.32]),
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + kToolbarHeight,
+            left: horizontalPad,
+            right: horizontalPad,
+            bottom: 12,
+            child: Opacity(
+              opacity: fade,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _artwork(theme),
+                  const SizedBox(height: 14),
+                  _centeredCopy(theme, colors),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final top = MediaQuery.paddingOf(context).top + kToolbarHeight + 12;
     final field = layout == EntityBannerLayout.cover
         ? _fieldColor(context, ref, theme)
         : null;
@@ -110,6 +152,43 @@ class EntityBannerHeader extends ConsumerWidget {
               children: [
                 Expanded(child: _body(theme, colors)),
                 ?actions,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _centeredWash(ThemeData theme) {
+    final backdrop = background;
+    final url = imageUrl;
+    final Widget washChild;
+    if (backdrop != null) {
+      washChild = backdrop;
+    } else if (url != null && url.isNotEmpty) {
+      washChild = CachedNetworkImage(imageUrl: url, fit: BoxFit.cover);
+    } else {
+      return ColoredBox(color: theme.colorScheme.surfaceContainerHighest);
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            child: Opacity(opacity: 0.4, child: washChild),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.45),
+                theme.colorScheme.surface.withValues(alpha: 0.95),
               ],
             ),
           ),
@@ -221,6 +300,38 @@ class EntityBannerHeader extends ConsumerWidget {
     );
   }
 
+  Widget _centeredCopy(ThemeData theme, PlayerColors colors) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text.rich(
+          TextSpan(
+            children: [
+              if (explicit)
+                const WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 6),
+                    child: ExplicitBadge(),
+                  ),
+                ),
+              TextSpan(text: title),
+            ],
+          ),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colors.titlePrimary,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (meta != null) ...[const SizedBox(height: 4), meta!],
+      ],
+    );
+  }
+
   Widget _copy(ThemeData theme, PlayerColors colors) {
     final titleStyle =
         (wide ? theme.textTheme.displayMedium : theme.textTheme.displaySmall)
@@ -276,6 +387,9 @@ class EntityBannerHeader extends ConsumerWidget {
         ? null
         : BorderRadius.circular(SonoraPulseTokens.radiusMedia);
     final child = art ?? _defaultArt(theme);
+    final isCentered = layout == EntityBannerLayout.centered;
+    final shadowBlur = isCentered ? 16.0 : 18.0;
+    final shadowOffset = isCentered ? const Offset(0, 6) : const Offset(0, 8);
 
     final framed = Container(
       width: _artSize,
@@ -288,8 +402,8 @@ class EntityBannerHeader extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            blurRadius: shadowBlur,
+            offset: shadowOffset,
           ),
         ],
       ),
@@ -322,7 +436,7 @@ class EntityBannerHeader extends ConsumerWidget {
       child: Center(
         child: Icon(
           placeholderIcon,
-          size: 64,
+          size: layout == EntityBannerLayout.centered ? 60 : 64,
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
@@ -341,7 +455,9 @@ Color _bannerFieldColor(Color source) {
 }
 
 class _EntityBannerScrim extends StatelessWidget {
-  const _EntityBannerScrim();
+  final List<double> stops;
+
+  const _EntityBannerScrim({this.stops = const [0.0, 0.16, 0.28]});
 
   @override
   Widget build(BuildContext context) {
@@ -351,7 +467,7 @@ class _EntityBannerScrim extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0.0, 0.16, 0.28],
+          stops: stops,
           colors: [
             colors.topScrimStart,
             colors.topScrimMid,

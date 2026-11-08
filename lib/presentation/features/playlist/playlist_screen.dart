@@ -1,6 +1,3 @@
-import 'dart:ui';
-
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -220,9 +217,12 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final double expandedHeight = widget.isTablet || widget.isWide
-        ? EntityBannerHeader.expandedHeight(wide: widget.isWide)
-        : 340.0;
+    final double expandedHeight = EntityBannerHeader.expandedHeight(
+      wide: widget.isWide,
+      layout: widget.isTablet || widget.isWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
+    );
     final double collapsedHeight =
         kToolbarHeight + MediaQuery.of(context).padding.top;
     final double delta = expandedHeight - collapsedHeight;
@@ -331,9 +331,12 @@ class _PlaylistSliverAppBar extends StatelessWidget {
         : null;
 
     return SliverAppBar(
-      expandedHeight: isTablet || isWide
-          ? EntityBannerHeader.expandedHeight(wide: isWide)
-          : 340,
+      expandedHeight: EntityBannerHeader.expandedHeight(
+        wide: isWide,
+        layout: isTablet || isWide
+            ? EntityBannerLayout.cover
+            : EntityBannerLayout.centered,
+      ),
       pinned: true,
       iconTheme: IconThemeData(color: iconColor),
       foregroundColor: iconColor,
@@ -378,172 +381,50 @@ class _PlaylistSliverAppBar extends StatelessWidget {
     String tag,
   ) {
     final isTabletOrWide = isTablet || isWide;
-    final horizontalPad = entityHorizontalPadding(
-      contentWidth,
-      shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
-    );
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
-
-    if (!isTabletOrWide) {
-      final theme = Theme.of(context);
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          if (thumbnailUrl != null)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                child: Opacity(
-                  opacity: 0.4,
-                  child: CachedNetworkImage(
-                    imageUrl: thumbnailUrl,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            )
-          else
-            Positioned.fill(
-              child: Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-              ),
-            ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.45),
-                  theme.colorScheme.surface.withValues(alpha: 0.95),
-                ],
-              ),
-            ),
-          ),
-          _artworkTopScrim(context),
-          Positioned(
-            top: 56 + MediaQuery.of(context).padding.top,
-            bottom: 12,
-            left: horizontalPad,
-            right: horizontalPad,
-            child: Opacity(
-              opacity: (1.0 - scrollProgress * 1.5).clamp(0.0, 1.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (thumbnailUrl != null)
-                    Hero(
-                      tag: tag,
-                      child: Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CachedNetworkImage(
-                            imageUrl: thumbnailUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => _placeholder(context),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: theme.colorScheme.surfaceContainerHighest,
-                      ),
-                      child: Icon(
-                        LucideIcons.listVideo,
-                        size: 60,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        if (playlist.isExplicit)
-                          const WidgetSpan(
-                            child: Padding(
-                              padding: EdgeInsets.only(right: 6.0),
-                              child: ExplicitBadge(),
-                            ),
-                            alignment: PlaceholderAlignment.middle,
-                          ),
-                        TextSpan(text: playlist.name),
-                      ],
-                    ),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colors.titlePrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    displayArtists(playlist.artists),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colors.titleSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    AppLocalizations.of(context)!
-                        .videoCount(playlist.videoCount),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.labelMuted,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
     final l10n = AppLocalizations.of(context)!;
+    final textAlign = isTabletOrWide ? TextAlign.start : TextAlign.center;
+
     return EntityBannerHeader(
+      layout: isTabletOrWide
+          ? EntityBannerLayout.cover
+          : EntityBannerLayout.centered,
       eyebrow: l10n.entityKindPlaylist,
       title: playlist.name,
       explicit: playlist.isExplicit,
       meta: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: isTabletOrWide
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
           Text(
             displayArtists(playlist.artists),
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colors.titleSecondary,
-            ),
+            style:
+                (isTabletOrWide
+                        ? theme.textTheme.titleMedium
+                        : theme.textTheme.bodyMedium)
+                    ?.copyWith(
+                      fontWeight: isTabletOrWide ? FontWeight.w600 : null,
+                      color: colors.titleSecondary,
+                    ),
+            textAlign: textAlign,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: isTabletOrWide ? 6 : 4),
           Text(
             l10n.videoCount(playlist.videoCount),
-            style: theme.textTheme.bodyMedium?.copyWith(color: colors.subtitle),
+            style:
+                (isTabletOrWide
+                        ? theme.textTheme.bodyMedium
+                        : theme.textTheme.bodySmall)
+                    ?.copyWith(
+                      color: isTabletOrWide
+                          ? colors.subtitle
+                          : colors.labelMuted,
+                    ),
+            textAlign: textAlign,
           ),
         ],
       ),
@@ -556,15 +437,6 @@ class _PlaylistSliverAppBar extends StatelessWidget {
       actions: actions,
     );
   }
-
-  Widget _placeholder(BuildContext context) => Container(
-    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-    child: Icon(
-      LucideIcons.listVideo,
-      size: 80,
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-    ),
-  );
 }
 
 class _PlaylistActions extends ConsumerWidget {
@@ -921,19 +793,4 @@ class _PlaylistShimmer extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Top dark scrim for artwork headers — reads colours from [PlayerColors].
-Widget _artworkTopScrim(BuildContext context) {
-  final pc = PlayerColors.of(context);
-  return DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        stops: const [0.0, 0.20, 0.32],
-        colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
-      ),
-    ),
-  );
 }
