@@ -127,7 +127,7 @@ Do not add a Soundscape AI column, a lossless badge, or a multi-band waveform sc
 
 ## Wide content families
 
-`WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether the facet utility rail is present. It does not add a layout file or a shell.
+`WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether the Search and Downloads utility rail is present. Library stays two columns. It does not add a layout file or a shell.
 
 Shell family selection matches `AppShell`: compact when `shortestSide < 600` (`isCompactShell`), then tablet vs wide on window width. Content boxes still measure padding and rails from `LayoutBuilder`. Landscape phones stay on mobile family layouts (pad 16, max 2 feed columns, icon `DetailActionsBar`, Library chips — not the tablet split).
 
@@ -184,7 +184,7 @@ Home mood chips sit in the `AppBar` bottom on compact, tablet, and wide, and sta
 
 ### Facet
 
-Left filter rail `kFacetFilterRailWidth` (200), a fluid center with padding 32, and at ≥1600 a right utility rail `kFacetUtilityRailWidth` (280). Do not wrap the page in `Center` plus a `maxWidth`, and do not put the wide page in a `Card`. Library matches stay on Search, above the catalog results. The Library page is browse-only.
+Left filter rail `kFacetFilterRailWidth` (200), a fluid center with padding 32, and at ≥1600 a right utility rail `kFacetUtilityRailWidth` (280) on Search and Downloads. Library stays two columns at every width: the tab rail and the content. Sort and the list/grid switch sit in a row above the list. Do not wrap the page in `Center` plus a `maxWidth`, and do not put the wide page in a `Card`. Library matches stay on Search, above the catalog results. The Library page is browse-only.
 
 Screens: Search, Library, Downloads.
 

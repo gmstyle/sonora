@@ -198,11 +198,10 @@ class LibrarySplitLayout extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required bool wide,
-    required bool controlsInRail,
   }) {
     final selectedTab = ref.watch(libraryActiveTabProvider);
     final isListOrGridTab = selectedTab.supportsListGridView;
-    final showControls = selectedTab.showsHeaderControls && !controlsInRail;
+    final showControls = selectedTab.showsHeaderControls;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -241,19 +240,9 @@ class LibrarySplitLayout extends ConsumerWidget {
     final theme = Theme.of(context);
     final viewport = MediaQuery.sizeOf(context).width;
     final isWide = viewport >= kExpandedBreakpoint;
-    final selectedTab = ref.watch(libraryActiveTabProvider);
-    final controlsInRail = isWide && viewport >= kWideContentBreakpoint;
-    final showControlsInRail =
-        controlsInRail && selectedTab.showsHeaderControls;
-    final isListOrGridTab = selectedTab.supportsListGridView;
 
     final tabRail = _tabRail(context, ref, wide: isWide);
-    final detail = _detailPane(
-      context,
-      ref,
-      wide: isWide,
-      controlsInRail: showControlsInRail,
-    );
+    final detail = _detailPane(context, ref, wide: isWide);
 
     // Tablet 600–1199 keeps the full-bleed split. Wide drops the card.
     final Widget body;
@@ -274,14 +263,7 @@ class LibrarySplitLayout extends ConsumerWidget {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: kWideContentPadding - 16,
         ),
-        showUtility: showControlsInRail,
         filterRail: tabRail,
-        utilityRail: showControlsInRail
-            ? LibraryHeaderControls(
-                showViewSwitcher: isListOrGridTab,
-                railLayout: true,
-              )
-            : null,
         child: detail,
       );
     }

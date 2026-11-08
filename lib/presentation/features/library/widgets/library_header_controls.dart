@@ -13,14 +13,7 @@ import '../providers/library_provider.dart';
 class LibraryHeaderControls extends ConsumerStatefulWidget {
   final bool showViewSwitcher;
 
-  /// Stack the sort label so it ellipsizes inside the facet utility rail.
-  final bool railLayout;
-
-  const LibraryHeaderControls({
-    super.key,
-    this.showViewSwitcher = false,
-    this.railLayout = false,
-  });
+  const LibraryHeaderControls({super.key, this.showViewSwitcher = false});
 
   @override
   ConsumerState<LibraryHeaderControls> createState() =>
@@ -39,12 +32,8 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
         height: 48,
         child: Row(
           children: [
-            if (widget.railLayout)
-              Expanded(child: _buildSortButton(context, expandLabel: true))
-            else ...[
-              _buildSortButton(context),
-              const Spacer(),
-            ],
+            _buildSortButton(context),
+            const Spacer(),
             if (widget.showViewSwitcher)
               IconButton(
                 icon: Icon(
@@ -95,7 +84,7 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
     }
   }
 
-  Widget _buildSortButton(BuildContext context, {bool expandLabel = false}) {
+  Widget _buildSortButton(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final activeSort = ref.watch(librarySortTypeProvider);
     final isMobile = isCompactShell(MediaQuery.sizeOf(context));
@@ -151,30 +140,17 @@ class _LibraryHeaderControlsState extends ConsumerState<LibraryHeaderControls> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
-            mainAxisSize: expandLabel ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(LucideIcons.arrowUpDown, size: 16),
               const SizedBox(width: 8),
-              if (expandLabel)
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                )
-              else
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
                 ),
+              ),
             ],
           ),
         ),
