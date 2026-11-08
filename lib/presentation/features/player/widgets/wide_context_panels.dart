@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../core/utils/artists_utils.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -55,7 +56,9 @@ class WideContextPanels extends ConsumerWidget {
             ],
           );
     final related = showRelated
-        ? _Panel(child: RelatedView(videoId: videoId, embedded: true))
+        ? PlayerSurfaceCard(
+            child: RelatedView(videoId: videoId, embedded: true),
+          )
         : null;
     if (info == null && related == null) return const SizedBox.shrink();
 
@@ -89,18 +92,27 @@ class WideContextPanels extends ConsumerWidget {
   }
 }
 
-class _Panel extends StatelessWidget {
-  const _Panel({required this.child});
+/// Player card surface shared by context shelves and the right-hand panels.
+///
+/// `surfaceContainer`, media radius, clipped. Inner padding defaults to 16.
+/// Side panels pass [EdgeInsets.zero] because their lists pad themselves.
+class PlayerSurfaceCard extends StatelessWidget {
+  const PlayerSurfaceCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
 
   final Widget child;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusMedia),
       clipBehavior: Clip.antiAlias,
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
+      child: Padding(padding: padding, child: child),
     );
   }
 }
@@ -114,7 +126,7 @@ class _ArtistPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final artistAsync = ref.watch(artistProvider(artistId));
     final l10n = AppLocalizations.of(context)!;
-    return _Panel(
+    return PlayerSurfaceCard(
       child: artistAsync.when(
         loading: () => const ShimmerLoading(variant: ShimmerVariant.tile),
         error: (error, _) => _Retry(
@@ -236,7 +248,7 @@ class _AlbumPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final albumAsync = ref.watch(albumProvider(albumId));
     final l10n = AppLocalizations.of(context)!;
-    return _Panel(
+    return PlayerSurfaceCard(
       child: albumAsync.when(
         loading: () => const ShimmerLoading(variant: ShimmerVariant.tile),
         error: (error, _) => _Retry(

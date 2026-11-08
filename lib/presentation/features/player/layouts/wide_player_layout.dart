@@ -13,6 +13,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/player_insights_provider.dart';
 import '../../../providers/player_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../widgets/player_controls.dart';
 import '../widgets/player_insights_panel.dart';
 import '../widgets/player_shared_widgets.dart';
@@ -59,9 +60,9 @@ double get _artworkStageFactor => 1 + 2 * (_neighborScale + _neighborGap);
 /// The canvas is a scroll: the current disc fills the first screen, with the
 /// previous and next covers set apart on either side. Below that, artist and album
 /// share the left column and related is the right one. Lyrics and notes
-/// replace that scroll. Curiosities open as a right drawer, wider than the
-/// queue. Track info, transport, and the action row sit in the
-/// bottom bar, each in its own third.
+/// replace that scroll. Queue and curiosities share one right-hand card that
+/// slides in from the edge. Track info, transport, and the action row sit in
+/// the bottom bar, each in its own third.
 class WidePlayerLayout extends ConsumerWidget {
   const WidePlayerLayout({
     super.key,
@@ -153,19 +154,15 @@ class WidePlayerLayout extends ConsumerWidget {
                     stackContext: tablet,
                   ),
                 ),
-                if (queueOpen && !insightsOpen)
-                  SizedBox(width: frame.queue, child: const _QueueDrawer()),
-                ClipRect(
-                  child: AnimatedAlign(
-                    alignment: Alignment.centerRight,
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    widthFactor: insightsOpen ? 1 : 0,
-                    child: SizedBox(
-                      width: frame.insights,
-                      child: const _InsightsDrawer(),
-                    ),
-                  ),
+                _PlayerSidePanel(
+                  open: queueOpen && !insightsOpen,
+                  width: frame.queue,
+                  child: const _QueueDrawer(),
+                ),
+                _PlayerSidePanel(
+                  open: insightsOpen,
+                  width: frame.insights,
+                  child: const _InsightsDrawer(),
                 ),
               ],
             ),
@@ -456,6 +453,107 @@ class _NeighborArtwork extends StatelessWidget {
   }
 }
 
+/// Right-hand player panel. The slot width and the card slide together.
+class _PlayerSidePanel extends ConsumerStatefulWidget {
+  const _PlayerSidePanel({
+    required this.open,
+    required this.width,
+    required this.child,
+  });
+
+  final bool open;
+  final double width;
+  final Widget child;
+
+  @override
+  ConsumerState<_PlayerSidePanel> createState() => _PlayerSidePanelState();
+}
+
+class _PlayerSidePanelState extends ConsumerState<_PlayerSidePanel>
+    with SingleTickerProviderStateMixin {
+  static const _duration = Duration(milliseconds: 250);
+
+  late final AnimationController _controller;
+  late final CurvedAnimation _curve;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: _duration,
+      value: widget.open ? 1 : 0,
+    );
+    _curve = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlayerSidePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.open != widget.open) _sync();
+  }
+
+  @override
+  void dispose() {
+    _curve.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _sync() {
+    final reduce = ref.read(settingsProvider).reduceEffects;
+    _controller.duration = reduce ? Duration.zero : _duration;
+    if (widget.open) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(settingsProvider.select((s) => s.reduceEffects), (prev, next) {
+      _sync();
+    });
+    return AnimatedBuilder(
+      animation: _curve,
+      builder: (context, child) {
+        final t = _curve.value;
+        return ClipRect(
+          child: Align(
+            alignment: Alignment.centerRight,
+            widthFactor: t,
+            child: FractionalTranslation(
+              translation: Offset(1 - t, 0),
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final height = constraints.maxHeight;
+          return SizedBox(
+            width: widget.width,
+            height: height.isFinite ? height : null,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 16, 12),
+              child: PlayerSurfaceCard(
+                padding: EdgeInsets.zero,
+                child: widget.child,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _QueueDrawer extends ConsumerWidget {
   const _QueueDrawer();
 
@@ -463,48 +561,37 @@ class _QueueDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        border: Border(
-          left: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 56,
+          child: Row(
+            children: [
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(l10n.queue, style: theme.textTheme.titleMedium),
+              ),
+              IconButton(
+                tooltip: l10n.close,
+                onPressed: () {
+                  ref.read(playerQueueDrawerProvider.notifier).set(false);
+                  if (ref.read(playerSubViewProvider) == PlayerSubView.queue) {
+                    ref
+                        .read(playerSubViewProvider.notifier)
+                        .set(PlayerSubView.none);
+                  }
+                },
+                icon: Icon(
+                  LucideIcons.x,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: 56,
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(l10n.queue, style: theme.textTheme.titleMedium),
-                ),
-                IconButton(
-                  tooltip: l10n.close,
-                  onPressed: () {
-                    ref.read(playerQueueDrawerProvider.notifier).set(false);
-                    if (ref.read(playerSubViewProvider) ==
-                        PlayerSubView.queue) {
-                      ref
-                          .read(playerSubViewProvider.notifier)
-                          .set(PlayerSubView.none);
-                    }
-                  },
-                  icon: Icon(
-                    LucideIcons.x,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Expanded(child: QueueSheet()),
-        ],
-      ),
+        const Expanded(child: QueueSheet()),
+      ],
     );
   }
 }
@@ -514,18 +601,7 @@ class _InsightsDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        border: Border(
-          left: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-          ),
-        ),
-      ),
-      child: const SingleChildScrollView(child: PlayerInsightsCard()),
-    );
+    return const SingleChildScrollView(child: PlayerInsightsCard());
   }
 }
 
