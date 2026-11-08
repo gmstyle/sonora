@@ -18,7 +18,6 @@ import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/playlist_card.dart';
-import '../../shared/widgets/playlist_tile.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/video_card.dart';
@@ -239,11 +238,8 @@ class _UserContentState extends ConsumerState<_UserContent> {
     final both = videos != null && playlists != null;
 
     return EntityWideBody(
-      wide: widget.isWide,
-      capList: false,
       list: videos ?? playlists!,
       related: both ? playlists : null,
-      relatedRail: both ? _playlistsRail(user, l10n) : null,
     );
   }
 
@@ -336,34 +332,6 @@ class _UserContentState extends ConsumerState<_UserContent> {
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _playlistsRail(UserFull user, AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          title: l10n.playlists,
-          onShowAll: user.playlistsParams != null
-              ? () {
-                  final params = Uri.encodeComponent(user.playlistsParams!);
-                  context.push(
-                    '/user/${user.channelId}/playlists?params=$params',
-                  );
-                }
-              : null,
-        ),
-        for (final playlist in user.playlists)
-          PlaylistTile(
-            playlistId: playlist.playlistId,
-            name: playlist.name,
-            artist: displayArtists(playlist.artists),
-            thumbnailUrl: playlist.thumbnails.isNotEmpty
-                ? playlist.thumbnails.last.url
-                : null,
-          ),
       ],
     );
   }

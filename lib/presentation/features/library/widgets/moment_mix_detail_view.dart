@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -165,19 +164,10 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= kExpandedBreakpoint;
         final pad = entityHorizontalPadding(
           constraints.maxWidth,
           shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
         );
-        Widget capTracks(Widget sliver) {
-          if (!wide) return sliver;
-          return SliverConstrainedCrossAxis(
-            maxExtent: kEntityTrackMaxWidth,
-            sliver: sliver,
-          );
-        }
-
         return Scaffold(
           body: CustomScrollView(
             controller: _scrollController,
@@ -322,41 +312,37 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                   pad,
                   24 + MediaQuery.of(context).padding.bottom,
                 ),
-                sliver: capTracks(
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final song = songs[index];
-                      final videoId = song.videoId as String;
-                      final songTitle = song.title as String;
-                      final artist = song.artist as String;
-                      final thumbnailUrl = song.thumbnailUrl as String?;
-                      final duration = song.duration as int?;
-                      final isVideo = song.isVideo as bool? ?? false;
-                      final isExplicit = song.isExplicit == true;
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final song = songs[index];
+                    final videoId = song.videoId as String;
+                    final songTitle = song.title as String;
+                    final artist = song.artist as String;
+                    final thumbnailUrl = song.thumbnailUrl as String?;
+                    final duration = song.duration as int?;
+                    final isVideo = song.isVideo as bool? ?? false;
+                    final isExplicit = song.isExplicit == true;
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: SongTile(
-                          videoId: videoId,
-                          title: songTitle,
-                          artist: artist,
-                          thumbnailUrl: thumbnailUrl,
-                          duration: duration,
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: SongTile(
+                        videoId: videoId,
+                        title: songTitle,
+                        artist: artist,
+                        thumbnailUrl: thumbnailUrl,
+                        duration: duration,
+                        isVideo: isVideo,
+                        isExplicit: isExplicit,
+                        artistId: song is LikedSongModel ? song.artistId : null,
+                        albumId: song is LikedSongModel ? song.albumId : null,
+                        onTap: () => _playSong(
+                          videoId,
                           isVideo: isVideo,
                           isExplicit: isExplicit,
-                          artistId: song is LikedSongModel
-                              ? song.artistId
-                              : null,
-                          albumId: song is LikedSongModel ? song.albumId : null,
-                          onTap: () => _playSong(
-                            videoId,
-                            isVideo: isVideo,
-                            isExplicit: isExplicit,
-                          ),
                         ),
-                      );
-                    }, childCount: songs.length),
-                  ),
+                      ),
+                    );
+                  }, childCount: songs.length),
                 ),
               ),
             ],

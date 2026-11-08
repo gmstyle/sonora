@@ -234,7 +234,6 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
                     _PodcastActions(podcast: widget.podcast),
                   const SizedBox(height: 16),
                   EntityWideBody(
-                    wide: widget.isWide,
                     about:
                         widget.podcast.description != null &&
                             widget.podcast.description!.isNotEmpty

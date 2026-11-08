@@ -2,7 +2,7 @@ const double kCompactBreakpoint = 600.0;
 const double kMediumBreakpoint = 840.0;
 const double kExpandedBreakpoint = 1200.0;
 
-/// Internal content split for utility and related rails on ultra-wide.
+/// Internal content split for the facet utility rail on ultra-wide.
 /// Not a shell breakpoint. Shells stay compact, tablet, and wide.
 const double kWideContentBreakpoint = 1600.0;
 
@@ -18,13 +18,6 @@ const double kFacetFilterRailWidth = 200.0;
 
 /// Right utility rail on wide facet screens at [kWideContentBreakpoint] and above.
 const double kFacetUtilityRailWidth = 280.0;
-
-/// Track or episode list cap on wide entity screens when the related rail
-/// is absent. Tablet stacks the list and does not use this cap.
-const double kEntityTrackMaxWidth = 960.0;
-
-/// Related rail on entity screens at [kWideContentBreakpoint] and above.
-const double kEntityRelatedRailWidth = 320.0;
 
 /// Soft content max for wide document screens (Settings, artist see-all).
 /// The clamp does not apply on tablet.

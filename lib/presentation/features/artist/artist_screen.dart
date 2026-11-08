@@ -21,7 +21,6 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/entity_wide_body.dart';
-import '../../shared/widgets/playlist_tile.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/release_card.dart';
 import '../../shared/widgets/video_card.dart';
@@ -29,7 +28,6 @@ import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import 'discography_kind.dart';
-import 'featured_preview.dart';
 import 'latest_release.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/hover_carousel_arrows.dart';
@@ -255,108 +253,37 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
               shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
             ),
             sliver: SliverToBoxAdapter(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final description = artist.description;
-                  final about = description != null && description.isNotEmpty
-                      ? ExpandableText(text: description)
-                      : null;
-                  final latest = latestReleaseAlbum(artist.topAlbums);
-                  final topSongs = artist.topSongs.isEmpty
-                      ? null
-                      : _ArtistTopSongsSection(
-                          songs: artist.topSongs,
-                          artistId: artist.artistId,
-                          artistName: artist.name,
-                        );
-                  // 8/12 tracks beside a short 4/12 stack. Discography stays
-                  // full width under the band, so the side column cannot
-                  // open a gap under the songs.
-                  final split =
-                      topSongs != null &&
-                      (latest != null || artist.featuredOn.isNotEmpty) &&
-                      widget.isWide &&
-                      MediaQuery.sizeOf(context).width >=
-                          kWideContentBreakpoint &&
-                      constraints.maxWidth >= 720;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!widget.isTablet && !widget.isWide)
-                        _ArtistActions(artist: artist),
-                      if (about != null) ...[const SizedBox(height: 16), about],
-                      const SizedBox(height: 24),
-                      if (split)
-                        _popularBand(context, artist, topSongs, latest)
-                      else ...[
-                        ?topSongs,
-                        ..._latestBlock(l10n, latest),
-                      ],
-                      ..._discographySection(context, artist, l10n),
-                      ..._similarArtistsShelf(
-                        context,
-                        artist,
-                        uniqueSimilarArtists,
-                      ),
-                      if (!split) ..._featuredShelf(context, artist),
-                    ],
-                  );
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!widget.isTablet && !widget.isWide)
+                    _ArtistActions(artist: artist),
+                  if (artist.description != null &&
+                      artist.description!.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ExpandableText(text: artist.description!),
+                  ],
+                  const SizedBox(height: 24),
+                  if (artist.topSongs.isNotEmpty)
+                    _ArtistTopSongsSection(
+                      songs: artist.topSongs,
+                      artistId: artist.artistId,
+                      artistName: artist.name,
+                    ),
+                  ..._latestBlock(l10n, latestReleaseAlbum(artist.topAlbums)),
+                  ..._discographySection(context, artist, l10n),
+                  ..._similarArtistsShelf(
+                    context,
+                    artist,
+                    uniqueSimilarArtists,
+                  ),
+                  ..._featuredShelf(context, artist),
+                ],
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _popularBand(
-    BuildContext context,
-    ArtistFull artist,
-    Widget topSongs,
-    AlbumDetailed? latest,
-  ) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 8, child: topSongs),
-        const SizedBox(width: kWideContentPadding),
-        Expanded(flex: 4, child: _popularSide(context, artist, latest)),
-      ],
-    );
-  }
-
-  Widget _popularSide(
-    BuildContext context,
-    ArtistFull artist,
-    AlbumDetailed? latest,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (latest != null) ...[
-          _SectionHeader(title: l10n.latestRelease),
-          const SizedBox(height: 8),
-          _LatestReleaseCard(album: latest),
-        ],
-        if (artist.featuredOn.isNotEmpty) ...[
-          if (latest != null) const SizedBox(height: 24),
-          _SectionHeader(
-            title: l10n.featuredOn,
-            onShowAll: () => _openFeatured(context, artist),
-          ),
-          for (final playlist in featuredSidePreview(artist.featuredOn))
-            PlaylistTile(
-              playlistId: playlist.playlistId,
-              name: playlist.name,
-              artist: displayArtists(playlist.artists),
-              thumbnailUrl: playlist.thumbnails.isNotEmpty
-                  ? playlist.thumbnails.last.url
-                  : null,
-            ),
-        ],
-      ],
     );
   }
 

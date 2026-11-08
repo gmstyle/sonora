@@ -270,7 +270,6 @@ class _PlaylistContentState extends ConsumerState<_PlaylistContent> {
                     ),
                   const SizedBox(height: 16),
                   EntityWideBody(
-                    wide: widget.isWide,
                     about:
                         widget.playlist.description != null &&
                             widget.playlist.description!.isNotEmpty

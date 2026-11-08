@@ -127,13 +127,13 @@ Do not add a Soundscape AI column, a lossless badge, or a multi-band waveform sc
 
 ## Wide content families
 
-`WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether a utility or related rail is present. It does not add a layout file or a shell.
+`WideShell` (sidebar + 80px mini shelf) does not change at 1600. Only the **content** switches shape. `kWideContentBreakpoint` decides whether the facet utility rail is present. It does not add a layout file or a shell.
 
 Shell family selection matches `AppShell`: compact when `shortestSide < 600` (`isCompactShell`), then tablet vs wide on window width. Content boxes still measure padding and rails from `LayoutBuilder`. Landscape phones stay on mobile family layouts (pad 16, max 2 feed columns, icon `DetailActionsBar`, Library chips — not the tablet split).
 
 ### Mobile
 
-`MobileShell` keeps the `NavigationBar` (64) as the dock. The mini player is a separate card above it: 60 tall, inset `kCompactContentPadding`, with an 8 gap above the bar. Light fill is `surfaceContainerLowest` at 95%. Dark fill is `surfaceContainerLow` at 95% with `darkBorder`. Artwork is 44 at radius 12. Like and the gradient play control sit on the right. There is no master rail and no utility or related rail. The four families stay stacked and chip-driven.
+`MobileShell` keeps the `NavigationBar` (64) as the dock. The mini player is a separate card above it: 60 tall, inset `kCompactContentPadding`, with an 8 gap above the bar. Light fill is `surfaceContainerLowest` at 95%. Dark fill is `surfaceContainerLow` at 95% with `darkBorder`. Artwork is 44 at radius 12. Like and the gradient play control sit on the right. There is no master rail and no utility rail. The four families stay stacked and chip-driven.
 
 | Rule | Mobile (`shortestSide` &lt; 600) |
 |------|--------------------------------|
@@ -148,7 +148,7 @@ Home carousels stay on `HomeLayoutMetrics` mobile (pad 16, card 140).
 
 ### Tablet
 
-`TabletShell` stays the collapsed rail and the 80px shelf. The same four families use a tighter budget. There is no utility rail and no related rail under 1200. Compact layouts stay on the 16 inset.
+`TabletShell` stays the collapsed rail and the 80px shelf. The same four families use a tighter budget. There is no utility rail under 1200. Compact layouts stay on the 16 inset.
 
 | Rule | Tablet (600–1199, `shortestSide` ≥ 600) |
 |------|-----------------------------------------|
@@ -165,12 +165,10 @@ Tokens live in `lib/core/constants/app_constants.dart`:
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `kWideContentBreakpoint` | 1600 | Internal split for utility and related rails. Not a shell |
+| `kWideContentBreakpoint` | 1600 | Internal split for the facet utility rail. Not a shell |
 | `kFeedFourColumnContentWidth` | 800 | Content-box width where feed grids go from 3 columns to 4. Not a shell |
 | `kFacetFilterRailWidth` | 200 | Facet and tablet master rail |
 | `kFacetUtilityRailWidth` | 280 | Facet right rail at ≥1600 |
-| `kEntityTrackMaxWidth` | 960 | Wide entity track or episode list when no related column |
-| `kEntityRelatedRailWidth` | 320 | Entity related rail at ≥1600 |
 | `kDocumentContentMaxWidth` | 1320 | Document soft max on wide |
 | `kWideContentPadding` | 32 | Horizontal pad for wide feed, facet, and entity. Same inset as margin-desktop |
 | `kTabletContentPadding` | 24 | Horizontal pad on tablet |
@@ -192,7 +190,7 @@ Screens: Search, Library, Downloads.
 
 ### Entity
 
-The artist photo header (sharp photo, no second portrait) is used on compact as well as tablet and wide: the picture itself, with a dark gradient so the name stays readable. On tablet and wide, entity headers share one banner and `DetailActionsBar` sits on its bottom edge. On compact the artist actions stay in the body. Album, playlist, podcast, episode, and profile stay the color-field banner on tablet and wide only: a flat field in the cover's dominant color, the cover on the left (radius 24, circle for a profile), and the name on the right. Compact for those stays the centered header. There is no second action row. Artist stats are three figures (subscribers, monthly listeners, total views) under the name. The biography sits under the actions and spans the content width. At ≥1600, the first five popular songs sit in an 8/12 column beside a 4/12 stack of the newest dated studio album and the first five featured playlists. Vedi tutto on Popular opens the full song list. Vedi tutto on Featured opens the full playlist grid, the same kind of grid as albums and singles. Mostra altro stays on the biography. Discography is one full-width shelf under that, with chips for albums, singles, and videos. Similar artists are a horizontal shelf after it. Below 1600 the same blocks stack: biography, popular songs, latest release, discography, similar artists, featured playlists. Album notes sit under the actions, and the track list keeps the number, title, and duration. On wide below 1600, or when the screen has no related block, the track or episode list caps at `kEntityTrackMaxWidth` (960). At ≥1600 the list is fluid beside a related rail `kEntityRelatedRailWidth` (320). Related content is sections that already belong to that screen, moved beside the list. Tablet stacks the header and the list and does not use this cap.
+The artist photo header (sharp photo, no second portrait) is used on compact as well as tablet and wide: the picture itself, with a dark gradient so the name stays readable. On tablet and wide, entity headers share one banner and `DetailActionsBar` sits on its bottom edge. On compact the artist actions stay in the body. Album, playlist, podcast, episode, and profile stay the color-field banner on tablet and wide only: a flat field in the cover's dominant color, the cover on the left (radius 24, circle for a profile), and the name on the right. Compact for those stays the centered header. There is no second action row. Artist stats are three figures (subscribers, monthly listeners, total views) under the name. The biography sits under the actions and spans the content width. The body is one column at every width: biography, the first five popular songs, the newest dated studio album, discography, similar artists, then featured playlists. Vedi tutto on Popular opens the full song list. Vedi tutto on Featured opens the full playlist grid, the same kind of grid as albums and singles. Mostra altro stays on the biography. Discography is one shelf with chips for albums, singles, and videos. Similar artists and featured playlists are horizontal shelves. Album notes sit under the actions, and the track list keeps the number, title, and duration. Notes, the track or episode list, and related shelves share one full-width column. Related releases and profile playlists stack under the list. Tablet uses the same stack.
 
 Screens: Album, artist, YouTube playlist, local playlist, podcast, episode, moment mix, user.
 

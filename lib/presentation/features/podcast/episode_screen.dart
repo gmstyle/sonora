@@ -218,7 +218,6 @@ class _EpisodeContentState extends ConsumerState<_EpisodeContent> {
                     _EpisodeActions(episode: widget.episode),
                   const SizedBox(height: 16),
                   EntityWideBody(
-                    wide: widget.isWide,
                     list:
                         widget.episode.description != null &&
                             widget.episode.description!.isNotEmpty

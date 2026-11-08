@@ -2,7 +2,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:sonora/core/constants/app_constants.dart';
 
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
@@ -177,19 +176,10 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
         data: (songs) {
           return LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= kExpandedBreakpoint;
               final pad = entityHorizontalPadding(
                 constraints.maxWidth,
                 shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
               );
-              Widget capTracks(Widget sliver) {
-                if (!wide) return sliver;
-                return SliverConstrainedCrossAxis(
-                  maxExtent: kEntityTrackMaxWidth,
-                  sliver: sliver,
-                );
-              }
-
               return CustomScrollView(
                 controller: _scrollController,
                 slivers: [
@@ -344,54 +334,49 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
                         pad,
                         24 + MediaQuery.of(context).padding.bottom,
                       ),
-                      sliver: capTracks(
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final song = songs[index];
-                            final videoId = song.videoId;
-                            final title = song.title;
-                            final artist = song.artist;
-                            final thumbnailUrl = song.thumbnailUrl;
-                            final duration = song.duration;
-                            final isVideo = song.isVideo;
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final song = songs[index];
+                          final videoId = song.videoId;
+                          final title = song.title;
+                          final artist = song.artist;
+                          final thumbnailUrl = song.thumbnailUrl;
+                          final duration = song.duration;
+                          final isVideo = song.isVideo;
 
-                            final isExplicit = song.isExplicit == true;
+                          final isExplicit = song.isExplicit == true;
 
-                            String? playCountStr;
-                            if (mixType == SmartMixType.mostPlayed &&
-                                song is HistoryModel) {
-                              playCountStr = '${song.playCount}x';
-                            }
+                          String? playCountStr;
+                          if (mixType == SmartMixType.mostPlayed &&
+                              song is HistoryModel) {
+                            playCountStr = '${song.playCount}x';
+                          }
 
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: SongTile(
-                                videoId: videoId,
-                                title: title,
-                                artist: artist,
-                                thumbnailUrl: thumbnailUrl,
-                                duration: duration,
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: SongTile(
+                              videoId: videoId,
+                              title: title,
+                              artist: artist,
+                              thumbnailUrl: thumbnailUrl,
+                              duration: duration,
+                              isVideo: isVideo,
+                              playCount: playCountStr,
+                              isExplicit: isExplicit,
+                              artistId: song is LikedSongModel
+                                  ? song.artistId
+                                  : null,
+                              albumId: song is LikedSongModel
+                                  ? song.albumId
+                                  : null,
+                              onTap: () => _playSong(
+                                videoId,
                                 isVideo: isVideo,
-                                playCount: playCountStr,
                                 isExplicit: isExplicit,
-                                artistId: song is LikedSongModel
-                                    ? song.artistId
-                                    : null,
-                                albumId: song is LikedSongModel
-                                    ? song.albumId
-                                    : null,
-                                onTap: () => _playSong(
-                                  videoId,
-                                  isVideo: isVideo,
-                                  isExplicit: isExplicit,
-                                ),
                               ),
-                            );
-                          }, childCount: songs.length),
-                        ),
+                            ),
+                          );
+                        }, childCount: songs.length),
                       ),
                     ),
                 ],

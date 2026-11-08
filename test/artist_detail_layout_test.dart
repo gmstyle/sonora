@@ -2,7 +2,6 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/core/extensions/stat_format.dart';
 import 'package:sonora/presentation/features/artist/discography_kind.dart';
-import 'package:sonora/presentation/features/artist/featured_preview.dart';
 import 'package:sonora/presentation/features/artist/latest_release.dart';
 
 AlbumDetailed _album(String id, {int? year}) {
@@ -57,15 +56,5 @@ void main() {
       resolveDiscographyKind(const [], ArtistDiscographyKind.albums),
       isNull,
     );
-  });
-
-  test('featured side column keeps the first five playlists', () {
-    final ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
-
-    expect(featuredSidePreview(ids), ['a', 'b', 'c', 'd', 'e']);
-    expect(featuredSideOverflow(ids), ['f', 'g']);
-    expect(featuredSidePreview(['a', 'b']), ['a', 'b']);
-    expect(featuredSideOverflow(['a', 'b']), isEmpty);
-    expect(featuredSideOverflow(ids.take(5).toList()), isEmpty);
   });
 }

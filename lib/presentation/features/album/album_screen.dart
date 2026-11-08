@@ -20,7 +20,6 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
-import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/expandable_text.dart';
@@ -316,7 +315,6 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                   ],
                   const SizedBox(height: 16),
                   EntityWideBody(
-                    wide: widget.isWide,
                     list: _buildTracklist(context, ref),
                     related: uniqueRelatedReleases.isEmpty
                         ? null
@@ -324,9 +322,6 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                             releases: uniqueRelatedReleases,
                             controller: _relatedReleasesScrollController,
                           ),
-                    relatedRail: uniqueRelatedReleases.isEmpty
-                        ? null
-                        : _RelatedReleasesRail(releases: uniqueRelatedReleases),
                   ),
                 ],
               ),
@@ -948,33 +943,6 @@ class _RelatedReleasesCarousel extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _RelatedReleasesRail extends StatelessWidget {
-  final List<AlbumDetailed> releases;
-
-  const _RelatedReleasesRail({required this.releases});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(title: AppLocalizations.of(context)!.relatedReleases),
-        for (final release in releases)
-          AlbumTile(
-            albumId: release.albumId,
-            name: release.name,
-            artist: displayArtists(release.artists),
-            artistId: primaryArtistId(release.artists),
-            thumbnailUrl: release.thumbnails.isNotEmpty
-                ? release.thumbnails.last.url
-                : null,
-            year: release.year,
-          ),
       ],
     );
   }

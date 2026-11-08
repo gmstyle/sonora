@@ -673,11 +673,11 @@ Helpers in [`layout_breakpoints.dart`](lib/core/utils/layout_breakpoints.dart): 
 
 - not compact and width 600–1200 → `TabletShell` (NavigationRail collapsed)
 - Every complex feature screen has separate layouts: `*_mobile_layout.dart`, `*_tablet_layout.dart`, `*_wide_layout.dart`
-- Wide content inside `WideShell` follows one of four families (feed, facet, entity, document). Tokens and the screen map are in `docs/DESIGN.md`. `kWideContentBreakpoint` (1600) only reveals a utility or related rail. Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
+- Wide content inside `WideShell` follows one of four families (feed, facet, entity, document). Tokens and the screen map are in `docs/DESIGN.md`. `kWideContentBreakpoint` (1600) only reveals the facet utility rail. Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
 
-Family tokens in `lib/core/constants/app_constants.dart`: facet rails `kFacetFilterRailWidth` (200) and `kFacetUtilityRailWidth` (280), entity list cap `kEntityTrackMaxWidth` (960) or related rail `kEntityRelatedRailWidth` (320), document soft max `kDocumentContentMaxWidth` (1320), wide pad `kWideContentPadding` (32), tablet pad `kTabletContentPadding` (24), compact pad `kCompactContentPadding` (16). `kFeedFourColumnContentWidth` (800) is a content-box threshold, not a shell: feed grids use 3 columns below it (unless the shell is compact → always 2).
+Family tokens in `lib/core/constants/app_constants.dart`: facet rails `kFacetFilterRailWidth` (200) and `kFacetUtilityRailWidth` (280), document soft max `kDocumentContentMaxWidth` (1320), wide pad `kWideContentPadding` (32), tablet pad `kTabletContentPadding` (24), compact pad `kCompactContentPadding` (16). Entity pages keep one full-width column. `kFeedFourColumnContentWidth` (800) is a content-box threshold, not a shell: feed grids use 3 columns below it (unless the shell is compact → always 2).
 
-Mobile (`shortestSide` &lt; 600) uses the same four families without rails: pad 16, max 2 feed columns, facet chips, stacked entity + icon `DetailActionsBar`, Settings list→push. Tablet (not compact, width 600–1199): master rail 200, Search on chips, entity content stacked, document clamp wide-only. No utility or related rail under 1200.
+Mobile (`shortestSide` &lt; 600) uses the same four families without rails: pad 16, max 2 feed columns, facet chips, stacked entity + icon `DetailActionsBar`, Settings list→push. Tablet (not compact, width 600–1199): master rail 200, Search on chips, entity content stacked, document clamp wide-only. No utility rail under 1200.
 
 ### 7.1.1 Detail header actions
 

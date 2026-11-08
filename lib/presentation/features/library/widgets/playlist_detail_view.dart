@@ -337,123 +337,118 @@ class _PlaylistDetailContentState
               return [
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(hPad, 16, hPad, bottomPad),
-                  sliver: _capTrackSliver(
-                    SliverReorderableList(
-                      itemCount: displayEntries.length,
-                      proxyDecorator: (child, index, animation) =>
-                          Material(color: Colors.transparent, child: child),
-                      itemBuilder: (context, index) {
-                        final entry = displayEntries[index];
-                        final liked = _findLiked(likedSongs, entry.videoId);
-                        final title =
-                            liked?.title ??
-                            entry.title ??
-                            'Video #${entry.videoId}';
-                        final artist = liked?.artist ?? entry.artist ?? '';
-                        final thumbnailUrl =
-                            liked?.thumbnailUrl ?? entry.thumbnailUrl;
-                        final isExplicit =
-                            liked?.isExplicit ?? entry.isExplicit;
-                        final duration = liked?.duration ?? entry.duration;
+                  sliver: SliverReorderableList(
+                    itemCount: displayEntries.length,
+                    proxyDecorator: (child, index, animation) =>
+                        Material(color: Colors.transparent, child: child),
+                    itemBuilder: (context, index) {
+                      final entry = displayEntries[index];
+                      final liked = _findLiked(likedSongs, entry.videoId);
+                      final title =
+                          liked?.title ??
+                          entry.title ??
+                          'Video #${entry.videoId}';
+                      final artist = liked?.artist ?? entry.artist ?? '';
+                      final thumbnailUrl =
+                          liked?.thumbnailUrl ?? entry.thumbnailUrl;
+                      final isExplicit = liked?.isExplicit ?? entry.isExplicit;
+                      final duration = liked?.duration ?? entry.duration;
 
-                        return SongTile(
-                          key: ValueKey(
-                            '${entry.playlistId}-${entry.videoId}-${entry.position}',
-                          ),
-                          videoId: entry.videoId,
-                          title: title,
-                          artist: artist,
-                          thumbnailUrl: thumbnailUrl,
-                          duration: duration,
-                          isExplicit: isExplicit,
-                          isVideo: entry.isVideo,
-                          artistId: liked?.artistId,
-                          albumId: liked?.albumId,
-                          artistsJson: liked?.artistsJson ?? entry.artistsJson,
-                          onTap: () => _playSong(displayEntries, index),
-                          leadingOverride: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ReorderableDragStartListener(
-                                index: index,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 4),
-                                  child: Icon(
-                                    LucideIcons.gripVertical,
-                                    size: 20,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                      return SongTile(
+                        key: ValueKey(
+                          '${entry.playlistId}-${entry.videoId}-${entry.position}',
+                        ),
+                        videoId: entry.videoId,
+                        title: title,
+                        artist: artist,
+                        thumbnailUrl: thumbnailUrl,
+                        duration: duration,
+                        isExplicit: isExplicit,
+                        isVideo: entry.isVideo,
+                        artistId: liked?.artistId,
+                        albumId: liked?.albumId,
+                        artistsJson: liked?.artistsJson ?? entry.artistsJson,
+                        onTap: () => _playSong(displayEntries, index),
+                        leadingOverride: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Icon(
+                                  LucideIcons.gripVertical,
+                                  size: 20,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                               ),
-                              Stack(
-                                children: [
-                                  ThumbnailWidget(
-                                    imageUrl: thumbnailUrl,
-                                    size: 48,
-                                    shape: ThumbnailShape.rounded,
+                            ),
+                            Stack(
+                              children: [
+                                ThumbnailWidget(
+                                  imageUrl: thumbnailUrl,
+                                  size: 48,
+                                  shape: ThumbnailShape.rounded,
+                                ),
+                                if (entry.isVideo)
+                                  Positioned(
+                                    bottom: 0,
+                                    right: downloadedIds.contains(entry.videoId)
+                                        ? null
+                                        : 0,
+                                    left: downloadedIds.contains(entry.videoId)
+                                        ? 0
+                                        : null,
+                                    child: const VideoBadge(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 3,
+                                        vertical: 1,
+                                      ),
+                                      borderRadius: 3,
+                                    ),
                                   ),
-                                  if (entry.isVideo)
-                                    Positioned(
-                                      bottom: 0,
-                                      right:
-                                          downloadedIds.contains(entry.videoId)
-                                          ? null
-                                          : 0,
-                                      left:
-                                          downloadedIds.contains(entry.videoId)
-                                          ? 0
-                                          : null,
-                                      child: const VideoBadge(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 3,
-                                          vertical: 1,
-                                        ),
-                                        borderRadius: 3,
+                                if (downloadedIds.contains(entry.videoId))
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        LucideIcons.checkCircle,
+                                        size: 10,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
                                       ),
                                     ),
-                                  if (downloadedIds.contains(entry.videoId))
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          LucideIcons.checkCircle,
-                                          size: 10,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          trailingActions: [
-                            IconButton(
-                              icon: const Icon(LucideIcons.x, size: 18),
-                              onPressed: () => _removeEntry(entry),
-                              visualDensity: VisualDensity.compact,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              tooltip: AppLocalizations.of(context)!.remove,
+                                  ),
+                              ],
                             ),
                           ],
-                        );
-                      },
-                      onReorderItem: (oldIndex, newIndex) =>
-                          _reorder(displayEntries, oldIndex, newIndex),
-                    ),
+                        ),
+                        trailingActions: [
+                          IconButton(
+                            icon: const Icon(LucideIcons.x, size: 18),
+                            onPressed: () => _removeEntry(entry),
+                            visualDensity: VisualDensity.compact,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                            tooltip: AppLocalizations.of(context)!.remove,
+                          ),
+                        ],
+                      );
+                    },
+                    onReorderItem: (oldIndex, newIndex) =>
+                        _reorder(displayEntries, oldIndex, newIndex),
                   ),
                 ),
               ];
@@ -461,14 +456,6 @@ class _PlaylistDetailContentState
           ),
         ],
       ),
-    );
-  }
-
-  Widget _capTrackSliver(Widget sliver) {
-    if (!widget.isWide) return sliver;
-    return SliverConstrainedCrossAxis(
-      maxExtent: kEntityTrackMaxWidth,
-      sliver: sliver,
     );
   }
 
