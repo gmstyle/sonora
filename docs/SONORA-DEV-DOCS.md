@@ -316,7 +316,7 @@ Sync is **manual only** (detail actions + custom-playlist context menu). Sonora 
 
 ---
 
-## 5. Drift Database — Schema v25
+## 5. Drift Database — Schema v26
 
 ### 5.1 Tables
 
@@ -333,7 +333,7 @@ Sync is **manual only** (detail actions + custom-playlist context menu). Sonora 
 | `spotify_match_cache` | spotifyTrackUri | videoId, title, matchedAt, score | **v24: new** — Spotify URI → YTM videoId |
 | `downloads` | videoId | title, artist, **artistsJson**, thumbnailUrl, localPath, format, fileSize, downloadedAt, status, isVideo, isExplicit, **collectionId**, **collectionType**, **collectionName**, **collectionIndex** | v5/v6: +title/artist/thumbnailUrl, v11: +isVideo, v15: +isExplicit, **v21: +artistsJson**, **v23: +collection\***, **v25: +collectionIndex** |
 | `history` | id (auto) | videoId, title, artist, thumbnailUrl, playedAt, playCount, isVideo, duration, **contentType**, **podcastBrowseId** | v4: +thumbnailUrl, v11: +isVideo, v14: +duration, **v20: +contentType (`song`\|`video`\|`episode`) + podcastBrowseId** |
-| `search_history` | id (auto) | query, searchedAt | |
+| `search_history` | id (auto) | query, **queryKey**, searchedAt | **v26: +queryKey** (unique, trimmed lowercase) — one row per query; upsert refreshes `query` / `searchedAt` |
 | `queue_items` | position (auto) | videoId, title, artist, albumTitle, thumbnailUrl, durationSec, isVideo, streamUrl, artistId, albumId, **artistsJson**, **section** | v3: +streamUrl, v10: +artistId/albumId, v18: +section, **v21: +artistsJson** |
 | `queue_meta` | id (=0) | currentIndex, currentVideoId, positionMs, shuffleMode, repeatMode, updatedAt | **v19: new** — single-row playback pointer co-located with queue (atomic persist with `queue_items`) |
 

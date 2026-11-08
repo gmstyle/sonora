@@ -40,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 25;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -355,8 +355,58 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(downloads, downloads.collectionIndex);
         }
       }
+      if (from < 26) {
+        await _migrateSearchHistoryQueryKey(m);
+      }
     },
   );
+
+  /// Adds [SearchHistory.queryKey], collapses duplicate queries, unique index.
+  Future<void> _migrateSearchHistoryQueryKey(Migrator m) async {
+    final info = await customSelect('PRAGMA table_info(search_history)').get();
+    final hasQueryKey = info.any(
+      (row) => row.read<String>('name') == 'query_key',
+    );
+    if (!hasQueryKey) {
+      await m.addColumn(searchHistory, searchHistory.queryKey);
+    }
+
+    final rows = await select(searchHistory).get();
+    final keepIdByKey = <String, int>{};
+    final keepAtByKey = <String, DateTime>{};
+    for (final row in rows) {
+      final key = row.query.trim().toLowerCase();
+      if (key.isEmpty) {
+        await (delete(searchHistory)..where((t) => t.id.equals(row.id))).go();
+        continue;
+      }
+      await (update(searchHistory)..where((t) => t.id.equals(row.id))).write(
+        SearchHistoryCompanion(queryKey: Value(key)),
+      );
+      final previousAt = keepAtByKey[key];
+      if (previousAt == null ||
+          row.searchedAt.isAfter(previousAt) ||
+          (row.searchedAt.isAtSameMomentAs(previousAt) &&
+              row.id > (keepIdByKey[key] ?? 0))) {
+        keepIdByKey[key] = row.id;
+        keepAtByKey[key] = row.searchedAt;
+      }
+    }
+
+    final keepIds = keepIdByKey.values.toSet();
+    for (final row in rows) {
+      final key = row.query.trim().toLowerCase();
+      if (key.isEmpty) continue;
+      if (!keepIds.contains(row.id)) {
+        await (delete(searchHistory)..where((t) => t.id.equals(row.id))).go();
+      }
+    }
+
+    await customStatement(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_search_history_query_key '
+      'ON search_history (query_key)',
+    );
+  }
 
   /// Best-effort parse of legacy import descriptions into link columns.
   Future<void> _backfillPlaylistLinkMeta() async {

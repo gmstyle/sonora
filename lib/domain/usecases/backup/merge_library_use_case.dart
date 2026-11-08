@@ -336,26 +336,29 @@ class MergeLibraryUseCase {
         [];
     if (remoteSearchHistory.isNotEmpty) {
       final localSearchHistory = await libraryRepository.getRecentSearches(
-        limit: 100,
+        limit: 10000,
       );
-      final searchKeys = localSearchHistory
-          .map(
-            (s) =>
-                '${s.query.toLowerCase()}_${s.searchedAt.millisecondsSinceEpoch}',
-          )
-          .toSet();
+      final localByKey = {
+        for (final s in localSearchHistory) s.query.trim().toLowerCase(): s,
+      };
 
       for (final s in remoteSearchHistory) {
         final searchedAt = DateTime.parse(s['searchedAt'] as String);
         final query = s['query'] as String;
-        final key =
-            '${query.toLowerCase()}_${searchedAt.millisecondsSinceEpoch}';
-        if (!searchKeys.contains(key)) {
+        final key = query.trim().toLowerCase();
+        if (key.isEmpty) continue;
+        final local = localByKey[key];
+        if (local == null || searchedAt.isAfter(local.searchedAt)) {
           await libraryRepository.insertSearchEntryWithDate(
             query,
             searchedAt: searchedAt,
           );
           searchHistoryCount++;
+          localByKey[key] = SearchHistoryModel(
+            id: local?.id ?? 0,
+            query: query.trim(),
+            searchedAt: searchedAt,
+          );
         }
       }
     }

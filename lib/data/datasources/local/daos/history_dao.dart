@@ -2,6 +2,9 @@ import 'package:drift/drift.dart';
 
 import '../database.dart';
 
+/// Trimmed lowercase key for [SearchHistory.queryKey].
+String searchQueryKey(String query) => query.trim().toLowerCase();
+
 class HistoryDao extends DatabaseAccessor<AppDatabase> {
   HistoryDao(super.db);
 
@@ -85,12 +88,27 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
 
   Future<void> clearHistory() => delete(db.history).go();
 
-  Future<void> insertSearchEntry(String query) => into(db.searchHistory).insert(
-    SearchHistoryCompanion(
-      query: Value(query),
-      searchedAt: Value(DateTime.now()),
-    ),
-  );
+  /// Inserts or refreshes a search row so each [searchQueryKey] appears once.
+  Future<void> insertSearchEntry(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final key = searchQueryKey(trimmed);
+    final now = DateTime.now();
+    await into(db.searchHistory).insert(
+      SearchHistoryCompanion.insert(
+        query: trimmed,
+        queryKey: Value(key),
+        searchedAt: now,
+      ),
+      onConflict: DoUpdate(
+        (_) => SearchHistoryCompanion(
+          query: Value(trimmed),
+          searchedAt: Value(now),
+        ),
+        target: [db.searchHistory.queryKey],
+      ),
+    );
+  }
 
   Future<List<SearchHistoryData>> getRecentSearches({int limit = 10}) =>
       (select(db.searchHistory)
@@ -100,8 +118,13 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
 
   Future<void> clearSearchHistory() => delete(db.searchHistory).go();
 
-  Future<void> deleteSearchEntry(String query) =>
-      (delete(db.searchHistory)..where((t) => t.query.equals(query))).go();
+  Future<void> deleteSearchEntry(String query) {
+    final key = searchQueryKey(query);
+    if (key.isEmpty) return Future.value();
+    return (delete(
+      db.searchHistory,
+    )..where((t) => t.queryKey.equals(key))).go();
+  }
 
   Future<void> insertHistoryRaw(
     String videoId,
@@ -131,12 +154,37 @@ class HistoryDao extends DatabaseAccessor<AppDatabase> {
     ),
   );
 
+  /// Upserts by [searchQueryKey], keeping the newer [searchedAt] and its query text.
   Future<void> insertSearchEntryRaw(
     String query, {
     required DateTime searchedAt,
-  }) => into(db.searchHistory).insert(
-    SearchHistoryCompanion(query: Value(query), searchedAt: Value(searchedAt)),
-  );
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final key = searchQueryKey(trimmed);
+    final existing = await (select(
+      db.searchHistory,
+    )..where((t) => t.queryKey.equals(key))).getSingleOrNull();
+    if (existing == null) {
+      await into(db.searchHistory).insert(
+        SearchHistoryCompanion.insert(
+          query: trimmed,
+          queryKey: Value(key),
+          searchedAt: searchedAt,
+        ),
+      );
+      return;
+    }
+    if (!searchedAt.isAfter(existing.searchedAt)) return;
+    await (update(
+      db.searchHistory,
+    )..where((t) => t.id.equals(existing.id))).write(
+      SearchHistoryCompanion(
+        query: Value(trimmed),
+        searchedAt: Value(searchedAt),
+      ),
+    );
+  }
 
   Future<List<HistoryData>> getMostPlayedSongs({int limit = 50}) async {
     // Over-fetch to account for any pre-existing duplicates, then deduplicate

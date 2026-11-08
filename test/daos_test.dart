@@ -917,5 +917,34 @@ void main() {
       final limited = await historyDao.getRecentSearches(limit: 5);
       expect(limited.length, 5);
     });
+
+    test('insertSearchEntry upserts the same query once', () async {
+      await historyDao.insertSearchEntry('Angie Stone');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      await historyDao.insertSearchEntry('angie stone');
+
+      final searches = await historyDao.getRecentSearches();
+      expect(searches, hasLength(1));
+      expect(searches.single.query, 'angie stone');
+      expect(searches.single.queryKey, 'angie stone');
+    });
+
+    test('deleteSearchEntry matches ignoring case', () async {
+      await historyDao.insertSearchEntry('Angie Stone');
+      await historyDao.deleteSearchEntry('angie stone');
+      expect(await historyDao.getRecentSearches(), isEmpty);
+    });
+
+    test('insertSearchEntryRaw keeps the newer timestamp', () async {
+      final older = DateTime(2024, 1, 1);
+      final newer = DateTime(2025, 6, 1);
+      await historyDao.insertSearchEntryRaw('Angie Stone', searchedAt: newer);
+      await historyDao.insertSearchEntryRaw('angie stone', searchedAt: older);
+
+      final searches = await historyDao.getRecentSearches();
+      expect(searches, hasLength(1));
+      expect(searches.single.query, 'Angie Stone');
+      expect(searches.single.searchedAt, newer);
+    });
   });
 }

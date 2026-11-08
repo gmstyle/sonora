@@ -178,7 +178,7 @@ UI calls `PlayerNotifier`. It calls `SonoraAudioHandler`. The handler delegates 
 
 ## Data
 
-A Drift change is four steps: table file, `@DriftDatabase` list, `schemaVersion` bump plus `onUpgrade`, then `build_runner`. Current schema is **v25**. Backup JSON is version 3 (`ExportBackupUseCase`). A new library collection is added to export, import, and `MergeLibraryUseCase` together.
+A Drift change is four steps: table file, `@DriftDatabase` list, `schemaVersion` bump plus `onUpgrade`, then `build_runner`. Current schema is **v26**. Backup JSON is version 3 (`ExportBackupUseCase`). A new library collection is added to export, import, and `MergeLibraryUseCase` together.
 
 Portable preferences go through `Settings.toBackupMap` / `applyBackupMap` (equalizer through `EqualizerState`). Device-local keys (`downloadPath`, `wrappedSeen`, runtime flags) stay out of the backup map.
 
