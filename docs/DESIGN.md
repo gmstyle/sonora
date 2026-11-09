@@ -153,11 +153,11 @@ Home carousels stay on `HomeLayoutMetrics` mobile (pad 16, card 140).
 | Rule | Tablet (600–1199, `shortestSide` ≥ 600) |
 |------|-----------------------------------------|
 | Horizontal pad | `kTabletContentPadding` (24) |
-| Master rail | `kFacetFilterRailWidth` (200) for Library, Downloads, and Settings |
+| Master rail | `kFacetFilterRailWidth` (200) for Library, Downloads, and Settings (Settings switches to the push list below `kMediumBreakpoint`) |
 | Feed columns | 3 when the content box is under `kFeedFourColumnContentWidth` (800); 4 from 800 until the wide splits. 800 is a content-box threshold, not a shell |
 | Search | Horizontal chips |
 | Entity | Stacked header and list at pad 24. No track-list cap |
-| Document | Master rail 200. The 1320 clamp is wide-only |
+| Document | Settings uses a full-bleed split: page header, rail 200, section groups as border cards (`kSettingsSectionRadius` 20). The 1320 clamp is wide-only. Below 840 it falls back to the category list + push |
 
 Home carousels stay on `HomeLayoutMetrics` (pad 24, card 160).
 
@@ -170,6 +170,9 @@ Tokens live in `lib/core/constants/app_constants.dart`:
 | `kFacetFilterRailWidth` | 200 | Facet and tablet master rail |
 | `kFacetUtilityRailWidth` | 280 | Facet right rail at ≥1600 |
 | `kDocumentContentMaxWidth` | 1320 | Document soft max on wide |
+| `kSettingsRailWidth` | 260 | Settings category rail on wide |
+| `kSettingsFormMaxWidth` | 800 | Settings form column inside the wide document card |
+| `kSettingsSectionRadius` | 20 | Settings section group cards on tablet |
 | `kWideContentPadding` | 32 | Horizontal pad for wide feed, facet, and entity. Same inset as margin-desktop |
 | `kTabletContentPadding` | 24 | Horizontal pad on tablet |
 | `kCompactContentPadding` | 16 | Horizontal pad on compact / MobileShell |
@@ -196,7 +199,7 @@ Screens: Album, artist, YouTube playlist, local playlist, podcast, episode, mome
 
 ### Document
 
-On wide, this is the only family that clamps the page: soft max `kDocumentContentMaxWidth` (1320) and horizontal padding 32. Settings keeps its card shell (a form surface, not a feed).
+On wide, this is the only family that clamps the page: soft max `kDocumentContentMaxWidth` (1320) and horizontal padding 32. Settings uses one unified page header (back, title, “Preferences for this device”, and a wide-only “Local only” meta), a grouped category rail (`kSettingsRailWidth`, 260), and a single document card (radius 24) holding the flat section rows. The form column is capped at `kSettingsFormMaxWidth` (800). Tablet drops the card and the page meta: full-bleed, rail 200, section groups as border cards. Below 840 the category list pushes a detail screen. The selected category lives in `settingsCategoryProvider` so a breakpoint change keeps the pane. `?section=` slugs (`appearance`, `playback`, `downloads`, `ai`, `background`, `privacy`, `backup`, `about`; `ask` is kept for Ask) open a category on entry.
 
 Screens: Settings, artist see-all (albums, singles, videos).
 

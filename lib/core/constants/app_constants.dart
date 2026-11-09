@@ -23,6 +23,15 @@ const double kFacetUtilityRailWidth = 280.0;
 /// The clamp does not apply on tablet.
 const double kDocumentContentMaxWidth = 1320.0;
 
+/// Settings category rail on wide. Tablet keeps [kFacetFilterRailWidth].
+const double kSettingsRailWidth = 260.0;
+
+/// Settings form column inside the wide document card.
+const double kSettingsFormMaxWidth = 800.0;
+
+/// Section cards inside the tablet Settings split.
+const double kSettingsSectionRadius = 20.0;
+
 /// Horizontal padding for wide feed, facet, and entity content.
 const double kWideContentPadding = 32.0;
 

@@ -718,6 +718,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featuredArtist => 'Featured Artist';
 
   @override
+  String get settingsPageSubtitle => 'Preferences for this device';
+
+  @override
+  String get settingsGroupLookAndFeel => 'Look & feel';
+
+  @override
+  String get settingsGroupAssistant => 'Assistant';
+
+  @override
+  String get settingsGroupData => 'Data';
+
+  @override
+  String get androidOnly => 'Android only';
+
+  @override
+  String get settingsAppearanceSubtitle =>
+      'Theme, AMOLED, colors and vinyl style';
+
+  @override
+  String get settingsPlaybackSubtitle =>
+      'Crossfade, Up Next, country and language';
+
+  @override
+  String get settingsDownloadsSubtitle => 'Folder, Wi-Fi and disk space';
+
+  @override
+  String get settingsBackgroundSubtitle =>
+      'Battery optimization for background playback';
+
+  @override
+  String get settingsPrivacySubtitle => 'Listening and search history';
+
+  @override
+  String get settingsBackupSubtitle =>
+      'Export, import and local synchronization';
+
+  @override
+  String get settingsAboutSubtitle =>
+      'Version, licenses, updates and donations';
+
+  @override
   String get aiSettings => 'Ask';
 
   @override

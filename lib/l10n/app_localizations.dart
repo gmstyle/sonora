@@ -1190,6 +1190,78 @@ abstract class AppLocalizations {
   /// **'Featured Artist'**
   String get featuredArtist;
 
+  /// No description provided for @settingsPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences for this device'**
+  String get settingsPageSubtitle;
+
+  /// No description provided for @settingsGroupLookAndFeel.
+  ///
+  /// In en, this message translates to:
+  /// **'Look & feel'**
+  String get settingsGroupLookAndFeel;
+
+  /// No description provided for @settingsGroupAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant'**
+  String get settingsGroupAssistant;
+
+  /// No description provided for @settingsGroupData.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get settingsGroupData;
+
+  /// No description provided for @androidOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Android only'**
+  String get androidOnly;
+
+  /// No description provided for @settingsAppearanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme, AMOLED, colors and vinyl style'**
+  String get settingsAppearanceSubtitle;
+
+  /// No description provided for @settingsPlaybackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Crossfade, Up Next, country and language'**
+  String get settingsPlaybackSubtitle;
+
+  /// No description provided for @settingsDownloadsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder, Wi-Fi and disk space'**
+  String get settingsDownloadsSubtitle;
+
+  /// No description provided for @settingsBackgroundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery optimization for background playback'**
+  String get settingsBackgroundSubtitle;
+
+  /// No description provided for @settingsPrivacySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening and search history'**
+  String get settingsPrivacySubtitle;
+
+  /// No description provided for @settingsBackupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export, import and local synchronization'**
+  String get settingsBackupSubtitle;
+
+  /// No description provided for @settingsAboutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Version, licenses, updates and donations'**
+  String get settingsAboutSubtitle;
+
   /// No description provided for @aiSettings.
   ///
   /// In en, this message translates to:

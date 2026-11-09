@@ -26,6 +26,7 @@ import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
 import '../../shared/widgets/release_notes_view.dart';
 import 'settings_shared.dart';
+import 'providers/settings_category_provider.dart';
 import 'widgets/local_sync_panel.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/equalizer_provider.dart';
@@ -75,6 +76,7 @@ class SettingsScreenContent extends ConsumerWidget {
             ),
             trailing: const Icon(LucideIcons.chevronRight),
             onTap: () {
+              ref.read(settingsCategoryProvider.notifier).select(category);
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -115,75 +117,93 @@ class SettingsCategoryContent extends ConsumerWidget {
   final SettingsCategory category;
   final double bottomPadding;
 
+  /// Optional header rendered above the first section (category header).
+  final Widget? header;
+
+  /// Overrides the scroll padding. Defaults to the mobile stack padding.
+  final EdgeInsetsGeometry? padding;
+
+  /// Caps the content column and centers it when set (wide document form).
+  final double? contentMaxWidth;
+
+  /// Extra gap between section groups in the split layouts.
+  final double sectionSpacing;
+
   const SettingsCategoryContent({
     super.key,
     required this.category,
     this.bottomPadding = 0.0,
+    this.header,
+    this.padding,
+    this.contentMaxWidth,
+    this.sectionSpacing = 0,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
-    final listPadding = EdgeInsets.only(bottom: 32 + bottomPadding);
+    final sections = _sections(ref, settings, notifier);
+    final children = <Widget>[];
 
+    if (header != null) children.add(header!);
+    for (var i = 0; i < sections.length; i++) {
+      if (sectionSpacing > 0 && (i > 0 || header != null)) {
+        children.add(SizedBox(height: sectionSpacing));
+      }
+      children.add(sections[i]);
+    }
+
+    final column = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+
+    return SingleChildScrollView(
+      padding: padding ?? EdgeInsets.only(bottom: 32 + bottomPadding),
+      child: contentMaxWidth == null
+          ? column
+          : Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: contentMaxWidth!),
+                child: column,
+              ),
+            ),
+    );
+  }
+
+  List<Widget> _sections(
+    WidgetRef ref,
+    Settings settings,
+    SettingsNotifier notifier,
+  ) {
     switch (category) {
       case SettingsCategory.appearance:
-        return ListView(
-          padding: listPadding,
-          children: [
-            _AppearanceSection(settings: settings, notifier: notifier),
-          ],
-        );
+        return [_AppearanceSection(settings: settings, notifier: notifier)];
       case SettingsCategory.playback:
-        return ListView(
-          padding: listPadding,
-          children: [
-            _PlaybackSection(settings: settings, notifier: notifier),
-            _ContentSection(settings: settings, notifier: notifier),
-            _ConnectionSection(
-              settings: settings,
-              notifier: notifier,
-              ref: ref,
-            ),
-          ],
-        );
+        return [
+          _PlaybackSection(settings: settings, notifier: notifier),
+          _ContentSection(settings: settings, notifier: notifier),
+          _ConnectionSection(settings: settings, notifier: notifier, ref: ref),
+        ];
       case SettingsCategory.downloads:
-        return ListView(
-          padding: listPadding,
-          children: [_DownloadSection(settings: settings, notifier: notifier)],
-        );
+        return [_DownloadSection(settings: settings, notifier: notifier)];
       case SettingsCategory.ai:
-        return ListView(padding: listPadding, children: [const _AiSection()]);
+        return [const _AiSection()];
       case SettingsCategory.background:
-        return ListView(
-          padding: listPadding,
-          children: [if (isAndroid) const _BatterySection()],
-        );
+        return [if (isAndroid) const _BatterySection()];
       case SettingsCategory.privacy:
-        return ListView(
-          padding: listPadding,
-          children: [
-            _PrivacySection(settings: settings, notifier: notifier, ref: ref),
-          ],
-        );
+        return [
+          _PrivacySection(settings: settings, notifier: notifier, ref: ref),
+        ];
       case SettingsCategory.backup:
-        return ListView(
-          padding: listPadding,
-          children: [
-            _BackupSection(ref: ref),
-            _LocalSyncSection(ref: ref),
-          ],
-        );
+        return [_BackupSection(ref: ref), _LocalSyncSection(ref: ref)];
       case SettingsCategory.about:
-        return ListView(
-          padding: listPadding,
-          children: [
-            _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
-            _SupportSection(),
-            _AboutSection(),
-          ],
-        );
+        return [
+          _UpdatesSection(settings: settings, notifier: notifier, ref: ref),
+          _SupportSection(),
+          _AboutSection(),
+        ];
     }
   }
 }

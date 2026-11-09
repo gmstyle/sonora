@@ -365,6 +365,18 @@
   "@@sectionMeta": {
     "settings": "Settings Screen"
   },
+  "settingsPageSubtitle": "Preferences for this device",
+  "settingsGroupLookAndFeel": "Look & feel",
+  "settingsGroupAssistant": "Assistant",
+  "settingsGroupData": "Data",
+  "androidOnly": "Android only",
+  "settingsAppearanceSubtitle": "Theme, AMOLED, colors and vinyl style",
+  "settingsPlaybackSubtitle": "Crossfade, Up Next, country and language",
+  "settingsDownloadsSubtitle": "Folder, Wi-Fi and disk space",
+  "settingsBackgroundSubtitle": "Battery optimization for background playback",
+  "settingsPrivacySubtitle": "Listening and search history",
+  "settingsBackupSubtitle": "Export, import and local synchronization",
+  "settingsAboutSubtitle": "Version, licenses, updates and donations",
   "aiSettings": "Ask",
   "aiSettingsSubtitle": "Engine for Search, Mix, curiosities, and lyrics translation",
   "aiAskModeTitle": "Engine",

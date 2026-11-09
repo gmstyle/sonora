@@ -1,15 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../settings_shared.dart';
 import '../widgets/settings_split_layout.dart';
 
 class SettingsWideLayout extends StatelessWidget {
-  const SettingsWideLayout({super.key, this.initialCategory});
-
-  final SettingsCategory? initialCategory;
+  const SettingsWideLayout({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SettingsSplitLayout(initialCategory: initialCategory);
+    return const SettingsSplitLayout();
   }
 }

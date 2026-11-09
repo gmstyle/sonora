@@ -723,6 +723,46 @@ class AppLocalizationsIt extends AppLocalizations {
   String get featuredArtist => 'Artista in evidenza';
 
   @override
+  String get settingsPageSubtitle => 'Preferenze per questo dispositivo';
+
+  @override
+  String get settingsGroupLookAndFeel => 'Aspetto e stile';
+
+  @override
+  String get settingsGroupAssistant => 'Assistente';
+
+  @override
+  String get settingsGroupData => 'Dati';
+
+  @override
+  String get androidOnly => 'Solo Android';
+
+  @override
+  String get settingsAppearanceSubtitle =>
+      'Tema, AMOLED, colori e stile del vinile';
+
+  @override
+  String get settingsPlaybackSubtitle => 'Dissolvenza, Up Next, paese e lingua';
+
+  @override
+  String get settingsDownloadsSubtitle => 'Cartella, Wi-Fi e spazio disco';
+
+  @override
+  String get settingsBackgroundSubtitle =>
+      'Ottimizzazione batteria per riproduzione in background';
+
+  @override
+  String get settingsPrivacySubtitle => 'Cronologia di ascolto e ricerca';
+
+  @override
+  String get settingsBackupSubtitle =>
+      'Esportazione, importazione e sincronizzazione locale';
+
+  @override
+  String get settingsAboutSubtitle =>
+      'Versione, licenze, aggiornamenti e donazioni';
+
+  @override
   String get aiSettings => 'Ask';
 
   @override

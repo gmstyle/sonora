@@ -1,218 +1,108 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../core/utils/platform_utils.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../shared/widgets/scale_button.dart';
-import '../settings_shared.dart';
+import '../providers/settings_category_provider.dart';
 import '../settings_screen_content.dart';
+import '../settings_shared.dart';
+import 'settings_category_rail.dart';
 
-class SettingsSplitLayout extends StatefulWidget {
-  const SettingsSplitLayout({super.key, this.initialCategory});
-
-  final SettingsCategory? initialCategory;
-
-  @override
-  State<SettingsSplitLayout> createState() => _SettingsSplitLayoutState();
-}
-
-class _SettingsSplitLayoutState extends State<SettingsSplitLayout> {
-  late SettingsCategory _selectedCategory =
-      widget.initialCategory ?? SettingsCategory.appearance;
+/// Wide (document card) and tablet (full-bleed) Settings split.
+class SettingsSplitLayout extends ConsumerWidget {
+  const SettingsSplitLayout({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width >= 1200; // kExpandedBreakpoint
+    final size = MediaQuery.sizeOf(context);
+    final isWide = size.width >= kExpandedBreakpoint;
+    final category = ref.watch(settingsCategoryProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final lineColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
 
-    Widget mainRow = Row(
+    final panes = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Left Pane - Master List (Categories)
         SizedBox(
-          width: kFacetFilterRailWidth,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 16, 24, 8),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(LucideIcons.arrowLeft),
-                      tooltip: MaterialLocalizations.of(context)
-                          .backButtonTooltip,
-                      onPressed: () => popSettings(context),
-                    ),
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.settingsLabel,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  itemCount: SettingsCategory.values
-                      .where(
-                        (c) => c != SettingsCategory.background || isAndroid,
-                      )
-                      .length,
-                  itemBuilder: (context, index) {
-                    final category = SettingsCategory.values
-                        .where(
-                          (c) => c != SettingsCategory.background || isAndroid,
-                        )
-                        .elementAt(index);
-                    final isSelected = category == _selectedCategory;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: ScaleButton(
-                        onTap: () {
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? theme.colorScheme.secondaryContainer
-                                      .withValues(alpha: 0.4)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                category.icon,
-                                color: isSelected
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurfaceVariant,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      category.getTitle(context),
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            fontWeight: isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                            color: isSelected
-                                                ? theme.colorScheme.primary
-                                                : theme.colorScheme.onSurface,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      category.getSubtitle(context),
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                            fontSize: 11,
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+          width: isWide ? kSettingsRailWidth : kFacetFilterRailWidth,
+          child: const SettingsCategoryRail(),
         ),
-        // Divider
-        VerticalDivider(
-          width: 1,
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-        // Right Pane - Detail Settings
+        VerticalDivider(width: 1, thickness: 1, color: lineColor),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Detail Header showing category title
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                child: Text(
-                  _selectedCategory.getTitle(context),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+          child: SettingsSectionStyleScope(
+            style: isWide
+                ? SettingsSectionStyle.flat
+                : SettingsSectionStyle.card,
+            child: SettingsCategoryContent(
+              category: category,
+              header: SettingsCategoryHeader(
+                category: category,
+                showBadge: isAndroid && category == SettingsCategory.background,
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: SettingsCategoryContent(category: _selectedCategory),
-                ),
-              ),
-            ],
+              padding: isWide
+                  ? const EdgeInsets.fromLTRB(32, 24, 32, 48)
+                  : const EdgeInsets.fromLTRB(24, 18, 24, 40),
+              contentMaxWidth: isWide ? kSettingsFormMaxWidth : null,
+              sectionSpacing: 26,
+            ),
           ),
         ),
       ],
     );
 
-    // Card + document padding only at >= kExpandedBreakpoint (1200).
-    // Tablet 600–1199: full-bleed split on shell surface.
-    final Widget body = isWide
-        ? Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: kWideContentPadding,
-                vertical: 32.0,
+    final Widget document = isWide
+        ? Material(
+            color: theme.colorScheme.surfaceContainerLow,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(
+                SonoraPulseTokens.radiusMedia,
               ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: kDocumentContentMaxWidth,
+              side: BorderSide(color: lineColor),
+            ),
+            child: panes,
+          )
+        : panes;
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
+        child: Padding(
+          padding: isWide
+              ? const EdgeInsets.fromLTRB(
+                  kWideContentPadding,
+                  24,
+                  kWideContentPadding,
+                  24,
+                )
+              : const EdgeInsets.fromLTRB(
+                  kTabletContentPadding,
+                  18,
+                  kTabletContentPadding,
+                  20,
                 ),
-                child: Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isWide ? kDocumentContentMaxWidth : double.infinity,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SettingsPageHeader(
+                    subtitle: l10n.settingsPageSubtitle,
+                    dense: !isWide,
                   ),
-                  color: theme.colorScheme.surfaceContainerLow,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: mainRow,
-                  ),
-                ),
+                  Expanded(child: document),
+                ],
               ),
             ),
-          )
-        : mainRow;
-
-    return Scaffold(backgroundColor: theme.colorScheme.surface, body: body);
+          ),
+        ),
+      ),
+    );
   }
 }

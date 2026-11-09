@@ -261,6 +261,18 @@
   "@@sectionMeta": {
     "settings": "Schermata Impostazioni"
   },
+  "settingsPageSubtitle": "Preferenze per questo dispositivo",
+  "settingsGroupLookAndFeel": "Aspetto e stile",
+  "settingsGroupAssistant": "Assistente",
+  "settingsGroupData": "Dati",
+  "androidOnly": "Solo Android",
+  "settingsAppearanceSubtitle": "Tema, AMOLED, colori e stile del vinile",
+  "settingsPlaybackSubtitle": "Dissolvenza, Up Next, paese e lingua",
+  "settingsDownloadsSubtitle": "Cartella, Wi-Fi e spazio disco",
+  "settingsBackgroundSubtitle": "Ottimizzazione batteria per riproduzione in background",
+  "settingsPrivacySubtitle": "Cronologia di ascolto e ricerca",
+  "settingsBackupSubtitle": "Esportazione, importazione e sincronizzazione locale",
+  "settingsAboutSubtitle": "Versione, licenze, aggiornamenti e donazioni",
   "aiSettings": "Ask",
   "aiSettingsSubtitle": "Motore per Cerca, Mix, curiosità e traduzione lyrics",
   "aiAskModeTitle": "Motore",
