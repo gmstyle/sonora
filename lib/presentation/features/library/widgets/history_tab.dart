@@ -6,7 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/collection_shimmer.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../providers/library_provider.dart';
 
@@ -19,7 +19,7 @@ class HistoryTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return async.when(
-      loading: () => const _ShimmerSongList(),
+      loading: () => const LibraryCollectionShimmer(grid: false),
       error: (e, _) => ErrorRetryWidget(
         message: l10n.failedToLoadHistory,
         onRetry: () => ref.invalidate(libraryHistoryProvider),
@@ -60,22 +60,6 @@ class HistoryTab extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ShimmerSongList extends StatelessWidget {
-  const _ShimmerSongList();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: 8,
-      padding: EdgeInsets.only(
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-      ),
-      itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );
   }
 }

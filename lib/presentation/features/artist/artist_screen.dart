@@ -17,7 +17,7 @@ import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
-import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/entity_shimmer.dart';
 import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/playlist_card.dart';
@@ -83,7 +83,12 @@ class _ArtistMobileLayout extends ConsumerWidget {
     final artistAsync = ref.watch(artistProvider(artistId));
 
     return artistAsync.when(
-      loading: () => const Scaffold(body: _ArtistShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.artist,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadArtist,
@@ -110,7 +115,12 @@ class _ArtistTabletLayout extends ConsumerWidget {
     final artistAsync = ref.watch(artistProvider(artistId));
 
     return artistAsync.when(
-      loading: () => const Scaffold(body: _ArtistShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.artist,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadArtist,
@@ -137,7 +147,12 @@ class _ArtistWideLayout extends ConsumerWidget {
     final artistAsync = ref.watch(artistProvider(artistId));
 
     return artistAsync.when(
-      loading: () => const Scaffold(body: _ArtistShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.artist,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadArtist,
@@ -1099,76 +1114,6 @@ class _SectionHeader extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _ArtistShimmer extends StatelessWidget {
-  const _ArtistShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 280,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                    SizedBox(width: 12),
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ...List.generate(
-                  3,
-                  (_) => ShimmerLoading(variant: ShimmerVariant.tile),
-                ),
-                const SizedBox(height: 16),
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ShimmerLoading(variant: ShimmerVariant.carousel),
-                const SizedBox(height: 16),
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ShimmerLoading(variant: ShimmerVariant.carousel),
-                const SizedBox(height: 16),
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ShimmerLoading(variant: ShimmerVariant.carousel),
-                const SizedBox(height: 16),
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ...List.generate(
-                  2,
-                  (_) => ShimmerLoading(variant: ShimmerVariant.tile),
-                ),
-                const SizedBox(height: 16),
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ShimmerLoading(variant: ShimmerVariant.carousel),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

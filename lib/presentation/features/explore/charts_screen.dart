@@ -222,8 +222,13 @@ class _ChartsShimmer extends StatelessWidget {
         return CustomScrollView(
           slivers: [
             for (var section = 0; section < 2; section++) ...[
-              const SliverToBoxAdapter(
-                child: ShimmerLoading(variant: ShimmerVariant.zoneHeader),
+              SliverToBoxAdapter(
+                child: ShimmerLoading(
+                  variant: ShimmerVariant.shelfHeader,
+                  horizontalPadding: spec.horizontalPadding,
+                  sectionHeaderTop: 16,
+                  sectionHeaderBottom: 8,
+                ),
               ),
               SliverPadding(
                 padding: EdgeInsets.symmetric(

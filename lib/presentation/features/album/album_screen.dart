@@ -13,7 +13,7 @@ import '../../providers/library_notifier.dart';
 import '../../providers/play_album_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
-import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/entity_shimmer.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/entity_wide_body.dart';
@@ -80,7 +80,12 @@ class _AlbumMobileLayout extends ConsumerWidget {
     final albumAsync = ref.watch(albumProvider(albumId));
 
     return albumAsync.when(
-      loading: () => const Scaffold(body: _AlbumShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: 'Failed to load album',
@@ -112,7 +117,12 @@ class _AlbumTabletLayout extends ConsumerWidget {
     final albumAsync = ref.watch(albumProvider(albumId));
 
     return albumAsync.when(
-      loading: () => const Scaffold(body: _AlbumShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: 'Failed to load album',
@@ -145,7 +155,12 @@ class _AlbumWideLayout extends ConsumerWidget {
     final albumAsync = ref.watch(albumProvider(albumId));
 
     return albumAsync.when(
-      loading: () => const Scaffold(body: _AlbumShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: 'Failed to load album',
@@ -686,51 +701,6 @@ class _LikeAlbumButton extends ConsumerWidget {
           },
         );
       },
-    );
-  }
-}
-
-class _AlbumShimmer extends StatelessWidget {
-  const _AlbumShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 280,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                    SizedBox(width: 12),
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ...List.generate(
-                  10,
-                  (_) => ShimmerLoading(variant: ShimmerVariant.tile),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

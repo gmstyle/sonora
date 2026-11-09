@@ -10,7 +10,7 @@ import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/collection_shimmer.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../providers/library_provider.dart';
 
@@ -24,7 +24,7 @@ class AlbumsTab extends ConsumerWidget {
     final isMobile = isCompactShell(MediaQuery.sizeOf(context));
 
     return async.when(
-      loading: () => const _ShimmerSongList(),
+      loading: () => LibraryCollectionShimmer(grid: isGridView),
       error: (e, _) => ErrorRetryWidget(
         message: AppLocalizations.of(context)!.failedToLoadAlbums,
         onRetry: () => ref.invalidate(likedAlbumsProvider),
@@ -50,19 +50,10 @@ class AlbumsTab extends ConsumerWidget {
                     top: 16,
                     bottom: MediaQuery.of(context).padding.bottom + 16,
                   ),
-                  gridDelegate: isMobile
-                      ? const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.68,
-                        )
-                      : const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 170.0,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.68,
-                        ),
+                  gridDelegate: libraryCollectionGridDelegate(
+                    compact: isMobile,
+                    style: LibraryCollectionStyle.media,
+                  ),
                   itemCount: albums.length,
                   itemBuilder: (context, i) {
                     final a = albums[i];
@@ -112,22 +103,6 @@ class AlbumsTab extends ConsumerWidget {
                 ),
         );
       },
-    );
-  }
-}
-
-class _ShimmerSongList extends StatelessWidget {
-  const _ShimmerSongList();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: 8,
-      padding: EdgeInsets.only(
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-      ),
-      itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );
   }
 }

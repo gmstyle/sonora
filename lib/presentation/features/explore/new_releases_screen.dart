@@ -166,13 +166,16 @@ class _NewReleasesShimmer extends StatelessWidget {
 
         return CustomScrollView(
           slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                spec.horizontalPadding,
-                16,
-                spec.horizontalPadding,
-                0,
+            SliverToBoxAdapter(
+              child: ShimmerLoading(
+                variant: ShimmerVariant.shelfHeader,
+                horizontalPadding: spec.horizontalPadding,
+                sectionHeaderTop: 16,
+                sectionHeaderBottom: 8,
               ),
+            ),
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: spec.horizontalPadding),
               sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: spec.columns,
@@ -189,10 +192,20 @@ class _NewReleasesShimmer extends StatelessWidget {
                 ),
               ),
             ),
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 24),
-                child: ShimmerLoading(variant: ShimmerVariant.carousel),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+            SliverToBoxAdapter(
+              child: ShimmerLoading(
+                variant: ShimmerVariant.shelfHeader,
+                horizontalPadding: spec.horizontalPadding,
+                sectionHeaderTop: 16,
+                sectionHeaderBottom: 8,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: ShimmerLoading(
+                variant: ShimmerVariant.videoCarousel,
+                cardWidth: 200,
+                horizontalPadding: spec.horizontalPadding,
               ),
             ),
           ],

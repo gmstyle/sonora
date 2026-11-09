@@ -15,7 +15,7 @@ import '../../shared/widgets/hover_carousel_arrows.dart';
 import '../../shared/widgets/entity_banner_header.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/playlist_card.dart';
-import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/entity_shimmer.dart';
 import '../../shared/widgets/video_card.dart';
 import '../../providers/action_feedback_provider.dart';
 import 'providers/user_provider.dart';
@@ -66,7 +66,12 @@ class _UserMobileLayout extends ConsumerWidget {
     final userAsync = ref.watch(userProvider(channelId));
 
     return userAsync.when(
-      loading: () => const Scaffold(body: _UserShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.profile,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadUser,
@@ -92,7 +97,12 @@ class _UserTabletLayout extends ConsumerWidget {
     final userAsync = ref.watch(userProvider(channelId));
 
     return userAsync.when(
-      loading: () => const Scaffold(body: _UserShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.profile,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadUser,
@@ -116,7 +126,12 @@ class _UserWideLayout extends ConsumerWidget {
     final userAsync = ref.watch(userProvider(channelId));
 
     return userAsync.when(
-      loading: () => const Scaffold(body: _UserShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.profile,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadUser,
@@ -508,42 +523,6 @@ class _SectionHeader extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _UserShimmer extends StatelessWidget {
-  const _UserShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 280,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              children: [
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ShimmerLoading(variant: ShimmerVariant.carousel),
-                const SizedBox(height: 24),
-                const _SectionHeader(title: ''),
-                const SizedBox(height: 8),
-                ShimmerLoading(variant: ShimmerVariant.carousel),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -63,16 +63,30 @@ class HomeShimmer extends StatelessWidget {
     this.reserveChipBar = false,
   });
 
-  ShimmerLoading _homeShimmer(ShimmerVariant variant) {
+  ShimmerLoading _homeShimmer(
+    ShimmerVariant variant, {
+    double? horizontalPadding,
+    bool showHeader = false,
+    double? sectionHeaderTop,
+    double? sectionHeaderBottom,
+  }) {
     return ShimmerLoading(
       variant: variant,
       cardWidth: metrics.cardWidth,
-      horizontalPadding: metrics.horizontalPadding,
+      horizontalPadding: horizontalPadding ?? metrics.horizontalPadding,
       heroHeight: metrics.heroHeight,
       sideBySideQuickRow: metrics.useSideBySideQuickRow,
       zoneHeaderTop: metrics.zoneHeaderTop,
       zoneHeaderBottom: metrics.zoneHeaderBottom,
       zoneGap: metrics.zoneGap,
+      avatarSize: metrics.artistAvatarSize,
+      gridColumns: metrics.albumGridColumns,
+      gridItemCount: metrics.albumGridMaxItems,
+      gridSpacing: metrics.albumGridSpacing,
+      viewportFraction: metrics.heroViewportFraction,
+      showHeader: showHeader,
+      sectionHeaderTop: sectionHeaderTop ?? 12,
+      sectionHeaderBottom: sectionHeaderBottom ?? 6,
     );
   }
 
@@ -81,22 +95,84 @@ class HomeShimmer extends StatelessWidget {
     final chipBar = reserveChipBar ? HomeChipsBar.height : 0.0;
     final topPadding =
         MediaQuery.of(context).padding.top + kToolbarHeight + chipBar;
+    final editorialHeaderTop = metrics.zoneGap;
+    final editorialHeaderBottom = metrics.zoneHeaderBottom;
+    final artists = metrics.useSideBySideArtists
+        ? Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: metrics.horizontalPadding,
+            ),
+            child: Row(
+              key: const Key('home-shimmer-artists'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _homeShimmer(
+                    ShimmerVariant.artistShelf,
+                    horizontalPadding: 0,
+                  ),
+                ),
+                SizedBox(width: metrics.zoneGap),
+                Expanded(
+                  child: _homeShimmer(
+                    ShimmerVariant.artistShelf,
+                    horizontalPadding: 0,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : KeyedSubtree(
+            key: const Key('home-shimmer-artists'),
+            child: _homeShimmer(ShimmerVariant.artistShelf),
+          );
     return ListView(
       padding: EdgeInsets.only(top: topPadding + 8, bottom: 16),
       children: [
-        _homeShimmer(ShimmerVariant.homeQuickRow),
-        _homeShimmer(ShimmerVariant.zoneHeader),
+        KeyedSubtree(
+          key: const Key('home-shimmer-quick'),
+          child: _homeShimmer(ShimmerVariant.homeQuickRow),
+        ),
+        KeyedSubtree(
+          key: const Key('home-shimmer-explore'),
+          child: _homeShimmer(ShimmerVariant.exploreChips),
+        ),
+        KeyedSubtree(
+          key: const Key('home-shimmer-music'),
+          child: _homeShimmer(ShimmerVariant.zoneHeader),
+        ),
+        _homeShimmer(ShimmerVariant.section),
+        artists,
+        metrics.useLikedAlbumsGrid
+            ? _homeShimmer(ShimmerVariant.mediaGrid)
+            : _homeShimmer(ShimmerVariant.section),
+        KeyedSubtree(
+          key: const Key('home-shimmer-discover'),
+          child: _homeShimmer(ShimmerVariant.zoneHeader),
+        ),
+        KeyedSubtree(
+          key: const Key('home-shimmer-hero'),
+          child: _homeShimmer(
+            ShimmerVariant.hero,
+            showHeader: true,
+            sectionHeaderTop: editorialHeaderTop,
+            sectionHeaderBottom: editorialHeaderBottom,
+          ),
+        ),
         _homeShimmer(ShimmerVariant.section),
         _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.zoneHeader),
-        _homeShimmer(ShimmerVariant.hero),
-        _homeShimmer(ShimmerVariant.exploreChips),
-        _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.section),
-        _homeShimmer(ShimmerVariant.section),
+        if (!metrics.useSideBySideArtists)
+          _homeShimmer(ShimmerVariant.artistShelf),
+        _homeShimmer(
+          ShimmerVariant.section,
+          sectionHeaderTop: editorialHeaderTop,
+          sectionHeaderBottom: editorialHeaderBottom,
+        ),
+        _homeShimmer(
+          ShimmerVariant.section,
+          sectionHeaderTop: editorialHeaderTop,
+          sectionHeaderBottom: editorialHeaderBottom,
+        ),
       ],
     );
   }
@@ -112,6 +188,8 @@ class HomeEditorialLoading extends StatelessWidget {
       variant: ShimmerVariant.section,
       cardWidth: metrics.cardWidth,
       horizontalPadding: metrics.horizontalPadding,
+      sectionHeaderTop: metrics.zoneGap,
+      sectionHeaderBottom: metrics.zoneHeaderBottom,
     );
   }
 

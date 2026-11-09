@@ -14,7 +14,7 @@ import '../../../providers/play_video_id_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/collection_shimmer.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../providers/library_provider.dart';
 
@@ -25,7 +25,7 @@ class FavoritesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(sortedLikedSongsProvider);
     return async.when(
-      loading: () => const _ShimmerSongList(),
+      loading: () => const LibraryCollectionShimmer(grid: false),
       error: (e, _) => ErrorRetryWidget(
         message: AppLocalizations.of(context)!.failedToLoadFavorites,
         onRetry: () => ref.invalidate(likedSongsProvider),
@@ -239,23 +239,6 @@ class _FavoritesHeader extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-// ── Shimmer ────────────────────────────────────────────────────────
-
-class _ShimmerSongList extends StatelessWidget {
-  const _ShimmerSongList();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-      ),
-      itemCount: 8,
-      itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );
   }
 }

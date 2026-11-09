@@ -12,7 +12,7 @@ import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/playlist_card.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/collection_shimmer.dart';
 import '../../../shared/widgets/playlist_cover_collage.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../providers/library_provider.dart';
@@ -47,7 +47,7 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
     final isMobile = isCompactShell(MediaQuery.sizeOf(context));
 
     if (myAsync.isLoading || likedAsync.isLoading) {
-      return const _ShimmerPlaylistList();
+      return LibraryCollectionShimmer(grid: isGridView);
     }
     if (myAsync.hasError) {
       return ErrorRetryWidget(
@@ -65,19 +65,10 @@ class _PlaylistsTabState extends ConsumerState<PlaylistsTab> {
     final playlists = myAsync.value ?? [];
     final liked = likedAsync.value ?? [];
 
-    final gridDelegate = isMobile
-        ? const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 0.68,
-          )
-        : const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 170.0,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 0.68,
-          );
+    final gridDelegate = libraryCollectionGridDelegate(
+      compact: isMobile,
+      style: LibraryCollectionStyle.media,
+    );
 
     return CustomScrollView(
       slivers: [
@@ -344,22 +335,6 @@ class _LocalPlaylistTile extends StatelessWidget {
       trailing: const Icon(LucideIcons.chevronRight),
       onTap: onTap,
       onLongPress: onLongPress,
-    );
-  }
-}
-
-class _ShimmerPlaylistList extends StatelessWidget {
-  const _ShimmerPlaylistList();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: 6,
-      padding: EdgeInsets.only(
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-      ),
-      itemBuilder: (_, _) => const ShimmerLoading(variant: ShimmerVariant.tile),
     );
   }
 }

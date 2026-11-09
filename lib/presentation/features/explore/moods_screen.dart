@@ -173,7 +173,7 @@ class _MoodCategoriesShimmer extends StatelessWidget {
       ),
       children: List.generate(
         4,
-        (_) => const ShimmerLoading(variant: ShimmerVariant.exploreChips),
+        (_) => const ShimmerLoading(variant: ShimmerVariant.moodSection),
       ),
     );
   }

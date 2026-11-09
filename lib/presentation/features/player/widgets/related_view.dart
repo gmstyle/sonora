@@ -64,7 +64,10 @@ class RelatedView extends ConsumerWidget {
               children: [
                 ShimmerLoading(variant: ShimmerVariant.tile),
                 ShimmerLoading(variant: ShimmerVariant.tile),
-                ShimmerLoading(variant: ShimmerVariant.carousel),
+                ShimmerLoading(
+                  variant: ShimmerVariant.carousel,
+                  cardWidth: 140,
+                ),
               ],
             )
           : const _RelatedShimmer(),
@@ -457,13 +460,13 @@ class _RelatedShimmer extends StatelessWidget {
         ShimmerLoading(variant: ShimmerVariant.tile),
         ShimmerLoading(variant: ShimmerVariant.tile),
         SizedBox(height: 16),
-        ShimmerLoading(variant: ShimmerVariant.carousel),
+        ShimmerLoading(variant: ShimmerVariant.carousel, cardWidth: 140),
         SizedBox(height: 16),
         ShimmerLoading(variant: ShimmerVariant.tile),
         ShimmerLoading(variant: ShimmerVariant.tile),
         ShimmerLoading(variant: ShimmerVariant.tile),
         SizedBox(height: 16),
-        ShimmerLoading(variant: ShimmerVariant.carousel),
+        ShimmerLoading(variant: ShimmerVariant.carousel, cardWidth: 140),
       ],
     );
   }

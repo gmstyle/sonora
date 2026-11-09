@@ -20,6 +20,7 @@ import '../../shared/widgets/filter_chip_bar.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/playlist_tile.dart';
 import '../../shared/widgets/search_suggestion_tile.dart';
+import '../../shared/widgets/collection_shimmer.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
@@ -730,8 +731,11 @@ class _SearchResults extends ConsumerWidget {
         padding: EdgeInsets.only(bottom: bottom),
         children: [
           ?library,
-          for (var i = 0; i < 6; i++)
-            const ShimmerLoading(variant: ShimmerVariant.tile),
+          if (inFacet && filter == 0)
+            const SearchShelfShimmer()
+          else
+            for (var i = 0; i < 6; i++)
+              const ShimmerLoading(variant: ShimmerVariant.tile),
         ],
       ),
       error: (e, _) {

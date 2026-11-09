@@ -16,7 +16,7 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
-import '../../shared/widgets/shimmer_loading.dart';
+import '../../shared/widgets/entity_shimmer.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
@@ -79,7 +79,12 @@ class _PodcastMobileLayout extends ConsumerWidget {
     final podcastAsync = ref.watch(podcastProvider(browseId));
 
     return podcastAsync.when(
-      loading: () => const Scaffold(body: _PodcastShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadPodcast,
@@ -106,7 +111,12 @@ class _PodcastTabletLayout extends ConsumerWidget {
     final podcastAsync = ref.watch(podcastProvider(browseId));
 
     return podcastAsync.when(
-      loading: () => const Scaffold(body: _PodcastShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadPodcast,
@@ -136,7 +146,12 @@ class _PodcastWideLayout extends ConsumerWidget {
     final podcastAsync = ref.watch(podcastProvider(browseId));
 
     return podcastAsync.when(
-      loading: () => const Scaffold(body: _PodcastShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadPodcast,
@@ -678,50 +693,5 @@ class _EpisodeTracklist extends ConsumerWidget {
             );
       }
     }
-  }
-}
-
-class _PodcastShimmer extends StatelessWidget {
-  const _PodcastShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 280,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                    SizedBox(width: 12),
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ...List.generate(
-                  10,
-                  (_) => const ShimmerLoading(variant: ShimmerVariant.tile),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

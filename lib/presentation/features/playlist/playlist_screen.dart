@@ -14,6 +14,7 @@ import '../../providers/play_playlist_use_case_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/start_radio_use_case_provider.dart';
 import '../../shared/widgets/error_retry_widget.dart';
+import '../../shared/widgets/entity_shimmer.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
@@ -80,7 +81,12 @@ class _PlaylistMobileLayout extends ConsumerWidget {
     final videosAsync = ref.watch(playlistVideosProvider(playlistId));
 
     return metaAsync.when(
-      loading: () => const Scaffold(body: _PlaylistShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadPlaylist,
@@ -117,7 +123,12 @@ class _PlaylistTabletLayout extends ConsumerWidget {
     final videosAsync = ref.watch(playlistVideosProvider(playlistId));
 
     return metaAsync.when(
-      loading: () => const Scaffold(body: _PlaylistShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadPlaylist,
@@ -155,7 +166,12 @@ class _PlaylistWideLayout extends ConsumerWidget {
     final videosAsync = ref.watch(playlistVideosProvider(playlistId));
 
     return metaAsync.when(
-      loading: () => const Scaffold(body: _PlaylistShimmer()),
+      loading: () => Scaffold(
+        body: EntityShimmer(
+          kind: EntityShimmerKind.tracks,
+          contentWidth: contentWidth,
+        ),
+      ),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: AppLocalizations.of(context)!.failedToLoadPlaylist,
@@ -746,51 +762,3 @@ Widget _videoShimmerList() => Column(
     ),
   ),
 );
-
-class _PlaylistShimmer extends StatelessWidget {
-  const _PlaylistShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 300,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                    SizedBox(width: 12),
-                    const Expanded(
-                      child: ShimmerLoading(variant: ShimmerVariant.tile),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ...List.generate(
-                  8,
-                  (_) => const Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: ShimmerLoading(variant: ShimmerVariant.tile),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
