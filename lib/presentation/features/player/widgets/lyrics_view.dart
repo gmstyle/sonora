@@ -73,21 +73,23 @@ class LyricsView extends ConsumerWidget {
           ),
         ],
         Expanded(
-          child: showTranslated
-              ? _TranslatedBody(videoId: videoId, state: translation)
-              : timedAsync.when(
-                  loading: () => const _LyricsLoading(),
-                  error: (_, _) => _buildPlainLyrics(context, fallbackAsync),
-                  data: (timed) {
-                    if (timed != null) {
-                      return _TimedLyricsView(
-                        lyrics: timed,
-                        position: position,
-                      );
-                    }
-                    return _buildPlainLyrics(context, fallbackAsync);
-                  },
-                ),
+          child: _LyricsReadingSurface(
+            child: showTranslated
+                ? _TranslatedBody(videoId: videoId, state: translation)
+                : timedAsync.when(
+                    loading: () => const _LyricsLoading(),
+                    error: (_, _) => _buildPlainLyrics(context, fallbackAsync),
+                    data: (timed) {
+                      if (timed != null) {
+                        return _TimedLyricsView(
+                          lyrics: timed,
+                          position: position,
+                        );
+                      }
+                      return _buildPlainLyrics(context, fallbackAsync);
+                    },
+                  ),
+          ),
         ),
       ],
     );
@@ -99,12 +101,16 @@ class LyricsView extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(LucideIcons.micOff, size: 48, color: pc.labelMuted),
+          Icon(
+            LucideIcons.micOff,
+            size: 48,
+            color: pc.titlePrimary.withValues(alpha: 0.6),
+          ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.lyricsNotAvailable,
             style: Theme.of(context).textTheme.bodyLarge
-                ?.copyWith(color: pc.subtitle),
+                ?.copyWith(color: pc.titlePrimary.withValues(alpha: 0.6)),
             textAlign: TextAlign.center,
           ),
         ],
@@ -132,7 +138,11 @@ class LyricsView extends ConsumerWidget {
               ),
               child: Text(
                 text,
-                style: _lyricStyle(context, constraints.maxWidth),
+                style: _lyricStyle(
+                  context,
+                  constraints.maxWidth,
+                  active: true,
+                ).copyWith(fontWeight: FontWeight.w600),
                 textAlign: TextAlign.start,
               ),
             );
@@ -287,7 +297,11 @@ class _TranslatedBody extends ConsumerWidget {
           ),
           child: Text(
             text,
-            style: _lyricStyle(context, constraints.maxWidth),
+            style: _lyricStyle(
+              context,
+              constraints.maxWidth,
+              active: true,
+            ).copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.start,
           ),
         );
@@ -400,7 +414,6 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
               final line = data[index];
               final text = line.lyricLine?.trim() ?? '';
               final isActive = index == activeIndex;
-              final isPast = index < activeIndex;
 
               if (text.isEmpty) {
                 return SizedBox(key: _keys[index], height: size * 0.7);
@@ -411,12 +424,7 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 300),
-                  style: _lyricStyle(
-                    context,
-                    width,
-                    active: isActive,
-                    past: isPast,
-                  ),
+                  style: _lyricStyle(context, width, active: isActive),
                   child: Text(text, textAlign: TextAlign.start),
                 ),
               );
@@ -440,20 +448,40 @@ TextStyle _lyricStyle(
   BuildContext context,
   double width, {
   bool active = false,
-  bool past = false,
 }) {
-  final colors = PlayerColors.of(context);
+  final ink = PlayerColors.of(context).titlePrimary;
   final family = Theme.of(context).textTheme.displaySmall;
   return (family ?? const TextStyle()).copyWith(
     fontSize: _lyricSize(width),
     height: 1.18,
     fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-    color: active
-        ? colors.titlePrimary
-        : past
-        ? colors.labelMuted
-        : colors.subtitle,
+    color: active ? ink : ink.withValues(alpha: 0.6),
   );
+}
+
+/// Flat dark veil behind the lyric text. The player blur stays outside this
+/// surface, so line contrast does not follow the cover.
+class _LyricsReadingSurface extends StatelessWidget {
+  const _LyricsReadingSurface({required this.child});
+
+  final Widget child;
+
+  static const Color veil = Color(0xE6000000);
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = PlayerColors.of(context).titlePrimary;
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color: veil,
+      child: Theme(
+        data: theme.copyWith(
+          textTheme: theme.textTheme.apply(bodyColor: ink, displayColor: ink),
+        ),
+        child: child,
+      ),
+    );
+  }
 }
 
 class _LyricsLoading extends StatelessWidget {
@@ -463,7 +491,7 @@ class _LyricsLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: CircularProgressIndicator(
-        color: PlayerColors.of(context).subtitle,
+        color: PlayerColors.of(context).titlePrimary.withValues(alpha: 0.6),
         strokeWidth: 2,
       ),
     );
