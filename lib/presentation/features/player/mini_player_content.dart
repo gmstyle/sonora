@@ -432,11 +432,14 @@ class _ShelfIdentity extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: onOpenPlayer,
-                  child: Row(
-                    children: [
-                      Flexible(
+                // Shrink-wrap this line. A long artist · album below must
+                // not push the like to the edge of the identity zone.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: onOpenPlayer,
                         child: Text(
                           track.title,
                           overflow: TextOverflow.ellipsis,
@@ -447,12 +450,13 @@ class _ShelfIdentity extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (track.isExplicit)
-                        const ExplicitBadge(leading: SizedBox(width: 6)),
-                      if (track.isVideo)
-                        const VideoBadge(leading: SizedBox(width: 6)),
-                    ],
-                  ),
+                    ),
+                    if (track.isExplicit)
+                      const ExplicitBadge(leading: SizedBox(width: 6)),
+                    if (track.isVideo)
+                      const VideoBadge(leading: SizedBox(width: 6)),
+                    like,
+                  ],
                 ),
                 Row(
                   children: [
@@ -481,7 +485,6 @@ class _ShelfIdentity extends StatelessWidget {
               ],
             ),
           ),
-          like,
         ],
       ),
     );

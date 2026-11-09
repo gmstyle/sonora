@@ -469,20 +469,28 @@ class _ShimmerMiniPlayer extends StatelessWidget {
               children: [
                 _art(art),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(
-                        height: 12,
-                        width: double.infinity,
-                        child: ColoredBox(color: Colors.white),
+                      const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            height: 12,
+                            width: 120,
+                            child: ColoredBox(color: Colors.white),
+                          ),
+                          SizedBox(width: 8),
+                          _ShimmerDisc(size: 28),
+                        ],
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       FractionallySizedBox(
-                        widthFactor: 0.55,
-                        child: SizedBox(
+                        widthFactor: 0.72,
+                        alignment: Alignment.centerLeft,
+                        child: const SizedBox(
                           height: 8,
                           child: ColoredBox(color: Colors.white),
                         ),
@@ -490,8 +498,6 @@ class _ShimmerMiniPlayer extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                const _ShimmerDisc(size: 28),
               ],
             ),
           ),

@@ -99,6 +99,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('shelf like sits against the title', (tester) async {
+    await pumpShelf(
+      tester,
+      size: const Size(1400, 900),
+      item: MediaItem(
+        id: 'vid1',
+        title: 'Above Water',
+        artist: 'Jah Lil',
+        album: 'A long album name that must not push the heart away',
+        extras: const {'artistId': 'art1', 'albumId': 'alb1'},
+      ),
+    );
+    final title = tester.getRect(find.text('Above Water'));
+    final like = tester.getRect(find.byIcon(Icons.favorite_border));
+    final album = tester.getRect(
+      find.text('A long album name that must not push the heart away'),
+    );
+    expect(like.left, greaterThan(title.right));
+    expect(like.left - title.right, lessThan(24));
+    expect((like.center.dy - title.center.dy).abs(), lessThan(12));
+    expect(album.right, greaterThan(like.right));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('tablet shelf shows artwork and title', (tester) async {
     await pumpShelf(tester, size: const Size(800, 600));
     expect(find.text('Above Water'), findsOneWidget);
