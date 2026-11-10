@@ -1454,6 +1454,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextTrack => 'Next';
 
   @override
+  String previousTrackNamed(String title) {
+    return 'Previous, $title';
+  }
+
+  @override
+  String nextTrackNamed(String title) {
+    return 'Next, $title';
+  }
+
+  @override
   String get mv => 'MV';
 
   @override

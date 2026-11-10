@@ -666,6 +666,20 @@
   },
   "previousTrack": "Previous",
   "nextTrack": "Next",
+  "previousTrackNamed": "Previous, {title}",
+  "@previousTrackNamed": {
+    "description": "Accessibility label for the previous-track cover in the full player.",
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "nextTrackNamed": "Next, {title}",
+  "@nextTrackNamed": {
+    "description": "Accessibility label for the next-track cover in the full player.",
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
   "mv": "MV",
   "unknownArtist": "Unknown Artist",
   "share": "Share",

@@ -2438,6 +2438,18 @@ abstract class AppLocalizations {
   /// **'Next'**
   String get nextTrack;
 
+  /// Accessibility label for the previous-track cover in the full player.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous, {title}'**
+  String previousTrackNamed(String title);
+
+  /// Accessibility label for the next-track cover in the full player.
+  ///
+  /// In en, this message translates to:
+  /// **'Next, {title}'**
+  String nextTrackNamed(String title);
+
   /// No description provided for @mv.
   ///
   /// In en, this message translates to:

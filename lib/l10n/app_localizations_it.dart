@@ -1462,6 +1462,16 @@ class AppLocalizationsIt extends AppLocalizations {
   String get nextTrack => 'Successivo';
 
   @override
+  String previousTrackNamed(String title) {
+    return 'Precedente, $title';
+  }
+
+  @override
+  String nextTrackNamed(String title) {
+    return 'Successivo, $title';
+  }
+
+  @override
   String get mv => 'MV';
 
   @override

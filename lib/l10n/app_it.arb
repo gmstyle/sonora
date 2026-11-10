@@ -532,6 +532,8 @@
   "catalogSongCount": "{count, plural, =1{{count} brano} other{{count} brani}}",
   "previousTrack": "Precedente",
   "nextTrack": "Successivo",
+  "previousTrackNamed": "Precedente, {title}",
+  "nextTrackNamed": "Successivo, {title}",
   "mv": "MV",
   "unknownArtist": "Artista Sconosciuto",
   "share": "Condividi",
