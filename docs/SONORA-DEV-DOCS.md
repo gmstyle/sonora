@@ -754,15 +754,15 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 
 | Step | Detail |
 |---|---|
-| Validate | `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test --exclude-tags integration` |
+| Validate | Installs host native-asset packages (`pkg-config`, `clang`, `libgtk-3-dev`, `libx11-dev`, `libxi-dev`) because `window_manager` builds `cnativeapi` during `dart run` / `flutter test` → `flutter pub get` → `build_runner` → `flutter analyze` → `flutter test --exclude-tags integration` |
 | Prepare | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists, writes `release-notes.md` via `scripts/generate_release_notes.py` |
 | Android build | Builds a universal `app-release.apk` plus `--split-per-abi` (`arm64-v8a`, `armeabi-v7a`); signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`); the x86_64 split is deleted before upload (emulator-only) |
-| Linux build | Installs deps (`clang`, `cmake`, `ninja`, `libgtk-3-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`) → `flutter build linux --release` |
+| Linux build | Installs deps before `build_runner` (`clang`, `cmake`, `ninja`, `pkg-config`, `libgtk-3-dev`, `libx11-dev`, `libxi-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`, `libmpv-dev`) → `flutter build linux --release` |
 | Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
 | GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, three APKs (`app-release.apk` first, then arm64 / armeabi splits) + DEB + RPM attached |
 | CHANGELOG.md | After the GitHub Release, `scripts/insert_changelog_entry.py` prepends `## [{version}+{build}]` and pushes with `[skip ci]` |
 
-**Flutter version**: 3.47.2 (cached via `subosito/flutter-action`).
+**Flutter version**: 3.47.9 (cached via `subosito/flutter-action`).
 
 **APK size**: ABI-aware clients download a per-ABI split (~43.6 MB arm64) instead of the
 125.7 MB universal APK. The universal build stays in the release only as a bridge for older

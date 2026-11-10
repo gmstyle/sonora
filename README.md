@@ -78,7 +78,7 @@ Get the latest build from [GitHub Releases](https://github.com/gmstyle/sonora/re
 
 - Flutter SDK 3.47+ (stable channel)
 - Android Studio (for Android builds)
-- Linux: `clang`, `cmake`, `ninja`, `pkg-config`, `libgtk-3-dev`, `liblzma-dev`, `libayatana-appindicator3-dev`, `libmpv-dev`
+- Linux: `clang`, `cmake`, `ninja`, `pkg-config`, `libgtk-3-dev`, `libx11-dev`, `libxi-dev`, `liblzma-dev`, `libayatana-appindicator3-dev`, `libmpv-dev`
 
 ### Build from Source
 

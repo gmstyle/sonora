@@ -30,6 +30,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
+      # window_manager → cnativeapi compiles a host library during `dart run`
+      # and `flutter test`. The hook calls pkg-config for these three packages.
+      - name: Install host native-asset dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pkg-config clang libgtk-3-dev libx11-dev libxi-dev
+
       - run: rm -rf ~/.pub-cache/git
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
@@ -104,6 +111,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
+      # Same host hook as validate: build_runner compiles cnativeapi for Linux.
+      - name: Install host native-asset dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pkg-config clang libgtk-3-dev libx11-dev libxi-dev
+
       - run: rm -rf ~/.pub-cache/git
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
@@ -160,14 +173,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - run: rm -rf ~/.pub-cache/git
-      - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
-
+      # Before pub get / build_runner: cnativeapi's Linux hook needs GTK, X11,
+      # and Xi headers, and native_toolchain_c looks up clang on the host.
       - name: Install Linux Build Dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libayatana-appindicator3-dev libmpv-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libx11-dev libxi-dev liblzma-dev libstdc++-12-dev libayatana-appindicator3-dev libmpv-dev
+
+      - run: rm -rf ~/.pub-cache/git
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Linux
         run: flutter build linux --release
