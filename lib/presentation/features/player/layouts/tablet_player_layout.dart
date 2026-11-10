@@ -7,9 +7,9 @@ import 'wide_player_layout.dart';
 /// Tablet full player, aligned with the wide now-playing page.
 ///
 /// The current cover fills the first screen, with the previous and next
-/// covers set apart on either side and titled on a bottom scrim. Artist,
-/// album, and related stack in a single column below it. Lyrics and notes
-/// replace that scroll. The queue
+/// covers set apart on either side, each with the title, artist, and explicit
+/// mark on a photo scrim. Artist, album, and related stack in a single column
+/// below it. Lyrics and notes replace that scroll. The queue
 /// and curiosities open from the right, with curiosities capped at half the
 /// window. Track info, transport, and the actions sit in the bottom bar.
 class TabletPlayerLayout extends StatelessWidget {

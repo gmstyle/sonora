@@ -10,6 +10,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../shared/widgets/explicit_badge.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -68,9 +69,9 @@ double wideContextColumnHeight(double viewport) =>
 ///
 /// The canvas scrolls: the current disc fills the first screen and collapses
 /// into a pinned glass bar, the same sliver header artist and album use.
-/// Previous and next covers sit apart on either side, each with its track
-/// title on a bottom scrim. Below that, artist and album share the left
-/// column and related is the right one. Both columns are
+/// Previous and next covers sit apart on either side. Each one carries the
+/// title, artist, and explicit mark on a photo scrim. Below that, artist and
+/// album share the left column and related is the right one. Both columns are
 /// the height under the pinned bar, and the longer one scrolls on its own.
 /// Lyrics and notes replace that scroll. Queue and curiosities share one
 /// right-hand card that slides in from the edge. Track info, transport, and
@@ -513,9 +514,10 @@ class _ArtworkStage extends StatelessWidget {
 
 /// Previous or next cover beside the current disc.
 ///
-/// The title sits on a scrim across the bottom third, one line, centered.
-/// The tile stays dimmer than the current disc. [semanticsLabel] names the
-/// skip and the track; the tooltip is the full title.
+/// The picture keeps the artist-header wash: open in the middle, dark toward
+/// the bottom, with the title, artist, and explicit mark set at the lower
+/// left. [semanticsLabel] names the skip and the track. The tooltip is the
+/// title, with the artist when one is present.
 class NeighborTrackCover extends StatelessWidget {
   const NeighborTrackCover({
     super.key,
@@ -532,79 +534,119 @@ class NeighborTrackCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final pc = PlayerColors.of(context);
+    final track = QueueTrack.fromMediaItem(item);
     final art = item.artUri?.toString();
-    final inset = (size * 0.08).clamp(4.0, 8.0);
-    return Opacity(
-      opacity: 0.72,
-      child: Tooltip(
-        message: item.title,
-        child: Semantics(
-          button: onTap != null,
-          label: semanticsLabel,
-          excludeSemantics: true,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(16),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: SizedBox(
-                width: size,
-                height: size,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    art == null
-                        ? ColoredBox(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHigh,
+    final artist = item.artist?.trim();
+    final hasArtist = artist != null && artist.isNotEmpty;
+    final credited = hasArtist ? artist : null;
+    final roomy = size >= 140;
+    final pad = roomy ? 12.0 : 8.0;
+    final radius = roomy ? SonoraPulseTokens.radiusMedia : 12.0;
+    final titleStyle =
+        (roomy ? theme.textTheme.titleLarge : theme.textTheme.titleSmall)
+            ?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: pc.titlePrimary,
+              height: 1.05,
+            );
+    final artistStyle =
+        (roomy ? theme.textTheme.titleSmall : theme.textTheme.labelMedium)
+            ?.copyWith(fontWeight: FontWeight.w600, color: pc.titleSecondary);
+    final label = credited == null
+        ? semanticsLabel
+        : '$semanticsLabel, $credited';
+
+    return Tooltip(
+      message: credited == null ? item.title : '${item.title} · $credited',
+      child: Semantics(
+        button: onTap != null,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(radius),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius),
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  art == null
+                      ? ColoredBox(
+                          color: theme.colorScheme.surfaceContainerHigh,
+                          child: Align(
+                            alignment: const Alignment(0, -0.35),
                             child: Icon(
                               LucideIcons.music,
                               color: pc.iconSecondary,
                             ),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: art,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => Icon(
-                              LucideIcons.music,
-                              color: pc.iconSecondary,
-                            ),
                           ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: [0.62, 0.78, 1],
-                          colors: [
-                            Colors.transparent,
-                            Color(0x8C000000),
-                            Color(0xE6000000),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: art,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) =>
+                              Icon(LucideIcons.music, color: pc.iconSecondary),
+                        ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0.0, 0.42, 0.72, 1.0],
+                        colors: [
+                          Color(0x2E000000),
+                          Color(0x0A000000),
+                          Color(0x8C000000),
+                          Color(0xF2000000),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: EdgeInsets.all(pad),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                if (track.isExplicit)
+                                  const WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(right: 6),
+                                      child: ExplicitBadge(),
+                                    ),
+                                  ),
+                                TextSpan(text: item.title),
+                              ],
+                            ),
+                            style: titleStyle,
+                            maxLines: roomy ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (credited != null) ...[
+                            SizedBox(height: roomy ? 4 : 2),
+                            Text(
+                              credited,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: artistStyle,
+                            ),
                           ],
-                        ),
+                        ],
                       ),
                     ),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(inset, 0, inset, inset),
-                        child: Text(
-                          item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: pc.titlePrimary,
-                              ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
