@@ -21,6 +21,7 @@ import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/entity_banner_header.dart';
+import '../../shared/widgets/header_credit_line.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/podcast_provider.dart';
 
@@ -308,8 +309,6 @@ class _PodcastSliverAppBar extends StatelessWidget {
     final thumbnailUrl = podcast.thumbnails.isNotEmpty
         ? podcast.thumbnails.last.url
         : null;
-    final authorName = podcast.author?.name;
-
     return SliverAppBar(
       expandedHeight: EntityBannerHeader.expandedHeight(
         wide: isWide,
@@ -336,27 +335,20 @@ class _PodcastSliverAppBar extends StatelessWidget {
         children: [
           GlassAppBarBackground(opacity: scrollProgress),
           FlexibleSpaceBar(
-            background: _buildHeaderBackground(
-              context,
-              thumbnailUrl,
-              authorName,
-            ),
+            background: _buildHeaderBackground(context, thumbnailUrl),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderBackground(
-    BuildContext context,
-    String? thumbnailUrl,
-    String? authorName,
-  ) {
+  Widget _buildHeaderBackground(BuildContext context, String? thumbnailUrl) {
     final isTabletOrWide = isTablet || isWide;
     final theme = Theme.of(context);
     final colors = PlayerColors.of(context);
     final l10n = AppLocalizations.of(context)!;
     final textAlign = isTabletOrWide ? TextAlign.start : TextAlign.center;
+    final author = podcast.author;
 
     return EntityBannerHeader(
       layout: isTabletOrWide
@@ -369,9 +361,9 @@ class _PodcastSliverAppBar extends StatelessWidget {
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.center,
         children: [
-          if (authorName != null && authorName.isNotEmpty) ...[
-            Text(
-              authorName,
+          if (author != null && author.name.isNotEmpty) ...[
+            HeaderCreditLine(
+              credits: artistCreditSpans([author]),
               style:
                   (isTabletOrWide
                           ? theme.textTheme.titleMedium
@@ -381,8 +373,6 @@ class _PodcastSliverAppBar extends StatelessWidget {
                         color: colors.titleSecondary,
                       ),
               textAlign: textAlign,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: isTabletOrWide ? 6 : 4),
           ],

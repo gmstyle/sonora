@@ -17,6 +17,7 @@ import '../../shared/widgets/detail_affinity_button.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/entity_banner_header.dart';
+import '../../shared/widgets/header_credit_line.dart';
 import '../../shared/widgets/entity_wide_body.dart';
 import '../../shared/widgets/expandable_text.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
@@ -332,8 +333,16 @@ class _EpisodeSliverAppBar extends StatelessWidget {
         children: [
           if (episode.podcastName != null &&
               episode.podcastName!.isNotEmpty) ...[
-            Text(
-              episode.podcastName!,
+            HeaderCreditLine(
+              credits: [
+                CreditSpan(
+                  episode.podcastName!,
+                  route:
+                      episode.podcastId != null && episode.podcastId!.isNotEmpty
+                      ? '/podcast/${episode.podcastId}'
+                      : null,
+                ),
+              ],
               style:
                   (isTabletOrWide
                           ? theme.textTheme.titleMedium
@@ -343,8 +352,6 @@ class _EpisodeSliverAppBar extends StatelessWidget {
                         color: colors.titleSecondary,
                       ),
               textAlign: textAlign,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: isTabletOrWide ? 6 : 4),
           ],

@@ -24,6 +24,7 @@ import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/entity_banner_header.dart';
+import '../../shared/widgets/header_credit_line.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/album_provider.dart';
 import '../../../core/utils/artists_utils.dart';
@@ -464,8 +465,8 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.center,
         children: [
-          Text(
-            displayArtists(widget.album.artists),
+          HeaderCreditLine(
+            credits: artistCreditSpans(widget.album.artists),
             style:
                 (isTabletOrWide
                         ? theme.textTheme.titleMedium
@@ -475,8 +476,6 @@ class _AlbumContentState extends ConsumerState<_AlbumContent> {
                       color: colors.titleSecondary,
                     ),
             textAlign: textAlign,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           SizedBox(height: isTabletOrWide ? 6 : 4),
           Text(

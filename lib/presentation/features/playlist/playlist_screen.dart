@@ -24,6 +24,7 @@ import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/glass_app_bar_background.dart';
 import '../../shared/widgets/detail_actions_bar.dart';
 import '../../shared/widgets/entity_banner_header.dart';
+import '../../shared/widgets/header_credit_line.dart';
 import '../../shared/widgets/detail_affinity_button.dart';
 import 'providers/playlist_provider.dart';
 import '../../../core/utils/artists_utils.dart';
@@ -414,8 +415,8 @@ class _PlaylistSliverAppBar extends StatelessWidget {
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.center,
         children: [
-          Text(
-            displayArtists(playlist.artists),
+          HeaderCreditLine(
+            credits: artistCreditSpans(playlist.artists),
             style:
                 (isTabletOrWide
                         ? theme.textTheme.titleMedium
@@ -425,8 +426,6 @@ class _PlaylistSliverAppBar extends StatelessWidget {
                       color: colors.titleSecondary,
                     ),
             textAlign: textAlign,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
           SizedBox(height: isTabletOrWide ? 6 : 4),
           Text(
