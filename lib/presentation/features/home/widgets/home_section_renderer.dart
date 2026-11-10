@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -280,6 +281,10 @@ class HomeContinueListening extends ConsumerWidget {
   final bool showHeader;
   final int maxItems;
 
+  /// When history has loaded empty, show the continue-listening card
+  /// instead of removing the column.
+  final bool placeholderWhenEmpty;
+
   const HomeContinueListening(
     this.historyAsync, {
     super.key,
@@ -287,6 +292,7 @@ class HomeContinueListening extends ConsumerWidget {
     this.horizontalPadding = 16,
     this.showHeader = true,
     this.maxItems = 5,
+    this.placeholderWhenEmpty = false,
   });
 
   @override
@@ -298,7 +304,10 @@ class HomeContinueListening extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
       data: (history) {
-        if (history.isEmpty) return const SizedBox.shrink();
+        if (history.isEmpty) {
+          if (!placeholderWhenEmpty) return const SizedBox.shrink();
+          return _HomeContinuePlaceholder(horizontalPadding: horizontalPadding);
+        }
         final items = history.take(maxItems).toList();
 
         return Column(
@@ -380,6 +389,68 @@ class HomeContinueListening extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Quiet stand-in for the continue column before the first play.
+class _HomeContinuePlaceholder extends StatelessWidget {
+  final double horizontalPadding;
+
+  const _HomeContinuePlaceholder({required this.horizontalPadding});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            8,
+            horizontalPadding,
+            8,
+          ),
+          child: Text(
+            l10n.continueListening,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Card(
+            key: const Key('home-continue-placeholder'),
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(LucideIcons.history, color: scheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.noListeningHistoryHint,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => context.go('/search'),
+                    child: Text(l10n.goToSearch),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1043,12 +1114,14 @@ class HomeYourMixes extends ConsumerWidget {
   final double horizontalPadding;
   final bool showHeader;
   final bool compactGrid;
+  final double maxCardWidth;
 
   const HomeYourMixes({
     super.key,
     this.horizontalPadding = 16,
     this.showHeader = true,
     this.compactGrid = false,
+    this.maxCardWidth = kHomeMixCardMaxWidth,
   });
 
   @override
@@ -1079,23 +1152,32 @@ class HomeYourMixes extends ConsumerWidget {
           ask,
           Padding(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = 0; i < 3; i++) ...[
-                  if (i > 0) const SizedBox(width: 8),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return SmartMixCard(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 8.0;
+                const count = 3;
+                final available = constraints.maxWidth;
+                final natural = available.isFinite
+                    ? (available - gap * (count - 1)) / count
+                    : maxCardWidth;
+                final cardWidth = natural.clamp(0.0, maxCardWidth);
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < count; i++) ...[
+                        if (i > 0) const SizedBox(width: gap),
+                        SmartMixCard(
                           type: SmartMixType.values[i],
-                          cardWidth: constraints.maxWidth,
-                        );
-                      },
-                    ),
+                          cardWidth: cardWidth,
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ],
+                );
+              },
             ),
           ),
         ],

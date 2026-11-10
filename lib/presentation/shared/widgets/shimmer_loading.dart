@@ -812,14 +812,32 @@ class _ShimmerHomeQuickRow extends StatelessWidget {
         _ShimmerShelfHeader(horizontalPadding: pad, showAction: false),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: pad),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < 3; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                const Expanded(child: _ShimmerMixCard()),
-              ],
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 8.0;
+              const count = 3;
+              final available = constraints.maxWidth;
+              final natural = available.isFinite
+                  ? (available - gap * (count - 1)) / count
+                  : kHomeMixCardMaxWidth;
+              final cardWidth = natural.clamp(0.0, kHomeMixCardMaxWidth);
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < count; i++) ...[
+                      if (i > 0) const SizedBox(width: gap),
+                      SizedBox(
+                        width: cardWidth,
+                        child: const _ShimmerMixCard(),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ],

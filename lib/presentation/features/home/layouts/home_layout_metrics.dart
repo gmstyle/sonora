@@ -146,4 +146,7 @@ class HomeLayoutMetrics {
   bool get useLikedAlbumsGrid => isWide;
 
   bool get useSideBySideQuickRow => !isMobile;
+
+  /// Square mix tiles fill the row up to this width, then stay left-aligned.
+  double get mixCardMaxWidth => kHomeMixCardMaxWidth;
 }

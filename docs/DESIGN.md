@@ -176,6 +176,7 @@ Tokens live in `lib/core/constants/app_constants.dart`:
 | `kWideContentPadding` | 32 | Horizontal pad for wide feed, facet, and entity. Same inset as margin-desktop |
 | `kTabletContentPadding` | 24 | Horizontal pad on tablet |
 | `kCompactContentPadding` | 16 | Horizontal pad on compact / MobileShell |
+| `kHomeMixCardMaxWidth` | 220 | Largest home mix tile. The 3-up row stops growing here |
 
 ### Feed
 
@@ -183,7 +184,7 @@ Edge-to-edge shelves and grids. Horizontal padding is `kWideContentPadding` (32)
 
 Screens: Home, Charts, Moods (including mood playlists), New releases, Browse section.
 
-Home mood chips sit in the `AppBar` bottom on compact, tablet, and wide, and stay pinned while the feed scrolls. All is the personal home: resume, Explore, your music, discover, then the default shelves with no extra zone title. The home loading skeleton follows that order: the resume row, Explore chips, your music, discover. Song rows use the 48 cover at radius 12, with title, artist, and duration. Shelf cards keep radius 24, an 8px gap, and the title block under the cover. A selected chip replaces that body with that mood's shelves, scrolls to the top, and shows a shelf shimmer while the feed loads. Explore (charts, moods, new releases) stays on All. The chip row hides while offline.
+Home mood chips sit in the `AppBar` bottom on compact, tablet, and wide, and stay pinned while the feed scrolls. All is the personal home: resume, Explore, your music, discover, then the default shelves with no extra zone title. The home loading skeleton follows that order: the resume row, Explore chips, your music, discover. Song rows use the 48 cover at radius 12, with title, artist, and duration. Shelf cards keep radius 24, an 8px gap, and the title block under the cover. Mix tiles are a 3-up row that grows with the width up to `kHomeMixCardMaxWidth` (220), then stays left-aligned with the same horizontal padding as the shelves. With no listening history, tablet and wide keep the resume row in two columns: a Continue listening card (history icon, the library hint, Go to Search) on the left and the mixes on the right. Compact leaves that card out. A selected chip replaces that body with that mood's shelves, scrolls to the top, and shows a shelf shimmer while the feed loads. Explore (charts, moods, new releases) stays on All. The chip row hides while offline.
 
 ### Facet
 

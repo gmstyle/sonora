@@ -24,10 +24,21 @@ class HomeQuickRow extends ConsumerWidget {
 
     if (!showContinue && !showMixes) return const SizedBox.shrink();
 
-    // Side-by-side already insets the Row; children must not re-apply the
-    // same horizontal padding or the two columns drift inward unevenly.
+    // Tablet and wide keep the two columns while history is loading or empty,
+    // so the mixes stay on the right. The paired row insets once. A single
+    // column keeps the page padding on the child.
     final sideBySide = metrics.useSideBySideQuickRow;
-    final childPad = sideBySide ? 0.0 : metrics.quickRowPadding;
+    final showPlaceholder =
+        sideBySide &&
+        showMixes &&
+        !showContinue &&
+        historyAsync.hasValue &&
+        !historyAsync.hasError;
+    final paired =
+        sideBySide &&
+        showMixes &&
+        (showContinue || showPlaceholder || historyAsync.isLoading);
+    final childPad = paired ? 0.0 : metrics.quickRowPadding;
 
     final continueWidget = HomeContinueListening(
       historyAsync,
@@ -35,12 +46,14 @@ class HomeQuickRow extends ConsumerWidget {
       horizontalPadding: childPad,
       showHeader: true,
       maxItems: 5,
+      placeholderWhenEmpty: showPlaceholder,
     );
 
     final mixesWidget = HomeYourMixes(
       horizontalPadding: childPad,
       showHeader: true,
       compactGrid: true,
+      maxCardWidth: metrics.mixCardMaxWidth,
     );
 
     final mixesColumn = sideBySide
@@ -53,31 +66,39 @@ class HomeQuickRow extends ConsumerWidget {
           )
         : mixesWidget;
 
+    if (paired) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: metrics.zoneGap / 2),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: metrics.quickRowPadding),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 55,
+                child: showContinue || showPlaceholder
+                    ? continueWidget
+                    : const SizedBox.shrink(),
+              ),
+              SizedBox(width: metrics.zoneGap),
+              Expanded(flex: 45, child: mixesColumn),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (showContinue && showMixes) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: metrics.zoneGap / 2),
-        child: sideBySide
-            ? Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: metrics.quickRowPadding,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 55, child: continueWidget),
-                    SizedBox(width: metrics.zoneGap),
-                    Expanded(flex: 45, child: mixesColumn),
-                  ],
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  continueWidget,
-                  SizedBox(height: metrics.zoneGap),
-                  mixesWidget,
-                ],
-              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            continueWidget,
+            SizedBox(height: metrics.zoneGap),
+            mixesWidget,
+          ],
+        ),
       );
     }
 

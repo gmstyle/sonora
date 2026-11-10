@@ -43,6 +43,11 @@ const double kTabletContentPadding = 24.0;
 /// Matches Home mobile shelves. Prefer this over a bare `16`.
 const double kCompactContentPadding = 16.0;
 
+/// Largest home mix tile. The 3-up row fills its width until a square would
+/// pass this, then the tiles stay left-aligned. 220 matches a tablet portrait
+/// row, so landscape and wide do not grow the mixes into posters.
+const double kHomeMixCardMaxWidth = 220.0;
+
 /// Edge-to-edge mini-player shelf on tablet and wide layouts.
 const double kMiniPlayerShelfHeight = 80.0;
 
