@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.9.0+76] - 2026-11-10
+
+### Features
+
+- **player**: Split the compact player in landscape
+- **player**: Keep lyric contrast off the cover art
+- **settings**: Split tablet and wide Settings into a document layout
+- **library**: Keep the wide library on two columns
+- **search**: Show library matches on the search page
+- **player**: Give the wide now-playing columns one height
+- **player**: Enlarge synced lyrics and highlight the current line
+- **ui**: Stack entity pages in one full-width column
+- **ui**: Share one banner header across entity pages
+- **artist**: Reorganize the wide artist page around the song list
+- **home**: Pin mood chips and replace the feed when one is selected
+- **player**: Collapse the now-playing disc into a pinned glass bar
+- **player**: Slide queue and curiosities in as surface cards
+- **ui**: Float the mobile mini player and nest moment mix in Your mixes
+- **player**: Align the tablet now-playing page with wide
+- **player**: Rebuild the wide now-playing page around the disc
+- **ui**: Align tablet layouts with feed, facet, entity, and document families
+- **ui**: Apply wide layout families across feed, facet, entity, and document
+- **ui**: Apply Sonora Pulse theme and full-width mini player
+
+### Bug Fixes
+
+- **ci**: Install GTK, X11, and Xi before the cnativeapi host build
+- **player**: Keep the shelf like against the title
+- **search**: Store each recent query only once
+- **ytmusic**: Apply the saved content language at startup
+- **ui**: Tint like with brand cyan and align selection controls
+- **ui**: Align mobile layouts with shell and Pulse filled contrast
+- **library**: Leave playlist detail and refresh home after delete
+
 ## [1.8.14+75] - 2026-10-26
 
 ### Features
