@@ -113,8 +113,9 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../assets/logo_full.png"
   DESTINATION "${CMAKE_INSTALL_PREFIX}"
   RENAME "sonora.png"
   COMPONENT Runtime)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../assets/icons/tray/tray_icon.png"
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../assets/icons/tray/tray_symbolic.png"
   DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  RENAME "tray_icon.png"
   COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"

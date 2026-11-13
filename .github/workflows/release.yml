@@ -195,10 +195,7 @@ jobs:
 
           cp -r "$BUNDLE"/* "$OUTDIR/"
           cp assets/logo_full.png "$OUTDIR/sonora.png"
-          cp assets/icons/tray/tray_icon.png "$OUTDIR/tray_icon.png"
-          if command -v convert &>/dev/null; then
-            convert "$OUTDIR/tray_icon.png" -resize 48x48 "$OUTDIR/tray_icon.png"
-          fi
+          cp assets/icons/tray/tray_symbolic.png "$OUTDIR/tray_icon.png"
 
           cat > "$OUTDIR/com.gmstyle.sonora.desktop" << 'DESKTOP'
           [Desktop Entry]

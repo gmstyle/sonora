@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' show Size;
+import 'dart:ui' as ui;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
@@ -42,7 +42,7 @@ class LinuxTrayService {
     }
     final size = window.size.toSize();
     Timer(const Duration(milliseconds: 50), () {
-      window.setSize(Size(size.width + 1, size.height).toNative(), false);
+      window.setSize(ui.Size(size.width + 1, size.height).toNative(), false);
       Timer(const Duration(milliseconds: 50), () {
         window.setSize(size.toNative(), false);
         SchedulerBinding.instance.scheduleForcedFrame();
@@ -83,6 +83,9 @@ class LinuxTrayService {
       debugPrint('Linux tray: icon file missing at ${_trayIconPath()}');
     } else {
       icon.icon = image;
+      // Alpha is the glyph. The panel foreground tints it, like the other
+      // status icons.
+      icon.isIconTemplate = true;
     }
     icon.setTooltip('Sonora');
     // Linux panels draw the exported menu themselves and do not deliver
@@ -96,20 +99,17 @@ class LinuxTrayService {
   }
 
   String _trayIconPath() {
-    // In the installed bundle, tray_icon.png sits alongside the executable.
-    final execDir = p.dirname(Platform.resolvedExecutable);
-    final bundlePath = p.join(execDir, 'tray_icon.png');
-
-    // During `flutter run` (debug/profile) the asset is in the project dir.
+    // `flutter run` from the repo. An installed bundle has the copy beside the executable.
     final devPath = p.join(
       Directory.current.path,
       'assets',
       'icons',
       'tray',
-      'tray_icon.png',
+      'tray_symbolic.png',
     );
+    if (File(devPath).existsSync()) return devPath;
 
-    return File(bundlePath).existsSync() ? bundlePath : devPath;
+    return p.join(p.dirname(Platform.resolvedExecutable), 'tray_icon.png');
   }
 
   Future<void> updatePlaybackState(

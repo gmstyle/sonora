@@ -96,12 +96,8 @@ cp -r "$BUNDLE_DIR"/* "$STAGING_DIR/opt/$APP_NAME/"
 # App icon
 cp "$PROJECT_ROOT/assets/logo_full.png" "$STAGING_DIR/opt/$APP_NAME/sonora.png"
 
-# Tray icon (downscale to 48x48 for system tray compatibility)
-cp "$PROJECT_ROOT/assets/icons/tray/tray_icon.png" "$STAGING_DIR/opt/$APP_NAME/tray_icon.png"
-if [[ -n "$CONVERT_CMD" ]]; then
-  $CONVERT_CMD "$STAGING_DIR/opt/$APP_NAME/tray_icon.png" \
-    -resize 48x48 "$STAGING_DIR/opt/$APP_NAME/tray_icon.png"
-fi
+# Symbolic tray glyph. The panel tints it; do not squash the full logo into it.
+cp "$PROJECT_ROOT/assets/icons/tray/tray_symbolic.png" "$STAGING_DIR/opt/$APP_NAME/tray_icon.png"
 
 # Symlink in PATH
 mkdir -p "$STAGING_DIR/usr/bin"
