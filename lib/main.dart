@@ -285,9 +285,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
 
   Future<void> _onIncomingLinuxUri(String uri) async {
     try {
-      final window = WindowManager.instance.getCurrent();
-      window?.show();
-      window?.focus();
+      LinuxTrayService.presentWindow();
     } catch (e) {
       debugPrint('Failed to show/focus window for deep link: $e');
     }

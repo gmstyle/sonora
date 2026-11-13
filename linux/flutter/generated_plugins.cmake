@@ -6,7 +6,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   app_links_linux
   flutter_edge_ai
   media_kit_libs_linux
-  tray_manager
   url_launcher_linux
 )
 

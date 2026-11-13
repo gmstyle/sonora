@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show Size;
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:path/path.dart' as p;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -20,6 +23,33 @@ class LinuxTrayService {
     WindowManager.instance.getCurrent()?.close();
   }
 
+  /// Shows the window and paints into the Wayland surface GTK creates on map.
+  ///
+  /// [Window.hide] destroys that surface. The frame scheduled during [Window.show]
+  /// can still target the old one, and a transparent view then stays blank.
+  /// A size pulse after the tray menu closes runs [Window.setSize] once the new
+  /// surface exists, which is what makes the embedder present again.
+  static void presentWindow() {
+    final window = WindowManager.instance.getCurrent();
+    if (window == null) return;
+    window.show();
+    window.focus();
+    if (window.isMaximized) {
+      Timer(const Duration(milliseconds: 50), () {
+        SchedulerBinding.instance.scheduleForcedFrame();
+      });
+      return;
+    }
+    final size = window.size.toSize();
+    Timer(const Duration(milliseconds: 50), () {
+      window.setSize(Size(size.width + 1, size.height).toNative(), false);
+      Timer(const Duration(milliseconds: 50), () {
+        window.setSize(size.toNative(), false);
+        SchedulerBinding.instance.scheduleForcedFrame();
+      });
+    });
+  }
+
   static void setInstance(LinuxTrayService service) {
     _instance = service;
   }
@@ -36,18 +66,36 @@ class LinuxTrayService {
   AudioServiceShuffleMode _shuffleMode = AudioServiceShuffleMode.none;
   AudioServiceRepeatMode _repeatMode = AudioServiceRepeatMode.none;
 
+  TrayIcon? _icon;
+  Menu? _menu;
+
   Future<void> init() async {
     _instance = this;
-    await trayManager.setIcon(_getTrayIcon());
-    // setToolTip is not implemented on Linux; ignore the error
-    try {
-      await trayManager.setToolTip('Sonora');
-    } catch (_) {}
-    await _updateMenu();
-    trayManager.addListener(_TrayListener(this));
+    final icon = TrayIcon.createWithIdentifier('sonora');
+    if (icon == null) {
+      debugPrint('Linux tray: TrayIcon.create failed');
+      return;
+    }
+    _icon = icon;
+
+    final image = Image.fromFile(_trayIconPath());
+    if (image == null) {
+      debugPrint('Linux tray: icon file missing at ${_trayIconPath()}');
+    } else {
+      icon.icon = image;
+    }
+    icon.setTooltip('Sonora');
+    // Linux panels draw the exported menu themselves and do not deliver
+    // TrayIconClickedEvent. clicked still publishes that menu.
+    icon.setContextMenuTrigger(ContextMenuTrigger.clicked);
+    icon.addListener((event) {
+      if (event is TrayIconClickedEvent) _showWindow();
+    });
+    _updateMenu();
+    icon.setVisible(true);
   }
 
-  String _getTrayIcon() {
+  String _trayIconPath() {
     // In the installed bundle, tray_icon.png sits alongside the executable.
     final execDir = p.dirname(Platform.resolvedExecutable);
     final bundlePath = p.join(execDir, 'tray_icon.png');
@@ -77,61 +125,48 @@ class LinuxTrayService {
     if (shuffleMode != null) _shuffleMode = shuffleMode;
     if (repeatMode != null) _repeatMode = repeatMode;
 
-    await _updateMenu();
+    _updateMenu();
 
-    // setToolTip is not implemented on Linux; skip silently
-    try {
-      final tooltip = (title != null && artist != null)
-          ? '$artist - $title'
-          : 'Sonora';
-      await trayManager.setToolTip(tooltip);
-    } catch (_) {}
+    final tooltip = (title != null && artist != null)
+        ? '$artist - $title'
+        : 'Sonora';
+    _icon?.setTooltip(tooltip);
   }
 
-  Future<void> _updateMenu() async {
-    final List<MenuItem> items = [];
+  void _updateMenu() {
+    final icon = _icon;
+    if (icon == null) return;
 
-    if (_currentTitle != null) {
-      items.add(
-        MenuItem(
-          key: 'now_playing_header',
-          label: 'Now Playing:',
-          disabled: true,
-        ),
-      );
-      items.add(
-        MenuItem(
-          key: 'current_track',
-          label: '  $_currentTitle',
-          disabled: true,
-        ),
-      );
-      if (_currentArtist != null) {
-        items.add(
-          MenuItem(
-            key: 'current_artist',
-            label: '  by $_currentArtist',
-            disabled: true,
-          ),
-        );
-      }
-      items.add(MenuItem.separator());
+    final menu = Menu.create();
+    if (menu == null) {
+      debugPrint('Linux tray: Menu.create failed');
+      return;
     }
 
-    items.addAll([
-      MenuItem(key: 'play_pause', label: _isPlaying ? '⏸  Pause' : '▶  Play'),
-      MenuItem(key: 'prev', label: '⏮  Previous'),
-      MenuItem(key: 'next', label: '⏭  Next'),
-    ]);
+    if (_currentTitle != null) {
+      _addItem(menu, 'Now Playing:', enabled: false);
+      _addItem(menu, '  $_currentTitle', enabled: false);
+      if (_currentArtist != null) {
+        _addItem(menu, '  by $_currentArtist', enabled: false);
+      }
+      menu.addSeparator();
+    }
 
-    items.add(MenuItem.separator());
+    _addItem(
+      menu,
+      _isPlaying ? '⏸  Pause' : '▶  Play',
+      onClick: _sendPlayPauseAction,
+    );
+    _addItem(menu, '⏮  Previous', onClick: _sendPreviousAction);
+    _addItem(menu, '⏭  Next', onClick: _sendNextAction);
+
+    menu.addSeparator();
 
     final isShuffle = _shuffleMode == AudioServiceShuffleMode.all;
-    items.add(
-      MenuItem(
-        key: 'shuffle',
-        label: isShuffle ? '🔀  Shuffle: On' : '🔀  Shuffle: Off',
-      ),
+    _addItem(
+      menu,
+      isShuffle ? '🔀  Shuffle: On' : '🔀  Shuffle: Off',
+      onClick: _toggleShuffle,
     );
 
     final repeatLabel = switch (_repeatMode) {
@@ -139,48 +174,45 @@ class LinuxTrayService {
       AudioServiceRepeatMode.all => '🔁  Repeat: All',
       _ => '🔁  Repeat: Off',
     };
-    items.add(MenuItem(key: 'repeat', label: repeatLabel));
+    _addItem(menu, repeatLabel, onClick: _cycleRepeatMode);
 
-    items.add(MenuItem.separator());
+    menu.addSeparator();
 
-    items.addAll([
-      MenuItem(key: 'show', label: 'Restore Sonora'),
-      MenuItem(key: 'quit', label: 'Quit'),
-    ]);
+    _addItem(menu, 'Restore Sonora', onClick: () async => _showWindow());
+    _addItem(menu, 'Quit', onClick: _quit);
 
-    final menu = Menu(items: items);
-    await trayManager.setContextMenu(menu);
+    icon.setContextMenu(menu);
+    final previous = _menu;
+    _menu = menu;
+    previous?.dispose();
   }
 
-  Future<void> handleMenuItemClick(String key) async {
-    switch (key) {
-      case 'play_pause':
-        await _sendPlayPauseAction();
-        break;
-      case 'prev':
-        await _sendPreviousAction();
-        break;
-      case 'next':
-        await _sendNextAction();
-        break;
-      case 'shuffle':
-        await _toggleShuffle();
-        break;
-      case 'repeat':
-        await _cycleRepeatMode();
-        break;
-      case 'show':
-        final window = WindowManager.instance.getCurrent();
-        window?.show();
-        window?.focus();
-        break;
-      case 'quit':
-        if (_audioHandler != null) {
-          await _audioHandler!.stop();
-        }
-        closeWindowForQuit();
-        break;
+  void _addItem(
+    Menu menu,
+    String label, {
+    bool enabled = true,
+    Future<void> Function()? onClick,
+  }) {
+    final item = MenuItem.createWithLabelAndType(label, MenuItemType.normal);
+    if (item == null) return;
+    item.isEnabled = enabled;
+    if (enabled && onClick != null) {
+      item.addListener((event) {
+        if (event is MenuItemClickedEvent) unawaited(onClick());
+      });
     }
+    menu.addItem(item);
+  }
+
+  void _showWindow() {
+    LinuxTrayService.presentWindow();
+  }
+
+  Future<void> _quit() async {
+    if (_audioHandler != null) {
+      await _audioHandler!.stop();
+    }
+    closeWindowForQuit();
   }
 
   Future<void> _toggleShuffle() async {
@@ -220,26 +252,9 @@ class LinuxTrayService {
   }
 
   void dispose() {
-    trayManager.removeListener(_TrayListener(this));
-  }
-}
-
-class _TrayListener extends TrayListener {
-  final LinuxTrayService _service;
-
-  _TrayListener(this._service);
-
-  @override
-  void onTrayIconMouseDown() {
-    final window = WindowManager.instance.getCurrent();
-    window?.show();
-    window?.focus();
-  }
-
-  @override
-  void onTrayMenuItemClick(MenuItem item) {
-    if (item.key != null) {
-      _service.handleMenuItemClick(item.key!);
-    }
+    _menu?.dispose();
+    _menu = null;
+    _icon?.dispose();
+    _icon = null;
   }
 }
