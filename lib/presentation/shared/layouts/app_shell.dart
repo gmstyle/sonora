@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/layout_breakpoints.dart';
+import '../../features/tv/layouts/tv_shell.dart';
+import '../../providers/android_tv_provider.dart';
 import '../widgets/ask_intro_gate.dart';
 import '../widgets/battery_prompt_gate.dart';
 import '../widgets/offline_banner.dart';
@@ -17,26 +19,31 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTv = ref.watch(isAndroidTvProvider);
+
     return Stack(
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            // Phones in landscape often have width ≥600 but a short side
-            // still under compact — keep MobileShell so the rail never
-            // fights a ~360px-tall window (A1 / similar).
-            final size = constraints.biggest;
-            if (isCompactShell(size)) {
-              return MobileShell(navigationShell: navigationShell);
-            } else if (isTabletShell(size)) {
-              return TabletShell(navigationShell: navigationShell);
-            } else {
-              return WideShell(navigationShell: navigationShell);
-            }
-          },
-        ),
+        if (isTv)
+          TvShell(navigationShell: navigationShell)
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Phones in landscape often have width ≥600 but a short side
+              // still under compact — keep MobileShell so the rail never
+              // fights a ~360px-tall window (A1 / similar).
+              final size = constraints.biggest;
+              if (isCompactShell(size)) {
+                return MobileShell(navigationShell: navigationShell);
+              } else if (isTabletShell(size)) {
+                return TabletShell(navigationShell: navigationShell);
+              } else {
+                return WideShell(navigationShell: navigationShell);
+              }
+            },
+          ),
         const OfflineBanner(),
-        const AskIntroGate(),
-        const BatteryPromptGate(),
+        if (!isTv) const AskIntroGate(),
+        if (!isTv) const BatteryPromptGate(),
       ],
     );
   }
