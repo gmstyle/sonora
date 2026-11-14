@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/layout_breakpoints.dart';
+import '../../providers/android_tv_provider.dart';
+import '../tv/screens/tv_settings_screen.dart';
 import 'layouts/settings_mobile_layout.dart';
 import 'layouts/settings_tablet_layout.dart';
 import 'layouts/settings_wide_layout.dart';
@@ -42,6 +44,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return const TvSettingsScreen();
+    }
     final size = MediaQuery.sizeOf(context);
     // Below the tablet content split, keep the category list + push flow.
     if (isCompactShell(size) || size.width < kMediumBreakpoint) {

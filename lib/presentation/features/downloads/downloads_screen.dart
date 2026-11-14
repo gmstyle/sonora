@@ -13,12 +13,17 @@ import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import 'widgets/completed_downloads_view.dart';
+import '../../providers/android_tv_provider.dart';
+import '../tv/screens/tv_downloads_screen.dart';
 
 class DownloadsScreen extends ConsumerWidget {
   const DownloadsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return const TvDownloadsScreen();
+    }
     final activeDownloads = ref.watch(activeDownloadsProvider);
     final allDownloadsAsync = ref.watch(allDownloadsProvider);
 

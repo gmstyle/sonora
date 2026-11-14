@@ -1,6 +1,10 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../providers/android_tv_provider.dart';
+import '../tv/screens/entity/tv_playlist_screen.dart';
+
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -38,6 +42,9 @@ class PlaylistScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return TvPlaylistScreen(playlistId: playlistId);
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = MediaQuery.sizeOf(context);

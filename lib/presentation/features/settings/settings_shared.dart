@@ -1,10 +1,13 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../providers/android_tv_provider.dart';
 
 /// Pops Settings when it was pushed onto the stack; otherwise goes home
 /// (deep link `/settings` with nothing to pop).
@@ -474,7 +477,7 @@ class SettingsButtonTile extends StatelessWidget {
   }
 }
 
-class SettingsSliderTile extends StatelessWidget {
+class SettingsSliderTile extends ConsumerWidget {
   final String title;
   final String subtitle;
   final double value;
@@ -495,7 +498,8 @@ class SettingsSliderTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isTv = ref.watch(isAndroidTvProvider);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -505,16 +509,130 @@ class SettingsSliderTile extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Slider(
-            value: value,
-            min: min,
-            max: max,
-            divisions: (max - min).round(),
-            label: displayValue(value),
-            onChanged: onChanged,
-          ),
+          child: isTv
+              ? _TvSettingsSlider(
+                  value: value,
+                  min: min,
+                  max: max,
+                  displayValue: displayValue,
+                  onChanged: onChanged,
+                )
+              : Slider(
+                  value: value,
+                  min: min,
+                  max: max,
+                  divisions: (max - min).round(),
+                  label: displayValue(value),
+                  onChanged: onChanged,
+                ),
         ),
       ],
+    );
+  }
+}
+
+/// D-pad slider for Android TV: Left/Right step, Up/Down leave focus.
+///
+/// Material [Slider] traps directional focus and is unusable on leanback.
+class _TvSettingsSlider extends StatefulWidget {
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+  final String Function(double) displayValue;
+
+  const _TvSettingsSlider({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    required this.displayValue,
+  });
+
+  @override
+  State<_TvSettingsSlider> createState() => _TvSettingsSliderState();
+}
+
+class _TvSettingsSliderState extends State<_TvSettingsSlider> {
+  final FocusNode _node = FocusNode(debugLabel: 'tvSettingsSlider');
+  bool _focused = false;
+
+  @override
+  void dispose() {
+    _node.dispose();
+    super.dispose();
+  }
+
+  double get _step {
+    final span = widget.max - widget.min;
+    if (span <= 0) return 1;
+    final divisions = span.round().clamp(1, 100);
+    return span / divisions;
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      final next = (widget.value - _step).clamp(widget.min, widget.max);
+      widget.onChanged(next);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      final next = (widget.value + _step).clamp(widget.min, widget.max);
+      widget.onChanged(next);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final span = (widget.max - widget.min).clamp(0.0001, double.infinity);
+    final progress = ((widget.value - widget.min) / span).clamp(0.0, 1.0);
+
+    return Focus(
+      focusNode: _node,
+      onKeyEvent: _onKey,
+      onFocusChange: (hasFocus) {
+        if (_focused != hasFocus) setState(() => _focused = hasFocus);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _focused ? colorScheme.primary : Colors.transparent,
+            width: 3,
+          ),
+          color: _focused ? colorScheme.primary.withValues(alpha: 0.08) : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.displayValue(widget.value),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(color: colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
