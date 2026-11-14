@@ -12,7 +12,7 @@ import '../widgets/tv_focusable.dart';
 
 /// TV settings subset: Appearance, Playback, Downloads, Privacy, About.
 ///
-/// Split left list / right detail (JetFit settings anatomy). Excludes AI,
+/// Split left list / right detail (Material TV two-pane). Excludes AI,
 /// background, and backup for v1.
 class TvSettingsScreen extends ConsumerWidget {
   const TvSettingsScreen({super.key});

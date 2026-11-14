@@ -9,10 +9,10 @@ import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
 import 'tv_focusable.dart';
 
-/// Peep strip under the TV content pane. Opens [TvNowPlayingScreen].
+/// Thin ATV media-controls strip under the browse pane.
 ///
-/// Reachable via D-pad: Down past the last content focusable, Down from
-/// Settings in the rail, or Left from the first dock control back to the rail.
+/// Opens [TvNowPlayingScreen]. Kept short so browser rows stay primary —
+/// this is not a phone mini-player card.
 class TvDock extends ConsumerWidget {
   const TvDock({super.key});
 
@@ -31,52 +31,32 @@ class TvDock extends ConsumerWidget {
       child: SizedBox(
         height: TvMetrics.dockHeight,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Row(
             children: [
               Expanded(
                 child: TvFocusable(
                   onSelect: () => openTvNowPlaying(context),
                   onLeftAtEdge: () => TvShellFocus.requestSidebar(context),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   child: Row(
                     children: [
                       ThumbnailWidget(
                         imageUrl: song.artUri?.toString(),
-                        size: 56,
+                        size: TvMetrics.dockArtSize,
                         shape: ThumbnailShape.rounded,
-                        borderRadius: 10,
+                        borderRadius: 4,
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              child: Text(
-                                song.artist ?? '',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          '${song.title} · ${song.artist ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ],
@@ -85,24 +65,30 @@ class TvDock extends ConsumerWidget {
               ),
               TvFocusable(
                 onSelect: () => notifier.skipToPrevious(),
-                borderRadius: BorderRadius.circular(28),
-                padding: const EdgeInsets.all(10),
-                child: const Icon(LucideIcons.skipBack, size: 26),
+                borderRadius: BorderRadius.circular(16),
+                padding: const EdgeInsets.all(4),
+                child: const Icon(
+                  LucideIcons.skipBack,
+                  size: TvMetrics.dockIconSize,
+                ),
               ),
               TvFocusable(
                 onSelect: () => notifier.togglePlayPause(),
-                borderRadius: BorderRadius.circular(28),
-                padding: const EdgeInsets.all(10),
+                borderRadius: BorderRadius.circular(16),
+                padding: const EdgeInsets.all(4),
                 child: Icon(
                   player.isPlaying ? LucideIcons.pause : LucideIcons.play,
-                  size: 30,
+                  size: TvMetrics.dockIconSize + 2,
                 ),
               ),
               TvFocusable(
                 onSelect: () => notifier.skipToNext(),
-                borderRadius: BorderRadius.circular(28),
-                padding: const EdgeInsets.all(10),
-                child: const Icon(LucideIcons.skipForward, size: 26),
+                borderRadius: BorderRadius.circular(16),
+                padding: const EdgeInsets.all(4),
+                child: const Icon(
+                  LucideIcons.skipForward,
+                  size: TvMetrics.dockIconSize,
+                ),
               ),
             ],
           ),

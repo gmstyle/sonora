@@ -153,11 +153,14 @@ class _TvFocusableState extends State<TvFocusable> {
             duration: TvMetrics.drawerAnimDuration,
             curve: Curves.easeOutCubic,
             padding: widget.padding,
+            // strokeAlignOutside keeps the 3px ring from eating layout
+            // space (poster cards were overflowing by 2px from the inset).
             decoration: BoxDecoration(
               borderRadius: radius,
               border: Border.all(
                 color: _focused ? colorScheme.primary : Colors.transparent,
                 width: 3,
+                strokeAlign: BorderSide.strokeAlignOutside,
               ),
               boxShadow: _focused
                   ? [

@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../tv_metrics.dart';
 import 'tv_focusable.dart';
 
-/// Landscape mood / category card (JetFit Categories row).
+/// Landscape mood / genre card for an ATV horizontal browse row.
 ///
 /// [BrowseChip] has no artwork — fill uses a deterministic Pulse tint from
 /// [title] so the row still reads as image cards.

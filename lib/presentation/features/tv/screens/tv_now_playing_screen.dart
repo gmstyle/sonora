@@ -39,7 +39,7 @@ void openTvNowPlaying(BuildContext context, {bool lyrics = false}) {
   );
 }
 
-/// JetFit audio-player: centered column; lyrics as optional side stage.
+/// ATV now-playing stage: centered column; lyrics as optional side panel.
 class TvNowPlayingScreen extends ConsumerStatefulWidget {
   final bool showLyrics;
 
@@ -231,6 +231,9 @@ class _CenteredPlayerStage extends StatelessWidget {
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, artBox) {
+                        if (artBox.maxHeight < 72) {
+                          return const SizedBox.shrink();
+                        }
                         final side = artBox.maxHeight
                             .clamp(72.0, artBox.maxWidth)
                             .toDouble();

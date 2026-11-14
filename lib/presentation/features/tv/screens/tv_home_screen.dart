@@ -1,5 +1,4 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
-import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,11 +15,14 @@ import '../../home/providers/home_provider.dart';
 import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
 import '../widgets/tv_category_card.dart';
-import '../widgets/tv_hero.dart';
+import '../widgets/tv_featured_card.dart';
 import '../widgets/tv_poster_card.dart';
 import '../widgets/tv_shelf.dart';
 
-/// TV catalog browser: JetFit hero card + category row + horizontal shelves.
+/// ATV catalog browser — Material TV "browser" template.
+///
+/// Vertical stack of horizontal rows (featured → moods → shelves). Focus moves
+/// down between rows and left/right within a row. Not a phone/JetFit hero page.
 class TvHomeScreen extends ConsumerWidget {
   const TvHomeScreen({super.key});
 
@@ -35,8 +37,8 @@ class TvHomeScreen extends ConsumerWidget {
     return baseAsync.when(
       loading: () => const Center(
         child: ShimmerLoading(
-          variant: ShimmerVariant.hero,
-          heroHeight: TvMetrics.heroCardHeight,
+          variant: ShimmerVariant.section,
+          cardWidth: TvMetrics.featuredCardWidth,
         ),
       ),
       error: (e, _) => ErrorRetryWidget(
@@ -47,14 +49,14 @@ class TvHomeScreen extends ConsumerWidget {
         },
       ),
       data: (base) {
-        final heroItems = selectedParams == null && base.sections.isNotEmpty
-            ? base.sections.first.contents.take(5).toList()
+        final featured = selectedParams == null && base.sections.isNotEmpty
+            ? base.sections.first.contents.take(8).toList()
             : const <dynamic>[];
 
         return CustomScrollView(
           slivers: [
-            if (heroItems.isNotEmpty)
-              SliverToBoxAdapter(child: _TvHeroCarousel(items: heroItems)),
+            if (featured.isNotEmpty)
+              SliverToBoxAdapter(child: _TvFeaturedRow(items: featured)),
             if (!offline && base.chips.isNotEmpty)
               SliverToBoxAdapter(
                 child: _TvCategoryRow(
@@ -91,59 +93,74 @@ class TvHomeScreen extends ConsumerWidget {
   }
 }
 
-class _TvHeroCarousel extends ConsumerStatefulWidget {
+class _TvFeaturedRow extends ConsumerWidget {
   final List<dynamic> items;
 
-  const _TvHeroCarousel({required this.items});
+  const _TvFeaturedRow({required this.items});
 
   @override
-  ConsumerState<_TvHeroCarousel> createState() => _TvHeroCarouselState();
-}
-
-class _TvHeroCarouselState extends ConsumerState<_TvHeroCarousel> {
-  int _index = 0;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final item = widget.items[_index.clamp(0, widget.items.length - 1)];
-    final data = _heroData(context, ref, item, l10n);
-    if (data == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final cards = <Widget>[];
 
-    return Focus(
-      onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-            _index < widget.items.length - 1) {
-          setState(() => _index++);
-          return KeyEventResult.handled;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.arrowLeft && _index > 0) {
-          setState(() => _index--);
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: TvHero(
-        title: data.title,
-        subtitle: data.subtitle,
-        imageUrl: data.imageUrl,
-        primaryLabel: data.primaryLabel,
-        onPrimary: data.onPrimary,
-        pageIndex: _index,
-        pageCount: widget.items.length,
-        onLeftAtEdge: () {
-          if (_index > 0) {
-            setState(() => _index--);
-          } else {
-            TvShellFocus.requestSidebar(context);
-          }
-        },
+    for (var i = 0; i < items.length; i++) {
+      final data = _featuredData(context, ref, items[i], l10n);
+      if (data == null) continue;
+      cards.add(
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: TvFeaturedCard(
+            title: data.title,
+            subtitle: data.subtitle,
+            imageUrl: data.imageUrl,
+            autofocus: cards.isEmpty,
+            onLeftAtEdge: cards.isEmpty
+                ? () => TvShellFocus.requestSidebar(context)
+                : null,
+            onSelect: data.onSelect,
+          ),
+        ),
+      );
+    }
+    if (cards.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: TvMetrics.shelfGap),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              TvMetrics.contentPadding,
+              TvMetrics.browseTopPadding,
+              TvMetrics.contentPadding,
+              TvMetrics.shelfTitleGap,
+            ),
+            child: Text(
+              l10n.home,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: TvMetrics.featuredRowHeight,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: TvMetrics.contentPadding,
+                vertical: 8,
+              ),
+              children: cards,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  _HeroData? _heroData(
+  _FeaturedData? _featuredData(
     BuildContext context,
     WidgetRef ref,
     dynamic item,
@@ -151,14 +168,13 @@ class _TvHeroCarouselState extends ConsumerState<_TvHeroCarousel> {
   ) {
     if (item is SongDetailed || item is VideoDetailed) {
       final song = item as dynamic;
-      return _HeroData(
+      return _FeaturedData(
         title: song.name as String,
         subtitle: displayArtists(song.artists as List<ArtistBasic>),
         imageUrl: (song.thumbnails as List).isNotEmpty
             ? song.thumbnails.last.url as String
             : null,
-        primaryLabel: l10n.playNow,
-        onPrimary: () {
+        onSelect: () {
           ref
               .read(playerStateProvider.notifier)
               .playVideoId(
@@ -170,40 +186,36 @@ class _TvHeroCarouselState extends ConsumerState<_TvHeroCarousel> {
       );
     }
     if (item is AlbumDetailed) {
-      return _HeroData(
+      return _FeaturedData(
         title: item.name,
         subtitle: displayArtists(item.artists),
         imageUrl: item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
-        primaryLabel: l10n.playAll,
-        onPrimary: () => context.push('/album/${item.albumId}'),
+        onSelect: () => context.push('/album/${item.albumId}'),
       );
     }
     if (item is PlaylistDetailed) {
-      return _HeroData(
+      return _FeaturedData(
         title: item.name,
         subtitle: displayArtists(item.artists),
         imageUrl: item.thumbnails.isNotEmpty ? item.thumbnails.last.url : null,
-        primaryLabel: l10n.playAll,
-        onPrimary: () => context.push('/playlist/${item.playlistId}'),
+        onSelect: () => context.push('/playlist/${item.playlistId}'),
       );
     }
     return null;
   }
 }
 
-class _HeroData {
+class _FeaturedData {
   final String title;
   final String? subtitle;
   final String? imageUrl;
-  final String primaryLabel;
-  final VoidCallback onPrimary;
+  final VoidCallback onSelect;
 
-  const _HeroData({
+  const _FeaturedData({
     required this.title,
     this.subtitle,
     this.imageUrl,
-    required this.primaryLabel,
-    required this.onPrimary,
+    required this.onSelect,
   });
 }
 
@@ -226,13 +238,13 @@ class _TvCategoryRow extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(
               TvMetrics.contentPadding,
-              12,
+              4,
               TvMetrics.contentPadding,
               TvMetrics.shelfTitleGap,
             ),
             child: Text(
               l10n.moodsAndGenres,
-              style: theme.textTheme.headlineSmall?.copyWith(
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),

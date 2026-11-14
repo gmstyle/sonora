@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../../shared/widgets/thumbnail_widget.dart';
@@ -36,7 +38,6 @@ class TvPosterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final imgSize = imageHeight ?? width;
 
     return SizedBox(
       width: width,
@@ -47,57 +48,69 @@ class TvPosterCard extends StatelessWidget {
         onLongSelect: onLongSelect,
         onLeftAtEdge: onLeftAtEdge,
         borderRadius: BorderRadius.circular(TvMetrics.cardRadius),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ThumbnailWidget(
-              imageUrl: imageUrl,
-              size: imgSize,
-              shape: shape,
-              borderRadius: TvMetrics.cardRadius,
-            ),
-            SizedBox(
-              height: TvMetrics.shelfCardTextHeight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final textH = TvMetrics.shelfCardTextHeight;
+            final maxW = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : width;
+            final maxH = constraints.maxHeight.isFinite
+                ? constraints.maxHeight
+                : double.infinity;
+            final preferred = imageHeight ?? width;
+            final img = math.min(
+              preferred,
+              math.min(
+                maxW,
+                maxH.isFinite ? math.max(0.0, maxH - textH) : preferred,
+              ),
+            );
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ThumbnailWidget(
+                  imageUrl: imageUrl,
+                  size: img,
+                  shape: shape,
+                  borderRadius: TvMetrics.cardRadius,
+                ),
+                SizedBox(
+                  height: textH,
+                  width: maxW,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                            height: 1.2,
+                            height: 1.15,
                           ),
                         ),
-                      ),
-                    ),
-                    if (subtitle != null && subtitle!.isNotEmpty)
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
+                        if (subtitle != null && subtitle!.isNotEmpty)
+                          Text(
                             subtitle!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
+                            style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
-                              height: 1.2,
+                              height: 1.15,
                             ),
                           ),
-                        ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
