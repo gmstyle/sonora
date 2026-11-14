@@ -15,6 +15,7 @@ import '../../../domain/models/media_cache_size.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/android_tv_provider.dart';
 import '../../providers/export_backup_use_case_provider.dart';
 import '../../providers/import_backup_use_case_provider.dart';
 import '../../providers/library_notifier.dart';
@@ -345,7 +346,7 @@ String _accentLabel(AppLocalizations l10n, BrandAccent accent) {
   };
 }
 
-class _AccentDot extends StatelessWidget {
+class _AccentDot extends ConsumerStatefulWidget {
   const _AccentDot({
     required this.accent,
     required this.selected,
@@ -359,31 +360,104 @@ class _AccentDot extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  ConsumerState<_AccentDot> createState() => _AccentDotState();
+}
+
+class _AccentDotState extends ConsumerState<_AccentDot> {
+  final FocusNode _node = FocusNode(debugLabel: 'brandAccentDot');
+  bool _focused = false;
+
+  @override
+  void dispose() {
+    _node.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final outline = Theme.of(context).colorScheme.onSurface;
+    final isTv = ref.watch(isAndroidTvProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    // Do not use [colorScheme.primary] for the focus ring — it matches the
+    // selected accent fill and disappears on TV.
+    final focusRing = colorScheme.onSurface;
+    final focusHalo = colorScheme.surface;
+    final size = isTv ? 48.0 : 36.0;
+    final checkSize = isTv ? 22.0 : 16.0;
+
     return Semantics(
       button: true,
-      selected: selected,
-      label: label,
+      selected: widget.selected,
+      label: widget.label,
       child: Tooltip(
-        message: label,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.fill,
-              border: Border.all(
-                color: selected ? outline : Colors.transparent,
-                width: 2,
+        message: widget.label,
+        child: FocusableActionDetector(
+          focusNode: _node,
+          onShowFocusHighlight: (show) {
+            if (_focused != show) setState(() => _focused = show);
+          },
+          actions: <Type, Action<Intent>>{
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                widget.onTap();
+                return null;
+              },
+            ),
+          },
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedScale(
+              scale: _focused && isTv ? 1.12 : 1.0,
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.all(_focused ? 4 : 2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _focused ? focusRing : Colors.transparent,
+                    width: _focused ? 3 : 0,
+                  ),
+                  boxShadow: _focused
+                      ? [
+                          BoxShadow(
+                            color: focusHalo,
+                            blurRadius: 0,
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: focusRing.withValues(alpha: 0.45),
+                            blurRadius: 14,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Container(
+                  width: size,
+                  height: size,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.accent.fill,
+                    border: Border.all(
+                      color: widget.selected && !_focused
+                          ? colorScheme.onSurface
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: widget.selected
+                      ? Icon(
+                          LucideIcons.check,
+                          size: checkSize,
+                          color: widget.accent.ink,
+                        )
+                      : null,
+                ),
               ),
             ),
-            child: selected
-                ? Icon(LucideIcons.check, size: 16, color: accent.ink)
-                : null,
           ),
         ),
       ),

@@ -13,16 +13,21 @@ import 'widgets/player_shared_widgets.dart';
 import 'layouts/mobile_player_layout.dart';
 import 'layouts/tablet_player_layout.dart';
 import 'layouts/wide_player_layout.dart';
+import '../../providers/android_tv_provider.dart';
+import '../tv/screens/tv_now_playing_screen.dart';
 
 /// Pushes [FullPlayerContent] with the same slide-up used by every shell.
 void openFullPlayer(
   BuildContext context, {
   PlayerSubView subView = PlayerSubView.none,
 }) {
+  final container = ProviderScope.containerOf(context);
+  if (container.read(isAndroidTvProvider)) {
+    openTvNowPlaying(context, lyrics: subView == PlayerSubView.lyrics);
+    return;
+  }
   if (subView != PlayerSubView.none) {
-    ProviderScope.containerOf(context)
-        .read(playerSubViewProvider.notifier)
-        .set(subView);
+    container.read(playerSubViewProvider.notifier).set(subView);
   }
   Navigator.of(context).push(
     PageRouteBuilder(

@@ -104,7 +104,7 @@ Breakpoints in `lib/core/constants/app_constants.dart`. Shell and family selecti
 
 A feature screen picks one of those three with `isCompactShell(MediaQuery.sizeOf(context))`, then `size.width` for tablet vs wide — not `constraints.maxWidth < 600`. Landscape phones stay compact (pad 16, max 2 feed columns, icon `DetailActionsBar`, Library chips). `contentWidth` for padding and rails still comes from `LayoutBuilder`. Home shelves use `HomeLayoutMetrics` (padding 16 / 24 / 32, card widths 140 / 160 / 180). Reuse that scale. Home mood chips are the pinned `AppBar.bottom` (`HomeChipsBar`). All keeps resume, Explore, your music, discover, and the default shelves. A selected chip replaces that body, scrolls to the top, and shimmers the shelves while the mood feed loads. The chip row hides while offline. Do not add a fourth **width** shell. `kMediumBreakpoint` (840) and `kWideContentBreakpoint` (1600) are internal content splits, not new shells.
 
-Android TV is a **device** shell, not a width breakpoint. `isAndroidTvProvider` (overridden in `main` from `AndroidTv.isAndroidTv`) makes `AppShell` use `TvShell` under `lib/presentation/features/tv/`. Phone/tablet/wide stay untouched. TV reuses domain, data, player, and the same go_router branches — it is not a CLI-style parallel surface.
+Android TV is a **device** shell, not a width breakpoint. `isAndroidTvProvider` (overridden in `main` from `AndroidTv.isAndroidTv`) makes `AppShell` use `TvShell` under `lib/presentation/features/tv/`. Phone/tablet/wide stay untouched. TV reuses domain, data, player, Riverpod providers, and the same go_router paths — it is not a CLI-style parallel surface. **TV presentation is fully detached from touch layouts:** do not wrap `HomeFeedLayout`, `*_mobile_layout` / `*_tablet_layout` / `*_wide_layout`, `DetailActionsBar` compact, phone cards/tiles, or bottom sheets. Root screens dispatch only (`if (isAndroidTv) return const TvHomeScreen();`), then a dedicated screen under `lib/presentation/features/tv/`.
 
 Wide content uses four families — feed, facet, entity, document — specified in `docs/DESIGN.md`. Tokens live in `app_constants.dart` (`kFacetFilterRailWidth`, `kFacetUtilityRailWidth`, `kDocumentContentMaxWidth`, `kWideContentPadding`, `kTabletContentPadding`, `kCompactContentPadding`, `kFeedFourColumnContentWidth`). Entity pages keep one full-width column. Feed and facet stay edge-to-edge: do not wrap them in `Center` plus a `maxWidth`.
 
@@ -194,11 +194,15 @@ Android (phone/tablet), Android TV (sideload), and Linux only. Do not add iOS, W
 
 - Detect with `AndroidTv.isAndroidTv` → `isAndroidTvProvider` (overridden in `main`).
 - `AppShell` selects `TvShell` when TV; width shells stay untouched.
-- TV chrome lives under `lib/presentation/features/tv/` (`TvShell`, metrics, focus helpers). Do not create `lib/tv/` parallel to `lib/cli/`.
-- Reuse providers, use cases, and existing route screens first; add TV-only screens only when the touch layout is unusable at 10 feet.
-- Focus / D-pad belongs behind `isAndroidTv` only. Do not sprinkle `isAndroidTv` into every card early — centralize in TV primitives and the shell.
+- TV chrome and screens live under `lib/presentation/features/tv/` (`layouts/`, `widgets/`, `screens/`, `screens/entity/`). Do not create `lib/tv/` parallel to `lib/cli/`.
+- **Zero touch-layout reuse.** Root screens (`HomeScreen`, `SearchScreen`, `LibraryScreen`, `DownloadsScreen`, `SettingsScreen`, album/artist/playlist/podcast/episode) are dispatch-only when `isAndroidTvProvider` is true; they return a `Tv*` screen. Same providers and go_router paths; different widgets.
+- Shell is a JetFit-style collapsible nav drawer (collapsed rail → expand on focus) with Settings as a bottom sibling push (`context.push('/settings')`), not a fifth tab.
+- Focus / D-pad belongs in TV primitives (`TvFocusable`, shelves, shell). Left on the first shelf item → `TvShellFocus.requestSidebar`. Do not sprinkle `isAndroidTv` into phone cards.
+- Context menus: long-press (Select hold) → centered dialog. Short press = primary action. Prefer dialogs over phone bottom sheets on TV.
+- Search uses the **system Android TV IME**, not a custom on-screen keyboard.
+- **Foreground-only playback on TV:** leave foreground (`paused` / `inactive` / `detached` / task removed) → stop audio. Phone/tablet keep background + media notification. Hide Settings `background` / AI / backup (v1) / cast / Ask / battery prompts / system share / P2P sync UI on TV.
+- Lyrics are first-class on `TvNowPlaying` (karaoke stage + keep-awake). Now Playing is a full-bleed overlay (not a go_router `/player` route), opened from the TV dock strip.
 - Manifest: `LEANBACK_LAUNCHER`, `leanback`/`touchscreen` `required="false"`, `android:banner`. Sideload only — not a Play Store TV listing.
-- Hide phone-only surfaces on TV when wiring features (cast/DLNA, battery prompt, Ask intro, Android Auto, system share). Parity otherwise.
 
 Fix the layer that owns the bug. Do not restyle an unrelated screen, rename a public route, or swap the audio engine in the same change.
 

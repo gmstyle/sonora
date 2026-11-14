@@ -19,6 +19,7 @@ import 'play_podcast_use_case_provider.dart';
 import 'play_local_playlist_use_case_provider.dart';
 import 'play_smart_mix_use_case_provider.dart';
 import 'queue_use_case_provider.dart';
+import 'android_tv_provider.dart';
 import 'settings_provider.dart';
 import 'start_radio_use_case_provider.dart';
 
@@ -630,6 +631,16 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Android TV: playback only while the app is in the foreground.
+    if (ref.read(isAndroidTvProvider)) {
+      if (state == AppLifecycleState.paused ||
+          state == AppLifecycleState.inactive ||
+          state == AppLifecycleState.detached ||
+          state == AppLifecycleState.hidden) {
+        unawaited(pause());
+      }
+      return;
+    }
     if (state == AppLifecycleState.resumed) {
       _handler.restoreIfNeeded();
     }

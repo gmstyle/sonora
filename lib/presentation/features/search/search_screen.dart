@@ -34,6 +34,8 @@ import '../../../core/utils/artists_utils.dart';
 import '../../providers/on_device_llm_provider.dart';
 import '../../shared/widgets/facet_wide_scaffold.dart';
 import 'search_wide_layout.dart';
+import '../../providers/android_tv_provider.dart';
+import '../tv/screens/tv_search_screen.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -87,6 +89,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return const TvSearchScreen();
+    }
     final query = ref.watch(searchQueryProvider);
     final activeQuery = ref.watch(activeSearchQueryProvider);
     final l10n = AppLocalizations.of(context);
