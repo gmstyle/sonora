@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.9.1+77] - 2026-11-14
+
+### Features
+
+- **theme**: Let people choose the brand accent
+- **player**: Let people choose the cover stage
+- **player**: Show artist and explicit mark on the neighbor covers
+- **player**: Show the track title on the neighbor covers
+- **player**: Draw vinyl artwork as a record with a tonearm
+- **entity**: Open the parent page from the header credit
+
+### Bug Fixes
+
+- **ci**: Run the Android release on JDK 21
+- **android**: Meet Flutter's Gradle and AGP minimums
+- Clear the remaining analyzer findings
+- **player**: Match the full-player thumb to the mini cover
+- **linux**: Ship a symbolic tray glyph instead of the full logo
+- **linux**: Restore the window after the tray hides it
+- **home**: Size the mix row and hold the resume column
+
 ## [1.9.0+76] - 2026-11-10
 
 ### Features
