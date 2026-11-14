@@ -17,6 +17,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/link/sonora_link_handler.dart';
+import 'core/utils/android_tv.dart';
 import 'core/utils/linux_single_instance.dart';
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
@@ -39,6 +40,7 @@ import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
+import 'presentation/providers/android_tv_provider.dart';
 import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/download_notification_service.dart';
 import 'presentation/providers/download_provider.dart';
@@ -190,6 +192,10 @@ Future<void> main() async {
     LinuxTrayService.setAudioHandler(handler);
   }
 
+  final isAndroidTv = await AndroidTv.isAndroidTv();
+  await AndroidTv.debugLogDetection();
+  debugPrint('[AndroidTv] isAndroidTv=$isAndroidTv');
+
   runApp(
     ProviderScope(
       overrides: [
@@ -201,6 +207,7 @@ Future<void> main() async {
         libraryRepositoryProvider.overrideWithValue(libraryRepo),
         musicRepositoryProvider.overrideWithValue(musicRepo),
         playVideoIdUseCaseProvider.overrideWithValue(playVideoIdUseCase),
+        isAndroidTvProvider.overrideWithValue(isAndroidTv),
       ],
       child: const SonoraApp(),
     ),
