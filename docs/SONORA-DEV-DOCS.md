@@ -150,7 +150,7 @@ lib/
     │   └── ... (DI wiring providers)
     ├── shared/
     │   ├── layouts/                      # app_shell, mobile_shell, tablet_shell, wide_shell
-    │   └── widgets/                      # shared widgets (incl. ContextMenuSheet.showForPodcast/Episode)
+    │   └── widgets/                      # shared widgets; ContextMenuSheet facade + context_menu/ (entity sheets)
     └── features/
         ├── home/                         # HomeScreen + 3 layouts + HomeSectionRenderer (podcast/episode cards)
         ├── search/                       # SearchScreen: catalog results plus local library matches
