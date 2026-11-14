@@ -3691,17 +3691,41 @@ abstract class AppLocalizations {
   /// **'High energy'**
   String get mixEnergyHigh;
 
-  /// No description provided for @useVinylStyle.
+  /// No description provided for @artworkStyle.
   ///
   /// In en, this message translates to:
-  /// **'Vinyl style artwork'**
-  String get useVinylStyle;
+  /// **'Player artwork'**
+  String get artworkStyle;
 
-  /// No description provided for @useVinylStyleHint.
+  /// No description provided for @artworkStyleHint.
   ///
   /// In en, this message translates to:
-  /// **'Use a rotating vinyl record design for artwork in player panels'**
-  String get useVinylStyleHint;
+  /// **'Vinyl with a tonearm, a pulse ring, animated bars, or the plain cover'**
+  String get artworkStyleHint;
+
+  /// No description provided for @artworkStyleVinyl.
+  ///
+  /// In en, this message translates to:
+  /// **'Vinyl'**
+  String get artworkStyleVinyl;
+
+  /// No description provided for @artworkStylePulse.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulse'**
+  String get artworkStylePulse;
+
+  /// No description provided for @artworkStyleBars.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars'**
+  String get artworkStyleBars;
+
+  /// No description provided for @artworkStylePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get artworkStylePlain;
 
   /// No description provided for @equalizer.
   ///

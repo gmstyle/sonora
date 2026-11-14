@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/utils/android_battery.dart';
 import '../../data/services/media_cache_service.dart';
+import '../../domain/models/artwork_style.dart';
 import '../../domain/models/ask_mode.dart';
 import '../../domain/models/media_cache_size.dart';
 import '../../domain/models/media_quality.dart';
@@ -36,7 +37,7 @@ class Settings {
   final bool isLibraryGridView;
   final bool reduceEffects;
   final bool offlineMode;
-  final bool useVinylStyle;
+  final ArtworkStyle artworkStyle;
 
   /// True after Wrapped has been opened on this device. Not part of backups.
   final bool wrappedSeen;
@@ -69,7 +70,7 @@ class Settings {
     this.isLibraryGridView = false,
     this.reduceEffects = false,
     this.offlineMode = false,
-    this.useVinylStyle = true,
+    this.artworkStyle = ArtworkStyle.vinyl,
     this.wrappedSeen = false,
     this.askMode = AskMode.onDevice,
     this.geminiApiKey,
@@ -96,7 +97,7 @@ class Settings {
     bool? isLibraryGridView,
     bool? reduceEffects,
     bool? offlineMode,
-    bool? useVinylStyle,
+    ArtworkStyle? artworkStyle,
     bool? wrappedSeen,
     AskMode? askMode,
     String? geminiApiKey,
@@ -128,7 +129,7 @@ class Settings {
       isLibraryGridView: isLibraryGridView ?? this.isLibraryGridView,
       reduceEffects: reduceEffects ?? this.reduceEffects,
       offlineMode: offlineMode ?? this.offlineMode,
-      useVinylStyle: useVinylStyle ?? this.useVinylStyle,
+      artworkStyle: artworkStyle ?? this.artworkStyle,
       wrappedSeen: wrappedSeen ?? this.wrappedSeen,
       askMode: askMode ?? this.askMode,
       geminiApiKey: clearGeminiApiKey
@@ -164,7 +165,8 @@ class Settings {
       kTrackHistoryKey: trackHistory,
       kCheckUpdatesKey: checkUpdatesOnStartup,
       kIsLibraryGridViewKey: isLibraryGridView,
-      kUseVinylStyleKey: useVinylStyle,
+      kArtworkStyleKey: artworkStyle.storageValue,
+      kUseVinylStyleKey: artworkStyle == ArtworkStyle.vinyl,
       kReduceEffectsKey: reduceEffects,
       kOfflineModeKey: offlineMode,
       kLocalSyncEnabledKey: localSyncEnabled,
@@ -204,7 +206,7 @@ class SettingsNotifier extends Notifier<Settings> {
       isLibraryGridView: _prefs.getBool(kIsLibraryGridViewKey) ?? false,
       reduceEffects: _prefs.getBool(kReduceEffectsKey) ?? false,
       offlineMode: _prefs.getBool(kOfflineModeKey) ?? false,
-      useVinylStyle: _prefs.getBool(kUseVinylStyleKey) ?? true,
+      artworkStyle: readArtworkStylePref(_prefs),
       wrappedSeen: _prefs.getBool(kWrappedSeenKey) ?? false,
       askMode: AskMode.fromStorage(_prefs.getString(kAskModeKey)),
       geminiApiKey: _prefs.getString(kGeminiApiKeyKey),
@@ -253,7 +255,11 @@ class SettingsNotifier extends Notifier<Settings> {
     await _prefs.setBool(kIsLibraryGridViewKey, state.isLibraryGridView);
     await _prefs.setBool(kReduceEffectsKey, state.reduceEffects);
     await _prefs.setBool(kOfflineModeKey, state.offlineMode);
-    await _prefs.setBool(kUseVinylStyleKey, state.useVinylStyle);
+    await _prefs.setString(kArtworkStyleKey, state.artworkStyle.storageValue);
+    await _prefs.setBool(
+      kUseVinylStyleKey,
+      state.artworkStyle == ArtworkStyle.vinyl,
+    );
     await _prefs.setBool(kWrappedSeenKey, state.wrappedSeen);
     await _prefs.setString(kAskModeKey, state.askMode.storageValue);
     if (state.geminiApiKey != null && state.geminiApiKey!.isNotEmpty) {
@@ -372,8 +378,9 @@ class SettingsNotifier extends Notifier<Settings> {
     await _save();
   }
 
-  Future<void> setUseVinylStyle(bool value) async {
-    state = state.copyWith(useVinylStyle: value);
+  Future<void> setArtworkStyle(ArtworkStyle value) async {
+    if (state.artworkStyle == value) return;
+    state = state.copyWith(artworkStyle: value);
     await _save();
   }
 
@@ -493,9 +500,14 @@ class SettingsNotifier extends Notifier<Settings> {
       await setLibraryGridView(gridView);
     }
 
-    final vinyl = _backupBool(map[kUseVinylStyleKey]);
-    if (vinyl != null) {
-      await setUseVinylStyle(vinyl);
+    final styleRaw = _backupString(map[kArtworkStyleKey]);
+    if (styleRaw != null) {
+      await setArtworkStyle(ArtworkStyle.fromStorage(styleRaw));
+    } else {
+      final vinyl = _backupBool(map[kUseVinylStyleKey]);
+      if (vinyl != null) {
+        await setArtworkStyle(ArtworkStyle.fromLegacyBool(vinyl));
+      }
     }
 
     final reduceEffects = _backupBool(map[kReduceEffectsKey]);
@@ -560,6 +572,16 @@ String? readStreamAudioQualityPref(SharedPreferences prefs) {
       prefs.getString(kLegacyStreamQualityKey);
 }
 
+/// `artworkStyle` when present, otherwise the legacy vinyl bool.
+ArtworkStyle readArtworkStylePref(SharedPreferences prefs) {
+  final stored = prefs.getString(kArtworkStyleKey);
+  if (stored != null) return ArtworkStyle.fromStorage(stored);
+  if (prefs.containsKey(kUseVinylStyleKey)) {
+    return ArtworkStyle.fromLegacyBool(prefs.getBool(kUseVinylStyleKey));
+  }
+  return ArtworkStyle.vinyl;
+}
+
 /// One-shot upgrade: persist the current key and drop dead leftovers.
 Future<void> migrateLegacySettingsPrefs(SharedPreferences prefs) async {
   if (!prefs.containsKey(kStreamAudioQualityKey)) {
@@ -582,6 +604,12 @@ const kCheckUpdatesKey = 'checkUpdatesOnStartup';
 const kIsLibraryGridViewKey = 'isLibraryGridView';
 const kReduceEffectsKey = 'reduceEffects';
 const kOfflineModeKey = 'offlineMode';
+
+/// Player artwork stage: `vinyl`, `pulse`, `bars`, or `plain`.
+const kArtworkStyleKey = 'artworkStyle';
+
+/// Older bool. Written as `artworkStyle == vinyl` so a previous install
+/// still toggles the record. Read only when [kArtworkStyleKey] is absent.
 const kUseVinylStyleKey = 'useVinylStyle';
 const kWrappedSeenKey = 'wrappedSeen';
 const kAskModeKey = 'askMode';
@@ -617,6 +645,7 @@ const kSettingsBackupKeys = <String>{
   kTrackHistoryKey,
   kCheckUpdatesKey,
   kIsLibraryGridViewKey,
+  kArtworkStyleKey,
   kUseVinylStyleKey,
   kReduceEffectsKey,
   kOfflineModeKey,

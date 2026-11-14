@@ -7,12 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../domain/models/artwork_style.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../shared/widgets/shimmer_loading.dart';
-import '../../shared/widgets/vinyl_artwork.dart';
+import '../../shared/widgets/styled_artwork.dart';
 import 'full_player_content.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/player_shared_widgets.dart';
@@ -55,9 +56,9 @@ class PlayerSheetMobile extends ConsumerWidget {
     );
     final track = QueueTrack.fromMediaItem(currentSong);
     final artUrl = currentSong.artUri?.toString();
-    final useVinylStyle =
-        ref.watch(settingsProvider.select((s) => s.useVinylStyle)) &&
-        !track.isEpisode;
+    final artworkStyle = ref
+        .watch(settingsProvider.select((s) => s.artworkStyle))
+        .forPlayback(isEpisode: track.isEpisode);
 
     final radius = BorderRadius.circular(SonoraPulseTokens.radiusMedia);
     final isDark = cs.brightness == Brightness.dark;
@@ -89,7 +90,7 @@ class PlayerSheetMobile extends ConsumerWidget {
                           radius: SonoraPulseTokens.radiusSm,
                           cs: cs,
                           isPlaying: isPlaying,
-                          useVinylStyle: useVinylStyle,
+                          artworkStyle: artworkStyle,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -252,13 +253,13 @@ class PlayerSheetMobile extends ConsumerWidget {
   }
 }
 
-class _MiniArtwork extends ConsumerWidget {
+class _MiniArtwork extends StatelessWidget {
   final String? artUrl;
   final double size;
   final double radius;
   final ColorScheme cs;
   final bool isPlaying;
-  final bool useVinylStyle;
+  final ArtworkStyle artworkStyle;
 
   const _MiniArtwork({
     required this.artUrl,
@@ -266,17 +267,18 @@ class _MiniArtwork extends ConsumerWidget {
     required this.radius,
     required this.cs,
     required this.isPlaying,
-    required this.useVinylStyle,
+    required this.artworkStyle,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (useVinylStyle) {
-      return VinylArtwork(
+  Widget build(BuildContext context) {
+    if (artworkStyle != ArtworkStyle.plain) {
+      return buildStyledPlayerArt(
+        style: artworkStyle,
         imageUrl: artUrl,
         size: size,
         isPlaying: isPlaying,
-        useShadow: false,
+        mini: true,
       );
     }
     return ClipRRect(

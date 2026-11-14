@@ -2174,11 +2174,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mixEnergyHigh => 'High energy';
 
   @override
-  String get useVinylStyle => 'Vinyl style artwork';
+  String get artworkStyle => 'Player artwork';
 
   @override
-  String get useVinylStyleHint =>
-      'Use a rotating vinyl record design for artwork in player panels';
+  String get artworkStyleHint =>
+      'Vinyl with a tonearm, a pulse ring, animated bars, or the plain cover';
+
+  @override
+  String get artworkStyleVinyl => 'Vinyl';
+
+  @override
+  String get artworkStylePulse => 'Pulse';
+
+  @override
+  String get artworkStyleBars => 'Bars';
+
+  @override
+  String get artworkStylePlain => 'Off';
 
   @override
   String get equalizer => 'Equalizer';

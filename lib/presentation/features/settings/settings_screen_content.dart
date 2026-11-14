@@ -32,6 +32,7 @@ import '../../providers/sync_provider.dart';
 import '../../providers/equalizer_provider.dart';
 import '../../providers/on_device_llm_provider.dart';
 import '../../../core/constants/ai_constants.dart';
+import '../../../domain/models/artwork_style.dart';
 import '../../../domain/models/ask_mode.dart';
 import '../player/widgets/equalizer_panel.dart';
 
@@ -260,12 +261,25 @@ class _AppearanceSection extends StatelessWidget {
           onChanged: notifier.setReduceEffects,
           icon: LucideIcons.cpu,
         ),
-        SettingsSwitchTile(
-          title: AppLocalizations.of(context)!.useVinylStyle,
-          subtitle: AppLocalizations.of(context)!.useVinylStyleHint,
-          value: settings.useVinylStyle,
-          onChanged: notifier.setUseVinylStyle,
+        SettingsDropdownTile(
+          title: AppLocalizations.of(context)!.artworkStyle,
+          subtitle: AppLocalizations.of(context)!.artworkStyleHint,
+          value: settings.artworkStyle.storageValue,
+          options: {
+            ArtworkStyle.vinyl.storageValue: AppLocalizations.of(context)!
+                .artworkStyleVinyl,
+            ArtworkStyle.pulse.storageValue: AppLocalizations.of(context)!
+                .artworkStylePulse,
+            ArtworkStyle.bars.storageValue: AppLocalizations.of(context)!
+                .artworkStyleBars,
+            ArtworkStyle.plain.storageValue: AppLocalizations.of(context)!
+                .artworkStylePlain,
+          },
           icon: LucideIcons.disc,
+          onChanged: (value) {
+            if (value == null) return;
+            notifier.setArtworkStyle(ArtworkStyle.fromStorage(value));
+          },
         ),
       ],
     );

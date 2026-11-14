@@ -6,12 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../domain/models/artwork_style.dart';
 import '../../../domain/models/queue_track.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/player_provider.dart';
 import '../../shared/widgets/context_menu_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
-import '../../shared/widgets/vinyl_artwork.dart';
+import '../../shared/widgets/styled_artwork.dart';
 import '../../shared/widgets/video_badge.dart';
 import '../../shared/widgets/explicit_badge.dart';
 import '../../providers/settings_provider.dart';
@@ -262,17 +263,18 @@ class MiniPlayerContent extends ConsumerWidget {
     required ColorScheme cs,
     required WidgetRef ref,
   }) {
-    final useVinylSetting = ref.watch(
-      settingsProvider.select((s) => s.useVinylStyle),
-    );
-    final isEpisode = QueueTrack.fromMediaItem(currentSong).isEpisode;
-    final useVinylStyle = useVinylSetting && !isEpisode;
-    if (useVinylStyle) {
-      return VinylArtwork(
+    final style = ref
+        .watch(settingsProvider.select((s) => s.artworkStyle))
+        .forPlayback(
+          isEpisode: QueueTrack.fromMediaItem(currentSong).isEpisode,
+        );
+    if (style != ArtworkStyle.plain) {
+      return buildStyledPlayerArt(
+        style: style,
         imageUrl: currentSong.artUri?.toString(),
         size: size,
         isPlaying: playerState.isPlaying,
-        useShadow: false,
+        mini: true,
       );
     }
     return ClipRRect(

@@ -1004,7 +1004,8 @@ Produces:
 | `trackHistory` | bool | true | yes | History insert on play |
 | `checkUpdatesOnStartup` | bool | true | yes | UpdateNotifier at boot |
 | `isLibraryGridView` | bool | false | yes | Library layout |
-| `useVinylStyle` | bool | true | yes | Player artwork style |
+| `artworkStyle` | String (`vinyl`/`pulse`/`bars`/`plain`) | `vinyl` | yes | Player artwork stage. Episodes stay `plain` |
+| `useVinylStyle` | bool | true | yes | Legacy twin of `artworkStyle == vinyl`. Read only when `artworkStyle` is absent |
 | `reduceEffects` | bool | false | yes | Reduced motion / effects |
 | `offlineMode` | bool | false | yes | Downloads-only playback + disable network CTAs |
 | `localSyncEnabled` | bool | false | yes | P2P sync server |

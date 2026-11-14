@@ -109,7 +109,7 @@ Plus Jakarta Sans via `google_fonts`, on every text role.
 - **Tablet:** collapsed rail, same full-width 80px shelf.
 - **Mobile:** mini player is a floating card above the bottom navigation. The card uses the media radius, a 95% surface with blur, and the brand gradient on the 2px seek strip. Navigation bar height is 64.
 
-`reduceEffects` drops blur and heavy motion. `useVinylStyle` still controls the circular art stage. Like stays Material `favorite`. Other chrome icons stay Lucide.
+`reduceEffects` drops blur and heavy motion. Player artwork is `artworkStyle`: vinyl (record and tonearm), pulse (orbiting arc), bars (equalizer on the cover), or plain (the square cover). Episodes stay plain. Like stays Material `favorite`. Other chrome icons stay Lucide.
 
 Affinity (like, follow, subscribe, save episode) uses one rule on compact, tablet, and wide: swap the icon pair and tint the glyph (and the labeled tonal text) with `primary`. The tonal fill stays `secondaryContainer`. Idle glyphs are `onSurfaceVariant`. The heart, person, and bookmark pairs distinguish the action. `error` stays on destructive actions and error states.
 

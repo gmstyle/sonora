@@ -2184,11 +2184,23 @@ class AppLocalizationsIt extends AppLocalizations {
   String get mixEnergyHigh => 'Energia alta';
 
   @override
-  String get useVinylStyle => 'Copertine in stile vinile';
+  String get artworkStyle => 'Copertina nel player';
 
   @override
-  String get useVinylStyleHint =>
-      'Mostra le copertine a forma di disco in vinile rotante nei lettori';
+  String get artworkStyleHint =>
+      'Vinile con braccio, disco pulse, barre animate, oppure la copertina';
+
+  @override
+  String get artworkStyleVinyl => 'Vinile';
+
+  @override
+  String get artworkStylePulse => 'Pulse';
+
+  @override
+  String get artworkStyleBars => 'Barre';
+
+  @override
+  String get artworkStylePlain => 'Disattivo';
 
   @override
   String get equalizer => 'Equalizzatore';

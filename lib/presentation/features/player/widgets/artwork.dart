@@ -2,12 +2,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../../domain/models/artwork_style.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../providers/palette_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
-import '../../../shared/widgets/vinyl_artwork.dart';
+import '../../../shared/widgets/styled_artwork.dart';
 import 'player_shared_widgets.dart';
 
 class Artwork extends ConsumerWidget {
@@ -40,22 +42,33 @@ class Artwork extends ConsumerWidget {
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
-    final useVinylSetting = ref.watch(
-      settingsProvider.select((s) => s.useVinylStyle),
-    );
     final current = ref.watch(playerStateProvider.select((s) => s.currentSong));
     final isEpisode =
         current != null && QueueTrack.fromMediaItem(current).isEpisode;
-    final useVinylStyle = useVinylSetting && !isEpisode;
+    final style = ref
+        .watch(settingsProvider.select((s) => s.artworkStyle))
+        .forPlayback(isEpisode: isEpisode);
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
     final clampedSize = size.clamp(minSize, 600.0);
+    final circular = style != ArtworkStyle.bars && style != ArtworkStyle.plain;
 
-    final artworkWidget = useVinylStyle
-        ? Container(
+    final artworkWidget = style == ArtworkStyle.plain
+        ? buildArtwork(
+            context,
+            artUrl,
+            isSwitching,
+            size,
+            dominantColor,
+            reduceEffects: reduceEffects,
+          )
+        : Container(
             width: clampedSize,
             height: clampedSize,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
+              shape: circular ? BoxShape.circle : BoxShape.rectangle,
+              borderRadius: circular
+                  ? null
+                  : BorderRadius.circular(SonoraPulseTokens.radiusMedia),
               boxShadow: [
                 if (!reduceEffects)
                   BoxShadow(
@@ -67,29 +80,14 @@ class Artwork extends ConsumerWidget {
               ],
             ),
             child: isSwitching
-                ? ClipOval(
-                    child: SizedBox(
-                      width: clampedSize,
-                      height: clampedSize,
-                      child: const ShimmerLoading(
-                        variant: ShimmerVariant.artworkLarge,
-                      ),
-                    ),
-                  )
-                : VinylArtwork(
+                ? _StageShimmer(style: style, size: clampedSize)
+                : buildStyledPlayerArt(
+                    style: style,
                     imageUrl: artUrl,
                     size: clampedSize,
                     isPlaying: isPlaying,
-                    useShadow: false,
+                    mini: false,
                   ),
-          )
-        : buildArtwork(
-            context,
-            artUrl,
-            isSwitching,
-            size,
-            dominantColor,
-            reduceEffects: reduceEffects,
           );
 
     return Center(
@@ -103,8 +101,8 @@ class Artwork extends ConsumerWidget {
               Positioned.fill(child: artworkWidget),
               if (showFlipIndicator)
                 Positioned(
-                  top: useVinylStyle ? 24 : 12,
-                  right: useVinylStyle ? 24 : 12,
+                  top: circular ? 24 : 12,
+                  right: circular ? 24 : 12,
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -127,5 +125,27 @@ class Artwork extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _StageShimmer extends StatelessWidget {
+  const _StageShimmer({required this.style, required this.size});
+
+  final ArtworkStyle style;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final shimmer = SizedBox.square(
+      dimension: size,
+      child: const ShimmerLoading(variant: ShimmerVariant.artworkLarge),
+    );
+    if (style == ArtworkStyle.bars) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusMedia),
+        child: shimmer,
+      );
+    }
+    return ClipOval(child: shimmer);
   }
 }

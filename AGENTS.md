@@ -159,7 +159,7 @@ When `isOfflineProvider` is true, disable network CTAs: radio, download, cast, s
 
 Unplayable catalog rows stay in the list, dimmed, with a ban icon. Hide play, queue, radio, download, and add-to-playlist. `PlayAlbumUseCase` / `PlayPlaylistUseCase` drop them. Use `lib/core/utils/playable_tracks.dart`.
 
-New motion and heavy artwork respect `Settings.reduceEffects`. Vinyl artwork respects `Settings.useVinylStyle`.
+New motion and heavy artwork respect `Settings.reduceEffects`. Player artwork style is `Settings.artworkStyle` (`vinyl`, `pulse`, `bars`, `plain`). Episodes stay on the plain cover.
 
 ### Copy
 

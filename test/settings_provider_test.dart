@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sonora/domain/models/artwork_style.dart';
 import 'package:sonora/domain/models/media_cache_size.dart';
 import 'package:sonora/domain/models/media_quality.dart';
 import 'package:sonora/presentation/providers/equalizer_provider.dart';
@@ -26,6 +27,7 @@ void main() {
       expect(settings.checkUpdatesOnStartup, true);
       expect(settings.crossfadeDuration, const Duration(seconds: 2));
       expect(settings.mediaCacheSize, MediaCacheSize.gb1);
+      expect(settings.artworkStyle, ArtworkStyle.vinyl);
       expect(settings.wrappedSeen, false);
     });
 
@@ -450,7 +452,7 @@ void main() {
         isLibraryGridView: true,
         reduceEffects: true,
         offlineMode: true,
-        useVinylStyle: false,
+        artworkStyle: ArtworkStyle.plain,
         localSyncEnabled: true,
         localSyncAutoEnabled: true,
         playlistConflictStrategy: 'overwrite',
@@ -475,6 +477,7 @@ void main() {
       expect(map[kIsLibraryGridViewKey], true);
       expect(map[kReduceEffectsKey], true);
       expect(map[kOfflineModeKey], true);
+      expect(map[kArtworkStyleKey], 'plain');
       expect(map[kUseVinylStyleKey], false);
       expect(map[kLocalSyncEnabledKey], true);
       expect(map[kLocalSyncAutoEnabledKey], true);
@@ -510,7 +513,7 @@ void main() {
           isLibraryGridView: true,
           reduceEffects: true,
           offlineMode: true,
-          useVinylStyle: false,
+          artworkStyle: ArtworkStyle.plain,
           localSyncEnabled: true,
           localSyncAutoEnabled: true,
           playlistConflictStrategy: 'keep_local',
@@ -539,13 +542,47 @@ void main() {
         expect(settings.isLibraryGridView, true);
         expect(settings.reduceEffects, true);
         expect(settings.offlineMode, true);
-        expect(settings.useVinylStyle, false);
+        expect(settings.artworkStyle, ArtworkStyle.plain);
         expect(settings.localSyncEnabled, true);
         expect(settings.localSyncAutoEnabled, true);
         expect(settings.playlistConflictStrategy, 'keep_local');
         expect(settings.downloadPath, isNull);
       },
     );
+
+    test('artworkStyle wins over the legacy vinyl bool', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(settingsProvider.notifier).applyBackupMap({
+        kArtworkStyleKey: 'pulse',
+        kUseVinylStyleKey: false,
+      });
+
+      expect(container.read(settingsProvider).artworkStyle, ArtworkStyle.pulse);
+      expect(prefs.getString(kArtworkStyleKey), 'pulse');
+      expect(prefs.getBool(kUseVinylStyleKey), false);
+    });
+
+    test('a legacy vinyl bool restores plain or vinyl', () async {
+      SharedPreferences.setMockInitialValues({kUseVinylStyleKey: false});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(settingsProvider).artworkStyle, ArtworkStyle.plain);
+
+      await container.read(settingsProvider.notifier).applyBackupMap({
+        kUseVinylStyleKey: true,
+      });
+      expect(container.read(settingsProvider).artworkStyle, ArtworkStyle.vinyl);
+    });
 
     test('applyBackupMap accepts older streamQuality-only zips', () async {
       SharedPreferences.setMockInitialValues({});
