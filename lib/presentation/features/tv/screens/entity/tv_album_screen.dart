@@ -11,15 +11,14 @@ import '../../../../../l10n/app_localizations.dart';
 import '../../../../providers/action_feedback_provider.dart';
 import '../../../../providers/connectivity_provider.dart';
 import '../../../../providers/library_notifier.dart';
+import '../../../../providers/play_album_use_case_provider.dart';
 import '../../../../providers/player_provider.dart';
-import '../../../../providers/start_radio_use_case_provider.dart';
-import '../../../../shared/widgets/context_menu/context_menu_presenter.dart';
 import '../../../../shared/widgets/context_menu_sheet.dart';
+import '../../../../shared/widgets/detail_actions_bar.dart';
 import '../../../../shared/widgets/error_retry_widget.dart';
-import '../../../../shared/widgets/thumbnail_widget.dart';
 import '../../../album/providers/album_provider.dart';
 import '../../tv_metrics.dart';
-import '../../widgets/tv_focusable.dart';
+import '../../widgets/tv_entity_actions_bar.dart';
 import '../../widgets/tv_track_row.dart';
 
 class TvAlbumScreen extends ConsumerWidget {
@@ -54,136 +53,113 @@ class _TvAlbumBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final offline = ref.watch(isOfflineProvider);
     final liked = ref.watch(likedAlbumProvider(album.albumId)).asData?.value;
     final playable = playableSongs(album.songs);
     final art = album.thumbnails.isNotEmpty ? album.thumbnails.last.url : null;
+    final headerH =
+        MediaQuery.sizeOf(context).height * TvMetrics.entityHeaderFraction;
 
     return Scaffold(
-      body: Row(
-        children: [
-          SizedBox(
-            width: 420,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // Back, gaps, title, artist, action wrap — shrink cover on short STBs.
-                const reserved = 240.0;
-                final artSize = (constraints.maxHeight - reserved)
-                    .clamp(120.0, 280.0)
-                    .clamp(
-                      120.0,
-                      constraints.maxWidth - TvMetrics.contentPadding * 2,
-                    )
-                    .toDouble();
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(TvMetrics.contentPadding),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TvFocusable(
-                        onSelect: () => context.pop(),
-                        child: const Icon(LucideIcons.arrowLeft, size: 28),
-                      ),
-                      const SizedBox(height: 24),
-                      ThumbnailWidget(
-                        imageUrl: art,
-                        size: artSize,
-                        shape: ThumbnailShape.rounded,
-                        borderRadius: 20,
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        album.name,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        displayArtists(album.artists),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          TvFocusable(
-                            autofocus: true,
-                            onSelect: playable.isEmpty
-                                ? null
-                                : () => ref
-                                      .read(playerStateProvider.notifier)
-                                      .playAlbum(playable, startIndex: 0),
-                            borderRadius: BorderRadius.circular(28),
-                            child: FilledButton.icon(
-                              onPressed: playable.isEmpty
-                                  ? null
-                                  : () => ref
-                                        .read(playerStateProvider.notifier)
-                                        .playAlbum(playable, startIndex: 0),
-                              icon: const Icon(LucideIcons.play),
-                              label: Text(l10n.playAll),
-                            ),
-                          ),
-                          TvFocusable(
-                            onSelect: offline || playable.isEmpty
-                                ? null
-                                : () =>
-                                      _startRadio(context, ref, playable.first),
-                            borderRadius: BorderRadius.circular(28),
-                            child: FilledButton.tonalIcon(
-                              onPressed: offline || playable.isEmpty
-                                  ? null
-                                  : () => _startRadio(
-                                      context,
-                                      ref,
-                                      playable.first,
-                                    ),
-                              icon: const Icon(LucideIcons.radio),
-                              label: Text(l10n.startRadio),
-                            ),
-                          ),
-                          TvFocusable(
-                            onSelect: () {
-                              ref
-                                  .read(libraryNotifierProvider.notifier)
-                                  .toggleLikedAlbum(
-                                    LikedAlbumModel(
-                                      albumId: album.albumId,
-                                      name: album.name,
-                                      artistName: displayArtists(album.artists),
-                                      artistId: primaryArtistId(album.artists),
-                                      thumbnailUrl: art,
-                                      year: album.year,
-                                      addedAt: DateTime.now(),
-                                    ),
-                                  );
-                            },
-                            child: Icon(
-                              liked != null
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: liked != null
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurfaceVariant,
-                              size: 32,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: TvImmersiveEntityHeader(
+              imageUrl: art,
+              eyebrow: album.year?.toString(),
+              title: album.name,
+              subtitle: displayArtists(album.artists),
+              height: headerH,
+              onBack: () => context.pop(),
+              actions: TvEntityActionsBar(
+                actions: [
+                  TvEntityAction(
+                    id: DetailActionId.play,
+                    icon: LucideIcons.play,
+                    label: l10n.playAll,
+                    filled: true,
+                    autofocus: true,
+                    onSelect: playable.isEmpty
+                        ? null
+                        : () => ref
+                              .read(playerStateProvider.notifier)
+                              .playAlbum(playable, startIndex: 0),
                   ),
-                );
-              },
+                  TvEntityAction(
+                    id: DetailActionId.shuffle,
+                    icon: LucideIcons.shuffle,
+                    label: l10n.shufflePlay,
+                    onSelect: playable.isEmpty
+                        ? null
+                        : () {
+                            final shuffled = List<SongDetailed>.from(playable)
+                              ..shuffle();
+                            ref
+                                .read(playerStateProvider.notifier)
+                                .playAlbum(shuffled, startIndex: 0);
+                          },
+                  ),
+                  TvEntityAction(
+                    id: DetailActionId.queue,
+                    icon: LucideIcons.listMusic,
+                    label: l10n.addToQueue,
+                    onSelect: playable.isEmpty
+                        ? null
+                        : () => _addToQueue(context, ref, playable),
+                  ),
+                  TvEntityAction(
+                    id: DetailActionId.save,
+                    icon: liked != null
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    label: l10n.like,
+                    active: liked != null,
+                    onSelect: () {
+                      ref
+                          .read(libraryNotifierProvider.notifier)
+                          .toggleLikedAlbum(
+                            LikedAlbumModel(
+                              albumId: album.albumId,
+                              name: album.name,
+                              artistName: displayArtists(album.artists),
+                              artistId: primaryArtistId(album.artists),
+                              thumbnailUrl: art,
+                              year: album.year,
+                              addedAt: DateTime.now(),
+                            ),
+                          );
+                    },
+                  ),
+                ],
+                onOverflow: () => ContextMenuSheet.showForAlbum(
+                  context,
+                  albumId: album.albumId,
+                  name: album.name,
+                  artist: displayArtists(album.artists),
+                  artistId: primaryArtistId(album.artists),
+                  thumbnailUrl: art,
+                  year: album.year,
+                  omitActionIds: {
+                    DetailActionId.play,
+                    DetailActionId.shuffle,
+                    DetailActionId.queue,
+                    DetailActionId.save,
+                    DetailActionId.share,
+                    if (offline) DetailActionId.download,
+                    if (offline) DetailActionId.radio,
+                  },
+                ),
+              ),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(0, 48, 48, 48),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              TvMetrics.contentPadding,
+              8,
+              TvMetrics.contentPadding,
+              48,
+            ),
+            sliver: SliverList.builder(
               itemCount: album.songs.length,
               itemBuilder: (context, index) {
                 final song = album.songs[index];
@@ -224,18 +200,31 @@ class _TvAlbumBody extends ConsumerWidget {
     );
   }
 
-  Future<void> _startRadio(
+  Future<void> _addToQueue(
     BuildContext context,
     WidgetRef ref,
-    SongDetailed seed,
+    List<SongDetailed> songs,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    await startSongRadio(
-      videoId: seed.videoId,
-      useCase: ref.read(startRadioUseCaseProvider),
-      player: ref.read(playerStateProvider.notifier),
-      feedback: ref.read(actionFeedbackProvider.notifier),
-      l10n: l10n,
-    );
+    try {
+      final items = await ref
+          .read(playAlbumUseCaseProvider)
+          .execute(songs, playIndex: -1);
+      if (items.isNotEmpty) {
+        await ref.read(playerStateProvider.notifier).addAllToQueue(items);
+      }
+      if (context.mounted) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.addedToQueue(items.length));
+      }
+    } catch (e) {
+      debugPrint('Failed to add album to queue: $e');
+      if (context.mounted) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
+      }
+    }
   }
 }

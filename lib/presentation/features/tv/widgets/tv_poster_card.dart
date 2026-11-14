@@ -16,6 +16,7 @@ class TvPosterCard extends StatelessWidget {
   final double width;
   final double? imageHeight;
   final ThumbnailShape shape;
+  final FocusNode? focusNode;
 
   const TvPosterCard({
     super.key,
@@ -29,6 +30,7 @@ class TvPosterCard extends StatelessWidget {
     this.width = TvMetrics.shelfCardWidth,
     this.imageHeight,
     this.shape = ThumbnailShape.rounded,
+    this.focusNode,
   });
 
   @override
@@ -40,6 +42,7 @@ class TvPosterCard extends StatelessWidget {
       width: width,
       child: TvFocusable(
         autofocus: autofocus,
+        focusNode: focusNode,
         onSelect: onSelect,
         onLongSelect: onLongSelect,
         onLeftAtEdge: onLeftAtEdge,

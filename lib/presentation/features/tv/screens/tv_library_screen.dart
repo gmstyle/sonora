@@ -5,10 +5,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/player_provider.dart';
+import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
+import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../library/providers/library_provider.dart';
 import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
@@ -19,10 +21,10 @@ import '../widgets/tv_shelf.dart';
 enum _TvLibrarySection { liked, playlists, artists, albums, podcasts, mixes }
 
 const _kTvGrid = SliverGridDelegateWithMaxCrossAxisExtent(
-  maxCrossAxisExtent: TvMetrics.shelfCardWidth + 24,
-  mainAxisExtent: TvMetrics.shelfRowHeight,
-  crossAxisSpacing: 16,
-  mainAxisSpacing: 16,
+  maxCrossAxisExtent: TvMetrics.shelfCardWidth + 48,
+  mainAxisExtent: TvMetrics.shelfRowHeight + 8,
+  crossAxisSpacing: 24,
+  mainAxisSpacing: 24,
 );
 
 /// TV library: category chips + poster shelves/grids.
@@ -35,10 +37,30 @@ class TvLibraryScreen extends ConsumerStatefulWidget {
 
 class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
   _TvLibrarySection _section = _TvLibrarySection.liked;
+  final FocusNode _firstContentFocus = FocusNode(
+    debugLabel: 'libraryFirstItem',
+  );
+
+  @override
+  void dispose() {
+    _firstContentFocus.dispose();
+    super.dispose();
+  }
+
+  void _focusContent() {
+    // Defer so the new section body has mounted its first poster.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_firstContentFocus.canRequestFocus) {
+        _firstContentFocus.requestFocus();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final labels = {
       _TvLibrarySection.liked: l10n.favorites,
       _TvLibrarySection.playlists: l10n.playlists,
@@ -60,8 +82,9 @@ class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
           ),
           child: Text(
             l10n.library,
-            style: Theme.of(context).textTheme.headlineMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
         SizedBox(
@@ -76,15 +99,38 @@ class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 10),
                   child: TvFocusable(
-                    onSelect: () => setState(() => _section = section),
+                    onSelect: () {
+                      setState(() => _section = section);
+                      _focusContent();
+                    },
                     onLeftAtEdge: section == _TvLibrarySection.liked
                         ? () => TvShellFocus.requestSidebar(context)
                         : null,
+                    onDownAtEdge: _focusContent,
                     borderRadius: BorderRadius.circular(24),
-                    child: FilterChip(
-                      label: Text(labels[section]!),
-                      selected: _section == section,
-                      onSelected: (_) => setState(() => _section = section),
+                    child: AnimatedContainer(
+                      duration: TvMetrics.drawerAnimDuration,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _section == section
+                            ? colorScheme.secondaryContainer
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Text(
+                        labels[section]!,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: _section == section
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: _section == section
+                              ? colorScheme.onSecondaryContainer
+                              : colorScheme.onSurface,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -92,14 +138,29 @@ class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
           ),
         ),
         Expanded(
-          child: switch (_section) {
-            _TvLibrarySection.liked => const _LikedSongsBody(),
-            _TvLibrarySection.playlists => const _PlaylistsBody(),
-            _TvLibrarySection.artists => const _ArtistsBody(),
-            _TvLibrarySection.albums => const _AlbumsBody(),
-            _TvLibrarySection.podcasts => const _PodcastsBody(),
-            _TvLibrarySection.mixes => const _MixesBody(),
-          },
+          child: KeyedSubtree(
+            key: ValueKey(_section),
+            child: switch (_section) {
+              _TvLibrarySection.liked => _LikedSongsBody(
+                firstFocus: _firstContentFocus,
+              ),
+              _TvLibrarySection.playlists => _PlaylistsBody(
+                firstFocus: _firstContentFocus,
+              ),
+              _TvLibrarySection.artists => _ArtistsBody(
+                firstFocus: _firstContentFocus,
+              ),
+              _TvLibrarySection.albums => _AlbumsBody(
+                firstFocus: _firstContentFocus,
+              ),
+              _TvLibrarySection.podcasts => _PodcastsBody(
+                firstFocus: _firstContentFocus,
+              ),
+              _TvLibrarySection.mixes => _MixesBody(
+                firstFocus: _firstContentFocus,
+              ),
+            },
+          ),
         ),
       ],
     );
@@ -107,7 +168,9 @@ class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
 }
 
 class _LikedSongsBody extends ConsumerWidget {
-  const _LikedSongsBody();
+  final FocusNode firstFocus;
+
+  const _LikedSongsBody({required this.firstFocus});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -136,12 +199,24 @@ class _LikedSongsBody extends ConsumerWidget {
               title: song.title,
               subtitle: song.artist,
               imageUrl: song.thumbnailUrl,
+              focusNode: index == 0 ? firstFocus : null,
               onLeftAtEdge: index == 0
                   ? () => TvShellFocus.requestSidebar(context)
                   : null,
               onSelect: () => ref
                   .read(playerStateProvider.notifier)
                   .playVideoId(song.videoId, isVideo: song.isVideo),
+              onLongSelect: () => ContextMenuSheet.showForSong(
+                context,
+                videoId: song.videoId,
+                title: song.title,
+                artist: song.artist,
+                thumbnailUrl: song.thumbnailUrl,
+                duration: song.duration,
+                isVideo: song.isVideo,
+                isExplicit: song.isExplicit,
+                artistsJson: song.artistsJson,
+              ),
             );
           },
         );
@@ -151,7 +226,9 @@ class _LikedSongsBody extends ConsumerWidget {
 }
 
 class _PlaylistsBody extends ConsumerWidget {
-  const _PlaylistsBody();
+  final FocusNode firstFocus;
+
+  const _PlaylistsBody({required this.firstFocus});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,6 +248,13 @@ class _PlaylistsBody extends ConsumerWidget {
 
     final local = localAsync.asData?.value ?? const [];
     final liked = likedAsync.asData?.value ?? const [];
+    var firstAssigned = false;
+
+    FocusNode? takeFirst() {
+      if (firstAssigned) return null;
+      firstAssigned = true;
+      return firstFocus;
+    }
 
     return ListView(
       children: [
@@ -180,6 +264,7 @@ class _PlaylistsBody extends ConsumerWidget {
             for (var i = 0; i < local.length; i++)
               TvPosterCard(
                 title: local[i].name,
+                focusNode: i == 0 ? takeFirst() : null,
                 onLeftAtEdge: i == 0
                     ? () => TvShellFocus.requestSidebar(context)
                     : null,
@@ -192,17 +277,30 @@ class _PlaylistsBody extends ConsumerWidget {
                       .read(playerStateProvider.notifier)
                       .playLocalPlaylist(entries, startIndex: 0);
                 },
+                onLongSelect: () => ContextMenuSheet.showForCustomPlaylist(
+                  context,
+                  playlist: local[i],
+                  onUpdated: () {},
+                ),
               ),
           ],
         ),
         TvShelf(
           title: l10n.playlists,
           children: [
-            for (final pl in liked)
+            for (var i = 0; i < liked.length; i++)
               TvPosterCard(
-                title: pl.name,
-                imageUrl: pl.thumbnailUrl,
-                onSelect: () => context.push('/playlist/${pl.playlistId}'),
+                title: liked[i].name,
+                imageUrl: liked[i].thumbnailUrl,
+                focusNode: takeFirst(),
+                onSelect: () =>
+                    context.push('/playlist/${liked[i].playlistId}'),
+                onLongSelect: () => ContextMenuSheet.showForPlaylist(
+                  context,
+                  playlistId: liked[i].playlistId,
+                  name: liked[i].name,
+                  thumbnailUrl: liked[i].thumbnailUrl,
+                ),
               ),
           ],
         ),
@@ -212,7 +310,9 @@ class _PlaylistsBody extends ConsumerWidget {
 }
 
 class _ArtistsBody extends ConsumerWidget {
-  const _ArtistsBody();
+  final FocusNode firstFocus;
+
+  const _ArtistsBody({required this.firstFocus});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -237,10 +337,18 @@ class _ArtistsBody extends ConsumerWidget {
             return TvPosterCard(
               title: artist.name,
               imageUrl: artist.thumbnailUrl,
+              shape: ThumbnailShape.circle,
+              focusNode: index == 0 ? firstFocus : null,
               onLeftAtEdge: index == 0
                   ? () => TvShellFocus.requestSidebar(context)
                   : null,
               onSelect: () => context.push('/artist/${artist.artistId}'),
+              onLongSelect: () => ContextMenuSheet.showForArtist(
+                context,
+                artistId: artist.artistId,
+                name: artist.name,
+                thumbnailUrl: artist.thumbnailUrl,
+              ),
             );
           },
         );
@@ -250,7 +358,9 @@ class _ArtistsBody extends ConsumerWidget {
 }
 
 class _AlbumsBody extends ConsumerWidget {
-  const _AlbumsBody();
+  final FocusNode firstFocus;
+
+  const _AlbumsBody({required this.firstFocus});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -276,10 +386,20 @@ class _AlbumsBody extends ConsumerWidget {
               title: album.name,
               subtitle: album.artistName,
               imageUrl: album.thumbnailUrl,
+              focusNode: index == 0 ? firstFocus : null,
               onLeftAtEdge: index == 0
                   ? () => TvShellFocus.requestSidebar(context)
                   : null,
               onSelect: () => context.push('/album/${album.albumId}'),
+              onLongSelect: () => ContextMenuSheet.showForAlbum(
+                context,
+                albumId: album.albumId,
+                name: album.name,
+                artist: album.artistName,
+                artistId: album.artistId,
+                thumbnailUrl: album.thumbnailUrl,
+                year: album.year,
+              ),
             );
           },
         );
@@ -289,7 +409,9 @@ class _AlbumsBody extends ConsumerWidget {
 }
 
 class _PodcastsBody extends ConsumerWidget {
-  const _PodcastsBody();
+  final FocusNode firstFocus;
+
+  const _PodcastsBody({required this.firstFocus});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -318,10 +440,18 @@ class _PodcastsBody extends ConsumerWidget {
               title: podcast.name,
               subtitle: podcast.authorName,
               imageUrl: podcast.thumbnailUrl,
+              focusNode: index == 0 ? firstFocus : null,
               onLeftAtEdge: index == 0
                   ? () => TvShellFocus.requestSidebar(context)
                   : null,
               onSelect: () => context.push('/podcast/${podcast.browseId}'),
+              onLongSelect: () => ContextMenuSheet.showForPodcast(
+                context,
+                browseId: podcast.browseId,
+                name: podcast.name,
+                author: podcast.authorName,
+                thumbnailUrl: podcast.thumbnailUrl,
+              ),
             );
           },
         );
@@ -331,7 +461,9 @@ class _PodcastsBody extends ConsumerWidget {
 }
 
 class _MixesBody extends StatelessWidget {
-  const _MixesBody();
+  final FocusNode firstFocus;
+
+  const _MixesBody({required this.firstFocus});
 
   @override
   Widget build(BuildContext context) {
@@ -348,6 +480,7 @@ class _MixesBody extends StatelessWidget {
                   SmartMixType.recentlyPlayed => l10n.recentlyPlayed,
                   SmartMixType.forgottenFavorites => l10n.forgottenFavorites,
                 },
+                focusNode: i == 0 ? firstFocus : null,
                 onLeftAtEdge: i == 0
                     ? () => TvShellFocus.requestSidebar(context)
                     : null,

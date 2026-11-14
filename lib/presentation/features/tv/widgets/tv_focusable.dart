@@ -5,16 +5,21 @@ import '../tv_metrics.dart';
 
 /// Focus wrapper for 10-foot TV: scale + Pulse outline on focus.
 ///
-/// Optional [onLeftAtEdge] fires when Left is pressed and this node has no
-/// westward sibling (used to hand focus to the sidebar).
+/// Optional [onLeftAtEdge] / [onDownAtEdge] hand focus to sidebar / content
+/// below when directional traversal would otherwise leave the widget.
+///
+/// Long-press Select (≥400ms, or first KeyRepeat after that) fires
+/// [onLongSelect] — used for TV context menus.
 class TvFocusable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onSelect;
   final VoidCallback? onLongSelect;
   final VoidCallback? onLeftAtEdge;
+  final VoidCallback? onDownAtEdge;
   final bool autofocus;
   final BorderRadius? borderRadius;
   final EdgeInsetsGeometry padding;
+  final FocusNode? focusNode;
 
   const TvFocusable({
     super.key,
@@ -22,9 +27,11 @@ class TvFocusable extends StatefulWidget {
     this.onSelect,
     this.onLongSelect,
     this.onLeftAtEdge,
+    this.onDownAtEdge,
     this.autofocus = false,
     this.borderRadius,
     this.padding = EdgeInsets.zero,
+    this.focusNode,
   });
 
   @override
@@ -32,38 +39,75 @@ class TvFocusable extends StatefulWidget {
 }
 
 class _TvFocusableState extends State<TvFocusable> {
-  final FocusNode _node = FocusNode(debugLabel: 'TvFocusable');
+  FocusNode? _ownedNode;
   bool _focused = false;
   DateTime? _keyDownAt;
+  bool _longFired = false;
+
+  static const _longPress = Duration(milliseconds: 400);
+
+  FocusNode get _node => widget.focusNode ?? _ownedNode!;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focusNode == null) {
+      _ownedNode = FocusNode(debugLabel: 'TvFocusable');
+    }
+  }
 
   @override
   void dispose() {
-    _node.dispose();
+    _ownedNode?.dispose();
     super.dispose();
   }
 
-  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
-    final isSelect =
-        event.logicalKey == LogicalKeyboardKey.select ||
-        event.logicalKey == LogicalKeyboardKey.enter ||
-        event.logicalKey == LogicalKeyboardKey.space ||
-        event.logicalKey == LogicalKeyboardKey.gameButtonA;
+  bool _isSelect(LogicalKeyboardKey key) =>
+      key == LogicalKeyboardKey.select ||
+      key == LogicalKeyboardKey.enter ||
+      key == LogicalKeyboardKey.space ||
+      key == LogicalKeyboardKey.gameButtonA ||
+      key == LogicalKeyboardKey.mediaPlayPause;
 
-    if (isSelect) {
+  void _fireLong() {
+    if (_longFired) return;
+    _longFired = true;
+    widget.onLongSelect?.call();
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (_isSelect(event.logicalKey)) {
       if (event is KeyDownEvent) {
         _keyDownAt = DateTime.now();
+        _longFired = false;
+        return KeyEventResult.handled;
+      }
+      if (event is KeyRepeatEvent) {
+        final down = _keyDownAt;
+        if (down != null &&
+            !_longFired &&
+            widget.onLongSelect != null &&
+            DateTime.now().difference(down) >= _longPress) {
+          _fireLong();
+        }
         return KeyEventResult.handled;
       }
       if (event is KeyUpEvent) {
         final down = _keyDownAt;
         _keyDownAt = null;
-        if (down != null &&
-            DateTime.now().difference(down) >=
-                const Duration(milliseconds: 500)) {
-          widget.onLongSelect?.call();
-        } else {
-          widget.onSelect?.call();
+        if (_longFired) {
+          _longFired = false;
+          return KeyEventResult.handled;
         }
+        if (down != null &&
+            widget.onLongSelect != null &&
+            DateTime.now().difference(down) >= _longPress) {
+          _fireLong();
+          _longFired = false;
+          return KeyEventResult.handled;
+        }
+        _longFired = false;
+        widget.onSelect?.call();
         return KeyEventResult.handled;
       }
     }
@@ -72,6 +116,13 @@ class _TvFocusableState extends State<TvFocusable> {
         event.logicalKey == LogicalKeyboardKey.arrowLeft &&
         widget.onLeftAtEdge != null) {
       widget.onLeftAtEdge!();
+      return KeyEventResult.handled;
+    }
+
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.arrowDown &&
+        widget.onDownAtEdge != null) {
+      widget.onDownAtEdge!();
       return KeyEventResult.handled;
     }
 
