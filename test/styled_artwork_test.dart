@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/core/theme/sonora_pulse_tokens.dart';
 import 'package:sonora/domain/models/artwork_style.dart';
+import 'package:sonora/presentation/features/player/widgets/artwork.dart';
+import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 import 'package:sonora/presentation/shared/widgets/styled_artwork.dart';
 import 'package:sonora/presentation/shared/widgets/thumbnail_widget.dart';
@@ -10,6 +12,17 @@ import 'package:sonora/presentation/shared/widgets/thumbnail_widget.dart';
 class _StillSettings extends SettingsNotifier {
   @override
   Settings build() => const Settings(reduceEffects: true);
+}
+
+class _BarsSettings extends SettingsNotifier {
+  @override
+  Settings build() =>
+      const Settings(reduceEffects: true, artworkStyle: ArtworkStyle.bars);
+}
+
+class _FrozenPlayer extends PlayerNotifier {
+  @override
+  PlayerState build() => const PlayerState(isPlaying: false);
 }
 
 void main() {
@@ -122,5 +135,33 @@ void main() {
         .map((bar) => tester.getSize(find.byWidget(bar)).height)
         .toSet();
     expect(heights, {200 * 0.07});
+  });
+
+  testWidgets('the full-player thumb uses the mini cover radius', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsProvider.overrideWith(_BarsSettings.new),
+          playerStateProvider.overrideWith(_FrozenPlayer.new),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Artwork(artUrl: null, size: 56, videoId: 'thumb', mini: true),
+          ),
+        ),
+      ),
+    );
+
+    final radii = tester
+        .widgetList<ClipRRect>(find.byType(ClipRRect))
+        .map((clip) => clip.borderRadius)
+        .toList();
+    expect(radii, contains(BorderRadius.circular(SonoraPulseTokens.radiusSm)));
+    expect(
+      radii,
+      isNot(contains(BorderRadius.circular(SonoraPulseTokens.radiusMedia))),
+    );
   });
 }

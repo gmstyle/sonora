@@ -10,6 +10,7 @@ import '../../../providers/settings_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/styled_artwork.dart';
+import '../../../shared/widgets/thumbnail_widget.dart';
 import 'player_shared_widgets.dart';
 
 class Artwork extends ConsumerWidget {
@@ -21,6 +22,7 @@ class Artwork extends ConsumerWidget {
     this.isSwitching = false,
     this.showFlipIndicator = false,
     this.minSize = 150,
+    this.mini = false,
   });
 
   final String? artUrl;
@@ -31,6 +33,10 @@ class Artwork extends ConsumerWidget {
 
   /// Lower bound for [size]. The full-player header uses a value under 150.
   final double minSize;
+
+  /// Shelf-sized cover. Same radius as the home mini player (12), not the
+  /// stage radius, which turns a 56px square into a near-circle.
+  final bool mini;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,6 +55,14 @@ class Artwork extends ConsumerWidget {
         .watch(settingsProvider.select((s) => s.artworkStyle))
         .forPlayback(isEpisode: isEpisode);
     final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
+    if (mini) {
+      return _miniCover(
+        style: style,
+        isPlaying: isPlaying,
+        isSwitching: isSwitching,
+      );
+    }
+
     final clampedSize = size.clamp(minSize, 600.0);
     final circular = style != ArtworkStyle.bars && style != ArtworkStyle.plain;
 
@@ -124,6 +138,39 @@ class Artwork extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _miniCover({
+    required ArtworkStyle style,
+    required bool isPlaying,
+    required bool isSwitching,
+  }) {
+    if (isSwitching) {
+      final shimmer = SizedBox.square(
+        dimension: size,
+        child: const ShimmerLoading(variant: ShimmerVariant.artworkLarge),
+      );
+      if (style == ArtworkStyle.vinyl) return ClipOval(child: shimmer);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusSm),
+        child: shimmer,
+      );
+    }
+    if (style == ArtworkStyle.plain) {
+      return ThumbnailWidget(
+        imageUrl: artUrl,
+        size: size,
+        shape: ThumbnailShape.rounded,
+        borderRadius: SonoraPulseTokens.radiusSm,
+      );
+    }
+    return buildStyledPlayerArt(
+      style: style,
+      imageUrl: artUrl,
+      size: size,
+      isPlaying: isPlaying,
+      mini: true,
     );
   }
 }

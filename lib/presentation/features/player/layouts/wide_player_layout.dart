@@ -857,6 +857,7 @@ class _BottomBar extends ConsumerWidget {
                         artUrl: artUrl,
                         size: 56,
                         minSize: 48,
+                        mini: true,
                         videoId: videoId,
                         isSwitching: playerState.isSwitching,
                       ),
