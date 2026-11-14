@@ -109,8 +109,8 @@ class OnDeviceLlmDatasource {
     }
 
     final model = await _ensureModel();
-    debugPrint('OnDeviceLlm: createSession…');
-    final session = await model.createSession(
+    debugPrint('OnDeviceLlm: openSession…');
+    final session = await model.openSession(
       systemInstruction: systemInstruction,
       enableThinking: false,
       maxOutputTokens: maxOutputTokens,

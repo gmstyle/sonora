@@ -1,6 +1,9 @@
 arb-dir: lib/l10n
 template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
+# gen-l10n still emits the legacy SDK localization delegates. The app wires
+# material_ui's delegates in main.dart. Keep the generated file quiet.
+header: "// ignore_for_file: deprecated_member_use\n"
 preferred-supported-locales:
   - en
   - it
