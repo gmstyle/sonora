@@ -22,14 +22,14 @@ final _destinations = [
   (LucideIcons.download, (AppLocalizations l) => l.downloads),
 ];
 
-/// Android TV chrome: JetFit-style collapsible nav drawer + branch content.
+/// Android TV chrome: Material TV left-navigation overlay + browse content.
 ///
-/// Collapsed = icon rail ([TvMetrics.railCollapsedWidth]). Focus inside the
-/// drawer expands to [TvMetrics.railExpandedWidth] with labels. Content uses
-/// dedicated TV screens via root-screen dispatch — not touch layouts.
+/// Collapsed = icon rail ([TvMetrics.railCollapsedWidth]). Focus expands to
+/// [TvMetrics.railExpandedWidth] as an overlay (content width stays fixed).
+/// Screens are dedicated TV widgets — not touch layouts.
 ///
 /// Focus scopes: sidebar ↔ content ↔ dock. Down past the last content
-/// focusable (or past Settings) moves to the mini-player strip.
+/// focusable (or past Settings) moves to the media-controls strip.
 class TvShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -110,7 +110,7 @@ class _TvShellState extends ConsumerState<TvShell> {
     final scopeBottom = scopeBox
         .localToGlobal(Offset(0, scopeBox.size.height))
         .dy;
-    return focusBottom >= scopeBottom - 140;
+    return focusBottom >= scopeBottom - 100;
   }
 
   KeyEventResult _onDockKey(FocusNode node, KeyEvent event) {
@@ -352,7 +352,7 @@ class _TvNavItemState extends State<_TvNavItem> {
     final fg = active
         ? colorScheme.onSecondaryContainer
         : colorScheme.onSurface;
-    // JetFit: circular disc behind the icon when collapsed / focused.
+    // Circular disc behind the icon when collapsed / focused (Material TV).
     final disc = active ? colorScheme.secondaryContainer : Colors.transparent;
 
     return Padding(

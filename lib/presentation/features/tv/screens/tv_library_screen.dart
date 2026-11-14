@@ -76,19 +76,19 @@ class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(
             TvMetrics.contentPadding,
-            28,
+            TvMetrics.browseTopPadding,
             TvMetrics.contentPadding,
             8,
           ),
           child: Text(
             l10n.library,
-            style: theme.textTheme.headlineMedium?.copyWith(
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
         ),
         SizedBox(
-          height: 56,
+          height: 48,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(
@@ -111,8 +111,8 @@ class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
                     child: AnimatedContainer(
                       duration: TvMetrics.drawerAnimDuration,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 10,
+                        horizontal: 16,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
                         color: _section == section

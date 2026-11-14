@@ -1,46 +1,66 @@
-/// 10-foot layout tokens for [TvShell] and TV screens.
+/// Android TV layout tokens — standalone 10-foot product surface.
 ///
-/// Kept separate from phone/tablet breakpoints: TV is a device shell, not a
-/// width tier. Anatomy follows JetFit (80↔220 drawer); brand tokens stay Pulse.
+/// Design canvas is Material TV MDPI **960×540** (1px = 1dp). Sonora STBs with
+/// density 320 on a 1080p override expose that logical size; tokens are authored
+/// for it. Brand stays Pulse; anatomy follows Material TV / Leanback canons
+/// (browser rows, left nav overlay, overscan), **not** phone shells or JetFit.
+///
+/// Spec: https://developer.android.com/design/ui/tv/guides/styles/layouts
 abstract final class TvMetrics {
-  /// Collapsed navigation drawer width (icons only).
-  static const double railCollapsedWidth = 80;
+  static const double designWidth = 960;
+  static const double designHeight = 540;
 
-  /// Expanded navigation drawer width (icons + labels).
-  static const double railExpandedWidth = 220;
+  /// Overscan-safe inset from screen edges (~5%).
+  static const double overscanHorizontal = 48;
+  static const double overscanVertical = 27;
+
+  /// Collapsed left nav (icons). Content reserves this gutter always.
+  static const double railCollapsedWidth = 72;
+
+  /// Expanded left nav overlay (labels). Does not resize the content pane.
+  static const double railExpandedWidth = 240;
 
   static const double railIconSize = 28;
 
-  /// Content inset past the collapsed rail (JetFit ~112 on 960 → ~32–48).
+  /// Padding inside the content pane (right edge ≈ overscan; left after rail).
   static const double contentPadding = 40;
 
+  /// Browser-template shelf (vertical stack of horizontal rows).
   static const double shelfGap = 28;
-  static const double shelfCardWidth = 220;
-  static const double shelfCardHeight = 220;
-
-  /// Vertical room for title + subtitle under the poster cover.
-  static const double shelfCardTextHeight = 64;
-
-  /// Horizontal list viewport (cover + text + focus ring / scale slack).
-  static const double shelfRowHeight =
-      shelfCardHeight + shelfCardTextHeight + 40;
-
   static const double shelfTitleGap = 12;
 
-  /// Inset hero card (JetFit home-01 ~340 on 540 canvas).
-  static const double heroCardHeight = 340;
-  static const double heroCardRadius = 28;
+  /// Standard catalog poster (~5 cards across usable width).
+  static const double shelfCardWidth = 148;
+  static const double shelfCardHeight = 148;
+  static const double shelfCardTextHeight = 44;
+  static const double shelfRowHeight =
+      shelfCardHeight + shelfCardTextHeight + 20;
 
-  /// Landscape mood / category cards under the hero.
-  static const double categoryCardWidth = 280;
-  static const double categoryCardHeight = 120;
-  static const double categoryRowHeight = categoryCardHeight + 28;
+  /// Featured / hero items as a **row** of landscape cards (not a full-bleed
+  /// marketing panel). 16:9-ish for 10-foot browsing.
+  static const double featuredCardWidth = 268;
+  static const double featuredCardHeight = 150;
+  static const double featuredRowHeight = featuredCardHeight + 36;
 
-  static const double focusScale = 1.08;
-  static const double cardRadius = 20;
-  static const double dockHeight = 104;
+  /// Mood / genre landscape chips.
+  static const double categoryCardWidth = 220;
+  static const double categoryCardHeight = 100;
+  static const double categoryRowHeight = categoryCardHeight + 36;
+
+  static const double focusScale = 1.1;
+  static const double cardRadius = 12;
+
+  /// Thin media controls strip. Music ATV apps keep this; it must not rival
+  /// the browse rows (≈7% of design height).
+  static const double dockHeight = 40;
+  static const double dockArtSize = 28;
+  static const double dockIconSize = 18;
+
   static const Duration drawerAnimDuration = Duration(milliseconds: 200);
 
-  /// Immersive entity header fraction of viewport height.
-  static const double entityHeaderFraction = 0.52;
+  /// Immersive entity header — under half the viewport so the track list peeks.
+  static const double entityHeaderFraction = 0.40;
+
+  /// Top padding for the first browse row (overscan-aware).
+  static const double browseTopPadding = 24;
 }

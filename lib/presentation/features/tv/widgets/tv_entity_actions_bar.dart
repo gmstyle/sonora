@@ -28,7 +28,7 @@ class TvEntityAction {
   });
 }
 
-/// JetFit-style primary action row + overflow for TV entity headers.
+/// Primary action row + overflow for ATV entity headers (content-detail).
 class TvEntityActionsBar extends StatelessWidget {
   final List<TvEntityAction> actions;
   final VoidCallback? onOverflow;
@@ -164,57 +164,68 @@ class TvImmersiveEntityHeader extends StatelessWidget {
                       child: Icon(LucideIcons.arrowLeft, size: 28),
                     ),
                   ),
-                const Spacer(),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (eyebrow != null && eyebrow!.isNotEmpty)
-                        Text(
-                          eyebrow!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      if (eyebrow != null && eyebrow!.isNotEmpty)
-                        const SizedBox(height: 8),
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w800,
+                // Expanded + scroll: 960×540 logical + dock leaves a short
+                // header; Spacer + fixed title/actions overflowed by 100–200px.
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: SingleChildScrollView(
+                      reverse: true,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (eyebrow != null && eyebrow!.isNotEmpty)
+                              Text(
+                                eyebrow!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (eyebrow != null && eyebrow!.isNotEmpty)
+                              const SizedBox(height: 8),
+                            Text(
+                              title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (subtitle != null && subtitle!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                subtitle!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                            if (description != null &&
+                                description!.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                description!,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            actions,
+                          ],
                         ),
                       ),
-                      if (subtitle != null && subtitle!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          subtitle!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                      if (description != null && description!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          description!,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      actions,
-                    ],
+                    ),
                   ),
                 ),
               ],

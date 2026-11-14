@@ -192,17 +192,19 @@ Android (phone/tablet), Android TV (sideload), and Linux only. Do not add iOS, W
 
 ### Android TV
 
+TV is a **standalone 10-foot product** under `lib/presentation/features/tv/`. Same domain/data/providers/routes; **different UI**. Do not resize phone/tablet/JetFit layouts onto the STB. Anatomy follows [Material TV](https://developer.android.com/design/ui/tv/guides/styles/layouts) (960×540 MDPI, overscan, browser rows, left nav overlay, focus scale/glow) with Pulse brand. Tokens live in `tv_metrics.dart`.
+
 - Detect with `AndroidTv.isAndroidTv` → `isAndroidTvProvider` (overridden in `main`).
 - `AppShell` selects `TvShell` when TV; width shells stay untouched.
-- TV chrome and screens live under `lib/presentation/features/tv/` (`layouts/`, `widgets/`, `screens/`, `screens/entity/`). Do not create `lib/tv/` parallel to `lib/cli/`.
-- **Zero touch-layout reuse.** Root screens (`HomeScreen`, `SearchScreen`, `LibraryScreen`, `DownloadsScreen`, `SettingsScreen`, album/artist/playlist/podcast/episode) are dispatch-only when `isAndroidTvProvider` is true; they return a `Tv*` screen. Same providers and go_router paths; different widgets.
-- Shell is a JetFit-style collapsible nav drawer (collapsed rail → expand on focus) with Settings as a bottom sibling push (`context.push('/settings')`), not a fifth tab.
+- **Zero touch-layout reuse.** Root screens are dispatch-only when `isAndroidTvProvider` is true; they return a `Tv*` screen.
+- Shell: collapsed icon rail → expand-on-focus **overlay** drawer; Settings is a sibling push (`context.push('/settings')`), not a fifth tab.
+- Home is the **browser template**: vertical stack of horizontal rows (featured landscape cards → moods → shelves). Not a full-bleed marketing hero.
 - Focus / D-pad belongs in TV primitives (`TvFocusable`, shelves, shell). Left on the first shelf item → `TvShellFocus.requestSidebar`. Do not sprinkle `isAndroidTv` into phone cards.
-- Context menus: long-press (Select hold) → centered dialog. Short press = primary action. Prefer dialogs over phone bottom sheets on TV.
+- Context menus: long-press (Select hold) → centered dialog. Short press = primary action.
 - Search uses the **system Android TV IME**, not a custom on-screen keyboard.
-- **Foreground-only playback on TV:** leave foreground (`paused` / `inactive` / `detached` / task removed) → stop audio. Phone/tablet keep background + media notification. Hide Settings `background` / AI / backup (v1) / cast / Ask / battery prompts / system share / P2P sync UI on TV.
-- Lyrics are first-class on `TvNowPlaying` (karaoke stage + keep-awake). Now Playing is a full-bleed overlay (not a go_router `/player` route), opened from the TV dock strip.
-- Manifest: `LEANBACK_LAUNCHER`, `leanback`/`touchscreen` `required="false"`, `android:banner`. Sideload only — not a Play Store TV listing.
+- **Foreground-only playback on TV:** leave foreground → stop audio. Phone/tablet keep background + media notification. Hide Settings `background` / AI / backup (v1) / cast / Ask / battery prompts / system share / P2P sync UI on TV.
+- Thin media-controls strip (`TvDock`); full Now Playing is a full-bleed overlay (not `/player`), with lyrics as a first-class stage.
+- Manifest: `LEANBACK_LAUNCHER`, `leanback`/`touchscreen` `required="false"`, `android:banner`. Sideload only.
 
 Fix the layer that owns the bug. Do not restyle an unrelated screen, rename a public route, or swap the audio engine in the same change.
 
