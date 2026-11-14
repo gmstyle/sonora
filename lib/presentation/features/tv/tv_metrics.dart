@@ -10,10 +10,13 @@ abstract final class TvMetrics {
   static const double railExpandedWidth = 220;
 
   static const double railIconSize = 28;
-  static const double contentPadding = 48;
-  static const double shelfGap = 24;
-  static const double shelfCardWidth = 200;
-  static const double shelfCardHeight = 200;
+
+  /// Content inset past the collapsed rail (JetFit ~112 on 960 → ~32–48).
+  static const double contentPadding = 40;
+
+  static const double shelfGap = 28;
+  static const double shelfCardWidth = 220;
+  static const double shelfCardHeight = 220;
 
   /// Vertical room for title + subtitle under the poster cover.
   static const double shelfCardTextHeight = 64;
@@ -23,9 +26,21 @@ abstract final class TvMetrics {
       shelfCardHeight + shelfCardTextHeight + 40;
 
   static const double shelfTitleGap = 12;
-  static const double heroHeight = 360;
+
+  /// Inset hero card (JetFit home-01 ~340 on 540 canvas).
+  static const double heroCardHeight = 340;
+  static const double heroCardRadius = 28;
+
+  /// Landscape mood / category cards under the hero.
+  static const double categoryCardWidth = 280;
+  static const double categoryCardHeight = 120;
+  static const double categoryRowHeight = categoryCardHeight + 28;
+
   static const double focusScale = 1.08;
-  static const double cardRadius = 16;
+  static const double cardRadius = 20;
   static const double dockHeight = 104;
   static const Duration drawerAnimDuration = Duration(milliseconds: 200);
+
+  /// Immersive entity header fraction of viewport height.
+  static const double entityHeaderFraction = 0.52;
 }

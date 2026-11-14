@@ -1,3 +1,4 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,8 +8,12 @@ import '../../../../core/utils/screen_keep_awake.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/connectivity_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/player_provider.dart';
+import '../../../providers/start_radio_use_case_provider.dart';
+import '../../../shared/widgets/context_menu/context_menu_presenter.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../player/widgets/lyrics_view.dart';
 import '../tv_metrics.dart';
@@ -34,7 +39,7 @@ void openTvNowPlaying(BuildContext context, {bool lyrics = false}) {
   );
 }
 
-/// Full-bleed now playing with optional karaoke lyrics stage.
+/// JetFit audio-player: centered column; lyrics as optional side stage.
 class TvNowPlayingScreen extends ConsumerStatefulWidget {
   final bool showLyrics;
 
@@ -87,161 +92,327 @@ class _TvNowPlayingScreenState extends ConsumerState<TvNowPlayingScreen> {
     final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(playerStateProvider.notifier);
     final liked = ref.watch(likedSongProvider(track.videoId)).asData?.value;
+    final offline = ref.watch(isOfflineProvider);
+    final shuffled = player.shuffleMode == AudioServiceShuffleMode.all;
+
+    Widget stage = _CenteredPlayerStage(
+      song: song,
+      track: track,
+      player: player,
+      notifier: notifier,
+      liked: liked != null,
+      shuffled: shuffled,
+      lyrics: _lyrics,
+      onToggleLyrics: () => _setLyrics(!_lyrics),
+      onLike: () {
+        ref
+            .read(libraryNotifierProvider.notifier)
+            .toggleLikedSong(
+              LikedSongModel(
+                videoId: track.videoId,
+                title: song.title,
+                artist: song.artist ?? '',
+                artistsJson: track.artistsJson,
+                thumbnailUrl: song.artUri?.toString(),
+                addedAt: DateTime.now(),
+                duration: song.duration?.inSeconds,
+                isVideo: track.isVideo,
+                isExplicit: track.isExplicit,
+              ),
+            );
+      },
+      onRadio: offline
+          ? null
+          : () => startSongRadio(
+              videoId: track.videoId,
+              useCase: ref.read(startRadioUseCaseProvider),
+              player: notifier,
+              feedback: ref.read(actionFeedbackProvider.notifier),
+              l10n: l10n,
+            ),
+      l10n: l10n,
+      theme: theme,
+      colorScheme: colorScheme,
+    );
+
+    if (_lyrics) {
+      stage = Row(
+        children: [
+          Expanded(flex: 5, child: stage),
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 6,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: LyricsView(
+                  videoId: track.videoId,
+                  position: player.position,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: Padding(
         padding: const EdgeInsets.all(TvMetrics.contentPadding),
-        child: Row(
-          children: [
-            Expanded(
-              flex: _lyrics ? 4 : 5,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // Chrome below the artwork: back, gaps, title, artist, seek, controls.
-                  const reserved = 220.0;
-                  final artBudget = (constraints.maxHeight - reserved).clamp(
-                    120.0,
-                    _lyrics ? 280.0 : 420.0,
-                  );
-                  final artSize = artBudget
-                      .clamp(120.0, constraints.maxWidth)
-                      .toDouble();
+        child: stage,
+      ),
+    );
+  }
+}
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TvFocusable(
-                        onSelect: () => Navigator.of(context).maybePop(),
-                        borderRadius: BorderRadius.circular(28),
-                        child: IconButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(LucideIcons.chevronDown, size: 28),
-                        ),
-                      ),
-                      Expanded(
-                        child: Center(
+class _CenteredPlayerStage extends StatelessWidget {
+  final MediaItem song;
+  final QueueTrack track;
+  final PlayerState player;
+  final PlayerNotifier notifier;
+  final bool liked;
+  final bool shuffled;
+  final bool lyrics;
+  final VoidCallback onToggleLyrics;
+  final VoidCallback onLike;
+  final VoidCallback? onRadio;
+  final AppLocalizations l10n;
+  final ThemeData theme;
+  final ColorScheme colorScheme;
+
+  const _CenteredPlayerStage({
+    required this.song,
+    required this.track,
+    required this.player,
+    required this.notifier,
+    required this.liked,
+    required this.shuffled,
+    required this.lyrics,
+    required this.onToggleLyrics,
+    required this.onLike,
+    required this.onRadio,
+    required this.l10n,
+    required this.theme,
+    required this.colorScheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TvFocusable(
+            onSelect: () => Navigator.of(context).maybePop(),
+            borderRadius: BorderRadius.circular(28),
+            child: IconButton(
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const Icon(LucideIcons.chevronDown, size: 28),
+            ),
+          ),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 480 || lyrics;
+              final playSize = compact ? 52.0 : 68.0;
+              final sideSize = compact ? 40.0 : 52.0;
+              final smallSize = compact ? 36.0 : 44.0;
+              final gap = compact ? 8.0 : 14.0;
+
+              return Column(
+                children: [
+                  // Artwork fills leftover space — never scrolls.
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, artBox) {
+                        final side = artBox.maxHeight
+                            .clamp(72.0, artBox.maxWidth)
+                            .toDouble();
+                        return Center(
                           child: ThumbnailWidget(
                             imageUrl: song.artUri?.toString(),
-                            size: artSize,
+                            size: side,
                             shape: ThumbnailShape.rounded,
                             borderRadius: 24,
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        song.artist ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _TvSeekBar(player: player, notifier: notifier),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          TvFocusable(
-                            onSelect: () => notifier.skipToPrevious(),
-                            child: const Icon(LucideIcons.skipBack, size: 32),
-                          ),
-                          const SizedBox(width: 16),
-                          TvFocusable(
-                            onSelect: () => notifier.togglePlayPause(),
-                            child: Icon(
-                              player.isPlaying
-                                  ? LucideIcons.pause
-                                  : LucideIcons.play,
-                              size: 40,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          TvFocusable(
-                            onSelect: () => notifier.skipToNext(),
-                            child: const Icon(
-                              LucideIcons.skipForward,
-                              size: 32,
-                            ),
-                          ),
-                          const Spacer(),
-                          TvFocusable(
-                            onSelect: () {
-                              ref
-                                  .read(libraryNotifierProvider.notifier)
-                                  .toggleLikedSong(
-                                    LikedSongModel(
-                                      videoId: track.videoId,
-                                      title: song.title,
-                                      artist: song.artist ?? '',
-                                      artistsJson: track.artistsJson,
-                                      thumbnailUrl: song.artUri?.toString(),
-                                      addedAt: DateTime.now(),
-                                      duration: song.duration?.inSeconds,
-                                      isVideo: track.isVideo,
-                                      isExplicit: track.isExplicit,
-                                    ),
-                                  );
-                            },
-                            child: Icon(
-                              liked != null
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              size: 28,
-                              color: liked != null
-                                  ? colorScheme.primary
-                                  : colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          TvFocusable(
-                            onSelect: () => _setLyrics(!_lyrics),
-                            borderRadius: BorderRadius.circular(28),
-                            child: FilledButton.tonalIcon(
-                              onPressed: () => _setLyrics(!_lyrics),
-                              icon: Icon(
-                                _lyrics ? LucideIcons.disc3 : LucideIcons.mic2,
-                              ),
-                              label: Text(_lyrics ? l10n.queue : l10n.lyrics),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            if (_lyrics) ...[
-              const SizedBox(width: 24),
-              Expanded(
-                flex: 6,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: LyricsView(
-                      videoId: track.videoId,
-                      position: player.position,
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-            ],
-          ],
+                  SizedBox(height: gap),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          song.title,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              (compact
+                                      ? theme.textTheme.titleLarge
+                                      : theme.textTheme.headlineSmall)
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          song.artist ?? '',
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        SizedBox(height: gap),
+                        _TvSeekBar(player: player, notifier: notifier),
+                        SizedBox(height: gap),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _CircleControl(
+                              icon: LucideIcons.shuffle,
+                              selected: shuffled,
+                              onSelect: () => notifier.toggleShuffle(),
+                              size: smallSize,
+                            ),
+                            SizedBox(width: compact ? 8 : 14),
+                            _CircleControl(
+                              icon: LucideIcons.skipBack,
+                              onSelect: () => notifier.skipToPrevious(),
+                              size: sideSize,
+                              tonal: true,
+                            ),
+                            SizedBox(width: compact ? 8 : 14),
+                            _CircleControl(
+                              icon: player.isPlaying
+                                  ? LucideIcons.pause
+                                  : LucideIcons.play,
+                              onSelect: () => notifier.togglePlayPause(),
+                              size: playSize,
+                              filled: true,
+                              autofocus: true,
+                            ),
+                            SizedBox(width: compact ? 8 : 14),
+                            _CircleControl(
+                              icon: LucideIcons.skipForward,
+                              onSelect: () => notifier.skipToNext(),
+                              size: sideSize,
+                              tonal: true,
+                            ),
+                            SizedBox(width: compact ? 8 : 14),
+                            _CircleControl(
+                              icon:
+                                  player.repeatMode ==
+                                      AudioServiceRepeatMode.one
+                                  ? LucideIcons.repeat1
+                                  : LucideIcons.repeat,
+                              selected:
+                                  player.repeatMode !=
+                                  AudioServiceRepeatMode.none,
+                              onSelect: () => notifier.cycleRepeatMode(),
+                              size: smallSize,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: compact ? 8 : 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _CircleControl(
+                              icon: liked
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              selected: liked,
+                              onSelect: onLike,
+                              size: smallSize,
+                            ),
+                            const SizedBox(width: 10),
+                            _CircleControl(
+                              icon: LucideIcons.radio,
+                              onSelect: onRadio,
+                              size: smallSize,
+                            ),
+                            const SizedBox(width: 10),
+                            _CircleControl(
+                              icon: lyrics
+                                  ? LucideIcons.disc3
+                                  : LucideIcons.mic2,
+                              selected: lyrics,
+                              onSelect: onToggleLyrics,
+                              size: smallSize,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CircleControl extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onSelect;
+  final double size;
+  final bool filled;
+  final bool tonal;
+  final bool selected;
+  final bool autofocus;
+
+  const _CircleControl({
+    required this.icon,
+    required this.onSelect,
+    required this.size,
+    this.filled = false,
+    this.tonal = false,
+    this.selected = false,
+    this.autofocus = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bg = filled
+        ? colorScheme.onSurface
+        : tonal
+        ? colorScheme.surfaceContainerHighest
+        : colorScheme.surfaceContainerLow;
+    final fg = filled
+        ? colorScheme.surface
+        : selected
+        ? colorScheme.primary
+        : colorScheme.onSurface;
+
+    return TvFocusable(
+      autofocus: autofocus,
+      onSelect: onSelect,
+      borderRadius: BorderRadius.circular(size / 2),
+      child: Material(
+        color: bg,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onSelect,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Icon(icon, size: size * 0.42, color: fg),
+          ),
         ),
       ),
     );
@@ -284,7 +455,6 @@ class _TvSeekBarState extends State<_TvSeekBar> {
       widget.notifier.seekBy(_seekStep);
       return KeyEventResult.handled;
     }
-    // Up / Down / Select: let focus traversal and parent handlers run.
     return KeyEventResult.ignored;
   }
 
@@ -316,17 +486,9 @@ class _TvSeekBarState extends State<_TvSeekBar> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _focused ? colorScheme.primary : Colors.transparent,
+            color: _focused ? colorScheme.onSurface : Colors.transparent,
             width: 3,
           ),
-          boxShadow: _focused
-              ? [
-                  BoxShadow(
-                    color: colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                  ),
-                ]
-              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -337,7 +499,7 @@ class _TvSeekBarState extends State<_TvSeekBar> {
                 value: progress,
                 minHeight: 8,
                 backgroundColor: colorScheme.surfaceContainerHighest,
-                color: colorScheme.primary,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),

@@ -7,18 +7,24 @@ import '../../../../core/link/sonora_link.dart';
 import '../../../../domain/usecases/player/start_radio_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/player_provider.dart';
 
-/// Present [child] as a wide dialog (≥1200) or a modal bottom sheet.
+/// Present [child] as a centered dialog on wide / Android TV, else a sheet.
+///
+/// TV always uses a dialog — leanback D-pad cannot drive phone bottom sheets.
 Future<void> presentContextMenu(BuildContext context, Widget child) {
-  if (MediaQuery.of(context).size.width >= kExpandedBreakpoint) {
+  final isTv = ProviderScope.containerOf(context).read(isAndroidTvProvider);
+  final asDialog =
+      isTv || MediaQuery.of(context).size.width >= kExpandedBreakpoint;
+  if (asDialog) {
     return showDialog(
       context: context,
       useRootNavigator: true,
       builder: (_) => Center(
         child: SizedBox(
-          width: 360,
+          width: 420,
           child: Card(elevation: 8, clipBehavior: Clip.hardEdge, child: child),
         ),
       ),

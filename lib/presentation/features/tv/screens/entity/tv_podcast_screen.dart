@@ -6,14 +6,17 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../../domain/models/library_models.dart';
 import '../../../../../l10n/app_localizations.dart';
+import '../../../../providers/action_feedback_provider.dart';
+import '../../../../providers/connectivity_provider.dart';
 import '../../../../providers/library_notifier.dart';
+import '../../../../providers/play_podcast_use_case_provider.dart';
 import '../../../../providers/player_provider.dart';
+import '../../../../shared/widgets/context_menu_sheet.dart';
+import '../../../../shared/widgets/detail_actions_bar.dart';
 import '../../../../shared/widgets/error_retry_widget.dart';
-import '../../../../shared/widgets/thumbnail_widget.dart';
-import '../../../podcast/podcast_screen.dart';
 import '../../../podcast/providers/podcast_provider.dart';
 import '../../tv_metrics.dart';
-import '../../widgets/tv_focusable.dart';
+import '../../widgets/tv_entity_actions_bar.dart';
 import '../../widgets/tv_track_row.dart';
 
 class TvPodcastScreen extends ConsumerWidget {
@@ -48,7 +51,7 @@ class _TvPodcastBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final offline = ref.watch(isOfflineProvider);
     final liked = ref
         .watch(likedPodcastProvider(podcast.browseId))
         .asData
@@ -59,140 +62,131 @@ class _TvPodcastBody extends ConsumerWidget {
     final playable = podcast.episodes
         .where((e) => e.videoId.isNotEmpty)
         .toList();
+    final headerH =
+        MediaQuery.sizeOf(context).height * TvMetrics.entityHeaderFraction;
 
     return Scaffold(
-      body: Row(
-        children: [
-          SizedBox(
-            width: 420,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                const reserved = 240.0;
-                final artSize = (constraints.maxHeight - reserved)
-                    .clamp(120.0, 280.0)
-                    .clamp(
-                      120.0,
-                      constraints.maxWidth - TvMetrics.contentPadding * 2,
-                    )
-                    .toDouble();
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(TvMetrics.contentPadding),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TvFocusable(
-                        onSelect: () => context.pop(),
-                        child: const Icon(LucideIcons.arrowLeft, size: 28),
-                      ),
-                      const SizedBox(height: 24),
-                      ThumbnailWidget(
-                        imageUrl: art,
-                        size: artSize,
-                        shape: ThumbnailShape.rounded,
-                        borderRadius: 20,
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        podcast.name,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (podcast.author != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          podcast.author!.name,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          TvFocusable(
-                            autofocus: true,
-                            onSelect: playable.isEmpty
-                                ? null
-                                : () => ref
-                                      .read(playerStateProvider.notifier)
-                                      .playPodcast(
-                                        podcast.episodes,
-                                        podcastBrowseId: podcast.browseId,
-                                        podcastName: podcast.name,
-                                        authorName: podcast.author?.name,
-                                        authorId: podcast.author?.artistId,
-                                        startIndex: 0,
-                                      ),
-                            borderRadius: BorderRadius.circular(28),
-                            child: FilledButton.icon(
-                              onPressed: playable.isEmpty
-                                  ? null
-                                  : () => ref
-                                        .read(playerStateProvider.notifier)
-                                        .playPodcast(
-                                          podcast.episodes,
-                                          podcastBrowseId: podcast.browseId,
-                                          podcastName: podcast.name,
-                                          authorName: podcast.author?.name,
-                                          authorId: podcast.author?.artistId,
-                                          startIndex: 0,
-                                        ),
-                              icon: const Icon(LucideIcons.play),
-                              label: Text(l10n.playAll),
-                            ),
-                          ),
-                          TvFocusable(
-                            onSelect: () {
-                              ref
-                                  .read(libraryNotifierProvider.notifier)
-                                  .toggleLikedPodcast(
-                                    LikedPodcastModel(
-                                      browseId: podcast.browseId,
-                                      name: podcast.name,
-                                      authorName: podcast.author?.name,
-                                      authorId: podcast.author?.artistId,
-                                      thumbnailUrl: art,
-                                      episodeCount: podcast.episodes.length,
-                                      addedAt: DateTime.now(),
-                                    ),
-                                  );
-                            },
-                            child: Icon(
-                              liked != null
-                                  ? LucideIcons.bookmarkCheck
-                                  : LucideIcons.bookmark,
-                              color: liked != null
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurfaceVariant,
-                              size: 32,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: TvImmersiveEntityHeader(
+              imageUrl: art,
+              title: podcast.name,
+              subtitle: podcast.author?.name,
+              description: podcast.description,
+              height: headerH,
+              onBack: () => context.pop(),
+              actions: TvEntityActionsBar(
+                actions: [
+                  TvEntityAction(
+                    id: DetailActionId.play,
+                    icon: LucideIcons.play,
+                    label: l10n.playAll,
+                    filled: true,
+                    autofocus: true,
+                    onSelect: playable.isEmpty
+                        ? null
+                        : () => ref
+                              .read(playerStateProvider.notifier)
+                              .playPodcast(
+                                podcast.episodes,
+                                podcastBrowseId: podcast.browseId,
+                                podcastName: podcast.name,
+                                authorName: podcast.author?.name,
+                                authorId: podcast.author?.artistId,
+                                startIndex: 0,
+                              ),
                   ),
-                );
-              },
+                  TvEntityAction(
+                    id: DetailActionId.shuffle,
+                    icon: LucideIcons.shuffle,
+                    label: l10n.shufflePlay,
+                    onSelect: playable.isEmpty
+                        ? null
+                        : () {
+                            final shuffled = List<PodcastEpisode>.from(
+                              podcast.episodes,
+                            )..shuffle();
+                            ref
+                                .read(playerStateProvider.notifier)
+                                .playPodcast(
+                                  shuffled,
+                                  podcastBrowseId: podcast.browseId,
+                                  podcastName: podcast.name,
+                                  authorName: podcast.author?.name,
+                                  authorId: podcast.author?.artistId,
+                                  startIndex: 0,
+                                );
+                          },
+                  ),
+                  TvEntityAction(
+                    id: DetailActionId.queue,
+                    icon: LucideIcons.listMusic,
+                    label: l10n.addToQueue,
+                    onSelect: playable.isEmpty
+                        ? null
+                        : () => _addToQueue(context, ref),
+                  ),
+                  TvEntityAction(
+                    id: DetailActionId.save,
+                    icon: liked != null
+                        ? LucideIcons.bookmarkCheck
+                        : LucideIcons.bookmark,
+                    label: liked != null ? l10n.subscribed : l10n.subscribe,
+                    active: liked != null,
+                    onSelect: () {
+                      ref
+                          .read(libraryNotifierProvider.notifier)
+                          .toggleLikedPodcast(
+                            LikedPodcastModel(
+                              browseId: podcast.browseId,
+                              name: podcast.name,
+                              authorName: podcast.author?.name,
+                              authorId: podcast.author?.artistId,
+                              thumbnailUrl: art,
+                              episodeCount: podcast.episodes.length,
+                              addedAt: DateTime.now(),
+                            ),
+                          );
+                    },
+                  ),
+                ],
+                onOverflow: () => ContextMenuSheet.showForPodcast(
+                  context,
+                  browseId: podcast.browseId,
+                  name: podcast.name,
+                  author: podcast.author?.name,
+                  thumbnailUrl: art,
+                  omitActionIds: {
+                    DetailActionId.play,
+                    DetailActionId.shuffle,
+                    DetailActionId.queue,
+                    DetailActionId.save,
+                    DetailActionId.share,
+                    if (offline) DetailActionId.download,
+                  },
+                ),
+              ),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(0, 48, 48, 48),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              TvMetrics.contentPadding,
+              8,
+              TvMetrics.contentPadding,
+              48,
+            ),
+            sliver: SliverList.builder(
               itemCount: podcast.episodes.length,
               itemBuilder: (context, index) {
                 final ep = podcast.episodes[index];
-                final enabled = ep.videoId.isNotEmpty;
                 return TvTrackRow(
                   index: index,
                   title: ep.name,
                   subtitle: ep.date,
-                  enabled: enabled,
+                  enabled: ep.videoId.isNotEmpty,
                   onSelect: () {
-                    final start = playableIndexForEpisode(podcast, index);
-                    if (start < 0) return;
+                    if (ep.videoId.isEmpty) return;
                     ref
                         .read(playerStateProvider.notifier)
                         .playPodcast(
@@ -201,12 +195,21 @@ class _TvPodcastBody extends ConsumerWidget {
                           podcastName: podcast.name,
                           authorName: podcast.author?.name,
                           authorId: podcast.author?.artistId,
-                          startIndex: start,
+                          startIndex: index,
                         );
                   },
-                  onLongSelect: enabled
-                      ? () => context.push('/episode/${ep.videoId}')
-                      : null,
+                  onLongSelect: () => ContextMenuSheet.showForEpisode(
+                    context,
+                    videoId: ep.videoId,
+                    name: ep.name,
+                    podcastName: podcast.name,
+                    podcastBrowseId: podcast.browseId,
+                    thumbnailUrl: ep.thumbnails.isNotEmpty
+                        ? ep.thumbnails.last.url
+                        : art,
+                    date: ep.date,
+                    onGoToPodcast: (id) => context.push('/podcast/$id'),
+                  ),
                 );
               },
             ),
@@ -214,5 +217,36 @@ class _TvPodcastBody extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _addToQueue(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final items = await ref
+          .read(playPodcastUseCaseProvider)
+          .execute(
+            podcast.episodes,
+            podcastBrowseId: podcast.browseId,
+            podcastName: podcast.name,
+            authorName: podcast.author?.name,
+            authorId: podcast.author?.artistId,
+            playIndex: -1,
+          );
+      if (items.isNotEmpty) {
+        await ref.read(playerStateProvider.notifier).addAllToQueue(items);
+      }
+      if (context.mounted) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.addedToQueue(items.length));
+      }
+    } catch (e) {
+      debugPrint('Failed to add podcast to queue: $e');
+      if (context.mounted) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToAddToQueue, kind: FeedbackKind.error);
+      }
+    }
   }
 }

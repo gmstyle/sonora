@@ -75,7 +75,9 @@ class _TvShellState extends ConsumerState<TvShell> {
       if (_contentScope.focusInDirection(TraversalDirection.down)) {
         return KeyEventResult.handled;
       }
-      if (_dockAvailable) {
+      // Only hand off to the dock when focus is already near the bottom of
+      // the content pane — otherwise chips→grid misses jump the mini-player.
+      if (_dockAvailable && _contentFocusNearBottom()) {
         _focusDock();
         return KeyEventResult.handled;
       }
@@ -87,6 +89,28 @@ class _TvShellState extends ConsumerState<TvShell> {
       return KeyEventResult.ignored;
     }
     return KeyEventResult.ignored;
+  }
+
+  bool _contentFocusNearBottom() {
+    final focused = FocusManager.instance.primaryFocus;
+    final focusedCtx = focused?.context;
+    final scopeCtx = _contentScope.context;
+    if (focusedCtx == null || scopeCtx == null) return true;
+    final focusedBox = focusedCtx.findRenderObject() as RenderBox?;
+    final scopeBox = scopeCtx.findRenderObject() as RenderBox?;
+    if (focusedBox == null ||
+        scopeBox == null ||
+        !focusedBox.hasSize ||
+        !scopeBox.hasSize) {
+      return true;
+    }
+    final focusBottom = focusedBox
+        .localToGlobal(Offset(0, focusedBox.size.height))
+        .dy;
+    final scopeBottom = scopeBox
+        .localToGlobal(Offset(0, scopeBox.size.height))
+        .dy;
+    return focusBottom >= scopeBottom - 140;
   }
 
   KeyEventResult _onDockKey(FocusNode node, KeyEvent event) {
@@ -324,17 +348,18 @@ class _TvNavItemState extends State<_TvNavItem> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final fg = widget.selected || _focused
-        ? colorScheme.primary
+    final active = widget.selected || _focused;
+    final fg = active
+        ? colorScheme.onSecondaryContainer
         : colorScheme.onSurface;
-    final bg = widget.selected
-        ? colorScheme.secondaryContainer.withValues(alpha: 0.55)
-        : _focused
-        ? colorScheme.surfaceContainerHighest
-        : Colors.transparent;
+    // JetFit: circular disc behind the icon when collapsed / focused.
+    final disc = active ? colorScheme.secondaryContainer : Colors.transparent;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.expanded ? 12 : 8,
+        vertical: 6,
+      ),
       child: Focus(
         autofocus: widget.autofocus,
         onFocusChange: (v) {
@@ -357,42 +382,57 @@ class _TvNavItemState extends State<_TvNavItem> {
           }
           return KeyEventResult.ignored;
         },
-        child: Material(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: widget.onSelect,
-            child: SizedBox(
-              height: 56,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: TvMetrics.railCollapsedWidth - 16,
+        child: GestureDetector(
+          onTap: widget.onSelect,
+          child: widget.expanded
+              ? AnimatedContainer(
+                  duration: TvMetrics.drawerAnimDuration,
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: disc,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        widget.icon,
+                        size: TvMetrics.railIconSize,
+                        color: fg,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          widget.label,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: fg,
+                                fontWeight: widget.selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Center(
+                  child: AnimatedContainer(
+                    duration: TvMetrics.drawerAnimDuration,
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: disc,
+                      shape: BoxShape.circle,
+                    ),
                     child: Icon(
                       widget.icon,
                       size: TvMetrics.railIconSize,
                       color: fg,
                     ),
                   ),
-                  if (widget.expanded)
-                    Expanded(
-                      child: Text(
-                        widget.label,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: fg,
-                              fontWeight: widget.selected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                            ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
+                ),
         ),
       ),
     );
