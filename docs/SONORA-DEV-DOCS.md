@@ -1005,6 +1005,7 @@ Produces:
 | `checkUpdatesOnStartup` | bool | true | yes | UpdateNotifier at boot |
 | `isLibraryGridView` | bool | false | yes | Library layout |
 | `artworkStyle` | String (`vinyl`/`pulse`/`bars`/`plain`) | `vinyl` | yes | Player artwork stage. Episodes stay `plain` |
+| `brandAccent` | String (`cyan`/`azure`/`indigo`/`violet`/`fuchsia`/`rose`/`red`/`orange`/`amber`/`lime`/`green`/`mint`) | `cyan` | yes | Brand fill. Surfaces stay Pulse |
 | `useVinylStyle` | bool | true | yes | Legacy twin of `artworkStyle == vinyl`. Read only when `artworkStyle` is absent |
 | `reduceEffects` | bool | false | yes | Reduced motion / effects |
 | `offlineMode` | bool | false | yes | Downloads-only playback + disable network CTAs |

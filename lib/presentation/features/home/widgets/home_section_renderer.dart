@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/player_colors.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -753,11 +754,10 @@ class _HeroCard extends StatelessWidget {
                           child: Container(
                             width: playBtnSize,
                             height: playBtnSize,
-                            decoration:
-                                SonoraPulseTokens.playControlDecoration(),
+                            decoration: brandPlayDecoration(context),
                             child: Icon(
                               LucideIcons.play,
-                              color: SonoraPulseTokens.onPrimary,
+                              color: brandGlyphOnFill(context),
                               size: playIconSize,
                             ),
                           ),
@@ -1987,11 +1987,11 @@ class AmbientBackground extends ConsumerWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          SonoraPulseTokens.gradientStart.withValues(
-                            alpha: 0.05,
-                          ),
+                          brandSpectrumOf(context).colors.first
+                              .withValues(alpha: 0.05),
                           scheme.surface,
-                          SonoraPulseTokens.gradientEnd.withValues(alpha: 0.04),
+                          brandSpectrumOf(context).colors.last
+                              .withValues(alpha: 0.04),
                         ],
                         stops: const [0.0, 0.45, 1.0],
                       ),

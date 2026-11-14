@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/player_colors.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../domain/models/music_search_intent.dart';
 import '../../../l10n/app_localizations.dart';
@@ -153,7 +154,7 @@ class _MomentMixAskSectionState extends ConsumerState<MomentMixAskSection> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: SonoraPulseTokens.onPrimary,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       )
                     : const Icon(LucideIcons.sparkles, size: 20),
@@ -203,8 +204,6 @@ class _MomentMixResultCard extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onPlay;
 
-  static const _gradient = SonoraPulseTokens.brandSpectrum;
-
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -221,7 +220,7 @@ class _MomentMixResultCard extends StatelessWidget {
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      gradient: _gradient,
+                      gradient: brandSpectrumOf(context),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: const Center(

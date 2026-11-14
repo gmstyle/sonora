@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'player_colors.dart';
+import 'brand_accent.dart';
 import 'sonora_pulse_tokens.dart';
 
 /// Sonora Pulse [ThemeData] builders.
@@ -13,14 +14,16 @@ import 'sonora_pulse_tokens.dart';
 /// also use [SonoraPulseTokens.playControlDecoration] and
 /// [SonoraPulseTokens.filledIconButtonStyle] when a widget style is required.
 class AppTheme {
-  static ThemeData light() => _build(SonoraPulseTokens.lightScheme());
+  static ThemeData light([BrandAccent accent = BrandAccent.cyan]) =>
+      _build(SonoraPulseTokens.lightScheme(accent), accent);
 
-  static ThemeData dark() => _build(SonoraPulseTokens.darkScheme());
+  static ThemeData dark([BrandAccent accent = BrandAccent.cyan]) =>
+      _build(SonoraPulseTokens.darkScheme(accent), accent);
 
   /// Pulse dark with the scaffold and base surface forced to
   /// [SonoraPulseTokens.surfaceContainerLowest].
-  static ThemeData amoled() {
-    final baseDark = dark();
+  static ThemeData amoled([BrandAccent accent = BrandAccent.cyan]) {
+    final baseDark = dark(accent);
     final scheme = baseDark.colorScheme.copyWith(
       surface: SonoraPulseTokens.surfaceContainerLowest,
       surfaceContainerLowest: SonoraPulseTokens.surfaceContainerLowest,
@@ -28,7 +31,7 @@ class AppTheme {
     return baseDark.copyWith(
       scaffoldBackgroundColor: SonoraPulseTokens.surfaceContainerLowest,
       colorScheme: scheme,
-      extensions: [PlayerColors.standard()],
+      extensions: [PlayerColors.forAccent(accent)],
       cardTheme: baseDark.cardTheme.copyWith(color: scheme.surfaceContainer),
       dialogTheme: baseDark.dialogTheme.copyWith(
         backgroundColor: scheme.surfaceContainerLow,
@@ -42,7 +45,7 @@ class AppTheme {
     );
   }
 
-  static ThemeData _build(ColorScheme scheme) {
+  static ThemeData _build(ColorScheme scheme, BrandAccent accent) {
     final baseTheme = ThemeData(
       useMaterial3: true,
       brightness: scheme.brightness,
@@ -55,14 +58,14 @@ class AppTheme {
       borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusPill),
     );
     final isDark = scheme.brightness == Brightness.dark;
-    final labelAccent = isDark ? SonoraPulseTokens.primaryTint : scheme.primary;
+    final labelAccent = isDark ? accent.labelTint : scheme.primary;
     final brandFill = scheme.primaryContainer;
-    final brandOnFill = SonoraPulseTokens.onPrimary;
+    final brandOnFill = accent.ink;
 
     return baseTheme.copyWith(
       textTheme: textTheme,
       primaryTextTheme: textTheme,
-      extensions: [PlayerColors.standard()],
+      extensions: [PlayerColors.forAccent(accent)],
       splashFactory: InkSparkle.splashFactory,
       // Same sentinel Material uses so [IconButton.filled] keeps
       // [ColorScheme.onPrimary] instead of a non-default light IconTheme color.

@@ -2193,6 +2193,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get artworkStylePlain => 'Off';
 
   @override
+  String get brandAccent => 'Accent color';
+
+  @override
+  String get brandAccentHint =>
+      'Recolors playback, selection, and brand fills. Surfaces stay the same.';
+
+  @override
+  String get brandAccentCyan => 'Cyan';
+
+  @override
+  String get brandAccentAzure => 'Azure';
+
+  @override
+  String get brandAccentIndigo => 'Indigo';
+
+  @override
+  String get brandAccentViolet => 'Violet';
+
+  @override
+  String get brandAccentFuchsia => 'Fuchsia';
+
+  @override
+  String get brandAccentRose => 'Rose';
+
+  @override
+  String get brandAccentRed => 'Red';
+
+  @override
+  String get brandAccentOrange => 'Orange';
+
+  @override
+  String get brandAccentAmber => 'Amber';
+
+  @override
+  String get brandAccentLime => 'Lime';
+
+  @override
+  String get brandAccentGreen => 'Green';
+
+  @override
+  String get brandAccentMint => 'Mint';
+
+  @override
   String get equalizer => 'Equalizer';
 
   @override

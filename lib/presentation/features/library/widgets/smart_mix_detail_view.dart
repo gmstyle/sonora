@@ -65,7 +65,8 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
     );
   }
 
-  LinearGradient _getGradient(SmartMixType type) => smartMixGradient(type);
+  LinearGradient _getGradient(BuildContext context, SmartMixType type) =>
+      smartMixGradient(context, type);
 
   IconData _getIcon(SmartMixType type) {
     switch (type) {
@@ -136,7 +137,7 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final mixType = _getMixType();
-    final gradient = _getGradient(mixType);
+    final gradient = _getGradient(context, mixType);
     final title = _getTitle(mixType, l10n);
     final description = _getDescription(mixType, l10n);
 

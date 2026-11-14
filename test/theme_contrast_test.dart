@@ -1,8 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sonora/core/theme/app_theme.dart';
+import 'package:sonora/core/theme/brand_accent.dart';
+import 'package:sonora/core/theme/player_colors.dart';
 import 'package:sonora/core/theme/sonora_pulse_tokens.dart';
 import 'package:sonora/presentation/shared/widgets/detail_affinity_button.dart';
+import 'package:sonora/presentation/shared/widgets/smart_mix_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -88,6 +91,60 @@ void main() {
       DetailAffinityButton.brandColor(scheme),
     );
     expect(DetailAffinityButton.likeColor(scheme), isNot(scheme.error));
+  });
+
+  test('a non-cyan accent recolors fills and leaves the surface', () {
+    final scheme = SonoraPulseTokens.darkScheme(BrandAccent.violet);
+    final theme = AppTheme.dark(BrandAccent.violet);
+    expect(scheme.primary, BrandAccent.violet.fill);
+    expect(scheme.onPrimary, BrandAccent.violet.ink);
+    expect(scheme.surface, SonoraPulseTokens.surface);
+    expect(scheme.secondaryContainer, SonoraPulseTokens.secondaryContainer);
+    expect(
+      theme.floatingActionButtonTheme.backgroundColor,
+      BrandAccent.violet.fill,
+    );
+    expect(
+      theme.floatingActionButtonTheme.foregroundColor,
+      BrandAccent.violet.ink,
+    );
+    expect(theme.extension<PlayerColors>()?.accent, BrandAccent.violet.fill);
+    expect(theme.extension<PlayerColors>()?.accentEnd, BrandAccent.violet.end);
+  });
+
+  test('appearance offers twelve distinct brand accents', () {
+    expect(BrandAccent.values, hasLength(12));
+    expect(
+      BrandAccent.values.map((accent) => accent.fill).toSet(),
+      hasLength(12),
+    );
+    expect(BrandAccent.fromStorage('lime'), BrandAccent.lime);
+    expect(BrandAccent.fromStorage('nope'), BrandAccent.cyan);
+  });
+
+  test('smart mix cards follow the accent and keep cyan treatments', () {
+    final cyanMost = smartMixGradientFor(SmartMixType.mostPlayed);
+    expect(cyanMost.colors.first, SonoraPulseTokens.gradientStart);
+    expect(cyanMost.colors.last, SonoraPulseTokens.accentElectricBlue);
+
+    final violet = BrandAccent.violet;
+    final forgotten = smartMixGradientFor(
+      SmartMixType.forgottenFavorites,
+      fill: violet.fill,
+      end: violet.end,
+      ink: violet.ink,
+    );
+    expect(forgotten.colors.first, violet.fill);
+    expect(forgotten.colors.last, violet.end);
+
+    final most = smartMixGradientFor(
+      SmartMixType.mostPlayed,
+      fill: violet.fill,
+      end: violet.end,
+      ink: violet.ink,
+    );
+    expect(most.colors.first, violet.fill);
+    expect(most.colors.last, isNot(SonoraPulseTokens.accentElectricBlue));
   });
 
   test('light FAB still uses dark glyph on brand cyan', () {

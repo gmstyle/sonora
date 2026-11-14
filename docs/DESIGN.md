@@ -15,7 +15,7 @@ Brand fills:
 
 Dark `ColorScheme.primary` is brand cyan (`#00F2FE`) so Material filled controls (FAB, Switch, `IconButton.filled`, `FilledButton`, …) get a readable fill with `onPrimary` (`#00373A`). Ice (`#E0FDFF`) is `SonoraPulseTokens.primaryTint` for TextButtons and quiet label accents — never a solid control fill. `FilledButtonTheme` must not set fill/foreground colors: it also applies to `FilledButton.tonal` (Follow / Like / Shuffle), which must keep `secondaryContainer`. Circular play overlays use `playControlDecoration` with `onPrimary` for the glyph. Glyphs on brand gradient art use `onBrandGraphic` (white).
 
-There is no Monet / dynamic color. Wallpaper does not recolor the scheme.
+There is no Monet / dynamic color. Wallpaper does not recolor the scheme. Appearance can swap the brand accent (`cyan`, `azure`, `indigo`, `violet`, `fuchsia`, `rose`, `red`, `orange`, `amber`, `lime`, `green`, `mint`). That recolors primary fills, the player accent, the play gradient, and smart-mix cards. Cyan keeps the three Pulse mix treatments. Studio surfaces stay Pulse.
 
 ## Color
 

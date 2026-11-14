@@ -2203,6 +2203,49 @@ class AppLocalizationsIt extends AppLocalizations {
   String get artworkStylePlain => 'Disattivo';
 
   @override
+  String get brandAccent => 'Colore principale';
+
+  @override
+  String get brandAccentHint =>
+      'Ricolora playback, selezioni e riempimenti di marca. Le superfici restano quelle di Pulse.';
+
+  @override
+  String get brandAccentCyan => 'Ciano';
+
+  @override
+  String get brandAccentAzure => 'Azzurro';
+
+  @override
+  String get brandAccentIndigo => 'Indaco';
+
+  @override
+  String get brandAccentViolet => 'Viola';
+
+  @override
+  String get brandAccentFuchsia => 'Fucsia';
+
+  @override
+  String get brandAccentRose => 'Rosa';
+
+  @override
+  String get brandAccentRed => 'Rosso';
+
+  @override
+  String get brandAccentOrange => 'Arancio';
+
+  @override
+  String get brandAccentAmber => 'Ambra';
+
+  @override
+  String get brandAccentLime => 'Lime';
+
+  @override
+  String get brandAccentGreen => 'Verde';
+
+  @override
+  String get brandAccentMint => 'Menta';
+
+  @override
   String get equalizer => 'Equalizzatore';
 
   @override

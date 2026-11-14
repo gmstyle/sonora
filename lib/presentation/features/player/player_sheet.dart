@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/player_colors.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -63,9 +64,10 @@ class PlayerSheet extends ConsumerWidget {
             ? null
             : [
                 BoxShadow(
-                  color: SonoraPulseTokens.gradientStart.withValues(
-                    alpha: isDark ? 0.08 : 0.14,
-                  ),
+                  color:
+                      (PlayerColors.maybeOf(context)?.accent ??
+                              SonoraPulseTokens.gradientStart)
+                          .withValues(alpha: isDark ? 0.08 : 0.14),
                   blurRadius: 28,
                   offset: const Offset(0, -2),
                 ),

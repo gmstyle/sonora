@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/theme/brand_accent.dart';
 import '../../core/utils/android_battery.dart';
 import '../../data/services/media_cache_service.dart';
 import '../../domain/models/artwork_style.dart';
@@ -38,6 +39,7 @@ class Settings {
   final bool reduceEffects;
   final bool offlineMode;
   final ArtworkStyle artworkStyle;
+  final BrandAccent brandAccent;
 
   /// True after Wrapped has been opened on this device. Not part of backups.
   final bool wrappedSeen;
@@ -71,6 +73,7 @@ class Settings {
     this.reduceEffects = false,
     this.offlineMode = false,
     this.artworkStyle = ArtworkStyle.vinyl,
+    this.brandAccent = BrandAccent.cyan,
     this.wrappedSeen = false,
     this.askMode = AskMode.onDevice,
     this.geminiApiKey,
@@ -98,6 +101,7 @@ class Settings {
     bool? reduceEffects,
     bool? offlineMode,
     ArtworkStyle? artworkStyle,
+    BrandAccent? brandAccent,
     bool? wrappedSeen,
     AskMode? askMode,
     String? geminiApiKey,
@@ -130,6 +134,7 @@ class Settings {
       reduceEffects: reduceEffects ?? this.reduceEffects,
       offlineMode: offlineMode ?? this.offlineMode,
       artworkStyle: artworkStyle ?? this.artworkStyle,
+      brandAccent: brandAccent ?? this.brandAccent,
       wrappedSeen: wrappedSeen ?? this.wrappedSeen,
       askMode: askMode ?? this.askMode,
       geminiApiKey: clearGeminiApiKey
@@ -167,6 +172,7 @@ class Settings {
       kIsLibraryGridViewKey: isLibraryGridView,
       kArtworkStyleKey: artworkStyle.storageValue,
       kUseVinylStyleKey: artworkStyle == ArtworkStyle.vinyl,
+      kBrandAccentKey: brandAccent.storageValue,
       kReduceEffectsKey: reduceEffects,
       kOfflineModeKey: offlineMode,
       kLocalSyncEnabledKey: localSyncEnabled,
@@ -207,6 +213,7 @@ class SettingsNotifier extends Notifier<Settings> {
       reduceEffects: _prefs.getBool(kReduceEffectsKey) ?? false,
       offlineMode: _prefs.getBool(kOfflineModeKey) ?? false,
       artworkStyle: readArtworkStylePref(_prefs),
+      brandAccent: BrandAccent.fromStorage(_prefs.getString(kBrandAccentKey)),
       wrappedSeen: _prefs.getBool(kWrappedSeenKey) ?? false,
       askMode: AskMode.fromStorage(_prefs.getString(kAskModeKey)),
       geminiApiKey: _prefs.getString(kGeminiApiKeyKey),
@@ -260,6 +267,7 @@ class SettingsNotifier extends Notifier<Settings> {
       kUseVinylStyleKey,
       state.artworkStyle == ArtworkStyle.vinyl,
     );
+    await _prefs.setString(kBrandAccentKey, state.brandAccent.storageValue);
     await _prefs.setBool(kWrappedSeenKey, state.wrappedSeen);
     await _prefs.setString(kAskModeKey, state.askMode.storageValue);
     if (state.geminiApiKey != null && state.geminiApiKey!.isNotEmpty) {
@@ -381,6 +389,12 @@ class SettingsNotifier extends Notifier<Settings> {
   Future<void> setArtworkStyle(ArtworkStyle value) async {
     if (state.artworkStyle == value) return;
     state = state.copyWith(artworkStyle: value);
+    await _save();
+  }
+
+  Future<void> setBrandAccent(BrandAccent value) async {
+    if (state.brandAccent == value) return;
+    state = state.copyWith(brandAccent: value);
     await _save();
   }
 
@@ -510,6 +524,11 @@ class SettingsNotifier extends Notifier<Settings> {
       }
     }
 
+    final accentRaw = _backupString(map[kBrandAccentKey]);
+    if (accentRaw != null) {
+      await setBrandAccent(BrandAccent.fromStorage(accentRaw));
+    }
+
     final reduceEffects = _backupBool(map[kReduceEffectsKey]);
     if (reduceEffects != null) {
       await setReduceEffects(reduceEffects);
@@ -611,6 +630,9 @@ const kArtworkStyleKey = 'artworkStyle';
 /// Older bool. Written as `artworkStyle == vinyl` so a previous install
 /// still toggles the record. Read only when [kArtworkStyleKey] is absent.
 const kUseVinylStyleKey = 'useVinylStyle';
+
+/// Brand fill: `cyan`, `azure`, `violet`, `rose`, `mint`, or `amber`.
+const kBrandAccentKey = 'brandAccent';
 const kWrappedSeenKey = 'wrappedSeen';
 const kAskModeKey = 'askMode';
 const kGeminiApiKeyKey = 'geminiApiKey';
@@ -647,6 +669,7 @@ const kSettingsBackupKeys = <String>{
   kIsLibraryGridViewKey,
   kArtworkStyleKey,
   kUseVinylStyleKey,
+  kBrandAccentKey,
   kReduceEffectsKey,
   kOfflineModeKey,
   kLocalSyncEnabledKey,

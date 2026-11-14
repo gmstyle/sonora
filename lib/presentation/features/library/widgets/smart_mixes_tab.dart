@@ -79,8 +79,6 @@ class _SmartMixTile extends ConsumerWidget {
 
   const _SmartMixTile({required this.type});
 
-  LinearGradient _getGradient() => smartMixGradient(type);
-
   IconData _getIcon() {
     switch (type) {
       case SmartMixType.mostPlayed:
@@ -127,7 +125,7 @@ class _SmartMixTile extends ConsumerWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          gradient: _getGradient(),
+          gradient: smartMixGradient(context, type),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/player_colors.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../domain/models/artwork_style.dart';
 import '../../providers/settings_provider.dart';
@@ -156,7 +157,9 @@ class _PulseArtworkState extends ConsumerState<PulseArtwork>
                     key: const ValueKey('pulse-arc'),
                     painter: _PulseArcPainter(
                       turns: _spin.value,
-                      color: SonoraPulseTokens.primaryContainer,
+                      color:
+                          PlayerColors.maybeOf(context)?.accent ??
+                          SonoraPulseTokens.primaryContainer,
                       strokeWidth: stroke,
                       circular: widget.circular,
                       cornerRadius: widget.cornerRadius,
@@ -363,7 +366,9 @@ class _Bars extends StatelessWidget {
             width: barWidth,
             height: _height(index, minHeight, maxHeight),
             decoration: BoxDecoration(
-              color: SonoraPulseTokens.primaryContainer,
+              color:
+                  PlayerColors.maybeOf(context)?.accent ??
+                  SonoraPulseTokens.primaryContainer,
               borderRadius: BorderRadius.circular(barWidth),
             ),
           ),

@@ -3727,6 +3727,90 @@ abstract class AppLocalizations {
   /// **'Off'**
   String get artworkStylePlain;
 
+  /// No description provided for @brandAccent.
+  ///
+  /// In en, this message translates to:
+  /// **'Accent color'**
+  String get brandAccent;
+
+  /// No description provided for @brandAccentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Recolors playback, selection, and brand fills. Surfaces stay the same.'**
+  String get brandAccentHint;
+
+  /// No description provided for @brandAccentCyan.
+  ///
+  /// In en, this message translates to:
+  /// **'Cyan'**
+  String get brandAccentCyan;
+
+  /// No description provided for @brandAccentAzure.
+  ///
+  /// In en, this message translates to:
+  /// **'Azure'**
+  String get brandAccentAzure;
+
+  /// No description provided for @brandAccentIndigo.
+  ///
+  /// In en, this message translates to:
+  /// **'Indigo'**
+  String get brandAccentIndigo;
+
+  /// No description provided for @brandAccentViolet.
+  ///
+  /// In en, this message translates to:
+  /// **'Violet'**
+  String get brandAccentViolet;
+
+  /// No description provided for @brandAccentFuchsia.
+  ///
+  /// In en, this message translates to:
+  /// **'Fuchsia'**
+  String get brandAccentFuchsia;
+
+  /// No description provided for @brandAccentRose.
+  ///
+  /// In en, this message translates to:
+  /// **'Rose'**
+  String get brandAccentRose;
+
+  /// No description provided for @brandAccentRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get brandAccentRed;
+
+  /// No description provided for @brandAccentOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get brandAccentOrange;
+
+  /// No description provided for @brandAccentAmber.
+  ///
+  /// In en, this message translates to:
+  /// **'Amber'**
+  String get brandAccentAmber;
+
+  /// No description provided for @brandAccentLime.
+  ///
+  /// In en, this message translates to:
+  /// **'Lime'**
+  String get brandAccentLime;
+
+  /// No description provided for @brandAccentGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get brandAccentGreen;
+
+  /// No description provided for @brandAccentMint.
+  ///
+  /// In en, this message translates to:
+  /// **'Mint'**
+  String get brandAccentMint;
+
   /// No description provided for @equalizer.
   ///
   /// In en, this message translates to:

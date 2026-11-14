@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sonora/core/theme/brand_accent.dart';
 import 'package:sonora/domain/models/artwork_style.dart';
 import 'package:sonora/domain/models/media_cache_size.dart';
 import 'package:sonora/domain/models/media_quality.dart';
@@ -28,6 +29,7 @@ void main() {
       expect(settings.crossfadeDuration, const Duration(seconds: 2));
       expect(settings.mediaCacheSize, MediaCacheSize.gb1);
       expect(settings.artworkStyle, ArtworkStyle.vinyl);
+      expect(settings.brandAccent, BrandAccent.cyan);
       expect(settings.wrappedSeen, false);
     });
 
@@ -478,6 +480,7 @@ void main() {
       expect(map[kReduceEffectsKey], true);
       expect(map[kOfflineModeKey], true);
       expect(map[kArtworkStyleKey], 'plain');
+      expect(map[kBrandAccentKey], 'cyan');
       expect(map[kUseVinylStyleKey], false);
       expect(map[kLocalSyncEnabledKey], true);
       expect(map[kLocalSyncAutoEnabledKey], true);
@@ -582,6 +585,22 @@ void main() {
         kUseVinylStyleKey: true,
       });
       expect(container.read(settingsProvider).artworkStyle, ArtworkStyle.vinyl);
+    });
+
+    test('brandAccent restores from backup', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(settingsProvider.notifier).applyBackupMap({
+        kBrandAccentKey: 'violet',
+      });
+
+      expect(container.read(settingsProvider).brandAccent, BrandAccent.violet);
+      expect(prefs.getString(kBrandAccentKey), 'violet');
     });
 
     test('applyBackupMap accepts older streamQuality-only zips', () async {

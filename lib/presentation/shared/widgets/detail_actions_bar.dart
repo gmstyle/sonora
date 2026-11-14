@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../core/theme/player_colors.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -272,11 +272,11 @@ class _MobileBar extends StatelessWidget {
             width: 56,
             height: 56,
             child: DecoratedBox(
-              decoration: SonoraPulseTokens.playControlDecoration(),
+              decoration: brandPlayDecoration(context),
               child: IconButton(
                 onPressed: onPlay,
                 style: IconButton.styleFrom(
-                  foregroundColor: SonoraPulseTokens.onPrimary,
+                  foregroundColor: brandGlyphOnFill(context),
                   shape: const CircleBorder(),
                 ),
                 icon: const Icon(LucideIcons.play, size: 28),

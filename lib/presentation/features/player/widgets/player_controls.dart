@@ -174,15 +174,12 @@ class PlayerControls extends ConsumerWidget {
   }) {
     final isBlocked = state.isBlocked;
     return Container(
-      decoration: SonoraPulseTokens.playControlDecoration(
-        enabled: !isBlocked,
-        glow: glow,
-      ),
+      decoration: brandPlayDecoration(context, enabled: !isBlocked, glow: glow),
       child: IconButton(
         icon: AnimatedPlayPauseIcon(
           isPlaying: state.isPlaying,
           isLoading: state.isRestoring,
-          color: SonoraPulseTokens.onPrimary,
+          color: brandGlyphOnFill(context),
           size: 32,
         ),
         onPressed: isBlocked

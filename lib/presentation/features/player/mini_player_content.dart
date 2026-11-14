@@ -18,7 +18,7 @@ import '../../shared/widgets/explicit_badge.dart';
 import '../../providers/settings_provider.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../core/theme/player_colors.dart';
 import 'player_sheet_mobile.dart';
 import 'widgets/animated_play_pause_icon.dart';
 import 'widgets/cast_button.dart';
@@ -84,9 +84,7 @@ class MiniPlayerContent extends ConsumerWidget {
     final cs = theme.colorScheme;
     final track = QueueTrack.fromMediaItem(currentSong);
     final activeView = ref.watch(playerSubViewProvider);
-    final accent = cs.brightness == Brightness.dark
-        ? SonoraPulseTokens.primaryContainer
-        : cs.primary;
+    final accent = cs.primary;
 
     return GestureDetector(
       onHorizontalDragEnd: (details) {
@@ -137,7 +135,7 @@ class MiniPlayerContent extends ConsumerWidget {
                               size: 20,
                             ),
                             const SizedBox(width: 4),
-                            _playPauseButton(cs, ref),
+                            _playPauseButton(context, cs, ref),
                             const SizedBox(width: 4),
                             _iconButton(
                               icon: LucideIcons.skipForward,
@@ -300,7 +298,11 @@ class MiniPlayerContent extends ConsumerWidget {
     );
   }
 
-  Widget _playPauseButton(ColorScheme cs, [WidgetRef? ref]) {
+  Widget _playPauseButton(
+    BuildContext context,
+    ColorScheme cs, [
+    WidgetRef? ref,
+  ]) {
     final blocked = playerState.isBlocked;
     final glow =
         ref == null ||
@@ -308,15 +310,12 @@ class MiniPlayerContent extends ConsumerWidget {
     return Container(
       width: 40,
       height: 40,
-      decoration: SonoraPulseTokens.playControlDecoration(
-        enabled: !blocked,
-        glow: glow,
-      ),
+      decoration: brandPlayDecoration(context, enabled: !blocked, glow: glow),
       child: IconButton(
         icon: AnimatedPlayPauseIcon(
           isPlaying: playerState.isPlaying,
           isLoading: playerState.isRestoring,
-          color: SonoraPulseTokens.onPrimary,
+          color: brandGlyphOnFill(context),
           size: 22,
         ),
         onPressed: blocked
@@ -327,7 +326,7 @@ class MiniPlayerContent extends ConsumerWidget {
               },
         style: IconButton.styleFrom(
           backgroundColor: Colors.transparent,
-          foregroundColor: SonoraPulseTokens.onPrimary,
+          foregroundColor: brandGlyphOnFill(context),
           fixedSize: const Size(40, 40),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           padding: EdgeInsets.zero,
@@ -386,9 +385,7 @@ class _ShelfIdentity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = cs.brightness == Brightness.dark
-        ? SonoraPulseTokens.primaryContainer
-        : cs.primary;
+    final accent = cs.primary;
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: cs.onSurfaceVariant,
       height: 1.15,

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'brand_accent.dart';
+
 /// Sonora Pulse color, type, radius, and spacing tokens.
 ///
 /// Mapped from `docs/DESIGN.md` (Stitch design system Sonora Pulse).
@@ -144,19 +146,24 @@ class SonoraPulseTokens {
   static BoxDecoration playControlDecoration({
     bool enabled = true,
     bool glow = true,
+    Color? accent,
+    Color? accentEnd,
   }) {
+    final start = accent ?? gradientStart;
+    final end = accentEnd ?? gradientEnd;
     return BoxDecoration(
       shape: BoxShape.circle,
-      gradient: enabled ? brandSpectrum : null,
-      color: enabled ? null : primaryContainer.withValues(alpha: 0.38),
+      gradient: enabled
+          ? LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [start, end],
+            )
+          : null,
+      color: enabled ? null : start.withValues(alpha: 0.38),
       boxShadow: !glow || !enabled
           ? null
-          : [
-              BoxShadow(
-                color: gradientStart.withValues(alpha: 0.35),
-                blurRadius: 18,
-              ),
-            ],
+          : [BoxShadow(color: start.withValues(alpha: 0.35), blurRadius: 18)],
     );
   }
 
@@ -167,14 +174,14 @@ class SonoraPulseTokens {
   static ButtonStyle filledIconButtonStyle(ColorScheme scheme) {
     return IconButton.styleFrom(
       backgroundColor: scheme.primaryContainer,
-      foregroundColor: onPrimary,
+      foregroundColor: scheme.onPrimaryContainer,
       disabledBackgroundColor: scheme.onSurface.withValues(alpha: 0.12),
       disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
     );
   }
 
-  static ColorScheme darkScheme() {
-    // primary = brand cyan so Material filled controls (IconButton.filled,
+  static ColorScheme darkScheme([BrandAccent accent = BrandAccent.cyan]) {
+    // primary = brand fill so Material filled controls (IconButton.filled,
     // Switch, FAB defaults, etc.) never paint the ice label tint as a fill.
     // Ice for labels lives on [primaryTint] / TextButton theme.
     return const ColorScheme(
@@ -213,12 +220,19 @@ class SonoraPulseTokens {
       surfaceContainer: surfaceContainer,
       surfaceContainerHigh: surfaceContainerHigh,
       surfaceContainerHighest: surfaceContainerHighest,
+    ).copyWith(
+      primary: accent.fill,
+      onPrimary: accent.ink,
+      primaryContainer: accent.fill,
+      onPrimaryContainer: accent.ink,
+      inversePrimary: accent.readable,
+      surfaceTint: accent == BrandAccent.cyan ? surfaceTint : accent.fill,
     );
   }
 
-  /// Light studio canvas. Primary fill stays the brand cyan; readable
-  /// text/icons use the darker inverse-primary teal.
-  static ColorScheme lightScheme() {
+  /// Light studio canvas. Primary text stays a darker readable shade;
+  /// the bright fill is [ColorScheme.primaryContainer].
+  static ColorScheme lightScheme([BrandAccent accent = BrandAccent.cyan]) {
     return const ColorScheme(
       brightness: Brightness.light,
       primary: inversePrimary,
@@ -255,6 +269,12 @@ class SonoraPulseTokens {
       surfaceContainer: lightSurfaceVariant,
       surfaceContainerHigh: lightSurfaceHigh,
       surfaceContainerHighest: lightSurfaceHighest,
+    ).copyWith(
+      primary: accent.readable,
+      primaryContainer: accent.fill,
+      onPrimaryContainer: accent.ink,
+      inversePrimary: accent.fill,
+      surfaceTint: accent == BrandAccent.cyan ? surfaceTint : accent.fill,
     );
   }
 }

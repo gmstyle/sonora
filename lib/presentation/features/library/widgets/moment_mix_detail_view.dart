@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/player_colors.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -34,8 +35,6 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
   late final ScrollController _scrollController;
   double _scrollProgress = 0.0;
   bool _saving = false;
-
-  static const _gradient = SonoraPulseTokens.brandSpectrum;
 
   @override
   void initState() {
@@ -201,8 +200,8 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
                         fit: StackFit.expand,
                         children: [
                           Container(
-                            decoration: const BoxDecoration(
-                              gradient: _gradient,
+                            decoration: BoxDecoration(
+                              gradient: brandSpectrumOf(context),
                             ),
                           ),
                           Container(

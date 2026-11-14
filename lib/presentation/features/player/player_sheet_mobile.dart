@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/player_colors.dart';
 import '../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../domain/models/artwork_style.dart';
 import '../../../domain/models/queue_track.dart';
@@ -140,6 +141,7 @@ class PlayerSheetMobile extends ConsumerWidget {
                           iconSize: 22,
                         ),
                         _playButton(
+                          context,
                           blocked: isSwitching,
                           glow: !reduceEffects,
                           isPlaying: isPlaying,
@@ -218,7 +220,8 @@ class PlayerSheetMobile extends ConsumerWidget {
     );
   }
 
-  Widget _playButton({
+  Widget _playButton(
+    BuildContext context, {
     required bool blocked,
     required bool glow,
     required bool isPlaying,
@@ -228,21 +231,18 @@ class PlayerSheetMobile extends ConsumerWidget {
     return Container(
       width: 40,
       height: 40,
-      decoration: SonoraPulseTokens.playControlDecoration(
-        enabled: !blocked,
-        glow: glow,
-      ),
+      decoration: brandPlayDecoration(context, enabled: !blocked, glow: glow),
       child: IconButton(
         icon: AnimatedPlayPauseIcon(
           isPlaying: isPlaying,
           isLoading: isRestoring,
-          color: SonoraPulseTokens.onPrimary,
+          color: brandGlyphOnFill(context),
           size: 20,
         ),
         onPressed: blocked ? null : onPressed,
         style: IconButton.styleFrom(
           backgroundColor: Colors.transparent,
-          foregroundColor: SonoraPulseTokens.onPrimary,
+          foregroundColor: brandGlyphOnFill(context),
           fixedSize: const Size(40, 40),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           padding: EdgeInsets.zero,

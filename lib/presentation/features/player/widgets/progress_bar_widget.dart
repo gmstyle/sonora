@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:sonora/core/extensions/duration_ext.dart';
 import 'package:sonora/core/theme/player_colors.dart';
-import 'package:sonora/core/theme/sonora_pulse_tokens.dart';
 
 /// Vertical clearance reserved for a compact mini-dock seek strip.
 ///
@@ -126,7 +125,7 @@ class _ProgressBarWidgetState extends State<ProgressBarWidget>
             thumbFill: accent,
             alignToTop: alignTrackToTop,
             activeGradient: widget.density == ProgressBarDensity.compact
-                ? SonoraPulseTokens.brandSpectrumHorizontal
+                ? brandSpectrumOf(context, horizontal: true)
                 : null,
           ),
         );

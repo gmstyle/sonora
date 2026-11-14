@@ -32,6 +32,7 @@ import '../../providers/sync_provider.dart';
 import '../../providers/equalizer_provider.dart';
 import '../../providers/on_device_llm_provider.dart';
 import '../../../core/constants/ai_constants.dart';
+import '../../../core/theme/brand_accent.dart';
 import '../../../domain/models/artwork_style.dart';
 import '../../../domain/models/ask_mode.dart';
 import '../player/widgets/equalizer_panel.dart';
@@ -246,6 +247,10 @@ class _AppearanceSection extends StatelessWidget {
                 notifier.setThemeMode(selected.first),
           ),
         ),
+        _BrandAccentPicker(
+          selected: settings.brandAccent,
+          onChanged: notifier.setBrandAccent,
+        ),
         if (current == ThemeMode.dark || current == ThemeMode.system)
           SettingsSwitchTile(
             title: AppLocalizations.of(context)!.amoledDarkMode,
@@ -282,6 +287,106 @@ class _AppearanceSection extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+class _BrandAccentPicker extends StatelessWidget {
+  const _BrandAccentPicker({required this.selected, required this.onChanged});
+
+  final BrandAccent selected;
+  final ValueChanged<BrandAccent> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListTile(
+      leading: const Icon(LucideIcons.palette),
+      titleAlignment: ListTileTitleAlignment.titleHeight,
+      title: Text(l10n.brandAccent),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.brandAccentHint),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final accent in BrandAccent.values)
+                _AccentDot(
+                  accent: accent,
+                  selected: accent == selected,
+                  label: _accentLabel(l10n, accent),
+                  onTap: () => onChanged(accent),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _accentLabel(AppLocalizations l10n, BrandAccent accent) {
+  return switch (accent) {
+    BrandAccent.cyan => l10n.brandAccentCyan,
+    BrandAccent.azure => l10n.brandAccentAzure,
+    BrandAccent.indigo => l10n.brandAccentIndigo,
+    BrandAccent.violet => l10n.brandAccentViolet,
+    BrandAccent.fuchsia => l10n.brandAccentFuchsia,
+    BrandAccent.rose => l10n.brandAccentRose,
+    BrandAccent.red => l10n.brandAccentRed,
+    BrandAccent.orange => l10n.brandAccentOrange,
+    BrandAccent.amber => l10n.brandAccentAmber,
+    BrandAccent.lime => l10n.brandAccentLime,
+    BrandAccent.green => l10n.brandAccentGreen,
+    BrandAccent.mint => l10n.brandAccentMint,
+  };
+}
+
+class _AccentDot extends StatelessWidget {
+  const _AccentDot({
+    required this.accent,
+    required this.selected,
+    required this.label,
+    required this.onTap,
+  });
+
+  final BrandAccent accent;
+  final bool selected;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final outline = Theme.of(context).colorScheme.onSurface;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accent.fill,
+              border: Border.all(
+                color: selected ? outline : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: selected
+                ? Icon(LucideIcons.check, size: 16, color: accent.ink)
+                : null,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'brand_accent.dart';
+import 'sonora_pulse_tokens.dart';
+
 /// Custom [ThemeExtension] that centralises every colour token used by the
 /// full-player surface and any screen that overlays artwork (Album, Artist,
 /// Playlist SliverAppBar headers).
@@ -64,6 +67,9 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
   /// Azure end of the brand spectrum, paired with [accent] in gradients.
   final Color accentEnd;
 
+  /// Glyph drawn on [accent].
+  final Color accentInk;
+
   const PlayerColors({
     required this.titlePrimary,
     required this.titleSecondary,
@@ -77,6 +83,7 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
     required this.shimmerHighlight,
     required this.accent,
     required this.accentEnd,
+    required this.accentInk,
   });
 
   /// Standard values used by all three app themes (light / dark / amoled).
@@ -96,7 +103,18 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
     shimmerHighlight: Color(0xFF2D2F54),
     accent: Color(0xFF00F2FE),
     accentEnd: Color(0xFF4FACFE),
+    accentInk: Color(0xFF00373A),
   );
+
+  /// Player accent for [accent]. Cyan returns [standard].
+  factory PlayerColors.forAccent(BrandAccent accent) {
+    if (accent == BrandAccent.cyan) return PlayerColors.standard();
+    return PlayerColors.standard().copyWith(
+      accent: accent.fill,
+      accentEnd: accent.end,
+      accentInk: accent.ink,
+    );
+  }
 
   // ── ThemeExtension contract ───────────────────────────────────────────────
 
@@ -114,6 +132,7 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
     Color? shimmerHighlight,
     Color? accent,
     Color? accentEnd,
+    Color? accentInk,
   }) {
     return PlayerColors(
       titlePrimary: titlePrimary ?? this.titlePrimary,
@@ -128,6 +147,7 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
       shimmerHighlight: shimmerHighlight ?? this.shimmerHighlight,
       accent: accent ?? this.accent,
       accentEnd: accentEnd ?? this.accentEnd,
+      accentInk: accentInk ?? this.accentInk,
     );
   }
 
@@ -151,6 +171,7 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
       )!,
       accent: Color.lerp(accent, other.accent, t)!,
       accentEnd: Color.lerp(accentEnd, other.accentEnd, t)!,
+      accentInk: Color.lerp(accentInk, other.accentInk, t)!,
     );
   }
 
@@ -171,4 +192,39 @@ class PlayerColors extends ThemeExtension<PlayerColors> {
       'subtitle: $subtitle, '
       'labelMuted: $labelMuted'
       ')';
+}
+
+/// Play control gradient for the active brand accent.
+BoxDecoration brandPlayDecoration(
+  BuildContext context, {
+  bool enabled = true,
+  bool glow = true,
+}) {
+  final colors = PlayerColors.maybeOf(context);
+  return SonoraPulseTokens.playControlDecoration(
+    enabled: enabled,
+    glow: glow,
+    accent: colors?.accent,
+    accentEnd: colors?.accentEnd,
+  );
+}
+
+/// Dark glyph that sits on the play-control fill.
+Color brandGlyphOnFill(BuildContext context) =>
+    PlayerColors.maybeOf(context)?.accentInk ?? SonoraPulseTokens.onPrimary;
+
+/// Vertical brand spectrum. Pass [horizontal] for the seek strip.
+LinearGradient brandSpectrumOf(
+  BuildContext context, {
+  bool horizontal = false,
+}) {
+  final colors = PlayerColors.maybeOf(context);
+  return LinearGradient(
+    begin: horizontal ? Alignment.centerLeft : Alignment.topCenter,
+    end: horizontal ? Alignment.centerRight : Alignment.bottomCenter,
+    colors: [
+      colors?.accent ?? SonoraPulseTokens.gradientStart,
+      colors?.accentEnd ?? SonoraPulseTokens.gradientEnd,
+    ],
+  );
 }

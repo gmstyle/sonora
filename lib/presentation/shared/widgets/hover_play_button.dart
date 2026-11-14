@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-import '../../../core/theme/sonora_pulse_tokens.dart';
+import '../../../core/theme/player_colors.dart';
 import 'scale_button.dart';
 
 /// Circular play control shown on card hover. Matches mini / full player
@@ -31,12 +31,12 @@ class HoverPlayButton extends StatelessWidget {
         child: Container(
           width: size,
           height: size,
-          decoration: SonoraPulseTokens.playControlDecoration(glow: false),
+          decoration: brandPlayDecoration(context, glow: false),
           child: Center(
             child: Icon(
               LucideIcons.play,
               size: iconSize,
-              color: SonoraPulseTokens.onPrimary,
+              color: brandGlyphOnFill(context),
             ),
           ),
         ),
