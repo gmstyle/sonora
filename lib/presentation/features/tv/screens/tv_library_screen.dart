@@ -48,11 +48,21 @@ class _TvLibraryScreenState extends ConsumerState<TvLibraryScreen> {
   }
 
   void _focusContent() {
-    // Defer so the new section body has mounted its first poster.
+    // Defer so the new section body has mounted and attached its first poster.
+    // Guard both `mounted` and a valid context — after a KeyedSubtree key
+    // change the old FocusNode is detached for one frame before the new
+    // subtree reattaches it; without the context guard requestFocus() silently
+    // fails and the grid becomes unreachable.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_firstContentFocus.canRequestFocus) {
+      if (!mounted) return;
+      if (_firstContentFocus.context != null &&
+          _firstContentFocus.canRequestFocus) {
         _firstContentFocus.requestFocus();
+        return;
       }
+      // Fallback: ask the shell's content scope to pick the first visible
+      // descendant (covers the case where the node is still attaching).
+      TvShellFocus.requestContent(context);
     });
   }
 
