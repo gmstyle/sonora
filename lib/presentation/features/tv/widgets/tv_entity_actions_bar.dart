@@ -48,36 +48,69 @@ class TvEntityActionsBar extends StatelessWidget {
           TvFocusable(
             autofocus: action.autofocus,
             onSelect: action.onSelect,
-            borderRadius: BorderRadius.circular(28),
-            child: action.filled
-                ? FilledButton.icon(
-                    onPressed: action.onSelect,
-                    icon: Icon(action.icon),
-                    label: Text(action.label),
-                  )
-                : FilledButton.tonalIcon(
-                    onPressed: action.onSelect,
-                    icon: Icon(
-                      action.icon,
-                      color: action.active
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: action.filled
+                    ? colorScheme.primary
+                    : action.active
+                    ? colorScheme.primary.withValues(alpha: 0.16)
+                    : TvColors.surfaceButton,
+                borderRadius: BorderRadius.circular(12),
+                border: action.filled
+                    ? null
+                    : Border.all(
+                        color: action.active
+                            ? colorScheme.primary.withValues(alpha: 0.4)
+                            : TvColors.border,
+                      ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    action.icon,
+                    size: 16,
+                    color: action.filled
+                        ? colorScheme.onPrimary
+                        : action.active
+                        ? colorScheme.primary
+                        : TvColors.textPrimary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    action.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: action.filled
+                          ? colorScheme.onPrimary
+                          : action.active
                           ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                    label: Text(
-                      action.label,
-                      style: action.active
-                          ? TextStyle(color: colorScheme.primary)
-                          : null,
+                          : TvColors.textPrimary,
                     ),
                   ),
+                ],
+              ),
+            ),
           ),
         if (onOverflow != null)
           TvFocusable(
             onSelect: onOverflow,
-            borderRadius: BorderRadius.circular(28),
-            child: IconButton.filledTonal(
-              onPressed: onOverflow,
-              icon: const Icon(LucideIcons.ellipsisVertical),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: TvColors.surfaceButton,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: TvColors.border),
+              ),
+              child: const Icon(
+                LucideIcons.ellipsisVertical,
+                size: 18,
+                color: TvColors.textPrimary,
+              ),
             ),
           ),
       ],

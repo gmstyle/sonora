@@ -14,6 +14,7 @@ import '../../../../domain/usecases/player/start_radio_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../features/artist/providers/artist_provider.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/music_repository_provider.dart';
 import '../../../providers/play_album_use_case_provider.dart';
@@ -215,7 +216,8 @@ class ArtistContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  if (showAction(omitActionIds, DetailActionId.share))
+                  if (showAction(omitActionIds, DetailActionId.share) &&
+                      !ref.watch(isAndroidTvProvider))
                     ActionTile(
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,

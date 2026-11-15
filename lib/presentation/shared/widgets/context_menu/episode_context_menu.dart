@@ -11,6 +11,7 @@ import '../../../../domain/models/queue_track.dart';
 import '../../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/play_video_id_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
@@ -132,24 +133,25 @@ class EpisodeContextMenuSheet extends ConsumerWidget {
                     thumbnailUrl: thumbnailUrl,
                     date: date,
                   ),
-                  ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      final share = shareSonoraLinkFromMenu(
-                        ref,
-                        context,
-                        link: SonoraLink(
-                          kind: SonoraLinkKind.episode,
-                          id: videoId,
-                        ),
-                        title: name,
-                        subtitle: podcastName,
-                      );
-                      Navigator.pop(context);
-                      unawaited(share);
-                    },
-                  ),
+                  if (!ref.watch(isAndroidTvProvider))
+                    ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        final share = shareSonoraLinkFromMenu(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.episode,
+                            id: videoId,
+                          ),
+                          title: name,
+                          subtitle: podcastName,
+                        );
+                        Navigator.pop(context);
+                        unawaited(share);
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
@@ -206,56 +208,71 @@ class LikeEpisodeActionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTv = ref.watch(isAndroidTvProvider);
     final likedAsync = ref.watch(likedEpisodeProvider(videoId));
     return likedAsync.when(
-      loading: () => ListTile(
-        leading: const Icon(LucideIcons.bookmark),
-        title: Text(AppLocalizations.of(context)!.like),
-        enabled: false,
-        dense: true,
-      ),
+      loading: () => isTv
+          ? TvContextMenuTile(
+              icon: LucideIcons.bookmark,
+              label: AppLocalizations.of(context)!.like,
+              enabled: false,
+            )
+          : ListTile(
+              leading: const Icon(LucideIcons.bookmark),
+              title: Text(AppLocalizations.of(context)!.like),
+              enabled: false,
+              dense: true,
+            ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSaved = liked != null;
+        final icon = isSaved
+            ? DetailAffinityButton.bookmarkActive
+            : DetailAffinityButton.bookmarkIdle;
+        final color = DetailAffinityButton.glyphColor(
+          Theme.of(context).colorScheme,
+          isActive: isSaved,
+          activeColor: DetailAffinityButton.brandColor(
+            Theme.of(context).colorScheme,
+          ),
+        );
+        final label = isSaved
+            ? AppLocalizations.of(context)!.unlike
+            : AppLocalizations.of(context)!.like;
+        void toggle() {
+          if (isSaved) {
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .deleteLikedEpisode(videoId);
+          } else {
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedEpisode(
+                  LikedEpisodeModel(
+                    videoId: videoId,
+                    name: name,
+                    podcastName: podcastName,
+                    podcastBrowseId: podcastBrowseId,
+                    thumbnailUrl: thumbnailUrl,
+                    date: date,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+          }
+        }
+
+        if (isTv) {
+          return TvContextMenuTile(
+            icon: icon,
+            iconColor: color,
+            label: label,
+            onTap: toggle,
+          );
+        }
         return ListTile(
-          leading: Icon(
-            isSaved
-                ? DetailAffinityButton.bookmarkActive
-                : DetailAffinityButton.bookmarkIdle,
-            color: DetailAffinityButton.glyphColor(
-              Theme.of(context).colorScheme,
-              isActive: isSaved,
-              activeColor: DetailAffinityButton.brandColor(
-                Theme.of(context).colorScheme,
-              ),
-            ),
-          ),
-          title: Text(
-            isSaved
-                ? AppLocalizations.of(context)!.unlike
-                : AppLocalizations.of(context)!.like,
-          ),
-          onTap: () async {
-            if (isSaved) {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .deleteLikedEpisode(videoId);
-            } else {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .toggleLikedEpisode(
-                    LikedEpisodeModel(
-                      videoId: videoId,
-                      name: name,
-                      podcastName: podcastName,
-                      podcastBrowseId: podcastBrowseId,
-                      thumbnailUrl: thumbnailUrl,
-                      date: date,
-                      addedAt: DateTime.now(),
-                    ),
-                  );
-            }
-          },
+          leading: Icon(icon, color: color),
+          title: Text(label),
+          onTap: toggle,
           dense: true,
         );
       },

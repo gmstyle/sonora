@@ -220,14 +220,15 @@ class SettingsCategoryContent extends ConsumerWidget {
 
 // ── Appearance ───────────────────────────────────────────────────
 
-class _AppearanceSection extends StatelessWidget {
+class _AppearanceSection extends ConsumerWidget {
   final Settings settings;
   final SettingsNotifier notifier;
 
   const _AppearanceSection({required this.settings, required this.notifier});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isTv = ref.watch(isAndroidTvProvider);
     final current = settings.themeMode;
     const values = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
     final labels = [
@@ -239,27 +240,28 @@ class _AppearanceSection extends StatelessWidget {
     return SettingsSection(
       title: AppLocalizations.of(context)!.appearance,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: SegmentedButton<ThemeMode>(
-            showSelectedIcon: false,
-            segments: List.generate(
-              values.length,
-              (i) => ButtonSegment<ThemeMode>(
-                value: values[i],
-                label: Text(labels[i]),
+        if (!isTv)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SegmentedButton<ThemeMode>(
+              showSelectedIcon: false,
+              segments: List.generate(
+                values.length,
+                (i) => ButtonSegment<ThemeMode>(
+                  value: values[i],
+                  label: Text(labels[i]),
+                ),
               ),
+              selected: {current},
+              onSelectionChanged: (selected) =>
+                  notifier.setThemeMode(selected.first),
             ),
-            selected: {current},
-            onSelectionChanged: (selected) =>
-                notifier.setThemeMode(selected.first),
           ),
-        ),
         _BrandAccentPicker(
           selected: settings.brandAccent,
           onChanged: notifier.setBrandAccent,
         ),
-        if (current == ThemeMode.dark || current == ThemeMode.system)
+        if (!isTv && (current == ThemeMode.dark || current == ThemeMode.system))
           SettingsSwitchTile(
             title: AppLocalizations.of(context)!.amoledDarkMode,
             subtitle: AppLocalizations.of(context)!.amoledDarkModeHint,
@@ -274,26 +276,27 @@ class _AppearanceSection extends StatelessWidget {
           onChanged: notifier.setReduceEffects,
           icon: LucideIcons.cpu,
         ),
-        SettingsDropdownTile(
-          title: AppLocalizations.of(context)!.artworkStyle,
-          subtitle: AppLocalizations.of(context)!.artworkStyleHint,
-          value: settings.artworkStyle.storageValue,
-          options: {
-            ArtworkStyle.vinyl.storageValue: AppLocalizations.of(context)!
-                .artworkStyleVinyl,
-            ArtworkStyle.pulse.storageValue: AppLocalizations.of(context)!
-                .artworkStylePulse,
-            ArtworkStyle.bars.storageValue: AppLocalizations.of(context)!
-                .artworkStyleBars,
-            ArtworkStyle.plain.storageValue: AppLocalizations.of(context)!
-                .artworkStylePlain,
-          },
-          icon: LucideIcons.disc,
-          onChanged: (value) {
-            if (value == null) return;
-            notifier.setArtworkStyle(ArtworkStyle.fromStorage(value));
-          },
-        ),
+        if (!isTv)
+          SettingsDropdownTile(
+            title: AppLocalizations.of(context)!.artworkStyle,
+            subtitle: AppLocalizations.of(context)!.artworkStyleHint,
+            value: settings.artworkStyle.storageValue,
+            options: {
+              ArtworkStyle.vinyl.storageValue: AppLocalizations.of(context)!
+                  .artworkStyleVinyl,
+              ArtworkStyle.pulse.storageValue: AppLocalizations.of(context)!
+                  .artworkStylePulse,
+              ArtworkStyle.bars.storageValue: AppLocalizations.of(context)!
+                  .artworkStyleBars,
+              ArtworkStyle.plain.storageValue: AppLocalizations.of(context)!
+                  .artworkStylePlain,
+            },
+            icon: LucideIcons.disc,
+            onChanged: (value) {
+              if (value == null) return;
+              notifier.setArtworkStyle(ArtworkStyle.fromStorage(value));
+            },
+          ),
       ],
     );
   }
@@ -620,29 +623,32 @@ class _PlaybackSection extends ConsumerWidget {
 
 // ── Download ─────────────────────────────────────────────────────
 
-class _DownloadSection extends StatelessWidget {
+class _DownloadSection extends ConsumerWidget {
   final Settings settings;
   final SettingsNotifier notifier;
 
   const _DownloadSection({required this.settings, required this.notifier});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isTv = ref.watch(isAndroidTvProvider);
     return SettingsSection(
       title: AppLocalizations.of(context)!.downloadsSettings,
       children: [
-        SettingsButtonTile(
-          title: AppLocalizations.of(context)!.downloadFolder,
-          subtitle:
-              settings.downloadPath ??
-              AppLocalizations.of(context)!.defaultLocation,
-          icon: LucideIcons.folder,
-          onPressed: () async {
-            final path = await FilePicker.getDirectoryPath();
-            if (path != null) notifier.setDownloadPath(path);
-          },
-        ),
-        const Divider(height: 1),
+        if (!isTv) ...[
+          SettingsButtonTile(
+            title: AppLocalizations.of(context)!.downloadFolder,
+            subtitle:
+                settings.downloadPath ??
+                AppLocalizations.of(context)!.defaultLocation,
+            icon: LucideIcons.folder,
+            onPressed: () async {
+              final path = await FilePicker.getDirectoryPath();
+              if (path != null) notifier.setDownloadPath(path);
+            },
+          ),
+          const Divider(height: 1),
+        ],
         SettingsSwitchTile(
           title: AppLocalizations.of(context)!.downloadOnlyOnWifi,
           value: settings.downloadOnlyOnWifi,

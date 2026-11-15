@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,13 +45,28 @@ class _TvShellState extends ConsumerState<TvShell> {
   final FocusScopeNode _sidebarScope = FocusScopeNode(debugLabel: 'tvSidebar');
   final FocusScopeNode _contentScope = FocusScopeNode(debugLabel: 'tvContent');
   final FocusScopeNode _dockScope = FocusScopeNode(debugLabel: 'tvDock');
+  late final List<FocusNode> _navNodes;
+  final FocusNode _settingsNavNode = FocusNode(debugLabel: 'tvNavSettings');
   bool _drawerExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _navNodes = List.generate(
+      _destinations.length,
+      (i) => FocusNode(debugLabel: 'tvNav$i'),
+    );
+  }
 
   @override
   void dispose() {
     _sidebarScope.dispose();
     _contentScope.dispose();
     _dockScope.dispose();
+    for (final node in _navNodes) {
+      node.dispose();
+    }
+    _settingsNavNode.dispose();
     super.dispose();
   }
 
@@ -62,68 +79,165 @@ class _TvShellState extends ConsumerState<TvShell> {
 
   void _focusDock() {
     if (!_dockAvailable) return;
-    _dockScope.requestFocus();
+    _setExpanded(false);
+    final saved = _dockScope.focusedChild;
+    if (saved != null && saved.canRequestFocus) {
+      saved.requestFocus();
+      return;
+    }
+    final first = _dockScope.traversalDescendants.firstOrNull;
+    if (first != null) {
+      first.requestFocus();
+    } else {
+      _dockScope.requestFocus();
+    }
   }
 
-  void _focusContent() => _contentScope.requestFocus();
+  bool _isOffstage(BuildContext? ctx) {
+    if (ctx == null) return true;
+    var offstage = false;
+    ctx.visitAncestorElements((element) {
+      if (element.widget is Offstage && (element.widget as Offstage).offstage) {
+        offstage = true;
+        return false;
+      }
+      return true;
+    });
+    return offstage;
+  }
 
-  void _focusSidebar() => _sidebarScope.requestFocus();
+  void _focusContent({bool resetToFirst = false}) {
+    _setExpanded(false);
+    void applyFocus() {
+      if (!mounted) return;
+      final saved = _contentScope.focusedChild;
+      if (!resetToFirst &&
+          saved != null &&
+          saved.canRequestFocus &&
+          !_isOffstage(saved.context)) {
+        saved.requestFocus();
+        return;
+      }
+      final firstVisible = _contentScope.traversalDescendants
+          .where((n) => !_isOffstage(n.context))
+          .firstOrNull;
+      if (firstVisible != null) {
+        firstVisible.requestFocus();
+      } else {
+        _contentScope.requestFocus();
+      }
+    }
+
+    if (resetToFirst) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => applyFocus());
+      WidgetsBinding.instance.scheduleFrame();
+    } else {
+      applyFocus();
+    }
+  }
+
+  void _focusSidebar() {
+    _setExpanded(true);
+    final idx = widget.navigationShell.currentIndex;
+    if (idx >= 0 && idx < _navNodes.length) {
+      _navNodes[idx].requestFocus();
+    } else {
+      _sidebarScope.requestFocus();
+    }
+  }
+
+  bool _focusInScope(FocusScopeNode scope, TraversalDirection direction) {
+    final primary = FocusManager.instance.primaryFocus;
+    if (primary == null || primary == scope) return false;
+    return primary.focusInDirection(direction);
+  }
+
+  ScrollableState? _findVerticalScrollable(BuildContext? ctx) {
+    if (ctx == null) return null;
+    ScrollableState? result;
+    ctx.visitAncestorElements((element) {
+      if (element is StatefulElement && element.state is ScrollableState) {
+        final scrollable = element.state as ScrollableState;
+        if (axisDirectionToAxis(scrollable.axisDirection) == Axis.vertical) {
+          result = scrollable;
+          return false;
+        }
+      }
+      return true;
+    });
+    return result;
+  }
 
   KeyEventResult _onContentKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_contentScope.focusInDirection(TraversalDirection.down)) {
+      if (_focusInScope(_contentScope, TraversalDirection.down)) {
         return KeyEventResult.handled;
       }
-      // Only hand off to the dock when focus is already near the bottom of
-      // the content pane — otherwise chips→grid misses jump the mini-player.
-      if (_dockAvailable && _contentFocusNearBottom()) {
+      // If directional focus down failed, attempt to scroll the nearest
+      // vertical scrollable down so lazy items can mount and receive focus.
+      final primaryFocus = FocusManager.instance.primaryFocus;
+      final scrollable = _findVerticalScrollable(primaryFocus?.context);
+      if (scrollable != null &&
+          scrollable.position.hasPixels &&
+          scrollable.position.pixels <
+              scrollable.position.maxScrollExtent - 2.0) {
+        final target = math.min(
+          scrollable.position.pixels + 200.0,
+          scrollable.position.maxScrollExtent,
+        );
+        scrollable.position
+            .animateTo(
+              target,
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
+            )
+            .whenComplete(() {
+              if (mounted) {
+                _focusInScope(_contentScope, TraversalDirection.down);
+              }
+            });
+        return KeyEventResult.handled;
+      }
+      // Only hand off to the dock when vertical scrolling is exhausted and
+      // focus is in the lower portion of the content pane.
+      if (_dockAvailable && _canEnterDockFromContent()) {
         _focusDock();
         return KeyEventResult.handled;
       }
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      // Let item-level onLeftAtEdge run first (ignored here). If nothing
-      // handled Left inside content, fall through to default traversal.
-      return KeyEventResult.ignored;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  bool _contentFocusNearBottom() {
-    final focused = FocusManager.instance.primaryFocus;
-    final focusedCtx = focused?.context;
-    final scopeCtx = _contentScope.context;
-    if (focusedCtx == null || scopeCtx == null) return true;
-    final focusedBox = focusedCtx.findRenderObject() as RenderBox?;
-    final scopeBox = scopeCtx.findRenderObject() as RenderBox?;
-    if (focusedBox == null ||
-        scopeBox == null ||
-        !focusedBox.hasSize ||
-        !scopeBox.hasSize) {
-      return true;
-    }
-    final focusBottom = focusedBox
-        .localToGlobal(Offset(0, focusedBox.size.height))
-        .dy;
-    final scopeBottom = scopeBox
-        .localToGlobal(Offset(0, scopeBox.size.height))
-        .dy;
-    return focusBottom >= scopeBottom - 100;
-  }
-
-  KeyEventResult _onDockKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      if (_dockScope.focusInDirection(TraversalDirection.up)) {
+      if (_focusInScope(_contentScope, TraversalDirection.up)) {
         return KeyEventResult.handled;
       }
-      _focusContent();
+      final primaryFocus = FocusManager.instance.primaryFocus;
+      final scrollable = _findVerticalScrollable(primaryFocus?.context);
+      if (scrollable != null &&
+          scrollable.position.hasPixels &&
+          scrollable.position.pixels >
+              scrollable.position.minScrollExtent + 2.0) {
+        final target = math.max(
+          scrollable.position.pixels - 200.0,
+          scrollable.position.minScrollExtent,
+        );
+        scrollable.position
+            .animateTo(
+              target,
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
+            )
+            .whenComplete(() {
+              if (mounted) {
+                _focusInScope(_contentScope, TraversalDirection.up);
+              }
+            });
+        return KeyEventResult.handled;
+      }
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      if (_dockScope.focusInDirection(TraversalDirection.left)) {
+      if (_focusInScope(_contentScope, TraversalDirection.left)) {
         return KeyEventResult.handled;
       }
       _focusSidebar();
@@ -132,10 +246,56 @@ class _TvShellState extends ConsumerState<TvShell> {
     return KeyEventResult.ignored;
   }
 
+  bool _canEnterDockFromContent() {
+    final focused = FocusManager.instance.primaryFocus;
+    final focusedCtx = focused?.context;
+    final scopeCtx = _contentScope.context;
+    if (focusedCtx == null || scopeCtx == null) return false;
+    final focusedBox = focusedCtx.findRenderObject() as RenderBox?;
+    final scopeBox = scopeCtx.findRenderObject() as RenderBox?;
+    if (focusedBox == null ||
+        scopeBox == null ||
+        !focusedBox.hasSize ||
+        !scopeBox.hasSize) {
+      return false;
+    }
+    final focusBottom = focusedBox
+        .localToGlobal(Offset(0, focusedBox.size.height))
+        .dy;
+    final scopeTop = scopeBox.localToGlobal(Offset.zero).dy;
+    return focusBottom >= scopeTop + scopeBox.size.height * 0.40;
+  }
+
+  KeyEventResult _onDockKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (_focusInScope(_dockScope, TraversalDirection.up)) {
+        return KeyEventResult.handled;
+      }
+      _focusContent();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (_focusInScope(_dockScope, TraversalDirection.left)) {
+        return KeyEventResult.handled;
+      }
+      _focusSidebar();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _focusInScope(_dockScope, TraversalDirection.right);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   KeyEventResult _onSidebarKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_sidebarScope.focusInDirection(TraversalDirection.down)) {
+      if (_focusInScope(_sidebarScope, TraversalDirection.down)) {
         return KeyEventResult.handled;
       }
       if (_dockAvailable) {
@@ -144,12 +304,17 @@ class _TvShellState extends ConsumerState<TvShell> {
       }
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      if (_sidebarScope.focusInDirection(TraversalDirection.right)) {
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _focusInScope(_sidebarScope, TraversalDirection.up);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.escape) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+          _focusInScope(_sidebarScope, TraversalDirection.right)) {
         return KeyEventResult.handled;
       }
       _focusContent();
-      _setExpanded(false);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -163,156 +328,213 @@ class _TvShellState extends ConsumerState<TvShell> {
     final expanded = _drawerExpanded;
     // Rebuild when queue presence changes so dock focus targets stay valid.
     ref.watch(playerStateProvider.select((s) => s.currentSong != null));
+    ref.listen<bool>(playerStateProvider.select((s) => s.currentSong != null), (
+      previous,
+      next,
+    ) {
+      if (previous == true && !next && _dockScope.hasFocus) {
+        _focusContent();
+      }
+    });
 
-    return TvShellFocus(
-      focusSidebar: _focusSidebar,
-      focusDock: _focusDock,
-      focusContent: _focusContent,
-      child: Scaffold(
-        body: Column(
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  Row(
-                    children: [
-                      SizedBox(width: TvMetrics.railCollapsedWidth),
-                      Expanded(
-                        child: FocusScope(
-                          node: _contentScope,
-                          onKeyEvent: _onContentKey,
-                          child: Stack(
-                            children: [
-                              BranchFadeTransition(
-                                navigationShell: navigationShell,
-                              ),
-                              const PlayerErrorListener(),
-                              const ActionFeedbackListener(),
-                            ],
+    return PopScope(
+      canPop: !expanded,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && expanded) {
+          _focusContent();
+        }
+      },
+      child: TvShellFocus(
+        focusSidebar: _focusSidebar,
+        focusDock: _focusDock,
+        focusContent: _focusContent,
+        child: Scaffold(
+          backgroundColor: TvColors.bg,
+          body: Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    // Subtle ambient radial aura from Canvas (`ambient-backdrop`)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              center: const Alignment(0.4, -0.4),
+                              radius: 1.15,
+                              colors: [
+                                colorScheme.primary.withValues(alpha: 0.14),
+                                const Color(0xFF1E1B4B).withValues(alpha: 0.35),
+                                TvColors.bg,
+                              ],
+                              stops: const [0.0, 0.48, 0.95],
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  if (expanded)
-                    Positioned.fill(
-                      child: GestureDetector(
-                        onTap: () {
-                          _sidebarScope.unfocus();
-                          _focusContent();
-                        },
-                        child: ColoredBox(
-                          color: Colors.black.withValues(alpha: 0.45),
+                    ),
+                    Row(
+                      children: [
+                        SizedBox(width: TvMetrics.railCollapsedWidth),
+                        Expanded(
+                          child: FocusScope(
+                            node: _contentScope,
+                            autofocus: true,
+                            onKeyEvent: _onContentKey,
+                            child: Stack(
+                              children: [
+                                BranchFadeTransition(
+                                  navigationShell: navigationShell,
+                                ),
+                                const PlayerErrorListener(),
+                                const ActionFeedbackListener(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (expanded)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          onTap: () {
+                            _sidebarScope.unfocus();
+                            _focusContent();
+                          },
+                          child: ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      ),
+                    FocusScope(
+                      node: _sidebarScope,
+                      onFocusChange: _setExpanded,
+                      onKeyEvent: _onSidebarKey,
+                      child: AnimatedContainer(
+                        duration: TvMetrics.drawerAnimDuration,
+                        curve: Curves.easeOutCubic,
+                        width: expanded
+                            ? TvMetrics.railExpandedWidth
+                            : TvMetrics.railCollapsedWidth,
+                        clipBehavior: Clip.hardEdge,
+                        decoration: BoxDecoration(
+                          color: TvColors.railBg,
+                          border: const Border(
+                            right: BorderSide(color: TvColors.border),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 24,
+                              offset: const Offset(8, 0),
+                            ),
+                          ],
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, railConstraints) {
+                            // Labels follow actual width, not the expand flag —
+                            // otherwise the Row overflows mid-animation (~3px+).
+                            final showLabels =
+                                railConstraints.maxWidth >=
+                                TvMetrics.railExpandedWidth - 8;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    showLabels ? 20 : 0,
+                                    28,
+                                    showLabels ? 12 : 0,
+                                    20,
+                                  ),
+                                  child: showLabels
+                                      ? Row(
+                                          children: [
+                                            const SonoraLogo.icon(36),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                'Sonora',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : const Center(
+                                          child: SonoraLogo.icon(36),
+                                        ),
+                                ),
+                                Expanded(
+                                  child: ListView(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    children: [
+                                      for (
+                                        var i = 0;
+                                        i < _destinations.length;
+                                        i++
+                                      )
+                                        _TvNavItem(
+                                          focusNode: _navNodes[i],
+                                          icon: _destinations[i].$1,
+                                          label: _destinations[i].$2(l10n),
+                                          selected:
+                                              navigationShell.currentIndex == i,
+                                          expanded: showLabels,
+                                          onSelect: () {
+                                            final changed =
+                                                navigationShell.currentIndex !=
+                                                i;
+                                            navigationShell.goBranch(i);
+                                            _focusContent(
+                                              resetToFirst: changed,
+                                            );
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                _TvNavItem(
+                                  focusNode: _settingsNavNode,
+                                  icon: LucideIcons.settings,
+                                  label: l10n.settingsLabel,
+                                  selected:
+                                      GoRouterState.of(context).uri.path ==
+                                      '/settings',
+                                  expanded: showLabels,
+                                  onSelect: () {
+                                    context.push('/settings');
+                                    _setExpanded(false);
+                                  },
+                                  onDown: _dockAvailable ? _focusDock : null,
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
-                  FocusScope(
-                    node: _sidebarScope,
-                    onFocusChange: _setExpanded,
-                    onKeyEvent: _onSidebarKey,
-                    child: AnimatedContainer(
-                      duration: TvMetrics.drawerAnimDuration,
-                      curve: Curves.easeOutCubic,
-                      width: expanded
-                          ? TvMetrics.railExpandedWidth
-                          : TvMetrics.railCollapsedWidth,
-                      clipBehavior: Clip.hardEdge,
-                      color: colorScheme.surfaceContainerLow,
-                      child: LayoutBuilder(
-                        builder: (context, railConstraints) {
-                          // Labels follow actual width, not the expand flag —
-                          // otherwise the Row overflows mid-animation (~3px+).
-                          final showLabels =
-                              railConstraints.maxWidth >=
-                              TvMetrics.railExpandedWidth - 8;
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                  showLabels ? 20 : 0,
-                                  28,
-                                  showLabels ? 12 : 0,
-                                  20,
-                                ),
-                                child: showLabels
-                                    ? Row(
-                                        children: [
-                                          const SonoraLogo.icon(36),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              'Sonora',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleLarge
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : const Center(child: SonoraLogo.icon(36)),
-                              ),
-                              Expanded(
-                                child: ListView(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  children: [
-                                    for (
-                                      var i = 0;
-                                      i < _destinations.length;
-                                      i++
-                                    )
-                                      _TvNavItem(
-                                        icon: _destinations[i].$1,
-                                        label: _destinations[i].$2(l10n),
-                                        selected:
-                                            navigationShell.currentIndex == i,
-                                        expanded: showLabels,
-                                        autofocus: i == 0,
-                                        onSelect: () {
-                                          navigationShell.goBranch(i);
-                                          _setExpanded(false);
-                                          _focusContent();
-                                        },
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              _TvNavItem(
-                                icon: LucideIcons.settings,
-                                label: l10n.settingsLabel,
-                                selected:
-                                    GoRouterState.of(context).uri.path ==
-                                    '/settings',
-                                expanded: showLabels,
-                                onSelect: () {
-                                  context.push('/settings');
-                                  _setExpanded(false);
-                                },
-                                onDown: _dockAvailable ? _focusDock : null,
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const DockStatusBanners(),
-            FocusScope(
-              node: _dockScope,
-              onKeyEvent: _onDockKey,
-              child: const TvDock(),
-            ),
-          ],
+              const DockStatusBanners(),
+              FocusScope(
+                node: _dockScope,
+                onKeyEvent: _onDockKey,
+                child: const TvDock(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -320,21 +542,21 @@ class _TvShellState extends ConsumerState<TvShell> {
 }
 
 class _TvNavItem extends StatefulWidget {
+  final FocusNode focusNode;
   final IconData icon;
   final String label;
   final bool selected;
   final bool expanded;
-  final bool autofocus;
   final VoidCallback onSelect;
   final VoidCallback? onDown;
 
   const _TvNavItem({
+    required this.focusNode,
     required this.icon,
     required this.label,
     required this.selected,
     required this.expanded,
     required this.onSelect,
-    this.autofocus = false,
     this.onDown,
   });
 
@@ -349,19 +571,29 @@ class _TvNavItemState extends State<_TvNavItem> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final active = widget.selected || _focused;
-    final fg = active
-        ? colorScheme.onSecondaryContainer
-        : colorScheme.onSurface;
-    // Circular disc behind the icon when collapsed / focused (Material TV).
-    final disc = active ? colorScheme.secondaryContainer : Colors.transparent;
+    final fg = _focused
+        ? TvColors.textPrimary
+        : widget.selected
+        ? colorScheme.primary
+        : TvColors.textSecondary;
+    final bg = _focused
+        ? colorScheme.primary.withValues(alpha: 0.22)
+        : widget.selected
+        ? colorScheme.primary.withValues(alpha: 0.14)
+        : Colors.transparent;
+    final borderColor = _focused
+        ? colorScheme.primary
+        : widget.selected
+        ? colorScheme.primary.withValues(alpha: 0.35)
+        : Colors.transparent;
 
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: widget.expanded ? 12 : 8,
-        vertical: 6,
+        horizontal: widget.expanded ? 12 : 10,
+        vertical: 4,
       ),
       child: Focus(
-        autofocus: widget.autofocus,
+        focusNode: widget.focusNode,
         onFocusChange: (v) {
           if (_focused != v) setState(() => _focused = v);
         },
@@ -384,16 +616,25 @@ class _TvNavItemState extends State<_TvNavItem> {
         },
         child: GestureDetector(
           onTap: widget.onSelect,
-          child: widget.expanded
-              ? AnimatedContainer(
-                  duration: TvMetrics.drawerAnimDuration,
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: disc,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Row(
+          child: AnimatedContainer(
+            duration: TvMetrics.drawerAnimDuration,
+            height: 48,
+            padding: EdgeInsets.symmetric(horizontal: widget.expanded ? 14 : 0),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor, width: _focused ? 2 : 1),
+              boxShadow: _focused
+                  ? [
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(alpha: 0.35),
+                        blurRadius: 16,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: widget.expanded
+                ? Row(
                     children: [
                       Icon(
                         widget.icon,
@@ -404,10 +645,10 @@ class _TvNavItemState extends State<_TvNavItem> {
                       Expanded(
                         child: Text(
                           widget.label,
-                          style: Theme.of(context).textTheme.titleMedium
+                          style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(
                                 color: fg,
-                                fontWeight: widget.selected
+                                fontWeight: active
                                     ? FontWeight.w700
                                     : FontWeight.w500,
                               ),
@@ -415,24 +656,15 @@ class _TvNavItemState extends State<_TvNavItem> {
                         ),
                       ),
                     ],
-                  ),
-                )
-              : Center(
-                  child: AnimatedContainer(
-                    duration: TvMetrics.drawerAnimDuration,
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: disc,
-                      shape: BoxShape.circle,
-                    ),
+                  )
+                : Center(
                     child: Icon(
                       widget.icon,
                       size: TvMetrics.railIconSize,
                       color: fg,
                     ),
                   ),
-                ),
+          ),
         ),
       ),
     );

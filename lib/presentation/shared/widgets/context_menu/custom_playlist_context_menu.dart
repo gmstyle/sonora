@@ -12,6 +12,7 @@ import '../../../features/library/widgets/create_playlist_dialog.dart';
 import '../../../features/library/widgets/linked_playlist_actions.dart';
 import '../../../features/library/widgets/playlist_detail_view.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/library_notifier.dart';
 import '../../../providers/play_local_playlist_use_case_provider.dart';
@@ -250,7 +251,7 @@ class CustomPlaylistContextMenuSheet extends ConsumerWidget {
                       }
                     },
                   ),
-                  if (!hideGoToPlaylist)
+                  if (!hideGoToPlaylist && !ref.watch(isAndroidTvProvider))
                     ActionTile(
                       icon: LucideIcons.listVideo,
                       label: l10n.goToPlaylist,

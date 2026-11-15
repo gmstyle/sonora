@@ -4334,6 +4334,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile'**
   String get entityKindProfile;
+
+  /// No description provided for @tvStageArtwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Artwork'**
+  String get tvStageArtwork;
 }
 
 class _AppLocalizationsDelegate

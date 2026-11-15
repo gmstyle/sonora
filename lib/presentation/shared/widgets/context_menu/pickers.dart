@@ -8,47 +8,49 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../features/library/widgets/create_playlist_dialog.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/library_notifier.dart';
+import 'action_tiles.dart';
+import 'context_menu_presenter.dart';
 
 Future<void> showArtistPicker(
   BuildContext context,
   List<ArtistBasic> artists, {
   required void Function(String artistId) onSelect,
 }) {
-  return showModalBottomSheet(
-    context: context,
-    useRootNavigator: true,
-    builder: (sheetContext) {
-      return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  AppLocalizations.of(sheetContext)!.goToArtists,
-                  style: Theme.of(sheetContext).textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w600),
+  return presentContextMenu(
+    context,
+    Builder(
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    AppLocalizations.of(sheetContext)!.goToArtists,
+                    style: Theme.of(sheetContext).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
-            ),
-            const Divider(),
-            for (final a in artists)
-              ListTile(
-                leading: const Icon(LucideIcons.user),
-                title: Text(a.name),
-                dense: true,
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  onSelect(a.artistId!);
-                },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      );
-    },
+              const Divider(),
+              for (final a in artists)
+                ActionTile(
+                  icon: LucideIcons.user,
+                  label: a.name,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    onSelect(a.artistId!);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    ),
   );
 }
 
@@ -67,10 +69,9 @@ Future<void> showPlaylistPicker(
   bool isExplicit = false,
   int? duration,
 }) {
-  return showModalBottomSheet(
-    context: context,
-    useRootNavigator: true,
-    builder: (_) => PlaylistPickerSheet(
+  return presentContextMenu(
+    context,
+    PlaylistPickerSheet(
       videoId: videoId,
       title: title,
       artist: artist,
@@ -201,9 +202,9 @@ class PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                     itemCount: playlists.length,
                     itemBuilder: (context, index) {
                       final playlist = playlists[index];
-                      return ListTile(
-                        leading: const Icon(LucideIcons.listVideo),
-                        title: Text(playlist.name),
+                      return ActionTile(
+                        icon: LucideIcons.listVideo,
+                        label: playlist.name,
                         onTap: () async {
                           await ref
                               .read(libraryNotifierProvider.notifier)

@@ -16,9 +16,10 @@ import '../../../../providers/player_provider.dart';
 import '../../../../shared/widgets/context_menu_sheet.dart';
 import '../../../../shared/widgets/detail_actions_bar.dart';
 import '../../../../shared/widgets/error_retry_widget.dart';
+import '../../../../shared/widgets/thumbnail_widget.dart';
 import '../../../playlist/providers/playlist_provider.dart';
 import '../../tv_metrics.dart';
-import '../../widgets/tv_entity_actions_bar.dart';
+import '../../widgets/tv_focusable.dart';
 import '../../widgets/tv_track_row.dart';
 
 class TvPlaylistScreen extends ConsumerWidget {
@@ -59,156 +60,466 @@ class TvPlaylistScreen extends ConsumerWidget {
   }
 }
 
-class _TvPlaylistBody extends ConsumerWidget {
+class _TvPlaylistBody extends ConsumerStatefulWidget {
   final PlaylistFull playlist;
   final List<VideoDetailed> videos;
 
   const _TvPlaylistBody({required this.playlist, required this.videos});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TvPlaylistBody> createState() => _TvPlaylistBodyState();
+}
+
+class _TvPlaylistBodyState extends ConsumerState<_TvPlaylistBody> {
+  final FocusNode _playAllFocus = FocusNode(debugLabel: 'tvPlaylistPlayAll');
+
+  @override
+  void dispose() {
+    _playAllFocus.dispose();
+    super.dispose();
+  }
+
+  String? _fmtDuration(int? seconds) {
+    if (seconds == null || seconds <= 0) return null;
+    final m = seconds ~/ 60;
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final playlist = widget.playlist;
+    final videos = widget.videos;
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final offline = ref.watch(isOfflineProvider);
     final liked = ref
         .watch(likedPlaylistProvider(playlist.playlistId))
         .asData
         ?.value;
+    final playingVideoId = ref.watch(
+      playerStateProvider.select((s) => s.currentSong?.id),
+    );
     final playable = playableVideos(videos);
     final art = playlist.thumbnails.isNotEmpty
         ? playlist.thumbnails.last.url
         : null;
-    final headerH =
-        MediaQuery.sizeOf(context).height * TvMetrics.entityHeaderFraction;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: TvImmersiveEntityHeader(
-              imageUrl: art,
-              title: playlist.name,
-              subtitle: playlist.description,
-              height: headerH,
-              onBack: () => context.pop(),
-              actions: TvEntityActionsBar(
-                actions: [
-                  TvEntityAction(
-                    id: DetailActionId.play,
-                    icon: LucideIcons.play,
-                    label: l10n.playAll,
-                    filled: true,
-                    autofocus: true,
-                    onSelect: playable.isEmpty
-                        ? null
-                        : () => ref
-                              .read(playerStateProvider.notifier)
-                              .playPlaylist(playable, startIndex: 0),
-                  ),
-                  TvEntityAction(
-                    id: DetailActionId.shuffle,
-                    icon: LucideIcons.shuffle,
-                    label: l10n.shufflePlay,
-                    onSelect: playable.isEmpty
-                        ? null
-                        : () {
-                            final shuffled = List<VideoDetailed>.from(playable)
-                              ..shuffle();
-                            ref
-                                .read(playerStateProvider.notifier)
-                                .playPlaylist(shuffled, startIndex: 0);
-                          },
-                  ),
-                  TvEntityAction(
-                    id: DetailActionId.queue,
-                    icon: LucideIcons.listMusic,
-                    label: l10n.addToQueue,
-                    onSelect: playable.isEmpty
-                        ? null
-                        : () => _addToQueue(context, ref, playable),
-                  ),
-                  TvEntityAction(
-                    id: DetailActionId.save,
-                    icon: liked != null
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    label: l10n.like,
-                    active: liked != null,
-                    onSelect: () {
-                      ref
-                          .read(libraryNotifierProvider.notifier)
-                          .toggleLikedPlaylist(
-                            LikedPlaylistModel(
-                              playlistId: playlist.playlistId,
-                              name: playlist.name,
-                              thumbnailUrl: art,
-                              videoCount: videos.length,
-                              addedAt: DateTime.now(),
+      backgroundColor: TvColors.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            TvMetrics.overscanHorizontal,
+            TvMetrics.overscanVertical,
+            TvMetrics.overscanHorizontal,
+            TvMetrics.overscanVertical,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Column (Split 40%): Centered Artwork, Meta & Action Stack
+              SizedBox(
+                width: 280,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TvFocusable(
+                        onSelect: () => context.pop(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: TvColors.border),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                LucideIcons.chevronLeft,
+                                size: 16,
+                                color: TvColors.textPrimary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                l10n.askIntroBack,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: TvColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: ThumbnailWidget(
+                        imageUrl: art,
+                        size: 164,
+                        shape: ThumbnailShape.rounded,
+                        borderRadius: 16,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Text(
+                      playlist.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: TvColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${l10n.entityKindPlaylist} • ${l10n.catalogSongCount(videos.length)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: TvColors.textSecondary,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    SizedBox(
+                      width: 224,
+                      child: Column(
+                        children: [
+                          TvFocusable(
+                            focusNode: _playAllFocus,
+                            autofocus: true,
+                            onSelect: playable.isEmpty
+                                ? null
+                                : () => ref
+                                      .read(playerStateProvider.notifier)
+                                      .playPlaylist(playable, startIndex: 0),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorScheme.primary.withValues(
+                                      alpha: 0.25,
+                                    ),
+                                    blurRadius: 14,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    LucideIcons.play,
+                                    size: 16,
+                                    color: colorScheme.onPrimary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    l10n.playAll,
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      color: colorScheme.onPrimary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          );
-                    },
-                  ),
-                ],
-                onOverflow: () => ContextMenuSheet.showForPlaylist(
-                  context,
-                  playlistId: playlist.playlistId,
-                  name: playlist.name,
-                  thumbnailUrl: art,
-                  omitActionIds: {
-                    DetailActionId.play,
-                    DetailActionId.shuffle,
-                    DetailActionId.queue,
-                    DetailActionId.save,
-                    DetailActionId.share,
-                    if (offline) DetailActionId.download,
-                    if (offline) DetailActionId.radio,
-                  },
+                          ),
+                          const SizedBox(height: 8),
+                          TvFocusable(
+                            onSelect: playable.isEmpty
+                                ? null
+                                : () {
+                                    final shuffled = List<VideoDetailed>.from(
+                                      playable,
+                                    )..shuffle();
+                                    ref
+                                        .read(playerStateProvider.notifier)
+                                        .playPlaylist(shuffled, startIndex: 0);
+                                  },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: TvColors.border),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    LucideIcons.shuffle,
+                                    size: 15,
+                                    color: TvColors.textPrimary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    l10n.shufflePlay,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: TvColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TvFocusable(
+                                  onSelect: () {
+                                    ref
+                                        .read(libraryNotifierProvider.notifier)
+                                        .toggleLikedPlaylist(
+                                          LikedPlaylistModel(
+                                            playlistId: playlist.playlistId,
+                                            name: playlist.name,
+                                            thumbnailUrl: art,
+                                            videoCount: videos.length,
+                                            addedAt: DateTime.now(),
+                                          ),
+                                        );
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: liked != null
+                                          ? colorScheme.primary.withValues(
+                                              alpha: 0.16,
+                                            )
+                                          : Colors.white.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: liked != null
+                                            ? colorScheme.primary.withValues(
+                                                alpha: 0.4,
+                                              )
+                                            : TvColors.borderSubtle,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          liked != null
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          size: 15,
+                                          color: liked != null
+                                              ? colorScheme.primary
+                                              : TvColors.textSecondary,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          l10n.like,
+                                          style: theme.textTheme.labelMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: liked != null
+                                                    ? colorScheme.primary
+                                                    : TvColors.textPrimary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              TvFocusable(
+                                onSelect: playable.isEmpty
+                                    ? null
+                                    : () => _addToQueue(context, ref, playable),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: TvColors.borderSubtle,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    LucideIcons.listMusic,
+                                    size: 17,
+                                    color: TvColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              TvFocusable(
+                                onSelect: () =>
+                                    ContextMenuSheet.showForPlaylist(
+                                      context,
+                                      playlistId: playlist.playlistId,
+                                      name: playlist.name,
+                                      thumbnailUrl: art,
+                                      omitActionIds: {
+                                        DetailActionId.play,
+                                        DetailActionId.shuffle,
+                                        DetailActionId.queue,
+                                        DetailActionId.save,
+                                        DetailActionId.share,
+                                        if (offline) DetailActionId.download,
+                                        if (offline) DetailActionId.radio,
+                                      },
+                                    ),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: TvColors.borderSubtle,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    LucideIcons.ellipsisVertical,
+                                    size: 17,
+                                    color: TvColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+
+              const SizedBox(width: 32),
+
+              // Right Column (Split 60%): High-Contrast Scrollable Tracklist
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            l10n.songs.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: TvColors.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            l10n.duration.toUpperCase(),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: TvColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: TvColors.border),
+
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: videos.length,
+                        itemBuilder: (context, index) {
+                          final song = videos[index];
+                          return TvTrackRow(
+                            index: index,
+                            title: song.name,
+                            subtitle: displayArtists(song.artists),
+                            duration: _fmtDuration(song.duration),
+                            isExplicit: song.isExplicit,
+                            isPlaying: playingVideoId == song.videoId,
+                            enabled: song.isPlayable,
+                            onLeftAtEdge: () => _playAllFocus.requestFocus(),
+                            onSelect: () {
+                              final start = playable.indexWhere(
+                                (s) => s.videoId == song.videoId,
+                              );
+                              if (start < 0) return;
+                              ref
+                                  .read(playerStateProvider.notifier)
+                                  .playPlaylist(playable, startIndex: start);
+                            },
+                            onLongSelect: () => ContextMenuSheet.showForSong(
+                              context,
+                              videoId: song.videoId,
+                              title: song.name,
+                              artist: displayArtists(song.artists),
+                              artists: song.artists,
+                              thumbnailUrl: song.thumbnails.isNotEmpty
+                                  ? song.thumbnails.last.url
+                                  : null,
+                              isVideo: true,
+                              isExplicit: song.isExplicit,
+                              isPlayable: song.isPlayable,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              TvMetrics.contentPadding,
-              8,
-              TvMetrics.contentPadding,
-              48,
-            ),
-            sliver: SliverList.builder(
-              itemCount: videos.length,
-              itemBuilder: (context, index) {
-                final song = videos[index];
-                return TvTrackRow(
-                  index: index,
-                  title: song.name,
-                  subtitle: displayArtists(song.artists),
-                  enabled: song.isPlayable,
-                  onSelect: () {
-                    final start = playable.indexWhere(
-                      (s) => s.videoId == song.videoId,
-                    );
-                    if (start < 0) return;
-                    ref
-                        .read(playerStateProvider.notifier)
-                        .playPlaylist(playable, startIndex: start);
-                  },
-                  onLongSelect: () => ContextMenuSheet.showForSong(
-                    context,
-                    videoId: song.videoId,
-                    title: song.name,
-                    artist: displayArtists(song.artists),
-                    artists: song.artists,
-                    thumbnailUrl: song.thumbnails.isNotEmpty
-                        ? song.thumbnails.last.url
-                        : null,
-                    isVideo: true,
-                    isExplicit: song.isExplicit,
-                    isPlayable: song.isPlayable,
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

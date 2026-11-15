@@ -6,6 +6,8 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/link/sonora_link.dart';
 import '../../../../domain/usecases/player/start_radio_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../features/tv/tv_metrics.dart';
+import '../../../features/tv/widgets/tv_focusable.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/android_tv_provider.dart';
 import '../../../providers/download_provider.dart';
@@ -13,11 +15,70 @@ import '../../../providers/player_provider.dart';
 
 /// Present [child] as a centered dialog on wide / Android TV, else a sheet.
 ///
-/// TV always uses a dialog — leanback D-pad cannot drive phone bottom sheets.
+/// TV always uses a centered modal dialog with dark backdrop (`rgba(0,0,0,0.85)`)
+/// and an explicit D-pad Close button — leanback D-pad cannot drive bottom sheets.
 Future<void> presentContextMenu(BuildContext context, Widget child) {
   final isTv = ProviderScope.containerOf(context).read(isAndroidTvProvider);
-  final asDialog =
-      isTv || MediaQuery.of(context).size.width >= kExpandedBreakpoint;
+  if (isTv) {
+    return showDialog(
+      context: context,
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: 0.85),
+      builder: (dialogCtx) {
+        final l10n = AppLocalizations.of(dialogCtx)!;
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 390, maxHeight: 480),
+            child: Material(
+              color: TvColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: TvColors.border),
+              ),
+              elevation: 16,
+              clipBehavior: Clip.antiAlias,
+              child: FocusScope(
+                autofocus: true,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Flexible(child: child),
+                      const SizedBox(height: 6),
+                      TvFocusable(
+                        onSelect: () => Navigator.of(dialogCtx).pop(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: TvColors.surfaceButton,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: TvColors.borderSubtle),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            l10n.close,
+                            style: Theme.of(dialogCtx).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: TvColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+  final asDialog = MediaQuery.of(context).size.width >= kExpandedBreakpoint;
   if (asDialog) {
     return showDialog(
       context: context,

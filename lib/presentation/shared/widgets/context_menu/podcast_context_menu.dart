@@ -13,6 +13,7 @@ import '../../../../domain/usecases/player/play_podcast_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../features/podcast/providers/podcast_provider.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/library_notifier.dart';
@@ -193,7 +194,8 @@ class PodcastContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  if (showAction(omitActionIds, DetailActionId.share))
+                  if (showAction(omitActionIds, DetailActionId.share) &&
+                      !ref.watch(isAndroidTvProvider))
                     ActionTile(
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,
@@ -417,54 +419,69 @@ class LikePodcastActionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTv = ref.watch(isAndroidTvProvider);
     final likedAsync = ref.watch(likedPodcastProvider(browseId));
     return likedAsync.when(
-      loading: () => ListTile(
-        leading: const Icon(LucideIcons.bookmark),
-        title: Text(AppLocalizations.of(context)!.subscribe),
-        enabled: false,
-        dense: true,
-      ),
+      loading: () => isTv
+          ? TvContextMenuTile(
+              icon: LucideIcons.bookmark,
+              label: AppLocalizations.of(context)!.subscribe,
+              enabled: false,
+            )
+          : ListTile(
+              leading: const Icon(LucideIcons.bookmark),
+              title: Text(AppLocalizations.of(context)!.subscribe),
+              enabled: false,
+              dense: true,
+            ),
       error: (e, _) => const SizedBox.shrink(),
       data: (liked) {
         final isSubscribed = liked != null;
+        final icon = isSubscribed
+            ? DetailAffinityButton.bookmarkActive
+            : DetailAffinityButton.bookmarkIdle;
+        final color = DetailAffinityButton.glyphColor(
+          Theme.of(context).colorScheme,
+          isActive: isSubscribed,
+          activeColor: DetailAffinityButton.brandColor(
+            Theme.of(context).colorScheme,
+          ),
+        );
+        final label = isSubscribed
+            ? AppLocalizations.of(context)!.subscribed
+            : AppLocalizations.of(context)!.subscribe;
+        void toggle() {
+          if (isSubscribed) {
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .deleteLikedPodcast(browseId);
+          } else {
+            ref
+                .read(libraryNotifierProvider.notifier)
+                .toggleLikedPodcast(
+                  LikedPodcastModel(
+                    browseId: browseId,
+                    name: name,
+                    authorName: authorName,
+                    thumbnailUrl: thumbnailUrl,
+                    addedAt: DateTime.now(),
+                  ),
+                );
+          }
+        }
+
+        if (isTv) {
+          return TvContextMenuTile(
+            icon: icon,
+            iconColor: color,
+            label: label,
+            onTap: toggle,
+          );
+        }
         return ListTile(
-          leading: Icon(
-            isSubscribed
-                ? DetailAffinityButton.bookmarkActive
-                : DetailAffinityButton.bookmarkIdle,
-            color: DetailAffinityButton.glyphColor(
-              Theme.of(context).colorScheme,
-              isActive: isSubscribed,
-              activeColor: DetailAffinityButton.brandColor(
-                Theme.of(context).colorScheme,
-              ),
-            ),
-          ),
-          title: Text(
-            isSubscribed
-                ? AppLocalizations.of(context)!.subscribed
-                : AppLocalizations.of(context)!.subscribe,
-          ),
-          onTap: () async {
-            if (isSubscribed) {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .deleteLikedPodcast(browseId);
-            } else {
-              await ref
-                  .read(libraryNotifierProvider.notifier)
-                  .toggleLikedPodcast(
-                    LikedPodcastModel(
-                      browseId: browseId,
-                      name: name,
-                      authorName: authorName,
-                      thumbnailUrl: thumbnailUrl,
-                      addedAt: DateTime.now(),
-                    ),
-                  );
-            }
-          },
+          leading: Icon(icon, color: color),
+          title: Text(label),
+          onTap: toggle,
           dense: true,
         );
       },

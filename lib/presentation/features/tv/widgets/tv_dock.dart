@@ -25,75 +25,180 @@ class TvDock extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final notifier = ref.read(playerStateProvider.notifier);
+    final progress = player.duration.inMilliseconds > 0
+        ? (player.position.inMilliseconds / player.duration.inMilliseconds)
+              .clamp(0.0, 1.0)
+        : 0.0;
 
-    return Material(
-      color: colorScheme.surfaceContainerHigh,
-      child: SizedBox(
-        height: TvMetrics.dockHeight,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: TvFocusable(
-                  onSelect: () => openTvNowPlaying(context),
-                  onLeftAtEdge: () => TvShellFocus.requestSidebar(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Row(
-                    children: [
-                      ThumbnailWidget(
-                        imageUrl: song.artUri?.toString(),
-                        size: TvMetrics.dockArtSize,
-                        shape: ThumbnailShape.rounded,
-                        borderRadius: 4,
+    return Container(
+      decoration: const BoxDecoration(
+        color: TvColors.dockBg,
+        border: Border(top: BorderSide(color: TvColors.border)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          LinearProgressIndicator(
+            value: progress,
+            minHeight: 2,
+            backgroundColor: Colors.white12,
+            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+          ),
+          SizedBox(
+            height: TvMetrics.dockHeight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TvFocusable(
+                      onSelect: () => openTvNowPlaying(context),
+                      onLeftAtEdge: () => TvShellFocus.requestSidebar(context),
+                      borderRadius: BorderRadius.circular(10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          '${song.title} · ${song.artist ?? ''}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            height: 1.1,
+                      child: Row(
+                        children: [
+                          ThumbnailWidget(
+                            imageUrl: song.artUri?.toString(),
+                            size: TvMetrics.dockArtSize,
+                            shape: ThumbnailShape.rounded,
+                            borderRadius: 8,
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: song.title,
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      color: TvColors.textPrimary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  if (song.artist != null &&
+                                      song.artist!.isNotEmpty) ...[
+                                    TextSpan(
+                                      text: '  •  ',
+                                      style: theme.textTheme.labelMedium
+                                          ?.copyWith(
+                                            color: TvColors.textSecondary,
+                                          ),
+                                    ),
+                                    TextSpan(
+                                      text: song.artist!,
+                                      style: theme.textTheme.labelMedium
+                                          ?.copyWith(
+                                            color: TvColors.textSecondary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (player.isPlaying) ...[
+                            const SizedBox(width: 10),
+                            _MiniEqBars(color: colorScheme.primary),
+                          ],
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  TvFocusable(
+                    onSelect: () => notifier.skipToPrevious(),
+                    borderRadius: BorderRadius.circular(16),
+                    padding: const EdgeInsets.all(6),
+                    child: const Icon(
+                      LucideIcons.skipBack,
+                      size: TvMetrics.dockIconSize,
+                      color: TvColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TvFocusable(
+                    onSelect: () => notifier.togglePlayPause(),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: colorScheme.primary,
+                      ),
+                      child: Icon(
+                        player.isPlaying ? LucideIcons.pause : LucideIcons.play,
+                        size: 16,
+                        color: colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TvFocusable(
+                    onSelect: () => notifier.skipToNext(),
+                    borderRadius: BorderRadius.circular(16),
+                    padding: const EdgeInsets.all(6),
+                    child: const Icon(
+                      LucideIcons.skipForward,
+                      size: TvMetrics.dockIconSize,
+                      color: TvColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-              TvFocusable(
-                onSelect: () => notifier.skipToPrevious(),
-                borderRadius: BorderRadius.circular(16),
-                padding: const EdgeInsets.all(4),
-                child: const Icon(
-                  LucideIcons.skipBack,
-                  size: TvMetrics.dockIconSize,
-                ),
-              ),
-              TvFocusable(
-                onSelect: () => notifier.togglePlayPause(),
-                borderRadius: BorderRadius.circular(16),
-                padding: const EdgeInsets.all(4),
-                child: Icon(
-                  player.isPlaying ? LucideIcons.pause : LucideIcons.play,
-                  size: TvMetrics.dockIconSize + 2,
-                ),
-              ),
-              TvFocusable(
-                onSelect: () => notifier.skipToNext(),
-                borderRadius: BorderRadius.circular(16),
-                padding: const EdgeInsets.all(4),
-                child: const Icon(
-                  LucideIcons.skipForward,
-                  size: TvMetrics.dockIconSize,
-                ),
-              ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniEqBars extends StatelessWidget {
+  final Color color;
+
+  const _MiniEqBars({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Container(
+          width: 2.5,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
-      ),
+        const SizedBox(width: 2),
+        Container(
+          width: 2.5,
+          height: 13,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 2),
+        Container(
+          width: 2.5,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ],
     );
   }
 }

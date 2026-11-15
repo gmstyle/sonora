@@ -41,6 +41,7 @@ import 'domain/usecases/player/play_video_id_use_case.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
+import 'presentation/features/tv/tv_metrics.dart';
 import 'presentation/providers/android_tv_provider.dart';
 import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/download_notification_service.dart';
@@ -461,8 +462,10 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       });
     });
 
+    final isTv = ref.watch(isAndroidTvProvider);
     final lightTheme = ref.watch(lightThemeProvider);
-    final darkTheme = ref.watch(darkThemeProvider);
+    final rawDarkTheme = ref.watch(darkThemeProvider);
+    final darkTheme = isTv ? TvTheme.apply(rawDarkTheme) : rawDarkTheme;
 
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? 'Sonora',
@@ -474,9 +477,9 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
         ...GlobalMaterialLocalizations.delegates,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: lightTheme,
+      theme: isTv ? darkTheme : lightTheme,
       darkTheme: darkTheme,
-      themeMode: themeMode,
+      themeMode: isTv ? ThemeMode.dark : themeMode,
     );
   }
 }

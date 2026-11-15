@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -16,6 +18,7 @@ class TvFocusable extends StatefulWidget {
   final VoidCallback? onLongSelect;
   final VoidCallback? onLeftAtEdge;
   final VoidCallback? onDownAtEdge;
+  final ValueChanged<bool>? onFocusChange;
   final bool autofocus;
   final BorderRadius? borderRadius;
   final EdgeInsetsGeometry padding;
@@ -28,6 +31,7 @@ class TvFocusable extends StatefulWidget {
     this.onLongSelect,
     this.onLeftAtEdge,
     this.onDownAtEdge,
+    this.onFocusChange,
     this.autofocus = false,
     this.borderRadius,
     this.padding = EdgeInsets.zero,
@@ -41,8 +45,9 @@ class TvFocusable extends StatefulWidget {
 class _TvFocusableState extends State<TvFocusable> {
   FocusNode? _ownedNode;
   bool _focused = false;
-  DateTime? _keyDownAt;
+  bool _isPressed = false;
   bool _longFired = false;
+  Timer? _longPressTimer;
 
   static const _longPress = Duration(milliseconds: 400);
 
@@ -58,6 +63,7 @@ class _TvFocusableState extends State<TvFocusable> {
 
   @override
   void dispose() {
+    _longPressTimer?.cancel();
     _ownedNode?.dispose();
     super.dispose();
   }
@@ -70,7 +76,7 @@ class _TvFocusableState extends State<TvFocusable> {
       key == LogicalKeyboardKey.mediaPlayPause;
 
   void _fireLong() {
-    if (_longFired) return;
+    if (!mounted || _longFired || !_isPressed) return;
     _longFired = true;
     widget.onLongSelect?.call();
   }
@@ -78,35 +84,27 @@ class _TvFocusableState extends State<TvFocusable> {
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (_isSelect(event.logicalKey)) {
       if (event is KeyDownEvent) {
-        _keyDownAt = DateTime.now();
+        _isPressed = true;
         _longFired = false;
-        return KeyEventResult.handled;
-      }
-      if (event is KeyRepeatEvent) {
-        final down = _keyDownAt;
-        if (down != null &&
-            !_longFired &&
-            widget.onLongSelect != null &&
-            DateTime.now().difference(down) >= _longPress) {
-          _fireLong();
+        _longPressTimer?.cancel();
+        if (widget.onLongSelect != null) {
+          _longPressTimer = Timer(_longPress, _fireLong);
         }
         return KeyEventResult.handled;
       }
+      if (event is KeyRepeatEvent) {
+        return KeyEventResult.handled;
+      }
       if (event is KeyUpEvent) {
-        final down = _keyDownAt;
-        _keyDownAt = null;
+        _longPressTimer?.cancel();
+        if (!_isPressed) {
+          return KeyEventResult.ignored;
+        }
+        _isPressed = false;
         if (_longFired) {
           _longFired = false;
           return KeyEventResult.handled;
         }
-        if (down != null &&
-            widget.onLongSelect != null &&
-            DateTime.now().difference(down) >= _longPress) {
-          _fireLong();
-          _longFired = false;
-          return KeyEventResult.handled;
-        }
-        _longFired = false;
         widget.onSelect?.call();
         return KeyEventResult.handled;
       }
@@ -140,7 +138,29 @@ class _TvFocusableState extends State<TvFocusable> {
       autofocus: widget.autofocus,
       onKeyEvent: _onKey,
       onFocusChange: (hasFocus) {
+        if (!hasFocus) {
+          _longPressTimer?.cancel();
+          _isPressed = false;
+          _longFired = false;
+        }
         if (_focused != hasFocus) setState(() => _focused = hasFocus);
+        if (hasFocus) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_node.hasFocus) return;
+            final scrollable = Scrollable.maybeOf(context);
+            if (scrollable != null &&
+                axisDirectionToAxis(scrollable.axisDirection) ==
+                    Axis.horizontal) {
+              Scrollable.ensureVisible(
+                context,
+                alignment: 0.5,
+                duration: TvMetrics.drawerAnimDuration,
+                curve: Curves.easeOutCubic,
+              );
+            }
+          });
+        }
+        widget.onFocusChange?.call(hasFocus);
       },
       child: GestureDetector(
         onTap: widget.onSelect,
@@ -165,8 +185,13 @@ class _TvFocusableState extends State<TvFocusable> {
               boxShadow: _focused
                   ? [
                       BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.35),
-                        blurRadius: 18,
+                        color: Colors.black.withValues(alpha: 0.8),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(alpha: 0.55),
+                        blurRadius: 22,
                         spreadRadius: 1,
                       ),
                     ]

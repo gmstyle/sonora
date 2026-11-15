@@ -931,5 +931,6 @@
   "entityKindPlaylist": "Playlist",
   "entityKindPodcast": "Podcast",
   "entityKindEpisode": "Episodio",
-  "entityKindProfile": "Profilo"
+  "entityKindProfile": "Profilo",
+  "tvStageArtwork": "Copertina"
 }

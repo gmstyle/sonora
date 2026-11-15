@@ -7,7 +7,9 @@ import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/player_provider.dart';
+import '../../tv/screens/entity/tv_smart_mix_screen.dart';
 import '../../../shared/widgets/detail_actions_bar.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/entity_wide_body.dart';
@@ -135,6 +137,9 @@ class _SmartMixDetailViewState extends ConsumerState<SmartMixDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(isAndroidTvProvider)) {
+      return TvSmartMixScreen(type: widget.type);
+    }
     final l10n = AppLocalizations.of(context)!;
     final mixType = _getMixType();
     final gradient = _getGradient(context, mixType);

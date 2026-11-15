@@ -13,6 +13,7 @@ import '../../../../domain/usecases/player/play_playlist_use_case.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../features/playlist/providers/playlist_provider.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/play_playlist_use_case_provider.dart';
@@ -209,7 +210,8 @@ class PlaylistContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  if (showAction(omitActionIds, DetailActionId.share))
+                  if (showAction(omitActionIds, DetailActionId.share) &&
+                      !ref.watch(isAndroidTvProvider))
                     ActionTile(
                       icon: LucideIcons.share2,
                       label: AppLocalizations.of(context)!.share,

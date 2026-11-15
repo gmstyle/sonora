@@ -2526,4 +2526,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get entityKindProfile => 'Profilo';
+
+  @override
+  String get tvStageArtwork => 'Copertina';
 }

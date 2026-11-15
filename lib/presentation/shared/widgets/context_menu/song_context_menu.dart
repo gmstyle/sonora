@@ -11,6 +11,7 @@ import '../../../../core/link/sonora_link.dart';
 import '../../../../core/utils/artists_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
+import '../../../providers/android_tv_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/library_notifier.dart';
@@ -376,24 +377,25 @@ class SongContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
-                  ActionTile(
-                    icon: LucideIcons.share2,
-                    label: AppLocalizations.of(context)!.share,
-                    onTap: () {
-                      final share = shareSonoraLinkFromMenu(
-                        ref,
-                        context,
-                        link: SonoraLink(
-                          kind: SonoraLinkKind.track,
-                          id: videoId,
-                        ),
-                        title: title,
-                        subtitle: artist,
-                      );
-                      Navigator.pop(context);
-                      unawaited(share);
-                    },
-                  ),
+                  if (!ref.watch(isAndroidTvProvider))
+                    ActionTile(
+                      icon: LucideIcons.share2,
+                      label: AppLocalizations.of(context)!.share,
+                      onTap: () {
+                        final share = shareSonoraLinkFromMenu(
+                          ref,
+                          context,
+                          link: SonoraLink(
+                            kind: SonoraLinkKind.track,
+                            id: videoId,
+                          ),
+                          title: title,
+                          subtitle: artist,
+                        );
+                        Navigator.pop(context);
+                        unawaited(share);
+                      },
+                    ),
                   const SizedBox(height: 8),
                 ],
               ),
