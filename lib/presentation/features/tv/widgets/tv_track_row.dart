@@ -10,6 +10,8 @@ class TvTrackRow extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String? duration;
+  /// Compact play/view count (already formatted), shown before [duration].
+  final String? playCount;
   final bool isExplicit;
   final bool isPlaying;
   final bool enabled;
@@ -24,6 +26,7 @@ class TvTrackRow extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.duration,
+    this.playCount,
     this.isExplicit = false,
     this.isPlaying = false,
     this.enabled = true,
@@ -153,20 +156,37 @@ class TvTrackRow extends StatelessWidget {
                     color: colorScheme.error.withValues(alpha: 0.7),
                   ),
                 )
-              else if (duration != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text(
-                    duration!,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontFamily: 'monospace',
-                      fontWeight: isPlaying ? FontWeight.w700 : FontWeight.w500,
-                      color: isPlaying
-                          ? colorScheme.primary
-                          : TvColors.textSecondary,
+              else ...[
+                if (playCount != null && playCount!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Text(
+                      playCount!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isPlaying
+                            ? colorScheme.primary.withValues(alpha: 0.85)
+                            : TvColors.textSecondary,
+                      ),
                     ),
                   ),
-                ),
+                if (duration != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Text(
+                      duration!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontFamily: 'monospace',
+                        fontWeight: isPlaying
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isPlaying
+                            ? colorScheme.primary
+                            : TvColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),

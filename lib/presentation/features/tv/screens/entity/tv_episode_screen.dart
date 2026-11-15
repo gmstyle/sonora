@@ -15,6 +15,7 @@ import '../../../../shared/widgets/error_retry_widget.dart';
 import '../../../../shared/widgets/thumbnail_widget.dart';
 import '../../../podcast/providers/episode_provider.dart';
 import '../../tv_metrics.dart';
+import '../../widgets/tv_entity_side_column.dart';
 import '../../widgets/tv_focusable.dart';
 
 /// Standalone 10-foot Split 40/60 Episode detail screen for Android TV.
@@ -95,168 +96,244 @@ class _TvEpisodeBodyState extends ConsumerState<_TvEpisodeBody> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Left Column (Split 40%): Artwork, Meta & Action Stack
-              SizedBox(
-                width: 280,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TvFocusable(
-                        onSelect: () => context.pop(),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: TvColors.border),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                LucideIcons.chevronLeft,
-                                size: 16,
+              TvEntitySideColumn(
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TvFocusable(
+                      onSelect: () => context.pop(),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: TvColors.border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              LucideIcons.chevronLeft,
+                              size: 16,
+                              color: TvColors.textPrimary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              l10n.askIntroBack,
+                              style: theme.textTheme.labelMedium?.copyWith(
                                 color: TvColors.textPrimary,
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                l10n.askIntroBack,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: TvColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
-                          ),
-                        ],
-                      ),
-                      child: ThumbnailWidget(
-                        imageUrl: art,
-                        size: 164,
-                        shape: ThumbnailShape.rounded,
-                        borderRadius: 16,
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
+                    child: ThumbnailWidget(
+                      imageUrl: art,
+                      size: 164,
+                      shape: ThumbnailShape.rounded,
+                      borderRadius: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    episode.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: TvColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                    ),
+                  ),
+                  if (episode.podcastName != null &&
+                      episode.podcastName!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      episode.name,
-                      maxLines: 2,
+                      episode.podcastName!,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: TvColors.textPrimary,
-                        fontWeight: FontWeight.w800,
-                        height: 1.15,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    if (episode.podcastName != null &&
-                        episode.podcastName!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        episode.podcastName!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  ],
+                  if (episode.date != null && episode.date!.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      episode.date!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: TvColors.textSecondary,
                       ),
-                    ],
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      width: 224,
-                      child: Column(
-                        children: [
-                          TvFocusable(
-                            focusNode: _playFocus,
-                            autofocus: true,
-                            onSelect: () => ref
-                                .read(playerStateProvider.notifier)
-                                .playVideoId(episode.videoId),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    LucideIcons.play,
-                                    size: 16,
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: 224,
+                    child: Column(
+                      children: [
+                        TvFocusable(
+                          focusNode: _playFocus,
+                          autofocus: true,
+                          onSelect: () => ref
+                              .read(playerStateProvider.notifier)
+                              .playVideoId(episode.videoId),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  LucideIcons.play,
+                                  size: 16,
+                                  color: colorScheme.onPrimary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.playNow,
+                                  style: theme.textTheme.labelLarge?.copyWith(
                                     color: colorScheme.onPrimary,
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    l10n.playNow,
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      color: colorScheme.onPrimary,
-                                      fontWeight: FontWeight.w800,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (episode.podcastId != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: TvFocusable(
+                              onSelect: () =>
+                                  context.push('/podcast/${episode.podcastId}'),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: TvColors.border),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      LucideIcons.podcast,
+                                      size: 15,
+                                      color: TvColors.textPrimary,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      l10n.goToPodcast,
+                                      style: theme.textTheme.labelMedium
+                                          ?.copyWith(
+                                            color: TvColors.textPrimary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          if (episode.podcastId != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
+                        Row(
+                          children: [
+                            Expanded(
                               child: TvFocusable(
-                                onSelect: () => context.push(
-                                  '/podcast/${episode.podcastId}',
-                                ),
+                                onSelect: () {
+                                  ref
+                                      .read(libraryNotifierProvider.notifier)
+                                      .toggleLikedEpisode(
+                                        LikedEpisodeModel(
+                                          videoId: episode.videoId,
+                                          name: episode.name,
+                                          podcastName: episode.podcastName,
+                                          podcastBrowseId: episode.podcastId,
+                                          thumbnailUrl: art,
+                                          addedAt: DateTime.now(),
+                                        ),
+                                      );
+                                },
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
-                                  width: double.infinity,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.08),
+                                    color: liked != null
+                                        ? colorScheme.primary.withValues(
+                                            alpha: 0.16,
+                                          )
+                                        : Colors.white.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: TvColors.border),
+                                    border: Border.all(
+                                      color: liked != null
+                                          ? colorScheme.primary.withValues(
+                                              alpha: 0.4,
+                                            )
+                                          : TvColors.borderSubtle,
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(
-                                        LucideIcons.podcast,
+                                      Icon(
+                                        liked != null
+                                            ? LucideIcons.bookmarkCheck
+                                            : LucideIcons.bookmark,
                                         size: 15,
-                                        color: TvColors.textPrimary,
+                                        color: liked != null
+                                            ? colorScheme.primary
+                                            : TvColors.textSecondary,
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 6),
                                       Text(
-                                        l10n.goToPodcast,
+                                        liked != null
+                                            ? l10n.episodeSaved
+                                            : l10n.save,
                                         style: theme.textTheme.labelMedium
                                             ?.copyWith(
-                                              color: TvColors.textPrimary,
                                               fontWeight: FontWeight.w600,
+                                              color: liked != null
+                                                  ? colorScheme.primary
+                                                  : TvColors.textPrimary,
                                             ),
                                       ),
                                     ],
@@ -264,145 +341,73 @@ class _TvEpisodeBodyState extends ConsumerState<_TvEpisodeBody> {
                                 ),
                               ),
                             ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TvFocusable(
-                                  onSelect: () {
-                                    ref
-                                        .read(libraryNotifierProvider.notifier)
-                                        .toggleLikedEpisode(
-                                          LikedEpisodeModel(
-                                            videoId: episode.videoId,
-                                            name: episode.name,
-                                            podcastName: episode.podcastName,
-                                            podcastBrowseId: episode.podcastId,
-                                            thumbnailUrl: art,
-                                            addedAt: DateTime.now(),
-                                          ),
-                                        );
-                                  },
+                            const SizedBox(width: 8),
+                            TvFocusable(
+                              onSelect: () {
+                                ref
+                                    .read(playerStateProvider.notifier)
+                                    .addToQueueVideoId(
+                                      episode.videoId,
+                                      title: episode.name,
+                                      artist: episode.podcastName ?? '',
+                                      thumbnailUrl: art,
+                                    );
+                                ref
+                                    .read(actionFeedbackProvider.notifier)
+                                    .report(l10n.addedToQueue(1));
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: liked != null
-                                          ? colorScheme.primary.withValues(
-                                              alpha: 0.16,
-                                            )
-                                          : Colors.white.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: liked != null
-                                            ? colorScheme.primary.withValues(
-                                                alpha: 0.4,
-                                              )
-                                            : TvColors.borderSubtle,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          liked != null
-                                              ? LucideIcons.bookmarkCheck
-                                              : LucideIcons.bookmark,
-                                          size: 15,
-                                          color: liked != null
-                                              ? colorScheme.primary
-                                              : TvColors.textSecondary,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          liked != null
-                                              ? l10n.episodeSaved
-                                              : l10n.save,
-                                          style: theme.textTheme.labelMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: liked != null
-                                                    ? colorScheme.primary
-                                                    : TvColors.textPrimary,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
+                                  border: Border.all(
+                                    color: TvColors.borderSubtle,
                                   ),
+                                ),
+                                child: const Icon(
+                                  LucideIcons.listMusic,
+                                  size: 17,
+                                  color: TvColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              TvFocusable(
-                                onSelect: () {
-                                  ref
-                                      .read(playerStateProvider.notifier)
-                                      .addToQueueVideoId(
-                                        episode.videoId,
-                                        title: episode.name,
-                                        artist: episode.podcastName ?? '',
-                                        thumbnailUrl: art,
-                                      );
-                                  ref
-                                      .read(actionFeedbackProvider.notifier)
-                                      .report(l10n.addedToQueue(1));
-                                },
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: TvColors.borderSubtle,
-                                    ),
+                            ),
+                            const SizedBox(width: 8),
+                            TvFocusable(
+                              onSelect: () => ContextMenuSheet.showForEpisode(
+                                context,
+                                videoId: episode.videoId,
+                                name: episode.name,
+                                podcastName: episode.podcastName,
+                                podcastBrowseId: episode.podcastId,
+                                thumbnailUrl: art,
+                                onGoToPodcast: (id) =>
+                                    context.push('/podcast/$id'),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: TvColors.borderSubtle,
                                   ),
-                                  child: const Icon(
-                                    LucideIcons.listMusic,
-                                    size: 17,
-                                    color: TvColors.textPrimary,
-                                  ),
+                                ),
+                                child: const Icon(
+                                  LucideIcons.ellipsisVertical,
+                                  size: 17,
+                                  color: TvColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              TvFocusable(
-                                onSelect: () => ContextMenuSheet.showForEpisode(
-                                  context,
-                                  videoId: episode.videoId,
-                                  name: episode.name,
-                                  podcastName: episode.podcastName,
-                                  podcastBrowseId: episode.podcastId,
-                                  thumbnailUrl: art,
-                                  onGoToPodcast: (id) =>
-                                      context.push('/podcast/$id'),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: TvColors.borderSubtle,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    LucideIcons.ellipsisVertical,
-                                    size: 17,
-                                    color: TvColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(width: 32),
 

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -63,6 +64,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   late AnimationController _controller;
   late Animation<double> _opacity;
   late Animation<double> _scale;
+  final FocusNode _closeFocus = FocusNode(debugLabel: 'feedbackToastClose');
   bool _closing = false;
 
   bool get _sticky => widget.kind == FeedbackKind.error;
@@ -85,8 +87,15 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
 
     _controller.forward();
 
-    // Confirm toasts auto-dismiss; errors stay until the user closes them.
-    if (!_sticky) {
+    // Sticky errors must be dismissible with the remote: take focus as soon as
+    // the overlay mounts so D-pad / Select / Back reach the close control.
+    if (_sticky) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _closeFocus.canRequestFocus) {
+          _closeFocus.requestFocus();
+        }
+      });
+    } else {
       Future.delayed(const Duration(seconds: 5), () {
         if (mounted) _dismiss();
       });
@@ -102,8 +111,25 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     }
   }
 
+  KeyEventResult _onToastKey(FocusNode node, KeyEvent event) {
+    if (!_sticky || event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.browserBack ||
+        key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.gameButtonA) {
+      _dismiss();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   void dispose() {
+    _closeFocus.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -131,52 +157,88 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
               color: Colors.transparent,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: Container(
-                  padding: EdgeInsets.fromLTRB(16, 12, _sticky ? 4 : 16, 12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: colorScheme.outlineVariant),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
+                child: Focus(
+                  focusNode: _sticky ? _closeFocus : null,
+                  autofocus: _sticky,
+                  onKeyEvent: _onToastKey,
+                  child: Builder(
+                    builder: (context) {
+                      final focused = _sticky && Focus.of(context).hasFocus;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          12,
+                          _sticky ? 4 : 16,
+                          12,
+                        ),
                         decoration: BoxDecoration(
-                          color: mark,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          widget.message,
-                          maxLines: _sticky ? 3 : 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.start,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
+                          color: colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: focused
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant,
+                            width: focused ? 2 : 1,
                           ),
+                          boxShadow: focused
+                              ? [
+                                  BoxShadow(
+                                    color: colorScheme.primary.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    blurRadius: 16,
+                                  ),
+                                ]
+                              : null,
                         ),
-                      ),
-                      if (_sticky) ...[
-                        const SizedBox(width: 4),
-                        IconButton(
-                          onPressed: _dismiss,
-                          tooltip: l10n?.close ?? 'Close',
-                          visualDensity: VisualDensity.compact,
-                          iconSize: 18,
-                          icon: Icon(
-                            LucideIcons.x,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: mark,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                widget.message,
+                                maxLines: _sticky ? 3 : 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.start,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurface,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            if (_sticky) ...[
+                              const SizedBox(width: 4),
+                              // Touch/mouse still use the button; remote
+                              // activation is owned by the parent Focus so
+                              // D-pad cannot strand on a nested IconButton.
+                              ExcludeFocus(
+                                child: IconButton(
+                                  onPressed: _dismiss,
+                                  tooltip: l10n?.close ?? 'Close',
+                                  visualDensity: VisualDensity.compact,
+                                  iconSize: 18,
+                                  icon: Icon(
+                                    LucideIcons.x,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ],
+                      );
+                    },
                   ),
                 ),
               ),

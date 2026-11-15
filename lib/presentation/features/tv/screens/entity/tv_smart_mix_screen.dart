@@ -14,6 +14,8 @@ import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../shared/widgets/error_retry_widget.dart';
 import '../../../../shared/widgets/smart_mix_card.dart';
 import '../../tv_metrics.dart';
+import '../../widgets/tv_entity_side_column.dart';
+import '../../widgets/tv_entity_format.dart';
 import '../../widgets/tv_focusable.dart';
 import '../../widgets/tv_track_row.dart';
 
@@ -41,13 +43,6 @@ class _TvSmartMixScreenState extends ConsumerState<TvSmartMixScreen> {
       (e) => e.name == widget.type,
       orElse: () => SmartMixType.mostPlayed,
     );
-  }
-
-  String? _fmtDuration(int? seconds) {
-    if (seconds == null || seconds <= 0) return null;
-    final m = seconds ~/ 60;
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
   }
 
   @override
@@ -130,236 +125,222 @@ class _TvSmartMixScreenState extends ConsumerState<TvSmartMixScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    width: 280,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TvFocusable(
-                            autofocus: songs.isEmpty,
-                            onSelect: () => context.pop(),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: TvColors.border),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    LucideIcons.chevronLeft,
-                                    size: 16,
-                                    color: TvColors.textPrimary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    l10n.askIntroBack,
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          color: TvColors.textPrimary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                ],
-                              ),
+                  TvEntitySideColumn(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TvFocusable(
+                          autofocus: songs.isEmpty,
+                          onSelect: () => context.pop(),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          width: 164,
-                          height: 164,
-                          decoration: BoxDecoration(
-                            gradient: gradient,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: TvColors.border),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                blurRadius: 24,
-                                offset: const Offset(0, 12),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Icon(icon, size: 56, color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: TvColors.textPrimary,
-                            fontWeight: FontWeight.w800,
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          desc,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: TvColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          l10n.catalogSongCount(songs.length),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        if (songs.isNotEmpty)
-                          SizedBox(
-                            width: 224,
-                            child: Column(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                TvFocusable(
-                                  focusNode: _playAllFocus,
-                                  autofocus: true,
-                                  onSelect: () => ref
-                                      .read(playerStateProvider.notifier)
-                                      .playSmartMix(songs, startIndex: 0),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primary,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          LucideIcons.play,
-                                          size: 16,
-                                          color: colorScheme.onPrimary,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          l10n.playAll,
-                                          style: theme.textTheme.labelLarge
-                                              ?.copyWith(
-                                                color: colorScheme.onPrimary,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                const Icon(
+                                  LucideIcons.chevronLeft,
+                                  size: 16,
+                                  color: TvColors.textPrimary,
                                 ),
-                                const SizedBox(height: 8),
-                                TvFocusable(
-                                  onSelect: () {
-                                    final shuffled = List<dynamic>.from(songs)
-                                      ..shuffle();
-                                    ref
-                                        .read(playerStateProvider.notifier)
-                                        .playSmartMix(shuffled, startIndex: 0);
-                                  },
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.08,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: TvColors.border,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          LucideIcons.shuffle,
-                                          size: 15,
-                                          color: TvColors.textPrimary,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          l10n.shufflePlay,
-                                          style: theme.textTheme.labelMedium
-                                              ?.copyWith(
-                                                color: TvColors.textPrimary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TvFocusable(
-                                  onSelect: () => _addToQueue(context, songs),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: TvColors.borderSubtle,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          LucideIcons.listMusic,
-                                          size: 15,
-                                          color: TvColors.textPrimary,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          l10n.addToQueue,
-                                          style: theme.textTheme.labelMedium
-                                              ?.copyWith(
-                                                color: TvColors.textPrimary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  l10n.askIntroBack,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: TvColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 164,
+                        height: 164,
+                        decoration: BoxDecoration(
+                          gradient: gradient,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              blurRadius: 24,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(icon, size: 56, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: TvColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        desc,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: TvColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        l10n.catalogSongCount(songs.length),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      if (songs.isNotEmpty)
+                        SizedBox(
+                          width: 224,
+                          child: Column(
+                            children: [
+                              TvFocusable(
+                                focusNode: _playAllFocus,
+                                autofocus: true,
+                                onSelect: () => ref
+                                    .read(playerStateProvider.notifier)
+                                    .playSmartMix(songs, startIndex: 0),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        LucideIcons.play,
+                                        size: 16,
+                                        color: colorScheme.onPrimary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.playAll,
+                                        style: theme.textTheme.labelLarge
+                                            ?.copyWith(
+                                              color: colorScheme.onPrimary,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TvFocusable(
+                                onSelect: () {
+                                  final shuffled = List<dynamic>.from(songs)
+                                    ..shuffle();
+                                  ref
+                                      .read(playerStateProvider.notifier)
+                                      .playSmartMix(shuffled, startIndex: 0);
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: TvColors.border),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        LucideIcons.shuffle,
+                                        size: 15,
+                                        color: TvColors.textPrimary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.shufflePlay,
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              color: TvColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TvFocusable(
+                                onSelect: () => _addToQueue(context, songs),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: TvColors.borderSubtle,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        LucideIcons.listMusic,
+                                        size: 15,
+                                        color: TvColors.textPrimary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l10n.addToQueue,
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              color: TvColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(width: 32),
                   Expanded(
@@ -427,12 +408,18 @@ class _TvSmartMixScreenState extends ConsumerState<TvSmartMixScreen> {
                                     final isExp = item is LikedSongModel
                                         ? item.isExplicit
                                         : (item as HistoryModel).isExplicit;
+                                    final playCountStr =
+                                        mixType == SmartMixType.mostPlayed &&
+                                            item is HistoryModel
+                                        ? '${item.playCount}x'
+                                        : null;
 
                                     return TvTrackRow(
                                       index: index,
                                       title: trackTitle,
                                       subtitle: trackArtist,
-                                      duration: _fmtDuration(dur),
+                                      duration: formatTrackDuration(dur),
+                                      playCount: playCountStr,
                                       isExplicit: isExp,
                                       isPlaying: playingVideoId == videoId,
                                       onLeftAtEdge: () =>

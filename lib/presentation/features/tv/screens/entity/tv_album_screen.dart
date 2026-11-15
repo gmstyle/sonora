@@ -19,7 +19,11 @@ import '../../../../shared/widgets/error_retry_widget.dart';
 import '../../../../shared/widgets/thumbnail_widget.dart';
 import '../../../album/providers/album_provider.dart';
 import '../../tv_metrics.dart';
+import '../../widgets/tv_entity_side_column.dart';
+import '../../widgets/tv_entity_format.dart';
 import '../../widgets/tv_focusable.dart';
+import '../../widgets/tv_poster_card.dart';
+import '../../widgets/tv_shelf.dart';
 import '../../widgets/tv_track_row.dart';
 
 class TvAlbumScreen extends ConsumerWidget {
@@ -64,13 +68,6 @@ class _TvAlbumBodyState extends ConsumerState<_TvAlbumBody> {
     super.dispose();
   }
 
-  String? _fmtDuration(int? seconds) {
-    if (seconds == null || seconds <= 0) return null;
-    final m = seconds ~/ 60;
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   @override
   Widget build(BuildContext context) {
     final album = widget.album;
@@ -83,11 +80,19 @@ class _TvAlbumBodyState extends ConsumerState<_TvAlbumBody> {
       playerStateProvider.select((s) => s.currentSong?.id),
     );
     final playable = playableSongs(album.songs);
+    final totalDuration = playableDuration(album.songs);
+    final unavailableCount = unplayableSongCount(album.songs);
     final art = album.thumbnails.isNotEmpty ? album.thumbnails.last.url : null;
+    final seenRelated = <String>{album.albumId};
+    final related = album.relatedReleases
+        .where((r) => seenRelated.add(r.albumId))
+        .toList();
     final metaParts = <String>[
       l10n.entityKindAlbum,
       if (album.year != null) '${album.year}',
       l10n.catalogSongCount(album.songs.length),
+      if (totalDuration > Duration.zero) formatTotalDuration(totalDuration),
+      if (unavailableCount > 0) l10n.tracksUnavailable(unavailableCount),
     ];
 
     return Scaffold(
@@ -104,391 +109,440 @@ class _TvAlbumBodyState extends ConsumerState<_TvAlbumBody> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Left Column (Split 40%): Centered Artwork, Meta & Action Stack
-              SizedBox(
-                width: 280,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TvFocusable(
-                        onSelect: () => context.pop(),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: TvColors.border),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                LucideIcons.chevronLeft,
-                                size: 16,
+              TvEntitySideColumn(
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TvFocusable(
+                      onSelect: () => context.pop(),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: TvColors.border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              LucideIcons.chevronLeft,
+                              size: 16,
+                              color: TvColors.textPrimary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              l10n.askIntroBack,
+                              style: theme.textTheme.labelMedium?.copyWith(
                                 color: TvColors.textPrimary,
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                l10n.askIntroBack,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: TvColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                    // Large 168dp Centered Artwork
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18),
+                  // Large 168dp Centered Artwork
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          blurRadius: 24,
+                          offset: const Offset(0, 12),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
+                      ],
+                    ),
+                    child: ThumbnailWidget(
+                      imageUrl: art,
+                      size: 164,
+                      shape: ThumbnailShape.rounded,
+                      borderRadius: 16,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (album.isExplicit) ...[
+                        const TvExplicitBadge(),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(
+                        child: Text(
+                          album.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: TvColors.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            height: 1.15,
                           ),
-                        ],
+                        ),
                       ),
-                      child: ThumbnailWidget(
-                        imageUrl: art,
-                        size: 164,
-                        shape: ThumbnailShape.rounded,
-                        borderRadius: 16,
-                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 4,
+                    children: [
+                      for (final artist in navigableArtists(album.artists))
+                        TvFocusable(
+                          onSelect: artist.artistId == null
+                              ? null
+                              : () =>
+                                    context.push('/artist/${artist.artistId}'),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            child: Text(
+                              artist.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (navigableArtists(album.artists).isEmpty)
+                        Text(
+                          displayArtists(album.artists),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    metaParts.join(' • '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: TvColors.textSecondary,
                     ),
-
-                    const SizedBox(height: 12),
-
+                  ),
+                  if (album.description != null &&
+                      album.description!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
                     Text(
-                      album.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: TvColors.textPrimary,
-                        fontWeight: FontWeight.w800,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      displayArtists(album.artists),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      metaParts.join(' • '),
-                      maxLines: 1,
+                      album.description!.trim(),
+                      maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: TvColors.textSecondary,
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Action Buttons Stack (Remote Ergonomics)
-                    SizedBox(
-                      width: 224,
-                      child: Column(
-                        children: [
-                          TvFocusable(
-                            focusNode: _playAllFocus,
-                            autofocus: true,
-                            onSelect: playable.isEmpty
-                                ? null
-                                : () => ref
-                                      .read(playerStateProvider.notifier)
-                                      .playAlbum(playable, startIndex: 0),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: colorScheme.primary.withValues(
-                                      alpha: 0.25,
-                                    ),
-                                    blurRadius: 14,
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    LucideIcons.play,
-                                    size: 16,
-                                    color: colorScheme.onPrimary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    l10n.playAll,
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      color: colorScheme.onPrimary,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TvFocusable(
-                            onSelect: playable.isEmpty
-                                ? null
-                                : () {
-                                    final shuffled = List<SongDetailed>.from(
-                                      playable,
-                                    )..shuffle();
-                                    ref
-                                        .read(playerStateProvider.notifier)
-                                        .playAlbum(shuffled, startIndex: 0);
-                                  },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: TvColors.border),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    LucideIcons.shuffle,
-                                    size: 15,
-                                    color: TvColors.textPrimary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    l10n.shufflePlay,
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          color: TvColors.textPrimary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TvFocusable(
-                                  onSelect: () {
-                                    ref
-                                        .read(libraryNotifierProvider.notifier)
-                                        .toggleLikedAlbum(
-                                          LikedAlbumModel(
-                                            albumId: album.albumId,
-                                            name: album.name,
-                                            artistName: displayArtists(
-                                              album.artists,
-                                            ),
-                                            artistId: primaryArtistId(
-                                              album.artists,
-                                            ),
-                                            thumbnailUrl: art,
-                                            year: album.year,
-                                            addedAt: DateTime.now(),
-                                          ),
-                                        );
-                                  },
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: liked != null
-                                          ? colorScheme.primary.withValues(
-                                              alpha: 0.16,
-                                            )
-                                          : Colors.white.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: liked != null
-                                            ? colorScheme.primary.withValues(
-                                                alpha: 0.4,
-                                              )
-                                            : TvColors.borderSubtle,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          liked != null
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          size: 15,
-                                          color: liked != null
-                                              ? colorScheme.primary
-                                              : TvColors.textSecondary,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          l10n.like,
-                                          style: theme.textTheme.labelMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: liked != null
-                                                    ? colorScheme.primary
-                                                    : TvColors.textPrimary,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              TvFocusable(
-                                onSelect: playable.isEmpty
-                                    ? null
-                                    : () => _addToQueue(context, ref, playable),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: TvColors.borderSubtle,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    LucideIcons.listMusic,
-                                    size: 17,
-                                    color: TvColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              TvFocusable(
-                                onSelect: () => ContextMenuSheet.showForAlbum(
-                                  context,
-                                  albumId: album.albumId,
-                                  name: album.name,
-                                  artist: displayArtists(album.artists),
-                                  artistId: primaryArtistId(album.artists),
-                                  thumbnailUrl: art,
-                                  year: album.year,
-                                  omitActionIds: {
-                                    DetailActionId.play,
-                                    DetailActionId.shuffle,
-                                    DetailActionId.queue,
-                                    DetailActionId.save,
-                                    DetailActionId.share,
-                                    if (offline) DetailActionId.download,
-                                    if (offline) DetailActionId.radio,
-                                  },
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: TvColors.borderSubtle,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    LucideIcons.ellipsisVertical,
-                                    size: 17,
-                                    color: TvColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        height: 1.35,
                       ),
                     ),
                   ],
-                ),
+
+                  const SizedBox(height: 14),
+
+                  // Action Buttons Stack (Remote Ergonomics)
+                  SizedBox(
+                    width: 224,
+                    child: Column(
+                      children: [
+                        TvFocusable(
+                          focusNode: _playAllFocus,
+                          autofocus: true,
+                          onSelect: playable.isEmpty
+                              ? null
+                              : () => ref
+                                    .read(playerStateProvider.notifier)
+                                    .playAlbum(playable, startIndex: 0),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                  blurRadius: 14,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  LucideIcons.play,
+                                  size: 16,
+                                  color: colorScheme.onPrimary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.playAll,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: colorScheme.onPrimary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TvFocusable(
+                          onSelect: playable.isEmpty
+                              ? null
+                              : () {
+                                  final shuffled = List<SongDetailed>.from(
+                                    playable,
+                                  )..shuffle();
+                                  ref
+                                      .read(playerStateProvider.notifier)
+                                      .playAlbum(shuffled, startIndex: 0);
+                                },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: TvColors.border),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  LucideIcons.shuffle,
+                                  size: 15,
+                                  color: TvColors.textPrimary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.shufflePlay,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: TvColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TvFocusable(
+                                onSelect: () {
+                                  ref
+                                      .read(libraryNotifierProvider.notifier)
+                                      .toggleLikedAlbum(
+                                        LikedAlbumModel(
+                                          albumId: album.albumId,
+                                          name: album.name,
+                                          artistName: displayArtists(
+                                            album.artists,
+                                          ),
+                                          artistId: primaryArtistId(
+                                            album.artists,
+                                          ),
+                                          thumbnailUrl: art,
+                                          year: album.year,
+                                          addedAt: DateTime.now(),
+                                        ),
+                                      );
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: liked != null
+                                        ? colorScheme.primary.withValues(
+                                            alpha: 0.16,
+                                          )
+                                        : Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: liked != null
+                                          ? colorScheme.primary.withValues(
+                                              alpha: 0.4,
+                                            )
+                                          : TvColors.borderSubtle,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        liked != null
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        size: 15,
+                                        color: liked != null
+                                            ? colorScheme.primary
+                                            : TvColors.textSecondary,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        l10n.like,
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: liked != null
+                                                  ? colorScheme.primary
+                                                  : TvColors.textPrimary,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TvFocusable(
+                              onSelect: playable.isEmpty
+                                  ? null
+                                  : () => _addToQueue(context, ref, playable),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: TvColors.borderSubtle,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  LucideIcons.listMusic,
+                                  size: 17,
+                                  color: TvColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TvFocusable(
+                              onSelect: () => ContextMenuSheet.showForAlbum(
+                                context,
+                                albumId: album.albumId,
+                                name: album.name,
+                                artist: displayArtists(album.artists),
+                                artistId: primaryArtistId(album.artists),
+                                thumbnailUrl: art,
+                                year: album.year,
+                                omitActionIds: {
+                                  DetailActionId.play,
+                                  DetailActionId.shuffle,
+                                  DetailActionId.queue,
+                                  DetailActionId.save,
+                                  DetailActionId.share,
+                                  if (offline) DetailActionId.download,
+                                  if (offline) DetailActionId.radio,
+                                },
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: TvColors.borderSubtle,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  LucideIcons.ellipsisVertical,
+                                  size: 17,
+                                  color: TvColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(width: 32),
 
-              // Right Column (Split 60%): High-Contrast Scrollable Tracklist
+              // Right Column (Split 60%): Tracklist + related releases
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            l10n.songs.toUpperCase(),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                              color: TvColors.textSecondary,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              l10n.songs.toUpperCase(),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: TvColors.textSecondary,
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            l10n.duration.toUpperCase(),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                              color: TvColors.textSecondary,
+                            const Spacer(),
+                            Text(
+                              l10n.duration.toUpperCase(),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: TvColors.textSecondary,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                    const Divider(height: 1, color: TvColors.border),
-
-                    Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: album.songs.length,
-                        itemBuilder: (context, index) {
+                    const SliverToBoxAdapter(
+                      child: Divider(height: 1, color: TvColors.border),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
                           final song = album.songs[index];
                           return TvTrackRow(
                             index: index,
                             title: song.name,
                             subtitle: displayArtists(song.artists),
-                            duration: _fmtDuration(song.duration),
+                            duration: formatTrackDuration(song.duration),
+                            playCount: formatPlayCount(song.playCount),
                             isExplicit: song.isExplicit,
                             isPlaying: playingVideoId == song.videoId,
                             enabled: song.isPlayable,
@@ -515,11 +569,48 @@ class _TvAlbumBodyState extends ConsumerState<_TvAlbumBody> {
                               isExplicit: song.isExplicit,
                               isPlayable: song.isPlayable,
                               albumId: album.albumId,
+                              playCount: song.playCount,
                             ),
                           );
-                        },
+                        }, childCount: album.songs.length),
                       ),
                     ),
+                    if (related.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: TvShelf(
+                          title: l10n.relatedReleases,
+                          children: [
+                            for (final release in related)
+                              TvPosterCard(
+                                title: release.name,
+                                subtitle: [
+                                  displayArtists(release.artists),
+                                  if (release.year != null) '${release.year}',
+                                ].where((s) => s.isNotEmpty).join(' • '),
+                                imageUrl: release.thumbnails.isNotEmpty
+                                    ? release.thumbnails.last.url
+                                    : null,
+                                onSelect: () =>
+                                    context.push('/album/${release.albumId}'),
+                                onLongSelect: () =>
+                                    ContextMenuSheet.showForAlbum(
+                                      context,
+                                      albumId: release.albumId,
+                                      name: release.name,
+                                      artist: displayArtists(release.artists),
+                                      artistId: primaryArtistId(
+                                        release.artists,
+                                      ),
+                                      thumbnailUrl:
+                                          release.thumbnails.isNotEmpty
+                                          ? release.thumbnails.last.url
+                                          : null,
+                                      year: release.year,
+                                    ),
+                              ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
