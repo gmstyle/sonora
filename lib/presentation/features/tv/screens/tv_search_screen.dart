@@ -22,19 +22,21 @@ import '../../search/providers/search_provider.dart';
 import '../../search/search_wide_layout.dart';
 import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
+import '../widgets/tv_category_card.dart';
 import '../widgets/tv_focusable.dart';
 import '../widgets/tv_poster_card.dart';
+import '../widgets/tv_poster_grid.dart';
 import '../widgets/tv_shelf.dart';
 
 const _kTvQuickGenres = [
-  ('Pop', 'Pop', Color(0xFFE11D48), Color(0xFFBE123C)),
-  ('Hip Hop', 'Hip Hop', Color(0xFF7E22CE), Color(0xFF581C87)),
-  ('Electronic', 'Electronic', Color(0xFF2563EB), Color(0xFF0284C7)),
-  ('Rock', 'Rock', Color(0xFFD97706), Color(0xFFB45309)),
-  ('Chill', 'Relax & Chill', Color(0xFF059669), Color(0xFF047857)),
-  ('R&B', 'R&B', Color(0xFFDC2626), Color(0xFF991B1B)),
-  ('Jazz & Blues', 'Jazz & Blues', Color(0xFF7C3AED), Color(0xFFC026D3)),
-  ('Workout', 'Workout & Focus', Color(0xFF0D9488), Color(0xFF0F766E)),
+  ('Pop', 'Pop'),
+  ('Hip Hop', 'Hip Hop'),
+  ('Electronic', 'Electronic'),
+  ('Rock', 'Rock'),
+  ('Chill', 'Relax & Chill'),
+  ('R&B', 'R&B'),
+  ('Jazz & Blues', 'Jazz & Blues'),
+  ('Workout', 'Workout & Focus'),
 ];
 
 String? _joinMeta(Iterable<String?> parts) {
@@ -393,24 +395,10 @@ class _TvSearchResultsBody extends ConsumerWidget {
                 ),
               ),
             if (results.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: TvMetrics.contentPadding,
-                  vertical: 8,
-                ),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    childAspectRatio: 0.78,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) =>
-                        _TvSearchResultCard(result: results[index]),
-                    childCount: results.length,
-                  ),
-                ),
+              TvPosterSliverGrid(
+                itemCount: results.length,
+                itemBuilder: (context, index) =>
+                    _TvSearchResultCard(result: results[index]),
               )
             else if (showLibrary && offline)
               SliverToBoxAdapter(
@@ -638,83 +626,29 @@ class _TvSearchGenreDiscovery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: TvMetrics.contentPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              l10n.moodsAndGenres.toUpperCase(),
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisExtent: 76,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-              ),
-              itemCount: _kTvQuickGenres.length,
-              itemBuilder: (context, index) {
-                final genre = _kTvQuickGenres[index];
-                final label = switch (index) {
+    return ListView(
+      padding: const EdgeInsets.only(top: TvMetrics.browseTopPadding),
+      children: [
+        TvShelf(
+          title: l10n.moodsAndGenres,
+          children: [
+            for (var i = 0; i < _kTvQuickGenres.length; i++)
+              TvCategoryCard(
+                title: switch (i) {
                   4 => l10n.mixMoodChill,
                   7 => l10n.mixMoodWorkout,
-                  _ => genre.$1,
-                };
-                return TvFocusable(
-                  onSelect: () => onSelectGenre(genre.$2),
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [genre.$3, genre.$4],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black45,
-                              blurRadius: 4,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                  _ => _kTvQuickGenres[i].$1,
+                },
+                onSelect: () => onSelectGenre(_kTvQuickGenres[i].$2),
+                onLeftAtEdge: i == 0
+                    ? () => TvShellFocus.requestSidebar(context)
+                    : null,
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

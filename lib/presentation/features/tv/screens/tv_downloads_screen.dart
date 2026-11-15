@@ -14,13 +14,7 @@ import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
 import '../widgets/tv_focusable.dart';
 import '../widgets/tv_poster_card.dart';
-
-const _kTvDownloadsGrid = SliverGridDelegateWithFixedCrossAxisCount(
-  crossAxisCount: 4,
-  childAspectRatio: 0.78,
-  crossAxisSpacing: 16,
-  mainAxisSpacing: 16,
-);
+import '../widgets/tv_poster_grid.dart';
 
 /// TV downloads: completed poster grid + active queue summary.
 ///
@@ -112,9 +106,7 @@ class TvDownloadsScreen extends ConsumerWidget {
                     ),
                   );
                 }
-                return GridView.builder(
-                  padding: const EdgeInsets.all(TvMetrics.contentPadding),
-                  gridDelegate: _kTvDownloadsGrid,
+                return TvPosterGrid(
                   itemCount: completed.length,
                   itemBuilder: (context, index) {
                     final item = completed[index];
@@ -122,8 +114,6 @@ class TvDownloadsScreen extends ConsumerWidget {
                       title: item.title,
                       subtitle: item.artist,
                       imageUrl: item.thumbnailUrl,
-                      // Only the leftmost column item in each row (index == 0
-                      // for a 4-column grid) sends focus back to the sidebar.
                       onLeftAtEdge: index == 0
                           ? () => TvShellFocus.requestSidebar(context)
                           : null,

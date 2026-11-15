@@ -95,8 +95,12 @@ abstract final class TvMetrics {
       shelfCardWidth - (shelfCardPadding * 2);
   static const double shelfCardHeight = 140;
   static const double shelfCardTextHeight = 40;
-  static const double shelfRowHeight =
-      shelfCardImageSize + shelfCardTextHeight + (shelfCardPadding * 2) + 32;
+
+  /// Framed poster height used by shelves and by [TvPosterGrid] alike.
+  static const double posterCardHeight =
+      shelfCardImageSize + shelfCardTextHeight + (shelfCardPadding * 2);
+  static const double posterGridGap = 16;
+  static const double shelfRowHeight = posterCardHeight + 32;
 
   /// Featured / resume items as a horizontal row of 16:9 framed cards.
   static const double featuredCardWidth = 220;

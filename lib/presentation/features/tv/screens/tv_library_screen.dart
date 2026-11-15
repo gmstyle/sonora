@@ -16,16 +16,10 @@ import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
 import '../widgets/tv_focusable.dart';
 import '../widgets/tv_poster_card.dart';
+import '../widgets/tv_poster_grid.dart';
 import '../widgets/tv_shelf.dart';
 
 enum _TvLibrarySection { liked, playlists, artists, albums, podcasts, mixes }
-
-const _kTvGrid = SliverGridDelegateWithFixedCrossAxisCount(
-  crossAxisCount: 4,
-  childAspectRatio: 0.78,
-  crossAxisSpacing: 16,
-  mainAxisSpacing: 16,
-);
 
 /// TV library: category chips + poster shelves/grids.
 class TvLibraryScreen extends ConsumerStatefulWidget {
@@ -245,9 +239,7 @@ class _LikedSongsBody extends ConsumerWidget {
             title: l10n.favorites,
           );
         }
-        return GridView.builder(
-          padding: const EdgeInsets.all(TvMetrics.contentPadding),
-          gridDelegate: _kTvGrid,
+        return TvPosterGrid(
           itemCount: songs.length + 1,
           itemBuilder: (context, index) {
             if (index == 0) {
@@ -255,6 +247,7 @@ class _LikedSongsBody extends ConsumerWidget {
                 title: l10n.favorites,
                 subtitle: l10n.catalogSongCount(songs.length),
                 focusNode: firstFocus,
+                onLeftAtEdge: () => TvShellFocus.requestSidebar(context),
                 placeholderOverride: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -428,9 +421,7 @@ class _ArtistsBody extends ConsumerWidget {
         if (artists.isEmpty) {
           return EmptyStateWidget(icon: LucideIcons.user, title: l10n.artists);
         }
-        return GridView.builder(
-          padding: const EdgeInsets.all(TvMetrics.contentPadding),
-          gridDelegate: _kTvGrid,
+        return TvPosterGrid(
           itemCount: artists.length,
           itemBuilder: (context, index) {
             final artist = artists[index];
@@ -439,6 +430,9 @@ class _ArtistsBody extends ConsumerWidget {
               imageUrl: artist.thumbnailUrl,
               shape: ThumbnailShape.circle,
               focusNode: index == 0 ? firstFocus : null,
+              onLeftAtEdge: index == 0
+                  ? () => TvShellFocus.requestSidebar(context)
+                  : null,
               onSelect: () => context.push('/artist/${artist.artistId}'),
               onLongSelect: () => ContextMenuSheet.showForArtist(
                 context,
@@ -479,9 +473,7 @@ class _AlbumsBody extends ConsumerWidget {
         if (albums.isEmpty) {
           return EmptyStateWidget(icon: LucideIcons.disc3, title: l10n.albums);
         }
-        return GridView.builder(
-          padding: const EdgeInsets.all(TvMetrics.contentPadding),
-          gridDelegate: _kTvGrid,
+        return TvPosterGrid(
           itemCount: albums.length,
           itemBuilder: (context, index) {
             final album = albums[index];
@@ -490,6 +482,9 @@ class _AlbumsBody extends ConsumerWidget {
               subtitle: album.artistName,
               imageUrl: album.thumbnailUrl,
               focusNode: index == 0 ? firstFocus : null,
+              onLeftAtEdge: index == 0
+                  ? () => TvShellFocus.requestSidebar(context)
+                  : null,
               onSelect: () => context.push('/album/${album.albumId}'),
               onLongSelect: () => ContextMenuSheet.showForAlbum(
                 context,
@@ -536,9 +531,7 @@ class _PodcastsBody extends ConsumerWidget {
             title: l10n.podcasts,
           );
         }
-        return GridView.builder(
-          padding: const EdgeInsets.all(TvMetrics.contentPadding),
-          gridDelegate: _kTvGrid,
+        return TvPosterGrid(
           itemCount: podcasts.length,
           itemBuilder: (context, index) {
             final podcast = podcasts[index];
@@ -547,6 +540,9 @@ class _PodcastsBody extends ConsumerWidget {
               subtitle: podcast.authorName,
               imageUrl: podcast.thumbnailUrl,
               focusNode: index == 0 ? firstFocus : null,
+              onLeftAtEdge: index == 0
+                  ? () => TvShellFocus.requestSidebar(context)
+                  : null,
               onSelect: () => context.push('/podcast/${podcast.browseId}'),
               onLongSelect: () => ContextMenuSheet.showForPodcast(
                 context,
