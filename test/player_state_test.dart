@@ -40,6 +40,25 @@ void main() {
       expect(updated.sleepTimerRemaining, isNull);
     });
 
+    test('isBlocked is true while restoring or switching', () {
+      expect(const PlayerState(isRestoring: true).isBlocked, isTrue);
+      expect(const PlayerState(isSwitching: true).isBlocked, isTrue);
+      expect(
+        const PlayerState(isRestoring: true, isSwitching: true).isBlocked,
+        isTrue,
+      );
+      expect(const PlayerState(isPlaying: true).isBlocked, isFalse);
+    });
+
+    test('copyWith null isRestoring keeps previous value', () {
+      const restoring = PlayerState(isRestoring: true);
+      final kept = restoring.copyWith(isRestoring: null, isPlaying: true);
+      expect(kept.isRestoring, isTrue);
+      expect(kept.isPlaying, isTrue);
+      final cleared = restoring.copyWith(isRestoring: false, isPlaying: true);
+      expect(cleared.isRestoring, isFalse);
+    });
+
     test('copyWith overwrites specified fields', () {
       const state = PlayerState();
       final updated = state.copyWith(

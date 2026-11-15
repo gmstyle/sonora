@@ -384,24 +384,14 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     Future.microtask(() {
       if (isDisposed) return;
 
-      _restoreStatusSub = _handler.restoreStatusStream.listen((status) {
-        if (status == RestoreStatus.restoring) {
-          state = state.copyWith(
-            isRestoring: true,
-            position: _handler.savedPosition,
-          );
-        } else {
-          // Restore finished: re-read queueIndex from the handler in case the
-          // playbackState emission during restore was missed (e.g. provider
-          // subscribed after a transient state). Playlist index is the
-          // fallback when PlaybackState.queueIndex is still null.
-          final qi = _handler.playbackState.valueOrNull?.queueIndex;
-          final playlistIdx = _handler.engine.state.playlist.index;
-          final resolved =
-              qi ?? (playlistIdx >= 0 ? playlistIdx : state.currentIndex);
-          state = state.copyWith(isRestoring: false, currentIndex: resolved);
-        }
-      });
+      // restoreStatusStream is broadcast and does not replay. Seed from the
+      // synchronous current value after listen so a ready that fired between
+      // the initial build (isRestoring: true) and this microtask is not missed
+      // — otherwise the mini player stays on shimmer while audio already plays.
+      _restoreStatusSub = _handler.restoreStatusStream.listen(
+        _applyRestoreStatus,
+      );
+      _applyRestoreStatus(_handler.currentRestoreStatus);
 
       _positionSub = _handler.positionStream.listen((pos) {
         // Don't overwrite the static saved position while restoring.
@@ -432,10 +422,14 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           // player stuck on shimmer. Engine error must clear it or the mini
           // player stays on the loading shimmer forever.
           isSwitching: engineError ? false : (wasSwitching && !s.playing),
+          // Audible playback means restore is done enough for the UI — clear
+          // a stuck isRestoring from a missed ready event on the broadcast
+          // stream. Null keeps the current flag via copyWith.
+          isRestoring: s.playing ? false : null,
         );
 
         if (s.playing) {
-          state = state.copyWith(isSwitching: false);
+          state = state.copyWith(isSwitching: false, isRestoring: false);
           // Clear transient error message from failed retry
           if (state.errorMessage != null) {
             state = state.copyWith(clearError: true);
@@ -606,6 +600,9 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
           // true forever, freezing the mini-player's loading shimmer and
           // blocking further interaction (state.isBlocked).
           isSwitching: false,
+          // Same for cold-start restore: a YTM resolve failure during restore
+          // must not leave isRestoring true after the ready event was missed.
+          isRestoring: false,
         );
       });
     });
@@ -727,11 +724,30 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     }
   }
 
+  void _applyRestoreStatus(RestoreStatus status) {
+    if (status == RestoreStatus.restoring) {
+      state = state.copyWith(
+        isRestoring: true,
+        position: _handler.savedPosition,
+      );
+      return;
+    }
+    // Restore finished (ready/idle): re-read queueIndex from the handler in
+    // case the playbackState emission during restore was missed (e.g.
+    // provider subscribed after a transient state). Playlist index is the
+    // fallback when PlaybackState.queueIndex is still null.
+    final qi = _handler.playbackState.valueOrNull?.queueIndex;
+    final playlistIdx = _handler.engine.state.playlist.index;
+    final resolved =
+        qi ?? (playlistIdx >= 0 ? playlistIdx : state.currentIndex);
+    state = state.copyWith(isRestoring: false, currentIndex: resolved);
+  }
+
   void _clearSwitchingIfAudible() {
     final enginePlaying = _handler.engine.state.playing;
     final sessionPlaying = _handler.playbackState.valueOrNull?.playing ?? false;
     if (enginePlaying || sessionPlaying) {
-      state = state.copyWith(isSwitching: false);
+      state = state.copyWith(isSwitching: false, isRestoring: false);
     }
   }
 
