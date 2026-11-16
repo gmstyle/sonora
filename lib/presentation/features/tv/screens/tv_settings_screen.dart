@@ -22,6 +22,7 @@ class TvSettingsScreen extends ConsumerStatefulWidget {
     SettingsCategory.appearance,
     SettingsCategory.playback,
     SettingsCategory.downloads,
+    SettingsCategory.account,
     SettingsCategory.privacy,
     SettingsCategory.about,
   ];
