@@ -33,6 +33,7 @@ import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
 import 'data/services/local_audio_proxy_server.dart';
 import 'data/services/sync_service.dart';
+import 'data/services/youtube_session_store.dart';
 import 'domain/models/media_quality.dart';
 import 'domain/usecases/download/cleanup_incomplete_downloads_use_case.dart';
 import 'domain/usecases/player/play_video_id_use_case.dart';
@@ -54,8 +55,11 @@ import 'presentation/providers/action_feedback_provider.dart';
 import 'presentation/providers/stream_datasource_provider.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
+import 'presentation/providers/youtube_account_provider.dart';
 import 'presentation/providers/ytmusic_provider.dart';
 import 'presentation/shared/widgets/release_notes_view.dart';
+
+import 'package:path_provider/path_provider.dart';
 
 import 'package:go_router/go_router.dart';
 
@@ -97,13 +101,19 @@ Future<void> main() async {
   // background audio service) has access to them before the Flutter widget
   // tree is rendered.
   final db = createAppDatabase();
+  final supportDir = await getApplicationSupportDirectory();
+  final youtubeSessionStore = YoutubeSessionStore.inDirectory(supportDir.path);
   final ytmusicDs = YtmusicDatasource();
+  // Restore auth cookies before the first Innertube scrape.
+  await youtubeSessionStore.loadInto(ytmusicDs.client);
   // First init wins. A bare YTMusic().initialize() would lock HL to the
   // English homepage and ignore the saved country and content language.
   await ytmusicDs.initialize(
     gl: prefs.getString(kGlKey) ?? 'US',
     hl: prefs.getString(kHlKey) ?? 'en',
   );
+  // Persist SID/LOGIN_INFO rotation from the authenticated homepage scrape.
+  await youtubeSessionStore.saveFrom(ytmusicDs.client);
   final streamDs = StreamDatasource(
     getDefaultAudioQuality: () =>
         MediaQuality.fromStorage(readStreamAudioQualityPref(prefs)),
@@ -201,6 +211,7 @@ Future<void> main() async {
         libraryRepositoryProvider.overrideWithValue(libraryRepo),
         musicRepositoryProvider.overrideWithValue(musicRepo),
         playVideoIdUseCaseProvider.overrideWithValue(playVideoIdUseCase),
+        youtubeSessionStoreProvider.overrideWithValue(youtubeSessionStore),
       ],
       child: const SonoraApp(),
     ),

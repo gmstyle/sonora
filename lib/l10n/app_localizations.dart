@@ -1732,6 +1732,186 @@ abstract class AppLocalizations {
   /// **'Privacy'**
   String get privacy;
 
+  /// No description provided for @account.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get account;
+
+  /// No description provided for @settingsAccountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with YouTube for personalized feeds'**
+  String get settingsAccountSubtitle;
+
+  /// No description provided for @accountSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get accountSignedIn;
+
+  /// No description provided for @accountGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in'**
+  String get accountGuest;
+
+  /// No description provided for @accountSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with YouTube'**
+  String get accountSignIn;
+
+  /// No description provided for @accountSignInHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock your library feed and age-gated tracks'**
+  String get accountSignInHint;
+
+  /// No description provided for @accountSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get accountSignOut;
+
+  /// No description provided for @accountSignOutConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the saved YouTube sign-in from this device?'**
+  String get accountSignOutConfirm;
+
+  /// No description provided for @accountLinkDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a device'**
+  String get accountLinkDevice;
+
+  /// No description provided for @accountLinkDeviceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code shown on TV or Linux to send your sign-in'**
+  String get accountLinkDeviceHint;
+
+  /// No description provided for @accountSignInUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in isn’t available on this device'**
+  String get accountSignInUnavailable;
+
+  /// No description provided for @deviceLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link devices'**
+  String get deviceLinkTitle;
+
+  /// No description provided for @deviceLinkIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the QR code shown in Sonora on your TV or computer. This phone must already be signed in.'**
+  String get deviceLinkIntro;
+
+  /// No description provided for @deviceLinkOpenCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Open camera'**
+  String get deviceLinkOpenCamera;
+
+  /// No description provided for @deviceLinkScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the device’s QR code'**
+  String get deviceLinkScanHint;
+
+  /// No description provided for @deviceLinkSasHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This code must match the other device. If it doesn’t, tap Cancel.'**
+  String get deviceLinkSasHint;
+
+  /// No description provided for @deviceLinkSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send sign-in'**
+  String get deviceLinkSend;
+
+  /// No description provided for @deviceLinkSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending sign-in…'**
+  String get deviceLinkSending;
+
+  /// No description provided for @deviceLinkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent — finish on the other device'**
+  String get deviceLinkDone;
+
+  /// No description provided for @deviceLinkNeedLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in on this phone first, then scan the QR code.'**
+  String get deviceLinkNeedLogin;
+
+  /// No description provided for @deviceLinkQrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with the Sonora app'**
+  String get deviceLinkQrTitle;
+
+  /// No description provided for @deviceLinkQrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'On your phone, open Sonora → Settings → Account → Link a device, then scan this code. Both devices must be on the same Wi-Fi.'**
+  String get deviceLinkQrHint;
+
+  /// No description provided for @deviceLinkQrWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the phone…'**
+  String get deviceLinkQrWaiting;
+
+  /// No description provided for @deviceLinkQrSasHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone will show this same code. Send only if they match.'**
+  String get deviceLinkQrSasHint;
+
+  /// No description provided for @deviceLinkErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t reach this device. Check Wi-Fi and try again.'**
+  String get deviceLinkErrorNetwork;
+
+  /// No description provided for @deviceLinkErrorTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Timed out. Generate a new QR code and scan again.'**
+  String get deviceLinkErrorTimeout;
+
+  /// No description provided for @deviceLinkErrorPayload.
+  ///
+  /// In en, this message translates to:
+  /// **'That QR code isn’t valid. Generate a new one and scan again.'**
+  String get deviceLinkErrorPayload;
+
+  /// No description provided for @deviceLinkErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again.'**
+  String get deviceLinkErrorGeneric;
+
+  /// No description provided for @deviceLinkNoLanIp.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t find a Wi-Fi address. Connect to a network and try again.'**
+  String get deviceLinkNoLanIp;
+
+  /// No description provided for @deviceLinkRegenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'New QR code'**
+  String get deviceLinkRegenerate;
+
   /// No description provided for @trackListeningHistory.
   ///
   /// In en, this message translates to:

@@ -1016,6 +1016,110 @@ class AppLocalizationsEn extends AppLocalizations {
   String get privacy => 'Privacy';
 
   @override
+  String get account => 'Account';
+
+  @override
+  String get settingsAccountSubtitle =>
+      'Sign in with YouTube for personalized feeds';
+
+  @override
+  String get accountSignedIn => 'Signed in';
+
+  @override
+  String get accountGuest => 'Not signed in';
+
+  @override
+  String get accountSignIn => 'Sign in with YouTube';
+
+  @override
+  String get accountSignInHint =>
+      'Unlock your library feed and age-gated tracks';
+
+  @override
+  String get accountSignOut => 'Sign out';
+
+  @override
+  String get accountSignOutConfirm =>
+      'Remove the saved YouTube sign-in from this device?';
+
+  @override
+  String get accountLinkDevice => 'Link a device';
+
+  @override
+  String get accountLinkDeviceHint =>
+      'Scan a QR code shown on TV or Linux to send your sign-in';
+
+  @override
+  String get accountSignInUnavailable =>
+      'Sign-in isn’t available on this device';
+
+  @override
+  String get deviceLinkTitle => 'Link devices';
+
+  @override
+  String get deviceLinkIntro =>
+      'Scan the QR code shown in Sonora on your TV or computer. This phone must already be signed in.';
+
+  @override
+  String get deviceLinkOpenCamera => 'Open camera';
+
+  @override
+  String get deviceLinkScanHint => 'Point the camera at the device’s QR code';
+
+  @override
+  String get deviceLinkSasHint =>
+      'This code must match the other device. If it doesn’t, tap Cancel.';
+
+  @override
+  String get deviceLinkSend => 'Send sign-in';
+
+  @override
+  String get deviceLinkSending => 'Sending sign-in…';
+
+  @override
+  String get deviceLinkDone => 'Sent — finish on the other device';
+
+  @override
+  String get deviceLinkNeedLogin =>
+      'Sign in on this phone first, then scan the QR code.';
+
+  @override
+  String get deviceLinkQrTitle => 'Scan with the Sonora app';
+
+  @override
+  String get deviceLinkQrHint =>
+      'On your phone, open Sonora → Settings → Account → Link a device, then scan this code. Both devices must be on the same Wi-Fi.';
+
+  @override
+  String get deviceLinkQrWaiting => 'Waiting for the phone…';
+
+  @override
+  String get deviceLinkQrSasHint =>
+      'Your phone will show this same code. Send only if they match.';
+
+  @override
+  String get deviceLinkErrorNetwork =>
+      'Couldn’t reach this device. Check Wi-Fi and try again.';
+
+  @override
+  String get deviceLinkErrorTimeout =>
+      'Timed out. Generate a new QR code and scan again.';
+
+  @override
+  String get deviceLinkErrorPayload =>
+      'That QR code isn’t valid. Generate a new one and scan again.';
+
+  @override
+  String get deviceLinkErrorGeneric => 'Something went wrong. Try again.';
+
+  @override
+  String get deviceLinkNoLanIp =>
+      'Couldn’t find a Wi-Fi address. Connect to a network and try again.';
+
+  @override
+  String get deviceLinkRegenerate => 'New QR code';
+
+  @override
   String get trackListeningHistory => 'Track listening history';
 
   @override

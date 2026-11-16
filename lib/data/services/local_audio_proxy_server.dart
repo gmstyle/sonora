@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:io';
 
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -297,6 +298,7 @@ class LocalAudioProxyServer {
         client = HttpClient();
         client.connectionTimeout = const Duration(seconds: 10);
         final request = await client.getUrl(Uri.parse(currentUrl));
+        await _attachYoutubeCookies(request);
 
         if (rangeHeaderStr != null) {
           request.headers.set(HttpHeaders.rangeHeader, rangeHeaderStr);
@@ -385,5 +387,28 @@ class LocalAudioProxyServer {
     return Response.internalServerError(
       body: 'Failed to proxy remote stream for $videoId',
     );
+  }
+
+  /// Same jar the catalog and stream clients use — CDN GETs need it too.
+  Future<void> _attachYoutubeCookies(HttpClientRequest request) async {
+    try {
+      final jar = YTMusic().cookieJar;
+      final byName = <String, String>{};
+      for (final uri in [
+        request.uri,
+        Uri.parse('https://www.youtube.com/'),
+        Uri.parse('https://music.youtube.com/'),
+      ]) {
+        for (final c in await jar.loadForRequest(uri)) {
+          byName[c.name] = c.value;
+        }
+      }
+      if (byName.isEmpty) return;
+      byName['SOCS'] = kYtSocsConsentValue;
+      request.headers.set(
+        HttpHeaders.cookieHeader,
+        byName.entries.map((e) => '${e.key}=${e.value}').join('; '),
+      );
+    } catch (_) {}
   }
 }

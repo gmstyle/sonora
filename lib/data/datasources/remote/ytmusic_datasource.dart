@@ -131,6 +131,8 @@ class YtmusicDatasource {
 
   Future<UserFull> getUser(String channelId) => client.getUser(channelId);
 
+  Future<AccountInfo?> getAccountInfo() => client.getAccountInfo();
+
   Future<List<PlaylistDetailed>> getUserPlaylists(
     String channelId,
     String params,

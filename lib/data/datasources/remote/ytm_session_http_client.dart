@@ -26,8 +26,24 @@ class YtmSessionHttpClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     await _applySession(request);
     final response = await _inner.send(request);
-    _persistSetCookie(request.url, response.headers);
+    // Never absorb Set-Cookie from youtubei/player POSTs or CDN GETs — they
+    // often clear SAPISID/SID (Max-Age=0) and break the next manifest with
+    // "Sign in to confirm you're not a bot". Homepage document GETs still may.
+    if (_shouldAbsorbSetCookie(request.url)) {
+      await saveSetCookiesFromResponse(
+        _ytmusic.cookieJar,
+        request.url,
+        response,
+      );
+    }
     return response;
+  }
+
+  static bool _shouldAbsorbSetCookie(Uri url) {
+    final host = url.host;
+    if (host.contains('googlevideo.com')) return false;
+    if (url.path.contains('/youtubei/')) return false;
+    return host.contains('youtube.com');
   }
 
   Future<void> _applySession(http.BaseRequest request) async {
@@ -44,8 +60,8 @@ class YtmSessionHttpClient extends http.BaseClient {
     absorb(await jar.loadForRequest(_youtubeOrigin));
     absorb(await jar.loadForRequest(_musicOrigin));
 
-    // Match dart_ytmusic_api: skip the Google consent interstitial.
-    byName.putIfAbsent('SOCS', () => 'CAI');
+    // Always CAI — a login-exported SOCS trips Music's compatibility stub.
+    byName['SOCS'] = kYtSocsConsentValue;
     byName.putIfAbsent('CONSENT', () => 'YES+cb');
 
     final existing = request.headers['cookie'] ?? request.headers['Cookie'];
@@ -68,18 +84,23 @@ class YtmSessionHttpClient extends http.BaseClient {
     if (visitor != null && visitor.isNotEmpty) {
       request.headers['X-Goog-Visitor-Id'] = visitor;
     }
-  }
 
-  void _persistSetCookie(Uri requestUrl, Map<String, String> headers) {
-    final raw = headers['set-cookie'];
-    if (raw == null || raw.isEmpty) return;
-    try {
-      final cookie = Cookie.fromSetCookieValue(raw);
-      _ytmusic.cookieJar.saveFromResponse(requestUrl, [cookie]);
-      // Keep music/youtube jars aligned for the next catalog or stream call.
-      _ytmusic.cookieJar.saveFromResponse(_youtubeOrigin, [cookie]);
-      _ytmusic.cookieJar.saveFromResponse(_musicOrigin, [cookie]);
-    } catch (_) {}
+    // Attach SAPISIDHASH only for Music Innertube. www.youtube.com /player
+    // clients (visionos, androidVr) used for streams often return
+    // LOGIN_REQUIRED / "not a bot" when Authorization carries a Music
+    // USER_SESSION_ID `_u` hash — cookies alone are enough for those clients.
+    final path = request.url.path;
+    final origin = originOf(request.url.toString());
+    if (path.contains('/youtubei/') && origin.contains('music.youtube.com')) {
+      final auth = authorizationHeader(
+        byName,
+        origin,
+        userSessionId: _ytmusic.config['USER_SESSION_ID'],
+      );
+      if (auth != null) {
+        request.headers['Authorization'] = auth;
+      }
+    }
   }
 
   @override

@@ -627,6 +627,7 @@ enum SettingsCategory {
   downloads,
   ai,
   background,
+  account,
   privacy,
   backup,
   about,
@@ -665,7 +666,11 @@ extension SettingsCategoryGroupExtension on SettingsCategoryGroup {
       case SettingsCategoryGroup.assistant:
         return const [SettingsCategory.ai];
       case SettingsCategoryGroup.data:
-        return const [SettingsCategory.privacy, SettingsCategory.backup];
+        return const [
+          SettingsCategory.account,
+          SettingsCategory.privacy,
+          SettingsCategory.backup,
+        ];
       case SettingsCategoryGroup.about:
         return const [SettingsCategory.about];
     }
@@ -706,6 +711,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return 'ai';
       case SettingsCategory.background:
         return 'background';
+      case SettingsCategory.account:
+        return 'account';
       case SettingsCategory.privacy:
         return 'privacy';
       case SettingsCategory.backup:
@@ -728,6 +735,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return l10n.aiSettings;
       case SettingsCategory.background:
         return l10n.backgroundPlayback;
+      case SettingsCategory.account:
+        return l10n.account;
       case SettingsCategory.privacy:
         return l10n.privacy;
       case SettingsCategory.backup:
@@ -750,6 +759,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return l10n.aiSettingsSubtitle;
       case SettingsCategory.background:
         return l10n.settingsBackgroundSubtitle;
+      case SettingsCategory.account:
+        return l10n.settingsAccountSubtitle;
       case SettingsCategory.privacy:
         return l10n.settingsPrivacySubtitle;
       case SettingsCategory.backup:
@@ -771,6 +782,8 @@ extension SettingsCategoryExtension on SettingsCategory {
         return LucideIcons.sparkles;
       case SettingsCategory.background:
         return LucideIcons.batteryFull;
+      case SettingsCategory.account:
+        return LucideIcons.user;
       case SettingsCategory.privacy:
         return LucideIcons.shield;
       case SettingsCategory.backup:

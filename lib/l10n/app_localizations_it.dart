@@ -1021,6 +1021,110 @@ class AppLocalizationsIt extends AppLocalizations {
   String get privacy => 'Privacy';
 
   @override
+  String get account => 'Account';
+
+  @override
+  String get settingsAccountSubtitle =>
+      'Accedi con YouTube per feed personalizzati';
+
+  @override
+  String get accountSignedIn => 'Accesso effettuato';
+
+  @override
+  String get accountGuest => 'Non autenticato';
+
+  @override
+  String get accountSignIn => 'Accedi con YouTube';
+
+  @override
+  String get accountSignInHint =>
+      'Sblocca la libreria e i brani con limite di età';
+
+  @override
+  String get accountSignOut => 'Esci';
+
+  @override
+  String get accountSignOutConfirm =>
+      'Rimuovere l’accesso YouTube salvato su questo dispositivo?';
+
+  @override
+  String get accountLinkDevice => 'Collega un dispositivo';
+
+  @override
+  String get accountLinkDeviceHint =>
+      'Inquadra il QR su TV o Linux per inviare l’accesso';
+
+  @override
+  String get accountSignInUnavailable =>
+      'L’accesso non è disponibile su questo dispositivo';
+
+  @override
+  String get deviceLinkTitle => 'Collega dispositivi';
+
+  @override
+  String get deviceLinkIntro =>
+      'Inquadra il QR mostrato in Sonora su TV o computer. Questo telefono deve già essere autenticato.';
+
+  @override
+  String get deviceLinkOpenCamera => 'Apri fotocamera';
+
+  @override
+  String get deviceLinkScanHint => 'Punta la fotocamera sul QR del dispositivo';
+
+  @override
+  String get deviceLinkSasHint =>
+      'Questo codice deve coincidere con l’altro dispositivo. Se non coincide, tocca Annulla.';
+
+  @override
+  String get deviceLinkSend => 'Invia accesso';
+
+  @override
+  String get deviceLinkSending => 'Invio in corso…';
+
+  @override
+  String get deviceLinkDone => 'Inviato — completa sull’altro dispositivo';
+
+  @override
+  String get deviceLinkNeedLogin =>
+      'Accedi prima su questo telefono, poi inquadra il QR.';
+
+  @override
+  String get deviceLinkQrTitle => 'Inquadra con l’app Sonora';
+
+  @override
+  String get deviceLinkQrHint =>
+      'Sul telefono apri Sonora → Impostazioni → Account → Collega un dispositivo e inquadra questo codice. Entrambi i dispositivi devono essere sulla stessa Wi-Fi.';
+
+  @override
+  String get deviceLinkQrWaiting => 'In attesa del telefono…';
+
+  @override
+  String get deviceLinkQrSasHint =>
+      'Il telefono mostrerà lo stesso codice. Invia solo se coincidono.';
+
+  @override
+  String get deviceLinkErrorNetwork =>
+      'Impossibile raggiungere questo dispositivo. Controlla la Wi-Fi e riprova.';
+
+  @override
+  String get deviceLinkErrorTimeout =>
+      'Tempo scaduto. Genera un nuovo QR e riprova.';
+
+  @override
+  String get deviceLinkErrorPayload =>
+      'QR non valido. Generane uno nuovo e riprova.';
+
+  @override
+  String get deviceLinkErrorGeneric => 'Qualcosa è andato storto. Riprova.';
+
+  @override
+  String get deviceLinkNoLanIp =>
+      'Nessun indirizzo Wi-Fi trovato. Connettiti a una rete e riprova.';
+
+  @override
+  String get deviceLinkRegenerate => 'Nuovo QR';
+
+  @override
   String get trackListeningHistory => 'Traccia cronologia di ascolto';
 
   @override

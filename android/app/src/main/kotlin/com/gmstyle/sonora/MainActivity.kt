@@ -1,6 +1,7 @@
 package com.gmstyle.sonora
 
 import android.content.Intent
+import android.webkit.CookieManager
 import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
@@ -53,6 +54,40 @@ class MainActivity : AudioServiceFragmentActivity() {
                 result.success(android.os.Build.SUPPORTED_ABIS.toList())
             } else {
                 result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.gmstyle.sonora/webview_cookies"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getCookie" -> {
+                    val url = call.argument<String>("url")
+                    if (url == null) {
+                        result.error("INVALID_ARGS", "url is required", null)
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        // Flush so httpOnly LOGIN_INFO written mid-redirect is visible.
+                        val cm = CookieManager.getInstance()
+                        cm.flush()
+                        result.success(cm.getCookie(url))
+                    } catch (e: Exception) {
+                        result.error("COOKIE_ERROR", e.message, null)
+                    }
+                }
+                "clearCookies" -> {
+                    try {
+                        val cm = CookieManager.getInstance()
+                        cm.removeAllCookies(null)
+                        cm.flush()
+                        result.success(null)
+                    } catch (e: Exception) {
+                        result.error("COOKIE_ERROR", e.message, null)
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
 

@@ -26,11 +26,20 @@ dependencies:
   dart_ytmusic_api:
     git:
       url: https://github.com/gmstyle/dart_ytmusic_api.git
+      ref: 80fa058
 
   youtube_explode_dart:
     #path: ../youtube_explode_dart
     git:
       url: https://github.com/gmstyle/youtube_explode_dart.git
+
+  # ── YouTube account sign-in ───────────────────────────────────
+  webview_flutter: ^4.13.0
+  webview_flutter_android: ^4.14.0
+  mobile_scanner: ^7.0.1
+  qr_flutter: ^4.1.0
+  cryptography: ^2.7.0
+  crypto: ^3.0.6
 
   # ── Audio Playback ────────────────────────────────────────────
   audio_session: ^0.2.3

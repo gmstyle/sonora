@@ -29,7 +29,9 @@ enum PlayErrorKind {
     if (s.contains('videounplayable') ||
         s.contains('videounavailable') ||
         s.contains('unplayable') ||
-        s.contains('sign in to confirm your age')) {
+        s.contains('sign in to confirm your age') ||
+        s.contains('sign in to confirm you') ||
+        s.contains('not a bot')) {
       return PlayErrorKind.unplayable;
     }
     if (_looksLikeRateLimit(s)) {

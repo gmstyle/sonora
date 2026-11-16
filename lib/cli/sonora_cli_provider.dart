@@ -14,6 +14,7 @@ import '../data/datasources/remote/stream_datasource.dart';
 import '../data/datasources/remote/ytmusic_datasource.dart';
 import '../data/repositories/library_repository_impl.dart';
 import '../data/repositories/music_repository_impl.dart';
+import '../data/services/youtube_session_store.dart';
 import '../domain/repositories/library_repository.dart';
 import '../domain/repositories/music_repository.dart';
 
@@ -64,9 +65,13 @@ class SonoraCliProvider {
     await initializeLocal();
     if (_remoteReady) return;
 
-    await YTMusic().initialize();
     _ytmusicDs = YtmusicDatasource();
+    final dbPath = _databasePath ?? _defaultDbPath();
+    final sessionDir = p.dirname(dbPath);
+    final sessionStore = YoutubeSessionStore.inDirectory(sessionDir);
+    await sessionStore.loadInto(YTMusic());
     await _ytmusicDs!.initialize();
+    await sessionStore.saveFrom(YTMusic());
     _streamDs = StreamDatasource();
     _musicRepo = MusicRepositoryImpl(_ytmusicDs!, _streamDs!);
     _dio = Dio();

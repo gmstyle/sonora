@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,7 @@ import '../../providers/library_notifier.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/update_notifier.dart';
+import '../../providers/youtube_account_provider.dart';
 import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
@@ -36,6 +38,9 @@ import '../../../core/theme/brand_accent.dart';
 import '../../../domain/models/artwork_style.dart';
 import '../../../domain/models/ask_mode.dart';
 import '../player/widgets/equalizer_panel.dart';
+import 'device_link_qr_panel.dart';
+import 'device_link_scanner_screen.dart';
+import 'youtube_login_webview.dart';
 
 class SettingsScreenContent extends ConsumerWidget {
   const SettingsScreenContent({super.key});
@@ -194,6 +199,8 @@ class SettingsCategoryContent extends ConsumerWidget {
         return [const _AiSection()];
       case SettingsCategory.background:
         return [if (isAndroid) const _BatterySection()];
+      case SettingsCategory.account:
+        return [const _AccountSection()];
       case SettingsCategory.privacy:
         return [
           _PrivacySection(settings: settings, notifier: notifier, ref: ref),
@@ -842,6 +849,145 @@ class _BatterySection extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+// ── Account (YouTube sign-in) ────────────────────────────────────
+
+class _AccountSection extends ConsumerWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final isTv = ref.watch(isAndroidTvProvider);
+    final account = ref.watch(youtubeAccountProvider);
+    final signedIn = account.signedIn;
+    final infoAsync = signedIn
+        ? ref.watch(youtubeAccountInfoProvider)
+        : const AsyncData(null);
+    final info = infoAsync.asData?.value;
+    final title = signedIn
+        ? (info?.name ?? l10n.accountSignedIn)
+        : l10n.accountGuest;
+    final subtitle = !signedIn
+        ? l10n.settingsAccountSubtitle
+        : (info?.email ??
+              info?.channelHandle ??
+              (infoAsync.isLoading
+                  ? l10n.accountSignedIn
+                  : l10n.accountSignInHint));
+
+    return SettingsSection(
+      title: l10n.account,
+      children: [
+        ListTile(
+          leading: _AccountLeading(
+            signedIn: signedIn,
+            photoUrl: info?.photoUrl,
+          ),
+          title: Text(title),
+          subtitle: Text(subtitle),
+        ),
+        const Divider(height: 1),
+        if (!signedIn && isAndroid && !isTv)
+          SettingsButtonTile(
+            title: l10n.accountSignIn,
+            subtitle: l10n.accountSignInHint,
+            icon: LucideIcons.logIn,
+            onPressed: () async {
+              final ok = await YoutubeLoginWebView.open(context);
+              if (ok == true && context.mounted) {
+                ref
+                    .read(actionFeedbackProvider.notifier)
+                    .report(l10n.accountSignedIn);
+              }
+            },
+          ),
+        if (!signedIn && (isTv || isLinux))
+          SettingsButtonTile(
+            title: l10n.accountSignIn,
+            subtitle: l10n.deviceLinkQrHint,
+            icon: LucideIcons.qrCode,
+            onPressed: () {
+              if (isTv) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DeviceLinkQrPanel()),
+                );
+              } else {
+                DeviceLinkQrPanel.showAsDialog(context);
+              }
+            },
+          ),
+        if (!signedIn && !isAndroid && !isLinux)
+          ListTile(
+            leading: const Icon(LucideIcons.circleAlert),
+            title: Text(l10n.accountSignInUnavailable),
+          ),
+        if (signedIn) ...[
+          if (isAndroid && !isTv)
+            SettingsButtonTile(
+              title: l10n.accountLinkDevice,
+              subtitle: l10n.accountLinkDeviceHint,
+              icon: LucideIcons.scanQrCode,
+              onPressed: () => DeviceLinkScannerScreen.open(context),
+            ),
+          if (isAndroid && !isTv) const Divider(height: 1),
+          SettingsButtonTile(
+            title: l10n.accountSignOut,
+            icon: LucideIcons.logOut,
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(l10n.accountSignOut),
+                  content: Text(l10n.accountSignOutConfirm),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text(
+                        MaterialLocalizations.of(ctx).cancelButtonLabel,
+                      ),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text(l10n.accountSignOut),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await ref.read(youtubeAccountProvider.notifier).signOut();
+              }
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AccountLeading extends StatelessWidget {
+  const _AccountLeading({required this.signedIn, this.photoUrl});
+
+  final bool signedIn;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    final url = photoUrl;
+    if (signedIn && url != null && url.isNotEmpty) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        backgroundImage: CachedNetworkImageProvider(url),
+      );
+    }
+    return Icon(
+      signedIn ? LucideIcons.userCheck : LucideIcons.user,
+      color: color,
     );
   }
 }
