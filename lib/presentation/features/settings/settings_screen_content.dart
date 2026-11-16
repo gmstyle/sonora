@@ -861,7 +861,6 @@ class _AccountSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final isTv = ref.watch(isAndroidTvProvider);
     final account = ref.watch(youtubeAccountProvider);
     final signedIn = account.signedIn;
     final infoAsync = signedIn
@@ -891,7 +890,7 @@ class _AccountSection extends ConsumerWidget {
           subtitle: Text(subtitle),
         ),
         const Divider(height: 1),
-        if (!signedIn && isAndroid && !isTv)
+        if (!signedIn && isAndroid)
           SettingsButtonTile(
             title: l10n.accountSignIn,
             subtitle: l10n.accountSignInHint,
@@ -905,20 +904,12 @@ class _AccountSection extends ConsumerWidget {
               }
             },
           ),
-        if (!signedIn && (isTv || isLinux))
+        if (!signedIn && isLinux)
           SettingsButtonTile(
             title: l10n.accountSignIn,
             subtitle: l10n.deviceLinkQrHint,
             icon: LucideIcons.qrCode,
-            onPressed: () {
-              if (isTv) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const DeviceLinkQrPanel()),
-                );
-              } else {
-                DeviceLinkQrPanel.showAsDialog(context);
-              }
-            },
+            onPressed: () => DeviceLinkQrPanel.showAsDialog(context),
           ),
         if (!signedIn && !isAndroid && !isLinux)
           ListTile(
@@ -926,14 +917,14 @@ class _AccountSection extends ConsumerWidget {
             title: Text(l10n.accountSignInUnavailable),
           ),
         if (signedIn) ...[
-          if (isAndroid && !isTv)
+          if (isAndroid)
             SettingsButtonTile(
               title: l10n.accountLinkDevice,
               subtitle: l10n.accountLinkDeviceHint,
               icon: LucideIcons.scanQrCode,
               onPressed: () => DeviceLinkScannerScreen.open(context),
             ),
-          if (isAndroid && !isTv) const Divider(height: 1),
+          if (isAndroid) const Divider(height: 1),
           SettingsButtonTile(
             title: l10n.accountSignOut,
             icon: LucideIcons.logOut,
