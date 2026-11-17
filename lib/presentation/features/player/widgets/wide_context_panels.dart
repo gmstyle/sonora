@@ -103,12 +103,19 @@ class WideContextPanels extends ConsumerWidget {
         }
         return Padding(
           padding: const EdgeInsets.fromLTRB(32, 8, 32, 8),
-          child: Column(
-            children: [
-              ?info,
-              if (info != null && related != null) const SizedBox(height: 16),
-              ?related,
-            ],
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: Column(
+                children: [
+                  ?info,
+                  if (info != null && related != null)
+                    const SizedBox(height: 16),
+                  ?related,
+                ],
+              ),
+            ),
           ),
         );
       },

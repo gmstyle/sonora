@@ -164,7 +164,7 @@ class WidePlayerLayout extends ConsumerWidget {
                     canvas: canvas,
                     artMax: frame.artMax,
                     neighbors: true,
-                    stackContext: tablet,
+                    stackContext: tablet && availWidth < kMediumBreakpoint,
                   ),
                 ),
                 _PlayerSidePanel(
@@ -401,12 +401,53 @@ class _NowPlayingPageState extends ConsumerState<_NowPlayingPage> {
                                       ),
                               ),
                             ),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                sectionLabel,
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(color: pc.titlePrimary),
+                            Center(
+                              child: Material(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(
+                                  SonoraPulseTokens.radiusPill,
+                                ),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(
+                                    SonoraPulseTokens.radiusPill,
+                                  ),
+                                  onTap: () {
+                                    if (!_scrollController.hasClients) return;
+                                    _scrollController.animateTo(
+                                      max(0, _expandedHeight - kToolbarHeight),
+                                      duration: const Duration(
+                                        milliseconds: 350,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 6,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          LucideIcons.chevronDown,
+                                          size: 16,
+                                          color: pc.titleSecondary,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          sectionLabel,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelLarge
+                                              ?.copyWith(
+                                                color: pc.titleSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
