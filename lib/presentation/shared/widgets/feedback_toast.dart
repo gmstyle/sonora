@@ -145,6 +145,22 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     }
   }
 
+  ScrollableState? _findVerticalScrollable(BuildContext? ctx) {
+    if (ctx == null) return null;
+    ScrollableState? result;
+    ctx.visitAncestorElements((element) {
+      if (element is StatefulElement && element.state is ScrollableState) {
+        final scrollable = element.state as ScrollableState;
+        if (axisDirectionToAxis(scrollable.axisDirection) == Axis.vertical) {
+          result = scrollable;
+          return false;
+        }
+      }
+      return true;
+    });
+    return result;
+  }
+
   bool _onGlobalKey(KeyEvent event) {
     if (_closing || !_sticky || !mounted || event is! KeyDownEvent) {
       return false;
@@ -156,12 +172,30 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
       _dismiss();
       return true;
     }
+    if (key == LogicalKeyboardKey.arrowUp && !_closeFocus.hasFocus) {
+      final beforeFocus = FocusManager.instance.primaryFocus;
+      final scrollable = _findVerticalScrollable(beforeFocus?.context);
+      final canScrollUp =
+          scrollable != null &&
+          scrollable.position.hasPixels &&
+          scrollable.position.pixels >
+              scrollable.position.minScrollExtent + 2.0;
+      if (!canScrollUp) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _closing || !_sticky) return;
+          if (FocusManager.instance.primaryFocus == beforeFocus) {
+            FeedbackToast.requestFocusIfSticky();
+          }
+        });
+      }
+    }
     return false;
   }
 
-  void _restoreFocus() {
-    if (_focusRestored || !_sticky) return;
-    _focusRestored = true;
+  void _restoreFocus({bool markRestored = true}) {
+    if (markRestored && _focusRestored) return;
+    if (!_sticky) return;
+    if (markRestored) _focusRestored = true;
     final hadFocus =
         _closeFocus.hasFocus ||
         FocusManager.instance.primaryFocus == _closeFocus;
@@ -203,6 +237,10 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   KeyEventResult _onToastKey(FocusNode node, KeyEvent event) {
     if (!_sticky || event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowDown) {
+      _restoreFocus(markRestored: false);
+      return KeyEventResult.handled;
+    }
     if (key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.goBack ||
         key == LogicalKeyboardKey.browserBack ||

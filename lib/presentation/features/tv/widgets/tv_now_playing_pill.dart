@@ -18,8 +18,9 @@ import 'tv_focusable.dart';
 /// [TvNowPlayingScreen].
 class TvNowPlayingPill extends ConsumerWidget {
   final FocusNode? focusNode;
+  final VoidCallback? onLeftAtEdge;
 
-  const TvNowPlayingPill({super.key, this.focusNode});
+  const TvNowPlayingPill({super.key, this.focusNode, this.onLeftAtEdge});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,12 +39,13 @@ class TvNowPlayingPill extends ConsumerWidget {
       constraints: const BoxConstraints(maxWidth: 268),
       child: TvFocusable(
         focusNode: focusNode,
+        onLeftAtEdge: onLeftAtEdge,
         onSelect: () => openTvNowPlaying(context),
         borderRadius: BorderRadius.circular(99),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(99),
           child: Container(
-            height: 44,
+            height: 48,
             decoration: BoxDecoration(
               color: TvColors.railBg,
               borderRadius: BorderRadius.circular(99),

@@ -15,9 +15,9 @@ import 'package:sonora/presentation/features/tv/layouts/tv_shell.dart';
 import 'package:sonora/presentation/features/tv/screens/tv_now_playing_screen.dart';
 import 'package:sonora/presentation/features/tv/tv_metrics.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_category_card.dart';
-import 'package:sonora/presentation/features/tv/widgets/tv_dock.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_featured_card.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_focusable.dart';
+import 'package:sonora/presentation/features/tv/widgets/tv_now_playing_pill.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_poster_card.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_shelf.dart';
 import 'package:sonora/presentation/providers/android_tv_provider.dart';
@@ -141,9 +141,13 @@ void main() {
       ],
     );
 
+    SharedPreferences.setMockInitialValues({kReduceEffectsKey: true});
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           playerStateProvider.overrideWith(() => _FakePlayer(playerState)),
           downloadBannerSummaryProvider.overrideWithValue(null),
         ],
@@ -269,7 +273,7 @@ void main() {
   );
 
   testWidgets(
-    'arrowDown scrolls through shelves without premature dock jump and enters dock at bottom',
+    'arrowDown scrolls through all shelves without dock jump and arrowUp at top reaches TvNowPlayingPill',
     (tester) async {
       await pumpTvShell(
         tester,
@@ -292,7 +296,32 @@ void main() {
 
       expect(isFocused(tester, const Key('r0-c0')), isTrue);
 
-      // Walk down all 5 shelves; focus must never jump into the dock early.
+      // Pressing Up at the very top row moves focus to TvNowPlayingPill.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Test Track'), findsWidgets);
+      final pillFocus = FocusManager.instance.primaryFocus;
+      expect(pillFocus, isNotNull);
+      expect(
+        pillFocus!.context?.findAncestorWidgetOfExactType<TvNowPlayingPill>() !=
+                null ||
+            find
+                .ancestor(
+                  of: find.byWidget(pillFocus.context!.widget),
+                  matching: find.byType(TvNowPlayingPill),
+                )
+                .evaluate()
+                .isNotEmpty,
+        isTrue,
+        reason: 'Focus should move into TvNowPlayingPill on Up at top',
+      );
+
+      // Pressing Down from TvNowPlayingPill returns focus to row 0.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(isFocused(tester, const Key('r0-c0')), isTrue);
+
+      // Walk down all 5 shelves; focus stays on the last row at the bottom.
       for (var r = 1; r < 5; r++) {
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
         await tester.pumpAndSettle();
@@ -304,32 +333,12 @@ void main() {
         expect(
           isFocused(tester, Key('r$r-c0')),
           isTrue,
-          reason: 'Expected focus on Row $r before entering dock',
+          reason: 'Expected focus on Row $r',
         );
       }
 
-      // Now at the very bottom row: pressing Down enters TvDock.
+      // At the bottom row, pressing Down again keeps focus on row 4 (no bottom dock).
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      await tester.pumpAndSettle();
-      expect(isFocused(tester, const Key('r4-c0')), isFalse);
-      expect(find.textContaining('Test Track'), findsOneWidget);
-      final primary = FocusManager.instance.primaryFocus;
-      expect(primary, isNotNull);
-      expect(
-        primary!.context?.findAncestorWidgetOfExactType<TvDock>() != null ||
-            find
-                .ancestor(
-                  of: find.byWidget(primary.context!.widget),
-                  matching: find.byType(TvDock),
-                )
-                .evaluate()
-                .isNotEmpty,
-        isTrue,
-        reason: 'Focus should move into TvDock when pressing Down at bottom',
-      );
-
-      // Pressing Up from TvDock returns focus to content.
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.pumpAndSettle();
       expect(isFocused(tester, const Key('r4-c0')), isTrue);
     },
@@ -401,9 +410,7 @@ void main() {
     },
   );
 
-  testWidgets('arrowLeft at leftmost dock control opens sidebar', (
-    tester,
-  ) async {
+  testWidgets('arrowLeft on TvNowPlayingPill opens sidebar', (tester) async {
     await pumpTvShell(
       tester,
       playerState: playingState,
@@ -422,16 +429,10 @@ void main() {
       ],
     );
 
-    // Enter dock from the single bottom shelf.
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    // Move up from top row to TvNowPlayingPill, then left to open sidebar.
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pumpAndSettle();
     expect(isFocused(tester, const Key('r0-c0')), isFalse);
-
-    // Move right to skipPrevious, then left back to track info, then left to sidebar.
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pumpAndSettle();
     expect(sidebarWidth(tester), TvMetrics.railCollapsedWidth);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);

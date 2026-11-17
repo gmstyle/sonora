@@ -398,6 +398,7 @@ class _TvShellState extends ConsumerState<TvShell> {
                                   right: TvMetrics.contentPadding,
                                   child: TvNowPlayingPill(
                                     focusNode: _pillFocusNode,
+                                    onLeftAtEdge: _focusSidebar,
                                   ),
                                 ),
                                 const PlayerErrorListener(),
