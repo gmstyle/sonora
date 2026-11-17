@@ -87,9 +87,14 @@ lib/
 │   │   └── queue_repository_impl.dart
 │   └── services/
 │       ├── cast_service.dart           # multi-protocol casting (Chromecast, DLNA)
+│       ├── device_link.dart            # AES-256-GCM LAN QR offer + SAS confirmation code
+│       ├── device_link_server.dart     # Ephemeral LAN HTTP server receiving sealed sessions
 │       ├── local_audio_proxy_server.dart # 127.0.0.1 loopback HTTP proxy server (shelf) for stream resilience & 429 retry
 │       ├── media_cache_service.dart    # LRU disk cache service (500MB max limit)
-│       └── sync_service.dart           # P2P local synchronization service
+│       ├── sync_service.dart           # P2P local synchronization service
+│       ├── webview_cookie_reader.dart  # Android WebView cookie export helper
+│       ├── youtube_account_service.dart # Applies, persists, and clears the YTM session
+│       └── youtube_session_store.dart  # youtube_session.json (auth cookies + cached AccountInfo)
 ├── domain/
 │   ├── media/
 │   │   └── stream_quality_selector.dart # audioOnly (tiered) / muxed (best bitrate)
@@ -146,11 +151,13 @@ lib/
     │   ├── update_notifier.dart          # GitHub release check
     │   ├── palette_provider.dart         # Dominant color extraction per image
     │   ├── action_feedback_provider.dart  # Toast feedback messages
+    │   ├── android_tv_provider.dart      # Android TV shell dispatch flag
+    │   ├── youtube_account_provider.dart # YoutubeAccountNotifier + youtubeAccountInfoProvider
     │   ├── play_podcast_use_case_provider.dart
     │   └── ... (DI wiring providers)
     ├── shared/
     │   ├── layouts/                      # app_shell, mobile_shell, tablet_shell, wide_shell
-    │   └── widgets/                      # shared widgets; ContextMenuSheet facade + context_menu/ (entity sheets)
+    │   └── widgets/                      # shared widgets; youtube_account_button.dart; ContextMenuSheet facade + context_menu/ (entity sheets)
     └── features/
         ├── home/                         # HomeScreen + 3 layouts + HomeSectionRenderer (podcast/episode cards)
         ├── search/                       # SearchScreen: catalog results plus local library matches
@@ -185,7 +192,8 @@ lib/
         │   ├── layouts/                  # library_mobile_layout.dart, library_split_layout.dart
         │   └── widgets/                  # Tab views + podcasts_tab, stats_tab, sonora_wrapped_view
         ├── downloads/                    # DownloadsScreen: active batches + completed groups (mobile accordion / tablet–wide split)
-        └── settings/                     # SettingsScreen + 3 layouts + local_sync_panel.dart
+        ├── settings/                     # SettingsScreen + 3 layouts + local_sync_panel + youtube_login_webview + device_link_*
+        └── tv/                           # Android TV 10-foot UI (TvShell, TvYoutubeAccountDialog, dedicated TV screens & widgets)
 ```
 
 ---
@@ -724,7 +732,7 @@ Router: `go_router` with `StatefulShellRoute.indexedStack` in `AppShell`.
 
 Artist album and single “show all” routes use `MusicRepository.getArtistAlbums` / `getArtistSingles`. Those `dart_ytmusic_api` methods follow discography browse continuations (up to 10 pages) so the full catalog is returned when YouTube Music paginates the grid. When that call is empty or fails, the screen still lists the releases already shown on the artist page.
 
-`/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via a gear on the Home AppBar (mobile and tablet) and in the wide sidebar (`context.push`) — not a primary nav destination. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
+`/settings` is a **sibling** `GoRoute` on `rootNavigatorKey` (outside the indexed shell stack). Entry is via the gear on the Home AppBar (mobile only) and at the bottom of the rail/sidebar on tablet, wide, and Android TV (`context.push`) — not a primary nav destination. The YouTube Music account button/avatar sits to the left of the gear on the mobile Home AppBar and directly above Settings in the tablet rail, wide sidebar, and Android TV drawer. All Settings layouts expose an explicit back control that `pop`s when possible, otherwise `go('/')` for a bare deep link.
 
 Home mood chips are [`HomeChipsBar`](lib/presentation/features/home/widgets/home_section_renderer.dart) in `HomeFeedLayout`'s `AppBar.bottom` (`homeSelectedChipParamsProvider`). `homeBaseResultProvider` is the unfiltered feed: the discover hero is `sections.first`, plus the chip list and ambient art. `homeEditorialSectionsProvider` is `sections.sublist(1)` when no chip is selected, and `getHome(params:)` when one is. A selected chip replaces the scroll body and jumps it to the top. All keeps resume, Explore, your music, discover, and those default shelves. Offline hides the chip row. The shelf shimmer replaces the previous mood while a chip feed loads.
 
@@ -743,6 +751,7 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 - **Device Casting** (`CastDialog`)
 - **Sleep Timer** (`showPlayerTimerDialog` inside `PlayerSharedWidgets`)
 - **Playlist import** (`ImportPlaylistDialog`): short form, so compact (<600dp) is a full-width modal bottom sheet; tablet (600–1199dp) is a centered dialog locked at 480dp; wide (≥1200dp) is locked at 560dp. The card width is fixed up front so pasting a long YouTube/Spotify URL cannot grow the overlay.
+- **YouTube Music Account** (`YoutubeAccountSheet` when signed in: bottom sheet below 1200dp, centered dialog at ≥1200dp, `TvYoutubeAccountDialog` on Android TV; when signed out, opens `YoutubeLoginWebView` on Android phone/tablet or `DeviceLinkQrPanel` dialog on Linux and Android TV).
 
 ---
 
@@ -1357,3 +1366,35 @@ Search episode taps navigate to `EpisodeScreen` (not immediate play). Podcast li
 | User channels | `getUser` / `getUserVideos` / `getUserPlaylists` | `UserScreen` + nested videos/playlists routes |
 | Related (player) | related browse via song metadata; podcast episodes when `podcastBrowseId` set | `PlayerSubView.related` + `related_view.dart` |
 | Show notes (player) | `EpisodeFull.description` | `PlayerSubView.notes` + `show_notes_view.dart` |
+
+---
+
+## 22. YouTube Music Account & LAN Device Link
+
+Sonora supports optional YouTube Music sign-in so users can access personalized Home shelves, library items, and age-gated tracks across Android, Linux, and Android TV.
+
+### 22.1 Session storage & service
+
+- **`YoutubeSessionStore`** ([youtube_session_store.dart](../lib/data/services/youtube_session_store.dart)): Persists filtered YouTube auth cookies and the cached `AccountInfo` card to `youtube_session.json` inside the application support directory (excluded from Settings backups).
+- **`YoutubeAccountService`** ([youtube_account_service.dart](../lib/data/services/youtube_account_service.dart)): Restores cookies into `YTMusic.cookieJar` at startup, applies new cookies via `applyAuthCookies` (forcing `SOCS=CAI`), reinitializes `YtmusicDatasource` with the active `gl`/`hl`, and clears `StreamDatasource` URL caches on sign-in or sign-out.
+
+### 22.2 Providers & Home reactivity
+
+- **`youtubeAccountProvider`** ([youtube_account_provider.dart](../lib/presentation/providers/youtube_account_provider.dart)): Exposes `YoutubeAccountState` (`signedIn` and monotonic `sessionGeneration`). `youtubeSessionStoreProvider` defaults to `null` so widget tests that do not override it remain in guest state cleanly.
+- **`youtubeAccountInfoProvider`**: When signed in, fetches live profile metadata via `YtmusicDatasource.getAccountInfo()` (`account/account_menu`) when online and caches it to disk, falling back to `cachedAccount()` when offline or when `account_menu` is unavailable.
+- **Home feed refresh**: `homeBaseResultProvider` and `homeEditorialSectionsProvider` watch `youtubeAccountProvider.select((a) => a.sessionGeneration)` so sign-in and sign-out refresh Home shelves reactively.
+
+### 22.3 Sign-in flows & LAN handoff
+
+- **Android (phone/tablet, `!isAndroidTv`)**: `YoutubeLoginWebView` ([youtube_login_webview.dart](../lib/presentation/features/settings/youtube_login_webview.dart)) runs Google sign-in, settles on `music.youtube.com`, captures auth cookies (`WebViewCookieReader`) plus `account_menu` `AccountInfo`, and applies them via `youtubeAccountProvider`.
+- **Linux & Android TV (`isLinux || isAndroidTv`)**: `DeviceLinkQrPanel` ([device_link_qr_panel.dart](../lib/presentation/features/settings/device_link_qr_panel.dart)) starts an ephemeral LAN HTTP server (`DeviceLinkServer`) and renders a QR offer (`sonora-link:1:<ip>:<port>:<keyBase64Url>`, 3-minute TTL) alongside a 6-digit HMAC-SHA256 SAS confirmation code (`DeviceLinkOffer` in [device_link.dart](../lib/data/services/device_link.dart)). On a signed-in Android phone, `DeviceLinkScannerScreen` ([device_link_scanner_screen.dart](../lib/presentation/features/settings/device_link_scanner_screen.dart)) scans the QR, seals cookies + cached `AccountInfo` with 256-bit AES-GCM (`DeviceLinkCrypto`), and POSTs the payload to `/session`.
+
+### 22.4 Shell entry points & Account Details UI
+
+Shared widgets live in [youtube_account_button.dart](../lib/presentation/shared/widgets/youtube_account_button.dart) (with the dedicated TV dialog in [tv_youtube_account_dialog.dart](../lib/presentation/features/tv/widgets/tv_youtube_account_dialog.dart)):
+
+- **Mobile (`HomeFeedLayout`)**: `YoutubeAccountIconButton` sits directly to the left of the Settings gear in the Home `AppBar`.
+- **Tablet (`TabletShell`)**: `YoutubeAccountRailButton` sits at the bottom of the `NavigationRail`, directly above Settings (no Settings gear in the Tablet Home `AppBar`).
+- **Wide (`WideShell`)**: Uses `YoutubeAccountRailButton` when collapsed (`72px`) and a full account row (`YoutubeAccountAvatar` + display name from `resolveYoutubeAccountLabel`) when expanded (`240px`), above Settings.
+- **Android TV (`TvShell`)**: Focusable `_TvNavItem` above Settings in the left overlay drawer; when signed in, opens the D-pad navigable `TvYoutubeAccountDialog`; when signed out, opens the D-pad `DeviceLinkQrPanel` dialog.
+- **Settings (`_AccountSection`)**: Shares `YoutubeAccountAvatar`, `confirmYoutubeSignOut`, and the same `isAndroid && !isTv` vs `isLinux || isTv` routing.

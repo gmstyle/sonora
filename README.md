@@ -36,6 +36,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 - Local library for favorites, playlists, subscribed podcasts, and saved episodes
 - YouTube and Spotify playlist import with manual re-sync for linked playlists, smart mixes from listening history, typed history
 - Downloads, explicit offline mode, and a connectivity banner when the network drops
+- Optional YouTube Music account sign-in (WebView on Android; LAN QR handoff from phone to Linux and Android TV) for personalized Home shelves and age-gated tracks
 
 **Explore**
 - Charts, Moods & Genres, and New Releases

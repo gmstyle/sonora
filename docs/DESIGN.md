@@ -105,9 +105,9 @@ Plus Jakarta Sans via `google_fonts`, on every text role.
 
 ## Chrome
 
-- **Wide:** sidebar 72px collapsed / 240px expanded. No now-playing block in the sidebar. Mini player is an 80px edge-to-edge shelf under sidebar and content. Art sits on the left of that shelf.
-- **Tablet:** collapsed rail, same full-width 80px shelf.
-- **Mobile:** mini player is a floating card above the bottom navigation. The card uses the media radius, a 95% surface with blur, and the brand gradient on the 2px seek strip. Navigation bar height is 64.
+- **Wide:** sidebar 72px collapsed / 240px expanded. No now-playing block in the sidebar. Account avatar sits directly above Settings at the bottom of the sidebar. Mini player is an 80px edge-to-edge shelf under sidebar and content. Art sits on the left of that shelf.
+- **Tablet:** collapsed rail with Account avatar directly above Settings at the bottom (no Settings gear in the Home `AppBar`), same full-width 80px shelf.
+- **Mobile:** Account avatar sits to the left of the Settings gear in the Home `AppBar`. Mini player is a floating card above the bottom navigation. The card uses the media radius, a 95% surface with blur, and the brand gradient on the 2px seek strip. Navigation bar height is 64.
 
 `reduceEffects` drops blur and heavy motion. Player artwork is `artworkStyle`: vinyl (record and tonearm), pulse (orbiting arc), bars (equalizer on the cover), or plain (the square cover). Episodes stay plain. Like stays Material `favorite`. Other chrome icons stay Lucide.
 
@@ -200,7 +200,7 @@ Screens: Album, artist, YouTube playlist, local playlist, podcast, episode, mome
 
 ### Document
 
-On wide, this is the only family that clamps the page: soft max `kDocumentContentMaxWidth` (1320) and horizontal padding 32. Settings uses one unified page header (back, title, “Preferences for this device”, and a wide-only “Local only” meta), a grouped category rail (`kSettingsRailWidth`, 260), and a single document card (radius 24) holding the flat section rows. The form column is capped at `kSettingsFormMaxWidth` (800). Tablet drops the card and the page meta: full-bleed, rail 200, section groups as border cards. Below 840 the category list pushes a detail screen. The selected category lives in `settingsCategoryProvider` so a breakpoint change keeps the pane. `?section=` slugs (`appearance`, `playback`, `downloads`, `ai`, `background`, `privacy`, `backup`, `about`; `ask` is kept for Ask) open a category on entry.
+On wide, this is the only family that clamps the page: soft max `kDocumentContentMaxWidth` (1320) and horizontal padding 32. Settings uses one unified page header (back, title, “Preferences for this device”, and a wide-only “Local only” meta), a grouped category rail (`kSettingsRailWidth`, 260), and a single document card (radius 24) holding the flat section rows. The form column is capped at `kSettingsFormMaxWidth` (800). Tablet drops the card and the page meta: full-bleed, rail 200, section groups as border cards. Below 840 the category list pushes a detail screen. The selected category lives in `settingsCategoryProvider` so a breakpoint change keeps the pane. `?section=` slugs (`appearance`, `playback`, `downloads`, `ai`, `background`, `account`, `privacy`, `backup`, `about`; `ask` is kept for Ask) open a category on entry.
 
 Screens: Settings, artist see-all (albums, singles, videos).
 
