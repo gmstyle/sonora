@@ -33,9 +33,10 @@ class PlayerControls extends ConsumerWidget {
           return FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.center,
-            child: SizedBox(
-              width: constraints.maxWidth,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   if (isEpisode)
