@@ -46,63 +46,67 @@ class LyricsView extends ConsumerWidget {
     final offline = ref.watch(isOfflineProvider);
     final canTranslate = !offline && (caps?.canPlayerInsights ?? false);
 
+    final timed = timedAsync.asData?.value;
+    final plain = fallbackAsync.asData?.value;
+    final hasLyrics =
+        (timed != null && timed.timedLyricsData.isNotEmpty) ||
+        (plain != null && plain.trim().isNotEmpty);
+    final showTranslateAction = canTranslate && hasLyrics;
+
     final showTranslated =
-        canTranslate &&
+        showTranslateAction &&
         translation.showTranslation &&
         translation.videoId == videoId;
 
     final body = _LyricsReadingSurface(
       child: showTranslated
-          ? _TranslatedBody(videoId: videoId, state: translation)
+          ? _TranslatedBody(
+              videoId: videoId,
+              state: translation,
+              hasFloatingAction: showTranslateAction,
+            )
           : timedAsync.when(
               loading: () => const _LyricsLoading(),
               error: (_, _) =>
-                  _buildPlainLyrics(context, fallbackAsync, canTranslate),
+                  _buildPlainLyrics(context, fallbackAsync, showTranslateAction),
               data: (timed) {
                 if (timed != null) {
                   return _TimedLyricsView(lyrics: timed, position: position);
                 }
-                return _buildPlainLyrics(context, fallbackAsync, canTranslate);
+                return _buildPlainLyrics(
+                  context,
+                  fallbackAsync,
+                  showTranslateAction,
+                );
               },
             ),
     );
 
-    if (showTranslated) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (canTranslate)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: _TranslateAskAction(
-                videoId: videoId,
-                showTranslation: true,
-                loading: translation.phase == LyricsTranslationPhase.loading,
-              ),
-            ),
-          if (translation.phase == LyricsTranslationPhase.ready)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: _TranslationDisclaimer(),
-            ),
-          Expanded(child: body),
-        ],
-      );
-    }
-
-    if (!canTranslate) return body;
+    if (!showTranslateAction) return body;
 
     return Stack(
       fit: StackFit.expand,
       children: [
         body,
         Positioned(
-          top: 8,
+          left: 16,
           right: 16,
-          child: _TranslateAskAction(
-            videoId: videoId,
-            showTranslation: false,
-            loading: false,
+          bottom: 12,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _kLyricsMaxWidth),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _TranslateAskAction(
+                  videoId: videoId,
+                  showTranslation: showTranslated,
+                  loading:
+                      showTranslated &&
+                      translation.phase == LyricsTranslationPhase.loading,
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -150,9 +154,9 @@ class LyricsView extends ConsumerWidget {
               child: SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                   _lyricHorizontalPad(constraints.maxWidth),
-                  hasFloatingAction ? 60 : 32,
+                  28,
                   _lyricHorizontalPad(constraints.maxWidth),
-                  36,
+                  hasFloatingAction ? 72 : 36,
                 ),
                 child: Align(
                   alignment: Alignment.topCenter,
@@ -183,7 +187,7 @@ class LyricsView extends ConsumerWidget {
   }
 }
 
-/// Ask-branded translate control (sparkles = AI), not a segmented control.
+/// Ask-branded translate control (sparkles = AI), integrated as a player pill.
 class _TranslateAskAction extends ConsumerWidget {
   const _TranslateAskAction({
     required this.videoId,
@@ -199,55 +203,64 @@ class _TranslateAskAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
-    final scheme = Theme.of(context).colorScheme;
+    final pc = PlayerColors.of(context);
+    final label = showTranslation
+        ? l10n.playerAskOriginal
+        : l10n.playerAskTranslate;
 
-    if (showTranslation) {
-      return Row(
-        children: [
-          Icon(LucideIcons.sparkles, size: 18, color: scheme.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              l10n.playerAskTranslateLyrics,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: scheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: loading
-                ? null
-                : () => ref
-                      .read(lyricsTranslationProvider.notifier)
-                      .showOriginal(),
-            child: Text(l10n.playerAskOriginal),
-          ),
-        ],
-      );
-    }
-
-    return Align(
-      alignment: Alignment.centerRight,
-      child: FilledButton.tonalIcon(
-        onPressed: loading
+    return Material(
+      color: Colors.white.withValues(alpha: showTranslation ? 0.16 : 0.12),
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: Colors.white.withValues(alpha: showTranslation ? 0.28 : 0.16),
+        ),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: loading
             ? null
             : () {
-                ref
-                    .read(lyricsTranslationProvider.notifier)
-                    .showTranslated(videoId: videoId, targetLanguage: locale);
+                final notifier = ref.read(lyricsTranslationProvider.notifier);
+                if (showTranslation) {
+                  notifier.showOriginal();
+                } else {
+                  notifier.showTranslated(
+                    videoId: videoId,
+                    targetLanguage: locale,
+                  );
+                }
               },
-        icon: loading
-            ? SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: scheme.onSecondaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: pc.accent,
+                  ),
+                )
+              else
+                Icon(
+                  LucideIcons.sparkles,
+                  size: 16,
+                  color: showTranslation ? pc.accent : pc.titlePrimary,
                 ),
-              )
-            : const Icon(LucideIcons.sparkles, size: 18),
-        label: Text(l10n.playerAskTranslate),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: pc.titlePrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -259,15 +272,15 @@ class _TranslationDisclaimer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
+    final pc = PlayerColors.of(context);
     return Material(
-      color: scheme.secondaryContainer.withValues(alpha: 0.45),
+      color: Colors.white.withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            Icon(LucideIcons.sparkles, size: 16, color: scheme.secondary),
+            Icon(LucideIcons.sparkles, size: 16, color: pc.accent),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -275,7 +288,7 @@ class _TranslationDisclaimer extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
+                    ?.copyWith(color: pc.subtitle),
               ),
             ),
           ],
@@ -286,10 +299,15 @@ class _TranslationDisclaimer extends StatelessWidget {
 }
 
 class _TranslatedBody extends ConsumerWidget {
-  const _TranslatedBody({required this.videoId, required this.state});
+  const _TranslatedBody({
+    required this.videoId,
+    required this.state,
+    required this.hasFloatingAction,
+  });
 
   final String videoId;
   final LyricsTranslationState state;
+  final bool hasFloatingAction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -322,25 +340,33 @@ class _TranslatedBody extends ConsumerWidget {
       builder: (context, constraints) {
         return _LyricsFadeMask(
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: _lyricHorizontalPad(constraints.maxWidth),
-              vertical: 28,
+            padding: EdgeInsets.fromLTRB(
+              _lyricHorizontalPad(constraints.maxWidth),
+              24,
+              _lyricHorizontalPad(constraints.maxWidth),
+              hasFloatingAction ? 72 : 36,
             ),
             child: Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: _kLyricsMaxWidth),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: Text(
-                    text,
-                    style: _lyricStyle(
-                      context,
-                      constraints.maxWidth,
-                      active: true,
-                    ).copyWith(fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.start,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (state.phase == LyricsTranslationPhase.ready) ...[
+                      const _TranslationDisclaimer(),
+                      const SizedBox(height: 20),
+                    ],
+                    Text(
+                      text,
+                      style: _lyricStyle(
+                        context,
+                        constraints.maxWidth,
+                        active: true,
+                      ).copyWith(fontWeight: FontWeight.w600),
+                      textAlign: TextAlign.start,
+                    ),
+                  ],
                 ),
               ),
             ),
