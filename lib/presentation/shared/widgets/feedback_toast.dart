@@ -20,6 +20,11 @@ class FeedbackToast {
     final state = _currentState;
     if (state == null || !state._sticky || !state.mounted) return false;
     if (state._closeFocus.canRequestFocus) {
+      final current = FocusManager.instance.primaryFocus;
+      if (current != null && current != state._closeFocus) {
+        state._previousFocus = current;
+        state._previousScope = current.enclosingScope;
+      }
       state._closeFocus.requestFocus();
       return true;
     }
@@ -93,7 +98,10 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   late Animation<double> _opacity;
   late Animation<double> _scale;
   final FocusNode _closeFocus = FocusNode(debugLabel: 'feedbackToastClose');
+  FocusNode? _previousFocus;
+  FocusScopeNode? _previousScope;
   bool _closing = false;
+  bool _focusRestored = false;
 
   bool get _sticky => widget.kind == FeedbackKind.error;
 
@@ -101,6 +109,11 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   void initState() {
     super.initState();
     FeedbackToast._currentState = this;
+    final currentFocus = FocusManager.instance.primaryFocus;
+    if (currentFocus != null && currentFocus != _closeFocus) {
+      _previousFocus = currentFocus;
+      _previousScope = currentFocus.enclosingScope;
+    }
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -146,11 +159,40 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     return false;
   }
 
+  void _restoreFocus() {
+    if (_focusRestored || !_sticky) return;
+    _focusRestored = true;
+    final hadFocus =
+        _closeFocus.hasFocus ||
+        FocusManager.instance.primaryFocus == _closeFocus;
+    if (!hadFocus) return;
+
+    final prev = _previousFocus;
+    if (prev != null && prev.context != null && prev.canRequestFocus) {
+      prev.requestFocus();
+      return;
+    }
+    final scope = _previousScope;
+    if (scope != null && scope.context != null && scope.canRequestFocus) {
+      final candidate = scope.traversalDescendants
+          .where((n) => n != _closeFocus && n.canRequestFocus)
+          .firstOrNull;
+      if (candidate != null) {
+        candidate.requestFocus();
+        return;
+      }
+      scope.requestFocus();
+      return;
+    }
+    FocusManager.instance.rootScope.nextFocus();
+  }
+
   Future<void> _dismiss() async {
     if (_closing || !mounted) return;
     _closing = true;
     if (_sticky) {
       HardwareKeyboard.instance.removeHandler(_onGlobalKey);
+      _restoreFocus();
     }
     await _controller.reverse();
     if (mounted) {
@@ -178,6 +220,19 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   void dispose() {
     if (_sticky) {
       HardwareKeyboard.instance.removeHandler(_onGlobalKey);
+      if (!_focusRestored) {
+        final prev = _previousFocus;
+        final scope = _previousScope;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (prev != null && prev.context != null && prev.canRequestFocus) {
+            prev.requestFocus();
+          } else if (scope != null &&
+              scope.context != null &&
+              scope.canRequestFocus) {
+            scope.requestFocus();
+          }
+        });
+      }
     }
     if (FeedbackToast._currentState == this) {
       FeedbackToast._currentState = null;
