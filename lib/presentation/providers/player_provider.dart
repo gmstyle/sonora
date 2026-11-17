@@ -798,13 +798,13 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         }
         return;
       }
-      final leadIndex = playableLeadIndex(
-        songs,
-        startIndex,
-        playable: playable,
-      );
+      var leadIndex = 0;
       final useCase = ref.read(playAlbumUseCaseProvider);
-      final items = await useCase.execute(songs, playIndex: startIndex);
+      final items = await useCase.execute(
+        songs,
+        playIndex: startIndex,
+        onResolvedLeadIndex: (i) => leadIndex = i,
+      );
       if (_operationVersion != v) return;
       if (items.isEmpty) {
         state = state.copyWith(isSwitching: false);
@@ -843,13 +843,13 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         }
         return;
       }
-      final leadIndex = playableLeadIndex(
-        videos,
-        startIndex,
-        playable: playable,
-      );
+      var leadIndex = 0;
       final useCase = ref.read(playPlaylistUseCaseProvider);
-      final items = await useCase.execute(videos, playIndex: startIndex);
+      final items = await useCase.execute(
+        videos,
+        playIndex: startIndex,
+        onResolvedLeadIndex: (i) => leadIndex = i,
+      );
       if (_operationVersion != v) return;
       if (items.isEmpty) {
         state = state.copyWith(isSwitching: false);
