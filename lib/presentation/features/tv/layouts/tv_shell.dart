@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
@@ -13,6 +14,7 @@ import '../../../shared/widgets/branch_fade_transition.dart';
 import '../../../shared/widgets/dock_status_banners.dart';
 import '../../../shared/widgets/player_error_listener.dart';
 import '../../../shared/widgets/sonora_logo.dart';
+import '../../../shared/widgets/youtube_account_button.dart';
 import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
 import '../widgets/tv_dock.dart';
@@ -46,6 +48,7 @@ class _TvShellState extends ConsumerState<TvShell> {
   final FocusScopeNode _contentScope = FocusScopeNode(debugLabel: 'tvContent');
   final FocusScopeNode _dockScope = FocusScopeNode(debugLabel: 'tvDock');
   late final List<FocusNode> _navNodes;
+  final FocusNode _accountNavNode = FocusNode(debugLabel: 'tvNavAccount');
   final FocusNode _settingsNavNode = FocusNode(debugLabel: 'tvNavSettings');
   bool _drawerExpanded = false;
 
@@ -66,6 +69,7 @@ class _TvShellState extends ConsumerState<TvShell> {
     for (final node in _navNodes) {
       node.dispose();
     }
+    _accountNavNode.dispose();
     _settingsNavNode.dispose();
     super.dispose();
   }
@@ -503,6 +507,34 @@ class _TvShellState extends ConsumerState<TvShell> {
                                     ],
                                   ),
                                 ),
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    final accountLabel =
+                                        resolveYoutubeAccountLabel(
+                                          context,
+                                          ref,
+                                        );
+                                    return _TvNavItem(
+                                      key: const Key('tv-account-button'),
+                                      focusNode: _accountNavNode,
+                                      icon: LucideIcons.user,
+                                      leadingBuilder: (fg) =>
+                                          YoutubeAccountAvatar(
+                                            size: TvMetrics.railIconSize,
+                                            iconColor: fg,
+                                          ),
+                                      label: accountLabel,
+                                      selected: false,
+                                      expanded: showLabels,
+                                      onSelect: () {
+                                        _setExpanded(false);
+                                        unawaited(
+                                          handleYoutubeAccountTap(context, ref),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
                                 _TvNavItem(
                                   focusNode: _settingsNavNode,
                                   icon: LucideIcons.settings,
@@ -544,6 +576,7 @@ class _TvShellState extends ConsumerState<TvShell> {
 class _TvNavItem extends StatefulWidget {
   final FocusNode focusNode;
   final IconData icon;
+  final Widget Function(Color color)? leadingBuilder;
   final String label;
   final bool selected;
   final bool expanded;
@@ -551,8 +584,10 @@ class _TvNavItem extends StatefulWidget {
   final VoidCallback? onDown;
 
   const _TvNavItem({
+    super.key,
     required this.focusNode,
     required this.icon,
+    this.leadingBuilder,
     required this.label,
     required this.selected,
     required this.expanded,
@@ -636,11 +671,12 @@ class _TvNavItemState extends State<_TvNavItem> {
             child: widget.expanded
                 ? Row(
                     children: [
-                      Icon(
-                        widget.icon,
-                        size: TvMetrics.railIconSize,
-                        color: fg,
-                      ),
+                      widget.leadingBuilder?.call(fg) ??
+                          Icon(
+                            widget.icon,
+                            size: TvMetrics.railIconSize,
+                            color: fg,
+                          ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
@@ -658,11 +694,13 @@ class _TvNavItemState extends State<_TvNavItem> {
                     ],
                   )
                 : Center(
-                    child: Icon(
-                      widget.icon,
-                      size: TvMetrics.railIconSize,
-                      color: fg,
-                    ),
+                    child:
+                        widget.leadingBuilder?.call(fg) ??
+                        Icon(
+                          widget.icon,
+                          size: TvMetrics.railIconSize,
+                          color: fg,
+                        ),
                   ),
           ),
         ),

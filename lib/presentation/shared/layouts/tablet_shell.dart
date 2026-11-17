@@ -11,6 +11,7 @@ import '../widgets/dock_status_banners.dart';
 import '../widgets/playlist_import_job_host.dart';
 import '../widgets/player_error_listener.dart';
 import '../widgets/sonora_logo.dart';
+import '../widgets/youtube_account_button.dart';
 
 final _icons = [
   LucideIcons.home,
@@ -79,6 +80,9 @@ class TabletShell extends ConsumerWidget {
                               );
                             },
                           ),
+                        ),
+                        const YoutubeAccountRailButton(
+                          buttonKey: Key('tablet-account-button'),
                         ),
                         const _TabletSettingsEntry(),
                       ],

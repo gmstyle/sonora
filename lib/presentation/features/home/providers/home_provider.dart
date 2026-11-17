@@ -10,6 +10,8 @@ import 'package:sonora/presentation/features/library/providers/library_provider.
 import 'package:sonora/presentation/providers/library_repository_provider.dart';
 import 'package:sonora/presentation/providers/music_repository_provider.dart';
 
+import '../../../providers/youtube_account_provider.dart';
+
 const _kHomeSectionMaxItems = 12;
 
 class HomeSelectedChipParamsNotifier extends Notifier<String?> {
@@ -25,6 +27,7 @@ final homeSelectedChipParamsProvider =
 
 /// Unfiltered YT Music home feed — discover hero, chips list, ambient background.
 final homeBaseResultProvider = FutureProvider<BrowseHomeResult>((ref) async {
+  ref.watch(youtubeAccountProvider.select((a) => a.sessionGeneration));
   final repo = ref.watch(musicRepositoryProvider);
   return repo.getHome();
 });
@@ -46,6 +49,7 @@ final homeEditorialSectionsProvider = FutureProvider<List<HomeSection>>((
     final sections = await ref.watch(homeBaseSectionsProvider.future);
     return sections.length > 1 ? sections.sublist(1) : <HomeSection>[];
   }
+  ref.watch(youtubeAccountProvider.select((a) => a.sessionGeneration));
   final repo = ref.watch(musicRepositoryProvider);
   final result = await repo.getHome(params: params);
   return result.sections;

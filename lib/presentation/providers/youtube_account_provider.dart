@@ -13,13 +13,18 @@ import 'settings_provider.dart';
 import 'stream_datasource_provider.dart';
 import 'ytmusic_provider.dart';
 
-final youtubeSessionStoreProvider = Provider<YoutubeSessionStore>((ref) {
-  throw UnimplementedError('youtubeSessionStoreProvider must be overridden');
+/// Overridden in [main] with the on-disk session store; null in widget tests.
+final youtubeSessionStoreProvider = Provider<YoutubeSessionStore?>((ref) {
+  return null;
 });
 
 final youtubeAccountServiceProvider = Provider<YoutubeAccountService>((ref) {
+  final store = ref.watch(youtubeSessionStoreProvider);
+  if (store == null) {
+    throw StateError('youtubeSessionStoreProvider must be overridden');
+  }
   return YoutubeAccountService(
-    store: ref.watch(youtubeSessionStoreProvider),
+    store: store,
     ytmusic: ref.watch(ytmusicDatasourceProvider),
     streams: ref.watch(streamDatasourceProvider),
     gl: () => ref.read(settingsProvider).gl,
@@ -56,6 +61,7 @@ class YoutubeAccountNotifier extends Notifier<YoutubeAccountState> {
   YoutubeAccountService get _service => ref.read(youtubeAccountServiceProvider);
 
   Future<void> _refresh() async {
+    if (ref.read(youtubeSessionStoreProvider) == null) return;
     final signedIn = await _service.isSignedIn();
     state = state.copyWith(signedIn: signedIn);
   }
@@ -106,6 +112,7 @@ final youtubeAccountInfoProvider = FutureProvider<AccountInfo?>((ref) async {
   if (!account.signedIn) return null;
   // Depend on generation so a fresh login re-runs without notifier.invalidate.
   final _ = account.sessionGeneration;
+  if (ref.watch(youtubeSessionStoreProvider) == null) return null;
   final service = ref.read(youtubeAccountServiceProvider);
   if (!ref.watch(isOfflineProvider)) {
     try {

@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/youtube_account_provider.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
 import '../widgets/dock_status_banners.dart';
@@ -13,6 +14,7 @@ import '../widgets/playlist_import_job_host.dart';
 import '../widgets/player_error_listener.dart';
 import '../widgets/sonora_logo.dart';
 import '../widgets/scale_button.dart';
+import '../widgets/youtube_account_button.dart';
 
 final _icons = [
   LucideIcons.home,
@@ -122,6 +124,7 @@ class _WideShellState extends ConsumerState<WideShell> {
                                   ],
                                 ),
                               ),
+                              _buildAccountEntry(context, isCollapsed),
                               _buildSettingsEntry(context, isCollapsed),
                             ],
                           ),
@@ -153,6 +156,54 @@ class _WideShellState extends ConsumerState<WideShell> {
           const DockStatusBanners(),
           const PlayerSheet(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAccountEntry(BuildContext context, bool isCollapsed) {
+    if (isCollapsed) {
+      return const YoutubeAccountRailButton(
+        buttonKey: Key('wide-account-button'),
+      );
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final signedIn = ref.watch(youtubeAccountProvider).signedIn;
+    final label = resolveYoutubeAccountLabel(context, ref);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      child: ScaleButton(
+        key: const Key('wide-account-button'),
+        onTap: () => handleYoutubeAccountTap(context, ref),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              YoutubeAccountAvatar(
+                size: 24,
+                iconColor: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: signedIn ? FontWeight.w600 : FontWeight.normal,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

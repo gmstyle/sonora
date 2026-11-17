@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +27,7 @@ import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
 import '../../shared/widgets/release_notes_view.dart';
+import '../../shared/widgets/youtube_account_button.dart';
 import 'settings_shared.dart';
 import 'providers/settings_category_provider.dart';
 import 'widgets/local_sync_panel.dart';
@@ -941,6 +941,7 @@ class _AccountSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final isTv = ref.watch(isAndroidTvProvider);
     final account = ref.watch(youtubeAccountProvider);
     final signedIn = account.signedIn;
     final infoAsync = signedIn
@@ -962,15 +963,15 @@ class _AccountSection extends ConsumerWidget {
       title: l10n.account,
       children: [
         ListTile(
-          leading: _AccountLeading(
-            signedIn: signedIn,
-            photoUrl: info?.photoUrl,
+          leading: YoutubeAccountAvatar(
+            size: 40,
+            iconColor: Theme.of(context).colorScheme.primary,
           ),
           title: Text(title),
           subtitle: Text(subtitle),
         ),
         const Divider(height: 1),
-        if (!signedIn && isAndroid)
+        if (!signedIn && isAndroid && !isTv)
           SettingsButtonTile(
             title: l10n.accountSignIn,
             subtitle: l10n.accountSignInHint,
@@ -984,81 +985,34 @@ class _AccountSection extends ConsumerWidget {
               }
             },
           ),
-        if (!signedIn && isLinux)
+        if (!signedIn && (isLinux || isTv))
           SettingsButtonTile(
             title: l10n.accountSignIn,
             subtitle: l10n.deviceLinkQrHint,
             icon: LucideIcons.qrCode,
             onPressed: () => DeviceLinkQrPanel.showAsDialog(context),
           ),
-        if (!signedIn && !isAndroid && !isLinux)
+        if (!signedIn && !isAndroid && !isLinux && !isTv)
           ListTile(
             leading: const Icon(LucideIcons.circleAlert),
             title: Text(l10n.accountSignInUnavailable),
           ),
         if (signedIn) ...[
-          if (isAndroid)
+          if (isAndroid && !isTv)
             SettingsButtonTile(
               title: l10n.accountLinkDevice,
               subtitle: l10n.accountLinkDeviceHint,
               icon: LucideIcons.scanQrCode,
               onPressed: () => DeviceLinkScannerScreen.open(context),
             ),
-          if (isAndroid) const Divider(height: 1),
+          if (isAndroid && !isTv) const Divider(height: 1),
           SettingsButtonTile(
             title: l10n.accountSignOut,
             icon: LucideIcons.logOut,
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text(l10n.accountSignOut),
-                  content: Text(l10n.accountSignOutConfirm),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text(
-                        MaterialLocalizations.of(ctx).cancelButtonLabel,
-                      ),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text(l10n.accountSignOut),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                await ref.read(youtubeAccountProvider.notifier).signOut();
-              }
-            },
+            onPressed: () => confirmYoutubeSignOut(context, ref),
           ),
         ],
       ],
-    );
-  }
-}
-
-class _AccountLeading extends StatelessWidget {
-  const _AccountLeading({required this.signedIn, this.photoUrl});
-
-  final bool signedIn;
-  final String? photoUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    final url = photoUrl;
-    if (signedIn && url != null && url.isNotEmpty) {
-      return CircleAvatar(
-        radius: 20,
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-        backgroundImage: CachedNetworkImageProvider(url),
-      );
-    }
-    return Icon(
-      signedIn ? LucideIcons.userCheck : LucideIcons.user,
-      color: color,
     );
   }
 }

@@ -9,8 +9,10 @@ import '../../../data/services/device_link.dart';
 import '../../../data/services/device_link_server.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../providers/action_feedback_provider.dart';
+import '../../providers/android_tv_provider.dart';
 import '../../providers/youtube_account_provider.dart';
-import '../home/providers/home_provider.dart';
+import '../tv/tv_metrics.dart';
+import '../tv/widgets/tv_focusable.dart';
 
 /// Shows a LAN QR for TV / Linux; applies cookies when the phone POSTs.
 class DeviceLinkQrPanel extends ConsumerStatefulWidget {
@@ -20,12 +22,35 @@ class DeviceLinkQrPanel extends ConsumerStatefulWidget {
   final bool compact;
 
   static Future<void> showAsDialog(BuildContext context) {
+    final isTv = ProviderScope.containerOf(context).read(isAndroidTvProvider);
+    if (isTv) {
+      return showDialog<void>(
+        context: context,
+        useRootNavigator: true,
+        barrierColor: Colors.black.withValues(alpha: 0.85),
+        builder: (ctx) => Dialog(
+          backgroundColor: TvColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: TvColors.border),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: const SingleChildScrollView(
+              padding: EdgeInsets.all(24),
+              child: DeviceLinkQrPanel(compact: true),
+            ),
+          ),
+        ),
+      );
+    }
     return showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
-          child: const Padding(
+          child: const SingleChildScrollView(
             padding: EdgeInsets.all(24),
             child: DeviceLinkQrPanel(compact: true),
           ),
@@ -84,8 +109,6 @@ class _DeviceLinkQrPanelState extends ConsumerState<DeviceLinkQrPanel> {
           .read(youtubeAccountProvider.notifier)
           .applyCookieMap(session.cookies, account: session.account);
       if (!mounted) return;
-      ref.invalidate(homeBaseResultProvider);
-      ref.invalidate(homeEditorialSectionsProvider);
       final l10n = AppLocalizations.of(context)!;
       ref.read(actionFeedbackProvider.notifier).report(l10n.accountSignedIn);
       if (widget.compact) {
@@ -111,6 +134,7 @@ class _DeviceLinkQrPanelState extends ConsumerState<DeviceLinkQrPanel> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isTv = ref.watch(isAndroidTvProvider);
     final offer = _offer;
     final body = Column(
       mainAxisSize: MainAxisSize.min,
@@ -127,14 +151,14 @@ class _DeviceLinkQrPanelState extends ConsumerState<DeviceLinkQrPanel> {
           style: Theme.of(context).textTheme.bodyMedium
               ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         if (offer != null) ...[
           QrImageView(
             data: offer.qrPayload,
-            size: 220,
+            size: isTv ? 176 : 220,
             backgroundColor: Colors.white,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             offer.confirmationCode,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -149,7 +173,7 @@ class _DeviceLinkQrPanelState extends ConsumerState<DeviceLinkQrPanel> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (_waiting) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(l10n.deviceLinkQrWaiting),
           ],
         ] else if (_error == null) ...[
@@ -166,18 +190,57 @@ class _DeviceLinkQrPanelState extends ConsumerState<DeviceLinkQrPanel> {
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
           const SizedBox(height: 12),
-          FilledButton.tonal(
-            onPressed: _start,
-            child: Text(l10n.deviceLinkRegenerate),
-          ),
+          if (isTv)
+            TvFocusable(
+              onSelect: _start,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(l10n.deviceLinkRegenerate),
+              ),
+            )
+          else
+            FilledButton.tonal(
+              onPressed: _start,
+              child: Text(l10n.deviceLinkRegenerate),
+            ),
         ],
-        if (!widget.compact) ...[
-          const SizedBox(height: 16),
+        const SizedBox(height: 16),
+        if (isTv)
+          TvFocusable(
+            autofocus: true,
+            onSelect: () => Navigator.of(context).maybePop(),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: TvColors.surfaceButton,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: TvColors.borderSubtle),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                MaterialLocalizations.of(context).closeButtonLabel,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: TvColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          )
+        else
           TextButton(
             onPressed: () => Navigator.of(context).maybePop(),
             child: Text(MaterialLocalizations.of(context).closeButtonLabel),
           ),
-        ],
       ],
     );
 

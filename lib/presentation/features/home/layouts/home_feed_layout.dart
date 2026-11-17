@@ -13,6 +13,7 @@ import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
 import '../../../shared/widgets/sonora_logo.dart';
+import '../../../shared/widgets/youtube_account_button.dart';
 import '../providers/home_provider.dart';
 import '../widgets/home_quick_row.dart';
 import '../widgets/home_wrapped_entry.dart';
@@ -90,9 +91,13 @@ class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
               spacing: 8,
               children: [
                 const SonoraLogo.icon(22),
-                Text(
-                  _getGreeting(context),
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Flexible(
+                  child: Text(
+                    _getGreeting(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                 ),
               ],
             ),
@@ -101,13 +106,15 @@ class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
                 ? HomeChipsBar(horizontalPadding: metrics.horizontalPadding)
                 : null,
             actions: [
-              // Wide: settings gear lives in the sidebar only.
-              if (size != HomeLayoutSize.wide)
+              // Mobile only: on tablet and wide, account and settings live in the sidebar.
+              if (size == HomeLayoutSize.mobile) ...[
+                const YoutubeAccountIconButton(),
                 IconButton(
                   icon: const Icon(LucideIcons.settings),
                   tooltip: l10n.settingsLabel,
                   onPressed: () => context.push('/settings'),
                 ),
+              ],
             ],
           ),
           body: AmbientBackground(
