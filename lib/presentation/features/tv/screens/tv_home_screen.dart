@@ -2,7 +2,9 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../core/utils/artists_utils.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -11,8 +13,10 @@ import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shimmer_loading.dart';
+import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../home/providers/home_provider.dart';
+import '../../library/providers/library_provider.dart';
 import '../providers/tv_spotlight_provider.dart';
 import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
@@ -34,9 +38,30 @@ class TvHomeScreen extends ConsumerWidget {
     final baseAsync = ref.watch(homeBaseResultProvider);
     final sectionsAsync = ref.watch(homeEditorialSectionsProvider);
     final recentAsync = ref.watch(recentHistoryProvider);
+    final playlistsAsync = ref.watch(homeRandomPlaylistsProvider);
+    final newReleasesAsync = ref.watch(homeRandomNewReleasesProvider);
     final selectedParams = ref.watch(homeSelectedChipParamsProvider);
     final offline = ref.watch(isOfflineProvider);
     final l10n = AppLocalizations.of(context)!;
+
+    if (offline) {
+      final recent = recentAsync.asData?.value ?? const <HistoryModel>[];
+      final playlists = playlistsAsync.asData?.value ?? const <dynamic>[];
+      return CustomScrollView(
+        slivers: [
+          if (recent.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _TvFeaturedRow(items: recent.take(8).toList()),
+            ),
+          const SliverToBoxAdapter(child: _TvSmartMixShelf()),
+          if (playlists.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _TvYourPlaylistsShelf(playlists: playlists),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 48)),
+        ],
+      );
+    }
 
     return baseAsync.when(
       loading: () => const SingleChildScrollView(
@@ -56,22 +81,24 @@ class TvHomeScreen extends ConsumerWidget {
       ),
       data: (base) {
         final recent = recentAsync.asData?.value ?? const <HistoryModel>[];
-        final seenIds = <String>{for (final r in recent) r.videoId};
-        final catalogFallback =
-            selectedParams == null && base.sections.isNotEmpty
-            ? base.sections.first.contents.where((item) {
-                if (item is SongDetailed) {
-                  return !seenIds.contains(item.videoId);
-                }
-                if (item is VideoDetailed) {
-                  return !seenIds.contains(item.videoId);
-                }
-                return true;
-              })
-            : const <dynamic>[];
+        final playlists = playlistsAsync.asData?.value ?? const <dynamic>[];
+        final newReleases =
+            newReleasesAsync.asData?.value ?? const <AlbumDetailed>[];
+        final hasRecent = recent.isNotEmpty;
         final featured = selectedParams == null
-            ? <dynamic>[...recent, ...catalogFallback].take(8).toList()
+            ? (hasRecent
+                  ? recent.take(8).toList()
+                  : (base.sections.isNotEmpty
+                        ? base.sections.first.contents.take(8).toList()
+                        : const <dynamic>[]))
             : const <dynamic>[];
+        // Show sections[0] (e.g. Quick Picks for signed-in users) as its own
+        // shelf when history already populates Featured, or if it has > 8 items.
+        final showFirstSectionShelf =
+            selectedParams == null &&
+            base.sections.isNotEmpty &&
+            base.sections.first.contents.isNotEmpty &&
+            (hasRecent || base.sections.first.contents.length > 8);
 
         return CustomScrollView(
           slivers: [
@@ -79,13 +106,33 @@ class TvHomeScreen extends ConsumerWidget {
               const SliverToBoxAdapter(child: TvHeroSpotlight()),
             if (featured.isNotEmpty)
               SliverToBoxAdapter(child: _TvFeaturedRow(items: featured)),
-            if (!offline && base.chips.isNotEmpty)
+            if (base.chips.isNotEmpty)
               SliverToBoxAdapter(
                 child: _TvCategoryRow(
                   chips: base.chips,
                   selectedParams: selectedParams,
                 ),
               ),
+            if (selectedParams == null) ...[
+              const SliverToBoxAdapter(child: _TvSmartMixShelf()),
+              if (playlists.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _TvYourPlaylistsShelf(playlists: playlists),
+                ),
+              if (showFirstSectionShelf)
+                SliverToBoxAdapter(
+                  child: _TvHomeSectionShelf(section: base.sections.first),
+                ),
+              if (newReleases.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _TvHomeSectionShelf(
+                    section: HomeSection(
+                      title: l10n.newReleases,
+                      contents: newReleases,
+                    ),
+                  ),
+                ),
+            ],
             SliverToBoxAdapter(
               child: sectionsAsync.when(
                 loading: () => const Padding(
@@ -691,5 +738,172 @@ class _TvHomeSectionShelf extends ConsumerWidget {
       );
     }
     return null;
+  }
+}
+
+class _TvSmartMixShelf extends ConsumerWidget {
+  const _TvSmartMixShelf();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    return TvShelf(
+      title: l10n.yourMixes,
+      children: [
+        for (final type in SmartMixType.values)
+          Builder(
+            builder: (context) {
+              final (title, subtitle) = switch (type) {
+                SmartMixType.mostPlayed => (
+                  l10n.mostPlayed,
+                  l10n.mostPlayedDesc,
+                ),
+                SmartMixType.recentlyPlayed => (
+                  l10n.recentlyPlayed,
+                  l10n.recentlyPlayedDesc,
+                ),
+                SmartMixType.forgottenFavorites => (
+                  l10n.forgottenFavorites,
+                  l10n.forgottenFavoritesDesc,
+                ),
+              };
+              return TvPosterCard(
+                title: title,
+                subtitle: subtitle,
+                placeholderOverride: Container(
+                  decoration: BoxDecoration(
+                    gradient: smartMixGradient(context, type),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      LucideIcons.sparkles,
+                      size: 36,
+                      color: SonoraPulseTokens.onBrandGraphic,
+                    ),
+                  ),
+                ),
+                onFocusChange: (hasFocus) {
+                  if (!hasFocus) return;
+                  ref
+                      .read(tvSpotlightProvider.notifier)
+                      .setSpotlight(
+                        TvSpotlightData(
+                          title: title,
+                          subtitle: subtitle,
+                          tag: l10n.yourMixes,
+                          onPlay: () => context.push('/smart-mix/${type.name}'),
+                          onOpen: () => context.push('/smart-mix/${type.name}'),
+                        ),
+                      );
+                },
+                onSelect: () => context.push('/smart-mix/${type.name}'),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+class _TvYourPlaylistsShelf extends ConsumerWidget {
+  final List<dynamic> playlists;
+
+  const _TvYourPlaylistsShelf({required this.playlists});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final cards = <Widget>[];
+
+    for (final item in playlists) {
+      if (item is LocalPlaylistModel) {
+        void playLocal() async {
+          final entries = await ref.read(
+            playlistEntriesProvider(item.id).future,
+          );
+          if (entries.isEmpty) return;
+          await ref
+              .read(playerStateProvider.notifier)
+              .playLocalPlaylist(entries, startIndex: 0);
+        }
+
+        cards.add(
+          TvPosterCard(
+            title: item.name,
+            placeholderOverride: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                  colors: [
+                    colorScheme.primaryContainer,
+                    colorScheme.secondaryContainer,
+                  ],
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  LucideIcons.listMusic,
+                  size: 36,
+                  color: SonoraPulseTokens.onBrandGraphic,
+                ),
+              ),
+            ),
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) return;
+              ref
+                  .read(tvSpotlightProvider.notifier)
+                  .setSpotlight(
+                    TvSpotlightData(
+                      title: item.name,
+                      tag: l10n.yourPlaylists,
+                      onPlay: playLocal,
+                    ),
+                  );
+            },
+            onSelect: playLocal,
+            onLongSelect: () => ContextMenuSheet.showForCustomPlaylist(
+              context,
+              playlist: item,
+              onUpdated: () {},
+            ),
+          ),
+        );
+      } else if (item is LikedPlaylistModel) {
+        cards.add(
+          TvPosterCard(
+            title: item.name,
+            imageUrl: item.thumbnailUrl,
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) return;
+              ref
+                  .read(tvSpotlightProvider.notifier)
+                  .setSpotlight(
+                    TvSpotlightData(
+                      title: item.name,
+                      imageUrl: item.thumbnailUrl,
+                      tag: l10n.yourPlaylists,
+                      onPlay: () =>
+                          context.push('/playlist/${item.playlistId}'),
+                      onOpen: () =>
+                          context.push('/playlist/${item.playlistId}'),
+                    ),
+                  );
+            },
+            onSelect: () => context.push('/playlist/${item.playlistId}'),
+            onLongSelect: () => ContextMenuSheet.showForPlaylist(
+              context,
+              playlistId: item.playlistId,
+              name: item.name,
+              thumbnailUrl: item.thumbnailUrl,
+            ),
+          ),
+        );
+      }
+    }
+
+    if (cards.isEmpty) return const SizedBox.shrink();
+    return TvShelf(title: l10n.yourPlaylists, children: cards);
   }
 }
