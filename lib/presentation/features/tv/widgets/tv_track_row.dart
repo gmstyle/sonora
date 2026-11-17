@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../tv_metrics.dart';
 import 'tv_focusable.dart';
+import 'tv_now_playing_pill.dart';
 
 /// Tall focusable track row card for TV entity lists.
 class TvTrackRow extends StatelessWidget {
@@ -10,6 +11,7 @@ class TvTrackRow extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String? duration;
+
   /// Compact play/view count (already formatted), shown before [duration].
   final String? playCount;
   final bool isExplicit;
@@ -73,11 +75,7 @@ class TvTrackRow extends StatelessWidget {
               SizedBox(
                 width: 30,
                 child: isPlaying
-                    ? Icon(
-                        LucideIcons.play,
-                        size: 14,
-                        color: colorScheme.primary,
-                      )
+                    ? Center(child: TvMiniEqBars(color: colorScheme.primary))
                     : Text(
                         '${index + 1}',
                         textAlign: TextAlign.center,

@@ -70,23 +70,7 @@ class _TvSmartMixScreenState extends ConsumerState<TvSmartMixScreen> {
       SmartMixType.recentlyPlayed => LucideIcons.history,
       SmartMixType.forgottenFavorites => LucideIcons.heart,
     };
-    final gradient = switch (mixType) {
-      SmartMixType.mostPlayed => const LinearGradient(
-        begin: Alignment.bottomLeft,
-        end: Alignment.topRight,
-        colors: [Color(0xFF2563EB), Color(0xFF00F2FE)],
-      ),
-      SmartMixType.recentlyPlayed => const LinearGradient(
-        begin: Alignment.bottomLeft,
-        end: Alignment.topRight,
-        colors: [Color(0xFF7C3AED), Color(0xFF4FACFE)],
-      ),
-      SmartMixType.forgottenFavorites => const LinearGradient(
-        begin: Alignment.bottomLeft,
-        end: Alignment.topRight,
-        colors: [Color(0xFFE11D48), Color(0xFF7E22CE)],
-      ),
-    };
+    final gradient = smartMixGradient(context, mixType);
 
     final AsyncValue<List<dynamic>> songsAsync = switch (mixType) {
       SmartMixType.mostPlayed => ref.watch(mostPlayedSongsProvider),

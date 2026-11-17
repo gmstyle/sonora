@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
@@ -327,6 +328,8 @@ class _PlaylistsBody extends ConsumerWidget {
       return firstFocus;
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return ListView(
       children: [
         TvShelf(
@@ -337,18 +340,21 @@ class _PlaylistsBody extends ConsumerWidget {
                 title: local[i].name,
                 focusNode: i == 0 ? takeFirst() : null,
                 placeholderOverride: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomLeft,
                       end: Alignment.topRight,
-                      colors: [Color(0xFF4F46E5), Color(0xFF00F2FE)],
+                      colors: [
+                        colorScheme.primaryContainer,
+                        colorScheme.secondaryContainer,
+                      ],
                     ),
                   ),
                   child: const Center(
                     child: Icon(
                       LucideIcons.listMusic,
                       size: 36,
-                      color: Colors.white,
+                      color: SonoraPulseTokens.onBrandGraphic,
                     ),
                   ),
                 ),
@@ -581,30 +587,13 @@ class _MixesBody extends StatelessWidget {
                 },
                 placeholderOverride: Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomLeft,
-                      end: Alignment.topRight,
-                      colors: switch (SmartMixType.values[i]) {
-                        SmartMixType.mostPlayed => const [
-                          Color(0xFF2563EB),
-                          Color(0xFF00F2FE),
-                        ],
-                        SmartMixType.recentlyPlayed => const [
-                          Color(0xFF7C3AED),
-                          Color(0xFF4FACFE),
-                        ],
-                        SmartMixType.forgottenFavorites => const [
-                          Color(0xFFE11D48),
-                          Color(0xFF7E22CE),
-                        ],
-                      },
-                    ),
+                    gradient: smartMixGradient(context, SmartMixType.values[i]),
                   ),
                   child: const Center(
                     child: Icon(
                       LucideIcons.sparkles,
                       size: 36,
-                      color: Colors.white,
+                      color: SonoraPulseTokens.onBrandGraphic,
                     ),
                   ),
                 ),

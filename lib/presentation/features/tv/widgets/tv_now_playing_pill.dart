@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../providers/player_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../screens/tv_now_playing_screen.dart';
 import '../tv_metrics.dart';
@@ -42,7 +45,7 @@ class TvNowPlayingPill extends ConsumerWidget {
           child: Container(
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xE60B0E17),
+              color: TvColors.railBg,
               borderRadius: BorderRadius.circular(99),
               border: Border.all(color: TvColors.border),
               boxShadow: [
@@ -81,8 +84,7 @@ class TvNowPlayingPill extends ConsumerWidget {
                                 height: 1.15,
                               ),
                             ),
-                            if (song.artist != null &&
-                                song.artist!.isNotEmpty)
+                            if (song.artist != null && song.artist!.isNotEmpty)
                               Text(
                                 song.artist!,
                                 maxLines: 1,
@@ -133,45 +135,79 @@ class TvNowPlayingPill extends ConsumerWidget {
   }
 }
 
-/// Compact 3-bar audio indicator used in [TvNowPlayingPill] and sidebar.
-class TvMiniEqBars extends StatelessWidget {
+/// Compact 3-bar audio indicator used in [TvNowPlayingPill], sidebar, and
+/// active [TvTrackRow] items. Respects [Settings.reduceEffects].
+class TvMiniEqBars extends ConsumerStatefulWidget {
   final Color color;
 
   const TvMiniEqBars({super.key, required this.color});
 
   @override
+  ConsumerState<TvMiniEqBars> createState() => _TvMiniEqBarsState();
+}
+
+class _TvMiniEqBarsState extends ConsumerState<TvMiniEqBars>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Container(
-          width: 2.5,
-          height: 7,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 2),
-        Container(
-          width: 2.5,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 2),
-        Container(
-          width: 2.5,
-          height: 9,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      ],
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
+    if (reduceEffects) {
+      if (_controller.isAnimating) _controller.stop();
+      return _buildBars(const [7, 12, 9]);
+    }
+    if (!_controller.isAnimating) _controller.repeat();
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value * math.pi * 2;
+        final h1 = 4.0 + 7.5 * (0.5 + 0.5 * math.sin(t));
+        final h2 = 5.0 + 8.0 * (0.5 + 0.5 * math.sin(t + 2.1));
+        final h3 = 4.0 + 7.5 * (0.5 + 0.5 * math.sin(t + 4.2));
+        return _buildBars([h1, h2, h3]);
+      },
+    );
+  }
+
+  Widget _buildBars(List<double> heights) {
+    return SizedBox(
+      height: 14,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < heights.length; i++) ...[
+            if (i > 0) const SizedBox(width: 2),
+            Container(
+              width: 2.5,
+              height: heights[i],
+              decoration: BoxDecoration(
+                color: widget.color,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
