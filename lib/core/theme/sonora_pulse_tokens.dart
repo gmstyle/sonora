@@ -225,6 +225,16 @@ class SonoraPulseTokens {
       onPrimary: accent.ink,
       primaryContainer: accent.fill,
       onPrimaryContainer: accent.ink,
+      secondary: accent == BrandAccent.cyan
+          ? secondary
+          : Color.lerp(accent.fill, const Color(0xFFFFFFFF), 0.35)!,
+      onSecondary: accent == BrandAccent.cyan ? onSecondary : accent.ink,
+      secondaryContainer: accent == BrandAccent.cyan
+          ? secondaryContainer
+          : Color.lerp(surfaceContainerHigh, accent.end, 0.28)!,
+      onSecondaryContainer: accent == BrandAccent.cyan
+          ? onSecondaryContainer
+          : onSurface,
       inversePrimary: accent.readable,
       surfaceTint: accent == BrandAccent.cyan ? surfaceTint : accent.fill,
     );
@@ -273,6 +283,16 @@ class SonoraPulseTokens {
       primary: accent.readable,
       primaryContainer: accent.fill,
       onPrimaryContainer: accent.ink,
+      secondary: accent == BrandAccent.cyan
+          ? accentElectricBlue
+          : accent.readable,
+      onSecondary: lightSurface,
+      secondaryContainer: accent == BrandAccent.cyan
+          ? const Color(0xFFD0E4FF)
+          : Color.lerp(lightSurface, accent.fill, 0.18)!,
+      onSecondaryContainer: accent == BrandAccent.cyan
+          ? onSecondary
+          : accent.ink,
       inversePrimary: accent.fill,
       surfaceTint: accent == BrandAccent.cyan ? surfaceTint : accent.fill,
     );

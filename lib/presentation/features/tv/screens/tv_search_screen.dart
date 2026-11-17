@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/extensions/stat_format.dart';
+import '../../../../core/theme/player_colors.dart';
 import '../../../../core/utils/artists_utils.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/connectivity_provider.dart';
@@ -536,12 +537,8 @@ class _TvLibraryMatchesShelves extends ConsumerWidget {
                 title: playlist.name,
                 subtitle: playlist.description,
                 placeholderOverride: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomLeft,
-                      end: Alignment.topRight,
-                      colors: [Color(0xFF4F46E5), Color(0xFF00F2FE)],
-                    ),
+                  decoration: BoxDecoration(
+                    gradient: brandSpectrumOf(context),
                   ),
                   child: const Center(
                     child: Icon(
