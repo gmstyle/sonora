@@ -628,12 +628,11 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Android TV: playback only while the app is in the foreground.
+    // Android TV: allow playback to continue when the system screensaver
+    // (DreamService) or overlays appear; only pause if the activity detaches.
+    // Explicit exit via the TV Back confirmation dialog pauses before closing.
     if (ref.read(isAndroidTvProvider)) {
-      if (state == AppLifecycleState.paused ||
-          state == AppLifecycleState.inactive ||
-          state == AppLifecycleState.detached ||
-          state == AppLifecycleState.hidden) {
+      if (state == AppLifecycleState.detached) {
         unawaited(pause());
       }
       return;

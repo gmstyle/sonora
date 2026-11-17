@@ -932,5 +932,8 @@
   "entityKindPodcast": "Podcast",
   "entityKindEpisode": "Episodio",
   "entityKindProfile": "Profilo",
-  "tvStageArtwork": "Copertina"
+  "tvStageArtwork": "Copertina",
+  "tvExitAppTitle": "Uscire da Sonora?",
+  "tvExitAppMessage": "La riproduzione verrà interrotta.",
+  "tvExitAppAction": "Esci"
 }

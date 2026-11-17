@@ -1118,5 +1118,8 @@
   "entityKindPodcast": "Podcast",
   "entityKindEpisode": "Episode",
   "entityKindProfile": "Profile",
-  "tvStageArtwork": "Artwork"
+  "tvStageArtwork": "Artwork",
+  "tvExitAppTitle": "Exit Sonora?",
+  "tvExitAppMessage": "Playback will stop if you exit.",
+  "tvExitAppAction": "Exit"
 }

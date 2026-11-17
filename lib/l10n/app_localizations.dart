@@ -4340,6 +4340,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Artwork'**
   String get tvStageArtwork;
+
+  /// No description provided for @tvExitAppTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Sonora?'**
+  String get tvExitAppTitle;
+
+  /// No description provided for @tvExitAppMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback will stop if you exit.'**
+  String get tvExitAppMessage;
+
+  /// No description provided for @tvExitAppAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get tvExitAppAction;
 }
 
 class _AppLocalizationsDelegate

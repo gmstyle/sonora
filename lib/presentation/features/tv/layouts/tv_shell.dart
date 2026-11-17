@@ -12,6 +12,7 @@ import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/action_feedback_listener.dart';
 import '../../../shared/widgets/branch_fade_transition.dart';
 import '../../../shared/widgets/dock_status_banners.dart';
+import '../../../shared/widgets/feedback_toast.dart';
 import '../../../shared/widgets/player_error_listener.dart';
 import '../../../shared/widgets/sonora_logo.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
@@ -49,13 +50,12 @@ class _TvShellState extends ConsumerState<TvShell> {
   final FocusScopeNode _sidebarScope = FocusScopeNode(debugLabel: 'tvSidebar');
   final FocusScopeNode _contentScope = FocusScopeNode(debugLabel: 'tvContent');
   late final List<FocusNode> _navNodes;
-  final FocusNode _nowPlayingNavNode = FocusNode(
-    debugLabel: 'tvNavNowPlaying',
-  );
+  final FocusNode _nowPlayingNavNode = FocusNode(debugLabel: 'tvNavNowPlaying');
   final FocusNode _pillFocusNode = FocusNode(debugLabel: 'tvNowPlayingPill');
   final FocusNode _accountNavNode = FocusNode(debugLabel: 'tvNavAccount');
   final FocusNode _settingsNavNode = FocusNode(debugLabel: 'tvNavSettings');
   bool _drawerExpanded = false;
+  bool _exitDialogOpen = false;
 
   @override
   void initState() {
@@ -230,7 +230,11 @@ class _TvShellState extends ConsumerState<TvShell> {
             });
         return KeyEventResult.handled;
       }
-      // At the top of the screen: allow ArrowUp to reach the top-right pill.
+      // At the top of the screen: first reach any sticky error toast above,
+      // otherwise move focus to the top-right Now Playing pill.
+      if (FeedbackToast.requestFocusIfSticky()) {
+        return KeyEventResult.handled;
+      }
       if (primaryFocus != _pillFocusNode &&
           _pillFocusNode.context != null &&
           _pillFocusNode.canRequestFocus) {
@@ -271,6 +275,60 @@ class _TvShellState extends ConsumerState<TvShell> {
     return KeyEventResult.ignored;
   }
 
+  Future<void> _confirmAndExit() async {
+    if (_exitDialogOpen || !mounted) return;
+    _exitDialogOpen = true;
+    final l10n = AppLocalizations.of(context)!;
+    final hasActiveSong = ref.read(playerStateProvider).currentSong != null;
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          final theme = Theme.of(dialogContext);
+          return AlertDialog(
+            backgroundColor: TvColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: TvColors.border),
+            ),
+            title: Text(
+              l10n.tvExitAppTitle,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: TvColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            content: hasActiveSong
+                ? Text(
+                    l10n.tvExitAppMessage,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: TvColors.textSecondary,
+                    ),
+                  )
+                : null,
+            actions: [
+              TextButton(
+                autofocus: true,
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l10n.tvExitAppAction),
+              ),
+            ],
+          );
+        },
+      );
+      if (confirmed == true && mounted) {
+        await ref.read(playerStateProvider.notifier).pause();
+        await SystemNavigator.pop();
+      }
+    } finally {
+      _exitDialogOpen = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final navigationShell = widget.navigationShell;
@@ -280,16 +338,18 @@ class _TvShellState extends ConsumerState<TvShell> {
     final currentSong = ref.watch(
       playerStateProvider.select((s) => s.currentSong),
     );
-    final isPlaying = ref.watch(
-      playerStateProvider.select((s) => s.isPlaying),
-    );
+    final isPlaying = ref.watch(playerStateProvider.select((s) => s.isPlaying));
 
     return PopScope(
-      canPop: !expanded,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && expanded) {
+        if (didPop) return;
+        if (FeedbackToast.dismissSticky()) return;
+        if (expanded) {
           _focusContent();
+          return;
         }
+        unawaited(_confirmAndExit());
       },
       child: TvShellFocus(
         focusSidebar: _focusSidebar,

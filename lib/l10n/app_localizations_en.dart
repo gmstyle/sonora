@@ -2516,4 +2516,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tvStageArtwork => 'Artwork';
+
+  @override
+  String get tvExitAppTitle => 'Exit Sonora?';
+
+  @override
+  String get tvExitAppMessage => 'Playback will stop if you exit.';
+
+  @override
+  String get tvExitAppAction => 'Exit';
 }

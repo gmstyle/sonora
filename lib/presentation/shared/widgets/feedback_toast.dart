@@ -7,8 +7,33 @@ import '../../providers/action_feedback_provider.dart';
 
 class FeedbackToast {
   static OverlayEntry? _currentEntry;
+  static _FeedbackToastWidgetState? _currentState;
 
   FeedbackToast._();
+
+  /// Whether a sticky (error) toast is currently visible.
+  static bool get isStickyVisible => _currentState?._sticky == true;
+
+  /// Moves focus to the active sticky toast so D-pad / Select can close it.
+  /// Returns `true` if focus was requested.
+  static bool requestFocusIfSticky() {
+    final state = _currentState;
+    if (state == null || !state._sticky || !state.mounted) return false;
+    if (state._closeFocus.canRequestFocus) {
+      state._closeFocus.requestFocus();
+      return true;
+    }
+    return false;
+  }
+
+  /// Dismisses the active sticky toast if one is visible. Returns `true` if
+  /// a toast was dismissed.
+  static bool dismissSticky() {
+    final state = _currentState;
+    if (state == null || !state._sticky || !state.mounted) return false;
+    state._dismiss();
+    return true;
+  }
 
   static void show(
     BuildContext context,
@@ -17,6 +42,7 @@ class FeedbackToast {
   }) {
     _currentEntry?.remove();
     _currentEntry = null;
+    _currentState = null;
 
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
@@ -29,6 +55,7 @@ class FeedbackToast {
           entry.remove();
           if (_currentEntry == entry) {
             _currentEntry = null;
+            _currentState = null;
           }
         },
       ),
@@ -41,6 +68,7 @@ class FeedbackToast {
   static void dismiss() {
     _currentEntry?.remove();
     _currentEntry = null;
+    _currentState = null;
   }
 }
 
@@ -72,6 +100,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   @override
   void initState() {
     super.initState();
+    FeedbackToast._currentState = this;
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -88,8 +117,9 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     _controller.forward();
 
     // Sticky errors must be dismissible with the remote: take focus as soon as
-    // the overlay mounts so D-pad / Select / Back reach the close control.
+    // the overlay mounts, and listen for Back/Escape globally while visible.
     if (_sticky) {
+      HardwareKeyboard.instance.addHandler(_onGlobalKey);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _closeFocus.canRequestFocus) {
           _closeFocus.requestFocus();
@@ -102,9 +132,26 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     }
   }
 
+  bool _onGlobalKey(KeyEvent event) {
+    if (_closing || !_sticky || !mounted || event is! KeyDownEvent) {
+      return false;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.browserBack) {
+      _dismiss();
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _dismiss() async {
     if (_closing || !mounted) return;
     _closing = true;
+    if (_sticky) {
+      HardwareKeyboard.instance.removeHandler(_onGlobalKey);
+    }
     await _controller.reverse();
     if (mounted) {
       widget.onDismiss();
@@ -129,6 +176,12 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
 
   @override
   void dispose() {
+    if (_sticky) {
+      HardwareKeyboard.instance.removeHandler(_onGlobalKey);
+    }
+    if (FeedbackToast._currentState == this) {
+      FeedbackToast._currentState = null;
+    }
     _closeFocus.dispose();
     _controller.dispose();
     super.dispose();
