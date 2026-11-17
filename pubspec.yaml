@@ -1,6 +1,6 @@
 name: sonora
 description: A music streaming app.
-version: 1.9.1+77
+version: 2.0.0+78
 publish_to: none
 
 environment:
@@ -26,7 +26,6 @@ dependencies:
   dart_ytmusic_api:
     git:
       url: https://github.com/gmstyle/dart_ytmusic_api.git
-      ref: 80fa058
 
   youtube_explode_dart:
     #path: ../youtube_explode_dart
