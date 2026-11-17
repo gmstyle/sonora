@@ -47,14 +47,8 @@ Widget buildPlayerBackground(
   ColorScheme colorScheme, {
   BuildContext? context,
   bool reduceEffects = false,
+  bool dimmed = false,
 }) {
-  // Resolve PlayerColors if a context is available; fall back to standard
-  // values so the function remains callable without a BuildContext (e.g. from
-  // initState or static helpers).
-  final pc = context != null
-      ? PlayerColors.maybeOf(context) ?? PlayerColors.standard()
-      : PlayerColors.standard();
-
   final gradientDecoration = BoxDecoration(
     gradient: LinearGradient(
       begin: Alignment.topCenter,
@@ -75,15 +69,24 @@ Widget buildPlayerBackground(
       if (artUrl != null && !reduceEffects)
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
-          child: ImageFiltered(
+          layoutBuilder: (currentChild, previousChildren) => Stack(
+            fit: StackFit.expand,
+            children: [...previousChildren, ?currentChild],
+          ),
+          child: ClipRect(
             key: ValueKey(artUrl),
-            imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-            child: CachedNetworkImage(
-              imageUrl: artUrl,
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-              placeholder: (_, _) => const ColoredBox(color: Colors.black),
-              errorWidget: (_, _, _) => const ColoredBox(color: Colors.black87),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: CachedNetworkImage(
+                imageUrl: artUrl,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                alignment: Alignment.center,
+                placeholder: (_, _) => const ColoredBox(color: Colors.black),
+                errorWidget: (_, _, _) =>
+                    const ColoredBox(color: Colors.black87),
+              ),
             ),
           ),
         )
@@ -119,19 +122,35 @@ Widget buildPlayerBackground(
         ),
       ),
 
-      // Layer 4 — top scrim from PlayerColors: palette-independent dark band
-      // that guarantees the chevron, drag handle and "Playing from" label are
-      // always readable regardless of artwork colour.
+      // Layer 4 — subtle neutral top scrim so the TopBar stays readable over
+      // bright artwork without introducing a tinted band seam.
       DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            stops: const [0.0, 0.18, 0.28],
-            colors: [pc.topScrimStart, pc.topScrimMid, Colors.transparent],
+            stops: const [0.0, 0.12, 0.24],
+            colors: [
+              Colors.black.withValues(alpha: 0.42),
+              Colors.black.withValues(alpha: 0.14),
+              Colors.transparent,
+            ],
           ),
         ),
       ),
+
+      // Layer 5 — uniform reading veil when lyrics are open, keeping TopBar,
+      // lyrics, and bottom controls on one continuous surface.
+      if (reduceEffects)
+        ColoredBox(
+          color: Colors.black.withValues(alpha: dimmed ? 0.42 : 0.0),
+        )
+      else
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          color: Colors.black.withValues(alpha: dimmed ? 0.42 : 0.0),
+        ),
     ],
   );
 }

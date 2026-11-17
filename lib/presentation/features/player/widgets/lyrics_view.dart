@@ -51,44 +51,58 @@ class LyricsView extends ConsumerWidget {
         translation.showTranslation &&
         translation.videoId == videoId;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (canTranslate)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: _TranslateAskAction(
-              videoId: videoId,
-              showTranslation: showTranslated,
-              loading:
-                  showTranslated &&
-                  translation.phase == LyricsTranslationPhase.loading,
+    final body = _LyricsReadingSurface(
+      child: showTranslated
+          ? _TranslatedBody(videoId: videoId, state: translation)
+          : timedAsync.when(
+              loading: () => const _LyricsLoading(),
+              error: (_, _) =>
+                  _buildPlainLyrics(context, fallbackAsync, canTranslate),
+              data: (timed) {
+                if (timed != null) {
+                  return _TimedLyricsView(lyrics: timed, position: position);
+                }
+                return _buildPlainLyrics(context, fallbackAsync, canTranslate);
+              },
             ),
-          ),
-        if (showTranslated &&
-            translation.phase == LyricsTranslationPhase.ready) ...[
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: _TranslationDisclaimer(),
-          ),
+    );
+
+    if (showTranslated) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (canTranslate)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: _TranslateAskAction(
+                videoId: videoId,
+                showTranslation: true,
+                loading: translation.phase == LyricsTranslationPhase.loading,
+              ),
+            ),
+          if (translation.phase == LyricsTranslationPhase.ready)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: _TranslationDisclaimer(),
+            ),
+          Expanded(child: body),
         ],
-        Expanded(
-          child: _LyricsReadingSurface(
-            child: showTranslated
-                ? _TranslatedBody(videoId: videoId, state: translation)
-                : timedAsync.when(
-                    loading: () => const _LyricsLoading(),
-                    error: (_, _) => _buildPlainLyrics(context, fallbackAsync),
-                    data: (timed) {
-                      if (timed != null) {
-                        return _TimedLyricsView(
-                          lyrics: timed,
-                          position: position,
-                        );
-                      }
-                      return _buildPlainLyrics(context, fallbackAsync);
-                    },
-                  ),
+      );
+    }
+
+    if (!canTranslate) return body;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        body,
+        Positioned(
+          top: 8,
+          right: 16,
+          child: _TranslateAskAction(
+            videoId: videoId,
+            showTranslation: false,
+            loading: false,
           ),
         ),
       ],
@@ -121,6 +135,7 @@ class LyricsView extends ConsumerWidget {
   Widget _buildPlainLyrics(
     BuildContext context,
     AsyncValue<String?> fallbackAsync,
+    bool hasFloatingAction,
   ) {
     return fallbackAsync.when(
       loading: () => const _LyricsLoading(),
@@ -131,19 +146,34 @@ class LyricsView extends ConsumerWidget {
         }
         return LayoutBuilder(
           builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: _lyricHorizontalPad(constraints.maxWidth),
-                vertical: 32,
-              ),
-              child: Text(
-                text,
-                style: _lyricStyle(
-                  context,
-                  constraints.maxWidth,
-                  active: true,
-                ).copyWith(fontWeight: FontWeight.w600),
-                textAlign: TextAlign.start,
+            return _LyricsFadeMask(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  _lyricHorizontalPad(constraints.maxWidth),
+                  hasFloatingAction ? 60 : 32,
+                  _lyricHorizontalPad(constraints.maxWidth),
+                  36,
+                ),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _kLyricsMaxWidth,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        text,
+                        style: _lyricStyle(
+                          context,
+                          constraints.maxWidth,
+                          active: true,
+                        ).copyWith(fontWeight: FontWeight.w600),
+                        textAlign: TextAlign.start,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             );
           },
@@ -290,19 +320,30 @@ class _TranslatedBody extends ConsumerWidget {
     final text = state.translation ?? '';
     return LayoutBuilder(
       builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: _lyricHorizontalPad(constraints.maxWidth),
-            vertical: 32,
-          ),
-          child: Text(
-            text,
-            style: _lyricStyle(
-              context,
-              constraints.maxWidth,
-              active: true,
-            ).copyWith(fontWeight: FontWeight.w600),
-            textAlign: TextAlign.start,
+        return _LyricsFadeMask(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: _lyricHorizontalPad(constraints.maxWidth),
+              vertical: 28,
+            ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _kLyricsMaxWidth),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    text,
+                    style: _lyricStyle(
+                      context,
+                      constraints.maxWidth,
+                      active: true,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.start,
+                  ),
+                ),
+              ),
+            ),
           ),
         );
       },
@@ -400,35 +441,43 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
         final pad = viewport.isFinite ? viewport * 0.36 : 120.0;
         final size = _lyricSize(width);
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(
-            _lyricHorizontalPad(width),
-            pad,
-            _lyricHorizontalPad(width),
-            pad,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: List.generate(data.length, (index) {
-              final line = data[index];
-              final text = line.lyricLine?.trim() ?? '';
-              final isActive = index == activeIndex;
+        return _LyricsFadeMask(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              _lyricHorizontalPad(width),
+              pad,
+              _lyricHorizontalPad(width),
+              pad,
+            ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _kLyricsMaxWidth),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: List.generate(data.length, (index) {
+                    final line = data[index];
+                    final text = line.lyricLine?.trim() ?? '';
+                    final isActive = index == activeIndex;
 
-              if (text.isEmpty) {
-                return SizedBox(key: _keys[index], height: size * 0.7);
-              }
+                    if (text.isEmpty) {
+                      return SizedBox(key: _keys[index], height: size * 0.7);
+                    }
 
-              return Padding(
-                key: _keys[index],
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 300),
-                  style: _lyricStyle(context, width, active: isActive),
-                  child: Text(text, textAlign: TextAlign.start),
+                    return Padding(
+                      key: _keys[index],
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 300),
+                        style: _lyricStyle(context, width, active: isActive),
+                        child: Text(text, textAlign: TextAlign.start),
+                      ),
+                    );
+                  }),
                 ),
-              );
-            }),
+              ),
+            ),
           ),
         );
       },
@@ -436,13 +485,15 @@ class _TimedLyricsViewState extends State<_TimedLyricsView> {
   }
 }
 
+const double _kLyricsMaxWidth = 760;
+
 double _lyricSize(double width) {
   if (width >= 1200) return 48;
   if (width >= 600) return 36;
   return 30;
 }
 
-double _lyricHorizontalPad(double width) => width >= 1200 ? 64 : 8;
+double _lyricHorizontalPad(double width) => width >= 1200 ? 48 : 8;
 
 TextStyle _lyricStyle(
   BuildContext context,
@@ -459,27 +510,47 @@ TextStyle _lyricStyle(
   );
 }
 
-/// Flat dark veil behind the lyric text. The player blur stays outside this
-/// surface, so line contrast does not follow the cover.
+/// Applies the player's ink palette to lyric text without painting an opaque
+/// box over the continuous player background.
 class _LyricsReadingSurface extends StatelessWidget {
   const _LyricsReadingSurface({required this.child});
 
   final Widget child;
 
-  static const Color veil = Color(0xE6000000);
-
   @override
   Widget build(BuildContext context) {
     final ink = PlayerColors.of(context).titlePrimary;
     final theme = Theme.of(context);
-    return ColoredBox(
-      color: veil,
-      child: Theme(
-        data: theme.copyWith(
-          textTheme: theme.textTheme.apply(bodyColor: ink, displayColor: ink),
-        ),
-        child: child,
+    return Theme(
+      data: theme.copyWith(
+        textTheme: theme.textTheme.apply(bodyColor: ink, displayColor: ink),
       ),
+      child: child,
+    );
+  }
+}
+
+class _LyricsFadeMask extends StatelessWidget {
+  const _LyricsFadeMask({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        stops: [0.0, 0.06, 0.92, 1.0],
+        colors: [
+          Colors.transparent,
+          Colors.white,
+          Colors.white,
+          Colors.transparent,
+        ],
+      ).createShader(bounds),
+      blendMode: BlendMode.dstIn,
+      child: child,
     );
   }
 }

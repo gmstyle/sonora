@@ -232,6 +232,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
                   theme,
                   dominantColor,
                   isDark,
+                  dimmed: activeView == PlayerSubView.lyrics,
                 ),
               ),
               layout,
@@ -248,8 +249,9 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
     String? artUrl,
     ThemeData theme,
     Color dominantColor,
-    bool isDark,
-  ) {
+    bool isDark, {
+    bool dimmed = false,
+  }) {
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
@@ -260,6 +262,7 @@ class _FullPlayerContentState extends ConsumerState<FullPlayerContent> {
       theme.colorScheme,
       context: context,
       reduceEffects: reduceEffects,
+      dimmed: dimmed,
     );
   }
 }

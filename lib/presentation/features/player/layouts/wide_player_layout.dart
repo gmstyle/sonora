@@ -837,7 +837,7 @@ class _BottomBar extends ConsumerWidget {
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.14),
           ),
         ),
       ),
