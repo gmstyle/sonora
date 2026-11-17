@@ -14,10 +14,12 @@ import '../../../shared/widgets/branch_fade_transition.dart';
 import '../../../shared/widgets/dock_status_banners.dart';
 import '../../../shared/widgets/player_error_listener.dart';
 import '../../../shared/widgets/sonora_logo.dart';
+import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/youtube_account_button.dart';
+import '../screens/tv_now_playing_screen.dart';
 import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
-import '../widgets/tv_dock.dart';
+import '../widgets/tv_now_playing_pill.dart';
 
 final _destinations = [
   (LucideIcons.home, (AppLocalizations l) => l.home),
@@ -32,8 +34,8 @@ final _destinations = [
 /// [TvMetrics.railExpandedWidth] as an overlay (content width stays fixed).
 /// Screens are dedicated TV widgets — not touch layouts.
 ///
-/// Focus scopes: sidebar ↔ content ↔ dock. Down past the last content
-/// focusable (or past Settings) moves to the media-controls strip.
+/// Focus scopes: sidebar ↔ content. A top-right pill and sidebar "Now Playing"
+/// entry open [TvNowPlayingScreen] without reserving a bottom bar.
 class TvShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -46,8 +48,11 @@ class TvShell extends ConsumerStatefulWidget {
 class _TvShellState extends ConsumerState<TvShell> {
   final FocusScopeNode _sidebarScope = FocusScopeNode(debugLabel: 'tvSidebar');
   final FocusScopeNode _contentScope = FocusScopeNode(debugLabel: 'tvContent');
-  final FocusScopeNode _dockScope = FocusScopeNode(debugLabel: 'tvDock');
   late final List<FocusNode> _navNodes;
+  final FocusNode _nowPlayingNavNode = FocusNode(
+    debugLabel: 'tvNavNowPlaying',
+  );
+  final FocusNode _pillFocusNode = FocusNode(debugLabel: 'tvNowPlayingPill');
   final FocusNode _accountNavNode = FocusNode(debugLabel: 'tvNavAccount');
   final FocusNode _settingsNavNode = FocusNode(debugLabel: 'tvNavSettings');
   bool _drawerExpanded = false;
@@ -65,10 +70,11 @@ class _TvShellState extends ConsumerState<TvShell> {
   void dispose() {
     _sidebarScope.dispose();
     _contentScope.dispose();
-    _dockScope.dispose();
     for (final node in _navNodes) {
       node.dispose();
     }
+    _nowPlayingNavNode.dispose();
+    _pillFocusNode.dispose();
     _accountNavNode.dispose();
     _settingsNavNode.dispose();
     super.dispose();
@@ -77,24 +83,6 @@ class _TvShellState extends ConsumerState<TvShell> {
   void _setExpanded(bool value) {
     if (_drawerExpanded == value) return;
     setState(() => _drawerExpanded = value);
-  }
-
-  bool get _dockAvailable => ref.read(playerStateProvider).currentSong != null;
-
-  void _focusDock() {
-    if (!_dockAvailable) return;
-    _setExpanded(false);
-    final saved = _dockScope.focusedChild;
-    if (saved != null && saved.canRequestFocus) {
-      saved.requestFocus();
-      return;
-    }
-    final first = _dockScope.traversalDescendants.firstOrNull;
-    if (first != null) {
-      first.requestFocus();
-    } else {
-      _dockScope.requestFocus();
-    }
   }
 
   bool _isOffstage(BuildContext? ctx) {
@@ -123,7 +111,7 @@ class _TvShellState extends ConsumerState<TvShell> {
         return;
       }
       final firstVisible = _contentScope.traversalDescendants
-          .where((n) => !_isOffstage(n.context))
+          .where((n) => n != _pillFocusNode && !_isOffstage(n.context))
           .firstOrNull;
       if (firstVisible != null) {
         firstVisible.requestFocus();
@@ -178,9 +166,19 @@ class _TvShellState extends ConsumerState<TvShell> {
       if (_focusInScope(_contentScope, TraversalDirection.down)) {
         return KeyEventResult.handled;
       }
+      final primaryFocus = FocusManager.instance.primaryFocus;
+      // Leaving the top-right pill downward: return to the first visible item.
+      if (primaryFocus == _pillFocusNode) {
+        final firstContent = _contentScope.traversalDescendants
+            .where((n) => n != _pillFocusNode && !_isOffstage(n.context))
+            .firstOrNull;
+        if (firstContent != null) {
+          firstContent.requestFocus();
+          return KeyEventResult.handled;
+        }
+      }
       // If directional focus down failed, attempt to scroll the nearest
       // vertical scrollable down so lazy items can mount and receive focus.
-      final primaryFocus = FocusManager.instance.primaryFocus;
       final scrollable = _findVerticalScrollable(primaryFocus?.context);
       if (scrollable != null &&
           scrollable.position.hasPixels &&
@@ -201,12 +199,6 @@ class _TvShellState extends ConsumerState<TvShell> {
                 _focusInScope(_contentScope, TraversalDirection.down);
               }
             });
-        return KeyEventResult.handled;
-      }
-      // Only hand off to the dock when vertical scrolling is exhausted and
-      // focus is in the lower portion of the content pane.
-      if (_dockAvailable && _canEnterDockFromContent()) {
-        _focusDock();
         return KeyEventResult.handled;
       }
       return KeyEventResult.handled;
@@ -238,6 +230,13 @@ class _TvShellState extends ConsumerState<TvShell> {
             });
         return KeyEventResult.handled;
       }
+      // At the top of the screen: allow ArrowUp to reach the top-right pill.
+      if (primaryFocus != _pillFocusNode &&
+          _pillFocusNode.context != null &&
+          _pillFocusNode.canRequestFocus) {
+        _pillFocusNode.requestFocus();
+        return KeyEventResult.handled;
+      }
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
@@ -250,62 +249,10 @@ class _TvShellState extends ConsumerState<TvShell> {
     return KeyEventResult.ignored;
   }
 
-  bool _canEnterDockFromContent() {
-    final focused = FocusManager.instance.primaryFocus;
-    final focusedCtx = focused?.context;
-    final scopeCtx = _contentScope.context;
-    if (focusedCtx == null || scopeCtx == null) return false;
-    final focusedBox = focusedCtx.findRenderObject() as RenderBox?;
-    final scopeBox = scopeCtx.findRenderObject() as RenderBox?;
-    if (focusedBox == null ||
-        scopeBox == null ||
-        !focusedBox.hasSize ||
-        !scopeBox.hasSize) {
-      return false;
-    }
-    final focusBottom = focusedBox
-        .localToGlobal(Offset(0, focusedBox.size.height))
-        .dy;
-    final scopeTop = scopeBox.localToGlobal(Offset.zero).dy;
-    return focusBottom >= scopeTop + scopeBox.size.height * 0.40;
-  }
-
-  KeyEventResult _onDockKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      if (_focusInScope(_dockScope, TraversalDirection.up)) {
-        return KeyEventResult.handled;
-      }
-      _focusContent();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      if (_focusInScope(_dockScope, TraversalDirection.left)) {
-        return KeyEventResult.handled;
-      }
-      _focusSidebar();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      _focusInScope(_dockScope, TraversalDirection.right);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
   KeyEventResult _onSidebarKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_focusInScope(_sidebarScope, TraversalDirection.down)) {
-        return KeyEventResult.handled;
-      }
-      if (_dockAvailable) {
-        _focusDock();
-        return KeyEventResult.handled;
-      }
+      _focusInScope(_sidebarScope, TraversalDirection.down);
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -330,16 +277,12 @@ class _TvShellState extends ConsumerState<TvShell> {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final expanded = _drawerExpanded;
-    // Rebuild when queue presence changes so dock focus targets stay valid.
-    ref.watch(playerStateProvider.select((s) => s.currentSong != null));
-    ref.listen<bool>(playerStateProvider.select((s) => s.currentSong != null), (
-      previous,
-      next,
-    ) {
-      if (previous == true && !next && _dockScope.hasFocus) {
-        _focusContent();
-      }
-    });
+    final currentSong = ref.watch(
+      playerStateProvider.select((s) => s.currentSong),
+    );
+    final isPlaying = ref.watch(
+      playerStateProvider.select((s) => s.isPlaying),
+    );
 
     return PopScope(
       canPop: !expanded,
@@ -350,7 +293,6 @@ class _TvShellState extends ConsumerState<TvShell> {
       },
       child: TvShellFocus(
         focusSidebar: _focusSidebar,
-        focusDock: _focusDock,
         focusContent: _focusContent,
         child: Scaffold(
           backgroundColor: TvColors.bg,
@@ -390,6 +332,13 @@ class _TvShellState extends ConsumerState<TvShell> {
                               children: [
                                 BranchFadeTransition(
                                   navigationShell: navigationShell,
+                                ),
+                                Positioned(
+                                  top: 14,
+                                  right: TvMetrics.contentPadding,
+                                  child: TvNowPlayingPill(
+                                    focusNode: _pillFocusNode,
+                                  ),
                                 ),
                                 const PlayerErrorListener(),
                                 const ActionFeedbackListener(),
@@ -507,6 +456,19 @@ class _TvShellState extends ConsumerState<TvShell> {
                                     ],
                                   ),
                                 ),
+                                if (currentSong != null)
+                                  _TvSidebarNowPlayingItem(
+                                    focusNode: _nowPlayingNavNode,
+                                    title: currentSong.title,
+                                    subtitle: l10n.queueNowPlayingChip,
+                                    artUrl: currentSong.artUri?.toString(),
+                                    isPlaying: isPlaying,
+                                    expanded: showLabels,
+                                    onSelect: () {
+                                      _setExpanded(false);
+                                      openTvNowPlaying(context);
+                                    },
+                                  ),
                                 Consumer(
                                   builder: (context, ref, _) {
                                     final accountLabel =
@@ -547,7 +509,6 @@ class _TvShellState extends ConsumerState<TvShell> {
                                     context.push('/settings');
                                     _setExpanded(false);
                                   },
-                                  onDown: _dockAvailable ? _focusDock : null,
                                 ),
                                 const SizedBox(height: 16),
                               ],
@@ -560,11 +521,6 @@ class _TvShellState extends ConsumerState<TvShell> {
                 ),
               ),
               const DockStatusBanners(),
-              FocusScope(
-                node: _dockScope,
-                onKeyEvent: _onDockKey,
-                child: const TvDock(),
-              ),
             ],
           ),
         ),
@@ -581,7 +537,6 @@ class _TvNavItem extends StatefulWidget {
   final bool selected;
   final bool expanded;
   final VoidCallback onSelect;
-  final VoidCallback? onDown;
 
   const _TvNavItem({
     super.key,
@@ -592,7 +547,6 @@ class _TvNavItem extends StatefulWidget {
     required this.selected,
     required this.expanded,
     required this.onSelect,
-    this.onDown,
   });
 
   @override
@@ -640,11 +594,6 @@ class _TvNavItemState extends State<_TvNavItem> {
               event.logicalKey == LogicalKeyboardKey.space;
           if (isSelect) {
             widget.onSelect();
-            return KeyEventResult.handled;
-          }
-          if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
-              widget.onDown != null) {
-            widget.onDown!();
             return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
@@ -701,6 +650,166 @@ class _TvNavItemState extends State<_TvNavItem> {
                           size: TvMetrics.railIconSize,
                           color: fg,
                         ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TvSidebarNowPlayingItem extends StatefulWidget {
+  final FocusNode focusNode;
+  final String title;
+  final String subtitle;
+  final String? artUrl;
+  final bool isPlaying;
+  final bool expanded;
+  final VoidCallback onSelect;
+
+  const _TvSidebarNowPlayingItem({
+    required this.focusNode,
+    required this.title,
+    required this.subtitle,
+    required this.artUrl,
+    required this.isPlaying,
+    required this.expanded,
+    required this.onSelect,
+  });
+
+  @override
+  State<_TvSidebarNowPlayingItem> createState() =>
+      _TvSidebarNowPlayingItemState();
+}
+
+class _TvSidebarNowPlayingItemState extends State<_TvSidebarNowPlayingItem> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bg = _focused
+        ? colorScheme.primary.withValues(alpha: 0.22)
+        : colorScheme.primary.withValues(alpha: 0.10);
+    final borderColor = _focused
+        ? colorScheme.primary
+        : colorScheme.primary.withValues(alpha: 0.28);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.expanded ? 12 : 10,
+        vertical: 4,
+      ),
+      child: Focus(
+        focusNode: widget.focusNode,
+        onFocusChange: (v) {
+          if (_focused != v) setState(() => _focused = v);
+        },
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          final isSelect =
+              event.logicalKey == LogicalKeyboardKey.select ||
+              event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.space;
+          if (isSelect) {
+            widget.onSelect();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: GestureDetector(
+          onTap: widget.onSelect,
+          child: AnimatedContainer(
+            duration: TvMetrics.drawerAnimDuration,
+            height: 52,
+            padding: EdgeInsets.symmetric(horizontal: widget.expanded ? 10 : 0),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor, width: _focused ? 2 : 1),
+              boxShadow: _focused
+                  ? [
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(alpha: 0.35),
+                        blurRadius: 16,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: widget.expanded
+                ? Row(
+                    children: [
+                      ThumbnailWidget(
+                        imageUrl: widget.artUrl,
+                        size: 32,
+                        shape: ThumbnailShape.rounded,
+                        borderRadius: 8,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.subtitle.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorScheme.primary,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                            Text(
+                              widget.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: TvColors.textPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (widget.isPlaying) ...[
+                        const SizedBox(width: 6),
+                        TvMiniEqBars(color: colorScheme.primary),
+                      ],
+                    ],
+                  )
+                : Center(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        ThumbnailWidget(
+                          imageUrl: widget.artUrl,
+                          size: 32,
+                          shape: ThumbnailShape.rounded,
+                          borderRadius: 8,
+                        ),
+                        if (widget.isPlaying)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: colorScheme.primary,
+                                border: Border.all(
+                                  color: TvColors.railBg,
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
           ),
         ),

@@ -1,15 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 
-/// Focus handoff between TV content, sidebar rail, and the mini-player dock.
+/// Focus handoff between TV content and the sidebar rail.
 class TvShellFocus extends InheritedWidget {
   final VoidCallback focusSidebar;
-  final VoidCallback focusDock;
   final VoidCallback focusContent;
 
   const TvShellFocus({
     super.key,
     required this.focusSidebar,
-    required this.focusDock,
     required this.focusContent,
     required super.child,
   });
@@ -22,10 +20,6 @@ class TvShellFocus extends InheritedWidget {
     maybeOf(context)?.focusSidebar();
   }
 
-  static void requestDock(BuildContext context) {
-    maybeOf(context)?.focusDock();
-  }
-
   static void requestContent(BuildContext context) {
     maybeOf(context)?.focusContent();
   }
@@ -33,6 +27,5 @@ class TvShellFocus extends InheritedWidget {
   @override
   bool updateShouldNotify(TvShellFocus oldWidget) =>
       focusSidebar != oldWidget.focusSidebar ||
-      focusDock != oldWidget.focusDock ||
       focusContent != oldWidget.focusContent;
 }

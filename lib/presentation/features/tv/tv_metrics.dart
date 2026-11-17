@@ -10,7 +10,6 @@ abstract final class TvColors {
   static const Color surfaceCard = Color(0xFF151B27);
   static const Color surfaceButton = Color(0xFF1E293B);
   static const Color railBg = Color(0xF20A0D14);
-  static const Color dockBg = Color(0xF207090E);
   static const Color border = Color(0x1AFFFFFF);
   static const Color borderSubtle = Color(0x14FFFFFF);
   static const Color borderFaint = Color(0x0DFFFFFF);
@@ -118,12 +117,6 @@ abstract final class TvMetrics {
 
   /// Top hero spotlight banner height for contextual preview in Home.
   static const double heroSpotlightHeight = 175;
-
-  /// Thin media controls strip. Music ATV apps keep this; it must not rival
-  /// the browse rows (≈9% of design height).
-  static const double dockHeight = 48;
-  static const double dockArtSize = 32;
-  static const double dockIconSize = 18;
 
   static const Duration drawerAnimDuration = Duration(milliseconds: 200);
 
