@@ -44,8 +44,12 @@ class SettingsSplitLayout extends ConsumerWidget {
               ),
               padding: isWide
                   ? const EdgeInsets.fromLTRB(32, 24, 32, 48)
-                  : const EdgeInsets.fromLTRB(24, 18, 24, 40),
-              contentMaxWidth: isWide ? kSettingsFormMaxWidth : null,
+                  : const EdgeInsets.fromLTRB(
+                      24,
+                      18,
+                      kTabletContentPadding,
+                      40,
+                    ),
               sectionSpacing: 26,
             ),
           ),
@@ -70,38 +74,55 @@ class SettingsSplitLayout extends ConsumerWidget {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: isWide
-              ? const EdgeInsets.fromLTRB(
+        child: isWide
+            ? Padding(
+                padding: const EdgeInsets.fromLTRB(
                   kWideContentPadding,
                   24,
                   kWideContentPadding,
                   24,
-                )
-              : const EdgeInsets.fromLTRB(
-                  kTabletContentPadding,
-                  18,
-                  kTabletContentPadding,
-                  20,
                 ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isWide ? kDocumentContentMaxWidth : double.infinity,
-              ),
-              child: Column(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: kDocumentContentMaxWidth,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SettingsPageHeader(
+                          subtitle: l10n.settingsPageSubtitle,
+                          dense: false,
+                        ),
+                        Expanded(child: document),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SettingsPageHeader(
-                    subtitle: l10n.settingsPageSubtitle,
-                    dense: !isWide,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      kTabletContentPadding,
+                      18,
+                      kTabletContentPadding,
+                      0,
+                    ),
+                    child: SettingsPageHeader(
+                      subtitle: l10n.settingsPageSubtitle,
+                      dense: true,
+                    ),
                   ),
-                  Expanded(child: document),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: document,
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
-        ),
       ),
     );
   }

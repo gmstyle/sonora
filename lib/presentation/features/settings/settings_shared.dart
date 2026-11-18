@@ -155,7 +155,12 @@ class SettingsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            kCompactContentPadding,
+            24,
+            kCompactContentPadding,
+            8,
+          ),
           child: Text(
             title,
             style: theme.textTheme.titleSmall?.copyWith(
@@ -165,7 +170,13 @@ class SettingsSection extends StatelessWidget {
           ),
         ),
         Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: const EdgeInsets.symmetric(
+            horizontal: kCompactContentPadding,
+          ),
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kSettingsSectionRadius),
+          ),
           child: Column(children: children),
         ),
       ],
@@ -230,12 +241,14 @@ class SettingsPageHeader extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 15),
-        Divider(
-          height: 1,
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-        ),
-        const SizedBox(height: 18),
+        if (dense) ...[
+          const SizedBox(height: 15),
+          Divider(
+            height: 1,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ] else
+          const SizedBox(height: 18),
       ],
     );
   }
@@ -246,23 +259,10 @@ class _SettingsBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return IconButton(
       onPressed: () => popSettings(context),
       tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-      icon: const Icon(LucideIcons.arrowLeft, size: 18),
-      style: IconButton.styleFrom(
-        minimumSize: const Size(34, 34),
-        maximumSize: const Size(34, 34),
-        padding: EdgeInsets.zero,
-        foregroundColor: theme.colorScheme.onSurfaceVariant,
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(SonoraPulseTokens.radiusSm),
-        ),
-      ),
+      icon: const Icon(LucideIcons.arrowLeft),
     );
   }
 }

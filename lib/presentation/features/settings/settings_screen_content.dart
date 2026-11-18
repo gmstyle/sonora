@@ -51,7 +51,12 @@ class SettingsScreenContent extends ConsumerWidget {
     final theme = Theme.of(context);
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
+      padding: EdgeInsets.fromLTRB(
+        kCompactContentPadding,
+        12,
+        kCompactContentPadding,
+        12 + bottomPadding,
+      ),
       itemCount: SettingsCategory.values
           .where((c) => c != SettingsCategory.background || isAndroid)
           .length,
@@ -61,8 +66,9 @@ class SettingsScreenContent extends ConsumerWidget {
             .elementAt(index);
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 6),
+          clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(kSettingsSectionRadius),
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(
@@ -110,6 +116,11 @@ class SettingsCategoryScreen extends StatelessWidget {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(category.getTitle(context)),
         centerTitle: false,
       ),
