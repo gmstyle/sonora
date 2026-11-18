@@ -118,7 +118,8 @@ class TrackTransitionCoordinator {
         suppressClear:
             _isRestoring() ||
             _volumeController.isTransitionMuted ||
-            _castController().pausedForConnection,
+            _castController().pausedForConnection ||
+            _recoveryController().isRetrying,
       );
       _statePublisher.updatePlaybackState();
     });

@@ -82,6 +82,9 @@ class _FakeQueueRepo extends Fake implements QueueRepository {
 
 class _FakeRecovery extends Fake implements PlaybackRecoveryController {
   @override
+  bool get isRetrying => false;
+
+  @override
   void resetRetryCount() => steps.add('resetRetry');
 }
 

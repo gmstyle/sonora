@@ -57,6 +57,9 @@ class PlaybackRecoveryController {
 
   int _retryCount = 0;
   bool _isRetrying = false;
+
+  /// True while a per-track error retry is resolving a fresh stream URL.
+  bool get isRetrying => _isRetrying;
   // Tracks the videoId of the last retried track so we can reset _retryCount
   // when a new track errors, even if _onPlaylistChanged's reset was suppressed
   // by _queueController.isResolvingItem being true during a concurrent URL resolution.
@@ -181,13 +184,15 @@ class PlaybackRecoveryController {
       if (mediaItem == null) continue;
       final track = QueueTrack.fromMediaItem(mediaItem);
 
+      if (track.isLocalFile || !track.needsUrl) {
+        targetIndex = i;
+        break;
+      }
+
       final cachedUri = await MediaCacheService.instance.getCachedFileUri(
         track.videoId,
       );
-      final isCached = cachedUri != null;
-      final isUsableLocal = track.isLocalFile;
-
-      if (isUsableLocal || isCached || !track.needsUrl) {
+      if (cachedUri != null) {
         targetIndex = i;
         break;
       }
@@ -199,6 +204,9 @@ class PlaybackRecoveryController {
         '[AudioHandler] Advancing queue index past unplayable to $targetIndex.',
       );
       await _skipToQueueItem(targetIndex);
+      if (!_engine.state.playing && !_isCastConnected()) {
+        await _requestPlay();
+      }
     } else if (stopIfNone) {
       dev.log(
         '[AudioHandler] No playable tracks after $failedIndex. Stopping playback.',
