@@ -10,6 +10,7 @@ import 'package:shelf_router/shelf_router.dart';
 import '../../core/errors/youtube_rate_limited_exception.dart';
 import '../../domain/models/media_quality.dart';
 import '../datasources/remote/stream_datasource.dart';
+import '../datasources/remote/youtube_client_policy.dart';
 import 'media_cache_service.dart';
 
 /// Local HTTP Proxy Server running on 127.0.0.1.
@@ -295,10 +296,14 @@ class LocalAudioProxyServer {
       attempts++;
       HttpClient? client;
       try {
+        final uri = Uri.parse(currentUrl);
         client = HttpClient();
         client.connectionTimeout = const Duration(seconds: 10);
-        final request = await client.getUrl(Uri.parse(currentUrl));
-        await _attachYoutubeCookies(request);
+        client.userAgent = YoutubeClientPolicy.userAgentForStreamUrl(uri);
+        final request = await client.getUrl(uri);
+        if (YoutubeClientPolicy.shouldAttachCookiesForStreamUrl(uri)) {
+          await _attachYoutubeCookies(request);
+        }
 
         if (rangeHeaderStr != null) {
           request.headers.set(HttpHeaders.rangeHeader, rangeHeaderStr);

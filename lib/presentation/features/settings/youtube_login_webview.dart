@@ -126,6 +126,7 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
       WebViewCookieReader.getCookie('https://www.youtube.com'),
       WebViewCookieReader.getCookie('https://music.youtube.com'),
       WebViewCookieReader.getCookie('https://m.youtube.com'),
+      WebViewCookieReader.getCookie('https://www.google.com'),
       WebViewCookieReader.getCookie('https://accounts.google.com'),
     ]);
     final byName = <String, String>{};

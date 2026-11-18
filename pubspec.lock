@@ -21,10 +21,10 @@ packages:
     dependency: transitive
     description:
       name: android_file_picker
-      sha256: e7e02f9bab7e014e5b47e4cef135a8f5c66f5c14fd90986e415e758f6a1762e1
+      sha256: ec3cf2a2c7a9b2bd56747e85f80efdd994e563049dfb0981a23903acfdd58cb5
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.6"
+    version: "2.2.0"
   ansicolor:
     dependency: transitive
     description:
@@ -261,10 +261,10 @@ packages:
     dependency: transitive
     description:
       name: cnativeapi
-      sha256: bcf1d65504a397cd1b1eeaea582baf08250f38d46074739fddb3c5437f1b9e06
+      sha256: "510107ee007a7b4a01aa1eaec3ed097007d65760be6b272f093c4ca34a0d12ff"
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.0"
+    version: "0.6.1"
   code_assets:
     dependency: transitive
     description:
@@ -349,10 +349,10 @@ packages:
     dependency: transitive
     description:
       name: cupertino_ui
-      sha256: "369e39a1c5c030a6212589c3da1809920b1c2cfade7b02aade7695bfa4b88c3a"
+      sha256: c3eaf7f5bdfee36deb0b14a4cbf7602f1b6b8d8b8576b81f38fc08c25881c94c
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.6"
+    version: "1.1.7"
   dart_cast:
     dependency: "direct main"
     description:
@@ -372,11 +372,9 @@ packages:
   dart_ytmusic_api:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: "30833fefa66ee42f628b966f6ecbcea7897e703c"
-      url: "https://github.com/gmstyle/dart_ytmusic_api.git"
-    source: git
+      path: "../dart_ytmusic_api"
+      relative: true
+    source: path
     version: "1.9.5"
   dbus:
     dependency: transitive
@@ -486,10 +484,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: "079dc46b753abbddb7f77cd87e6ed9ecc62902580707514568321bdf8e050a86"
+      sha256: c3780977700b8962c3b9b6a9aa4e2c988956893d70d4a4fa2d7adf4ec9b9eaee
       url: "https://pub.dev"
     source: hosted
-    version: "13.3.3"
+    version: "13.4.0"
   file_picker_darwin:
     dependency: transitive
     description:
@@ -510,10 +508,10 @@ packages:
     dependency: transitive
     description:
       name: file_picker_platform_interface
-      sha256: "336e7168306834a2b68e6168ed768e00d3fabeac23154d5793e277ca9f97cf20"
+      sha256: a2ef71c4628f92a4471d424576e3bf7042b40a2683c9f9a0e3033a7fc7f7763c
       url: "https://pub.dev"
     source: hosted
-    version: "4.2.0"
+    version: "4.3.0"
   file_picker_web:
     dependency: transitive
     description:
@@ -555,10 +553,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_edge_ai_litertlm
-      sha256: acbfa36080e54baf729b15ebb34a74f00f4f1b2d43b61416d80ef82d6121ca3b
+      sha256: "46a1882bb0ee3f6d8c581f2811b7a27c9568602f543ed4e89bd0dfa031c2556f"
       url: "https://pub.dev"
     source: hosted
-    version: "1.20.0"
+    version: "1.20.2"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -579,10 +577,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_local_notifications
-      sha256: fac349e7361f80591a0cedff03548f807282c9faee9fc6192763166e5f81def2
+      sha256: "7d37d69ded3028af4f22531a0097a3baa478a384dff2e23e873707c93df3b704"
       url: "https://pub.dev"
     source: hosted
-    version: "23.0.2"
+    version: "23.0.3"
   flutter_local_notifications_linux:
     dependency: "direct main"
     description:
@@ -786,10 +784,10 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: "89ed75b2f8231fe676808c5564f9590d728024ded7ac782a7ed8474f1c95b72a"
+      sha256: bc13f61f0f5cb77936e78ae5dae3800f442718dac5d2bc4654f03c239230ed0c
       url: "https://pub.dev"
     source: hosted
-    version: "4.12.0"
+    version: "4.13.1"
   intl:
     dependency: "direct main"
     description:
@@ -970,10 +968,10 @@ packages:
     dependency: "direct main"
     description:
       name: material_ui
-      sha256: "474c135fd46b56ff1d35ca982155e8863d28fbc6464d1192acf4ee53a738680e"
+      sha256: a6b19012df437a356cbc01f8ea22a105e07194c47c9a6009da0032a0ce35c4ab
       url: "https://pub.dev"
     source: hosted
-    version: "1.11.0"
+    version: "1.11.1"
   media_kit:
     dependency: transitive
     description:
@@ -1042,18 +1040,18 @@ packages:
     dependency: transitive
     description:
       name: nativeapi
-      sha256: c71a5e10aacd177fe1c3eef279179beeba6fd08132f0d36e0a7e081e13906749
+      sha256: c0c566cf6788a6b6a32ce2666f02364b7fb50133f07a744bc1e793b5b8bb2c78
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.0"
+    version: "0.6.1"
   nativeapi_flutter:
     dependency: transitive
     description:
       name: nativeapi_flutter
-      sha256: "3709b58224473298349375c8a0404d19dc0b5f151397cae2f127fe49a3a1a491"
+      sha256: "3bb647f299932a4a19aa066051aabc6872f6876fa50c38a0ef132da414e9db26"
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.0"
+    version: "0.6.1"
   nm:
     dependency: transitive
     description:
@@ -1106,10 +1104,10 @@ packages:
     dependency: "direct main"
     description:
       name: palette_generator_master
-      sha256: "66e3e307a1e7b8ebbd5439d427be0bcb47d7035f45f1888c779122e3df9b9dce"
+      sha256: "42bce68ed19479dc658248d0afef7aaf94a54dcc073adaeb4047d3cbc43e8431"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "1.2.0"
   path:
     dependency: "direct main"
     description:
@@ -1703,10 +1701,10 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_android
-      sha256: "611e87fb320b70d1dd721dc46af89c98aceccea9b31fde49e084591414e0c610"
+      sha256: b8073b1e5173d63afe1a18985a75896d72f759d3bc1817eb1ae8d26e8527cceb
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.33"
+    version: "6.3.35"
   url_launcher_ios:
     dependency: transitive
     description:
@@ -1942,11 +1940,9 @@ packages:
   youtube_explode_dart:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: "352723682f9fba9176b1725e6b724c74c5561420"
-      url: "https://github.com/gmstyle/youtube_explode_dart.git"
-    source: git
+      path: "../youtube_explode_dart"
+      relative: true
+    source: path
     version: "3.2.0"
 sdks:
   dart: ">=3.14.0 <4.0.0"

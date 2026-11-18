@@ -143,8 +143,11 @@ class StreamDatasource {
         try {
           return await _yt.videos.streamsClient.getManifest(
             videoId,
-            ytClients: [YoutubeApiClient.tv],
-            requireWatchPage: false,
+            ytClients: const [
+              YoutubeApiClient.tv,
+              YoutubeApiClient.androidMusic,
+            ],
+            requireWatchPage: true,
           );
         } on RequestLimitExceededException {
           _scheduler.enterCoolDown();
