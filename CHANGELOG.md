@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.0+78] - 2026-11-19
+
+### Features
+
+- **player**: Integrate lyrics translate pill at bottom and hide when unavailable
+- **player**: Refine tablet/wide context columns and scroll hint
+- **tv**: Enrich TV home with Quick Picks, Smart Mixes, playlists, new releases, and offline shelves
+- **tv**: Replace bottom dock with top-right pill and sidebar now-playing entry
+- **account**: Surface YouTube Music account across shells and fix TV QR sign-in
+- **tv**: Expose YouTube account category in TV Settings
+- **tv**: Complete standalone 10-foot redesign and D-pad focus
+- **tv**: Treat ATV as Material TV browser product
+- **tv**: Align leanback UI to JetFit anatomy and fix D-pad focus
+- **tv**: Ship detached leanback screens and D-pad polish
+- **tv**: Add TvShell as a device shell over shared routes
+- **tv**: Keep Leanback launch scaffolding without TV UI
+- **account**: Add YouTube Music sign-in and LAN session handoff
+
+### Bug Fixes
+
+- **tv**: Add dedicated 10-foot shimmer skeletons across TV screens
+- Resolve flutter analyze warnings in settings and resolveLeadTrack test
+- **player**: Harden cookieless stream handling and YouTube session HTTP client
+- **auth**: Harden YouTube SSO login, cookie lifecycle, and device link
+- Isolate cookieless stream clients and enable TVHTML5 SAPISIDHASH fallback
+- **player**: Resume playback when advancing past unplayable track
+- **settings**: Align wide/tablet layout widths, paddings, and back buttons
+- **theme**: Derive secondary color roles and TV playlist gradient from BrandAccent
+- **player**: Skip unplayable lead track when starting album or playlist
+- **player**: Prevent RenderFlex overflow in narrow PlayerControls
+- **player**: Unify full player background and integrate lyrics surface
+- **tv**: Update focus tests for pill, fix pill overflow, and allow refocusing sticky error toast
+- **tv**: Restore previous focus after dismissing sticky feedback toast
+- **tv**: Keep playback during screensaver, confirm on exit, and allow dismissing error banners
+- **tv**: Align search and library posters with home shelf cards
+- **tv**: Match entity/search catalog data and dismiss sticky toasts with D-pad
+- **tv**: Resolve focus traps in Downloads and Library screens
+- **account**: Avoid Android TV provider on the phone/Linux Settings branch
+- **player**: Clear stuck mini-player loading after restore race
+
 ## [1.9.1+77] - 2026-11-14
 
 ### Features
