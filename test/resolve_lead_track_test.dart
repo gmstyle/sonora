@@ -94,7 +94,7 @@ void main() {
         videoIdOf: (id) => id,
         resolveUrl: (id) async {
           tried.add(id);
-          throw YoutubeRateLimitedException('cooldown');
+          throw const YoutubeRateLimitedException(Duration(minutes: 5));
         },
       ),
       throwsA(isA<YoutubeRateLimitedException>()),

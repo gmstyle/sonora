@@ -654,6 +654,7 @@ class _DownloadSection extends ConsumerWidget {
                 AppLocalizations.of(context)!.defaultLocation,
             icon: LucideIcons.folder,
             onPressed: () async {
+              // ignore: deprecated_member_use
               final path = await FilePicker.getDirectoryPath();
               if (path != null) notifier.setDownloadPath(path);
             },
