@@ -43,9 +43,9 @@ After a change, touch only the docs that need it:
 
 ## README rules
 
-- Keep the first screen product-focused: logo, short pitch, platforms, features, download.
-- Features: short bullets grouped as today (Playback / Library / Explore / Desktop & extras).
-- Supported Platforms table must stay truthful (Android + Linux yes; Windows/macOS/iOS not planned unless product decision changes).
+- Keep the top of the page product-focused: centered logo, short pitch, badges, then screenshots. Features, Supported Platforms and Download follow; Support (donate) and License close the page.
+- Features: short bullets under `###` headings (Playback / Library & offline / Explore / Desktop & extras), one idea per bullet.
+- Supported Platforms table must stay truthful (Android 11+/API 30, Android TV, Linux; Windows/macOS/iOS not planned unless product decision changes).
 - Link to `docs/CLI.md` and `docs/SONORA-DEV-DOCS.md` instead of duplicating them.
 - Do not paste long architecture dumps into the README.
 

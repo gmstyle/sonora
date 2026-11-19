@@ -6,14 +6,18 @@ Companion to [SKILL.md](SKILL.md). Read this when unsure which section to edit.
 
 Typical sections (order may vary slightly):
 
-- Brand / pitch
-- Screenshots (`screens/`)
-- Donate
-- Features (Playback, Library & offline, Explore, Desktop & extras)
-- Supported Platforms
-- Download (GitHub Releases: APK, tar.gz, DEB, RPM)
-- Getting Started / Prerequisites (Flutter stable floor, Linux packages)
-- Links to CLI + SONORA-DEV-DOCS
+- Brand / pitch (centered logo, tagline, badge row)
+- Screenshots (`screens/`: desktop + tablet table, then one `<details>` per device family — mobile pair, Android TV pair)
+- Features (Playback, Library & offline, Explore, Desktop & extras) as `###` headings
+- Supported Platforms (Android 11+ / API 30, Android TV, Linux; unsupported platforms on one line)
+- Download (Releases table: APK universal + per-ABI, tar.gz, DEB, RPM)
+- Getting Started (Prerequisites, Build from source, Headless CLI)
+- Development (stack, links to SONORA-DEV-DOCS + DESIGN, checks and regenerate blocks)
+- Support (donate)
+- License / Disclaimer
+
+Do not reintroduce `---` rules between sections: GitHub already separates headings.
+Keep portrait screenshots out of a row that also holds landscape ones.
 
 ## CHANGELOG.md
 
