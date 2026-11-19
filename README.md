@@ -3,7 +3,7 @@
   <img alt="Sonora" src="assets/logo_full.png" width="320">
 </picture>
 
-Sonora is a cross-platform music streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable experience on **Android** and **Linux desktop**.
+Sonora is a cross-platform music streaming app built with Flutter. It uses **YouTube Music** as its data source, offering a rich and customizable experience on **Android**, **Android TV** (sideload), and **Linux desktop**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform: Android + Linux](https://img.shields.io/badge/Platform-Android%20%7C%20Linux-blue)
@@ -29,8 +29,8 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 **Playback**
 - YouTube Music streaming for songs, albums, artists, playlists, music videos, podcasts, and episodes
-- Audio playback (music videos play as audio), background play, crossfade, 5-band equalizer (Android; Linux uses the system EQ), and sleep timer
-- Related songs in the player, casting to Chromecast and DLNA, Android Auto (Home, Library, Mixes, Explore, Charts & Moods, podcasts)
+- Audio playback (music videos play as audio), background play, crossfade, 5-band equalizer (Android; Linux uses the system EQ), sleep timer, and synced lyrics with optional translation
+- Automatic skip of unplayable lead tracks when starting albums or playlists, related songs in the player, casting to Chromecast and DLNA, and Android Auto (Home, Library, Mixes, Explore, Charts & Moods, podcasts)
 
 **Library & offline**
 - Local library for favorites, playlists, subscribed podcasts, and saved episodes
@@ -44,7 +44,7 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 - Podcast and episode pages, user/channel pages, search across songs, videos, podcasts, and users
 
 **Desktop & extras**
-- Adaptive layouts (phone, tablet, wide) with Sonora Pulse light, dark, and AMOLED themes
+- Adaptive layouts (phone, tablet, wide) and a standalone 10-foot Android TV interface with D-pad navigation, using Sonora Pulse light, dark, and AMOLED themes
 - Linux tray and MPRIS; auto-update from GitHub Releases with in-app release notes
 - Headless CLI, backup/restore, P2P library sync over Wi-Fi, Sonora Wrapped stats, Italian and English
 
@@ -52,13 +52,14 @@ If you enjoy Sonora and want to support its development, a small donation is alw
 
 ## Supported Platforms
 
-| Platform | Status |
-|----------|--------|
-| Android  | ✅ (API 24+) |
-| Linux    | ✅ (x64) |
-| Windows  | ❌ (not planned) |
-| macOS    | ❌ (not planned) |
-| iOS      | ❌ (not planned) |
+| Platform   | Status |
+|------------|--------|
+| Android    | ✅ (API 24+) |
+| Android TV | ✅ (sideload APK) |
+| Linux      | ✅ (x64) |
+| Windows    | ❌ (not planned) |
+| macOS      | ❌ (not planned) |
+| iOS        | ❌ (not planned) |
 
 ---
 
