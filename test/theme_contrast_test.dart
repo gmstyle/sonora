@@ -99,7 +99,14 @@ void main() {
     expect(scheme.primary, BrandAccent.violet.fill);
     expect(scheme.onPrimary, BrandAccent.violet.ink);
     expect(scheme.surface, SonoraPulseTokens.surface);
-    expect(scheme.secondaryContainer, SonoraPulseTokens.secondaryContainer);
+    expect(
+      scheme.secondaryContainer,
+      Color.lerp(
+        SonoraPulseTokens.surfaceContainerHigh,
+        BrandAccent.violet.end,
+        0.28,
+      ),
+    );
     expect(
       theme.floatingActionButtonTheme.backgroundColor,
       BrandAccent.violet.fill,
