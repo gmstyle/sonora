@@ -24,10 +24,45 @@ class YtmSessionHttpClient extends http.BaseClient {
   final YTMusic _ytmusic;
   final bool _ownsInner;
 
+  static void _removeHeaderCaseInsensitive(
+    Map<String, String> headers,
+    String name,
+  ) {
+    final lower = name.toLowerCase();
+    headers.removeWhere((key, _) => key.toLowerCase() == lower);
+  }
+
+  static void _setHeaderCaseInsensitive(
+    Map<String, String> headers,
+    String name,
+    String value,
+  ) {
+    _removeHeaderCaseInsensitive(headers, name);
+    headers[name] = value;
+  }
+
+  static String? _headerValueCaseInsensitive(
+    Map<String, String> headers,
+    String name,
+  ) {
+    final lower = name.toLowerCase();
+    for (final entry in headers.entries) {
+      if (entry.key.toLowerCase() == lower) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
   static bool _isCookielessClientRequest(http.BaseRequest request) {
-    final clientName =
-        request.headers['X-Youtube-Client-Name'] ??
-        request.headers['x-youtube-client-name'];
+    final path = request.url.path;
+    if (path == '/sw.js_data' || path.endsWith('/youtubei/v1/visitor_id')) {
+      return true;
+    }
+    final clientName = _headerValueCaseInsensitive(
+      request.headers,
+      'X-Youtube-Client-Name',
+    );
     if (YoutubeClientPolicy.isCookielessClient(clientName)) {
       return true;
     }
@@ -41,28 +76,58 @@ class YtmSessionHttpClient extends http.BaseClient {
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    if (request.url.host.contains('googlevideo.com')) {
+      _setHeaderCaseInsensitive(
+        request.headers,
+        'User-Agent',
+        YoutubeClientPolicy.userAgentForStreamUrl(request.url),
+      );
+    }
+
     if (_isCookielessClientRequest(request)) {
-      // Native/headset clients (VISIONOS, ANDROID_VR, IOS, ANDROID) must not
-      // receive browser login cookies or web VISITOR_DATA; mixing them trips
-      // YouTube's "Sign in to confirm you're not a bot" check.
-      request.headers.remove('cookie');
-      request.headers.remove('Cookie');
-      request.headers.remove('X-Goog-Visitor-Id');
-      request.headers.remove('x-goog-visitor-id');
-      request.headers.remove('Authorization');
-      request.headers.remove('authorization');
+      // Strip browser cookies, auth, and web Origin headers on native
+      // cookieless clients and anonymous visitorData endpoints while
+      // preserving any anonymous X-Goog-Visitor-Id attached by the caller.
+      for (final header in const [
+        'cookie',
+        'authorization',
+        'x-youtube-bootstrap-logged-in',
+        'x-goog-authuser',
+        'x-goog-pageid',
+        'origin',
+        'x-origin',
+      ]) {
+        _removeHeaderCaseInsensitive(request.headers, header);
+      }
       return _inner.send(request);
     }
 
     await _applySession(request);
     final response = await _inner.send(request);
     // Absorb valid Set-Cookie rotations from authenticated youtube.com calls;
-    // saveSetCookiesFromResponse ignores empty / Max-Age<=0 session wipes.
+    // saveSetCookiesFromResponse ignores empty / Max-Age<=0 session wipes
+    // except explicit LOGIN_INFO wipes (server-side revocation).
     if (_shouldAbsorbSetCookie(request.url)) {
       await saveSetCookiesFromResponse(
         _ytmusic.cookieJar,
         request.url,
         response,
+        onSessionCookiesChanged: _ytmusic.onSessionCookiesChanged,
+        onLoginInfoWiped: () async {
+          for (final key in const [
+            'USER_SESSION_ID',
+            'SESSION_INDEX',
+            'DELEGATED_SESSION_ID',
+            'DATASYNC_ID',
+            'LOGGED_IN',
+          ]) {
+            _ytmusic.config[key] = '';
+          }
+          final revoked = _ytmusic.onSessionRevoked;
+          if (revoked != null) {
+            await revoked();
+          }
+        },
       );
     }
     return response;
@@ -81,7 +146,7 @@ class YtmSessionHttpClient extends http.BaseClient {
     void absorb(Iterable<Cookie> cookies) {
       for (final c in cookies) {
         if (c.value.isEmpty) continue;
-        byName[c.name] = c.value;
+        byName.putIfAbsent(c.name, () => c.value);
       }
     }
 
@@ -93,32 +158,35 @@ class YtmSessionHttpClient extends http.BaseClient {
     byName['SOCS'] = kYtSocsConsentValue;
     byName.putIfAbsent('CONSENT', () => 'YES+cb');
 
-    final existing = request.headers['cookie'] ?? request.headers['Cookie'];
-    request.headers.remove('Cookie');
+    final existing = _headerValueCaseInsensitive(request.headers, 'cookie');
+    _removeHeaderCaseInsensitive(request.headers, 'cookie');
     if (existing != null && existing.isNotEmpty) {
       for (final part in existing.split(';')) {
         final trimmed = part.trim();
         if (trimmed.isEmpty) continue;
         final eq = trimmed.indexOf('=');
         if (eq <= 0) continue;
-        final name = trimmed.substring(0, eq);
-        final value = trimmed.substring(eq + 1);
-        if (value.isEmpty) continue;
+        final name = trimmed.substring(0, eq).trim();
+        final value = trimmed.substring(eq + 1).trim();
+        if (name.isEmpty || value.isEmpty) continue;
         byName.putIfAbsent(name, () => value);
       }
     }
 
-    request.headers['cookie'] = byName.entries
-        .map((e) => '${e.key}=${e.value}')
-        .join('; ');
+    request.headers['cookie'] = formatCookieHeader(byName);
 
-    final existingVisitor =
-        request.headers['X-Goog-Visitor-Id'] ??
-        request.headers['x-goog-visitor-id'];
+    final existingVisitor = _headerValueCaseInsensitive(
+      request.headers,
+      'x-goog-visitor-id',
+    );
     if (existingVisitor == null || existingVisitor.isEmpty) {
       final visitor = _ytmusic.config['VISITOR_DATA'];
       if (visitor != null && visitor.isNotEmpty) {
-        request.headers['X-Goog-Visitor-Id'] = visitor;
+        _setHeaderCaseInsensitive(
+          request.headers,
+          'X-Goog-Visitor-Id',
+          visitor,
+        );
       }
     }
 
@@ -136,16 +204,28 @@ class YtmSessionHttpClient extends http.BaseClient {
         userSessionId: isMusic ? _ytmusic.config['USER_SESSION_ID'] : null,
       );
       if (auth != null) {
-        request.headers['Authorization'] = auth;
-        request.headers['X-Youtube-Bootstrap-Logged-In'] = 'true';
+        _setHeaderCaseInsensitive(request.headers, 'Authorization', auth);
+        _setHeaderCaseInsensitive(
+          request.headers,
+          'X-Youtube-Bootstrap-Logged-In',
+          'true',
+        );
         final sessionIndex = _ytmusic.config['SESSION_INDEX'];
-        request.headers['X-Goog-AuthUser'] =
-            (sessionIndex != null && sessionIndex.isNotEmpty)
-            ? sessionIndex
-            : '0';
+        _setHeaderCaseInsensitive(
+          request.headers,
+          'X-Goog-AuthUser',
+          (sessionIndex != null && sessionIndex.isNotEmpty)
+              ? sessionIndex
+              : '0',
+        );
+        _setHeaderCaseInsensitive(request.headers, 'X-Origin', origin);
         final delegatedId = _ytmusic.config['DELEGATED_SESSION_ID'];
         if (delegatedId != null && delegatedId.isNotEmpty) {
-          request.headers['X-Goog-PageId'] = delegatedId;
+          _setHeaderCaseInsensitive(
+            request.headers,
+            'X-Goog-PageId',
+            delegatedId,
+          );
         }
       }
     }

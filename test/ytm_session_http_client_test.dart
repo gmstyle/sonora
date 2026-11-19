@@ -31,7 +31,7 @@ void main() {
     yt.config.clear();
   });
 
-  test('strips cookies, auth, and visitor id for cookieless clients', () async {
+  test('strips cookies and auth while preserving anonymous visitor id on cookieless clients and visitorData endpoints', () async {
     final recorded = <http.BaseRequest>[];
     final inner = MockClient((req) async {
       recorded.add(req);
@@ -59,10 +59,33 @@ void main() {
             ..headers['cookie'] = 'CONSENT=YES+cb'
             ..headers['Cookie'] = 'SAPISID=leak'
             ..headers['Authorization'] = 'SAPISIDHASH old'
-            ..headers['X-Goog-Visitor-Id'] = 'stale-visitor';
+            ..headers['X-Goog-Visitor-Id'] = 'anon-visitor-1'
+            ..headers['Origin'] = 'https://www.youtube.com'
+            ..headers['X-Origin'] = 'https://www.youtube.com'
+            ..headers['X-Youtube-Bootstrap-Logged-In'] = 'true'
+            ..headers['X-Goog-AuthUser'] = '0'
+            ..headers['X-Goog-PageId'] = 'page-1';
 
       await client.send(req);
     }
+
+    final visitorIdReq =
+        http.Request(
+            'POST',
+            Uri.parse(
+              'https://www.youtube.com/youtubei/v1/visitor_id?prettyPrint=false',
+            ),
+          )
+          ..headers['Cookie'] = 'SAPISID=leak'
+          ..headers['Authorization'] = 'SAPISIDHASH old'
+          ..headers['Origin'] = 'https://www.youtube.com';
+    await client.send(visitorIdReq);
+
+    final swJsReq =
+        http.Request('GET', Uri.parse('https://www.youtube.com/sw.js_data'))
+          ..headers['cookie'] = 'SAPISID=leak'
+          ..headers['Authorization'] = 'SAPISIDHASH old';
+    await client.send(swJsReq);
 
     final cdnReq =
         http.Request(
@@ -72,16 +95,36 @@ void main() {
             ),
           )
           ..headers['cookie'] = 'CONSENT=YES+cb'
-          ..headers['X-Goog-Visitor-Id'] = 'stale-visitor';
+          ..headers['Origin'] = 'https://www.youtube.com'
+          ..headers['user-agent'] = 'Mozilla/5.0 Chrome/96.0.4664.18';
     await client.send(cdnReq);
 
-    expect(recorded, hasLength(3));
+    expect(recorded, hasLength(5));
     for (final req in recorded) {
       expect(req.headers.containsKey('cookie'), isFalse);
       expect(req.headers.containsKey('Cookie'), isFalse);
       expect(req.headers.containsKey('Authorization'), isFalse);
-      expect(req.headers.containsKey('X-Goog-Visitor-Id'), isFalse);
+      expect(req.headers.containsKey('Origin'), isFalse);
+      expect(req.headers.containsKey('X-Origin'), isFalse);
+      expect(req.headers.containsKey('X-Youtube-Bootstrap-Logged-In'), isFalse);
+      expect(req.headers.containsKey('X-Goog-AuthUser'), isFalse);
+      expect(req.headers.containsKey('X-Goog-PageId'), isFalse);
+      expect(req.headers['X-Goog-Visitor-Id'], isNot('visitor-web-1'));
     }
+    expect(recorded[0].headers['X-Goog-Visitor-Id'], 'anon-visitor-1');
+    expect(recorded[1].headers['X-Goog-Visitor-Id'], 'anon-visitor-1');
+    expect(recorded[2].headers.containsKey('X-Goog-Visitor-Id'), isFalse);
+    expect(recorded[3].headers.containsKey('X-Goog-Visitor-Id'), isFalse);
+
+    final cdnUa = recorded[4].headers.entries
+        .where((e) => e.key.toLowerCase() == 'user-agent')
+        .toList();
+    expect(cdnUa, hasLength(1));
+    expect(
+      cdnUa.single.value,
+      (YoutubeApiClient.visionos.payload['context']
+          as Map)['client']['userAgent'],
+    );
 
     final jarCookies = await loadCookieMap(yt.cookieJar, kYoutubeOrigin);
     expect(jarCookies.containsKey('YSC'), isFalse);
@@ -181,4 +224,55 @@ void main() {
       (YoutubeApiClient.tv.payload['context'] as Map)['client']['userAgent'],
     );
   });
+
+  test(
+    'notifies session cookie rotation and handles LOGIN_INFO revocation',
+    () async {
+      var rotationCount = 0;
+      var revokedCount = 0;
+      yt.onSessionCookiesChanged = () => rotationCount++;
+      yt.onSessionRevoked = () async {
+        revokedCount++;
+      };
+      addTearDown(() {
+        yt.onSessionCookiesChanged = null;
+        yt.onSessionRevoked = null;
+      });
+
+      var step = 0;
+      final inner = MockClient((req) async {
+        step++;
+        return http.Response(
+          '{}',
+          200,
+          headers: {
+            'set-cookie': step == 1
+                ? 'SIDCC=rotated-1; Path=/; Domain=.youtube.com; Secure'
+                : 'LOGIN_INFO=; Max-Age=0; Path=/; Domain=.youtube.com',
+          },
+          request: req,
+        );
+      });
+
+      final client = YtmSessionHttpClient(inner: inner, ytmusic: yt);
+      await client.send(
+        http.Request(
+          'POST',
+          Uri.parse('https://www.youtube.com/youtubei/v1/player'),
+        )..headers['X-Youtube-Client-Name'] = 'TVHTML5',
+      );
+      expect(rotationCount, 1);
+      expect(revokedCount, 0);
+
+      await client.send(
+        http.Request(
+          'POST',
+          Uri.parse('https://www.youtube.com/youtubei/v1/player'),
+        )..headers['X-Youtube-Client-Name'] = 'TVHTML5',
+      );
+      expect(revokedCount, 1);
+      expect(await isSignedIn(yt.cookieJar), isFalse);
+      expect(yt.config['USER_SESSION_ID'], isEmpty);
+    },
+  );
 }

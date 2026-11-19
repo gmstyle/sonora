@@ -136,6 +136,9 @@ class StreamDatasource {
         _scheduler.enterCoolDown();
         rethrow;
       } catch (first, firstStack) {
+        dev.log(
+          '[StreamDatasource] visionos+androidVr failed for $videoId: $first',
+        );
         // Prefer failing during cool-down over a second cascade.
         if (_scheduler.isCoolingDown) {
           Error.throwWithStackTrace(first, firstStack);
@@ -143,19 +146,34 @@ class StreamDatasource {
         try {
           return await _yt.videos.streamsClient.getManifest(
             videoId,
-            ytClients: const [
-              YoutubeApiClient.tv,
-              YoutubeApiClient.androidMusic,
-            ],
+            ytClients: const [YoutubeApiClient.tv],
             requireWatchPage: true,
           );
         } on RequestLimitExceededException {
           _scheduler.enterCoolDown();
           rethrow;
-        } catch (_) {
-          // Surface the first failure (usually LOGIN_REQUIRED / empty
-          // streams) rather than masking it with the TV fallback error.
-          Error.throwWithStackTrace(first, firstStack);
+        } catch (tvError) {
+          dev.log('[StreamDatasource] tv failed for $videoId: $tvError');
+          if (_scheduler.isCoolingDown) {
+            Error.throwWithStackTrace(first, firstStack);
+          }
+          try {
+            return await _yt.videos.streamsClient.getManifest(
+              videoId,
+              ytClients: const [YoutubeApiClient.androidMusic],
+              requireWatchPage: false,
+            );
+          } on RequestLimitExceededException {
+            _scheduler.enterCoolDown();
+            rethrow;
+          } catch (musicError) {
+            dev.log(
+              '[StreamDatasource] androidMusic failed for $videoId: $musicError',
+            );
+            // Surface the first failure (usually LOGIN_REQUIRED / empty
+            // streams) rather than masking it with the TV/music fallback error.
+            Error.throwWithStackTrace(first, firstStack);
+          }
         }
       }
     });

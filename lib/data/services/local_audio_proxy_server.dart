@@ -405,15 +405,13 @@ class LocalAudioProxyServer {
         Uri.parse('https://music.youtube.com/'),
       ]) {
         for (final c in await jar.loadForRequest(uri)) {
-          byName[c.name] = c.value;
+          if (c.value.isEmpty) continue;
+          byName.putIfAbsent(c.name, () => c.value);
         }
       }
       if (byName.isEmpty) return;
       byName['SOCS'] = kYtSocsConsentValue;
-      request.headers.set(
-        HttpHeaders.cookieHeader,
-        byName.entries.map((e) => '${e.key}=${e.value}').join('; '),
-      );
+      request.headers.set(HttpHeaders.cookieHeader, formatCookieHeader(byName));
     } catch (_) {}
   }
 }
