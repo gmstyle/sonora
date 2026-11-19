@@ -24,14 +24,14 @@ dependencies:
   #dart_ytmusic_api:
   #  path: ../dart_ytmusic_api
   dart_ytmusic_api:
-    path: ../dart_ytmusic_api
-    #git:
-    #  url: https://github.com/gmstyle/dart_ytmusic_api.git
+    #path: ../dart_ytmusic_api
+    git:
+      url: https://github.com/gmstyle/dart_ytmusic_api.git
 
   youtube_explode_dart:
-    path: ../youtube_explode_dart
-    #git:
-    #  url: https://github.com/gmstyle/youtube_explode_dart.git
+    #path: ../youtube_explode_dart
+    git:
+      url: https://github.com/gmstyle/youtube_explode_dart.git
 
   # ── YouTube account sign-in ───────────────────────────────────
   webview_flutter: ^4.13.0
