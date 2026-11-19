@@ -12,7 +12,6 @@ import '../../../providers/connectivity_provider.dart';
 import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../home/providers/home_provider.dart';
@@ -25,6 +24,7 @@ import '../widgets/tv_featured_card.dart';
 import '../widgets/tv_hero_spotlight.dart';
 import '../widgets/tv_poster_card.dart';
 import '../widgets/tv_shelf.dart';
+import '../widgets/tv_shimmer.dart';
 
 /// ATV catalog browser — Material TV "browser" template.
 ///
@@ -64,14 +64,7 @@ class TvHomeScreen extends ConsumerWidget {
     }
 
     return baseAsync.when(
-      loading: () => const SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.all(TvMetrics.contentPadding),
-        child: ShimmerLoading(
-          variant: ShimmerVariant.section,
-          cardWidth: TvMetrics.shelfCardWidth,
-        ),
-      ),
+      loading: () => const TvHomeShimmer(),
       error: (e, _) => ErrorRetryWidget(
         message: l10n.failedToLoadHomeFeed,
         onRetry: () {
@@ -135,13 +128,7 @@ class TvHomeScreen extends ConsumerWidget {
             ],
             SliverToBoxAdapter(
               child: sectionsAsync.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(TvMetrics.contentPadding),
-                  child: ShimmerLoading(
-                    variant: ShimmerVariant.section,
-                    cardWidth: TvMetrics.shelfCardWidth,
-                  ),
-                ),
+                loading: () => const TvShelfShimmer(count: 2),
                 error: (e, _) => ErrorRetryWidget(
                   message: l10n.failedToLoadHomeFeed,
                   onRetry: () => ref.invalidate(homeEditorialSectionsProvider),

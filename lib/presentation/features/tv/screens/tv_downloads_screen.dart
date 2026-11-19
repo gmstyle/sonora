@@ -9,12 +9,12 @@ import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
 import '../tv_metrics.dart';
 import '../tv_shell_focus.dart';
 import '../widgets/tv_focusable.dart';
 import '../widgets/tv_poster_card.dart';
 import '../widgets/tv_poster_grid.dart';
+import '../widgets/tv_shimmer.dart';
 
 /// TV downloads: completed poster grid + active queue summary.
 ///
@@ -78,13 +78,7 @@ class TvDownloadsScreen extends ConsumerWidget {
             ),
           Expanded(
             child: allAsync.when(
-              loading: () => const SingleChildScrollView(
-                physics: NeverScrollableScrollPhysics(),
-                child: ShimmerLoading(
-                  variant: ShimmerVariant.mediaGrid,
-                  gridColumns: 4,
-                ),
-              ),
+              loading: () => const TvPosterGridShimmer(),
               error: (e, _) => ErrorRetryWidget(
                 message: l10n.failedToLoadDownloads,
                 onRetry: () => ref.invalidate(allDownloadsProvider),

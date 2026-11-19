@@ -22,6 +22,7 @@ import '../../tv_metrics.dart';
 import '../../widgets/tv_entity_side_column.dart';
 import '../../widgets/tv_entity_format.dart';
 import '../../widgets/tv_focusable.dart';
+import '../../widgets/tv_shimmer.dart';
 import '../../widgets/tv_track_row.dart';
 
 class TvPlaylistScreen extends ConsumerWidget {
@@ -36,8 +37,7 @@ class TvPlaylistScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return async.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const TvEntityShimmer(),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: l10n.failedToLoadPlaylist,
@@ -48,8 +48,7 @@ class TvPlaylistScreen extends ConsumerWidget {
         ),
       ),
       data: (playlist) => videosAsync.when(
-        loading: () =>
-            const Scaffold(body: Center(child: CircularProgressIndicator())),
+        loading: () => const TvEntityShimmer(),
         error: (e, _) => Scaffold(
           body: ErrorRetryWidget(
             message: l10n.failedToLoadPlaylist,

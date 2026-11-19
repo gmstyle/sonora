@@ -9,7 +9,6 @@ import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../library/providers/library_provider.dart';
@@ -19,6 +18,7 @@ import '../widgets/tv_focusable.dart';
 import '../widgets/tv_poster_card.dart';
 import '../widgets/tv_poster_grid.dart';
 import '../widgets/tv_shelf.dart';
+import '../widgets/tv_shimmer.dart';
 
 enum _TvLibrarySection { liked, playlists, artists, albums, podcasts, mixes }
 
@@ -222,13 +222,7 @@ class _LikedSongsBody extends ConsumerWidget {
     final async = ref.watch(likedSongsProvider);
     final l10n = AppLocalizations.of(context)!;
     return async.when(
-      loading: () => const SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
-        child: ShimmerLoading(
-          variant: ShimmerVariant.mediaGrid,
-          gridColumns: 4,
-        ),
-      ),
+      loading: () => const TvPosterGridShimmer(),
       error: (e, _) => ErrorRetryWidget(
         message: l10n.failedToLoadFavorites,
         onRetry: () => ref.invalidate(likedSongsProvider),
@@ -307,8 +301,8 @@ class _PlaylistsBody extends ConsumerWidget {
     if (localAsync.isLoading || likedAsync.isLoading) {
       return const SingleChildScrollView(
         physics: NeverScrollableScrollPhysics(),
-        padding: EdgeInsets.all(TvMetrics.contentPadding),
-        child: ShimmerLoading(variant: ShimmerVariant.section),
+        padding: EdgeInsets.only(top: 8),
+        child: TvShelfShimmer(count: 2),
       );
     }
     if (localAsync.hasError) {
@@ -412,13 +406,7 @@ class _ArtistsBody extends ConsumerWidget {
     final async = ref.watch(followedArtistsProvider);
     final l10n = AppLocalizations.of(context)!;
     return async.when(
-      loading: () => const SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
-        child: ShimmerLoading(
-          variant: ShimmerVariant.mediaGrid,
-          gridColumns: 4,
-        ),
-      ),
+      loading: () => const TvPosterGridShimmer(circle: true),
       error: (e, _) => ErrorRetryWidget(
         message: l10n.failedToLoadArtists,
         onRetry: () => ref.invalidate(followedArtistsProvider),
@@ -464,13 +452,7 @@ class _AlbumsBody extends ConsumerWidget {
     final async = ref.watch(likedAlbumsProvider);
     final l10n = AppLocalizations.of(context)!;
     return async.when(
-      loading: () => const SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
-        child: ShimmerLoading(
-          variant: ShimmerVariant.mediaGrid,
-          gridColumns: 4,
-        ),
-      ),
+      loading: () => const TvPosterGridShimmer(),
       error: (e, _) => ErrorRetryWidget(
         message: l10n.failedToLoadAlbums,
         onRetry: () => ref.invalidate(likedAlbumsProvider),
@@ -519,13 +501,7 @@ class _PodcastsBody extends ConsumerWidget {
     final async = ref.watch(likedPodcastsProvider);
     final l10n = AppLocalizations.of(context)!;
     return async.when(
-      loading: () => const SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
-        child: ShimmerLoading(
-          variant: ShimmerVariant.mediaGrid,
-          gridColumns: 4,
-        ),
-      ),
+      loading: () => const TvPosterGridShimmer(),
       error: (e, _) => ErrorRetryWidget(
         message: l10n.failedToLoadPodcast,
         onRetry: () => ref.invalidate(likedPodcastsProvider),

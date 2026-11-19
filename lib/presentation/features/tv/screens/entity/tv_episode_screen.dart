@@ -17,6 +17,7 @@ import '../../../podcast/providers/episode_provider.dart';
 import '../../tv_metrics.dart';
 import '../../widgets/tv_entity_side_column.dart';
 import '../../widgets/tv_focusable.dart';
+import '../../widgets/tv_shimmer.dart';
 
 /// Standalone 10-foot Split 40/60 Episode detail screen for Android TV.
 class TvEpisodeScreen extends ConsumerWidget {
@@ -30,10 +31,7 @@ class TvEpisodeScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return async.when(
-      loading: () => const Scaffold(
-        backgroundColor: TvColors.bg,
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () => const TvEntityShimmer(rowCount: 4),
       error: (e, _) => Scaffold(
         backgroundColor: TvColors.bg,
         body: ErrorRetryWidget(

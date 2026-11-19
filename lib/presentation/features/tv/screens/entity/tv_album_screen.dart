@@ -24,6 +24,7 @@ import '../../widgets/tv_entity_format.dart';
 import '../../widgets/tv_focusable.dart';
 import '../../widgets/tv_poster_card.dart';
 import '../../widgets/tv_shelf.dart';
+import '../../widgets/tv_shimmer.dart';
 import '../../widgets/tv_track_row.dart';
 
 class TvAlbumScreen extends ConsumerWidget {
@@ -37,8 +38,7 @@ class TvAlbumScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return async.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const TvEntityShimmer(),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: l10n.failedToLoadAlbum,

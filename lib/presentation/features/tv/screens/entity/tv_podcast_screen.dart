@@ -19,6 +19,7 @@ import '../../../podcast/providers/podcast_provider.dart';
 import '../../tv_metrics.dart';
 import '../../widgets/tv_entity_side_column.dart';
 import '../../widgets/tv_focusable.dart';
+import '../../widgets/tv_shimmer.dart';
 import '../../widgets/tv_track_row.dart';
 
 class TvPodcastScreen extends ConsumerWidget {
@@ -32,8 +33,7 @@ class TvPodcastScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return async.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const TvEntityShimmer(),
       error: (e, _) => Scaffold(
         body: ErrorRetryWidget(
           message: l10n.failedToLoadPodcast,

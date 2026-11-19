@@ -14,7 +14,6 @@ import '../../../providers/player_provider.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
-import '../../../shared/widgets/shimmer_loading.dart';
 import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../library/providers/library_provider.dart';
 import '../../search/library_matches.dart';
@@ -28,6 +27,7 @@ import '../widgets/tv_focusable.dart';
 import '../widgets/tv_poster_card.dart';
 import '../widgets/tv_poster_grid.dart';
 import '../widgets/tv_shelf.dart';
+import '../widgets/tv_shimmer.dart';
 
 const _kTvQuickGenres = [
   ('Pop', 'Pop'),
@@ -366,11 +366,11 @@ class _TvSearchResultsBody extends ConsumerWidget {
         children: [
           if (showLibrary)
             _TvLibraryMatchesShelves(matches: matches, filter: filter),
-          const Padding(
-            padding: EdgeInsets.all(TvMetrics.contentPadding),
-            child: ShimmerLoading(
-              variant: ShimmerVariant.mediaGrid,
-              gridColumns: 4,
+          const TvPosterGridShimmer(
+            shrinkWrap: true,
+            padding: EdgeInsets.symmetric(
+              horizontal: TvMetrics.contentPadding,
+              vertical: 8,
             ),
           ),
         ],
@@ -537,9 +537,7 @@ class _TvLibraryMatchesShelves extends ConsumerWidget {
                 title: playlist.name,
                 subtitle: playlist.description,
                 placeholderOverride: Container(
-                  decoration: BoxDecoration(
-                    gradient: brandSpectrumOf(context),
-                  ),
+                  decoration: BoxDecoration(gradient: brandSpectrumOf(context)),
                   child: const Center(
                     child: Icon(
                       LucideIcons.listMusic,
