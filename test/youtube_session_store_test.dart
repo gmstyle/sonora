@@ -63,4 +63,54 @@ void main() {
     // Guard: session file name must stay out of Settings.toBackupMap keys.
     expect('youtube_session.json', isNot(contains('backup')));
   });
+
+  test('saveFrom with preserveExistingOnDisk=false drops old cookies and account card', () async {
+    final yt = YTMusic();
+    await clearAuthCookies(yt.cookieJar);
+    await applyAuthCookies(yt.cookieJar, [
+      Cookie('SAPISID', 'old-sapisid')..domain = '.youtube.com',
+      Cookie('SIDCC', 'old-sidcc')..domain = '.youtube.com',
+    ]);
+    await store.saveFrom(yt);
+    await store.saveAccount(
+      AccountInfo(name: 'Old User', email: 'old@example.com'),
+    );
+
+    await clearAuthCookies(yt.cookieJar);
+    await applyAuthCookies(yt.cookieJar, [
+      Cookie('SAPISID', 'new-sapisid')..domain = '.youtube.com',
+    ]);
+    await store.saveFrom(yt, preserveExistingOnDisk: false);
+
+    expect(await store.loadAccount(), isNull);
+    final raw = jsonDecode(await store.file.readAsString()) as Map;
+    final names = (raw['cookies'] as List)
+        .cast<Map>()
+        .map((e) => e['name'])
+        .toList();
+    expect(names, isNot(contains('SIDCC')));
+    final sapisid = (raw['cookies'] as List).cast<Map>().firstWhere(
+      (e) => e['name'] == 'SAPISID',
+    );
+    expect(sapisid['value'], 'new-sapisid');
+  });
+
+  test('scheduleSaveFrom persists rotated cookies after debounce', () async {
+    final yt = YTMusic();
+    await clearAuthCookies(yt.cookieJar);
+    await applyAuthCookies(yt.cookieJar, [
+      Cookie('SAPISID', 'sapisid-val')..domain = '.youtube.com',
+    ]);
+
+    store.scheduleSaveFrom(yt, delay: const Duration(milliseconds: 50));
+    expect(await store.file.exists(), isFalse);
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    expect(await store.file.exists(), isTrue);
+    final raw = jsonDecode(await store.file.readAsString()) as Map;
+    final cookies = (raw['cookies'] as List).cast<Map>();
+    expect(
+      cookies.any((e) => e['name'] == 'SAPISID' && e['value'] == 'sapisid-val'),
+      isTrue,
+    );
+  });
 }

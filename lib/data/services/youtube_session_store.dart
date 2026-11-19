@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,6 +18,25 @@ class YoutubeSessionStore {
   final File file;
 
   static const _version = 2;
+  Timer? _saveDebounce;
+
+  /// Cancels any queued debounced persist (call before sign-out / account swap).
+  void cancelPendingSave() {
+    _saveDebounce?.cancel();
+    _saveDebounce = null;
+  }
+
+  /// Debounces persisting rotated cookies from runtime `Set-Cookie` headers.
+  void scheduleSaveFrom(
+    YTMusic ytmusic, {
+    Duration delay = const Duration(seconds: 2),
+  }) {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(delay, () {
+      _saveDebounce = null;
+      unawaited(saveFrom(ytmusic));
+    });
+  }
 
   /// Loads cookies into [YTMusic]'s jar. No-op when the file is missing.
   Future<void> loadInto(YTMusic ytmusic) async {
@@ -45,14 +65,26 @@ class YoutubeSessionStore {
   }
 
   /// Persists auth cookies currently in [ytmusic]'s jar.
-  Future<void> saveFrom(YTMusic ytmusic) async {
+  ///
+  /// When [preserveExistingOnDisk] is `false` (fresh sign-in), ignores any
+  /// previously stored cookies or account card so two accounts cannot mix.
+  Future<void> saveFrom(
+    YTMusic ytmusic, {
+    bool preserveExistingOnDisk = true,
+  }) async {
     final www = await loadCookieMap(ytmusic.cookieJar, kYoutubeOrigin);
     final music = await loadCookieMap(ytmusic.cookieJar, kMusicOrigin);
-    final merged = <String, String>{...www, ...music};
+    final merged = <String, String>{};
+    for (final e in www.entries) {
+      if (e.value.isNotEmpty) merged[e.key] = e.value;
+    }
+    for (final e in music.entries) {
+      if (e.value.isNotEmpty) merged[e.key] = e.value;
+    }
     // Preserve SID/SAPISID family from disk if the live jar lost them to a
     // Set-Cookie wipe but still looks signed-in via __Secure-3*.
     Map<String, dynamic>? existingAccount;
-    if (await file.exists()) {
+    if (preserveExistingOnDisk && await file.exists()) {
       try {
         final raw = jsonDecode(await file.readAsString());
         if (raw is Map) {
@@ -76,6 +108,7 @@ class YoutubeSessionStore {
       await clear();
       return;
     }
+    merged['SOCS'] = kYtSocsConsentValue;
     final cookies = merged.entries
         .where((e) => isYoutubeSessionCookieName(e.key) && e.value.isNotEmpty)
         .map((e) => {'name': e.key, 'value': e.value})
@@ -122,6 +155,7 @@ class YoutubeSessionStore {
   }
 
   Future<void> clear() async {
+    cancelPendingSave();
     if (await file.exists()) {
       await file.delete();
     }

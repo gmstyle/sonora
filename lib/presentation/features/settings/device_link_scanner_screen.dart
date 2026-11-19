@@ -9,6 +9,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../data/services/device_link.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/youtube_account_provider.dart';
 
 /// Phone: scan a TV/Linux QR and POST the sealed session on the LAN.
@@ -73,7 +74,12 @@ class _DeviceLinkScannerScreenState
     try {
       final www = await loadCookieMap(YTMusic().cookieJar, kYoutubeOrigin);
       final music = await loadCookieMap(YTMusic().cookieJar, kMusicOrigin);
-      final cookies = <String, String>{...www, ...music};
+      final cookies = <String, String>{
+        for (final e in www.entries)
+          if (e.value.isNotEmpty) e.key: e.value,
+        for (final e in music.entries)
+          if (e.value.isNotEmpty) e.key: e.value,
+      };
       if (!jarHasAuth(cookies)) {
         setState(() {
           _busy = false;
@@ -109,8 +115,7 @@ class _DeviceLinkScannerScreenState
           response.statusCode! >= 200 &&
           response.statusCode! < 300) {
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(l10n.deviceLinkDone)));
+          ref.read(actionFeedbackProvider.notifier).report(l10n.deviceLinkDone);
           Navigator.of(context).pop();
         }
         return;

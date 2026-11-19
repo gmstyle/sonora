@@ -20,24 +20,23 @@ import '../../providers/youtube_account_provider.dart';
 /// browser has left Google accounts, waits on Music, fetches `account_menu`
 /// from the page with SAPISIDHASH, then hands cookies + card to Dart.
 class YoutubeLoginWebView extends ConsumerStatefulWidget {
-  const YoutubeLoginWebView({super.key, this.forCaptcha = false});
+  const YoutubeLoginWebView({super.key});
 
-  final bool forCaptcha;
-
-  /// Land on Music after Google — account_menu and LOGIN_INFO settle here.
+  /// Google ServiceLogin continuing directly into Music where `account_menu`
+  /// and `LOGIN_INFO` settle.
   static const loginUrl =
-      'https://accounts.google.com/Logout?continue=https://music.youtube.com/';
+      'https://accounts.google.com/ServiceLogin?service=youtube&passive=false&continue=https%3A%2F%2Fmusic.youtube.com%2F';
 
   /// Chrome on Android without the WebView `; wv)` token Google flags.
   static const mobileChromeUa =
       'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
-      '(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36';
+      '(KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36';
 
-  static Future<bool?> open(BuildContext context, {bool forCaptcha = false}) {
+  static Future<bool?> open(BuildContext context) {
     return Navigator.of(context).push<bool>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => YoutubeLoginWebView(forCaptcha: forCaptcha),
+        builder: (_) => const YoutubeLoginWebView(),
       ),
     );
   }
@@ -65,10 +64,6 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
     super.initState();
     _controller = WebViewController();
     unawaited(_prepareAndStart());
-    _poll = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => unawaited(_checkCookies()),
-    );
   }
 
   @override
@@ -79,7 +74,11 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
 
   Future<void> _prepareAndStart() async {
     await _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
-    await _controller.setUserAgent(YoutubeLoginWebView.mobileChromeUa);
+    final defaultUa = await WebViewCookieReader.getDefaultUserAgent();
+    final resolvedUa = (defaultUa != null && defaultUa.isNotEmpty)
+        ? defaultUa.replaceAll('; wv)', ')').replaceAll(' Version/4.0', '')
+        : YoutubeLoginWebView.mobileChromeUa;
+    await _controller.setUserAgent(resolvedUa);
     await _controller.addJavaScriptChannel(
       _accountChannel,
       onMessageReceived: (message) {
@@ -111,28 +110,45 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
 
     await WebViewCookieReader.clearCookies();
     await _controller.loadRequest(Uri.parse(YoutubeLoginWebView.loginUrl));
-    if (mounted) setState(() => _ready = true);
+    if (!mounted) return;
+    setState(() => _ready = true);
+    _poll = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => unawaited(_checkCookies()),
+    );
   }
 
-  bool _isGoogleHost(String host) {
-    return host == 'accounts.google.com' ||
-        (host.endsWith('.google.com') && host.contains('accounts'));
+  bool _isAuthFlowHost(String host) {
+    final lower = host.toLowerCase();
+    if (lower.isEmpty) return true;
+    return lower == 'accounts.youtube.com' ||
+        lower == 'consent.youtube.com' ||
+        lower == 'consent.google.com' ||
+        lower.startsWith('accounts.google.') ||
+        lower == 'myaccount.google.com' ||
+        lower == 'gds.google.com' ||
+        lower == 'myactivity.google.com' ||
+        (lower.endsWith('.google.com') &&
+            (lower.contains('accounts') || lower.contains('consent')));
   }
 
   bool _isMusicUrl(String url) => url.contains('music.youtube.com');
 
   Future<Map<String, String>> _readCookies() async {
+    // Only YouTube origins — never read .google.com, whose SAPISID/SIDCC
+    // values differ from .youtube.com and would overwrite the YT session.
     final headers = await Future.wait([
       WebViewCookieReader.getCookie('https://www.youtube.com'),
-      WebViewCookieReader.getCookie('https://music.youtube.com'),
       WebViewCookieReader.getCookie('https://m.youtube.com'),
-      WebViewCookieReader.getCookie('https://www.google.com'),
-      WebViewCookieReader.getCookie('https://accounts.google.com'),
+      WebViewCookieReader.getCookie('https://youtube.com'),
+      WebViewCookieReader.getCookie('https://accounts.youtube.com'),
+      WebViewCookieReader.getCookie('https://music.youtube.com'),
     ]);
     final byName = <String, String>{};
     for (final header in headers) {
       if (header == null || header.isEmpty) continue;
       for (final c in parseCookieHeader(header)) {
+        if (c.value.isEmpty) continue;
         byName[c.name] = c.value;
       }
     }
@@ -170,14 +186,21 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
     var clientName = cfg.get('INNERTUBE_CLIENT_NAME') || 'WEB_REMIX';
     var clientVersion = cfg.get('INNERTUBE_CLIENT_VERSION') || '';
     var ctxClientName = cfg.get('INNERTUBE_CONTEXT_CLIENT_NAME') || '';
+    var sessionIndex = cfg.get('SESSION_INDEX');
+    var delegatedId = cfg.get('DELEGATED_SESSION_ID') || cfg.get('delegatedSessionId') || '';
+    var visitorData = cfg.get('VISITOR_DATA') || '';
     var url = '/youtubei/v1/account/account_menu?prettyPrint=false';
     if (key) url += '&key=' + encodeURIComponent(key);
     var headers = {
       'Content-Type': 'application/json',
-      'X-Goog-AuthUser': '0',
+      'X-Goog-AuthUser': String((sessionIndex !== undefined && sessionIndex !== null) ? sessionIndex : '0'),
+      'X-Youtube-Bootstrap-Logged-In': 'true',
+      'X-Origin': 'https://music.youtube.com',
       'X-YouTube-Client-Name': String(ctxClientName),
       'X-YouTube-Client-Version': String(clientVersion)
     };
+    if (visitorData) headers['X-Goog-Visitor-Id'] = String(visitorData);
+    if (delegatedId) headers['X-Goog-PageId'] = String(delegatedId);
     var auth = $authLiteral;
     if (auth) headers['Authorization'] = auth;
     var res = await fetch(url, {
@@ -318,8 +341,8 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
 
       final currentUrl = await _controller.currentUrl() ?? '';
       final host = Uri.tryParse(currentUrl)?.host ?? '';
-      // Never navigate away while Google OAuth is still running.
-      if (_isGoogleHost(host)) return;
+      // Never navigate away while Google OAuth or YouTube SetSID is still running.
+      if (_isAuthFlowHost(host)) return;
 
       // Always settle on Music before closing — youtube.com alone is not enough
       // for account_menu / LOGIN_INFO in the Dart jar.

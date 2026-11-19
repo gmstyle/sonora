@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.webkit.CookieManager
+import android.webkit.WebSettings
 import androidx.annotation.Keep
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
@@ -94,11 +95,19 @@ class MainActivity : AudioServiceFragmentActivity() {
                 "clearCookies" -> {
                     try {
                         val cm = CookieManager.getInstance()
-                        cm.removeAllCookies(null)
-                        cm.flush()
-                        result.success(null)
+                        cm.removeAllCookies {
+                            cm.flush()
+                            result.success(null)
+                        }
                     } catch (e: Exception) {
                         result.error("COOKIE_ERROR", e.message, null)
+                    }
+                }
+                "getDefaultUserAgent" -> {
+                    try {
+                        result.success(WebSettings.getDefaultUserAgent(this))
+                    } catch (e: Exception) {
+                        result.error("UA_ERROR", e.message, null)
                     }
                 }
                 else -> result.notImplemented()

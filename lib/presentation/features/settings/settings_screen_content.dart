@@ -953,6 +953,7 @@ class _AccountSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final isTv = ref.watch(isAndroidTvProvider);
+    final isOffline = ref.watch(isOfflineProvider);
     final account = ref.watch(youtubeAccountProvider);
     final signedIn = account.signedIn;
     final infoAsync = signedIn
@@ -987,21 +988,25 @@ class _AccountSection extends ConsumerWidget {
             title: l10n.accountSignIn,
             subtitle: l10n.accountSignInHint,
             icon: LucideIcons.logIn,
-            onPressed: () async {
-              final ok = await YoutubeLoginWebView.open(context);
-              if (ok == true && context.mounted) {
-                ref
-                    .read(actionFeedbackProvider.notifier)
-                    .report(l10n.accountSignedIn);
-              }
-            },
+            onPressed: isOffline
+                ? null
+                : () async {
+                    final ok = await YoutubeLoginWebView.open(context);
+                    if (ok == true && context.mounted) {
+                      ref
+                          .read(actionFeedbackProvider.notifier)
+                          .report(l10n.accountSignedIn);
+                    }
+                  },
           ),
         if (!signedIn && (isLinux || isTv))
           SettingsButtonTile(
             title: l10n.accountSignIn,
             subtitle: l10n.deviceLinkQrHint,
             icon: LucideIcons.qrCode,
-            onPressed: () => DeviceLinkQrPanel.showAsDialog(context),
+            onPressed: isOffline
+                ? null
+                : () => DeviceLinkQrPanel.showAsDialog(context),
           ),
         if (!signedIn && !isAndroid && !isLinux && !isTv)
           ListTile(
@@ -1014,7 +1019,9 @@ class _AccountSection extends ConsumerWidget {
               title: l10n.accountLinkDevice,
               subtitle: l10n.accountLinkDeviceHint,
               icon: LucideIcons.scanQrCode,
-              onPressed: () => DeviceLinkScannerScreen.open(context),
+              onPressed: isOffline
+                  ? null
+                  : () => DeviceLinkScannerScreen.open(context),
             ),
           if (isAndroid && !isTv) const Divider(height: 1),
           SettingsButtonTile(

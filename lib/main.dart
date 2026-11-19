@@ -107,6 +107,8 @@ Future<void> main() async {
   final supportDir = await getApplicationSupportDirectory();
   final youtubeSessionStore = YoutubeSessionStore.inDirectory(supportDir.path);
   final ytmusicDs = YtmusicDatasource();
+  ytmusicDs.client.onSessionCookiesChanged = () =>
+      youtubeSessionStore.scheduleSaveFrom(ytmusicDs.client);
   // Restore auth cookies before the first Innertube scrape.
   await youtubeSessionStore.loadInto(ytmusicDs.client);
   // First init wins. A bare YTMusic().initialize() would lock HL to the

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../datasources/remote/stream_datasource.dart';
 import '../datasources/remote/ytmusic_datasource.dart';
+import 'webview_cookie_reader.dart';
 import 'youtube_session_store.dart';
 
 /// Applies, persists, and clears the shared YouTube Music session.
@@ -40,10 +41,12 @@ class YoutubeAccountService {
     Iterable<Cookie> cookies, {
     ytm.AccountInfo? account,
   }) async {
+    store.cancelPendingSave();
     final filtered = ytm.filterYoutubeSessionCookies(cookies);
+    await ytm.clearAuthCookies(_client.cookieJar);
     await ytm.applyAuthCookies(_client.cookieJar, filtered);
     await _refreshClients();
-    await store.saveFrom(_client);
+    await store.saveFrom(_client, preserveExistingOnDisk: false);
     if (account != null) {
       await store.saveAccount(account);
     }
@@ -59,9 +62,19 @@ class YoutubeAccountService {
   Future<void> cacheAccount(ytm.AccountInfo info) => store.saveAccount(info);
 
   Future<void> signOut() async {
+    store.cancelPendingSave();
     await ytm.clearAuthCookies(_client.cookieJar);
+    await WebViewCookieReader.clearCookies();
     await store.clear();
     await _refreshClients();
+  }
+
+  /// Cleans local session state after YouTube revokes `LOGIN_INFO` server-side.
+  Future<void> handleRemoteRevocation() async {
+    store.cancelPendingSave();
+    await WebViewCookieReader.clearCookies();
+    await store.clear();
+    streams.clearUrlCache();
   }
 
   Future<void> _refreshClients() async {

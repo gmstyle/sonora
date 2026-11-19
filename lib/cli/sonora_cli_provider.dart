@@ -69,6 +69,8 @@ class SonoraCliProvider {
     final dbPath = _databasePath ?? _defaultDbPath();
     final sessionDir = p.dirname(dbPath);
     final sessionStore = YoutubeSessionStore.inDirectory(sessionDir);
+    _ytmusicDs!.client.onSessionCookiesChanged = () =>
+        sessionStore.scheduleSaveFrom(_ytmusicDs!.client);
     await sessionStore.loadInto(YTMusic());
     await _ytmusicDs!.initialize();
     await sessionStore.saveFrom(YTMusic());

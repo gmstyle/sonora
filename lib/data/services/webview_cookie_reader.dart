@@ -27,4 +27,15 @@ class WebViewCookieReader {
       // no-op
     }
   }
+
+  /// Default Android WebView User-Agent, or null when unavailable.
+  static Future<String?> getDefaultUserAgent() async {
+    try {
+      return await _channel.invokeMethod<String>('getDefaultUserAgent');
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
 }

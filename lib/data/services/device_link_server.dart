@@ -78,29 +78,65 @@ class DeviceLinkServer {
   }
 }
 
-/// Best private IPv4 for the QR (skips loopback).
+bool _isVirtualInterface(String name) {
+  final lower = name.toLowerCase();
+  return lower == 'lo' ||
+      lower.startsWith('docker') ||
+      lower.startsWith('br-') ||
+      lower.startsWith('virbr') ||
+      lower.startsWith('veth') ||
+      lower.startsWith('tailscale') ||
+      lower.startsWith('tun') ||
+      lower.startsWith('tap');
+}
+
+bool _isPreferredLanInterface(String name) {
+  final lower = name.toLowerCase();
+  return lower.contains('wlan') ||
+      lower.contains('wifi') ||
+      lower.contains('wl') ||
+      lower.startsWith('wlp') ||
+      lower.startsWith('enp') ||
+      lower.startsWith('eth') ||
+      lower == 'en0';
+}
+
+bool _isPrivateIpv4(String ip) {
+  return ip.startsWith('10.') ||
+      ip.startsWith('192.168.') ||
+      RegExp(r'^172\.(1[6-9]|2\d|3[0-1])\.').hasMatch(ip);
+}
+
+/// Best private IPv4 for the QR (skips loopback and virtual bridges).
 Future<String?> localLanIpv4() async {
   try {
     final interfaces = await NetworkInterface.list(
       type: InternetAddressType.IPv4,
       includeLinkLocal: false,
     );
+    String? otherPrivate;
+    String? otherNonLoopback;
+    String? virtualPrivate;
     for (final iface in interfaces) {
+      final virtual = _isVirtualInterface(iface.name);
+      final preferred = !virtual && _isPreferredLanInterface(iface.name);
       for (final addr in iface.addresses) {
         if (addr.isLoopback) continue;
         final ip = addr.address;
-        if (ip.startsWith('10.') ||
-            ip.startsWith('192.168.') ||
-            RegExp(r'^172\.(1[6-9]|2\d|3[0-1])\.').hasMatch(ip)) {
-          return ip;
+        final isPrivate = _isPrivateIpv4(ip);
+        if (preferred && isPrivate) return ip;
+        if (!virtual) {
+          if (isPrivate) {
+            otherPrivate ??= ip;
+          } else {
+            otherNonLoopback ??= ip;
+          }
+        } else if (isPrivate) {
+          virtualPrivate ??= ip;
         }
       }
     }
-    for (final iface in interfaces) {
-      for (final addr in iface.addresses) {
-        if (!addr.isLoopback) return addr.address;
-      }
-    }
+    return otherPrivate ?? otherNonLoopback ?? virtualPrivate;
   } catch (_) {}
   return null;
 }

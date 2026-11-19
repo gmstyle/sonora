@@ -54,11 +54,30 @@ class YoutubeAccountState {
 class YoutubeAccountNotifier extends Notifier<YoutubeAccountState> {
   @override
   YoutubeAccountState build() {
+    if (ref.read(youtubeSessionStoreProvider) != null) {
+      final yt = YTMusic();
+      Future<void> onRevoked() => _handleRemoteRevocation();
+      yt.onSessionRevoked = onRevoked;
+      ref.onDispose(() {
+        if (identical(yt.onSessionRevoked, onRevoked)) {
+          yt.onSessionRevoked = null;
+        }
+      });
+    }
     Future.microtask(_refresh);
     return const YoutubeAccountState(signedIn: false);
   }
 
   YoutubeAccountService get _service => ref.read(youtubeAccountServiceProvider);
+
+  Future<void> _handleRemoteRevocation() async {
+    if (ref.read(youtubeSessionStoreProvider) == null) return;
+    await _service.handleRemoteRevocation();
+    state = YoutubeAccountState(
+      signedIn: false,
+      sessionGeneration: state.sessionGeneration + 1,
+    );
+  }
 
   Future<void> _refresh() async {
     if (ref.read(youtubeSessionStoreProvider) == null) return;
@@ -140,12 +159,5 @@ Future<void> restoreYoutubeSession({
   required YtmusicDatasource ytmusic,
   StreamDatasource? streams,
 }) async {
-  final service = YoutubeAccountService(
-    store: store,
-    ytmusic: ytmusic,
-    streams: streams ?? StreamDatasource(),
-    gl: () => 'US',
-    hl: () => 'en',
-  );
-  await service.restore();
+  await store.loadInto(ytmusic.client);
 }
