@@ -293,11 +293,12 @@ class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
           metrics: metrics,
           onShowAll: _browseCallback(context, sections[0]),
         ),
-      HomeNewReleases(
-        newReleasesAsync,
-        cardWidth: metrics.cardWidth,
-        horizontalPadding: metrics.horizontalPadding,
-      ),
+      if (!hasNewReleasesSection(sections, localizedTitle: l10n.newReleases))
+        HomeNewReleases(
+          newReleasesAsync,
+          cardWidth: metrics.cardWidth,
+          horizontalPadding: metrics.horizontalPadding,
+        ),
       HomeDiscover(
         discoverAsync,
         cardWidth: metrics.cardWidth,

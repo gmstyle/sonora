@@ -14,6 +14,29 @@ import '../../../providers/youtube_account_provider.dart';
 
 const _kHomeSectionMaxItems = 12;
 
+/// True when the Innertube home feed already includes a New Releases shelf.
+bool hasNewReleasesSection(
+  List<HomeSection> sections, {
+  String? localizedTitle,
+}) {
+  final expected = localizedTitle?.trim().toLowerCase();
+  for (final section in sections) {
+    if (section.contents.isEmpty) continue;
+    final browseId = section.browseId;
+    if (browseId == feMusicNewReleases ||
+        browseId == 'FEmusic_new_releases_albums') {
+      return true;
+    }
+    final title = section.title.trim().toLowerCase();
+    if (title == 'new releases' ||
+        title == 'nuove uscite' ||
+        (expected != null && expected.isNotEmpty && title == expected)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 class HomeSelectedChipParamsNotifier extends Notifier<String?> {
   @override
   String? build() => null;

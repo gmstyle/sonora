@@ -116,7 +116,11 @@ class TvHomeScreen extends ConsumerWidget {
                 SliverToBoxAdapter(
                   child: _TvHomeSectionShelf(section: base.sections.first),
                 ),
-              if (newReleases.isNotEmpty)
+              if (newReleases.isNotEmpty &&
+                  !hasNewReleasesSection(
+                    base.sections,
+                    localizedTitle: l10n.newReleases,
+                  ))
                 SliverToBoxAdapter(
                   child: _TvHomeSectionShelf(
                     section: HomeSection(
