@@ -366,10 +366,24 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
     }
   }
 
+  Widget _buildWebView() {
+    final platformController = _controller.platform;
+    if (platformController is AndroidWebViewController) {
+      return WebViewWidget.fromPlatformCreationParams(
+        params: AndroidWebViewWidgetCreationParams(
+          controller: platformController,
+          displayWithHybridComposition: true,
+        ),
+      );
+    }
+    return WebViewWidget(controller: _controller);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(l10n.accountSignIn),
         leading: IconButton(
@@ -383,7 +397,7 @@ class _YoutubeLoginWebViewState extends ConsumerState<YoutubeLoginWebView> {
             LinearProgressIndicator(value: _progress / 100),
           Expanded(
             child: _ready
-                ? WebViewWidget(controller: _controller)
+                ? _buildWebView()
                 : const Center(child: CircularProgressIndicator()),
           ),
         ],
