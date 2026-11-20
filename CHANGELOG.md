@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.1+79] - 2026-11-20
+
+### Bug Fixes
+
+- **settings**: Prevent double keyboard inset in YouTube login WebView
+- **home**: Avoid duplicate New releases shelf when home feed includes one
+- **downloads**: Sort download collection groups by selected sort order
+
 ## [2.0.0+78] - 2026-11-19
 
 ### Features
