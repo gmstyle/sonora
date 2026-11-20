@@ -44,6 +44,43 @@ String downloadGroupSectionTitle(
   };
 }
 
+DateTime _latestDownloadedAt(DownloadGroup group) {
+  var latest = DateTime.fromMillisecondsSinceEpoch(0);
+  for (final track in group.tracks) {
+    final dt = track.downloadedAt;
+    if (dt != null && dt.isAfter(latest)) {
+      latest = dt;
+    }
+  }
+  return latest;
+}
+
+List<DownloadGroup> sortDownloadGroups(
+  List<DownloadGroup> groups,
+  DownloadsSort sort,
+) {
+  final sorted = List<DownloadGroup>.of(groups);
+  switch (sort) {
+    case DownloadsSort.newest:
+      sorted.sort((a, b) {
+        final cmp = _latestDownloadedAt(b).compareTo(_latestDownloadedAt(a));
+        if (cmp != 0) return cmp;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    case DownloadsSort.title:
+      sorted.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+    case DownloadsSort.largest:
+      sorted.sort((a, b) {
+        final cmp = b.totalBytes.compareTo(a.totalBytes);
+        if (cmp != 0) return cmp;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+  }
+  return sorted;
+}
+
 List<DownloadModel> sortDownloadTracks(
   List<DownloadModel> items,
   DownloadsSort sort,
@@ -149,7 +186,7 @@ class _MobileCompletedDownloadsState
     );
 
     final byKind = <DownloadGroupKind, List<DownloadGroup>>{};
-    for (final g in widget.groups) {
+    for (final g in sortDownloadGroups(widget.groups, widget.sort)) {
       byKind.putIfAbsent(g.kind, () => []).add(g);
     }
 
@@ -328,15 +365,16 @@ class _SplitCompletedDownloads extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final sortedGroups = sortDownloadGroups(groups, sort);
     final selectedKey = ref.watch(selectedDownloadGroupKeyProvider);
     DownloadGroup? selected;
-    for (final g in groups) {
+    for (final g in sortedGroups) {
       if (g.key == selectedKey) {
         selected = g;
         break;
       }
     }
-    selected ??= groups.isNotEmpty ? groups.first : null;
+    selected ??= sortedGroups.isNotEmpty ? sortedGroups.first : null;
 
     // Keep selection valid when groups change.
     if (selected != null && selected.key != selectedKey) {
@@ -376,9 +414,9 @@ class _SplitCompletedDownloads extends ConsumerWidget {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: groups.length,
+            itemCount: sortedGroups.length,
             itemBuilder: (context, index) {
-              final group = groups[index];
+              final group = sortedGroups[index];
               final selectedNow = group.key == selected?.key;
               return _MasterGroupTile(
                 group: group,
