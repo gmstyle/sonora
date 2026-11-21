@@ -5,7 +5,7 @@ set -euo pipefail
 APP_NAME="sonora"
 APP_ID="com.gmstyle.sonora"
 DESCRIPTION="A music streaming app powered by YouTube Music"
-LICENSE="MIT"
+LICENSE="GPL-3.0"
 VENDOR="Gabriele Martina"
 MAINTAINER="Gabriele Martina <gabriele.martina@example.com>"
 HOMEPAGE="https://github.com/gmstyle/sonora"
@@ -102,6 +102,10 @@ cp "$PROJECT_ROOT/assets/icons/tray/tray_symbolic.png" "$STAGING_DIR/opt/$APP_NA
 # Symlink in PATH
 mkdir -p "$STAGING_DIR/usr/bin"
 ln -s "/opt/$APP_NAME/$APP_NAME" "$STAGING_DIR/usr/bin/$APP_NAME"
+
+# License text (GPL-3.0 requires it to ship with the binaries)
+mkdir -p "$STAGING_DIR/usr/share/doc/$APP_NAME"
+cp "$PROJECT_ROOT/LICENSE" "$STAGING_DIR/usr/share/doc/$APP_NAME/copyright"
 
 # Desktop entry (system-wide path)
 mkdir -p "$STAGING_DIR/usr/share/applications"

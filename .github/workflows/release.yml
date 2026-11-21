@@ -198,6 +198,7 @@ jobs:
           cp -r "$BUNDLE"/* "$OUTDIR/"
           cp assets/logo_full.png "$OUTDIR/sonora.png"
           cp assets/icons/tray/tray_symbolic.png "$OUTDIR/tray_icon.png"
+          cp LICENSE "$OUTDIR/LICENSE"
 
           cat > "$OUTDIR/com.gmstyle.sonora.desktop" << 'DESKTOP'
           [Desktop Entry]
@@ -314,6 +315,7 @@ jobs:
           name: Release v${{ needs.prepare.outputs.APP_VERSION }} (${{ needs.prepare.outputs.BUILD_NUMBER }})
           body_path: release-notes.md
           files: |
+            LICENSE
             artifacts/app-release.apk
             artifacts/app-arm64-v8a-release.apk
             artifacts/app-armeabi-v7a-release.apk

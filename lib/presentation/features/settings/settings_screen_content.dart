@@ -1696,6 +1696,7 @@ class _AboutSection extends StatelessWidget {
           onPressed: () => showLicensePage(
             context: context,
             applicationName: AppLocalizations.of(context)!.appTitle,
+            applicationLegalese: 'GPL-3.0-only — $kGitHubRepoUrl',
           ),
         ),
         const Divider(height: 1),

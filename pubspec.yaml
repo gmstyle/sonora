@@ -1,6 +1,6 @@
 name: sonora
 description: A music streaming app.
-version: 2.0.1+79
+version: 2.0.2+80
 publish_to: none
 
 environment:
@@ -139,6 +139,8 @@ flutter:
   generate: true
   assets:
     - assets/
+    # Shown on the in-app license page (Settings → Info → Licenses).
+    - LICENSE
 
 flutter_launcher_icons:
   android: "ic_launcher"

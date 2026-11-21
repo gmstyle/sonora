@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:app_links/app_links.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -208,6 +209,14 @@ Future<void> main() async {
   final isAndroidTv = await AndroidTv.isAndroidTv();
   await AndroidTv.debugLogDetection();
   debugPrint('[AndroidTv] isAndroidTv=$isAndroidTv');
+
+  // Sonora's own license is not part of the generated NOTICES asset.
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('LICENSE');
+    yield LicenseEntryWithLineBreaks(const [
+      'Sonora',
+    ], '$text\n\nSource code: $kGitHubRepoUrl');
+  });
 
   runApp(
     ProviderScope(

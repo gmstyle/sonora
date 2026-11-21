@@ -1415,3 +1415,28 @@ Android TV is a **device shell** (`isAndroidTvProvider`, overridden in `main.dar
 - **Browser Home & Focus**: Vertical stack of horizontal shelves (Quick Picks, Smart Mixes, playlists, new releases, offline shelves) sized via `tv_metrics.dart` (`TvFocusable` glow/scale). Pressing D-pad Left on the first item of a shelf calls `TvShellFocus.requestSidebar`.
 - **Now Playing & Lyrics**: Top-right now-playing pill (`TvNowPlayingPill`) and a sidebar entry open a full-bleed Now Playing overlay (not a `/player` route) with synced lyrics and translation support; playback on TV is foreground-only (leaving foreground stops audio) and stays active across the system screensaver.
 - **Dialogs & Manifest**: Long-press (Select hold) opens centered D-pad context-menu dialogs; Search uses the system Android TV IME; `AndroidManifest.xml` declares `LEANBACK_LAUNCHER`, `leanback`/`touchscreen` (`required="false"`), and `android:banner` for sideload distribution.
+
+---
+
+## 24. Licensing
+
+Sonora is distributed under **GPL-3.0-only** (`LICENSE`). The copyleft requirement comes from the dependency graph, not from a preference:
+
+- **`dart_ytmusic_api`** (git dependency) is **GPL-3.0**; every distributed build links it, so the combined work must be GPL-3-compatible.
+- **Linux** links/loads **libmpv** (`mpv`, GPL-2.0-or-later) through `just_audio_media_kit` → `media_kit`; the `.deb`/`.rpm` declare `libmpv2` / `mpv-libs` instead of bundling it.
+- **Android** has no GPL native code: `just_audio` uses Media3/ExoPlayer (Apache-2.0) and no `libmpv.so` is packaged.
+
+All other dependencies are MIT, BSD, Apache-2.0, MPL-2.0 (`dbus`, `nm`) or Unlicense (`just_audio_media_kit`); none is GPL-2.0-only, AGPL, non-commercial or 4-clause BSD. Apache-2.0 is compatible with GPLv3 but not GPLv2, which is another reason the project stays on v3.
+
+**Release obligations**
+
+- Ship `LICENSE` with every artifact: it is an asset (`pubspec.yaml`), registered in `LicenseRegistry` from `main.dart` so it appears in Settings → Info → Licenses, copied into the Linux bundle and published with the GitHub release, and installed as `/usr/share/doc/sonora/copyright` by `packaging/linux/build-packages.sh`.
+- Keep the source available (public repository) and link it from the About section (`kGitHubRepoUrl`).
+- Preserve third-party notices: Flutter generates `NOTICES` from package licenses. Apache-2.0 components (Media3, genkit, cryptography, app_links, shelf_router, LiteRT-LM) and the proprietary Google ML Kit binary behind `mobile_scanner` must stay attributed.
+
+**Do not**
+
+- Enable `qualcomm_npu` in `flutter_edge_ai_litertlm`: the Qualcomm AI Stack License is not compatible with bundling those binaries in a GPL-3 work.
+- Bundle Gemma weights: the Gemma Terms are not GPL-3-compatible. The Qwen3 `.litertlm` model is downloaded at runtime and is not distributed.
+
+Releases published before the relicensing remain MIT for their recipients; GPL-3 applies from the first release that carries this `LICENSE`.

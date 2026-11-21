@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/gmstyle/sonora/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/gmstyle/sonora?style=flat-square"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square"></a>
+  <a href="LICENSE"><img alt="License: GPL-3.0-only" src="https://img.shields.io/badge/license-GPL--3.0--only-blue?style=flat-square"></a>
   <img alt="Platforms: Android and Linux" src="https://img.shields.io/badge/platform-Android%20%7C%20Linux-blue?style=flat-square">
   <a href="https://github.com/gmstyle/sonora/releases"><img alt="Total downloads" src="https://img.shields.io/github/downloads/gmstyle/sonora/total?style=flat-square&label=downloads"></a>
 </p>
@@ -183,7 +183,13 @@ If Sonora is useful to you, a small donation is always appreciated.
 
 ## 📄 License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+Distributed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html) (GPL-3.0-only). See [LICENSE](LICENSE) for the full text.
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 of the License.
+
+Copyright © 2026 Gabriele Martina.
+
+The complete source code is available at <https://github.com/gmstyle/sonora>.
 
 ### Disclaimer
 

@@ -372,10 +372,12 @@ packages:
   dart_ytmusic_api:
     dependency: "direct main"
     description:
-      path: "../dart_ytmusic_api"
-      relative: true
-    source: path
-    version: "1.9.5"
+      path: "."
+      ref: HEAD
+      resolved-ref: "788986766a11627cb959614e1bab3b20492be3b3"
+      url: "https://github.com/gmstyle/dart_ytmusic_api.git"
+    source: git
+    version: "1.9.6"
   dbus:
     dependency: transitive
     description:
@@ -1940,10 +1942,12 @@ packages:
   youtube_explode_dart:
     dependency: "direct main"
     description:
-      path: "../youtube_explode_dart"
-      relative: true
-    source: path
-    version: "3.2.0"
+      path: "."
+      ref: HEAD
+      resolved-ref: "83ca40de4dd24ad5f32c0dabe482a7402e35bda4"
+      url: "https://github.com/gmstyle/youtube_explode_dart.git"
+    source: git
+    version: "3.2.1"
 sdks:
   dart: ">=3.14.0 <4.0.0"
   flutter: ">=3.50.0"
