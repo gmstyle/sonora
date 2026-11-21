@@ -14,6 +14,7 @@ import '../../../../providers/connectivity_provider.dart';
 import '../../../../providers/library_notifier.dart';
 import '../../../../providers/play_album_use_case_provider.dart';
 import '../../../../providers/player_provider.dart';
+import '../../../../providers/start_radio_use_case_provider.dart';
 import '../../../../shared/widgets/context_menu_sheet.dart';
 import '../../../../shared/widgets/detail_actions_bar.dart';
 import '../../../../shared/widgets/error_retry_widget.dart';
@@ -67,6 +68,82 @@ class _TvArtistBodyState extends ConsumerState<_TvArtistBody> {
   void dispose() {
     _playAllFocus.dispose();
     super.dispose();
+  }
+
+  Future<List<SongDetailed>> _resolveAllTopSongs(ArtistFull artist) async {
+    try {
+      final songs = await ref.read(artistSongsProvider(artist.artistId).future);
+      if (songs.isNotEmpty) return songs;
+    } catch (_) {}
+    return artist.topSongs;
+  }
+
+  Future<void> _playTopSongs(ArtistFull artist) async {
+    final songs = playableSongs(await _resolveAllTopSongs(artist));
+    if (!mounted || songs.isEmpty) return;
+    await ref
+        .read(playerStateProvider.notifier)
+        .playAlbum(songs, startIndex: 0);
+  }
+
+  Future<void> _shuffleTopSongs(ArtistFull artist) async {
+    final l10n = AppLocalizations.of(context)!;
+    final player = ref.read(playerStateProvider.notifier);
+    try {
+      if (artist.shuffleId != null && artist.shuffleId!.isNotEmpty) {
+        final useCase = ref.read(startRadioUseCaseProvider);
+        final seed = artist.topSongs.isNotEmpty
+            ? artist.topSongs.first.videoId
+            : '';
+        final result = await useCase.execute(
+          seed,
+          playlistId: artist.shuffleId,
+          radio: false,
+          shuffle: true,
+        );
+        if (!mounted) return;
+        await player.playNow([result.firstItem]);
+        if (result.remaining.isNotEmpty) {
+          player.addAllToQueue(useCase.toPendingItems(result.remaining));
+        }
+        return;
+      }
+
+      final songs = playableSongs(await _resolveAllTopSongs(artist));
+      if (!mounted || songs.isEmpty) return;
+      final shuffled = List<SongDetailed>.from(songs)..shuffle();
+      await player.playAlbum(shuffled, startIndex: 0);
+    } catch (e) {
+      debugPrint('Failed to shuffle artist: $e');
+      if (mounted) {
+        ref
+            .read(actionFeedbackProvider.notifier)
+            .report(l10n.failedToPlay, kind: FeedbackKind.error);
+      }
+    }
+  }
+
+  Future<void> _playFromTrack(
+    ArtistFull artist,
+    SongDetailed song,
+    List<SongDetailed> previewPlayable,
+  ) async {
+    final resolved = playableSongs(await _resolveAllTopSongs(artist));
+    if (!mounted) return;
+    final start = resolved.indexWhere((s) => s.videoId == song.videoId);
+    if (start >= 0) {
+      await ref
+          .read(playerStateProvider.notifier)
+          .playAlbum(resolved, startIndex: start);
+      return;
+    }
+    final fallbackStart = previewPlayable.indexWhere(
+      (s) => s.videoId == song.videoId,
+    );
+    if (fallbackStart < 0) return;
+    await ref
+        .read(playerStateProvider.notifier)
+        .playAlbum(previewPlayable, startIndex: fallbackStart);
   }
 
   @override
@@ -198,9 +275,7 @@ class _TvArtistBodyState extends ConsumerState<_TvArtistBody> {
                           autofocus: true,
                           onSelect: playable.isEmpty
                               ? null
-                              : () => ref
-                                    .read(playerStateProvider.notifier)
-                                    .playAlbum(playable, startIndex: 0),
+                              : () => _playTopSongs(artist),
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
                             width: double.infinity,
@@ -233,14 +308,7 @@ class _TvArtistBodyState extends ConsumerState<_TvArtistBody> {
                         TvFocusable(
                           onSelect: playable.isEmpty
                               ? null
-                              : () {
-                                  final shuffled = List<SongDetailed>.from(
-                                    playable,
-                                  )..shuffle();
-                                  ref
-                                      .read(playerStateProvider.notifier)
-                                      .playAlbum(shuffled, startIndex: 0);
-                                },
+                              : () => _shuffleTopSongs(artist),
                           borderRadius: BorderRadius.circular(12),
                           child: Container(
                             width: double.infinity,
@@ -341,7 +409,7 @@ class _TvArtistBodyState extends ConsumerState<_TvArtistBody> {
                             TvFocusable(
                               onSelect: playable.isEmpty
                                   ? null
-                                  : () => _addToQueue(context, ref, playable),
+                                  : () => _addToQueue(context, artist),
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 padding: const EdgeInsets.all(8),
@@ -455,15 +523,8 @@ class _TvArtistBodyState extends ConsumerState<_TvArtistBody> {
                             isPlaying: playingVideoId == song.videoId,
                             enabled: song.isPlayable,
                             onLeftAtEdge: () => _playAllFocus.requestFocus(),
-                            onSelect: () {
-                              final start = playable.indexWhere(
-                                (s) => s.videoId == song.videoId,
-                              );
-                              if (start < 0) return;
-                              ref
-                                  .read(playerStateProvider.notifier)
-                                  .playAlbum(playable, startIndex: start);
-                            },
+                            onSelect: () =>
+                                _playFromTrack(artist, song, playable),
                             onLongSelect: () => ContextMenuSheet.showForSong(
                               context,
                               videoId: song.videoId,
@@ -662,13 +723,10 @@ class _TvArtistBodyState extends ConsumerState<_TvArtistBody> {
     );
   }
 
-  Future<void> _addToQueue(
-    BuildContext context,
-    WidgetRef ref,
-    List<SongDetailed> songs,
-  ) async {
+  Future<void> _addToQueue(BuildContext context, ArtistFull artist) async {
     final l10n = AppLocalizations.of(context)!;
     try {
+      final songs = playableSongs(await _resolveAllTopSongs(artist));
       final items = await ref
           .read(playAlbumUseCaseProvider)
           .execute(songs, playIndex: -1);
