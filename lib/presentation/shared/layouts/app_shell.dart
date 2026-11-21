@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../features/tv/layouts/tv_shell.dart';
 import '../../providers/android_tv_provider.dart';
-import '../widgets/ask_intro_gate.dart';
 import '../widgets/battery_prompt_gate.dart';
 import '../widgets/offline_banner.dart';
 import 'mobile_shell.dart';
@@ -42,7 +41,6 @@ class AppShell extends ConsumerWidget {
             },
           ),
         const OfflineBanner(),
-        if (!isTv) const AskIntroGate(),
         if (!isTv) const BatteryPromptGate(),
       ],
     );

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/notification_utils.dart';
 import '../../l10n/app_localizations.dart';
+import 'ask_notification_service.dart';
 
 /// Stable notification id so progress updates replace instead of stacking.
 const kDownloadNotificationId = 71001;
@@ -132,13 +133,21 @@ class NoOpDownloadNotificationService implements DownloadNotificationService {
 }
 
 void handleDownloadNotificationResponse(NotificationResponse response) {
+  final payload = response.payload;
+  if (payload != null && payload.startsWith(kAskDropPayloadPrefix)) {
+    final dropId = payload.substring(kAskDropPayloadPrefix.length);
+    if (dropId.isNotEmpty) {
+      askDropNotificationHandler?.call(dropId);
+    }
+    return;
+  }
   final action = response.actionId;
   if (action != null && action.isNotEmpty) {
     downloadNotificationActionHandler?.call(action);
     return;
   }
   if (response.id == kDownloadNotificationId ||
-      response.payload == kDownloadOpenActionId) {
+      payload == kDownloadOpenActionId) {
     downloadNotificationActionHandler?.call(kDownloadOpenActionId);
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../models/ask_chat_models.dart';
 import '../../repositories/llm_completion_repository.dart';
 
 /// Max lyrics characters sent to the model (token budget).
@@ -41,6 +42,8 @@ class TranslateLyricsUseCase {
         systemInstruction: kAskTranslateLyricsSystemInstruction,
         userMessage: 'Target language: $targetLanguage\n\nLyrics:\n$clipped',
         maxOutputTokens: 2048,
+        action: AskActionKind.lyricsTranslate,
+        locale: targetLanguage,
       );
       return _parseTranslation(raw);
     } catch (_) {

@@ -1,22 +1,41 @@
-import 'ask_mode.dart';
+import 'ask_chat_models.dart';
 
-/// Feature gates derived from the resolved Ask LLM backend.
+/// Feature gates derived from the resolved Ask backend and network state.
 class AskCapabilities {
-  const AskCapabilities(this.backend);
+  const AskCapabilities({required this.backend, required this.isOffline});
 
-  final AskLlmBackend backend;
+  final AskBackendMode backend;
+  final bool isOffline;
 
-  bool get hasLlm => backend != AskLlmBackend.none;
+  bool get isConfigured => backend != AskBackendMode.unconfigured;
 
-  bool get canInterpretSearch => hasLlm;
+  bool get canUseAsk => isConfigured && !isOffline;
 
-  bool get canMomentMix => hasLlm;
+  bool get isByok => backend == AskBackendMode.byok;
 
-  bool get canRewriteImport => hasLlm;
+  bool get hasLlm => canUseAsk;
 
-  /// Prose narrative — cloud only (on-device quality is insufficient).
-  bool get canWrappedNarrative => backend == AskLlmBackend.cloud;
+  bool get canUseChat => canUseAsk;
 
-  /// Player curiosities (Search grounding) + lyrics translation — cloud only.
-  bool get canPlayerInsights => backend == AskLlmBackend.cloud;
+  bool get canUseSearch => canUseAsk;
+
+  bool get canInterpretSearch => canUseAsk;
+
+  bool get canUseMomentMix => canUseAsk;
+
+  bool get canMomentMix => canUseAsk;
+
+  bool get canUseSpotifyAssistant => canUseAsk;
+
+  bool get canRewriteImport => canUseAsk;
+
+  bool get canUseWrappedNarrative => canUseAsk;
+
+  bool get canWrappedNarrative => canUseAsk;
+
+  bool get canUseTrackInsights => canUseAsk;
+
+  bool get canUseLyricsTranslation => canUseAsk;
+
+  bool get canPlayerInsights => canUseAsk;
 }

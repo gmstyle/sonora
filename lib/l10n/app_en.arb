@@ -1129,5 +1129,91 @@
   "tvStageArtwork": "Artwork",
   "tvExitAppTitle": "Exit Sonora?",
   "tvExitAppMessage": "Playback will stop if you exit.",
-  "tvExitAppAction": "Exit"
+  "tvExitAppAction": "Exit",
+  "aiDeepSeekStatusTitle": "Ask Engine (DeepSeek)",
+  "aiDeepSeekStatusProxy": "Sonora Cloud ({remaining}/{limit} credits today)",
+  "@aiDeepSeekStatusProxy": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "aiDeepSeekStatusByok": "Personal DeepSeek key (Unlimited)",
+  "aiDeepSeekStatusUnconfigured": "Proxy URL not configured — add a personal key or proxy URL below",
+  "aiUseTasteContextTitle": "Use listening history",
+  "aiUseTasteContextHint": "Allow Ask to read top artists, playlists, and recent plays for tailored mixes",
+  "aiDropsEnabledTitle": "Proactive Pulse Drops",
+  "aiDropsEnabledHint": "Show music discovery cards based on listening trends",
+  "aiNotificationsEnabledTitle": "Ask local notifications",
+  "aiNotificationsEnabledHint": "Notify when a new Pulse Drop is ready",
+  "aiDeepSeekApiKeyTitle": "Personal DeepSeek API key (optional)",
+  "aiDeepSeekApiKeyHint": "Bypass daily credit limit. Stored locally on this device.",
+  "aiDeepSeekApiKeySave": "Save key",
+  "aiDeepSeekApiKeyClear": "Clear key",
+  "aiDeepSeekApiKeySaved": "DeepSeek API key saved",
+  "aiDeepSeekApiKeyCleared": "DeepSeek API key cleared",
+  "aiAskProxyUrlTitle": "Ask proxy URL (optional)",
+  "aiAskProxyUrlHint": "Override the default Sonora proxy endpoint (advanced).",
+  "aiAskProxyUrlSave": "Save proxy URL",
+  "aiAskProxyUrlSaved": "Proxy URL updated",
+  "askNavLabel": "Ask",
+  "askHubTitle": "Sonora Ask",
+  "askHubSubtitle": "Your music & catalog companion powered by DeepSeek",
+  "askNewChat": "New chat",
+  "askHistoryTitle": "Conversations",
+  "askHistoryEmpty": "No conversations yet",
+  "askDeleteChat": "Delete chat",
+  "askClearHistory": "Clear history",
+  "askComposerHint": "Ask about mixes, artists, playlists, or moods…",
+  "askSend": "Send",
+  "askWebSearchChip": "Web search",
+  "askQuotaBadge": "{remaining}/{limit} left",
+  "@askQuotaBadge": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "askByokBadge": "BYOK · Unlimited",
+  "askDropsHeader": "Pulse Drops",
+  "askDropsEmpty": "Listen a bit more — Ask will prepare tailored highlights here.",
+  "askGuidedHeader": "Quick actions",
+  "askGuidedMixTitle": "Mix for right now",
+  "askGuidedMixPrompt": "Build a 15-track mix based on my current taste and mood right now.",
+  "askGuidedDiscoverTitle": "Discover new artists",
+  "askGuidedDiscoverPrompt": "Recommend 5 artists similar to what I have been listening to lately.",
+  "askGuidedPlaylistTitle": "Create a playlist",
+  "askGuidedPlaylistPrompt": "Propose a playlist of tracks I can review and save to my library.",
+  "askGuidedTasteTitle": "Analyze my taste",
+  "askGuidedTastePrompt": "Analyze my recent listening history and top artists.",
+  "askActionPlay": "Play",
+  "askActionSavePlaylist": "Save playlist",
+  "askActionConfirmSave": "Confirm & save",
+  "askActionDiscard": "Discard",
+  "askSavedStatus": "Saved",
+  "askDiscardedStatus": "Discarded",
+  "askPlaylistOpCreate": "New playlist proposal",
+  "askPlaylistOpAppend": "Add tracks proposal",
+  "askPlaylistOpRemove": "Remove tracks proposal",
+  "askSaveDialogTitle": "Save as playlist",
+  "askPlaylistNameLabel": "Playlist name",
+  "askTracksCount": "{count} tracks",
+  "@askTracksCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "askSourcesLabel": "Sources",
+  "askErrorOffline": "You are offline. Reconnect to chat with Ask.",
+  "askErrorNotConfigured": "Ask is not configured yet. Check Settings → Ask.",
+  "askErrorQuotaExceeded": "Daily credit limit ({limit}) reached. Add a personal DeepSeek key in Settings or try again tomorrow.",
+  "@askErrorQuotaExceeded": {
+    "placeholders": {
+      "limit": {"type": "int"}
+    }
+  },
+  "askErrorFailed": "Ask could not answer right now. Please try again.",
+  "askOpenSettings": "Open Ask settings",
+  "askOpenFromSearch": "Ask AI",
+  "askThinkingStatus": "Thinking & checking your catalog…"
 }

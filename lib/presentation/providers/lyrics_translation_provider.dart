@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/usecases/ai/translate_lyrics_use_case.dart';
 import '../features/player/widgets/lyrics_view.dart';
-import 'on_device_llm_provider.dart';
+import 'ask_llm_provider.dart';
 
 final translateLyricsUseCaseProvider = Provider<TranslateLyricsUseCase>((ref) {
   return TranslateLyricsUseCase(ref.watch(askLlmRepositoryProvider));

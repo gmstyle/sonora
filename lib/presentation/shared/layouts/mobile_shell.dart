@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../features/ask/providers/ask_chat_provider.dart';
 import '../../features/player/player_sheet_mobile.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/playlist_import_job_provider.dart';
@@ -22,6 +23,7 @@ final _icons = [
   LucideIcons.search,
   LucideIcons.library,
   LucideIcons.download,
+  LucideIcons.sparkles,
 ];
 
 class MobileShell extends ConsumerWidget {
@@ -48,6 +50,7 @@ class MobileShell extends ConsumerWidget {
       settingsProvider.select((s) => s.reduceEffects),
     );
     final cs = Theme.of(context).colorScheme;
+    final unreadDrops = ref.watch(askUnreadDropsCountProvider);
 
     final navBar = NavigationBar(
       backgroundColor: Colors.transparent,
@@ -59,7 +62,9 @@ class MobileShell extends ConsumerWidget {
       destinations: [
         for (var i = 0; i < _icons.length; i++)
           NavigationDestination(
-            icon: Icon(_icons[i]),
+            icon: i == 4 && unreadDrops > 0
+                ? Badge(child: Icon(_icons[i]))
+                : Icon(_icons[i]),
             label: _getLabel(AppLocalizations.of(context)!, i),
           ),
       ],
@@ -122,5 +127,11 @@ class MobileShell extends ConsumerWidget {
 }
 
 String _getLabel(AppLocalizations l10n, int index) {
-  return [l10n.home, l10n.search, l10n.library, l10n.downloads][index];
+  return [
+    l10n.home,
+    l10n.search,
+    l10n.library,
+    l10n.downloads,
+    l10n.askNavLabel,
+  ][index];
 }

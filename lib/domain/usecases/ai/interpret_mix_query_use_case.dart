@@ -1,3 +1,4 @@
+import '../../models/ask_chat_models.dart';
 import '../../models/music_search_intent.dart';
 import '../../repositories/llm_completion_repository.dart';
 import 'music_search_intent_parser.dart';
@@ -39,7 +40,10 @@ class InterpretMixQueryUseCase {
 
   /// Returns a structured mix intent, or null when the model is unavailable /
   /// output cannot be parsed.
-  Future<MusicSearchIntent?> execute(String userQuery) async {
+  Future<MusicSearchIntent?> execute(
+    String userQuery, {
+    String locale = 'en',
+  }) async {
     final trimmed = userQuery.trim();
     if (trimmed.isEmpty) return null;
     if (!await _llm.isReady()) return null;
@@ -49,6 +53,8 @@ class InterpretMixQueryUseCase {
         systemInstruction: kAskMixSystemInstruction,
         userMessage: trimmed,
         maxOutputTokens: 512,
+        action: AskActionKind.mixIntent,
+        locale: locale,
       );
       return _parser.parse(raw);
     } catch (_) {

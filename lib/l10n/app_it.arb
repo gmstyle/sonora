@@ -943,5 +943,91 @@
   "tvStageArtwork": "Copertina",
   "tvExitAppTitle": "Uscire da Sonora?",
   "tvExitAppMessage": "La riproduzione verrà interrotta.",
-  "tvExitAppAction": "Esci"
+  "tvExitAppAction": "Esci",
+  "aiDeepSeekStatusTitle": "Motore Ask (DeepSeek)",
+  "aiDeepSeekStatusProxy": "Sonora Cloud ({remaining}/{limit} crediti oggi)",
+  "@aiDeepSeekStatusProxy": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "aiDeepSeekStatusByok": "Chiave personale DeepSeek (Illimitato)",
+  "aiDeepSeekStatusUnconfigured": "URL proxy non configurato — inserisci sotto una chiave personale o l'URL del proxy",
+  "aiUseTasteContextTitle": "Usa la cronologia d'ascolto",
+  "aiUseTasteContextHint": "Consenti ad Ask di leggere artisti, playlist e ascolti recenti per mix mirati",
+  "aiDropsEnabledTitle": "Pulse Drops proattivi",
+  "aiDropsEnabledHint": "Mostra schede di scoperta musicale basate sui tuoi ascolti",
+  "aiNotificationsEnabledTitle": "Notifiche locali di Ask",
+  "aiNotificationsEnabledHint": "Avvisa quando un nuovo Pulse Drop è pronto",
+  "aiDeepSeekApiKeyTitle": "Chiave API DeepSeek personale (opzionale)",
+  "aiDeepSeekApiKeyHint": "Supera il limite giornaliero di crediti. Salvata solo su questo dispositivo.",
+  "aiDeepSeekApiKeySave": "Salva chiave",
+  "aiDeepSeekApiKeyClear": "Rimuovi chiave",
+  "aiDeepSeekApiKeySaved": "Chiave API DeepSeek salvata",
+  "aiDeepSeekApiKeyCleared": "Chiave API DeepSeek rimossa",
+  "aiAskProxyUrlTitle": "URL proxy Ask (opzionale)",
+  "aiAskProxyUrlHint": "Sostituisci l'endpoint proxy predefinito di Sonora (avanzato).",
+  "aiAskProxyUrlSave": "Salva URL proxy",
+  "aiAskProxyUrlSaved": "URL proxy aggiornato",
+  "askNavLabel": "Ask",
+  "askHubTitle": "Sonora Ask",
+  "askHubSubtitle": "Il tuo assistente musicale basato su DeepSeek",
+  "askNewChat": "Nuova chat",
+  "askHistoryTitle": "Conversazioni",
+  "askHistoryEmpty": "Nessuna conversazione",
+  "askDeleteChat": "Elimina chat",
+  "askClearHistory": "Cancella cronologia",
+  "askComposerHint": "Chiedi un mix, nuovi artisti, playlist o curiosità…",
+  "askSend": "Invia",
+  "askWebSearchChip": "Ricerca web",
+  "askQuotaBadge": "{remaining}/{limit} rimasti",
+  "@askQuotaBadge": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "askByokBadge": "BYOK · Illimitato",
+  "askDropsHeader": "Pulse Drops",
+  "askDropsEmpty": "Ascolta ancora qualche brano: Ask preparerà qui spunti su misura.",
+  "askGuidedHeader": "Azioni rapide",
+  "askGuidedMixTitle": "Mix per questo momento",
+  "askGuidedMixPrompt": "Crea un mix da 15 brani adatto ai miei gusti e al momento.",
+  "askGuidedDiscoverTitle": "Scopri nuovi artisti",
+  "askGuidedDiscoverPrompt": "Consigliami 5 artisti simili a quello che sto ascoltando ultimamente.",
+  "askGuidedPlaylistTitle": "Crea una playlist",
+  "askGuidedPlaylistPrompt": "Proponi una playlist di brani che posso rivedere e salvare in libreria.",
+  "askGuidedTasteTitle": "Analizza i miei gusti",
+  "askGuidedTastePrompt": "Analizza i miei ascolti recenti e i miei artisti preferiti.",
+  "askActionPlay": "Riproduci",
+  "askActionSavePlaylist": "Salva playlist",
+  "askActionConfirmSave": "Conferma e salva",
+  "askActionDiscard": "Scarta",
+  "askSavedStatus": "Salvata",
+  "askDiscardedStatus": "Scartata",
+  "askPlaylistOpCreate": "Proposta nuova playlist",
+  "askPlaylistOpAppend": "Proposta aggiunta brani",
+  "askPlaylistOpRemove": "Proposta rimozione brani",
+  "askSaveDialogTitle": "Salva come playlist",
+  "askPlaylistNameLabel": "Nome playlist",
+  "askTracksCount": "{count} brani",
+  "@askTracksCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "askSourcesLabel": "Fonti",
+  "askErrorOffline": "Sei offline. Riconnettiti per usare Ask.",
+  "askErrorNotConfigured": "Ask non è ancora configurato. Controlla Impostazioni → Ask.",
+  "askErrorQuotaExceeded": "Limite giornaliero ({limit} crediti) raggiunto. Aggiungi una chiave personale DeepSeek nelle Impostazioni o riprova domani.",
+  "@askErrorQuotaExceeded": {
+    "placeholders": {
+      "limit": {"type": "int"}
+    }
+  },
+  "askErrorFailed": "Ask non è riuscito a rispondere ora. Riprova.",
+  "askOpenSettings": "Apri impostazioni Ask",
+  "askOpenFromSearch": "Chiedi ad Ask",
+  "askThinkingStatus": "Sto consultando libreria e catalogo…"
 }

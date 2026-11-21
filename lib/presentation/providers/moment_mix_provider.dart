@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/music_search_intent.dart';
 import '../../domain/usecases/ai/assemble_moment_mix_use_case.dart';
 import '../../domain/usecases/ai/interpret_mix_query_use_case.dart';
+import 'ask_llm_provider.dart';
 import 'connectivity_provider.dart';
 import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
-import 'on_device_llm_provider.dart';
 import 'player_provider.dart';
 
 final interpretMixQueryUseCaseProvider = Provider<InterpretMixQueryUseCase>((

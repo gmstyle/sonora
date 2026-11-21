@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/usecases/playlist/refresh_linked_playlist_use_case.dart';
+import 'ask_llm_provider.dart';
 import 'import_playlist_providers.dart';
 import 'library_repository_provider.dart';
 import 'music_repository_provider.dart';
-import 'on_device_llm_provider.dart';
 
 final refreshLinkedPlaylistUseCaseProvider =
     Provider<RefreshLinkedPlaylistUseCase>((ref) {
@@ -14,5 +14,8 @@ final refreshLinkedPlaylistUseCaseProvider =
         ref.watch(libraryRepositoryProvider),
         fetchSpotify: datasource.fetchPlaylist,
         rewriteSearchQuery: ref.watch(rewriteSpotifySearchQueryUseCaseProvider),
+        resolveAmbiguous: ref.watch(
+          resolveSpotifyAmbiguousTracksUseCaseProvider,
+        ),
       );
     });

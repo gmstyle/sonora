@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sonora/domain/models/library_models.dart';
 import 'package:sonora/l10n/app_localizations.dart';
+import 'package:sonora/presentation/features/ask/providers/ask_chat_provider.dart';
 import 'package:sonora/presentation/features/home/layouts/home_feed_layout.dart';
 import 'package:sonora/presentation/features/home/layouts/home_layout_metrics.dart';
 import 'package:sonora/presentation/features/home/providers/home_provider.dart';
@@ -16,9 +17,9 @@ import 'package:sonora/presentation/features/tv/tv_metrics.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_poster_card.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_shelf.dart';
 import 'package:sonora/presentation/providers/android_tv_provider.dart';
+import 'package:sonora/presentation/providers/ask_llm_provider.dart';
 import 'package:sonora/presentation/providers/connectivity_provider.dart';
 import 'package:sonora/presentation/providers/download_provider.dart';
-import 'package:sonora/presentation/providers/on_device_llm_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 import 'package:sonora/presentation/providers/stats_provider.dart';
@@ -99,6 +100,11 @@ GoRouter _shellRouter(
           StatefulShellBranch(
             routes: [
               GoRoute(path: '/downloads', builder: (_, _) => const SizedBox()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/ask', builder: (_, _) => const SizedBox()),
             ],
           ),
         ],
@@ -266,6 +272,7 @@ void main() {
           isOfflineProvider.overrideWithValue(false),
           playerStateProvider.overrideWith(_FakePlayer.new),
           downloadBannerSummaryProvider.overrideWithValue(null),
+          askUnreadDropsCountProvider.overrideWithValue(0),
           youtubeAccountProvider.overrideWith(() => _FakeYoutubeAccount(true)),
           youtubeAccountInfoProvider.overrideWith((_) async => sampleAccount),
         ],
@@ -319,6 +326,7 @@ void main() {
             isOfflineProvider.overrideWithValue(false),
             playerStateProvider.overrideWith(_FakePlayer.new),
             downloadBannerSummaryProvider.overrideWithValue(null),
+            askUnreadDropsCountProvider.overrideWithValue(0),
             youtubeAccountProvider.overrideWith(
               () => _FakeYoutubeAccount(true),
             ),

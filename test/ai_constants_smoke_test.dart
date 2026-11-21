@@ -1,17 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sonora/core/constants/ai_constants.dart';
 
-/// Smoke contract for the Ask model artifact chosen in the AI UX plan.
+/// Smoke contract for the DeepSeek Ask configuration constants.
 void main() {
-  test('Ask model points at litert-community Qwen3 dynamic INT4', () {
-    expect(kAskLlmHfRepo, 'litert-community/Qwen3-0.6B');
-    expect(kAskLlmFilename, 'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm');
-    expect(kAskLlmLegacyFilename, 'qwen3_0_6b_mixed_int4.litertlm');
-    expect(kAskLlmDownloadUrl, contains(kAskLlmHfRepo));
-    expect(kAskLlmDownloadUrl, contains(kAskLlmFilename));
-    expect(kAskLlmDownloadUrl, startsWith('https://huggingface.co/'));
-    expect(kAskLlmApproxSizeMb, greaterThan(300));
-    expect(kAskLlmApproxSizeMb, lessThan(400));
-    expect(kAskGeminiModelId, isNotEmpty);
+  test('DeepSeek Ask constants match managed proxy and API contract', () {
+    expect(kDeepSeekModelId, 'deepseek-flash');
+    expect(kDeepSeekDirectBaseUrl, 'https://api.deepseek.com');
+    expect(kAskDailyCreditLimit, 30);
+    expect(kAskMaxToolRounds, greaterThanOrEqualTo(3));
+    expect(kAskHistoryWindowMessages, greaterThanOrEqualTo(6));
+    expect(kSpotifyAssistBatchSize, 12);
+    expect(kAskMixTargetTrackCount, 20);
+    expect(kAskTimeout.inSeconds, greaterThanOrEqualTo(30));
   });
 }

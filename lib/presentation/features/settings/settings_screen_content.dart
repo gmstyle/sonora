@@ -33,11 +33,10 @@ import 'providers/settings_category_provider.dart';
 import 'widgets/local_sync_panel.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/equalizer_provider.dart';
-import '../../providers/on_device_llm_provider.dart';
-import '../../../core/constants/ai_constants.dart';
+import '../../providers/ask_llm_provider.dart';
 import '../../../core/theme/brand_accent.dart';
 import '../../../domain/models/artwork_style.dart';
-import '../../../domain/models/ask_mode.dart';
+import '../../../domain/models/ask_chat_models.dart';
 import '../player/widgets/equalizer_panel.dart';
 import 'device_link_qr_panel.dart';
 import 'device_link_scanner_screen.dart';
@@ -702,19 +701,25 @@ class _AiSection extends ConsumerStatefulWidget {
 
 class _AiSectionState extends ConsumerState<_AiSection> {
   late final TextEditingController _apiKeyController;
+  late final TextEditingController _proxyUrlController;
   var _obscureKey = true;
 
   @override
   void initState() {
     super.initState();
+    final settings = ref.read(settingsProvider);
     _apiKeyController = TextEditingController(
-      text: ref.read(settingsProvider).geminiApiKey ?? '',
+      text: settings.deepseekApiKey ?? '',
+    );
+    _proxyUrlController = TextEditingController(
+      text: settings.askProxyUrlOverride,
     );
   }
 
   @override
   void dispose() {
     _apiKeyController.dispose();
+    _proxyUrlController.dispose();
     super.dispose();
   }
 
@@ -723,141 +728,140 @@ class _AiSectionState extends ConsumerState<_AiSection> {
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
-    final readyAsync = ref.watch(askModelReadyProvider);
-    final install = ref.watch(askModelInstallProvider);
-    final isOffline = ref.watch(isOfflineProvider);
-    final ready = readyAsync.asData?.value ?? false;
-    final downloading = install.phase == AskModelInstallPhase.downloading;
-    final percent = (install.progress * 100).round().clamp(0, 100);
-    final showCloudKey = settings.askMode != AskMode.onDevice;
+    final caps = ref.watch(askCapabilitiesProvider).asData?.value;
+    final quota = ref.watch(askQuotaProvider);
+    final mode = caps?.backend ?? AskBackendMode.unconfigured;
 
-    String modelSubtitle;
-    if (downloading) {
-      modelSubtitle = l10n.aiAskModelDownloading(percent);
-    } else if (ready || install.phase == AskModelInstallPhase.ready) {
-      modelSubtitle = l10n.aiAskModelReady;
-    } else if (install.phase == AskModelInstallPhase.error) {
-      modelSubtitle = l10n.aiAskModelFailed;
-    } else {
-      modelSubtitle = l10n.aiAskModelHint(kAskLlmApproxSizeMb);
+    final String statusSubtitle;
+    switch (mode) {
+      case AskBackendMode.byok:
+        statusSubtitle = l10n.aiDeepSeekStatusByok;
+      case AskBackendMode.proxy:
+        statusSubtitle = l10n.aiDeepSeekStatusProxy(
+          quota.remaining < 0 ? 0 : quota.remaining,
+          quota.limit <= 0 ? 30 : quota.limit,
+        );
+      case AskBackendMode.unconfigured:
+        statusSubtitle = l10n.aiDeepSeekStatusUnconfigured;
     }
 
     return SettingsSection(
       title: l10n.aiSettings,
       children: [
-        SettingsDropdownTile(
-          title: l10n.aiAskModeTitle,
-          subtitle: l10n.aiAskModeHint,
-          icon: LucideIcons.sparkles,
-          value: settings.askMode.storageValue,
-          options: {
-            AskMode.onDevice.storageValue: l10n.aiAskModeOnDevice,
-            AskMode.cloud.storageValue: l10n.aiAskModeCloud,
-            AskMode.auto.storageValue: l10n.aiAskModeAuto,
-          },
-          onChanged: (v) {
-            if (v == null) return;
-            notifier.setAskMode(AskMode.fromStorage(v));
-            ref.invalidate(askLlmReadyProvider);
-            ref.invalidate(askCapabilitiesProvider);
-          },
-        ),
-        if (showCloudKey) ...[
-          ListTile(
-            leading: const Icon(LucideIcons.keyRound),
-            title: Text(l10n.aiGeminiApiKeyTitle),
-            subtitle: Text(l10n.aiGeminiApiKeyHint),
+        ListTile(
+          leading: Icon(
+            LucideIcons.sparkles,
+            color: Theme.of(context).colorScheme.primary,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: TextField(
-              controller: _apiKeyController,
-              obscureText: _obscureKey,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                isDense: true,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureKey ? LucideIcons.eye : LucideIcons.eyeOff,
-                  ),
-                  onPressed: () => setState(() => _obscureKey = !_obscureKey),
-                ),
+          title: Text(l10n.aiDeepSeekStatusTitle),
+          subtitle: Text(statusSubtitle),
+        ),
+        const Divider(height: 1),
+        SettingsSwitchTile(
+          title: l10n.aiUseTasteContextTitle,
+          subtitle: l10n.aiUseTasteContextHint,
+          value: settings.askUseTasteContext,
+          onChanged: notifier.setAskUseTasteContext,
+          icon: LucideIcons.brain,
+        ),
+        const Divider(height: 1),
+        SettingsSwitchTile(
+          title: l10n.aiDropsEnabledTitle,
+          subtitle: l10n.aiDropsEnabledHint,
+          value: settings.askDropsEnabled,
+          onChanged: notifier.setAskDropsEnabled,
+          icon: LucideIcons.zap,
+        ),
+        const Divider(height: 1),
+        SettingsSwitchTile(
+          title: l10n.aiNotificationsEnabledTitle,
+          subtitle: l10n.aiNotificationsEnabledHint,
+          value: settings.askNotificationsEnabled,
+          onChanged: notifier.setAskNotificationsEnabled,
+          icon: LucideIcons.bell,
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(LucideIcons.keyRound),
+          title: Text(l10n.aiDeepSeekApiKeyTitle),
+          subtitle: Text(l10n.aiDeepSeekApiKeyHint),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: TextField(
+            controller: _apiKeyController,
+            obscureText: _obscureKey,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              isDense: true,
+              suffixIcon: IconButton(
+                icon: Icon(_obscureKey ? LucideIcons.eye : LucideIcons.eyeOff),
+                onPressed: () => setState(() => _obscureKey = !_obscureKey),
               ),
             ),
           ),
+        ),
+        SettingsButtonTile(
+          title: l10n.aiDeepSeekApiKeySave,
+          icon: LucideIcons.save,
+          onPressed: () async {
+            await notifier.setDeepSeekApiKey(_apiKeyController.text);
+            ref.invalidate(askLlmReadyProvider);
+            ref.invalidate(askCapabilitiesProvider);
+            ref
+                .read(actionFeedbackProvider.notifier)
+                .report(l10n.aiDeepSeekApiKeySaved);
+          },
+        ),
+        if (settings.deepseekApiKey != null &&
+            settings.deepseekApiKey!.isNotEmpty)
           SettingsButtonTile(
-            title: l10n.aiGeminiApiKeySave,
-            icon: LucideIcons.save,
+            title: l10n.aiDeepSeekApiKeyClear,
+            icon: LucideIcons.trash2,
             onPressed: () async {
-              await notifier.setGeminiApiKey(_apiKeyController.text);
+              _apiKeyController.clear();
+              await notifier.setDeepSeekApiKey(null);
               ref.invalidate(askLlmReadyProvider);
               ref.invalidate(askCapabilitiesProvider);
               ref
                   .read(actionFeedbackProvider.notifier)
-                  .report(l10n.aiGeminiApiKeySaved);
+                  .report(l10n.aiDeepSeekApiKeyCleared);
             },
           ),
-          if (settings.geminiApiKey != null &&
-              settings.geminiApiKey!.isNotEmpty)
-            SettingsButtonTile(
-              title: l10n.aiGeminiApiKeyClear,
-              icon: LucideIcons.trash2,
-              onPressed: () async {
-                _apiKeyController.clear();
-                await notifier.setGeminiApiKey(null);
-                ref.invalidate(askLlmReadyProvider);
-                ref.invalidate(askCapabilitiesProvider);
-                ref
-                    .read(actionFeedbackProvider.notifier)
-                    .report(l10n.aiGeminiApiKeyCleared);
-              },
-            ),
-        ],
+        const Divider(height: 1),
         ListTile(
-          leading: Icon(
-            LucideIcons.hardDrive,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          title: Text(l10n.aiAskModelTitle),
-          subtitle: Text(modelSubtitle),
+          leading: const Icon(LucideIcons.server),
+          title: Text(l10n.aiAskProxyUrlTitle),
+          subtitle: Text(l10n.aiAskProxyUrlHint),
         ),
-        if (downloading)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: LinearProgressIndicator(value: install.progress),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: TextField(
+            controller: _proxyUrlController,
+            autocorrect: false,
+            enableSuggestions: false,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+              hintText: 'https://sonora-ask-proxy.<subdomain>.workers.dev',
+            ),
           ),
-        if (!ready && !downloading)
-          SettingsButtonTile(
-            title: l10n.aiAskModelDownload,
-            icon: LucideIcons.download,
-            onPressed: isOffline
-                ? null
-                : () async {
-                    await ref.read(askModelInstallProvider.notifier).download();
-                    final phase = ref.read(askModelInstallProvider).phase;
-                    if (phase == AskModelInstallPhase.error) {
-                      ref
-                          .read(actionFeedbackProvider.notifier)
-                          .report(
-                            l10n.aiAskModelFailed,
-                            kind: FeedbackKind.error,
-                          );
-                    } else if (phase == AskModelInstallPhase.ready) {
-                      ref
-                          .read(actionFeedbackProvider.notifier)
-                          .report(l10n.aiAskModelReady);
-                    }
-                  },
-          ),
-        if (ready || install.phase == AskModelInstallPhase.ready)
-          SettingsButtonTile(
-            title: l10n.aiAskModelRemove,
-            icon: LucideIcons.trash2,
-            onPressed: () =>
-                ref.read(askModelInstallProvider.notifier).uninstall(),
-          ),
+        ),
+        SettingsButtonTile(
+          title: l10n.aiAskProxyUrlSave,
+          icon: LucideIcons.check,
+          onPressed: () async {
+            await notifier.setAskProxyUrlOverride(_proxyUrlController.text);
+            ref.invalidate(askLlmReadyProvider);
+            ref.invalidate(askCapabilitiesProvider);
+            ref
+                .read(actionFeedbackProvider.notifier)
+                .report(l10n.aiAskProxyUrlSaved);
+          },
+        ),
       ],
     );
   }

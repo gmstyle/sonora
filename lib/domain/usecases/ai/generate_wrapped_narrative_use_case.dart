@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import '../../models/ask_chat_models.dart';
 import '../../models/wrapped_narrative.dart';
 import '../../repositories/llm_completion_repository.dart';
 import 'wrapped_narrative_parser.dart';
@@ -116,7 +117,9 @@ class GenerateWrappedNarrativeUseCase {
       final raw = await _llm.complete(
         systemInstruction: wrappedNarrativeSystemInstruction(facts.locale),
         userMessage: wrappedNarrativeUserMessage(facts),
-        maxOutputTokens: 384,
+        maxOutputTokens: 512,
+        action: AskActionKind.wrapped,
+        locale: facts.locale,
       );
       final preview = raw.length > 280 ? '${raw.substring(0, 280)}…' : raw;
       final parsed = _parser.parse(raw);

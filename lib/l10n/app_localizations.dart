@@ -4406,6 +4406,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exit'**
   String get tvExitAppAction;
+
+  /// No description provided for @aiDeepSeekStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Engine (DeepSeek)'**
+  String get aiDeepSeekStatusTitle;
+
+  /// No description provided for @aiDeepSeekStatusProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonora Cloud ({remaining}/{limit} credits today)'**
+  String aiDeepSeekStatusProxy(int remaining, int limit);
+
+  /// No description provided for @aiDeepSeekStatusByok.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal DeepSeek key (Unlimited)'**
+  String get aiDeepSeekStatusByok;
+
+  /// No description provided for @aiDeepSeekStatusUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy URL not configured — add a personal key or proxy URL below'**
+  String get aiDeepSeekStatusUnconfigured;
+
+  /// No description provided for @aiUseTasteContextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use listening history'**
+  String get aiUseTasteContextTitle;
+
+  /// No description provided for @aiUseTasteContextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Ask to read top artists, playlists, and recent plays for tailored mixes'**
+  String get aiUseTasteContextHint;
+
+  /// No description provided for @aiDropsEnabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Proactive Pulse Drops'**
+  String get aiDropsEnabledTitle;
+
+  /// No description provided for @aiDropsEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Show music discovery cards based on listening trends'**
+  String get aiDropsEnabledHint;
+
+  /// No description provided for @aiNotificationsEnabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask local notifications'**
+  String get aiNotificationsEnabledTitle;
+
+  /// No description provided for @aiNotificationsEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify when a new Pulse Drop is ready'**
+  String get aiNotificationsEnabledHint;
+
+  /// No description provided for @aiDeepSeekApiKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal DeepSeek API key (optional)'**
+  String get aiDeepSeekApiKeyTitle;
+
+  /// No description provided for @aiDeepSeekApiKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Bypass daily credit limit. Stored locally on this device.'**
+  String get aiDeepSeekApiKeyHint;
+
+  /// No description provided for @aiDeepSeekApiKeySave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save key'**
+  String get aiDeepSeekApiKeySave;
+
+  /// No description provided for @aiDeepSeekApiKeyClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear key'**
+  String get aiDeepSeekApiKeyClear;
+
+  /// No description provided for @aiDeepSeekApiKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek API key saved'**
+  String get aiDeepSeekApiKeySaved;
+
+  /// No description provided for @aiDeepSeekApiKeyCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek API key cleared'**
+  String get aiDeepSeekApiKeyCleared;
+
+  /// No description provided for @aiAskProxyUrlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask proxy URL (optional)'**
+  String get aiAskProxyUrlTitle;
+
+  /// No description provided for @aiAskProxyUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Override the default Sonora proxy endpoint (advanced).'**
+  String get aiAskProxyUrlHint;
+
+  /// No description provided for @aiAskProxyUrlSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save proxy URL'**
+  String get aiAskProxyUrlSave;
+
+  /// No description provided for @aiAskProxyUrlSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy URL updated'**
+  String get aiAskProxyUrlSaved;
+
+  /// No description provided for @askNavLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get askNavLabel;
+
+  /// No description provided for @askHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonora Ask'**
+  String get askHubTitle;
+
+  /// No description provided for @askHubSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your music & catalog companion powered by DeepSeek'**
+  String get askHubSubtitle;
+
+  /// No description provided for @askNewChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat'**
+  String get askNewChat;
+
+  /// No description provided for @askHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get askHistoryTitle;
+
+  /// No description provided for @askHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get askHistoryEmpty;
+
+  /// No description provided for @askDeleteChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete chat'**
+  String get askDeleteChat;
+
+  /// No description provided for @askClearHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get askClearHistory;
+
+  /// No description provided for @askComposerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about mixes, artists, playlists, or moods…'**
+  String get askComposerHint;
+
+  /// No description provided for @askSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get askSend;
+
+  /// No description provided for @askWebSearchChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Web search'**
+  String get askWebSearchChip;
+
+  /// No description provided for @askQuotaBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{remaining}/{limit} left'**
+  String askQuotaBadge(int remaining, int limit);
+
+  /// No description provided for @askByokBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'BYOK · Unlimited'**
+  String get askByokBadge;
+
+  /// No description provided for @askDropsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulse Drops'**
+  String get askDropsHeader;
+
+  /// No description provided for @askDropsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen a bit more — Ask will prepare tailored highlights here.'**
+  String get askDropsEmpty;
+
+  /// No description provided for @askGuidedHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick actions'**
+  String get askGuidedHeader;
+
+  /// No description provided for @askGuidedMixTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mix for right now'**
+  String get askGuidedMixTitle;
+
+  /// No description provided for @askGuidedMixPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a 15-track mix based on my current taste and mood right now.'**
+  String get askGuidedMixPrompt;
+
+  /// No description provided for @askGuidedDiscoverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover new artists'**
+  String get askGuidedDiscoverTitle;
+
+  /// No description provided for @askGuidedDiscoverPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend 5 artists similar to what I have been listening to lately.'**
+  String get askGuidedDiscoverPrompt;
+
+  /// No description provided for @askGuidedPlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a playlist'**
+  String get askGuidedPlaylistTitle;
+
+  /// No description provided for @askGuidedPlaylistPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose a playlist of tracks I can review and save to my library.'**
+  String get askGuidedPlaylistPrompt;
+
+  /// No description provided for @askGuidedTasteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze my taste'**
+  String get askGuidedTasteTitle;
+
+  /// No description provided for @askGuidedTastePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze my recent listening history and top artists.'**
+  String get askGuidedTastePrompt;
+
+  /// No description provided for @askActionPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get askActionPlay;
+
+  /// No description provided for @askActionSavePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Save playlist'**
+  String get askActionSavePlaylist;
+
+  /// No description provided for @askActionConfirmSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm & save'**
+  String get askActionConfirmSave;
+
+  /// No description provided for @askActionDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get askActionDiscard;
+
+  /// No description provided for @askSavedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get askSavedStatus;
+
+  /// No description provided for @askDiscardedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Discarded'**
+  String get askDiscardedStatus;
+
+  /// No description provided for @askPlaylistOpCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'New playlist proposal'**
+  String get askPlaylistOpCreate;
+
+  /// No description provided for @askPlaylistOpAppend.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tracks proposal'**
+  String get askPlaylistOpAppend;
+
+  /// No description provided for @askPlaylistOpRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tracks proposal'**
+  String get askPlaylistOpRemove;
+
+  /// No description provided for @askSaveDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as playlist'**
+  String get askSaveDialogTitle;
+
+  /// No description provided for @askPlaylistNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist name'**
+  String get askPlaylistNameLabel;
+
+  /// No description provided for @askTracksCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} tracks'**
+  String askTracksCount(int count);
+
+  /// No description provided for @askSourcesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get askSourcesLabel;
+
+  /// No description provided for @askErrorOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline. Reconnect to chat with Ask.'**
+  String get askErrorOffline;
+
+  /// No description provided for @askErrorNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask is not configured yet. Check Settings → Ask.'**
+  String get askErrorNotConfigured;
+
+  /// No description provided for @askErrorQuotaExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily credit limit ({limit}) reached. Add a personal DeepSeek key in Settings or try again tomorrow.'**
+  String askErrorQuotaExceeded(int limit);
+
+  /// No description provided for @askErrorFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask could not answer right now. Please try again.'**
+  String get askErrorFailed;
+
+  /// No description provided for @askOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Ask settings'**
+  String get askOpenSettings;
+
+  /// No description provided for @askOpenFromSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask AI'**
+  String get askOpenFromSearch;
+
+  /// No description provided for @askThinkingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking & checking your catalog…'**
+  String get askThinkingStatus;
 }
 
 class _AppLocalizationsDelegate

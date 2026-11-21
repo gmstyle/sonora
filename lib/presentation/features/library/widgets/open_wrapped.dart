@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../l10n/app_localizations.dart';
-import '../../../providers/on_device_llm_provider.dart';
+import '../../../providers/ask_llm_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../providers/stats_provider.dart';
 import '../providers/wrapped_narrative_provider.dart';

@@ -28,7 +28,6 @@ import '../../../shared/widgets/thumbnail_widget.dart';
 import '../../../shared/widgets/hover_carousel_arrows.dart';
 import '../../../shared/widgets/scale_button.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
-import '../../../shared/widgets/moment_mix_ask_card.dart';
 import '../../../shared/widgets/context_menu_sheet.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 import '../../../shared/widgets/shelf_card_layout.dart';
@@ -1142,14 +1141,12 @@ class HomeYourMixes extends ConsumerWidget {
             ),
           )
         : null;
-    final ask = MomentMixAskSection(horizontalPadding: horizontalPadding);
 
     if (compactGrid) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ?header,
-          ask,
           Padding(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: LayoutBuilder(
@@ -1190,7 +1187,6 @@ class HomeYourMixes extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ?header,
-        ask,
         _HomeCarouselSection(
           title: l10n.yourMixes,
           height: height,

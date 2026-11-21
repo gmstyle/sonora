@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/player_colors.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
+import '../../../../domain/models/music_search_intent.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/library_notifier.dart';
@@ -16,7 +17,6 @@ import '../../../shared/widgets/detail_actions_bar.dart';
 import '../../../shared/widgets/entity_wide_body.dart';
 import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/glass_app_bar_background.dart';
-import '../../../shared/widgets/moment_mix_ask_card.dart';
 import '../../../shared/widgets/song_tile.dart';
 import '../providers/library_provider.dart';
 import 'create_playlist_dialog.dart';
@@ -350,4 +350,36 @@ class _MomentMixDetailViewState extends ConsumerState<MomentMixDetailView> {
       },
     );
   }
+}
+
+/// Card / save name: prefer LLM [MusicSearchIntent.title], else mood · energy l10n.
+String momentMixTitle(AppLocalizations l10n, MusicSearchIntent? intent) {
+  if (intent == null) return l10n.mixForThisMoment;
+
+  final llmTitle = intent.title?.trim();
+  if (llmTitle != null && llmTitle.isNotEmpty) return llmTitle;
+
+  final moodLabel = switch (intent.mixMood) {
+    MixMood.calm => l10n.mixMoodCalm,
+    MixMood.energetic => l10n.mixMoodEnergetic,
+    MixMood.focus => l10n.mixMoodFocus,
+    MixMood.happy => l10n.mixMoodHappy,
+    MixMood.melancholic => l10n.mixMoodMelancholic,
+    MixMood.romantic => l10n.mixMoodRomantic,
+    MixMood.workout => l10n.mixMoodWorkout,
+    MixMood.party => l10n.mixMoodParty,
+    MixMood.chill => l10n.mixMoodChill,
+    MixMood.unknown => null,
+  };
+
+  final energyLabel = switch (intent.energy) {
+    MixEnergy.low => l10n.mixEnergyLow,
+    MixEnergy.medium => l10n.mixEnergyMedium,
+    MixEnergy.high => l10n.mixEnergyHigh,
+    MixEnergy.unknown => null,
+  };
+
+  final parts = <String>[?moodLabel, ?energyLabel];
+  if (parts.isEmpty) return l10n.mixForThisMoment;
+  return parts.join(' · ');
 }

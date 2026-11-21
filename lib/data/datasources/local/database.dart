@@ -14,6 +14,9 @@ import 'tables/history_table.dart';
 import 'tables/search_history_table.dart';
 import 'tables/queue_items_table.dart';
 import 'tables/queue_meta_table.dart';
+import 'tables/ask_conversations_table.dart';
+import 'tables/ask_messages_table.dart';
+import 'tables/ask_proactive_drops_table.dart';
 import '../../../core/utils/playlist_link_parser.dart';
 
 part 'database.g.dart';
@@ -34,13 +37,16 @@ part 'database.g.dart';
     SearchHistory,
     QueueItems,
     QueueMeta,
+    AskConversations,
+    AskMessages,
+    AskProactiveDrops,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 26;
+  int get schemaVersion => 27;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -357,6 +363,11 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 26) {
         await _migrateSearchHistoryQueryKey(m);
+      }
+      if (from < 27) {
+        await m.createTable(askConversations);
+        await m.createTable(askMessages);
+        await m.createTable(askProactiveDrops);
       }
     },
   );

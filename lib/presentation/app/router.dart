@@ -6,6 +6,7 @@ import '../features/home/home_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/downloads/downloads_screen.dart';
+import '../features/ask/ask_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/settings/settings_shared.dart';
 import '../features/artist/artist_featured_screen.dart';
@@ -399,6 +400,17 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/downloads',
                 builder: (context, state) => const DownloadsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/ask',
+                builder: (context, state) => AskScreen(
+                  initialPrompt: state.uri.queryParameters['prompt'],
+                  initialDropId: state.uri.queryParameters['dropId'],
+                ),
               ),
             ],
           ),

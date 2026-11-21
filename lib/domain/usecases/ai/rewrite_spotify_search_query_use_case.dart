@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import '../../models/ask_chat_models.dart';
 import '../../repositories/llm_completion_repository.dart';
 
 /// System prompt for cleaning Spotify metadata into a YTM search string.
@@ -10,7 +13,7 @@ Example input: title="Blinding Lights - Remastered 2020" artist="The Weeknd"
 Example output: Blinding Lights The Weeknd
 ''';
 
-/// On-device rewrite of dirty Spotify title/artist into a short search query.
+/// Rewrites a dirty Spotify title/artist into a short search query.
 class RewriteSpotifySearchQueryUseCase {
   RewriteSpotifySearchQueryUseCase(this._llm);
 
@@ -20,6 +23,7 @@ class RewriteSpotifySearchQueryUseCase {
   Future<String?> execute({
     required String title,
     required String artist,
+    String? turnId,
   }) async {
     final t = title.trim();
     final a = artist.trim();
@@ -32,7 +36,9 @@ class RewriteSpotifySearchQueryUseCase {
       final raw = await _llm.complete(
         systemInstruction: kRewriteSpotifySearchSystemInstruction,
         userMessage: userMessage,
-        maxOutputTokens: 64,
+        maxOutputTokens: 96,
+        action: AskActionKind.spotifyMatch,
+        turnId: turnId,
       );
       return parseRewriteOutput(raw);
     } catch (_) {
@@ -40,13 +46,13 @@ class RewriteSpotifySearchQueryUseCase {
     }
   }
 
-  /// Extracts a search string from plain text or a tiny JSON object.
+  /// Extracts a search string from plain text, `{"searchQuery": ...}`, or
+  /// managed proxy `{"decisions":[{"rewrittenQuery": ...}]}` JSON.
   static String? parseRewriteOutput(String? raw) {
     if (raw == null) return null;
     var text = raw.trim();
     if (text.isEmpty) return null;
 
-    // Strip markdown fences if the model wraps them anyway.
     if (text.startsWith('```')) {
       text = text.replaceFirst(
         RegExp(r'^```(?:json)?\s*', caseSensitive: false),
@@ -57,6 +63,23 @@ class RewriteSpotifySearchQueryUseCase {
     }
 
     if (text.startsWith('{')) {
+      try {
+        final decoded = jsonDecode(text);
+        if (decoded is Map) {
+          final q = decoded['searchQuery']?.toString().trim();
+          if (q != null && q.isNotEmpty) return q;
+          final decisions = decoded['decisions'];
+          if (decisions is List && decisions.isNotEmpty) {
+            final first = decisions.first;
+            if (first is Map) {
+              final rq = first['rewrittenQuery']?.toString().trim();
+              if (rq != null && rq.isNotEmpty) return rq;
+            }
+          }
+        }
+      } catch (_) {
+        // Fallback regex if JSON is slightly malformed.
+      }
       final match = RegExp(r'"searchQuery"\s*:\s*"([^"]+)"').firstMatch(text);
       if (match != null) {
         final q = match.group(1)?.trim();
@@ -65,7 +88,6 @@ class RewriteSpotifySearchQueryUseCase {
       return null;
     }
 
-    // First non-empty line, strip surrounding quotes.
     final line = text
         .split(RegExp(r'\r?\n'))
         .firstWhere((l) => l.trim().isNotEmpty, orElse: () => '')

@@ -1,3 +1,4 @@
+import '../../models/ask_chat_models.dart';
 import '../../repositories/grounded_llm_repository.dart';
 import 'track_insights_parser.dart';
 
@@ -50,6 +51,8 @@ class GenerateTrackInsightsUseCase {
         systemInstruction: kAskTrackInsightsSystemInstruction,
         userMessage: userMessage,
         maxOutputTokens: 1024,
+        action: AskActionKind.trackInsights,
+        locale: locale,
       );
       final parsed = _parser.parse(grounded.text, sources: grounded.sources);
       if (parsed == null || parsed.isEmpty) return null;

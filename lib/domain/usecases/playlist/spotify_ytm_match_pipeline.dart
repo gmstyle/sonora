@@ -3,23 +3,29 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import '../../../core/utils/artists_utils.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/music_repository.dart';
+import '../ai/resolve_spotify_ambiguous_tracks_use_case.dart';
 import '../ai/rewrite_spotify_search_query_use_case.dart';
 import 'ytmusic_track_matcher.dart';
 
-/// Shared Spotify → YTM search + classify (+ optional LLM rewrite).
+/// Shared Spotify → YTM search + classify (+ optional batch Ask resolve / rewrite).
 class SpotifyYtmMatchPipeline {
   SpotifyYtmMatchPipeline(
     this._musicRepository, {
     this._matcher = const YtMusicTrackMatcher(),
     this._rewrite,
+    this._resolveAmbiguous,
   });
 
   final MusicRepository _musicRepository;
   final YtMusicTrackMatcher _matcher;
   final RewriteSpotifySearchQueryUseCase? _rewrite;
+  final ResolveSpotifyAmbiguousTracksUseCase? _resolveAmbiguous;
+
+  bool get hasBatchResolver => _resolveAmbiguous != null;
 
   /// Collects candidates across [YtMusicTrackMatcher.searchQueries], classifies,
-  /// and when not auto and [tryRewrite] is true, runs one LLM rewrite + re-search.
+  /// and when not auto and [tryRewrite] is true (without a batch resolver),
+  /// runs one single-track LLM rewrite + re-search.
   Future<SpotifyTrackMatchOutcome> matchTrack(
     SpotifyPlaylistTrack track, {
     bool tryRewrite = false,
@@ -57,6 +63,76 @@ class SpotifyYtmMatchPipeline {
       track: track,
       candidates: byId.values.toList(growable: false),
     );
+  }
+
+  /// Resolves unresolved (`needsReview` / `none`) slots in batches of 12 using
+  /// Ask disambiguation and query rewrite. Falls back to [slots] unchanged if
+  /// unconfigured or errored.
+  Future<List<SpotifyImportSlot>> resolveAmbiguousSlots(
+    List<SpotifyImportSlot> slots, {
+    String locale = 'en',
+    bool Function()? shouldAbort,
+  }) async {
+    final resolver = _resolveAmbiguous;
+    if (resolver == null) return slots;
+
+    final decisions = await resolver.execute(
+      slots,
+      locale: locale,
+      shouldAbort: shouldAbort,
+    );
+    if (decisions.isEmpty) return slots;
+
+    final updated = <SpotifyImportSlot>[];
+    for (final slot in slots) {
+      final decision = decisions[slot.index];
+      if (decision == null || slot.kind == SpotifyMatchKind.auto) {
+        updated.add(slot);
+        continue;
+      }
+
+      if (decision.selectedVideoId != null) {
+        ImportedTrackCandidate? matched;
+        for (final c in slot.reviewCandidates) {
+          if (c.videoId == decision.selectedVideoId) {
+            matched = c;
+            break;
+          }
+        }
+        if (matched != null) {
+          updated.add(slot.withCandidate(matched));
+          continue;
+        }
+      }
+
+      final rq = decision.rewrittenQuery?.trim();
+      if (rq != null && rq.isNotEmpty) {
+        final extra = await _searchAll([rq]);
+        if (extra.isNotEmpty) {
+          final byId = <String, ImportedTrackCandidate>{
+            for (final c in slot.reviewCandidates) c.videoId: c,
+            for (final c in extra) c.videoId: c,
+          };
+          final outcome = _matcher.classify(
+            track: slot.track,
+            candidates: byId.values.toList(growable: false),
+          );
+          updated.add(
+            SpotifyImportSlot(
+              index: slot.index,
+              track: slot.track,
+              kind: outcome.kind,
+              candidate: outcome.match,
+              reviewCandidates: outcome.reviewCandidates,
+            ),
+          );
+          continue;
+        }
+      }
+
+      updated.add(slot);
+    }
+    return updated;
   }
 
   Future<List<ImportedTrackCandidate>> _searchAll(List<String> queries) async {

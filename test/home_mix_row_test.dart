@@ -7,7 +7,7 @@ import 'package:sonora/core/constants/app_constants.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 import 'package:sonora/presentation/features/home/layouts/home_layout_metrics.dart';
 import 'package:sonora/presentation/features/home/widgets/home_quick_row.dart';
-import 'package:sonora/presentation/providers/on_device_llm_provider.dart';
+import 'package:sonora/presentation/providers/ask_llm_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 import 'package:sonora/presentation/providers/stats_provider.dart';
 import 'package:sonora/presentation/shared/widgets/smart_mix_card.dart';

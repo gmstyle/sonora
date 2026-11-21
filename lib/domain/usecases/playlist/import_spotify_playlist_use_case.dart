@@ -2,6 +2,7 @@ import '../../models/library_models.dart';
 import '../../models/playlist_import.dart';
 import '../../repositories/library_repository.dart';
 import '../../repositories/music_repository.dart';
+import '../ai/resolve_spotify_ambiguous_tracks_use_case.dart';
 import '../ai/rewrite_spotify_search_query_use_case.dart';
 import 'spotify_ytm_match_pipeline.dart';
 import 'ytmusic_track_matcher.dart';
@@ -15,11 +16,13 @@ class ImportSpotifyPlaylistUseCase {
     Future<void> Function(Duration duration)? delay,
     YtMusicTrackMatcher matcher = const YtMusicTrackMatcher(),
     RewriteSpotifySearchQueryUseCase? rewriteSearchQuery,
+    ResolveSpotifyAmbiguousTracksUseCase? resolveAmbiguous,
   }) : _delay = delay ?? Future<void>.delayed,
        _pipeline = SpotifyYtmMatchPipeline(
          musicRepository,
          matcher: matcher,
          rewrite: rewriteSearchQuery,
+         resolveAmbiguous: resolveAmbiguous,
        );
 
   final Future<SpotifyPlaylistSnapshot> Function(String playlistId)
@@ -92,7 +95,10 @@ class ImportSpotifyPlaylistUseCase {
         ),
       );
 
-      final outcome = await _pipeline.matchTrack(track, tryRewrite: tryRewrite);
+      final outcome = await _pipeline.matchTrack(
+        track,
+        tryRewrite: tryRewrite && !_pipeline.hasBatchResolver,
+      );
       slots.add(
         SpotifyImportSlot(
           index: i,
@@ -111,7 +117,11 @@ class ImportSpotifyPlaylistUseCase {
       );
     }
 
-    return SpotifyImportPlan(snapshot: snapshot, slots: slots);
+    final resolvedSlots = (tryRewrite && _pipeline.hasBatchResolver)
+        ? await _pipeline.resolveAmbiguousSlots(slots, shouldAbort: shouldAbort)
+        : slots;
+
+    return SpotifyImportPlan(snapshot: snapshot, slots: resolvedSlots);
   }
 
   /// Applies user choices for ambiguous [slot.index] → candidate (null = skip).

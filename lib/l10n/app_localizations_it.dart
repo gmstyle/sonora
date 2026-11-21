@@ -2566,4 +2566,218 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get tvExitAppAction => 'Esci';
+
+  @override
+  String get aiDeepSeekStatusTitle => 'Motore Ask (DeepSeek)';
+
+  @override
+  String aiDeepSeekStatusProxy(int remaining, int limit) {
+    return 'Sonora Cloud ($remaining/$limit crediti oggi)';
+  }
+
+  @override
+  String get aiDeepSeekStatusByok => 'Chiave personale DeepSeek (Illimitato)';
+
+  @override
+  String get aiDeepSeekStatusUnconfigured =>
+      'URL proxy non configurato — inserisci sotto una chiave personale o l\'URL del proxy';
+
+  @override
+  String get aiUseTasteContextTitle => 'Usa la cronologia d\'ascolto';
+
+  @override
+  String get aiUseTasteContextHint =>
+      'Consenti ad Ask di leggere artisti, playlist e ascolti recenti per mix mirati';
+
+  @override
+  String get aiDropsEnabledTitle => 'Pulse Drops proattivi';
+
+  @override
+  String get aiDropsEnabledHint =>
+      'Mostra schede di scoperta musicale basate sui tuoi ascolti';
+
+  @override
+  String get aiNotificationsEnabledTitle => 'Notifiche locali di Ask';
+
+  @override
+  String get aiNotificationsEnabledHint =>
+      'Avvisa quando un nuovo Pulse Drop è pronto';
+
+  @override
+  String get aiDeepSeekApiKeyTitle =>
+      'Chiave API DeepSeek personale (opzionale)';
+
+  @override
+  String get aiDeepSeekApiKeyHint =>
+      'Supera il limite giornaliero di crediti. Salvata solo su questo dispositivo.';
+
+  @override
+  String get aiDeepSeekApiKeySave => 'Salva chiave';
+
+  @override
+  String get aiDeepSeekApiKeyClear => 'Rimuovi chiave';
+
+  @override
+  String get aiDeepSeekApiKeySaved => 'Chiave API DeepSeek salvata';
+
+  @override
+  String get aiDeepSeekApiKeyCleared => 'Chiave API DeepSeek rimossa';
+
+  @override
+  String get aiAskProxyUrlTitle => 'URL proxy Ask (opzionale)';
+
+  @override
+  String get aiAskProxyUrlHint =>
+      'Sostituisci l\'endpoint proxy predefinito di Sonora (avanzato).';
+
+  @override
+  String get aiAskProxyUrlSave => 'Salva URL proxy';
+
+  @override
+  String get aiAskProxyUrlSaved => 'URL proxy aggiornato';
+
+  @override
+  String get askNavLabel => 'Ask';
+
+  @override
+  String get askHubTitle => 'Sonora Ask';
+
+  @override
+  String get askHubSubtitle => 'Il tuo assistente musicale basato su DeepSeek';
+
+  @override
+  String get askNewChat => 'Nuova chat';
+
+  @override
+  String get askHistoryTitle => 'Conversazioni';
+
+  @override
+  String get askHistoryEmpty => 'Nessuna conversazione';
+
+  @override
+  String get askDeleteChat => 'Elimina chat';
+
+  @override
+  String get askClearHistory => 'Cancella cronologia';
+
+  @override
+  String get askComposerHint =>
+      'Chiedi un mix, nuovi artisti, playlist o curiosità…';
+
+  @override
+  String get askSend => 'Invia';
+
+  @override
+  String get askWebSearchChip => 'Ricerca web';
+
+  @override
+  String askQuotaBadge(int remaining, int limit) {
+    return '$remaining/$limit rimasti';
+  }
+
+  @override
+  String get askByokBadge => 'BYOK · Illimitato';
+
+  @override
+  String get askDropsHeader => 'Pulse Drops';
+
+  @override
+  String get askDropsEmpty =>
+      'Ascolta ancora qualche brano: Ask preparerà qui spunti su misura.';
+
+  @override
+  String get askGuidedHeader => 'Azioni rapide';
+
+  @override
+  String get askGuidedMixTitle => 'Mix per questo momento';
+
+  @override
+  String get askGuidedMixPrompt =>
+      'Crea un mix da 15 brani adatto ai miei gusti e al momento.';
+
+  @override
+  String get askGuidedDiscoverTitle => 'Scopri nuovi artisti';
+
+  @override
+  String get askGuidedDiscoverPrompt =>
+      'Consigliami 5 artisti simili a quello che sto ascoltando ultimamente.';
+
+  @override
+  String get askGuidedPlaylistTitle => 'Crea una playlist';
+
+  @override
+  String get askGuidedPlaylistPrompt =>
+      'Proponi una playlist di brani che posso rivedere e salvare in libreria.';
+
+  @override
+  String get askGuidedTasteTitle => 'Analizza i miei gusti';
+
+  @override
+  String get askGuidedTastePrompt =>
+      'Analizza i miei ascolti recenti e i miei artisti preferiti.';
+
+  @override
+  String get askActionPlay => 'Riproduci';
+
+  @override
+  String get askActionSavePlaylist => 'Salva playlist';
+
+  @override
+  String get askActionConfirmSave => 'Conferma e salva';
+
+  @override
+  String get askActionDiscard => 'Scarta';
+
+  @override
+  String get askSavedStatus => 'Salvata';
+
+  @override
+  String get askDiscardedStatus => 'Scartata';
+
+  @override
+  String get askPlaylistOpCreate => 'Proposta nuova playlist';
+
+  @override
+  String get askPlaylistOpAppend => 'Proposta aggiunta brani';
+
+  @override
+  String get askPlaylistOpRemove => 'Proposta rimozione brani';
+
+  @override
+  String get askSaveDialogTitle => 'Salva come playlist';
+
+  @override
+  String get askPlaylistNameLabel => 'Nome playlist';
+
+  @override
+  String askTracksCount(int count) {
+    return '$count brani';
+  }
+
+  @override
+  String get askSourcesLabel => 'Fonti';
+
+  @override
+  String get askErrorOffline => 'Sei offline. Riconnettiti per usare Ask.';
+
+  @override
+  String get askErrorNotConfigured =>
+      'Ask non è ancora configurato. Controlla Impostazioni → Ask.';
+
+  @override
+  String askErrorQuotaExceeded(int limit) {
+    return 'Limite giornaliero ($limit crediti) raggiunto. Aggiungi una chiave personale DeepSeek nelle Impostazioni o riprova domani.';
+  }
+
+  @override
+  String get askErrorFailed => 'Ask non è riuscito a rispondere ora. Riprova.';
+
+  @override
+  String get askOpenSettings => 'Apri impostazioni Ask';
+
+  @override
+  String get askOpenFromSearch => 'Chiedi ad Ask';
+
+  @override
+  String get askThinkingStatus => 'Sto consultando libreria e catalogo…';
 }

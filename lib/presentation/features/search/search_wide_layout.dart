@@ -1,19 +1,15 @@
-import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../providers/action_feedback_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/library_notifier.dart';
-import '../../providers/on_device_llm_provider.dart';
-import '../../providers/player_provider.dart';
 import '../../shared/widgets/facet_wide_scaffold.dart';
 import '../../shared/widgets/filter_chip_bar.dart';
 import '../../shared/widgets/search_suggestion_tile.dart';
-import 'providers/ask_search_provider.dart';
 import 'providers/search_provider.dart';
 
 List<String> searchFilterLabels(AppLocalizations l10n) {
@@ -73,7 +69,7 @@ class SearchFilterRail extends ConsumerWidget {
   }
 }
 
-/// Recents, the Ask toggle, and the interpretation banner.
+/// Recents and quick handoff to the dedicated Ask Hub.
 class SearchUtilityRail extends ConsumerWidget {
   final ValueChanged<String> onTapSearch;
 
@@ -88,10 +84,9 @@ class SearchUtilityRail extends ConsumerWidget {
           padding: EdgeInsets.fromLTRB(16, 16, 12, 4),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: SearchAskToggle(),
+            child: SearchOpenAskButton(),
           ),
         ),
-        const SearchAskBanner(padding: EdgeInsets.fromLTRB(12, 8, 8, 4)),
         Expanded(
           child: SearchRecentSearches(onTapSearch: onTapSearch, inRail: true),
         ),
@@ -100,104 +95,32 @@ class SearchUtilityRail extends ConsumerWidget {
   }
 }
 
-class SearchAskToggle extends ConsumerWidget {
-  const SearchAskToggle({super.key});
+class SearchOpenAskButton extends ConsumerWidget {
+  const SearchOpenAskButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final isOffline = ref.watch(isOfflineProvider);
-    final askEnabled = ref.watch(askModeEnabledProvider);
-    final modelReady = ref.watch(askLlmReadyProvider).asData?.value ?? false;
-    final selected = askEnabled && modelReady;
     final scheme = Theme.of(context).colorScheme;
 
-    return FilterChip(
-      label: Text(l10n.askChip),
-      selected: selected,
+    return ActionChip(
+      shape: const StadiumBorder(),
       avatar: Icon(
         LucideIcons.sparkles,
         size: 16,
-        color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        color: isOffline ? scheme.onSurfaceVariant : scheme.primary,
       ),
-      onSelected: isOffline
+      label: Text(l10n.askOpenFromSearch),
+      onPressed: isOffline
           ? null
-          : (value) {
-              if (!modelReady) {
-                ref
-                    .read(actionFeedbackProvider.notifier)
-                    .report(l10n.askModelRequired, kind: FeedbackKind.error);
-                return;
-              }
-              ref.read(askModeEnabledProvider.notifier).setEnabled(value);
+          : () {
+              final rawQuery = ref.read(searchQueryProvider).trim();
+              final uri = rawQuery.isEmpty
+                  ? Uri(path: '/ask')
+                  : Uri(path: '/ask', queryParameters: {'prompt': rawQuery});
+              context.go(uri.toString());
             },
-    );
-  }
-}
-
-class SearchAskBanner extends ConsumerWidget {
-  final EdgeInsetsGeometry padding;
-
-  const SearchAskBanner({
-    super.key,
-    this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 4),
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final interpretation = ref.watch(askInterpretationProvider);
-    if (interpretation == null) return const SizedBox.shrink();
-
-    final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    final resultsAsync = ref.watch(searchResultsProvider);
-    final songs =
-        resultsAsync.asData?.value.whereType<SongDetailed>().toList() ??
-        const <SongDetailed>[];
-    final canPlay = songs.isNotEmpty && !ref.watch(isOfflineProvider);
-
-    return Padding(
-      padding: padding,
-      child: Material(
-        color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-          child: Row(
-            children: [
-              Icon(LucideIcons.sparkles, color: scheme.primary, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.askInterpretedAs,
-                      style: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(color: scheme.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      interpretation.intent.displayLabel,
-                      style: Theme.of(context).textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              if (canPlay)
-                IconButton.filled(
-                  tooltip: l10n.askPlayResults,
-                  onPressed: () =>
-                      ref.read(playerStateProvider.notifier).playAlbum(songs),
-                  icon: const Icon(LucideIcons.play, size: 18),
-                ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sonora/core/theme/brand_accent.dart';
 import 'package:sonora/core/theme/player_colors.dart';
 import 'package:sonora/domain/models/ask_capabilities.dart';
-import 'package:sonora/domain/models/ask_mode.dart';
+import 'package:sonora/domain/models/ask_chat_models.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 import 'package:sonora/presentation/features/player/widgets/lyrics_view.dart';
 import 'package:sonora/presentation/features/tv/layouts/tv_shell.dart';
@@ -21,10 +21,10 @@ import 'package:sonora/presentation/features/tv/widgets/tv_now_playing_pill.dart
 import 'package:sonora/presentation/features/tv/widgets/tv_poster_card.dart';
 import 'package:sonora/presentation/features/tv/widgets/tv_shelf.dart';
 import 'package:sonora/presentation/providers/android_tv_provider.dart';
+import 'package:sonora/presentation/providers/ask_llm_provider.dart';
 import 'package:sonora/presentation/providers/connectivity_provider.dart';
 import 'package:sonora/presentation/providers/download_provider.dart';
 import 'package:sonora/presentation/providers/library_notifier.dart';
-import 'package:sonora/presentation/providers/on_device_llm_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 import 'package:sonora/presentation/shared/widgets/context_menu/action_tiles.dart';
@@ -485,7 +485,10 @@ void main() {
               (ref, id) async => 'Line 1\nLine 2',
             ),
             askCapabilitiesProvider.overrideWith(
-              (ref) async => const AskCapabilities(AskLlmBackend.none),
+              (ref) async => const AskCapabilities(
+                backend: AskBackendMode.unconfigured,
+                isOffline: false,
+              ),
             ),
           ],
           child: MaterialApp(

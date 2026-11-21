@@ -4,13 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sonora/core/theme/player_colors.dart';
-import 'package:sonora/domain/models/ask_mode.dart';
 import 'package:sonora/domain/models/ask_capabilities.dart';
+import 'package:sonora/domain/models/ask_chat_models.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 import 'package:sonora/presentation/features/player/layouts/mobile_player_layout.dart';
+import 'package:sonora/presentation/providers/ask_llm_provider.dart';
 import 'package:sonora/presentation/providers/cast_provider.dart';
 import 'package:sonora/presentation/providers/library_notifier.dart';
-import 'package:sonora/presentation/providers/on_device_llm_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 
@@ -50,7 +50,10 @@ void main() {
           likedSongProvider.overrideWith((ref, id) => Stream.value(null)),
           likedEpisodeProvider.overrideWith((ref, id) => Stream.value(null)),
           askCapabilitiesProvider.overrideWith(
-            (ref) async => const AskCapabilities(AskLlmBackend.none),
+            (ref) async => const AskCapabilities(
+              backend: AskBackendMode.unconfigured,
+              isOffline: false,
+            ),
           ),
         ],
         child: MaterialApp(

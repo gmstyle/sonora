@@ -11,8 +11,8 @@ import 'package:sonora/presentation/features/home/layouts/home_feed_layout.dart'
 import 'package:sonora/presentation/features/home/layouts/home_layout_metrics.dart';
 import 'package:sonora/presentation/features/home/providers/home_provider.dart';
 import 'package:sonora/presentation/features/home/widgets/home_section_renderer.dart';
+import 'package:sonora/presentation/providers/ask_llm_provider.dart';
 import 'package:sonora/presentation/providers/connectivity_provider.dart';
-import 'package:sonora/presentation/providers/on_device_llm_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 import 'package:sonora/presentation/providers/stats_provider.dart';
 

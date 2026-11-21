@@ -7,10 +7,10 @@ import '../../../../l10n/app_localizations.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../providers/ask_llm_provider.dart';
 import '../../../providers/connectivity_provider.dart';
 import '../../../providers/lyrics_translation_provider.dart';
 import '../../../providers/music_repository_provider.dart';
-import '../../../providers/on_device_llm_provider.dart';
 import '../../../shared/widgets/error_retry_widget.dart';
 
 final lyricsProvider = FutureProvider.family<TimedLyricsRes?, String>((

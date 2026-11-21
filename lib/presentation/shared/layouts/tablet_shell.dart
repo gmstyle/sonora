@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../features/ask/providers/ask_chat_provider.dart';
 import '../../features/player/player_sheet.dart';
 import '../widgets/action_feedback_listener.dart';
 import '../widgets/branch_fade_transition.dart';
@@ -18,6 +19,7 @@ final _icons = [
   LucideIcons.search,
   LucideIcons.library,
   LucideIcons.download,
+  LucideIcons.sparkles,
 ];
 
 class TabletShell extends ConsumerWidget {
@@ -68,7 +70,14 @@ class TabletShell extends ConsumerWidget {
                                 destinations: [
                                   for (var i = 0; i < _icons.length; i++)
                                     NavigationRailDestination(
-                                      icon: Icon(_icons[i]),
+                                      icon:
+                                          i == 4 &&
+                                              ref.watch(
+                                                    askUnreadDropsCountProvider,
+                                                  ) >
+                                                  0
+                                          ? Badge(child: Icon(_icons[i]))
+                                          : Icon(_icons[i]),
                                       label: Text(
                                         _getLabel(
                                           AppLocalizations.of(context)!,
@@ -154,5 +163,11 @@ class _TabletSettingsEntry extends StatelessWidget {
 }
 
 String _getLabel(AppLocalizations l10n, int index) {
-  return [l10n.home, l10n.search, l10n.library, l10n.downloads][index];
+  return [
+    l10n.home,
+    l10n.search,
+    l10n.library,
+    l10n.downloads,
+    l10n.askNavLabel,
+  ][index];
 }

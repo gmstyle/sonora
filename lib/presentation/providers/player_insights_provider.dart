@@ -2,12 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/grounded_llm_result.dart';
 import '../../domain/usecases/ai/generate_track_insights_use_case.dart';
-import 'on_device_llm_provider.dart';
+import 'ask_llm_provider.dart';
 
 final generateTrackInsightsUseCaseProvider =
     Provider<GenerateTrackInsightsUseCase>((ref) {
       return GenerateTrackInsightsUseCase(
-        ref.watch(geminiLlmRepositoryProvider),
+        ref.watch(askGroundedLlmRepositoryProvider),
       );
     });
 

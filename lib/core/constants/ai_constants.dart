@@ -1,23 +1,30 @@
-/// On-device Ask model (Qwen3 0.6B dynamic INT4 LiteRT-LM).
-///
-/// Use the dynamic bundle — `qwen3_0_6b_mixed_int4.litertlm` loads but its
-/// chat template fails at generate time (`string + sequence`, LiteRT INTERNAL
-/// / code 13). Official fix: `Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm`
-/// (flutter_edge_ai_litertlm #659 / LiteRT-LM #3865 family).
-const kAskLlmHfRepo = 'litert-community/Qwen3-0.6B';
-const kAskLlmFilename = 'Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm';
+/// Default DeepSeek V4.1 model id used by Ask across proxy and BYOK modes.
+const kDeepSeekModelId = 'deepseek-flash';
 
-/// Previous Ask artifact; uninstall when installing the supported bundle.
-const kAskLlmLegacyFilename = 'qwen3_0_6b_mixed_int4.litertlm';
+/// Direct DeepSeek API base URL (OpenAI-compatible Chat Completions).
+const kDeepSeekDirectBaseUrl = 'https://api.deepseek.com';
 
-const kAskLlmDownloadUrl =
-    'https://huggingface.co/$kAskLlmHfRepo/resolve/main/$kAskLlmFilename';
+/// Proxy Ask base URL (overridable via `--dart-define=SONORA_ASK_PROXY_URL=...`
+/// or in Settings).
+const kAskProxyBaseUrl = String.fromEnvironment(
+  'SONORA_ASK_PROXY_URL',
+  defaultValue: 'https://sonora-ask-proxy.contattagmstyle.workers.dev',
+);
 
-/// Approximate download size shown in Settings (~345 MB).
-const kAskLlmApproxSizeMb = 345;
+/// Default daily Ask credit allowance per device on the managed proxy.
+const kAskDailyCreditLimit = 30;
 
-/// Default Gemini model id for Cloud Ask (Genkit `googleAI.gemini`).
-const kAskGeminiModelId = 'gemini-flash-latest';
+/// Soft timeout for a single DeepSeek or proxy completion round.
+const kAskTimeout = Duration(seconds: 45);
 
-/// Soft timeout for a single Gemini completion.
-const kAskGeminiTimeout = Duration(seconds: 45);
+/// Maximum tool-calling rounds executed within one Ask user turn.
+const kAskMaxToolRounds = 4;
+
+/// Recent conversation message window sent to the model per turn.
+const kAskHistoryWindowMessages = 8;
+
+/// Maximum Spotify ambiguous/unmatched slots sent per batch request.
+const kSpotifyAssistBatchSize = 12;
+
+/// Target number of tracks suggested in an Ask Mix card.
+const kAskMixTargetTrackCount = 20;

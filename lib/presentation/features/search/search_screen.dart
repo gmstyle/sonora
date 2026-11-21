@@ -9,7 +9,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/extensions/stat_format.dart';
 
 import '../../providers/player_provider.dart';
-import '../../providers/connectivity_provider.dart';
 import '../../shared/widgets/album_card.dart';
 import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/artist_card.dart';
@@ -25,13 +24,11 @@ import '../../shared/widgets/shimmer_loading.dart';
 import '../../shared/widgets/song_tile.dart';
 import '../../shared/widgets/thumbnail_widget.dart';
 import '../../shared/widgets/explicit_badge.dart';
-import 'providers/ask_search_provider.dart';
 import 'providers/library_matches_provider.dart';
 import 'providers/search_provider.dart';
 import 'library_match_section.dart';
 import 'library_matches.dart';
 import '../../../core/utils/artists_utils.dart';
-import '../../providers/on_device_llm_provider.dart';
 import '../../shared/widgets/facet_wide_scaffold.dart';
 import 'search_wide_layout.dart';
 import '../../providers/android_tv_provider.dart';
@@ -57,10 +54,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onSearchChanged(String query) {
     ref.read(searchQueryProvider.notifier).update(query);
-    final interp = ref.read(askInterpretationProvider);
-    if (interp != null && query != interp.originalQuery) {
-      ref.read(askInterpretationProvider.notifier).clear();
-    }
   }
 
   Future<void> _submitSearch(String query) async {
@@ -71,19 +64,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
     ref.read(searchQueryProvider.notifier).update(trimmed);
     _focusNode.unfocus();
-    if (ref.read(isOfflineProvider)) {
-      ref.read(askInterpretationProvider.notifier).clear();
-      await ref.read(activeSearchQueryProvider.notifier).submit(trimmed);
-      return;
-    }
-    await ref.read(askSearchSubmitProvider.notifier).submit(trimmed);
+    await ref.read(activeSearchQueryProvider.notifier).submit(trimmed);
   }
 
   void _clearSearch() {
     _searchController.clear();
     ref.read(searchQueryProvider.notifier).update('');
     ref.read(activeSearchQueryProvider.notifier).update('');
-    ref.read(askInterpretationProvider.notifier).clear();
     _focusNode.requestFocus();
   }
 
@@ -96,12 +83,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final activeQuery = ref.watch(activeSearchQueryProvider);
     final l10n = AppLocalizations.of(context);
 
-    final askEnabled = ref.watch(askModeEnabledProvider);
-    final modelReadyAsync = ref.watch(askLlmReadyProvider);
-    final modelReady = modelReadyAsync.asData?.value ?? false;
-    final askSubmit = ref.watch(askSearchSubmitProvider);
-    final asking = askSubmit.isLoading;
-
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
@@ -111,11 +92,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             controller: _searchController,
             focusNode: _focusNode,
             autofocus: false,
-            readOnly: asking,
             decoration: InputDecoration(
-              hintText: askEnabled && modelReady
-                  ? l10n!.askSearchHint
-                  : l10n!.searchHint,
+              hintText: l10n!.searchHint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide.none,
@@ -135,15 +113,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 maxWidth: 40,
                 maxHeight: 40,
               ),
-              suffixIcon: asking
-                  ? const Center(
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : query.isNotEmpty
+              suffixIcon: query.isNotEmpty
                   ? IconButton(
                       icon: const Icon(LucideIcons.x, size: 20),
                       onPressed: _clearSearch,
@@ -151,15 +121,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   : null,
             ),
             style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: asking ? null : _onSearchChanged,
-            onSubmitted: asking ? null : _submitSearch,
+            onChanged: _onSearchChanged,
+            onSubmitted: _submitSearch,
           ),
         ),
         actions: [
           if (MediaQuery.sizeOf(context).width < kWideContentBreakpoint)
             const Padding(
               padding: EdgeInsets.only(right: 8),
-              child: SearchAskToggle(),
+              child: SearchOpenAskButton(),
             ),
         ],
       ),
@@ -168,9 +138,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildBody(String query, String activeQuery) {
-    final askInterp = ref.watch(askInterpretationProvider);
-    final showingAskResults =
-        askInterp != null && query == askInterp.originalQuery;
     final viewport = MediaQuery.sizeOf(context).width;
     final inFacet = viewport >= kExpandedBreakpoint;
     final showUtility = viewport >= kWideContentBreakpoint;
@@ -180,7 +147,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       center = showUtility
           ? const SearchIdlePrompt()
           : SearchRecentSearches(onTapSearch: _submitSearch, inFacet: inFacet);
-    } else if (query.isNotEmpty && query != activeQuery && !showingAskResults) {
+    } else if (query.isNotEmpty && query != activeQuery) {
       center = _Suggestions(
         query: query,
         onTapSuggestion: _submitSearch,
@@ -194,7 +161,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         },
       );
     } else {
-      center = _SearchResults(inFacet: inFacet, showAskBanner: !showUtility);
+      center = _SearchResults(inFacet: inFacet);
     }
 
     if (!inFacet) return center;
@@ -268,9 +235,8 @@ class _Suggestions extends ConsumerWidget {
 
 class _SearchResults extends ConsumerWidget {
   final bool inFacet;
-  final bool showAskBanner;
 
-  const _SearchResults({this.inFacet = false, this.showAskBanner = true});
+  const _SearchResults({this.inFacet = false});
 
   /// Page inset outside the wide facet scaffold. Compact stays 16; tablet
   /// uses [kTabletContentPadding]. The facet scaffold supplies its own inset.
@@ -890,10 +856,6 @@ class _SearchResults extends ConsumerWidget {
     final filter = ref.watch(searchFilterProvider);
     final resultsAsync = ref.watch(searchResultsProvider);
     final l10n = AppLocalizations.of(context)!;
-    final inset = _contentInset(context);
-    final askBanner = showAskBanner
-        ? SearchAskBanner(padding: EdgeInsets.fromLTRB(inset, 12, inset, 4))
-        : const SizedBox.shrink();
     final resultsContent = _buildResultsContent(
       context,
       ref,
@@ -903,13 +865,7 @@ class _SearchResults extends ConsumerWidget {
     );
 
     if (inFacet) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          askBanner,
-          Expanded(child: resultsContent),
-        ],
-      );
+      return resultsContent;
     }
 
     return Column(
@@ -920,7 +876,6 @@ class _SearchResults extends ConsumerWidget {
           onSelected: (index) =>
               ref.read(searchFilterProvider.notifier).update(index),
         ),
-        askBanner,
         Expanded(child: resultsContent),
       ],
     );

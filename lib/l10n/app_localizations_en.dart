@@ -2553,4 +2553,219 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tvExitAppAction => 'Exit';
+
+  @override
+  String get aiDeepSeekStatusTitle => 'Ask Engine (DeepSeek)';
+
+  @override
+  String aiDeepSeekStatusProxy(int remaining, int limit) {
+    return 'Sonora Cloud ($remaining/$limit credits today)';
+  }
+
+  @override
+  String get aiDeepSeekStatusByok => 'Personal DeepSeek key (Unlimited)';
+
+  @override
+  String get aiDeepSeekStatusUnconfigured =>
+      'Proxy URL not configured — add a personal key or proxy URL below';
+
+  @override
+  String get aiUseTasteContextTitle => 'Use listening history';
+
+  @override
+  String get aiUseTasteContextHint =>
+      'Allow Ask to read top artists, playlists, and recent plays for tailored mixes';
+
+  @override
+  String get aiDropsEnabledTitle => 'Proactive Pulse Drops';
+
+  @override
+  String get aiDropsEnabledHint =>
+      'Show music discovery cards based on listening trends';
+
+  @override
+  String get aiNotificationsEnabledTitle => 'Ask local notifications';
+
+  @override
+  String get aiNotificationsEnabledHint =>
+      'Notify when a new Pulse Drop is ready';
+
+  @override
+  String get aiDeepSeekApiKeyTitle => 'Personal DeepSeek API key (optional)';
+
+  @override
+  String get aiDeepSeekApiKeyHint =>
+      'Bypass daily credit limit. Stored locally on this device.';
+
+  @override
+  String get aiDeepSeekApiKeySave => 'Save key';
+
+  @override
+  String get aiDeepSeekApiKeyClear => 'Clear key';
+
+  @override
+  String get aiDeepSeekApiKeySaved => 'DeepSeek API key saved';
+
+  @override
+  String get aiDeepSeekApiKeyCleared => 'DeepSeek API key cleared';
+
+  @override
+  String get aiAskProxyUrlTitle => 'Ask proxy URL (optional)';
+
+  @override
+  String get aiAskProxyUrlHint =>
+      'Override the default Sonora proxy endpoint (advanced).';
+
+  @override
+  String get aiAskProxyUrlSave => 'Save proxy URL';
+
+  @override
+  String get aiAskProxyUrlSaved => 'Proxy URL updated';
+
+  @override
+  String get askNavLabel => 'Ask';
+
+  @override
+  String get askHubTitle => 'Sonora Ask';
+
+  @override
+  String get askHubSubtitle =>
+      'Your music & catalog companion powered by DeepSeek';
+
+  @override
+  String get askNewChat => 'New chat';
+
+  @override
+  String get askHistoryTitle => 'Conversations';
+
+  @override
+  String get askHistoryEmpty => 'No conversations yet';
+
+  @override
+  String get askDeleteChat => 'Delete chat';
+
+  @override
+  String get askClearHistory => 'Clear history';
+
+  @override
+  String get askComposerHint =>
+      'Ask about mixes, artists, playlists, or moods…';
+
+  @override
+  String get askSend => 'Send';
+
+  @override
+  String get askWebSearchChip => 'Web search';
+
+  @override
+  String askQuotaBadge(int remaining, int limit) {
+    return '$remaining/$limit left';
+  }
+
+  @override
+  String get askByokBadge => 'BYOK · Unlimited';
+
+  @override
+  String get askDropsHeader => 'Pulse Drops';
+
+  @override
+  String get askDropsEmpty =>
+      'Listen a bit more — Ask will prepare tailored highlights here.';
+
+  @override
+  String get askGuidedHeader => 'Quick actions';
+
+  @override
+  String get askGuidedMixTitle => 'Mix for right now';
+
+  @override
+  String get askGuidedMixPrompt =>
+      'Build a 15-track mix based on my current taste and mood right now.';
+
+  @override
+  String get askGuidedDiscoverTitle => 'Discover new artists';
+
+  @override
+  String get askGuidedDiscoverPrompt =>
+      'Recommend 5 artists similar to what I have been listening to lately.';
+
+  @override
+  String get askGuidedPlaylistTitle => 'Create a playlist';
+
+  @override
+  String get askGuidedPlaylistPrompt =>
+      'Propose a playlist of tracks I can review and save to my library.';
+
+  @override
+  String get askGuidedTasteTitle => 'Analyze my taste';
+
+  @override
+  String get askGuidedTastePrompt =>
+      'Analyze my recent listening history and top artists.';
+
+  @override
+  String get askActionPlay => 'Play';
+
+  @override
+  String get askActionSavePlaylist => 'Save playlist';
+
+  @override
+  String get askActionConfirmSave => 'Confirm & save';
+
+  @override
+  String get askActionDiscard => 'Discard';
+
+  @override
+  String get askSavedStatus => 'Saved';
+
+  @override
+  String get askDiscardedStatus => 'Discarded';
+
+  @override
+  String get askPlaylistOpCreate => 'New playlist proposal';
+
+  @override
+  String get askPlaylistOpAppend => 'Add tracks proposal';
+
+  @override
+  String get askPlaylistOpRemove => 'Remove tracks proposal';
+
+  @override
+  String get askSaveDialogTitle => 'Save as playlist';
+
+  @override
+  String get askPlaylistNameLabel => 'Playlist name';
+
+  @override
+  String askTracksCount(int count) {
+    return '$count tracks';
+  }
+
+  @override
+  String get askSourcesLabel => 'Sources';
+
+  @override
+  String get askErrorOffline => 'You are offline. Reconnect to chat with Ask.';
+
+  @override
+  String get askErrorNotConfigured =>
+      'Ask is not configured yet. Check Settings → Ask.';
+
+  @override
+  String askErrorQuotaExceeded(int limit) {
+    return 'Daily credit limit ($limit) reached. Add a personal DeepSeek key in Settings or try again tomorrow.';
+  }
+
+  @override
+  String get askErrorFailed =>
+      'Ask could not answer right now. Please try again.';
+
+  @override
+  String get askOpenSettings => 'Open Ask settings';
+
+  @override
+  String get askOpenFromSearch => 'Ask AI';
+
+  @override
+  String get askThinkingStatus => 'Thinking & checking your catalog…';
 }

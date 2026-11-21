@@ -52,3 +52,9 @@ app.*.map.json
 .cursor/*
 !.cursor/skills/
 !.cursor/skills/**
+
+# Cloudflare Worker local dev/build artifacts
+workers/ask-proxy/node_modules/
+workers/ask-proxy/dist/
+workers/ask-proxy/.wrangler/
+workers/ask-proxy/.dev.vars

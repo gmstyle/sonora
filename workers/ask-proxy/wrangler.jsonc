@@ -1,0 +1,39 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sonora-ask-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "QUOTA_KV",
+      "id": "eca88fe724dd4180a9edfa7af80197aa"
+    }
+  ],
+  "secrets_store_secrets": [
+    {
+      "binding": "DEEPSEEK_API_KEY",
+      "store_id": "8f3e75bac598472f99f0f499786268a3",
+      "secret_name": "DEEPSEEK_API_KEY"
+    }
+  ],
+  "vars": {
+    "DEEPSEEK_MODEL": "deepseek-flash",
+    "DAILY_DEVICE_LIMIT": "30",
+    "DAILY_IP_LIMIT": "90",
+    "DAILY_GLOBAL_LIMIT": "10000",
+    "WEEKLY_DROPS_LIMIT": "3"
+  }
+}

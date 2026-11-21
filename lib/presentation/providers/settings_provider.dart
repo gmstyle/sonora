@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,6 @@ import '../../core/theme/brand_accent.dart';
 import '../../core/utils/android_battery.dart';
 import '../../data/services/media_cache_service.dart';
 import '../../domain/models/artwork_style.dart';
-import '../../domain/models/ask_mode.dart';
 import '../../domain/models/media_cache_size.dart';
 import '../../domain/models/media_quality.dart';
 import '../features/home/providers/home_provider.dart';
@@ -44,11 +44,23 @@ class Settings {
   /// True after Wrapped has been opened on this device. Not part of backups.
   final bool wrappedSeen;
 
-  /// Ask engine selection. Device-local — not part of backups.
-  final AskMode askMode;
+  /// Optional BYOK DeepSeek API key. Device-local — not part of backups.
+  final String? deepseekApiKey;
 
-  /// User Gemini API key for Cloud Ask. Device-local — not part of backups.
-  final String? geminiApiKey;
+  /// Optional custom Ask Cloudflare proxy base URL override (device-local).
+  final String askProxyUrlOverride;
+
+  /// Whether proactive Pulse Drops are enabled (device-local).
+  final bool askDropsEnabled;
+
+  /// Whether local notifications for Pulse Drops are enabled (device-local).
+  final bool askNotificationsEnabled;
+
+  /// Whether Ask tools may read listening history & taste profile.
+  final bool askUseTasteContext;
+
+  /// Random anonymous install identifier sent to the Ask quota proxy.
+  final String askInstallId;
 
   final bool localSyncEnabled;
   final bool localSyncAutoEnabled;
@@ -75,8 +87,12 @@ class Settings {
     this.artworkStyle = ArtworkStyle.vinyl,
     this.brandAccent = BrandAccent.cyan,
     this.wrappedSeen = false,
-    this.askMode = AskMode.onDevice,
-    this.geminiApiKey,
+    this.deepseekApiKey,
+    this.askProxyUrlOverride = '',
+    this.askDropsEnabled = true,
+    this.askNotificationsEnabled = false,
+    this.askUseTasteContext = true,
+    this.askInstallId = '',
     this.localSyncEnabled = false,
     this.localSyncAutoEnabled = false,
     this.playlistConflictStrategy = 'merge',
@@ -103,13 +119,17 @@ class Settings {
     ArtworkStyle? artworkStyle,
     BrandAccent? brandAccent,
     bool? wrappedSeen,
-    AskMode? askMode,
-    String? geminiApiKey,
+    String? deepseekApiKey,
+    String? askProxyUrlOverride,
+    bool? askDropsEnabled,
+    bool? askNotificationsEnabled,
+    bool? askUseTasteContext,
+    String? askInstallId,
     bool? localSyncEnabled,
     bool? localSyncAutoEnabled,
     String? playlistConflictStrategy,
     bool clearDownloadPath = false,
-    bool clearGeminiApiKey = false,
+    bool clearDeepseekApiKey = false,
   }) {
     return Settings(
       themeMode: themeMode ?? this.themeMode,
@@ -136,10 +156,15 @@ class Settings {
       artworkStyle: artworkStyle ?? this.artworkStyle,
       brandAccent: brandAccent ?? this.brandAccent,
       wrappedSeen: wrappedSeen ?? this.wrappedSeen,
-      askMode: askMode ?? this.askMode,
-      geminiApiKey: clearGeminiApiKey
+      deepseekApiKey: clearDeepseekApiKey
           ? null
-          : (geminiApiKey ?? this.geminiApiKey),
+          : (deepseekApiKey ?? this.deepseekApiKey),
+      askProxyUrlOverride: askProxyUrlOverride ?? this.askProxyUrlOverride,
+      askDropsEnabled: askDropsEnabled ?? this.askDropsEnabled,
+      askNotificationsEnabled:
+          askNotificationsEnabled ?? this.askNotificationsEnabled,
+      askUseTasteContext: askUseTasteContext ?? this.askUseTasteContext,
+      askInstallId: askInstallId ?? this.askInstallId,
       localSyncEnabled: localSyncEnabled ?? this.localSyncEnabled,
       localSyncAutoEnabled: localSyncAutoEnabled ?? this.localSyncAutoEnabled,
       playlistConflictStrategy:
@@ -151,9 +176,11 @@ class Settings {
 
   /// Portable prefs written into `backup.json` → `settings`.
   ///
-  /// Excludes device-local [downloadPath], [wrappedSeen], [askMode],
-  /// [geminiApiKey], plus runtime keys (`lastUpdateCheckTime`,
-  /// `postQueueSplitDone`, `batteryPromptDismissed`, `aiIntroSeen`).
+  /// Excludes device-local [downloadPath], [wrappedSeen], Ask preferences
+  /// ([deepseekApiKey], [askProxyUrlOverride], [askDropsEnabled],
+  /// [askNotificationsEnabled], [askUseTasteContext], [askInstallId]), plus
+  /// runtime keys (`lastUpdateCheckTime`, `postQueueSplitDone`,
+  /// `batteryPromptDismissed`).
   Map<String, dynamic> toBackupMap() {
     return <String, dynamic>{
       kThemeModeKey: themeMode.index,
@@ -188,6 +215,11 @@ class SettingsNotifier extends Notifier<Settings> {
   @override
   Settings build() {
     _prefs = ref.read(sharedPreferencesProvider);
+    var installId = _prefs.getString(kAskInstallIdKey)?.trim() ?? '';
+    if (!RegExp(r'^[a-zA-Z0-9_-]{8,64}$').hasMatch(installId)) {
+      installId = _generateAskInstallId();
+      unawaited(_prefs.setString(kAskInstallIdKey, installId));
+    }
     final settings = Settings(
       themeMode: ThemeMode.values[_prefs.getInt(kThemeModeKey) ?? 0],
       useAmoled: _prefs.getBool(kUseAmoledKey) ?? false,
@@ -215,8 +247,13 @@ class SettingsNotifier extends Notifier<Settings> {
       artworkStyle: readArtworkStylePref(_prefs),
       brandAccent: BrandAccent.fromStorage(_prefs.getString(kBrandAccentKey)),
       wrappedSeen: _prefs.getBool(kWrappedSeenKey) ?? false,
-      askMode: AskMode.fromStorage(_prefs.getString(kAskModeKey)),
-      geminiApiKey: _prefs.getString(kGeminiApiKeyKey),
+      deepseekApiKey: _prefs.getString(kDeepSeekApiKeyKey),
+      askProxyUrlOverride: _prefs.getString(kAskProxyUrlOverrideKey) ?? '',
+      askDropsEnabled: _prefs.getBool(kAskDropsEnabledKey) ?? true,
+      askNotificationsEnabled:
+          _prefs.getBool(kAskNotificationsEnabledKey) ?? false,
+      askUseTasteContext: _prefs.getBool(kAskUseTasteContextKey) ?? true,
+      askInstallId: installId,
       localSyncEnabled: _prefs.getBool(kLocalSyncEnabledKey) ?? false,
       localSyncAutoEnabled: _prefs.getBool(kLocalSyncAutoEnabledKey) ?? false,
       playlistConflictStrategy:
@@ -269,11 +306,27 @@ class SettingsNotifier extends Notifier<Settings> {
     );
     await _prefs.setString(kBrandAccentKey, state.brandAccent.storageValue);
     await _prefs.setBool(kWrappedSeenKey, state.wrappedSeen);
-    await _prefs.setString(kAskModeKey, state.askMode.storageValue);
-    if (state.geminiApiKey != null && state.geminiApiKey!.isNotEmpty) {
-      await _prefs.setString(kGeminiApiKeyKey, state.geminiApiKey!);
+    if (state.deepseekApiKey != null && state.deepseekApiKey!.isNotEmpty) {
+      await _prefs.setString(kDeepSeekApiKeyKey, state.deepseekApiKey!);
     } else {
-      await _prefs.remove(kGeminiApiKeyKey);
+      await _prefs.remove(kDeepSeekApiKeyKey);
+    }
+    if (state.askProxyUrlOverride.trim().isNotEmpty) {
+      await _prefs.setString(
+        kAskProxyUrlOverrideKey,
+        state.askProxyUrlOverride.trim(),
+      );
+    } else {
+      await _prefs.remove(kAskProxyUrlOverrideKey);
+    }
+    await _prefs.setBool(kAskDropsEnabledKey, state.askDropsEnabled);
+    await _prefs.setBool(
+      kAskNotificationsEnabledKey,
+      state.askNotificationsEnabled,
+    );
+    await _prefs.setBool(kAskUseTasteContextKey, state.askUseTasteContext);
+    if (state.askInstallId.isNotEmpty) {
+      await _prefs.setString(kAskInstallIdKey, state.askInstallId);
     }
     await _prefs.setBool(kLocalSyncEnabledKey, state.localSyncEnabled);
     await _prefs.setBool(kLocalSyncAutoEnabledKey, state.localSyncAutoEnabled);
@@ -404,17 +457,39 @@ class SettingsNotifier extends Notifier<Settings> {
     await _save();
   }
 
-  Future<void> setAskMode(AskMode mode) async {
-    if (state.askMode == mode) return;
-    state = state.copyWith(askMode: mode);
+  Future<void> setDeepSeekApiKey(String? key) async {
+    final trimmed = key?.trim();
+    final next = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+    if (state.deepseekApiKey == next) return;
+    state = state.copyWith(
+      deepseekApiKey: next,
+      clearDeepseekApiKey: next == null,
+    );
     await _save();
   }
 
-  Future<void> setGeminiApiKey(String? key) async {
-    final trimmed = key?.trim();
-    final next = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
-    if (state.geminiApiKey == next) return;
-    state = state.copyWith(geminiApiKey: next, clearGeminiApiKey: next == null);
+  Future<void> setAskProxyUrlOverride(String url) async {
+    final trimmed = url.trim();
+    if (state.askProxyUrlOverride == trimmed) return;
+    state = state.copyWith(askProxyUrlOverride: trimmed);
+    await _save();
+  }
+
+  Future<void> setAskDropsEnabled(bool value) async {
+    if (state.askDropsEnabled == value) return;
+    state = state.copyWith(askDropsEnabled: value);
+    await _save();
+  }
+
+  Future<void> setAskNotificationsEnabled(bool value) async {
+    if (state.askNotificationsEnabled == value) return;
+    state = state.copyWith(askNotificationsEnabled: value);
+    await _save();
+  }
+
+  Future<void> setAskUseTasteContext(bool value) async {
+    if (state.askUseTasteContext == value) return;
+    state = state.copyWith(askUseTasteContext: value);
     await _save();
   }
 
@@ -612,6 +687,9 @@ Future<void> migrateLegacySettingsPrefs(SharedPreferences prefs) async {
   await prefs.remove(kLegacyStreamQualityKey);
   await prefs.remove(kLegacyEnableVideoPlaybackKey);
   await prefs.remove(kLegacyUseDynamicColorKey);
+  await prefs.remove(kLegacyAskModeKey);
+  await prefs.remove(kLegacyGeminiApiKeyKey);
+  await prefs.remove(kLegacyAiIntroSeenKey);
 }
 
 const kMediaCacheSizeKey = 'mediaCacheSize';
@@ -634,10 +712,18 @@ const kUseVinylStyleKey = 'useVinylStyle';
 /// Brand fill: `cyan`, `azure`, `violet`, `rose`, `mint`, or `amber`.
 const kBrandAccentKey = 'brandAccent';
 const kWrappedSeenKey = 'wrappedSeen';
-const kAskModeKey = 'askMode';
-const kGeminiApiKeyKey = 'geminiApiKey';
+const kDeepSeekApiKeyKey = 'deepseekApiKey';
+const kAskProxyUrlOverrideKey = 'askProxyUrlOverride';
+const kAskDropsEnabledKey = 'askDropsEnabled';
+const kAskNotificationsEnabledKey = 'askNotificationsEnabled';
+const kAskUseTasteContextKey = 'askUseTasteContext';
+const kAskInstallIdKey = 'askInstallId';
+const kLegacyAskModeKey = 'askMode';
+const kLegacyGeminiApiKeyKey = 'geminiApiKey';
+const kLegacyAiIntroSeenKey = 'aiIntroSeen';
 const kLocalSyncEnabledKey = 'localSyncEnabled';
 const kLastUpdateCheckTimeKey = 'lastUpdateCheckTime';
+const kLastAskDropEvalTimeKey = 'lastAskDropEvalTime';
 
 /// Set to `true` after the queue User/UpNext split migration has run once.
 /// On the first startup after the upgrade the persisted queue is cleared
@@ -647,8 +733,12 @@ const kPostQueueSplitDoneKey = 'postQueueSplitDone';
 /// When `true`, the proactive battery-optimization startup prompt is never shown again.
 const kBatteryPromptDismissedKey = 'batteryPromptDismissed';
 
-/// When `true`, the one-shot Ask feature intro wizard is never shown again.
-const kAiIntroSeenKey = 'aiIntroSeen';
+String _generateAskInstallId() {
+  const chars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
+  final rng = Random.secure();
+  return List.generate(24, (_) => chars[rng.nextInt(chars.length)]).join();
+}
 
 /// Keys written by [Settings.toBackupMap]. Equalizer keys are merged in
 /// separately from `EqualizerState.toBackupMap`.
@@ -711,10 +801,6 @@ extension BatteryOptimizationNotifier on SettingsNotifier {
 
   Future<void> dismissBatteryPromptForever() async {
     await _prefs.setBool(kBatteryPromptDismissedKey, true);
-  }
-
-  Future<void> markAiIntroSeen() async {
-    await _prefs.setBool(kAiIntroSeenKey, true);
   }
 }
 

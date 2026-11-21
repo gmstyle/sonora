@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../features/ask/providers/ask_chat_provider.dart';
 import '../../features/player/player_sheet.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/youtube_account_provider.dart';
@@ -21,6 +22,7 @@ final _icons = [
   LucideIcons.search,
   LucideIcons.library,
   LucideIcons.download,
+  LucideIcons.sparkles,
 ];
 
 class WideShell extends ConsumerStatefulWidget {
@@ -291,6 +293,7 @@ class _WideShellState extends ConsumerState<WideShell> {
     final isSelected = widget.navigationShell.currentIndex == i;
     final colorScheme = Theme.of(context).colorScheme;
     final label = _getLabel(AppLocalizations.of(context)!, i);
+    final hasUnreadDrop = i == 4 && ref.watch(askUnreadDropsCountProvider) > 0;
 
     if (isCollapsed) {
       return Padding(
@@ -314,7 +317,9 @@ class _WideShellState extends ConsumerState<WideShell> {
                 padding: EdgeInsets.zero,
               ),
               onPressed: () => widget.navigationShell.goBranch(i),
-              child: Icon(_icons[i]),
+              child: hasUnreadDrop
+                  ? Badge(child: Icon(_icons[i]))
+                  : Icon(_icons[i]),
             ),
           ),
         ),
@@ -338,12 +343,21 @@ class _WideShellState extends ConsumerState<WideShell> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Icon(
-                    _icons[i],
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                  ),
+                  hasUnreadDrop
+                      ? Badge(
+                          child: Icon(
+                            _icons[i],
+                            color: isSelected
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                        )
+                      : Icon(
+                          _icons[i],
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant,
+                        ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
@@ -384,5 +398,11 @@ class _WideShellState extends ConsumerState<WideShell> {
 }
 
 String _getLabel(AppLocalizations l10n, int index) {
-  return [l10n.home, l10n.search, l10n.library, l10n.downloads][index];
+  return [
+    l10n.home,
+    l10n.search,
+    l10n.library,
+    l10n.downloads,
+    l10n.askNavLabel,
+  ][index];
 }

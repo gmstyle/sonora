@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../shared/widgets/moment_mix_ask_card.dart';
 import '../../../shared/widgets/smart_mix_card.dart';
 import '../../../providers/settings_provider.dart';
 
@@ -44,9 +43,6 @@ class SmartMixesTab extends ConsumerWidget {
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
-        ),
-        const SliverToBoxAdapter(
-          child: MomentMixAskSection(horizontalPadding: 16),
         ),
         if (isGridView)
           SliverPadding(

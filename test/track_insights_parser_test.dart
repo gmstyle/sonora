@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sonora/domain/models/ask_chat_models.dart';
 import 'package:sonora/domain/models/grounded_llm_result.dart';
 import 'package:sonora/domain/usecases/ai/track_insights_parser.dart';
 import 'package:sonora/domain/usecases/ai/translate_lyrics_use_case.dart';
@@ -132,6 +133,9 @@ class _FakeLlm implements LlmCompletionRepository {
     required String systemInstruction,
     required String userMessage,
     int maxOutputTokens = 256,
+    AskActionKind action = AskActionKind.chat,
+    String locale = 'en',
+    String? turnId,
   }) async {
     return onComplete(userMessage);
   }

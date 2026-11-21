@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../domain/models/wrapped_narrative.dart';
 import '../../../../domain/usecases/ai/generate_wrapped_narrative_use_case.dart';
-import '../../../providers/on_device_llm_provider.dart';
+import '../../../providers/ask_llm_provider.dart';
 import '../../../providers/stats_provider.dart';
 
 final generateWrappedNarrativeUseCaseProvider =

@@ -41,6 +41,9 @@ import 'presentation/app/router.dart';
 import 'presentation/features/player/audio_handler.dart';
 import 'presentation/features/tv/tv_metrics.dart';
 import 'presentation/providers/android_tv_provider.dart';
+import 'presentation/providers/ask_llm_provider.dart';
+import 'presentation/providers/ask_notification_service.dart';
+import 'presentation/providers/connectivity_provider.dart';
 import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/download_notification_service.dart';
 import 'presentation/providers/download_provider.dart';
@@ -288,10 +291,12 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
     super.initState();
     _linkHandler = SonoraLinkHandler(ref);
     downloadNotificationActionHandler = _onDownloadNotificationAction;
+    askDropNotificationHandler = _onAskDropNotificationTap;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
       _requestNotificationPermission();
       _initDeepLinks();
+      unawaited(_evaluateProactiveDrops());
     });
   }
 
@@ -299,6 +304,9 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
   void dispose() {
     if (downloadNotificationActionHandler == _onDownloadNotificationAction) {
       downloadNotificationActionHandler = null;
+    }
+    if (askDropNotificationHandler == _onAskDropNotificationTap) {
+      askDropNotificationHandler = null;
     }
     unawaited(_appLinksSub?.cancel());
     unawaited(_linuxUriSub?.cancel());
@@ -368,6 +376,41 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       if (ctx != null) {
         ctx.go('/downloads');
       }
+    }
+  }
+
+  void _onAskDropNotificationTap(String dropId) {
+    if (ref.read(isAndroidTvProvider)) return;
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx != null) {
+      ctx.go(Uri(path: '/ask', queryParameters: {'dropId': dropId}).toString());
+    }
+  }
+
+  Future<void> _evaluateProactiveDrops() async {
+    try {
+      if (!mounted || ref.read(isAndroidTvProvider)) return;
+      if (ref.read(isOfflineProvider)) return;
+      final settings = ref.read(settingsProvider);
+      if (!settings.askDropsEnabled) return;
+
+      final prefs = ref.read(sharedPreferencesProvider);
+      final lastEval = prefs.getInt(kLastAskDropEvalTimeKey) ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - lastEval < const Duration(hours: 24).inMilliseconds) return;
+
+      final locale =
+          WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+      final drop = await ref
+          .read(evaluateProactiveDropsUseCaseProvider)
+          .execute(locale: locale);
+      await prefs.setInt(kLastAskDropEvalTimeKey, now);
+      if (!mounted || drop == null) return;
+      if (settings.askNotificationsEnabled) {
+        await ref.read(askNotificationServiceProvider).showDrop(drop);
+      }
+    } catch (e) {
+      debugPrint('Proactive drop evaluation failed: $e');
     }
   }
 

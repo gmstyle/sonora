@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/playlist_import.dart';
 import '../../domain/usecases/playlist/import_spotify_playlist_use_case.dart';
 import '../../domain/usecases/playlist/refresh_linked_playlist_use_case.dart';
+import 'ask_llm_provider.dart';
 import 'download_provider.dart';
 import 'import_playlist_providers.dart';
-import 'on_device_llm_provider.dart';
 import 'refresh_linked_playlist_use_case_provider.dart';
 
 enum PlaylistImportJobPhase {
