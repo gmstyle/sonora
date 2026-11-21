@@ -141,7 +141,7 @@ void main() {
           kind: PlayErrorKind.unplayable,
         );
         await pumpEventQueue();
-      await pumpEventQueue();
+        await pumpEventQueue();
 
         expect(skippedTo, 1);
         expect(playRequests, 1);

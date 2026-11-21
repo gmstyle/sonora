@@ -142,9 +142,7 @@ Widget buildPlayerBackground(
       // Layer 5 — uniform reading veil when lyrics are open, keeping TopBar,
       // lyrics, and bottom controls on one continuous surface.
       if (reduceEffects)
-        ColoredBox(
-          color: Colors.black.withValues(alpha: dimmed ? 0.42 : 0.0),
-        )
+        ColoredBox(color: Colors.black.withValues(alpha: dimmed ? 0.42 : 0.0))
       else
         AnimatedContainer(
           duration: const Duration(milliseconds: 250),

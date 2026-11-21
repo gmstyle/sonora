@@ -67,8 +67,11 @@ class LyricsView extends ConsumerWidget {
             )
           : timedAsync.when(
               loading: () => const _LyricsLoading(),
-              error: (_, _) =>
-                  _buildPlainLyrics(context, fallbackAsync, showTranslateAction),
+              error: (_, _) => _buildPlainLyrics(
+                context,
+                fallbackAsync,
+                showTranslateAction,
+              ),
               data: (timed) {
                 if (timed != null) {
                   return _TimedLyricsView(lyrics: timed, position: position);
