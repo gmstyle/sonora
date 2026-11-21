@@ -72,6 +72,14 @@ Sonora uses **YouTube Music** as its data source and runs on **Android** (phone 
 - Podcast, episode, user and channel pages
 - Search across songs, videos, podcasts and users
 
+### ✨ Sonora Ask
+
+- Dedicated Ask Hub on phone, tablet, and desktop (hidden on Android TV) with guided quick actions and Markdown-formatted music chat
+- Taste-aware discovery across your local library and YouTube Music: generate playable mixes, find similar artists, analyze your listening profile, look up track insights, and translate lyrics
+- Safe Write confirmation cards: every generated mix or playlist change asks for your confirmation before saving
+- Pulse Drops: proactive discovery cards based on listening patterns, with optional local notifications
+- Assisted Spotify playlist import disambiguation for ambiguous tracks, plus optional personal API key (BYOK) in Settings
+
 ### 🖥️ Desktop & extras
 
 - Adaptive layouts (phone, tablet, wide) and a standalone 10-foot Android TV UI with D-pad navigation

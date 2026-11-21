@@ -110,7 +110,7 @@ Wide content uses four families — feed, facet, entity, document — specified 
 
 Mobile uses the same families without rails: pad `kCompactContentPadding` (16), always 2 feed columns, facet chips, stacked entity + icon bar, Settings list→push. Tablet: pad `kTabletContentPadding` (24), master rail 200, feed grids at 3 columns when the content box is under `kFeedFourColumnContentWidth` (800). That 800 value is a content-box threshold, not a shell. Search stays on chips, entity content stacks, and the document clamp is wide-only.
 
-Shell routes are the indexed stack in `router.dart`: Home `/`, Search `/search`, Library `/library`, Downloads `/downloads`. Settings is a sibling `GoRoute` on the root navigator, opened with `context.push`, not a fifth tab. Sub-routes (artist, album, playlist, podcast, episode, user, charts, moods) hang off the current branch. The player is an overlay above the shell, not a route. Do not add `/player`.
+Shell routes are the indexed stack in `router.dart`: Home `/`, Search `/search`, Library `/library`, Downloads `/downloads`, and Ask `/ask` (non-TV shells only; `TvShell` keeps 4 tabs `0..3`). Settings is a sibling `GoRoute` on the root navigator, opened with `context.push`, not a sixth tab. Sub-routes (artist, album, playlist, podcast, episode, user, charts, moods) hang off the current branch. The player is an overlay above the shell, not a route. Do not add `/player`.
 
 Mobile floats a mini-player card above the `NavigationBar` (60 tall, inset 16, 8 gap). Tablet and wide use a full-width mini shelf (`kMiniPlayerShelfHeight`, 80) under the rail or sidebar and the content. Artwork, title, artist, album, and like sit on the left of that shelf. Artist, album, and podcast taps on that metadata open the catalog screen. There is no now-playing block in the nav chrome.
 
@@ -180,7 +180,7 @@ UI calls `PlayerNotifier`. It calls `SonoraAudioHandler`. The handler delegates 
 
 ## Data
 
-A Drift change is four steps: table file, `@DriftDatabase` list, `schemaVersion` bump plus `onUpgrade`, then `build_runner`. Current schema is **v26**. Backup JSON is version 3 (`ExportBackupUseCase`). A new library collection is added to export, import, and `MergeLibraryUseCase` together.
+A Drift change is four steps: table file, `@DriftDatabase` list, `schemaVersion` bump plus `onUpgrade`, then `build_runner`. Current schema is **v27**. Backup JSON is version 3 (`ExportBackupUseCase`). A new library collection is added to export, import, and `MergeLibraryUseCase` together.
 
 Portable preferences go through `Settings.toBackupMap` / `applyBackupMap` (equalizer through `EqualizerState`). Device-local keys (`downloadPath`, `wrappedSeen`, runtime flags) stay out of the backup map.
 
