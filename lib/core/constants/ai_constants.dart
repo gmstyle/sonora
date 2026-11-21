@@ -18,7 +18,10 @@ const kAskDailyCreditLimit = 30;
 const kAskTimeout = Duration(seconds: 45);
 
 /// Maximum tool-calling rounds executed within one Ask user turn.
-const kAskMaxToolRounds = 4;
+const kAskMaxToolRounds = 6;
+
+/// Maximum parallel tool calls executed in a single Ask round.
+const kAskMaxToolCallsPerRound = 16;
 
 /// Recent conversation message window sent to the model per turn.
 const kAskHistoryWindowMessages = 8;

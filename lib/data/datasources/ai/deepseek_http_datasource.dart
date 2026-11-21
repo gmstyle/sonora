@@ -6,6 +6,9 @@ import '../../../core/constants/ai_constants.dart';
 import '../../../domain/models/ask_chat_models.dart';
 import '../../../domain/models/grounded_llm_result.dart';
 import '../../../domain/repositories/llm_chat_repository.dart';
+import '../../../domain/usecases/ai/dsml_parser.dart';
+
+export '../../../domain/usecases/ai/dsml_parser.dart';
 
 class DeepSeekEndpointConfig {
   const DeepSeekEndpointConfig({
@@ -109,6 +112,7 @@ class DeepSeekHttpDatasource {
     String? systemInstruction,
     String locale = 'en',
     List<LlmToolDefinition> tools = const [],
+    String? toolChoice,
     bool enableWebSearch = false,
     bool jsonMode = false,
     int maxOutputTokens = 900,
@@ -125,6 +129,7 @@ class DeepSeekHttpDatasource {
           messages: messages,
           systemInstruction: systemInstruction,
           tools: tools,
+          toolChoice: toolChoice,
           enableWebSearch: enableWebSearch,
           jsonMode: jsonMode,
           maxOutputTokens: maxOutputTokens,
@@ -136,6 +141,7 @@ class DeepSeekHttpDatasource {
           messages: messages,
           locale: locale,
           tools: tools,
+          toolChoice: toolChoice,
           enableWebSearch: enableWebSearch,
           maxOutputTokens: maxOutputTokens,
           turnId: turnId,
@@ -149,6 +155,7 @@ class DeepSeekHttpDatasource {
     required List<LlmChatMessage> messages,
     required String? systemInstruction,
     required List<LlmToolDefinition> tools,
+    required String? toolChoice,
     required bool enableWebSearch,
     required bool jsonMode,
     required int maxOutputTokens,
@@ -178,6 +185,9 @@ class DeepSeekHttpDatasource {
     };
     if (wireTools.isNotEmpty) {
       payload['tools'] = wireTools;
+      if (toolChoice == 'none' || toolChoice == 'auto') {
+        payload['tool_choice'] = toolChoice;
+      }
     }
     // DeepSeek API: do not combine response_format json_object with tools.
     if (jsonMode && wireTools.isEmpty) {
@@ -205,7 +215,11 @@ class DeepSeekHttpDatasource {
       throw DeepSeekApiException(status, errMsg);
     }
 
-    return _parseChatResponse(raw, quota: AskQuotaInfo.unlimited());
+    return _parseChatResponse(
+      raw,
+      quota: AskQuotaInfo.unlimited(),
+      allowDsmlToolFallback: toolChoice != 'none',
+    );
   }
 
   Future<LlmChatResponse> _completeManagedProxy({
@@ -214,6 +228,7 @@ class DeepSeekHttpDatasource {
     required List<LlmChatMessage> messages,
     required String locale,
     required List<LlmToolDefinition> tools,
+    required String? toolChoice,
     required bool enableWebSearch,
     required int maxOutputTokens,
     required String? turnId,
@@ -230,6 +245,8 @@ class DeepSeekHttpDatasource {
       'maxOutputTokens': maxOutputTokens,
       if (tools.isNotEmpty)
         'tools': tools.map((t) => t.toOpenAiJson()).toList(growable: false),
+      if (tools.isNotEmpty && (toolChoice == 'none' || toolChoice == 'auto'))
+        'toolChoice': toolChoice,
       if (enableWebSearch) 'enableWebSearch': true,
       if (turnId != null && turnId.trim().isNotEmpty) 'turnId': turnId.trim(),
     };
@@ -264,12 +281,17 @@ class DeepSeekHttpDatasource {
       throw DeepSeekApiException(status, _extractErrorMessage(raw, status));
     }
 
-    return _parseChatResponse(raw, quota: quota);
+    return _parseChatResponse(
+      raw,
+      quota: quota,
+      allowDsmlToolFallback: toolChoice != 'none',
+    );
   }
 
   LlmChatResponse _parseChatResponse(
     Map<String, dynamic> raw, {
     AskQuotaInfo? quota,
+    bool allowDsmlToolFallback = true,
   }) {
     final choices = raw['choices'];
     if (choices is! List || choices.isEmpty || choices.first is! Map) {
@@ -281,9 +303,10 @@ class DeepSeekHttpDatasource {
       throw const DeepSeekApiException(502, 'Missing choice message');
     }
     final message = Map<String, dynamic>.from(messageRaw);
-    final content = message['content']?.toString() ?? '';
+    final rawContent = message['content']?.toString() ?? '';
 
     final toolCalls = <AskToolCall>[];
+    final seenIds = <String>{};
     final rawToolCalls = message['tool_calls'];
     if (rawToolCalls is List) {
       for (var i = 0; i < rawToolCalls.length; i++) {
@@ -294,15 +317,23 @@ class DeepSeekHttpDatasource {
         final name = fn['name']?.toString().trim() ?? '';
         if (name.isEmpty) continue;
         final id = item['id']?.toString().trim();
+        final baseId = (id == null || id.isEmpty) ? 'call_$i' : id;
+        var uniqueId = baseId;
+        var suffix = 1;
+        while (!seenIds.add(uniqueId)) {
+          uniqueId = '${baseId}_$suffix';
+          suffix++;
+        }
         final args = _decodeArgs(fn['arguments']);
-        toolCalls.add(
-          AskToolCall(
-            id: (id == null || id.isEmpty) ? 'call_$i' : id,
-            name: name,
-            arguments: args,
-          ),
-        );
+        toolCalls.add(AskToolCall(id: uniqueId, name: name, arguments: args));
       }
+    }
+
+    final dsml = parseAndStripDsml(rawContent, idStartIndex: toolCalls.length);
+    if (toolCalls.isEmpty &&
+        allowDsmlToolFallback &&
+        dsml.toolCalls.isNotEmpty) {
+      toolCalls.addAll(dsml.toolCalls);
     }
 
     final serverToolCalls = <Map<String, dynamic>>[];
@@ -316,7 +347,7 @@ class DeepSeekHttpDatasource {
     }
 
     return LlmChatResponse(
-      content: content,
+      content: dsml.cleanContent,
       toolCalls: toolCalls,
       sources: extractGroundedSources(raw),
       quota: quota,

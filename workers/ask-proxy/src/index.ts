@@ -33,7 +33,9 @@ async function resolveDeepSeekApiKey(env: Env): Promise<string> {
 }
 
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
-const MAX_BODY_BYTES = 65_536;
+const MAX_BODY_BYTES = 262_144;
+const MAX_MESSAGES = 120;
+const MAX_TOOL_CALLS_PER_MESSAGE = 48;
 const INSTALL_ID_RE = /^[a-zA-Z0-9_-]{8,64}$/;
 const TURN_ID_RE = /^[a-zA-Z0-9_-]{6,64}$/;
 
@@ -51,6 +53,7 @@ interface AskRequestBody {
   locale?: unknown;
   messages?: unknown;
   tools?: unknown;
+  toolChoice?: unknown;
   enableWebSearch?: unknown;
   jsonMode?: unknown;
   stream?: unknown;
@@ -85,11 +88,73 @@ function quotaHeaders(q: {
   };
 }
 
+function sanitizeToolCalls(rawToolCalls: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(rawToolCalls)) return [];
+  const cleaned: Record<string, unknown>[] = [];
+  const seenIds = new Set<string>();
+  for (const item of rawToolCalls) {
+    if (!item || typeof item !== "object") continue;
+    const call = item as Record<string, unknown>;
+    const id = typeof call.id === "string" ? call.id.trim() : "";
+    if (!id || seenIds.has(id)) continue;
+    const fn =
+      call.function && typeof call.function === "object"
+        ? (call.function as Record<string, unknown>)
+        : null;
+    if (!fn) continue;
+    const name = typeof fn.name === "string" ? fn.name.trim() : "";
+    if (!name) continue;
+    const rawArgs = fn.arguments;
+    const argsStr =
+      typeof rawArgs === "string"
+        ? rawArgs.slice(0, 12_000)
+        : JSON.stringify(rawArgs ?? {}).slice(0, 12_000);
+    seenIds.add(id);
+    cleaned.push({
+      id,
+      type: "function",
+      function: { name, arguments: argsStr },
+    });
+    if (cleaned.length >= MAX_TOOL_CALLS_PER_MESSAGE) break;
+  }
+  return cleaned;
+}
+
 function sanitizeMessages(raw: unknown): Record<string, unknown>[] | null {
-  if (!Array.isArray(raw) || raw.length === 0 || raw.length > 24) {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_MESSAGES) {
     return null;
   }
   const out: Record<string, unknown>[] = [];
+  const pendingToolCallIds = new Set<string>();
+  let lastAssistantIndex = -1;
+
+  function closePendingToolBlock(): void {
+    if (lastAssistantIndex >= 0 && pendingToolCallIds.size > 0) {
+      const parent = out[lastAssistantIndex];
+      const existing = Array.isArray(parent.tool_calls)
+        ? (parent.tool_calls as Record<string, unknown>[])
+        : [];
+      const answered = existing.filter(
+        (c) => typeof c.id === "string" && !pendingToolCallIds.has(c.id)
+      );
+      if (answered.length > 0) {
+        parent.tool_calls = answered;
+      } else {
+        delete parent.tool_calls;
+        const hasContent =
+          typeof parent.content === "string" && parent.content.length > 0;
+        const hasServerCalls =
+          Array.isArray(parent.server_tool_calls) &&
+          parent.server_tool_calls.length > 0;
+        if (!hasContent && !hasServerCalls) {
+          out.splice(lastAssistantIndex, 1);
+        }
+      }
+    }
+    pendingToolCallIds.clear();
+    lastAssistantIndex = -1;
+  }
+
   for (const item of raw) {
     if (!item || typeof item !== "object") return null;
     const msg = item as Record<string, unknown>;
@@ -98,27 +163,55 @@ function sanitizeMessages(raw: unknown): Record<string, unknown>[] | null {
     if (role === "system") continue;
     if (role !== "user" && role !== "assistant" && role !== "tool") return null;
 
+    if (role === "tool") {
+      const toolCallId =
+        typeof msg.tool_call_id === "string" ? msg.tool_call_id.trim() : "";
+      if (!toolCallId) return null;
+      if (!pendingToolCallIds.has(toolCallId)) {
+        continue;
+      }
+      pendingToolCallIds.delete(toolCallId);
+      const cleanTool: Record<string, unknown> = {
+        role: "tool",
+        tool_call_id: toolCallId,
+        content:
+          typeof msg.content === "string" ? msg.content.slice(0, 24_000) : "",
+      };
+      if (typeof msg.name === "string" && msg.name.trim()) {
+        cleanTool.name = msg.name.trim();
+      }
+      out.push(cleanTool);
+      continue;
+    }
+
+    closePendingToolBlock();
+
     const clean: Record<string, unknown> = { role };
     if (typeof msg.content === "string") {
-      clean.content = msg.content.slice(0, 12_000);
+      clean.content = msg.content.slice(0, 24_000);
     } else if (msg.content === null) {
       clean.content = null;
     }
-    if (role === "assistant" && Array.isArray(msg.tool_calls)) {
-      clean.tool_calls = msg.tool_calls.slice(0, 16);
-    }
-    if (role === "assistant" && Array.isArray(msg.server_tool_calls)) {
-      clean.server_tool_calls = msg.server_tool_calls.slice(0, 16);
-    }
-    if (role === "tool") {
-      if (typeof msg.tool_call_id !== "string" || !msg.tool_call_id) return null;
-      clean.tool_call_id = msg.tool_call_id;
-      if (typeof msg.name === "string" && msg.name) {
-        clean.name = msg.name;
+    if (role === "assistant") {
+      if (
+        Array.isArray(msg.server_tool_calls) &&
+        msg.server_tool_calls.length > 0
+      ) {
+        clean.server_tool_calls = msg.server_tool_calls.slice(0, 16);
+      }
+      const calls = sanitizeToolCalls(msg.tool_calls);
+      if (calls.length > 0) {
+        clean.tool_calls = calls;
+        lastAssistantIndex = out.length;
+        for (const call of calls) {
+          pendingToolCallIds.add(call.id as string);
+        }
       }
     }
     out.push(clean);
   }
+
+  closePendingToolBlock();
   return out.length > 0 ? out : null;
 }
 
@@ -287,6 +380,9 @@ export default {
 
       if (tools) {
         deepseekPayload.tools = tools;
+        if (body.toolChoice === "none" || body.toolChoice === "auto") {
+          deepseekPayload.tool_choice = body.toolChoice;
+        }
       }
       if (forceJson) {
         deepseekPayload.response_format = { type: "json_object" };

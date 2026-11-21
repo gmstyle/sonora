@@ -545,7 +545,8 @@ class AskToolExecutor {
     return {
       'playlistId': target.id,
       'name': target.name,
-      'tracks': [for (final e in entries.take(30)) _trackSummary(e.videoId)],
+      'totalTracks': entries.length,
+      'tracks': [for (final e in entries.take(80)) _trackSummary(e.videoId)],
     };
   }
 
@@ -577,7 +578,7 @@ class AskToolExecutor {
     final query = (args['query']?.toString() ?? '').trim();
     if (query.isEmpty) return {'error': 'empty_query'};
     final type = (args['type']?.toString() ?? 'songs').trim().toLowerCase();
-    final limit = ((args['limit'] as num?)?.toInt() ?? 10).clamp(1, 15);
+    final limit = ((args['limit'] as num?)?.toInt() ?? 10).clamp(1, 20);
 
     switch (type) {
       case 'artists':
@@ -731,7 +732,7 @@ class AskToolExecutor {
   ) async {
     final videoId = (args['videoId']?.toString() ?? '').trim();
     if (videoId.isEmpty) return {'error': 'missing_video_id'};
-    final limit = ((args['limit'] as num?)?.toInt() ?? 15).clamp(1, 25);
+    final limit = ((args['limit'] as num?)?.toInt() ?? 15).clamp(1, 30);
 
     final watch = await _music.getWatchPlaylist(videoId: videoId, radio: true);
     final out = <Map<String, dynamic>>[];
@@ -798,7 +799,7 @@ class AskToolExecutor {
     if (kind == 'album') {
       final album = await _music.getAlbum(id);
       final out = <Map<String, dynamic>>[];
-      for (final s in album.songs.take(30)) {
+      for (final s in album.songs.take(50)) {
         if (s.videoId.isEmpty || !s.isPlayable) continue;
         _registerSongDetailed(s);
         out.add(_trackSummary(s.videoId));
@@ -811,9 +812,9 @@ class AskToolExecutor {
         'tracks': out,
       };
     } else {
-      final playlist = await _music.getPlaylist(id, limit: 35);
+      final playlist = await _music.getPlaylist(id, limit: 60);
       final out = <Map<String, dynamic>>[];
-      for (final v in playlist.tracks.take(30)) {
+      for (final v in playlist.tracks.take(50)) {
         if (v.videoId.isEmpty || !v.isPlayable) continue;
         _registerVideoDetailed(v);
         out.add(_trackSummary(v.videoId));

@@ -232,6 +232,198 @@ void main() {
         'type': 'json_object',
       });
     });
+
+    test('forwards toolChoice=none to both proxy and BYOK requests', () async {
+      final adapter = _StubAdapter(
+        (_) async => _jsonResponse({
+          'choices': [
+            {
+              'message': {'role': 'assistant', 'content': 'Ecco la risposta!'},
+            },
+          ],
+        }),
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      const tools = [
+        LlmToolDefinition(
+          name: 'search_catalog',
+          description: 'Search',
+          parameters: {'type': 'object', 'properties': {}},
+        ),
+      ];
+
+      final proxyDs = DeepSeekHttpDatasource(
+        dio: dio,
+        readConfig: () => const DeepSeekEndpointConfig(
+          proxyBaseUrl: 'https://ask.sonora.workers.dev',
+          installId: 'install_1234567890',
+        ),
+      );
+      await proxyDs.completeChat(
+        action: AskActionKind.chat,
+        messages: const [LlmChatMessage(role: 'user', content: 'hi')],
+        tools: tools,
+        toolChoice: 'none',
+      );
+      expect(adapter.captured.last.data!['toolChoice'], 'none');
+
+      final byokDs = DeepSeekHttpDatasource(
+        dio: dio,
+        readConfig: () => const DeepSeekEndpointConfig(byokApiKey: 'sk-key'),
+      );
+      await byokDs.completeChat(
+        action: AskActionKind.chat,
+        messages: const [LlmChatMessage(role: 'user', content: 'hi')],
+        tools: tools,
+        toolChoice: 'none',
+      );
+      expect(adapter.captured.last.data!['tool_choice'], 'none');
+    });
+
+    test('parseAndStripDsml extracts raw <｜｜DSML｜｜ calls> invokes and prevents tag leak when toolChoice=none', () async {
+      const leakedDsml = '''Perfetto, controllo subito:
+<｜｜DSML｜｜ calls>
+<｜｜DSML｜｜ invoke name="search_catalog">
+<｜｜DSML｜｜ parameter name="limit" string="false">3</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="query" string="true">Kehlani After Hours</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="type" string="true">songs</｜｜DSML｜｜ parameter>
+</｜｜DSML｜｜ invoke>
+<｜｜DSML｜｜ invoke name="search_catalog">
+<｜｜DSML｜｜ parameter name="limit" string="false">3</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="query" string="true">Sevyn Streeter Before I Do</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="type" string="true">songs</｜｜DSML｜｜ parameter>
+</｜｜DSML｜｜ invoke>
+<｜｜DSML｜｜ invoke name="search_catalog">
+<｜｜DSML｜｜ parameter name="limit" string="false">3</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="query" string="true">Mariah the Scientist Spread Thin</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="type" string="true">songs</｜｜DSML｜｜ parameter>
+</｜｜DSML｜｜ invoke>
+<｜｜DSML｜｜ invoke name="search_catalog">
+<｜｜DSML｜｜ parameter name="limit" string="false">3</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="query" string="true">Alex Isley Holding On</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="type" string="true">songs</｜｜DSML｜｜ parameter>
+</｜｜DSML｜｜ invoke>
+<｜｜DSML｜｜ invoke name="search_catalog">
+<｜｜DSML｜｜ parameter name="limit" string="false">3</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="query" string="true">Tiana Major9 Collide</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="type" string="true">songs</｜｜DSML｜｜ parameter>
+</｜｜DSML｜｜ invoke>
+<｜｜DSML｜｜ invoke name="search_catalog">
+<｜｜DSML｜｜ parameter name="limit" string="false">3</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="query" string="true">Charlotte Day Wilson Work</｜｜DSML｜｜ parameter>
+<｜｜DSML｜｜ parameter name="type" string="true">songs</｜｜DSML｜｜ parameter>
+</｜｜DSML｜｜ invoke>
+</｜｜DSML｜｜ calls>''';
+
+      final parsed = parseAndStripDsml(leakedDsml);
+      expect(parsed.cleanContent, 'Perfetto, controllo subito:');
+      expect(parsed.toolCalls, hasLength(6));
+      expect(parsed.toolCalls.first.name, 'search_catalog');
+      expect(parsed.toolCalls.first.arguments, {
+        'limit': 3,
+        'query': 'Kehlani After Hours',
+        'type': 'songs',
+      });
+      expect(
+        parsed.toolCalls.last.arguments['query'],
+        'Charlotte Day Wilson Work',
+      );
+
+      final adapter = _StubAdapter(
+        (_) async => _jsonResponse({
+          'choices': [
+            {
+              'message': {'role': 'assistant', 'content': leakedDsml},
+            },
+          ],
+        }),
+      );
+      final ds = DeepSeekHttpDatasource(
+        dio: Dio()..httpClientAdapter = adapter,
+        readConfig: () => const DeepSeekEndpointConfig(byokApiKey: 'sk-key'),
+      );
+
+      final autoRes = await ds.completeChat(
+        action: AskActionKind.chat,
+        messages: const [LlmChatMessage(role: 'user', content: 'espandi')],
+      );
+      expect(autoRes.toolCalls, hasLength(6));
+      expect(autoRes.content, 'Perfetto, controllo subito:');
+
+      final noneRes = await ds.completeChat(
+        action: AskActionKind.chat,
+        messages: const [LlmChatMessage(role: 'user', content: 'riepiloga')],
+        toolChoice: 'none',
+      );
+      expect(noneRes.toolCalls, isEmpty);
+      expect(noneRes.content, 'Perfetto, controllo subito:');
+    });
+
+    test(
+      'deduplicates repeated and empty tool_calls IDs within a response',
+      () async {
+        final adapter = _StubAdapter(
+          (_) async => _jsonResponse({
+            'choices': [
+              {
+                'message': {
+                  'role': 'assistant',
+                  'content': '',
+                  'tool_calls': [
+                    {
+                      'id': 'dup_id',
+                      'type': 'function',
+                      'function': {
+                        'name': 'search_catalog',
+                        'arguments': '{"query":"a"}',
+                      },
+                    },
+                    {
+                      'id': 'dup_id',
+                      'type': 'function',
+                      'function': {
+                        'name': 'search_catalog',
+                        'arguments': '{"query":"b"}',
+                      },
+                    },
+                    {
+                      'id': '',
+                      'type': 'function',
+                      'function': {
+                        'name': 'get_now_playing',
+                        'arguments': '{}',
+                      },
+                    },
+                    {
+                      'id': 'call_2',
+                      'type': 'function',
+                      'function': {
+                        'name': 'get_taste_profile',
+                        'arguments': '{}',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        );
+        final ds = DeepSeekHttpDatasource(
+          dio: Dio()..httpClientAdapter = adapter,
+          readConfig: () => const DeepSeekEndpointConfig(byokApiKey: 'sk-key'),
+        );
+
+        final res = await ds.completeChat(
+          action: AskActionKind.chat,
+          messages: const [LlmChatMessage(role: 'user', content: 'ciao')],
+        );
+
+        expect(res.toolCalls, hasLength(4));
+        final ids = res.toolCalls.map((c) => c.id).toList();
+        expect(ids.toSet(), hasLength(4));
+        expect(ids, everyElement(isNotEmpty));
+      },
+    );
   });
 
   group('extractGroundedSources DeepSeek extensions', () {

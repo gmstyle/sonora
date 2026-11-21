@@ -31,6 +31,7 @@ class _FakeSpotifyBatchRepo implements LlmChatRepository {
     String? systemInstruction,
     String locale = 'en',
     List<LlmToolDefinition> tools = const [],
+    String? toolChoice,
     bool enableWebSearch = false,
     bool jsonMode = false,
     int maxOutputTokens = 900,
