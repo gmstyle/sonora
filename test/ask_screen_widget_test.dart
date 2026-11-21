@@ -253,7 +253,8 @@ void main() {
         storage: dropsRepo,
       );
 
-      expect(find.text(l10n.askHubTitle), findsAtLeastNWidgets(1));
+      expect(find.text(l10n.askHubTitle), findsOneWidget);
+      expect(find.text(l10n.askWelcomeTitle), findsOneWidget);
       expect(find.byType(AskGuidedActions), findsOneWidget);
       expect(find.byType(AskDropsSection), findsOneWidget);
       expect(find.byType(AskComposer), findsOneWidget);

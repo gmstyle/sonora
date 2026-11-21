@@ -495,10 +495,12 @@ class _AskConversationBody extends ConsumerWidget {
                     children: [
                       Icon(LucideIcons.sparkles, color: cs.primary, size: 24),
                       const SizedBox(width: 10),
-                      Text(
-                        l10n.askHubTitle,
-                        style: tt.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Text(
+                          l10n.askWelcomeTitle,
+                          style: tt.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],

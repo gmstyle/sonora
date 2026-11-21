@@ -2643,7 +2643,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get askHubTitle => 'Sonora Ask';
 
   @override
-  String get askHubSubtitle => 'Il tuo assistente musicale basato su DeepSeek';
+  String get askWelcomeTitle => 'Che vibe cerchi oggi?';
+
+  @override
+  String get askHubSubtitle =>
+      'Dimmi che atmosfera vuoi, un artista che ti gira in testa o lascia che dia un\'occhiata ai tuoi ascolti per creare mix, scoperte e playlist su misura.';
 
   @override
   String get askNewChat => 'Nuova chat';
@@ -2662,7 +2666,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get askComposerHint =>
-      'Chiedi un mix, nuovi artisti, playlist o curiosità…';
+      'Chiedimi un mix per la serata, artisti simili o idee per una playlist…';
 
   @override
   String get askSend => 'Invia';
@@ -2683,7 +2687,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get askDropsEmpty =>
-      'Ascolta ancora qualche brano: Ask preparerà qui spunti su misura.';
+      'Ascolta ancora qualche brano e qui troverai spunti e scoperte fresche sui tuoi gusti.';
 
   @override
   String get askGuidedHeader => 'Azioni rapide';
@@ -2693,28 +2697,28 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get askGuidedMixPrompt =>
-      'Crea un mix da 15 brani adatto ai miei gusti e al momento.';
+      'Fammi un mix da 15 brani in linea con quello che sto ascoltando in questo periodo.';
 
   @override
   String get askGuidedDiscoverTitle => 'Scopri nuovi artisti';
 
   @override
   String get askGuidedDiscoverPrompt =>
-      'Consigliami 5 artisti simili a quello che sto ascoltando ultimamente.';
+      'Fammi scoprire 5 artisti che potrebbero piacermi partendo dai miei ultimi ascolti.';
 
   @override
   String get askGuidedPlaylistTitle => 'Crea una playlist';
 
   @override
   String get askGuidedPlaylistPrompt =>
-      'Proponi una playlist di brani che posso rivedere e salvare in libreria.';
+      'Butta giù una bella playlist sui miei gusti, così la rivedo e decido se salvarla in libreria.';
 
   @override
-  String get askGuidedTasteTitle => 'Analizza i miei gusti';
+  String get askGuidedTasteTitle => 'Leggi i miei gusti';
 
   @override
   String get askGuidedTastePrompt =>
-      'Analizza i miei ascolti recenti e i miei artisti preferiti.';
+      'Dai un\'occhiata ai miei ascolti recenti e agli artisti più ascoltati e raccontami che profilo musicale ne esce.';
 
   @override
   String get askActionPlay => 'Riproduci';
@@ -2758,7 +2762,8 @@ class AppLocalizationsIt extends AppLocalizations {
   String get askSourcesLabel => 'Fonti';
 
   @override
-  String get askErrorOffline => 'Sei offline. Riconnettiti per usare Ask.';
+  String get askErrorOffline =>
+      'Sei offline. Riconnettiti per fare due chiacchiere con Ask.';
 
   @override
   String get askErrorNotConfigured =>
@@ -2766,11 +2771,12 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String askErrorQuotaExceeded(int limit) {
-    return 'Limite giornaliero ($limit crediti) raggiunto. Aggiungi una chiave personale DeepSeek nelle Impostazioni o riprova domani.';
+    return 'Hai finito i $limit crediti di oggi. Puoi aggiungere una chiave personale nelle Impostazioni oppure riprovare domani.';
   }
 
   @override
-  String get askErrorFailed => 'Ask non è riuscito a rispondere ora. Riprova.';
+  String get askErrorFailed =>
+      'Non sono riuscito a rispondere al volo — riprova tra un attimo.';
 
   @override
   String get askOpenSettings => 'Apri impostazioni Ask';
@@ -2779,5 +2785,5 @@ class AppLocalizationsIt extends AppLocalizations {
   String get askOpenFromSearch => 'Chiedi ad Ask';
 
   @override
-  String get askThinkingStatus => 'Sto consultando libreria e catalogo…';
+  String get askThinkingStatus => 'Spulcio la tua libreria e il catalogo…';
 }

@@ -9,13 +9,14 @@ const kPulseDropSystemInstruction = '''
 You generate a short proactive music discovery card for a Sonora user.
 Reply with ONLY a single JSON object:
 {
-  "title": "string (max 55 chars, catchy & personal)",
-  "body": "string (max 140 chars, references only the provided facts)",
+  "title": "string (max 55 chars, catchy, warm & informal)",
+  "body": "string (max 140 chars, casual music-friend tone using only the provided facts; informal 'tu' in Italian)",
   "starterPrompt": "string (max 120 chars, natural first-person prompt for Sonora Ask)"
 }
 Rules:
 - Mention ONLY artists or songs present in the user facts.
 - Never invent IDs, URLs, or facts.
+- Never mention AI, models, or DeepSeek.
 ''';
 
 /// Inspects local listening patterns (heavy rotation, forgotten favorites,

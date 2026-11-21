@@ -2629,8 +2629,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askHubTitle => 'Sonora Ask';
 
   @override
+  String get askWelcomeTitle => 'What\'s the vibe today?';
+
+  @override
   String get askHubSubtitle =>
-      'Your music & catalog companion powered by DeepSeek';
+      'Tell me your mood, an artist stuck in your head, or let me dig through your library for mixes, hidden gems, and playlists.';
 
   @override
   String get askNewChat => 'New chat';
@@ -2649,7 +2652,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askComposerHint =>
-      'Ask about mixes, artists, playlists, or moods…';
+      'Ask for a late-night mix, similar artists, or playlist ideas…';
 
   @override
   String get askSend => 'Send';
@@ -2670,38 +2673,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askDropsEmpty =>
-      'Listen a bit more — Ask will prepare tailored highlights here.';
+      'Spin a few more tracks and I\'ll drop fresh music picks for you right here.';
 
   @override
   String get askGuidedHeader => 'Quick actions';
 
   @override
-  String get askGuidedMixTitle => 'Mix for right now';
+  String get askGuidedMixTitle => 'Mix for this vibe';
 
   @override
   String get askGuidedMixPrompt =>
-      'Build a 15-track mix based on my current taste and mood right now.';
+      'Put together a 15-track mix that matches my recent listening vibe right now.';
 
   @override
-  String get askGuidedDiscoverTitle => 'Discover new artists';
+  String get askGuidedDiscoverTitle => 'Find new artists';
 
   @override
   String get askGuidedDiscoverPrompt =>
-      'Recommend 5 artists similar to what I have been listening to lately.';
+      'Put me onto 5 artists I\'d probably love based on what I\'ve been spinning lately.';
 
   @override
-  String get askGuidedPlaylistTitle => 'Create a playlist';
+  String get askGuidedPlaylistTitle => 'Build a playlist';
 
   @override
   String get askGuidedPlaylistPrompt =>
-      'Propose a playlist of tracks I can review and save to my library.';
+      'Draft a cool playlist from my taste so I can review it and save it to my library.';
 
   @override
-  String get askGuidedTasteTitle => 'Analyze my taste';
+  String get askGuidedTasteTitle => 'Read my listening vibe';
 
   @override
   String get askGuidedTastePrompt =>
-      'Analyze my recent listening history and top artists.';
+      'Take a look at my recent plays and top artists and tell me what my listening vibe looks like.';
 
   @override
   String get askActionPlay => 'Play';
@@ -2745,7 +2748,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askSourcesLabel => 'Sources';
 
   @override
-  String get askErrorOffline => 'You are offline. Reconnect to chat with Ask.';
+  String get askErrorOffline => 'You\'re offline. Reconnect to chat with Ask.';
 
   @override
   String get askErrorNotConfigured =>
@@ -2753,19 +2756,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String askErrorQuotaExceeded(int limit) {
-    return 'Daily credit limit ($limit) reached. Add a personal DeepSeek key in Settings or try again tomorrow.';
+    return 'Daily limit ($limit credits) reached. Add a personal API key in Settings or come back tomorrow.';
   }
 
   @override
   String get askErrorFailed =>
-      'Ask could not answer right now. Please try again.';
+      'Couldn\'t get a reply right now — try again in a moment.';
 
   @override
   String get askOpenSettings => 'Open Ask settings';
 
   @override
-  String get askOpenFromSearch => 'Ask AI';
+  String get askOpenFromSearch => 'Ask Sonora';
 
   @override
-  String get askThinkingStatus => 'Thinking & checking your catalog…';
+  String get askThinkingStatus => 'Digging through your library & catalog…';
 }

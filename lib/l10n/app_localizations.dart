@@ -4539,10 +4539,16 @@ abstract class AppLocalizations {
   /// **'Sonora Ask'**
   String get askHubTitle;
 
+  /// No description provided for @askWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s the vibe today?'**
+  String get askWelcomeTitle;
+
   /// No description provided for @askHubSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Your music & catalog companion powered by DeepSeek'**
+  /// **'Tell me your mood, an artist stuck in your head, or let me dig through your library for mixes, hidden gems, and playlists.'**
   String get askHubSubtitle;
 
   /// No description provided for @askNewChat.
@@ -4578,7 +4584,7 @@ abstract class AppLocalizations {
   /// No description provided for @askComposerHint.
   ///
   /// In en, this message translates to:
-  /// **'Ask about mixes, artists, playlists, or moods…'**
+  /// **'Ask for a late-night mix, similar artists, or playlist ideas…'**
   String get askComposerHint;
 
   /// No description provided for @askSend.
@@ -4614,7 +4620,7 @@ abstract class AppLocalizations {
   /// No description provided for @askDropsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Listen a bit more — Ask will prepare tailored highlights here.'**
+  /// **'Spin a few more tracks and I\'ll drop fresh music picks for you right here.'**
   String get askDropsEmpty;
 
   /// No description provided for @askGuidedHeader.
@@ -4626,49 +4632,49 @@ abstract class AppLocalizations {
   /// No description provided for @askGuidedMixTitle.
   ///
   /// In en, this message translates to:
-  /// **'Mix for right now'**
+  /// **'Mix for this vibe'**
   String get askGuidedMixTitle;
 
   /// No description provided for @askGuidedMixPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Build a 15-track mix based on my current taste and mood right now.'**
+  /// **'Put together a 15-track mix that matches my recent listening vibe right now.'**
   String get askGuidedMixPrompt;
 
   /// No description provided for @askGuidedDiscoverTitle.
   ///
   /// In en, this message translates to:
-  /// **'Discover new artists'**
+  /// **'Find new artists'**
   String get askGuidedDiscoverTitle;
 
   /// No description provided for @askGuidedDiscoverPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Recommend 5 artists similar to what I have been listening to lately.'**
+  /// **'Put me onto 5 artists I\'d probably love based on what I\'ve been spinning lately.'**
   String get askGuidedDiscoverPrompt;
 
   /// No description provided for @askGuidedPlaylistTitle.
   ///
   /// In en, this message translates to:
-  /// **'Create a playlist'**
+  /// **'Build a playlist'**
   String get askGuidedPlaylistTitle;
 
   /// No description provided for @askGuidedPlaylistPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Propose a playlist of tracks I can review and save to my library.'**
+  /// **'Draft a cool playlist from my taste so I can review it and save it to my library.'**
   String get askGuidedPlaylistPrompt;
 
   /// No description provided for @askGuidedTasteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Analyze my taste'**
+  /// **'Read my listening vibe'**
   String get askGuidedTasteTitle;
 
   /// No description provided for @askGuidedTastePrompt.
   ///
   /// In en, this message translates to:
-  /// **'Analyze my recent listening history and top artists.'**
+  /// **'Take a look at my recent plays and top artists and tell me what my listening vibe looks like.'**
   String get askGuidedTastePrompt;
 
   /// No description provided for @askActionPlay.
@@ -4752,7 +4758,7 @@ abstract class AppLocalizations {
   /// No description provided for @askErrorOffline.
   ///
   /// In en, this message translates to:
-  /// **'You are offline. Reconnect to chat with Ask.'**
+  /// **'You\'re offline. Reconnect to chat with Ask.'**
   String get askErrorOffline;
 
   /// No description provided for @askErrorNotConfigured.
@@ -4764,13 +4770,13 @@ abstract class AppLocalizations {
   /// No description provided for @askErrorQuotaExceeded.
   ///
   /// In en, this message translates to:
-  /// **'Daily credit limit ({limit}) reached. Add a personal DeepSeek key in Settings or try again tomorrow.'**
+  /// **'Daily limit ({limit} credits) reached. Add a personal API key in Settings or come back tomorrow.'**
   String askErrorQuotaExceeded(int limit);
 
   /// No description provided for @askErrorFailed.
   ///
   /// In en, this message translates to:
-  /// **'Ask could not answer right now. Please try again.'**
+  /// **'Couldn\'t get a reply right now — try again in a moment.'**
   String get askErrorFailed;
 
   /// No description provided for @askOpenSettings.
@@ -4782,13 +4788,13 @@ abstract class AppLocalizations {
   /// No description provided for @askOpenFromSearch.
   ///
   /// In en, this message translates to:
-  /// **'Ask AI'**
+  /// **'Ask Sonora'**
   String get askOpenFromSearch;
 
   /// No description provided for @askThinkingStatus.
   ///
   /// In en, this message translates to:
-  /// **'Thinking & checking your catalog…'**
+  /// **'Digging through your library & catalog…'**
   String get askThinkingStatus;
 }
 
