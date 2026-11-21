@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>Sonora</vendor>
+  <vendor_url>https://github.com/gmstyle/sonora</vendor_url>
+  <action id="com.gmstyle.sonora.update">
+    <description>Update Sonora</description>
+    <description xml:lang="it">Aggiorna Sonora</description>
+    <message>Authentication is required to install a Sonora update</message>
+    <message xml:lang="it">Autenticazione richiesta per installare un aggiornamento di Sonora</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/opt/sonora/sonora-updater</annotate>
+  </action>
+</policyconfig>

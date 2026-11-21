@@ -305,6 +305,28 @@ jobs:
           name: release-notes
           path: .
 
+      - name: Generate SHA256SUMS
+        run: |
+          python3 - << 'PY'
+          import hashlib
+          from pathlib import Path
+
+          exts = ('.apk', '.deb', '.rpm', '.tar.gz')
+          files = [
+              p for p in Path('artifacts').rglob('*')
+              if p.is_file() and any(p.name.endswith(ext) for ext in exts)
+          ]
+          files.sort(key=lambda p: p.name)
+          lines = []
+          for p in files:
+              h = hashlib.sha256()
+              with p.open('rb') as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                      h.update(chunk)
+              lines.append(f'{h.hexdigest()}  {p.name}\n')
+          Path('artifacts/SHA256SUMS').write_text(''.join(lines), encoding='utf-8')
+          PY
+
       # Upload the universal APK first so pre-ABI-aware updaters (which take
       # the first .apk asset) get a package that installs on every device.
       # ABI-aware clients ignore order and pick the matching split.
@@ -322,6 +344,7 @@ jobs:
             artifacts/sonora-linux-x64.tar.gz
             artifacts/**/*.deb
             artifacts/**/*.rpm
+            artifacts/SHA256SUMS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

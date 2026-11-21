@@ -769,8 +769,8 @@ To offer a premium, native-feeling user experience on both mobile and wide scree
 | Prepare | Extracts version from `pubspec.yaml`, skips if tag `v{version}+{build}` already exists, writes `release-notes.md` via `scripts/generate_release_notes.py` |
 | Android build | Builds a universal `app-release.apk` plus `--split-per-abi` (`arm64-v8a`, `armeabi-v7a`); signing from `key.properties` (keystore from GitHub secret `KEYSTORE_BASE64`); the x86_64 split is deleted before upload (emulator-only) |
 | Linux build | Installs deps before `build_runner` (`clang`, `cmake`, `ninja`, `pkg-config`, `libgtk-3-dev`, `libx11-dev`, `libxi-dev`, `liblzma-dev`, `libstdc++-12-dev`, `libayatana-appindicator3-dev`, `libmpv-dev`) → `flutter build linux --release` |
-| Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh` |
-| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, three APKs (`app-release.apk` first, then arm64 / armeabi splits) + DEB + RPM attached |
+| Linux packaging | DEB (Debian/Ubuntu) + RPM (Fedora/RHEL) via `packaging/linux/build-packages.sh`, bundling `/opt/sonora/sonora-updater` and Polkit policy `com.gmstyle.sonora.policy` with `root:root` ownership |
+| GitHub Release | Tag `v{version}+{build}`, body from `release-notes.md`, three APKs (`app-release.apk` first, then arm64 / armeabi splits) + tarball + DEB + RPM + `SHA256SUMS` attached |
 | CHANGELOG.md | After the GitHub Release, `scripts/insert_changelog_entry.py` prepends `## [{version}+{build}]` and pushes with `[skip ci]` |
 
 **Flutter version**: 3.47.9 (cached via `subosito/flutter-action`).
@@ -822,7 +822,13 @@ bash packaging/linux/build-packages.sh --format all --skip-build
 
 ### 8.3 In-App Update
 
-`UpdateNotifier` + `CheckForUpdatesUseCase` check the GitHub Releases API (`/releases/latest`). The release `body` is sanitized (`sanitizeReleaseNotes`) to drop Version/Build headers and a Downloads footer, then rendered in the update dialog via `ReleaseNotesView` before the user taps download/install. On Android, the APK is downloaded and installed. On Linux, the release page opens in the browser. Throttle: max 1 check/24h via `SharedPreferences`.
+`UpdateNotifier` + `CheckForUpdatesUseCase` check the GitHub Releases API (`/releases/latest`). The release `body` is sanitized (`sanitizeReleaseNotes`) to drop Version/Build headers and a Downloads footer, then rendered in the unified `UpdateDialog` via `ReleaseNotesView` before the user taps download/install.
+
+- **Android**: selects the APK matching `Build.SUPPORTED_ABIS` (`selectApkAsset`), downloads it to Downloads, and launches the system package installer via `ApkInstaller`.
+- **Linux (`.deb` / `.rpm`)**: `LinuxInstallDetector` checks the package manager owning `Platform.resolvedExecutable` (`rpm -qf` / `dpkg -S` + `dpkg-query`) while excluding sandboxes (Flatpak/Snap) and immutable/read-only roots (`ostree`, `NixOS`, `ro` mounts). `selectLinuxPackageAsset` picks the matching `.deb`/`.rpm` asset, downloads it to a temporary directory under `/tmp`, verifies its SHA-256 digest against `SHA256SUMS`, elevates via `pkexec /opt/sonora/sonora-updater` (using `packaging/linux/com.gmstyle.sonora.policy` for `apt-get`, `dnf` 4/5, `zypper`, or `rpm`), tears down audio/proxy/DB/single-instance/tray state, and spawns a detached watcher that relaunches `/opt/sonora/sonora` once the old PID exits.
+- **Fallback**: portable `.tar.gz`, local dev builds, immutable systems, and unsupported architectures open GitHub Releases in the external browser (`UpdateInstallTarget.manual`).
+
+Throttle: max 1 startup check/24h via `SharedPreferences`.
 
 ### 8.4 Signing
 

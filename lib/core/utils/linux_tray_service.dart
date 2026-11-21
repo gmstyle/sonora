@@ -10,6 +10,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../presentation/features/player/audio_handler.dart';
+import 'linux_single_instance.dart';
 
 class LinuxTrayService {
   static LinuxTrayService? _instance;
@@ -212,6 +213,7 @@ class LinuxTrayService {
     if (_audioHandler != null) {
       await _audioHandler!.stop();
     }
+    await LinuxSingleInstance.dispose();
     closeWindowForQuit();
   }
 

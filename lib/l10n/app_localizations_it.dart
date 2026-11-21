@@ -1458,10 +1458,38 @@ class AppLocalizationsIt extends AppLocalizations {
   String get downloadingUpdate => 'Scaricamento aggiornamento…';
 
   @override
+  String get verifyingUpdate => 'Verifica dell\'aggiornamento…';
+
+  @override
+  String get installingUpdate => 'Installazione aggiornamento…';
+
+  @override
+  String get installingUpdateAuthHint =>
+      'Inserisci la password di amministratore quando richiesto.';
+
+  @override
+  String get restartingApp => 'Riavvio di Sonora…';
+
+  @override
   String get downloadComplete => 'Download completato';
 
   @override
   String get installUpdate => 'Installa';
+
+  @override
+  String get updateChecksumFailed =>
+      'Impossibile verificare il file scaricato. Riprova.';
+
+  @override
+  String get updateNoAuthAgent =>
+      'Nessun gestore di autenticazione di sistema disponibile. Scarica l\'aggiornamento manualmente da GitHub.';
+
+  @override
+  String get updateInstallFailed =>
+      'Impossibile installare il pacchetto di aggiornamento. Puoi riprovare o scaricarlo manualmente da GitHub.';
+
+  @override
+  String get openGitHubReleases => 'Apri GitHub Releases';
 
   @override
   String get error => 'Errore';

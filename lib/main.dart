@@ -7,13 +7,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'core/constants/app_constants.dart';
@@ -48,6 +45,7 @@ import 'presentation/providers/database_provider.dart';
 import 'presentation/providers/download_notification_service.dart';
 import 'presentation/providers/download_provider.dart';
 import 'presentation/providers/library_repository_provider.dart';
+import 'presentation/providers/linux_update_providers.dart';
 import 'presentation/providers/music_repository_provider.dart';
 import 'presentation/providers/metadata_sync_service.dart';
 import 'presentation/providers/play_video_id_use_case_provider.dart';
@@ -61,7 +59,7 @@ import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/update_notifier.dart';
 import 'presentation/providers/youtube_account_provider.dart';
 import 'presentation/providers/ytmusic_provider.dart';
-import 'presentation/shared/widgets/release_notes_view.dart';
+import 'presentation/shared/widgets/update_dialog.dart';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -231,10 +229,46 @@ Future<void> main() async {
         playVideoIdUseCaseProvider.overrideWithValue(playVideoIdUseCase),
         youtubeSessionStoreProvider.overrideWithValue(youtubeSessionStore),
         isAndroidTvProvider.overrideWithValue(isAndroidTv),
+        if (isLinux)
+          linuxAppShutdownProvider.overrideWithValue(
+            () => _shutdownLinuxForRestart(
+              handler: handler,
+              proxyServer: proxyServer,
+              youtubeSessionStore: youtubeSessionStore,
+              ytmusicDs: ytmusicDs,
+              db: db,
+            ),
+          ),
       ],
       child: const SonoraApp(),
     ),
   );
+}
+
+Future<void> _shutdownLinuxForRestart({
+  required SonoraAudioHandler handler,
+  required LocalAudioProxyServer proxyServer,
+  required YoutubeSessionStore youtubeSessionStore,
+  required YtmusicDatasource ytmusicDs,
+  required AppDatabase db,
+}) async {
+  Future<void> runStep(String label, FutureOr<void> Function() action) async {
+    try {
+      await Future<void>.sync(action)
+          .timeout(const Duration(milliseconds: 500));
+    } catch (e) {
+      debugPrint('Linux restart shutdown ($label) failed: $e');
+    }
+  }
+
+  await runStep('audio', handler.stop);
+  await runStep('proxy', proxyServer.stop);
+  await runStep(
+    'session',
+    () => youtubeSessionStore.saveFrom(ytmusicDs.client),
+  );
+  await runStep('db', db.close);
+  await runStep('single-instance', LinuxSingleInstance.dispose);
 }
 
 class SonoraApp extends ConsumerStatefulWidget {
@@ -379,7 +413,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
     showDialog(
       context: navContext,
       barrierDismissible: false,
-      builder: (_) => const _StartupUpdateDialog(),
+      builder: (_) => const UpdateDialog(),
     );
   }
 
@@ -492,154 +526,6 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       darkTheme: darkTheme,
       themeMode: isTv ? ThemeMode.dark : themeMode,
     );
-  }
-}
-
-class _StartupUpdateDialog extends ConsumerStatefulWidget {
-  const _StartupUpdateDialog();
-
-  @override
-  ConsumerState<_StartupUpdateDialog> createState() =>
-      _StartupUpdateDialogState();
-}
-
-class _StartupUpdateDialogState extends ConsumerState<_StartupUpdateDialog> {
-  String _localVersion = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _localVersion = 'v${info.version}+${info.buildNumber}';
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(updateProvider);
-    final l10n = AppLocalizations.of(context)!;
-    final notifier = ref.read(updateProvider.notifier);
-
-    return PopScope(
-      canPop:
-          state.status != UpdateStatus.checking &&
-          state.status != UpdateStatus.downloading,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) notifier.reset();
-      },
-      child: AlertDialog(
-        title: Text(_title(state, l10n)),
-        content: _content(state, l10n),
-        actions: _actions(state, l10n, notifier),
-      ),
-    );
-  }
-
-  String _title(UpdateState state, AppLocalizations l10n) {
-    switch (state.status) {
-      case UpdateStatus.downloading:
-        return l10n.downloadingUpdate;
-      case UpdateStatus.downloadComplete:
-        return l10n.updateAvailable;
-      default:
-        return l10n.updateAvailable;
-    }
-  }
-
-  Widget _content(UpdateState state, AppLocalizations l10n) {
-    switch (state.status) {
-      case UpdateStatus.downloading:
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            LinearProgressIndicator(value: state.progress),
-            const SizedBox(height: 12),
-            Text('${(state.progress * 100).toStringAsFixed(0)}%'),
-          ],
-        );
-
-      case UpdateStatus.downloadComplete:
-        return Text(l10n.downloadComplete);
-
-      default:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_localVersion.isNotEmpty)
-              Text(l10n.currentVersion(_localVersion)),
-            Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
-            if (state.result?.changelog.isNotEmpty == true) ...[
-              const SizedBox(height: 16),
-              ReleaseNotesView(changelog: state.result!.changelog),
-            ],
-          ],
-        );
-    }
-  }
-
-  List<Widget> _actions(
-    UpdateState state,
-    AppLocalizations l10n,
-    UpdateNotifier notifier,
-  ) {
-    switch (state.status) {
-      case UpdateStatus.downloading:
-        return [];
-
-      case UpdateStatus.downloadComplete:
-        return [
-          TextButton(
-            onPressed: () {
-              notifier.reset();
-              Navigator.pop(context);
-            },
-            child: Text(l10n.close),
-          ),
-          FilledButton.icon(
-            onPressed: () => notifier.installApk(),
-            icon: const Icon(LucideIcons.smartphone),
-            label: Text(l10n.installUpdate),
-          ),
-        ];
-
-      default:
-        return [
-          TextButton(
-            onPressed: () {
-              notifier.reset();
-              Navigator.pop(context);
-            },
-            child: Text(l10n.close),
-          ),
-          if (isAndroid)
-            FilledButton.icon(
-              onPressed: () => notifier.downloadAndInstall(),
-              icon: const Icon(LucideIcons.download),
-              label: Text(l10n.downloadUpdate),
-            )
-          else
-            FilledButton.icon(
-              onPressed: () {
-                notifier.reset();
-                Navigator.pop(context);
-                launchUrl(
-                  Uri.parse('$kGitHubRepoUrl/releases/latest'),
-                  mode: LaunchMode.externalApplication,
-                );
-              },
-              icon: const Icon(LucideIcons.externalLink),
-              label: Text(l10n.downloadUpdate),
-            ),
-        ];
-    }
   }
 }
 

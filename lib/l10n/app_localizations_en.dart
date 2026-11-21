@@ -1450,10 +1450,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadingUpdate => 'Downloading update…';
 
   @override
+  String get verifyingUpdate => 'Verifying update…';
+
+  @override
+  String get installingUpdate => 'Installing update…';
+
+  @override
+  String get installingUpdateAuthHint =>
+      'Enter your administrator password if prompted.';
+
+  @override
+  String get restartingApp => 'Restarting Sonora…';
+
+  @override
   String get downloadComplete => 'Download complete';
 
   @override
   String get installUpdate => 'Install';
+
+  @override
+  String get updateChecksumFailed =>
+      'The downloaded update file could not be verified. Please try again.';
+
+  @override
+  String get updateNoAuthAgent =>
+      'No system authentication dialog is available. Download the update manually from GitHub.';
+
+  @override
+  String get updateInstallFailed =>
+      'Could not install the update package. You can retry or download it manually from GitHub.';
+
+  @override
+  String get openGitHubReleases => 'Open GitHub Releases';
 
   @override
   String get error => 'Error';

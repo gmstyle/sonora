@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "sonora-updater must run as root" >&2
+  exit 1
+fi
+
+if [ "$#" -ne 2 ]; then
+  echo "Usage: sonora-updater <deb|rpm> <absolute-package-path>" >&2
+  exit 1
+fi
+
+FORMAT="$1"
+PKG_PATH="$2"
+
+case "$FORMAT" in
+  deb|rpm) ;;
+  *)
+    echo "Unsupported package format: $FORMAT" >&2
+    exit 1
+    ;;
+esac
+
+case "$PKG_PATH" in
+  /*) ;;
+  *)
+    echo "Package path must be absolute: $PKG_PATH" >&2
+    exit 1
+    ;;
+esac
+
+if [ -L "$PKG_PATH" ] || [ ! -f "$PKG_PATH" ]; then
+  echo "Invalid package file: $PKG_PATH" >&2
+  exit 1
+fi
+
+case "$PKG_PATH" in
+  *."$FORMAT") ;;
+  *)
+    echo "Package extension does not match format '$FORMAT': $PKG_PATH" >&2
+    exit 1
+    ;;
+esac
+
+# Copy to a root-owned world-readable staging directory before inspecting or
+# installing so TOCTOU swaps and _apt/home-directory permissions cannot fail.
+WORKDIR=$(mktemp -d /tmp/sonora-install.XXXXXX)
+trap 'rm -rf "$WORKDIR"' EXIT
+chmod 755 "$WORKDIR"
+
+STAGED="$WORKDIR/sonora.$FORMAT"
+install -m 644 "$PKG_PATH" "$STAGED"
+
+if [ "$FORMAT" = "deb" ]; then
+  if ! command -v dpkg-deb >/dev/null 2>&1; then
+    echo "dpkg-deb is required to inspect .deb packages" >&2
+    exit 1
+  fi
+  PKG_NAME=$(dpkg-deb -f "$STAGED" Package)
+  if [ "$PKG_NAME" != "sonora" ]; then
+    echo "Refusing unexpected DEB package name: $PKG_NAME" >&2
+    exit 2
+  fi
+
+  export DEBIAN_FRONTEND=noninteractive
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get install -y \
+      -o DPkg::Lock::Timeout=60 \
+      -o Dpkg::Options::=--force-confdef \
+      -o Dpkg::Options::=--force-confold \
+      "$STAGED"
+  else
+    dpkg -i "$STAGED"
+  fi
+else
+  if ! command -v rpm >/dev/null 2>&1; then
+    echo "rpm is required to inspect .rpm packages" >&2
+    exit 1
+  fi
+  PKG_NAME=$(rpm -qp --nosignature --qf '%{NAME}' "$STAGED")
+  if [ "$PKG_NAME" != "sonora" ]; then
+    echo "Refusing unexpected RPM package name: $PKG_NAME" >&2
+    exit 2
+  fi
+
+  if command -v dnf >/dev/null 2>&1; then
+    DNF_HELP=$(dnf install --help 2>&1 || true)
+    case "$DNF_HELP" in
+      *--no-gpgchecks*) GPG_FLAG="--no-gpgchecks" ;;
+      *) GPG_FLAG="--nogpgcheck" ;;
+    esac
+    if ! dnf install -y -C "$GPG_FLAG" "$STAGED"; then
+      dnf install -y "$GPG_FLAG" "$STAGED"
+    fi
+  elif command -v zypper >/dev/null 2>&1; then
+    zypper --non-interactive install --allow-unsigned-rpm "$STAGED"
+  else
+    rpm -Uvh "$STAGED"
+  fi
+fi

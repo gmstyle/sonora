@@ -26,7 +26,7 @@ import '../../providers/youtube_account_provider.dart';
 import '../library/providers/library_provider.dart';
 import '../search/providers/search_provider.dart';
 import '../../shared/widgets/sonora_logo.dart';
-import '../../shared/widgets/release_notes_view.dart';
+import '../../shared/widgets/update_dialog.dart';
 import '../../shared/widgets/youtube_account_button.dart';
 import 'settings_shared.dart';
 import 'providers/settings_category_provider.dart';
@@ -1404,6 +1404,7 @@ class _UpdatesSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isOffline = ref.watch(isOfflineProvider);
     return SettingsSection(
       title: AppLocalizations.of(context)!.updates,
       children: [
@@ -1418,7 +1419,7 @@ class _UpdatesSection extends ConsumerWidget {
         SettingsButtonTile(
           title: AppLocalizations.of(context)!.checkNow,
           icon: LucideIcons.refreshCw,
-          onPressed: () => _checkUpdates(context, ref),
+          onPressed: isOffline ? null : () => _checkUpdates(context, ref),
         ),
       ],
     );
@@ -1434,216 +1435,8 @@ class _UpdatesSection extends ConsumerWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => _UpdateDialog(),
+      builder: (ctx) => const UpdateDialog(),
     );
-  }
-}
-
-class _UpdateDialog extends ConsumerStatefulWidget {
-  @override
-  ConsumerState<_UpdateDialog> createState() => _UpdateDialogState();
-}
-
-class _UpdateDialogState extends ConsumerState<_UpdateDialog> {
-  String _localVersion = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _localVersion = 'v${info.version}+${info.buildNumber}';
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(updateProvider);
-    final l10n = AppLocalizations.of(context)!;
-    final notifier = ref.read(updateProvider.notifier);
-
-    return PopScope(
-      canPop:
-          state.status != UpdateStatus.checking &&
-          state.status != UpdateStatus.downloading,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) notifier.reset();
-      },
-      child: AlertDialog(
-        title: _buildTitle(state, l10n),
-        content: _buildContent(state, l10n),
-        actions: _buildActions(state, l10n, notifier, context),
-      ),
-    );
-  }
-
-  Widget _buildTitle(UpdateState state, AppLocalizations l10n) {
-    switch (state.status) {
-      case UpdateStatus.checking:
-        return Text(l10n.checkingForUpdates);
-      case UpdateStatus.downloading:
-        return Text(l10n.downloadingUpdate);
-      case UpdateStatus.downloadComplete:
-        return Text(l10n.updateAvailable);
-      case UpdateStatus.updateAvailable:
-        return Text(l10n.updateAvailable);
-      case UpdateStatus.noUpdateAvailable:
-        return Text(l10n.upToDate);
-      case UpdateStatus.error:
-        return Text(l10n.error);
-      case UpdateStatus.idle:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _buildContent(UpdateState state, AppLocalizations l10n) {
-    switch (state.status) {
-      case UpdateStatus.checking:
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
-        );
-
-      case UpdateStatus.downloading:
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            LinearProgressIndicator(value: state.progress),
-            const SizedBox(height: 12),
-            Text('${(state.progress * 100).toStringAsFixed(0)}%'),
-          ],
-        );
-
-      case UpdateStatus.downloadComplete:
-        return Text(l10n.downloadComplete);
-
-      case UpdateStatus.updateAvailable:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_localVersion.isNotEmpty)
-              Text(l10n.currentVersion(_localVersion)),
-            Text(l10n.latestVersion(state.result?.latestVersion ?? '')),
-            if (state.result?.changelog.isNotEmpty == true) ...[
-              const SizedBox(height: 16),
-              ReleaseNotesView(changelog: state.result!.changelog),
-            ],
-          ],
-        );
-
-      case UpdateStatus.noUpdateAvailable:
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_localVersion.isNotEmpty)
-              Text(l10n.currentVersion(_localVersion)),
-          ],
-        );
-
-      case UpdateStatus.error:
-        return Text(state.errorMessage ?? l10n.unknownError);
-
-      case UpdateStatus.idle:
-        return const SizedBox.shrink();
-    }
-  }
-
-  List<Widget> _buildActions(
-    UpdateState state,
-    AppLocalizations l10n,
-    UpdateNotifier notifier,
-    BuildContext context,
-  ) {
-    switch (state.status) {
-      case UpdateStatus.checking:
-      case UpdateStatus.downloading:
-        return [];
-
-      case UpdateStatus.downloadComplete:
-        return [
-          TextButton(
-            onPressed: () {
-              notifier.reset();
-              Navigator.pop(context);
-            },
-            child: Text(l10n.close),
-          ),
-          FilledButton.icon(
-            onPressed: () => notifier.installApk(),
-            icon: const Icon(LucideIcons.smartphone),
-            label: Text(l10n.installUpdate),
-          ),
-        ];
-
-      case UpdateStatus.updateAvailable:
-        return [
-          TextButton(
-            onPressed: () {
-              notifier.reset();
-              Navigator.pop(context);
-            },
-            child: Text(l10n.close),
-          ),
-          if (isAndroid)
-            FilledButton.icon(
-              onPressed: () => notifier.downloadAndInstall(),
-              icon: const Icon(LucideIcons.download),
-              label: Text(l10n.downloadUpdate),
-            )
-          else
-            FilledButton.icon(
-              onPressed: () {
-                notifier.reset();
-                Navigator.pop(context);
-                launchUrl(
-                  Uri.parse('$kGitHubRepoUrl/releases/latest'),
-                  mode: LaunchMode.externalApplication,
-                );
-              },
-              icon: const Icon(LucideIcons.externalLink),
-              label: Text(l10n.downloadUpdate),
-            ),
-        ];
-
-      case UpdateStatus.noUpdateAvailable:
-        return [
-          FilledButton(
-            onPressed: () {
-              notifier.reset();
-              Navigator.pop(context);
-            },
-            child: Text(l10n.close),
-          ),
-        ];
-
-      case UpdateStatus.error:
-        return [
-          TextButton(
-            onPressed: () {
-              notifier.reset();
-              Navigator.pop(context);
-            },
-            child: Text(l10n.close),
-          ),
-          if (state.result?.isNewer == true)
-            FilledButton.icon(
-              onPressed: () => notifier.downloadAndInstall(),
-              icon: const Icon(LucideIcons.refreshCw),
-              label: Text(l10n.retry),
-            ),
-        ];
-
-      case UpdateStatus.idle:
-        return [];
-    }
   }
 }
 

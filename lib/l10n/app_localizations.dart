@@ -2428,6 +2428,30 @@ abstract class AppLocalizations {
   /// **'Downloading update…'**
   String get downloadingUpdate;
 
+  /// No description provided for @verifyingUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying update…'**
+  String get verifyingUpdate;
+
+  /// No description provided for @installingUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Installing update…'**
+  String get installingUpdate;
+
+  /// No description provided for @installingUpdateAuthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your administrator password if prompted.'**
+  String get installingUpdateAuthHint;
+
+  /// No description provided for @restartingApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Restarting Sonora…'**
+  String get restartingApp;
+
   /// No description provided for @downloadComplete.
   ///
   /// In en, this message translates to:
@@ -2439,6 +2463,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Install'**
   String get installUpdate;
+
+  /// No description provided for @updateChecksumFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The downloaded update file could not be verified. Please try again.'**
+  String get updateChecksumFailed;
+
+  /// No description provided for @updateNoAuthAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'No system authentication dialog is available. Download the update manually from GitHub.'**
+  String get updateNoAuthAgent;
+
+  /// No description provided for @updateInstallFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not install the update package. You can retry or download it manually from GitHub.'**
+  String get updateInstallFailed;
+
+  /// No description provided for @openGitHubReleases.
+  ///
+  /// In en, this message translates to:
+  /// **'Open GitHub Releases'**
+  String get openGitHubReleases;
 
   /// No description provided for @error.
   ///

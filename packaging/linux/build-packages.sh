@@ -99,6 +99,12 @@ cp "$PROJECT_ROOT/assets/logo_full.png" "$STAGING_DIR/opt/$APP_NAME/sonora.png"
 # Symbolic tray glyph. The panel tints it; do not squash the full logo into it.
 cp "$PROJECT_ROOT/assets/icons/tray/tray_symbolic.png" "$STAGING_DIR/opt/$APP_NAME/tray_icon.png"
 
+# Privileged update helper + Polkit action policy
+install -m 755 "$SCRIPT_DIR/sonora-updater" "$STAGING_DIR/opt/$APP_NAME/sonora-updater"
+mkdir -p "$STAGING_DIR/usr/share/polkit-1/actions"
+install -m 644 "$SCRIPT_DIR/com.gmstyle.sonora.policy" \
+  "$STAGING_DIR/usr/share/polkit-1/actions/$APP_ID.policy"
+
 # Symlink in PATH
 mkdir -p "$STAGING_DIR/usr/bin"
 ln -s "/opt/$APP_NAME/$APP_NAME" "$STAGING_DIR/usr/bin/$APP_NAME"
@@ -155,6 +161,8 @@ if [[ "$FORMAT" == "deb" || "$FORMAT" == "all" ]]; then
     --description "$DESCRIPTION" \
     --url "$HOMEPAGE" \
     --category "audio" \
+    --deb-user root \
+    --deb-group root \
     --depends libgtk-3-0 \
     --depends libayatana-appindicator3-1 \
     --depends libmpv2 \
@@ -182,6 +190,8 @@ if [[ "$FORMAT" == "rpm" || "$FORMAT" == "all" ]]; then
     --description "$DESCRIPTION" \
     --url "$HOMEPAGE" \
     --category "Applications/Multimedia" \
+    --rpm-user root \
+    --rpm-group root \
     --depends "gtk3" \
     --depends "libappindicator-gtk3" \
     --depends "mpv-libs" \
