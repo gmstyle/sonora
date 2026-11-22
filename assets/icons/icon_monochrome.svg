@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Themed icon (API 33+). Same geometry as icon_adaptive_foreground.svg;
+       Android tints the alpha, so the mark is a single flat color. -->
+  <g transform="translate(286.5, 307) scale(2.05)" fill="#FFFFFF">
+    <rect x="0" y="80" width="20" height="120" rx="10" />
+    <rect x="40" y="20" width="20" height="180" rx="10" />
+    <rect x="80" y="0" width="20" height="200" rx="10" />
+    <rect x="120" y="60" width="20" height="140" rx="10" />
+    <rect x="160" y="20" width="20" height="180" rx="10" />
+    <rect x="200" y="80" width="20" height="120" rx="10" />
+  </g>
+</svg>

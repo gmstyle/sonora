@@ -141,12 +141,16 @@ flutter:
 
 flutter_launcher_icons:
   android: "ic_launcher"
-  # Android (< 8.0)
-  image_path_android: "assets/logo_full.png" 
-  
-  # For Android > 8.0 (Adaptive Icons)
-  adaptive_icon_background: "#131429" 
-  adaptive_icon_foreground: "assets/logo_foreground.png" 
+  # Android (< 8.0): full-bleed square, bar mark only.
+  image_path_android: "assets/icons/icon_legacy.png"
+
+  # Android 8.0+ (adaptive icon): bars inside the 66dp safe circle, no wordmark.
+  adaptive_icon_background: "#131429"
+  adaptive_icon_foreground: "assets/icons/icon_adaptive_foreground.png"
+  # Geometry is already baked into the source bitmap.
+  adaptive_icon_foreground_inset: 0
+  # Android 13+ themed icon.
+  adaptive_icon_monochrome: "assets/icons/icon_monochrome.png"
 
 flutter_native_splash:
   color: "#131429"
