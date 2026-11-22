@@ -21,8 +21,10 @@ Future<void> openSonoraWrapped(BuildContext context, WidgetRef ref) async {
   final caps = await ref.read(askCapabilitiesProvider.future);
   if (!context.mounted) return;
 
+  final rootNavigator = Navigator.of(context, rootNavigator: true);
+
   if (!caps.canWrappedNarrative) {
-    await Navigator.of(context).push<void>(
+    await rootNavigator.push<void>(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => SonoraWrappedView(stats: stats),
@@ -31,7 +33,7 @@ Future<void> openSonoraWrapped(BuildContext context, WidgetRef ref) async {
     return;
   }
 
-  await Navigator.of(context).push<void>(
+  await rootNavigator.push<void>(
     MaterialPageRoute(
       fullscreenDialog: true,
       builder: (_) => _WrappedPreparingGate(stats: stats, locale: locale),

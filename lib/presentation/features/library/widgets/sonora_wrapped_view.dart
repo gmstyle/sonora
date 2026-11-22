@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/utils/layout_breakpoints.dart';
 import '../../../../domain/models/wrapped_narrative.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/stats_provider.dart';
@@ -17,7 +20,7 @@ class SonoraWrappedView extends ConsumerStatefulWidget {
   const SonoraWrappedView({super.key, required this.stats});
 
   static Future<void> show(BuildContext context, StatsState stats) {
-    return Navigator.of(context).push(
+    return Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (context) => SonoraWrappedView(stats: stats),
@@ -136,122 +139,260 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final size = MediaQuery.sizeOf(context);
+    final compact = isCompactShell(size);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTapDown: _handleTapDown,
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Beautiful animated background gradients
-              _buildBackgroundGradient(),
-
-              // Actual Slide Content
-              Padding(
-                padding: const EdgeInsets.only(
-                  top: 48.0,
-                  left: 24,
-                  right: 24,
-                  bottom: 24,
-                ),
-                child: Center(child: _buildSlideContent(l10n)),
-              ),
-
-              // Progress bars at the top
-              Positioned(
-                top: 16,
-                left: 16,
-                right: 16,
-                child: Row(
-                  children: List.generate(_totalSlides, (index) {
-                    double slideProgress = 0.0;
-                    if (index < _currentSlide) {
-                      slideProgress = 1.0;
-                    } else if (index == _currentSlide) {
-                      slideProgress = _progress;
-                    }
-
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: LinearProgressIndicator(
-                            value: slideProgress,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.25,
-                            ),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                            minHeight: 4,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-
-              // Exit button
-              Positioned(
-                top: 24,
-                right: 16,
-                child: IconButton(
-                  icon: const Icon(
-                    LucideIcons.x,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black.withValues(alpha: 0.4),
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevSlide,
+        const SingleActivator(LogicalKeyboardKey.arrowRight): _nextSlide,
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            Navigator.of(context).pop(),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: _storyBackdropBase(scheme),
+          body: compact
+              ? _buildCompactStory(context, l10n, scheme)
+              : _buildDesktopStory(context, l10n, scheme, size),
         ),
       ),
     );
   }
 
-  Widget _buildBackgroundGradient() {
-    final List<Color> colors;
+  Widget _buildCompactStory(
+    BuildContext context,
+    AppLocalizations l10n,
+    ColorScheme scheme,
+  ) {
+    return GestureDetector(
+      onTapDown: _handleTapDown,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(child: _buildBackgroundSurface(scheme)),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildStoryHeader(context, l10n),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: _buildSlideContent(l10n),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopStory(
+    BuildContext context,
+    AppLocalizations l10n,
+    ColorScheme scheme,
+    Size size,
+  ) {
+    final accent = _slideAccent(scheme);
+    final backdropColor = Color.lerp(_storyBackdropBase(scheme), accent, 0.06)!;
+    final cardHeight = math.min(size.height * 0.86, 760.0);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Positioned.fill(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 600),
+            color: backdropColor,
+          ),
+        ),
+        SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Visibility(
+                    visible: _currentSlide > 0,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: _DesktopNavButton(
+                      icon: LucideIcons.chevronLeft,
+                      onPressed: _prevSlide,
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: 460,
+                      maxHeight: cardHeight,
+                    ),
+                    child: GestureDetector(
+                      onTapDown: _handleTapDown,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: scheme.outlineVariant.withValues(
+                              alpha: 0.35,
+                            ),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: scheme.scrim.withValues(alpha: 0.45),
+                              blurRadius: 40,
+                              offset: const Offset(0, 18),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Positioned.fill(
+                                child: _buildBackgroundSurface(scheme),
+                              ),
+                              Column(
+                                children: [
+                                  _buildStoryHeader(context, l10n),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        28,
+                                        8,
+                                        28,
+                                        28,
+                                      ),
+                                      child: Center(
+                                        child: SingleChildScrollView(
+                                          child: _buildSlideContent(l10n),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  _DesktopNavButton(
+                    icon: LucideIcons.chevronRight,
+                    onPressed: _nextSlide,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStoryHeader(BuildContext context, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: List.generate(_totalSlides, (index) {
+              double slideProgress = 0.0;
+              if (index < _currentSlide) {
+                slideProgress = 1.0;
+              } else if (index == _currentSlide) {
+                slideProgress = _progress;
+              }
+
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: slideProgress,
+                      backgroundColor: Colors.white.withValues(alpha: 0.25),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                      minHeight: 3.5,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              icon: const Icon(LucideIcons.x, color: Colors.white, size: 20),
+              tooltip: l10n.close,
+              onPressed: () => Navigator.of(context).pop(),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.black.withValues(alpha: 0.28),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _storyBackdropBase(ColorScheme scheme) =>
+      scheme.brightness == Brightness.dark
+      ? scheme.surfaceContainerLowest
+      : scheme.onSurface;
+
+  Color _storyCardBase(ColorScheme scheme) =>
+      scheme.brightness == Brightness.dark
+      ? scheme.surfaceContainer
+      : Color.lerp(scheme.onSurface, scheme.surface, 0.08)!;
+
+  Color _slideAccent(ColorScheme scheme) {
     switch (_currentKind) {
       case 0:
-        colors = [Colors.deepPurple.shade900, Colors.black];
-        break;
+        return scheme.primary;
       case 1:
-        colors = [Colors.teal.shade900, Colors.black];
-        break;
+        return scheme.secondary;
       case 2:
-        colors = [Colors.pink.shade900, Colors.black];
-        break;
+        return scheme.tertiary;
       case 3:
-        colors = [Colors.indigo.shade900, Colors.black];
-        break;
+        return scheme.primaryContainer;
       case 4:
       case 5:
       case 6:
-        colors = [Colors.cyan.shade900, Colors.black];
-        break;
+        return scheme.secondaryContainer;
       case 7:
       default:
-        colors = [Colors.amber.shade900, Colors.black];
-        break;
+        return scheme.primary;
     }
+  }
+
+  Widget _buildBackgroundSurface(ColorScheme scheme) {
+    final surfaceColor = Color.lerp(
+      _storyCardBase(scheme),
+      _slideAccent(scheme),
+      0.14,
+    )!;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 600),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      color: surfaceColor,
     );
   }
 
@@ -469,9 +610,11 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
         Text(
           topArtist.name,
           textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 36,
+            fontSize: 34,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -632,9 +775,11 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
         Text(
           podcast.name,
           textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 28,
+            fontSize: 26,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -683,15 +828,21 @@ class _SonoraWrappedViewState extends ConsumerState<SonoraWrappedView>
         Text(
           episode.title,
           textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 26,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
+            height: 1.25,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           episode.artist,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(color: Colors.white70, fontSize: 16),
         ),
       ],
@@ -971,6 +1122,26 @@ class _AiBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DesktopNavButton extends StatelessWidget {
+  const _DesktopNavButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon, color: scheme.onSurface, size: 24),
+      style: IconButton.styleFrom(
+        backgroundColor: scheme.surfaceContainerHigh.withValues(alpha: 0.72),
+        padding: const EdgeInsets.all(14),
       ),
     );
   }
