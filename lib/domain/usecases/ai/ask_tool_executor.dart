@@ -1379,9 +1379,43 @@ class AskToolExecutor {
     );
   }
 
+  /// Registers a grounded track ref, keeping the richest metadata seen so far.
+  ///
+  /// The same videoId can come from several tools in one turn (now playing,
+  /// history, artist top songs, search). Artist top songs carry no duration,
+  /// artwork or playable flags, so a plain overwrite would downgrade a ref that
+  /// was already registered with full metadata.
   void _registerTrack(AskTrackRef track) {
     if (track.videoId.isEmpty) return;
-    seenTracks[track.videoId] = track;
+    final existing = seenTracks[track.videoId];
+    if (existing == null) {
+      seenTracks[track.videoId] = track;
+      return;
+    }
+
+    final newTitleIsFallback =
+        track.title == track.videoId && existing.title != existing.videoId;
+    final durationSec = switch ((track.durationSec, existing.durationSec)) {
+      (final int d, _) when d > 0 => d,
+      (_, final int d) when d > 0 => d,
+      _ => null,
+    };
+
+    seenTracks[track.videoId] = AskTrackRef(
+      videoId: track.videoId,
+      title: newTitleIsFallback || track.title.isEmpty
+          ? existing.title
+          : track.title,
+      artist: track.artist.isEmpty ? existing.artist : track.artist,
+      artistsJson: track.artistsJson ?? existing.artistsJson,
+      artistId: track.artistId ?? existing.artistId,
+      albumId: track.albumId ?? existing.albumId,
+      albumName: track.albumName ?? existing.albumName,
+      durationSec: durationSec,
+      thumbnailUrl: track.thumbnailUrl ?? existing.thumbnailUrl,
+      isExplicit: track.isExplicit || existing.isExplicit,
+      isVideo: track.isVideo || existing.isVideo,
+    );
   }
 
   Map<String, dynamic> _trackSummary(String videoId) {

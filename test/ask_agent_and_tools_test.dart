@@ -840,6 +840,66 @@ void main() {
       },
     );
 
+    test(
+      'merges a poorer re-registration instead of dropping known metadata',
+      () async {
+        final library = _FakeLibraryRepo()
+          ..history.clear()
+          ..history.add(
+            HistoryModel(
+              id: 9,
+              videoId: 'np_art',
+              title: 'np_art',
+              artist: 'Mazzy Star',
+              playedAt: DateTime(2026, 11, 22),
+              playCount: 1,
+            ),
+          );
+        final executor = AskToolExecutor(
+          libraryRepository: library,
+          musicRepository: _FakeMusicRepo(),
+          readNowPlaying: () => const AskNowPlayingSnapshot(
+            videoId: 'np_art',
+            title: 'Fade Into You',
+            artist: 'Mazzy Star',
+            album: 'So Tonight That I Might See',
+            durationSec: 296,
+            thumbnailUrl: 'https://img.example/np_art.jpg',
+          ),
+        );
+
+        await executor.execute(
+          const AskToolCall(id: 'np', name: 'get_now_playing', arguments: {}),
+        );
+        await executor.execute(
+          const AskToolCall(
+            id: 'hist',
+            name: 'get_listening_history',
+            arguments: {},
+          ),
+        );
+        await executor.execute(
+          const AskToolCall(
+            id: 'present',
+            name: 'present_catalog_items',
+            arguments: {
+              'trackVideoIds': ['np_art'],
+            },
+          ),
+        );
+
+        final track = executor.attachments
+            .whereType<AskTracksAttachment>()
+            .single
+            .tracks
+            .single;
+        expect(track.title, 'Fade Into You');
+        expect(track.durationSec, 296);
+        expect(track.thumbnailUrl, 'https://img.example/np_art.jpg');
+        expect(track.albumName, 'So Tonight That I Might See');
+      },
+    );
+
     test('present_catalog_items validates all entity kinds and rejects unverified IDs', () async {
       final library = _FakeLibraryRepo()
         ..playlists = [
