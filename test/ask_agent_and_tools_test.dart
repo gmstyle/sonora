@@ -796,6 +796,50 @@ void main() {
       );
     });
 
+    test(
+      'get_now_playing carries the player artwork into the Ask track card',
+      () async {
+        final executor = AskToolExecutor(
+          libraryRepository: _FakeLibraryRepo(),
+          musicRepository: _FakeMusicRepo(),
+          readNowPlaying: () => const AskNowPlayingSnapshot(
+            videoId: 'np_art',
+            title: 'Fade Into You',
+            artist: 'Mazzy Star',
+            album: 'So Tonight That I Might See',
+            durationSec: 296,
+            thumbnailUrl: 'https://img.example/np_art.jpg',
+            isExplicit: true,
+          ),
+        );
+
+        final nowPlaying = await executor.execute(
+          const AskToolCall(id: 'np', name: 'get_now_playing', arguments: {}),
+        );
+        expect(nowPlaying.isError, isFalse);
+        expect(jsonDecode(nowPlaying.contentJson)['playing'], isTrue);
+
+        await executor.execute(
+          const AskToolCall(
+            id: 'present',
+            name: 'present_catalog_items',
+            arguments: {
+              'trackVideoIds': ['np_art'],
+            },
+          ),
+        );
+
+        final attachment = executor.attachments
+            .whereType<AskTracksAttachment>()
+            .single;
+        final track = attachment.tracks.single;
+        expect(track.videoId, 'np_art');
+        expect(track.albumName, 'So Tonight That I Might See');
+        expect(track.thumbnailUrl, 'https://img.example/np_art.jpg');
+        expect(track.isExplicit, isTrue);
+      },
+    );
+
     test('present_catalog_items validates all entity kinds and rejects unverified IDs', () async {
       final library = _FakeLibraryRepo()
         ..playlists = [

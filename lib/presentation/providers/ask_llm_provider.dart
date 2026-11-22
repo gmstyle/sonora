@@ -174,6 +174,9 @@ AskToolExecutor createAskToolExecutor(Ref ref) {
         artist: track.artist ?? '',
         album: track.album,
         durationSec: track.duration?.inSeconds,
+        thumbnailUrl: track.artUri?.toString(),
+        isExplicit: track.isExplicit,
+        isVideo: track.isVideo,
         isEpisode: track.isEpisode,
       );
     },

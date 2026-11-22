@@ -17,6 +17,9 @@ class AskNowPlayingSnapshot {
     required this.artist,
     this.album,
     this.durationSec,
+    this.thumbnailUrl,
+    this.isExplicit = false,
+    this.isVideo = false,
     this.isEpisode = false,
   });
 
@@ -25,6 +28,11 @@ class AskNowPlayingSnapshot {
   final String artist;
   final String? album;
   final int? durationSec;
+
+  /// Artwork of the queued track so the Ask card can render it.
+  final String? thumbnailUrl;
+  final bool isExplicit;
+  final bool isVideo;
   final bool isEpisode;
 }
 
@@ -683,7 +691,11 @@ class AskToolExecutor {
         videoId: np.videoId,
         title: np.title,
         artist: np.artist,
+        albumName: np.album,
         durationSec: np.durationSec,
+        thumbnailUrl: np.thumbnailUrl,
+        isExplicit: np.isExplicit,
+        isVideo: np.isVideo,
       ),
     );
     return {
