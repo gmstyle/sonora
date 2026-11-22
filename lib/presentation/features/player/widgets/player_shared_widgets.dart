@@ -49,18 +49,16 @@ Widget buildPlayerBackground(
   bool reduceEffects = false,
   bool dimmed = false,
 }) {
-  final gradientDecoration = BoxDecoration(
-    gradient: LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      stops: const [0.0, 0.55, 1.0],
-      colors: [
-        dominantColor.withValues(alpha: isDark ? 0.85 : 0.94),
-        dominantColor.withValues(alpha: isDark ? 0.65 : 0.80),
-        colorScheme.surfaceContainerHighest.withValues(alpha: 0.97),
-      ],
-    ),
-  );
+  final hsl = HSLColor.fromColor(dominantColor);
+  final deepDominant = hsl
+      .withLightness(hsl.lightness.clamp(0.08, 0.24))
+      .withSaturation((hsl.saturation * 0.85).clamp(0.0, 0.85))
+      .toColor();
+  final uniformTint = Color.lerp(
+    colorScheme.surfaceContainerLowest,
+    deepDominant,
+    0.32,
+  )!.withValues(alpha: isDark ? 0.82 : 0.88);
 
   return Stack(
     fit: StackFit.expand,
@@ -83,71 +81,37 @@ Widget buildPlayerBackground(
                 width: double.infinity,
                 height: double.infinity,
                 alignment: Alignment.center,
-                placeholder: (_, _) => const ColoredBox(color: Colors.black),
+                placeholder: (_, _) =>
+                    ColoredBox(color: colorScheme.surfaceContainerLowest),
                 errorWidget: (_, _, _) =>
-                    const ColoredBox(color: Colors.black87),
+                    ColoredBox(color: colorScheme.surfaceContainerLowest),
               ),
             ),
           ),
         )
       else
-        const ColoredBox(color: Colors.black87),
+        ColoredBox(color: colorScheme.surfaceContainerLowest),
 
-      // Layer 2 — dominant-colour gradient from top to bottom (palette-driven).
-      // Alpha values tuned for readability: strong at top, progressively
-      // lighter toward the bottom where a separate scrim (Layer 4) takes over.
+      // Layer 2 — uniform palette-tinted veil across the whole player (TopBar,
+      // artwork stage, lyrics, and bottom bar share the exact same surface).
       if (reduceEffects)
-        DecoratedBox(decoration: gradientDecoration)
+        ColoredBox(color: uniformTint)
       else
         AnimatedContainer(
           duration: const Duration(milliseconds: 700),
           curve: Curves.easeInOut,
-          decoration: gradientDecoration,
+          color: uniformTint,
         ),
 
-      // Layer 3 — bottom scrim: guarantees a dark base where queue, lyrics
-      // and controls sit, regardless of dominant colour or theme brightness.
-      DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: const [0.0, 0.45, 1.0],
-            colors: [
-              Colors.transparent,
-              Colors.black.withValues(alpha: 0.25),
-              Colors.black.withValues(alpha: 0.55),
-            ],
-          ),
-        ),
-      ),
-
-      // Layer 4 — subtle neutral top scrim so the TopBar stays readable over
-      // bright artwork without introducing a tinted band seam.
-      DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: const [0.0, 0.12, 0.24],
-            colors: [
-              Colors.black.withValues(alpha: 0.42),
-              Colors.black.withValues(alpha: 0.14),
-              Colors.transparent,
-            ],
-          ),
-        ),
-      ),
-
-      // Layer 5 — uniform reading veil when lyrics are open, keeping TopBar,
+      // Layer 3 — uniform reading veil when lyrics are open, keeping TopBar,
       // lyrics, and bottom controls on one continuous surface.
       if (reduceEffects)
-        ColoredBox(color: Colors.black.withValues(alpha: dimmed ? 0.42 : 0.0))
+        ColoredBox(color: Colors.black.withValues(alpha: dimmed ? 0.35 : 0.0))
       else
         AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
-          color: Colors.black.withValues(alpha: dimmed ? 0.42 : 0.0),
+          color: Colors.black.withValues(alpha: dimmed ? 0.35 : 0.0),
         ),
     ],
   );

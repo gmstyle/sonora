@@ -25,9 +25,21 @@ class GlassAppBarBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     if (opacity <= 0.0) return const SizedBox.shrink();
 
-    final surfaceColor = color ?? Theme.of(context).colorScheme.surface;
-    final tint = Container(
-      color: surfaceColor.withValues(alpha: 0.65 * opacity),
+    final theme = Theme.of(context);
+    final surfaceColor = color ?? theme.colorScheme.surface;
+    final tint = DecoratedBox(
+      decoration: BoxDecoration(
+        color: surfaceColor.withValues(alpha: 0.80 * opacity),
+        border: opacity > 0.05
+            ? Border(
+                bottom: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.12 * opacity,
+                  ),
+                ),
+              )
+            : null,
+      ),
     );
     if (!blur) return tint;
 
