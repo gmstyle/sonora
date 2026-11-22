@@ -78,6 +78,7 @@ class EntityShimmer extends StatelessWidget {
           SliverPadding(
             padding: entityBodyPadding(
               contentWidth,
+              bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: size.shortestSide,
             ),
             sliver: SliverToBoxAdapter(

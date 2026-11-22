@@ -30,6 +30,7 @@ double entityHorizontalPadding(
 EdgeInsets entityBodyPadding(
   double contentWidth, {
   double top = 16,
+  double bottomInset = 0,
   double? shellShortestSide,
 }) {
   final horizontal = entityHorizontalPadding(
@@ -43,7 +44,7 @@ EdgeInsets entityBodyPadding(
     horizontal,
     top,
     horizontal,
-    wide ? 48 : kCompactContentPadding,
+    (wide ? 48 : kCompactContentPadding) + bottomInset,
   );
 }
 

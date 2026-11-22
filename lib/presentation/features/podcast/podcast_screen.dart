@@ -247,6 +247,7 @@ class _PodcastContentState extends ConsumerState<_PodcastContent> {
           SliverPadding(
             padding: entityBodyPadding(
               widget.contentWidth,
+              bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
             ),
             sliver: SliverToBoxAdapter(

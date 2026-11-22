@@ -271,6 +271,7 @@ class _ArtistContentState extends ConsumerState<_ArtistContent> {
           SliverPadding(
             padding: entityBodyPadding(
               widget.contentWidth,
+              bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
             ),
             sliver: SliverToBoxAdapter(

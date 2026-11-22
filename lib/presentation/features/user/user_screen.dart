@@ -224,6 +224,7 @@ class _UserContentState extends ConsumerState<_UserContent> {
           SliverPadding(
             padding: entityBodyPadding(
               widget.contentWidth,
+              bottomInset: MediaQuery.paddingOf(context).bottom,
               shellShortestSide: MediaQuery.sizeOf(context).shortestSide,
             ),
             sliver: SliverToBoxAdapter(child: _userBody(user, l10n)),
