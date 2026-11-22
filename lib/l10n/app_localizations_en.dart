@@ -2783,6 +2783,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get askStop => 'Stop';
 
   @override
+  String get askCopyReply => 'Copy reply';
+
+  @override
+  String get askCopied => 'Reply copied';
+
+  @override
+  String get askRegenerate => 'Regenerate';
+
+  @override
+  String get askJumpToLatest => 'Jump to latest';
+
+  @override
   String get askActionRetry => 'Retry';
 
   @override

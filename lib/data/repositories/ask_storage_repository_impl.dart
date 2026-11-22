@@ -80,6 +80,11 @@ class AskStorageRepositoryImpl implements AskStorageRepository {
   }
 
   @override
+  Future<void> deleteMessage(String messageId) {
+    return _dao.deleteMessage(messageId);
+  }
+
+  @override
   Future<void> updateMessageAttachments(
     String messageId,
     List<AskAttachment> attachments,

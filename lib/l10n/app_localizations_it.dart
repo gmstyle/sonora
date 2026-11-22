@@ -2795,6 +2795,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get askStop => 'Interrompi';
 
   @override
+  String get askCopyReply => 'Copia risposta';
+
+  @override
+  String get askCopied => 'Risposta copiata';
+
+  @override
+  String get askRegenerate => 'Rigenera';
+
+  @override
+  String get askJumpToLatest => 'Vai all\'ultimo messaggio';
+
+  @override
   String get askActionRetry => 'Riprova';
 
   @override

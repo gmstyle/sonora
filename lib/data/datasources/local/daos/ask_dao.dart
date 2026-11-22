@@ -66,6 +66,10 @@ class AskDao extends DatabaseAccessor<AppDatabase> {
     );
   }
 
+  Future<void> deleteMessage(String messageId) {
+    return (delete(db.askMessages)..where((t) => t.id.equals(messageId))).go();
+  }
+
   Stream<List<AskProactiveDropRow>> watchActiveDrops() {
     return (select(db.askProactiveDrops)
           ..where((t) => t.dismissedAt.isNull())

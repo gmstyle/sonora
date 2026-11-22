@@ -10,6 +10,7 @@ abstract class AskStorageRepository {
   Stream<List<AskChatMessage>> watchMessages(String conversationId);
   Future<List<AskChatMessage>> getMessages(String conversationId);
   Future<void> insertMessage(AskChatMessage message);
+  Future<void> deleteMessage(String messageId);
   Future<void> updateMessageAttachments(
     String messageId,
     List<AskAttachment> attachments,

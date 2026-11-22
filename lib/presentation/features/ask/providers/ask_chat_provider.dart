@@ -21,6 +21,9 @@ class AskChatState {
     this.progressPhase,
     this.retryPrompt,
     this.retryMessageId,
+    this.pendingPrompt,
+    this.pendingUserMessageId,
+    this.pendingConversationId,
   });
 
   final String? activeConversationId;
@@ -30,6 +33,15 @@ class AskChatState {
   final AskProgressPhase? progressPhase;
   final String? retryPrompt;
   final String? retryMessageId;
+
+  /// Prompt of the in-flight turn, restored in the composer when stopped.
+  final String? pendingPrompt;
+
+  /// User message persisted by the in-flight turn, removed when stopped.
+  final String? pendingUserMessageId;
+
+  /// Conversation the in-flight turn belongs to.
+  final String? pendingConversationId;
 
   bool get canRetry => errorKind != null && retryPrompt != null && !isSending;
 
@@ -45,6 +57,10 @@ class AskChatState {
     String? retryPrompt,
     String? retryMessageId,
     bool clearRetry = false,
+    String? pendingPrompt,
+    String? pendingUserMessageId,
+    String? pendingConversationId,
+    bool clearPending = false,
   }) {
     return AskChatState(
       activeConversationId: clearConversation
@@ -60,6 +76,15 @@ class AskChatState {
       retryMessageId: clearRetry
           ? null
           : (retryMessageId ?? this.retryMessageId),
+      pendingPrompt: clearPending
+          ? null
+          : (pendingPrompt ?? this.pendingPrompt),
+      pendingUserMessageId: clearPending
+          ? null
+          : (pendingUserMessageId ?? this.pendingUserMessageId),
+      pendingConversationId: clearPending
+          ? null
+          : (pendingConversationId ?? this.pendingConversationId),
     );
   }
 }
@@ -84,6 +109,7 @@ class AskChatNotifier extends Notifier<AskChatState> {
       clearProgress: true,
       clearError: true,
       clearRetry: true,
+      clearPending: true,
     );
   }
 
@@ -95,6 +121,7 @@ class AskChatNotifier extends Notifier<AskChatState> {
       clearProgress: true,
       clearError: true,
       clearRetry: true,
+      clearPending: true,
     );
   }
 
@@ -102,10 +129,41 @@ class AskChatNotifier extends Notifier<AskChatState> {
     state = state.copyWith(enableWebSearch: !state.enableWebSearch);
   }
 
-  void cancelActiveRequest() {
-    if (!state.isSending) return;
+  /// Stops the in-flight turn, drops the user message it persisted and returns
+  /// the prompt to restore in the composer. A conversation created by the
+  /// stopped turn is removed too, so it never leaves an empty chat in history.
+  Future<String?> cancelActiveRequest() async {
+    if (!state.isSending) return null;
+    final prompt = state.pendingPrompt;
+    final userMessageId = state.pendingUserMessageId;
+    final conversationId = state.pendingConversationId;
     _activeRequestId++;
-    state = state.copyWith(isSending: false, clearProgress: true);
+    state = state.copyWith(
+      isSending: false,
+      clearProgress: true,
+      clearError: true,
+      clearRetry: true,
+      clearPending: true,
+    );
+
+    final storage = ref.read(askStorageRepositoryProvider);
+    try {
+      if (userMessageId != null) {
+        await storage.deleteMessage(userMessageId);
+      }
+      if (conversationId != null) {
+        final remaining = await storage.getMessages(conversationId);
+        if (remaining.isEmpty) {
+          await storage.deleteConversation(conversationId);
+          if (state.activeConversationId == conversationId) {
+            state = state.copyWith(clearConversation: true);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Sonora Ask cancelled turn cleanup failed: $e');
+    }
+    return prompt;
   }
 
   void clearError() {
@@ -125,6 +183,7 @@ class AskChatNotifier extends Notifier<AskChatState> {
         clearProgress: true,
         clearError: true,
         clearRetry: true,
+        clearPending: true,
       );
     }
   }
@@ -138,6 +197,7 @@ class AskChatNotifier extends Notifier<AskChatState> {
       clearProgress: true,
       clearError: true,
       clearRetry: true,
+      clearPending: true,
     );
   }
 
@@ -222,6 +282,8 @@ class AskChatNotifier extends Notifier<AskChatState> {
       text: text,
       history: history,
       locale: locale,
+      pendingUserMessageId: userMsgId,
+      pendingPrompt: text,
     );
   }
 
@@ -244,6 +306,48 @@ class AskChatNotifier extends Notifier<AskChatState> {
       text: prompt,
       history: history,
       locale: locale,
+      pendingUserMessageId: retryMsgId,
+      pendingPrompt: prompt,
+    );
+  }
+
+  /// Replaces the last assistant answer (or a trailing user message left by a
+  /// stopped regeneration) with a fresh turn using the same prompt.
+  Future<void> regenerateLastReply({required String locale}) async {
+    final convId = state.activeConversationId;
+    if (convId == null || state.isSending) return;
+    if (!await _ensurePreflightReady()) return;
+
+    final storage = ref.read(askStorageRepositoryProvider);
+    final messages = await storage.getMessages(convId);
+    if (messages.isEmpty) return;
+
+    final last = messages.last;
+    final String prompt;
+    final String? userMessageId;
+    final List<AskChatMessage> history;
+    if (last.isUser) {
+      prompt = last.content.trim();
+      userMessageId = last.id;
+      history = messages.where((m) => m.id != last.id).toList(growable: false);
+    } else {
+      if (messages.length < 2 || !messages[messages.length - 2].isUser) return;
+      final userMessage = messages[messages.length - 2];
+      prompt = userMessage.content.trim();
+      userMessageId = userMessage.id;
+      history = messages
+          .where((m) => m.id != userMessage.id && m.id != last.id)
+          .toList(growable: false);
+      await storage.deleteMessage(last.id);
+    }
+    if (prompt.isEmpty) return;
+
+    await _executeAgentTurn(
+      convId: convId,
+      userMessageId: userMessageId,
+      text: prompt,
+      history: history,
+      locale: locale,
     );
   }
 
@@ -253,6 +357,8 @@ class AskChatNotifier extends Notifier<AskChatState> {
     required String text,
     required List<AskChatMessage> history,
     required String locale,
+    String? pendingUserMessageId,
+    String? pendingPrompt,
   }) async {
     final storage = ref.read(askStorageRepositoryProvider);
     final requestId = ++_activeRequestId;
@@ -261,7 +367,15 @@ class AskChatNotifier extends Notifier<AskChatState> {
       progressPhase: AskProgressPhase.thinking,
       clearError: true,
       clearRetry: true,
+      clearPending: true,
     );
+    if (pendingUserMessageId != null || pendingPrompt != null) {
+      state = state.copyWith(
+        pendingUserMessageId: pendingUserMessageId,
+        pendingPrompt: pendingPrompt,
+        pendingConversationId: convId,
+      );
+    }
 
     try {
       final result = await ref
@@ -297,6 +411,7 @@ class AskChatNotifier extends Notifier<AskChatState> {
         state = state.copyWith(
           isSending: false,
           clearProgress: true,
+          clearPending: true,
           errorKind: AskUiErrorKind.failed,
           retryPrompt: text,
           retryMessageId: userMessageId,
@@ -305,9 +420,10 @@ class AskChatNotifier extends Notifier<AskChatState> {
       }
 
       final assistantTime = DateTime.now();
+      final assistantMessageId = _newId('msg');
       await storage.insertMessage(
         AskChatMessage(
-          id: _newId('msg'),
+          id: assistantMessageId,
           conversationId: convId,
           role: 'assistant',
           content: result.assistantText,
@@ -316,6 +432,13 @@ class AskChatNotifier extends Notifier<AskChatState> {
           createdAt: assistantTime,
         ),
       );
+
+      // The turn was stopped while the reply was being written: drop it so a
+      // cancelled turn can never leave an orphan assistant message behind.
+      if (_activeRequestId != requestId) {
+        await storage.deleteMessage(assistantMessageId);
+        return;
+      }
 
       final convs = await storage.getConversations();
       final current = convs.cast<AskConversationSummary?>().firstWhere(
@@ -339,16 +462,22 @@ class AskChatNotifier extends Notifier<AskChatState> {
         clearProgress: true,
         clearError: true,
         clearRetry: true,
+        clearPending: true,
       );
     } on AskCancelledException {
       if (_activeRequestId == requestId) {
-        state = state.copyWith(isSending: false, clearProgress: true);
+        state = state.copyWith(
+          isSending: false,
+          clearProgress: true,
+          clearPending: true,
+        );
       }
     } on AskQuotaExceededException {
       if (_activeRequestId != requestId) return;
       state = state.copyWith(
         isSending: false,
         clearProgress: true,
+        clearPending: true,
         errorKind: AskUiErrorKind.quotaExceeded,
         retryPrompt: text,
         retryMessageId: userMessageId,
@@ -358,6 +487,7 @@ class AskChatNotifier extends Notifier<AskChatState> {
       state = state.copyWith(
         isSending: false,
         clearProgress: true,
+        clearPending: true,
         errorKind: AskUiErrorKind.notConfigured,
         retryPrompt: text,
         retryMessageId: userMessageId,
@@ -368,6 +498,7 @@ class AskChatNotifier extends Notifier<AskChatState> {
       state = state.copyWith(
         isSending: false,
         clearProgress: true,
+        clearPending: true,
         errorKind: AskUiErrorKind.failed,
         retryPrompt: text,
         retryMessageId: userMessageId,

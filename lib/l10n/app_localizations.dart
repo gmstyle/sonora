@@ -4821,6 +4821,30 @@ abstract class AppLocalizations {
   /// **'Stop'**
   String get askStop;
 
+  /// No description provided for @askCopyReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy reply'**
+  String get askCopyReply;
+
+  /// No description provided for @askCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply copied'**
+  String get askCopied;
+
+  /// No description provided for @askRegenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate'**
+  String get askRegenerate;
+
+  /// No description provided for @askJumpToLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to latest'**
+  String get askJumpToLatest;
+
   /// No description provided for @askActionRetry.
   ///
   /// In en, this message translates to:

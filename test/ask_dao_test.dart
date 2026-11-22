@@ -128,6 +128,49 @@ void main() {
       },
     );
 
+    test(
+      'deleteMessage removes a single turn and keeps the conversation',
+      () async {
+        final t = DateTime(2026, 11, 22);
+        await repo.upsertConversation(
+          AskConversationSummary(
+            id: 'conv_stop',
+            title: 'Stopped turn',
+            createdAt: t,
+            updatedAt: t,
+          ),
+        );
+        await repo.insertMessage(
+          AskChatMessage(
+            id: 'm_user',
+            conversationId: 'conv_stop',
+            role: 'user',
+            content: 'Mix notturno',
+            createdAt: t,
+          ),
+        );
+        await repo.insertMessage(
+          AskChatMessage(
+            id: 'm_assistant',
+            conversationId: 'conv_stop',
+            role: 'assistant',
+            content: 'Eccolo',
+            createdAt: t,
+          ),
+        );
+
+        await repo.deleteMessage('m_user');
+        expect((await repo.getMessages('conv_stop')).map((m) => m.id), [
+          'm_assistant',
+        ]);
+        expect(await repo.getConversations(), hasLength(1));
+
+        await repo.deleteMessage('m_assistant');
+        expect(await repo.getMessages('conv_stop'), isEmpty);
+        expect(await repo.getConversations(), hasLength(1));
+      },
+    );
+
     test('persists proactive Pulse Drops and hides dismissed ones', () async {
       await repo.upsertDrop(
         AskProactiveDrop(

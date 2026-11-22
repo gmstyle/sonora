@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
@@ -24,6 +25,12 @@ import 'widgets/ask_guided_actions.dart';
 import 'widgets/ask_guided_sheets.dart';
 import 'widgets/ask_rich_cards.dart';
 
+/// Reading measure for the conversation column on tablet and wide layouts.
+const double _kConversationMaxWidth = 760;
+
+/// Distance from the bottom below which new content keeps the view pinned.
+const double _kNearBottomTolerance = 160;
+
 class AskScreen extends ConsumerStatefulWidget {
   const AskScreen({super.key, this.initialPrompt, this.initialDropId});
 
@@ -37,12 +44,16 @@ class AskScreen extends ConsumerStatefulWidget {
 class _AskScreenState extends ConsumerState<AskScreen> {
   final TextEditingController _composerController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _composerFocusNode = FocusNode();
+  bool _showJumpToLatest = false;
   String? _lastHandledPrompt;
   String? _lastHandledDropId;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_handleScroll);
+    HardwareKeyboard.instance.addHandler(_handleEscape);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(ref.read(askQuotaProvider.notifier).refresh());
@@ -109,20 +120,65 @@ class _AskScreenState extends ConsumerState<AskScreen> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleEscape);
+    _scrollController.removeListener(_handleScroll);
     _composerController.dispose();
     _scrollController.dispose();
+    _composerFocusNode.dispose();
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  bool _handleEscape(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.escape) {
+      return false;
+    }
+    if (!ref.read(askChatProvider).isSending) return false;
+    unawaited(_stopActiveRequest());
+    return true;
+  }
+
+  bool get _isNearBottom {
+    if (!_scrollController.hasClients) return true;
+    final position = _scrollController.position;
+    return position.maxScrollExtent - position.pixels <= _kNearBottomTolerance;
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final show =
+        position.maxScrollExtent - position.pixels > _kNearBottomTolerance;
+    if (show != _showJumpToLatest) {
+      setState(() => _showJumpToLatest = show);
+    }
+  }
+
+  void _scrollToBottom({bool force = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
+      if (!force && !_isNearBottom) {
+        _handleScroll();
+        return;
+      }
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
       );
     });
+  }
+
+  Future<void> _stopActiveRequest() async {
+    final prompt = await ref
+        .read(askChatProvider.notifier)
+        .cancelActiveRequest();
+    if (!mounted || prompt == null || prompt.isEmpty) return;
+    _composerController.value = TextEditingValue(
+      text: prompt,
+      selection: TextSelection.collapsed(offset: prompt.length),
+    );
+    _composerFocusNode.requestFocus();
   }
 
   Future<void> _sendPrompt([String? overrideText]) async {
@@ -133,13 +189,13 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     }
     final locale = Localizations.localeOf(context).languageCode;
     await ref.read(askChatProvider.notifier).sendMessage(text, locale: locale);
-    if (mounted) _scrollToBottom();
+    if (mounted) _scrollToBottom(force: true);
   }
 
   Future<void> _retryLastFailed() async {
     final locale = Localizations.localeOf(context).languageCode;
     await ref.read(askChatProvider.notifier).retryLastFailed(locale: locale);
-    if (mounted) _scrollToBottom();
+    if (mounted) _scrollToBottom(force: true);
   }
 
   void _reportErrorBanner(AskChatState chatState) {
@@ -209,8 +265,14 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     final showUtility = size.width >= kWideContentBreakpoint;
 
     ref.listen<AskChatState>(askChatProvider, (prev, next) {
-      if (prev?.isSending != next.isSending ||
-          prev?.activeConversationId != next.activeConversationId) {
+      if (prev?.activeConversationId != next.activeConversationId) {
+        if (_showJumpToLatest) {
+          setState(() => _showJumpToLatest = false);
+        }
+        _scrollToBottom(force: true);
+      } else if (prev != null && !prev.isSending && next.isSending) {
+        _scrollToBottom(force: true);
+      } else if (prev != null && prev.isSending && !next.isSending) {
         _scrollToBottom();
       }
       if (next.errorKind != null && prev?.errorKind != next.errorKind) {
@@ -230,31 +292,46 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     final chatColumn = Column(
       children: [
         Expanded(
-          child: _AskConversationBody(
-            conversationId: chatState.activeConversationId,
-            scrollController: _scrollController,
-            isSending: chatState.isSending,
-            progressPhase: chatState.progressPhase,
-            canUseAsk: canUseAsk,
-            showDropsAndActionsInBody: isCompact || !showUtility,
-            onSelectPrompt: (prompt) => _sendPrompt(prompt),
-            onOpenMixBuilder: _openMixBuilder,
-            onOpenExpandPlaylist: _openExpandPlaylist,
-            onOpenDrop: (drop) => ref
-                .read(askChatProvider.notifier)
-                .openDrop(drop, locale: locale),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _AskConversationBody(
+                conversationId: chatState.activeConversationId,
+                scrollController: _scrollController,
+                isSending: chatState.isSending,
+                progressPhase: chatState.progressPhase,
+                canUseAsk: canUseAsk,
+                showDropsAndActionsInBody: isCompact || !showUtility,
+                onSelectPrompt: (prompt) => _sendPrompt(prompt),
+                onOpenMixBuilder: _openMixBuilder,
+                onOpenExpandPlaylist: _openExpandPlaylist,
+                onOpenDrop: (drop) => ref
+                    .read(askChatProvider.notifier)
+                    .openDrop(drop, locale: locale),
+              ),
+              if (_showJumpToLatest)
+                Positioned(
+                  right: 16,
+                  bottom: 12,
+                  child: IconButton.filledTonal(
+                    tooltip: l10n.askJumpToLatest,
+                    onPressed: () => _scrollToBottom(force: true),
+                    icon: const Icon(LucideIcons.arrowDown, size: 20),
+                  ),
+                ),
+            ],
           ),
         ),
         AskComposer(
           controller: _composerController,
+          focusNode: _composerFocusNode,
           enabled: canUseAsk,
           isSending: chatState.isSending,
           enableWebSearch: chatState.enableWebSearch,
           onToggleWebSearch: () =>
               ref.read(askChatProvider.notifier).toggleWebSearch(),
           onSubmit: () => _sendPrompt(),
-          onStop: () =>
-              ref.read(askChatProvider.notifier).cancelActiveRequest(),
+          onStop: () => unawaited(_stopActiveRequest()),
         ),
       ],
     );
@@ -646,42 +723,52 @@ class _AskConversationBody extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text(l10n.askErrorFailed)),
       data: (messages) {
-        return ListView.builder(
-          controller: scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          itemCount: messages.length + (isSending ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= messages.length) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  children: [
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _progressLabelFor(progressPhase, l10n),
-                        style: tt.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontal = constraints.maxWidth > _kConversationMaxWidth
+                ? (constraints.maxWidth - _kConversationMaxWidth) / 2
+                : 16.0;
+            return ListView.builder(
+              key: const ValueKey('askConversationList'),
+              controller: scrollController,
+              padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 12),
+              itemCount: messages.length + (isSending ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= messages.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _progressLabelFor(progressPhase, l10n),
+                            style: tt.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            }
-            final message = messages[index];
-            final showFollowUps =
-                !isSending && index == messages.length - 1 && !message.isUser;
-            return _MessageBubble(
-              message: message,
-              showFollowUps: showFollowUps,
-              followUpsEnabled: canUseAsk && !isSending,
-              onSelectFollowUp: onSelectPrompt,
+                  );
+                }
+                final message = messages[index];
+                final isLast = index == messages.length - 1;
+                final showFollowUps = !isSending && isLast && !message.isUser;
+                return _MessageBubble(
+                  message: message,
+                  isLastMessage: isLast,
+                  showFollowUps: showFollowUps,
+                  followUpsEnabled: canUseAsk && !isSending,
+                  regenerateEnabled: canUseAsk && !isSending,
+                  onSelectFollowUp: onSelectPrompt,
+                );
+              },
             );
           },
         );
@@ -701,105 +788,143 @@ String _progressLabelFor(AskProgressPhase? phase, AppLocalizations l10n) =>
       AskProgressPhase.thinking || null => l10n.askThinkingStatus,
     };
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends ConsumerWidget {
   const _MessageBubble({
     required this.message,
+    this.isLastMessage = false,
     this.showFollowUps = false,
     this.followUpsEnabled = false,
+    this.regenerateEnabled = false,
     this.onSelectFollowUp,
   });
 
   final AskChatMessage message;
+  final bool isLastMessage;
   final bool showFollowUps;
   final bool followUpsEnabled;
+  final bool regenerateEnabled;
   final ValueChanged<String>? onSelectFollowUp;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
     if (message.isUser) {
       return Align(
         alignment: Alignment.centerRight,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 560),
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: cs.primaryContainer,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            message.content,
-            style: tt.bodyMedium?.copyWith(color: cs.onPrimaryContainer),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              key: const ValueKey('askUserBubble'),
+              constraints: const BoxConstraints(maxWidth: 560),
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                message.content,
+                style: tt.bodyMedium?.copyWith(color: cs.onSurface),
+              ),
+            ),
+            // A stopped regeneration leaves the prompt without an answer:
+            // keep regeneration reachable instead of leaving a dead end.
+            if (isLastMessage && regenerateEnabled)
+              _AskMessageActions(onRegenerate: () => _regenerate(context, ref)),
+          ],
         ),
       );
     }
 
+    final hasText = message.content.trim().isNotEmpty;
     return Align(
       alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (message.content.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          key: const ValueKey('askAssistantMessage'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (hasText)
+              SelectionArea(
+                child: GptMarkdown(
+                  message.content,
+                  isStreaming: false,
+                  useDollarSignsForLatex: false,
+                  followLinkColor: true,
+                  style: tt.bodyLarge?.copyWith(
+                    color: cs.onSurface,
+                    height: 1.55,
                   ),
-                  child: SelectionArea(
-                    child: GptMarkdown(
-                      message.content,
-                      isStreaming: false,
-                      useDollarSignsForLatex: false,
-                      followLinkColor: true,
-                      style: tt.bodyMedium?.copyWith(color: cs.onSurface),
-                      styleSheet: GptMarkdownStyleSheet(
-                        link: LinkStyle(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        heading: const HeadingStyle(
-                          textStyle: TextStyle(fontWeight: FontWeight.w700),
-                          showDivider: false,
-                        ),
-                        blockQuote: BlockQuoteStyle(
-                          barWidth: 3,
-                          barColor: cs.primary,
-                          barRadius: const Radius.circular(2),
-                          backgroundColor: cs.surfaceContainerHighest
-                              .withValues(alpha: 0.45),
-                          padding: const EdgeInsetsDirectional.fromSTEB(
-                            12,
-                            6,
-                            10,
-                            6,
-                          ),
-                        ),
+                  styleSheet: GptMarkdownStyleSheet(
+                    link: LinkStyle(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    heading: const HeadingStyle(
+                      textStyle: TextStyle(fontWeight: FontWeight.w700),
+                      showDivider: false,
+                    ),
+                    blockQuote: BlockQuoteStyle(
+                      barWidth: 3,
+                      barColor: cs.primary,
+                      barRadius: const Radius.circular(2),
+                      backgroundColor: cs.surfaceContainerHighest.withValues(
+                        alpha: 0.45,
                       ),
-                      onLinkTap: (url, _) => unawaited(_openMarkdownLink(url)),
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        12,
+                        6,
+                        10,
+                        6,
+                      ),
                     ),
                   ),
+                  onLinkTap: (url, _) => unawaited(_openMarkdownLink(url)),
                 ),
-              AskRichAttachments(message: message),
-              if (showFollowUps && onSelectFollowUp != null)
-                AskFollowUpChips(
-                  message: message,
-                  enabled: followUpsEnabled,
-                  onSelectPrompt: onSelectFollowUp!,
-                ),
-            ],
-          ),
+              ),
+            AskRichAttachments(message: message),
+            if (hasText || (isLastMessage && regenerateEnabled))
+              _AskMessageActions(
+                onCopy: hasText ? () => _copy(context, ref) : null,
+                onRegenerate: isLastMessage && regenerateEnabled
+                    ? () => _regenerate(context, ref)
+                    : null,
+              ),
+            if (showFollowUps && onSelectFollowUp != null)
+              AskFollowUpChips(
+                message: message,
+                enabled: followUpsEnabled,
+                onSelectPrompt: onSelectFollowUp!,
+              ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _copy(BuildContext context, WidgetRef ref) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: message.content));
+    } catch (e) {
+      debugPrint('Failed to copy Ask reply: $e');
+      return;
+    }
+    if (!context.mounted) return;
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(AppLocalizations.of(context)!.askCopied);
+  }
+
+  Future<void> _regenerate(BuildContext context, WidgetRef ref) async {
+    final locale = Localizations.localeOf(context).languageCode;
+    await ref
+        .read(askChatProvider.notifier)
+        .regenerateLastReply(locale: locale);
   }
 
   Future<void> _openMarkdownLink(String rawUrl) async {
@@ -810,6 +935,50 @@ class _MessageBubble extends StatelessWidget {
     } catch (e) {
       debugPrint('Failed to launch markdown link ($rawUrl): $e');
     }
+  }
+}
+
+class _AskMessageActions extends StatelessWidget {
+  const _AskMessageActions({this.onCopy, this.onRegenerate});
+
+  final VoidCallback? onCopy;
+  final VoidCallback? onRegenerate;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final style = IconButton.styleFrom(
+      minimumSize: const Size(32, 32),
+      padding: EdgeInsets.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onCopy != null)
+            IconButton(
+              tooltip: l10n.askCopyReply,
+              onPressed: onCopy,
+              style: style,
+              visualDensity: VisualDensity.compact,
+              color: cs.onSurfaceVariant,
+              icon: const Icon(LucideIcons.copy, size: 16),
+            ),
+          if (onRegenerate != null)
+            IconButton(
+              tooltip: l10n.askRegenerate,
+              onPressed: onRegenerate,
+              style: style,
+              visualDensity: VisualDensity.compact,
+              color: cs.onSurfaceVariant,
+              icon: const Icon(LucideIcons.refreshCw, size: 16),
+            ),
+        ],
+      ),
+    );
   }
 }
 

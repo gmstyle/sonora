@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -198,6 +199,33 @@ class _FakeAskStorageRepo extends Fake implements AskStorageRepository {
     _messagesByConv.clear();
     if (!_convCtrl.isClosed) {
       _convCtrl.add(const []);
+    }
+  }
+
+  @override
+  Future<void> deleteConversation(String conversationId) async {
+    _conversations.removeWhere((c) => c.id == conversationId);
+    _messagesByConv.remove(conversationId);
+    if (!_convCtrl.isClosed) {
+      _convCtrl.add(List.unmodifiable(_conversations));
+    }
+    final ctrl = _msgController(conversationId);
+    if (!ctrl.isClosed) {
+      ctrl.add(const []);
+    }
+  }
+
+  @override
+  Future<void> deleteMessage(String messageId) async {
+    for (final entry in _messagesByConv.entries) {
+      final before = entry.value.length;
+      entry.value.removeWhere((m) => m.id == messageId);
+      if (entry.value.length == before) continue;
+      final ctrl = _msgController(entry.key);
+      if (!ctrl.isClosed) {
+        ctrl.add(List.unmodifiable(entry.value));
+      }
+      return;
     }
   }
 
@@ -1035,6 +1063,7 @@ void main() {
 
       expect(find.text(l10n.askProgressSearchingCatalog), findsOneWidget);
       expect(find.byTooltip(l10n.askStop), findsOneWidget);
+      final convId = (await storage.getConversations()).single.id;
 
       await tester.tap(find.byTooltip(l10n.askStop));
       await tester.pump();
@@ -1046,12 +1075,301 @@ void main() {
       expect(find.byTooltip(l10n.askStop), findsNothing);
       expect(find.text(l10n.askErrorFailed), findsNothing);
       expect(find.text('Should not appear'), findsNothing);
-      final convId = (await storage.getConversations()).single.id;
-      final msgs = storage.messagesFor(convId);
-      expect(msgs.where((m) => m.isUser), hasLength(1));
-      expect(msgs.where((m) => !m.isUser), isEmpty);
+      expect(await storage.getConversations(), isEmpty);
+      expect(storage.messagesFor(convId), isEmpty);
+      final composer = tester.widget<TextField>(find.byType(TextField));
+      expect(composer.controller!.text, 'Mix per la sera');
     },
   );
+
+  testWidgets(
+    'Stop on a follow-up keeps the conversation and restores the prompt',
+    (tester) async {
+      final round1Completer = Completer<LlmChatResponse>();
+      final chatRepo = _CallbackChatRepo((callIdx, messages) {
+        if (callIdx == 0) {
+          return Future.value(
+            const LlmChatResponse(
+              toolCalls: [
+                AskToolCall(
+                  id: 'tc_1',
+                  name: 'search_catalog',
+                  arguments: {'query': 'M83', 'type': 'songs'},
+                ),
+              ],
+            ),
+          );
+        }
+        return round1Completer.future;
+      });
+      final storage = _FakeAskStorageRepo(
+        conversations: [
+          AskConversationSummary(
+            id: 'conv_keep',
+            title: 'Existing chat',
+            createdAt: DateTime(2026, 11, 21),
+            updatedAt: DateTime(2026, 11, 21),
+          ),
+        ],
+        messagesByConv: {
+          'conv_keep': [
+            AskChatMessage(
+              id: 'u0',
+              conversationId: 'conv_keep',
+              role: 'user',
+              content: 'Ciao',
+              createdAt: DateTime(2026, 11, 21, 10),
+            ),
+            AskChatMessage(
+              id: 'a0',
+              conversationId: 'conv_keep',
+              role: 'assistant',
+              content: 'Eccomi',
+              createdAt: DateTime(2026, 11, 21, 10, 1),
+            ),
+          ],
+        },
+      );
+      addTearDown(storage.dispose);
+
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(1680, 900),
+        storage: storage,
+        chatRepo: chatRepo,
+      );
+
+      await tester.tap(find.text('Existing chat'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Ancora un mix');
+      await tester.tap(find.byIcon(LucideIcons.arrowUp));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byTooltip(l10n.askStop), findsOneWidget);
+      await tester.tap(find.byTooltip(l10n.askStop));
+      await tester.pump();
+      round1Completer.complete(
+        const LlmChatResponse(content: 'Risposta scartata'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Risposta scartata'), findsNothing);
+      expect(await storage.getConversations(), hasLength(1));
+      expect(storage.messagesFor('conv_keep').map((m) => m.id), ['u0', 'a0']);
+      final composer = tester.widget<TextField>(find.byType(TextField));
+      expect(composer.controller!.text, 'Ancora un mix');
+    },
+  );
+
+  testWidgets('Copy reply puts the assistant text on the clipboard', (
+    tester,
+  ) async {
+    final clipboardCalls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') clipboardCalls.add(call);
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    final storage = _FakeAskStorageRepo(
+      conversations: [
+        AskConversationSummary(
+          id: 'conv_copy',
+          title: 'Copy Chat',
+          createdAt: DateTime(2026, 11, 21),
+          updatedAt: DateTime(2026, 11, 21),
+        ),
+      ],
+      messagesByConv: {
+        'conv_copy': [
+          AskChatMessage(
+            id: 'm1',
+            conversationId: 'conv_copy',
+            role: 'assistant',
+            content: 'Ascolta questo mix',
+            createdAt: DateTime(2026, 11, 21),
+          ),
+        ],
+      },
+    );
+    addTearDown(storage.dispose);
+
+    final l10n = await _pumpAskScreen(
+      tester,
+      size: const Size(1680, 900),
+      storage: storage,
+    );
+    await tester.tap(find.text('Copy Chat'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip(l10n.askCopyReply));
+    await tester.pumpAndSettle();
+
+    expect(clipboardCalls, hasLength(1));
+    expect(
+      (clipboardCalls.single.arguments as Map)['text'],
+      'Ascolta questo mix',
+    );
+    expect(find.text(l10n.askCopied), findsOneWidget);
+    FeedbackToast.dismiss();
+    await tester.pump();
+  });
+
+  testWidgets('Regenerate replaces the last assistant reply', (tester) async {
+    final chatRepo = _CallbackChatRepo(
+      (_, _) async => const LlmChatResponse(content: 'Risposta nuova'),
+    );
+    final storage = _FakeAskStorageRepo(
+      conversations: [
+        AskConversationSummary(
+          id: 'conv_regen',
+          title: 'Regen Chat',
+          createdAt: DateTime(2026, 11, 21),
+          updatedAt: DateTime(2026, 11, 21),
+        ),
+      ],
+      messagesByConv: {
+        'conv_regen': [
+          AskChatMessage(
+            id: 'u1',
+            conversationId: 'conv_regen',
+            role: 'user',
+            content: 'Rigenera questa risposta',
+            createdAt: DateTime(2026, 11, 21, 10),
+          ),
+          AskChatMessage(
+            id: 'a1',
+            conversationId: 'conv_regen',
+            role: 'assistant',
+            content: 'Risposta vecchia',
+            createdAt: DateTime(2026, 11, 21, 10, 1),
+          ),
+        ],
+      },
+    );
+    addTearDown(storage.dispose);
+
+    final l10n = await _pumpAskScreen(
+      tester,
+      size: const Size(1680, 900),
+      storage: storage,
+      chatRepo: chatRepo,
+    );
+    await tester.tap(find.text('Regen Chat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Risposta vecchia'), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.askRegenerate));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Risposta nuova'), findsOneWidget);
+    expect(find.text('Risposta vecchia'), findsNothing);
+    final messages = storage.messagesFor('conv_regen');
+    expect(messages.where((m) => m.isUser), hasLength(1));
+    expect(messages.where((m) => !m.isUser), hasLength(1));
+  });
+
+  testWidgets(
+    'Escape stops an in-flight turn and restores the prompt in the composer',
+    (tester) async {
+      final round1Completer = Completer<LlmChatResponse>();
+      final chatRepo = _CallbackChatRepo((callIdx, messages) {
+        if (callIdx == 0) {
+          return Future.value(
+            const LlmChatResponse(
+              toolCalls: [
+                AskToolCall(
+                  id: 'tc_1',
+                  name: 'search_catalog',
+                  arguments: {'query': 'M83', 'type': 'songs'},
+                ),
+              ],
+            ),
+          );
+        }
+        return round1Completer.future;
+      });
+      final storage = _FakeAskStorageRepo();
+      addTearDown(storage.dispose);
+
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(400, 800),
+        storage: storage,
+        chatRepo: chatRepo,
+      );
+
+      await tester.enterText(find.byType(TextField), 'Mix notturno');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.byTooltip(l10n.askStop), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      round1Completer.complete(
+        const LlmChatResponse(content: 'Risposta scartata'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(l10n.askStop), findsNothing);
+      expect(find.text('Risposta scartata'), findsNothing);
+      final composer = tester.widget<TextField>(find.byType(TextField));
+      expect(composer.controller!.text, 'Mix notturno');
+    },
+  );
+
+  testWidgets('Conversation keeps a centered reading column on wide layouts', (
+    tester,
+  ) async {
+    final storage = _FakeAskStorageRepo(
+      conversations: [
+        AskConversationSummary(
+          id: 'conv_layout',
+          title: 'Layout Chat',
+          createdAt: DateTime(2026, 11, 21),
+          updatedAt: DateTime(2026, 11, 21),
+        ),
+      ],
+      messagesByConv: {
+        'conv_layout': [
+          AskChatMessage(
+            id: 'm_layout',
+            conversationId: 'conv_layout',
+            role: 'assistant',
+            content: 'Risposta in colonna',
+            createdAt: DateTime(2026, 11, 21),
+          ),
+        ],
+      },
+    );
+    addTearDown(storage.dispose);
+
+    await _pumpAskScreen(tester, size: const Size(1680, 900), storage: storage);
+    await tester.tap(find.text('Layout Chat'));
+    await tester.pumpAndSettle();
+
+    final list = tester.widget<ListView>(
+      find.byKey(const ValueKey('askConversationList')),
+    );
+    final padding = list.padding! as EdgeInsets;
+    expect(padding.left, greaterThan(16));
+    expect(padding.right, padding.left);
+    final assistant = tester.getRect(
+      find.byKey(const ValueKey('askAssistantMessage')),
+    );
+    expect(assistant.width, lessThanOrEqualTo(760));
+  });
 
   testWidgets(
     'Retry button on failure retries without duplicating persisted user message',

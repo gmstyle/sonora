@@ -13,6 +13,7 @@ class AskComposer extends StatelessWidget {
     required this.onToggleWebSearch,
     required this.onSubmit,
     this.onStop,
+    this.focusNode,
   });
 
   final TextEditingController controller;
@@ -22,6 +23,7 @@ class AskComposer extends StatelessWidget {
   final VoidCallback onToggleWebSearch;
   final VoidCallback onSubmit;
   final VoidCallback? onStop;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +46,7 @@ class AskComposer extends StatelessWidget {
                   Expanded(
                     child: TextField(
                       controller: controller,
+                      focusNode: focusNode,
                       enabled: enabled && !isSending,
                       minLines: 1,
                       maxLines: 4,
