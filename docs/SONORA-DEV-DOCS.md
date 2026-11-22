@@ -1482,6 +1482,66 @@ Sonora Ask provides an integrated, music-scoped conversational hub at `/ask` alo
 - **Proactive Pulse Drops & Local Notifications ([`EvaluateProactiveDropsUseCase`](../lib/domain/usecases/ai/evaluate_proactive_drops_use_case.dart), [`AskNotificationService`](../lib/presentation/providers/ask_notification_service.dart))**:
   - `_SonoraAppState` evaluates signals (`heavy_rotation`, `forgotten_favorites`, `taste_discovery`) in the background once every 24h when online, `askDropsEnabled && askUseTasteContext`, and `!isAndroidTv`, respecting a 48h active-drop cooldown. When enabled, new drops post a local notification (`kAskDropPayloadPrefix` → `/ask?dropId=...`).
 
+### 24.1 Ask Turn Call Flow & Component Interaction
+
+The diagram below traces a single Sonora Ask turn from any UI entry point through the agent loop, tool execution, LLM transport, persistence, and Safe Write confirmation:
+
+```text
+Entry points (SearchOpenAskButton, openAskFromContextMenu, AskGuidedActions,
+              AskDropsSection, AskFollowUpChips, AskComposer)
+  │
+  ▼  (/ask?prompt=... starts a fresh chat via _consumeInitialArgs)
+AskScreen
+  │  sendMessage(text, locale) / retryLastFailed(locale)
+  ▼
+AskChatNotifier  ──────────────────────────────────────────────────────┐
+  │ 1. Preflight (isOfflineProvider, askCapabilitiesProvider)          │
+  │ 2. Upsert conversation & user AskChatMessage                       │
+  │    ──► AskStorageRepository (Drift: ask_conversations/ask_messages)│
+  │ 3. Build AskToolExecutor (LibraryRepo, MusicRepo,                  │
+  │    askUseTasteContext, playerStateProvider snapshot)               │
+  │                                                                    │
+  ▼  execute(userMessage, executor, history, onProgress, isCancelled)  │
+AskAgentUseCase  (1 shared turnId per user turn)                       │
+  │                                                                    │
+  ├──► LlmChatRepository (DeepSeekLlmRepositoryImpl)                   │
+  │      │  onQuotaUpdated ──► AskQuotaNotifier                        │
+  │      ▼                                                             │
+  │    DeepSeekHttpDatasource                                          │
+  │      ├── Proxy mode ─► workers/ask-proxy (/v1/chat, QUOTA_KV,      │
+  │      │                 prompts.ts, 1 credit/turnId) ─► DeepSeek    │
+  │      └── BYOK mode  ─► Direct DeepSeek API (thinking + reasoning   │
+  │                        forwarding when web search + tools combine) │
+  │                                                                    │
+  │◄── toolCalls[] (loop until final answer / wrap-up / Stop cancel)   │
+  │      │                                                             │
+  │      ▼  read-only tools batched (<=4 concurrent);                  │
+  │         emitters & Safe Write proposals sequential                 │
+  │    AskToolExecutor                                                 │
+  │      ├── Drift (LibraryRepository, gated by askUseTasteContext)    │
+  │      └── YTM catalog (MusicRepository)                             │
+  │                                                                    │
+  ▼  AskAgentResult (assistantText, attachments[], sources[], tools[])  │
+AskChatNotifier ◄──────────────────────────────────────────────────────┘
+  │
+  ├── Success ─► Insert assistant AskChatMessage ──► AskStorageRepository
+  │                │
+  │                ▼  askMessagesProvider(convId) stream
+  │              AskScreen renders GptMarkdown + native catalog cards
+  │                │  (SongTile, ArtistCard, AlbumCard, PlaylistCard, …)
+  │                ├── Optional pre-save track trim ─► removeTrackFromAttachment
+  │                └── User taps Confirm & save ─────► ApplyAskPlaylistWriteUseCase
+  │                                                      └─► LibraryRepository (Drift)
+  │
+  ├── Cancelled (Stop) ─► AskCancelledException ─► stop turn, keep user message
+  │
+  └── Error ─► set errorKind + retryPrompt ─► _reportErrorBanner
+                 └─► actionFeedbackProvider ─► ActionFeedbackListener ─► FeedbackToast
+                       (Retry -> retryLastFailed without duplicating user message,
+                        Open settings -> /settings?section=ai,
+                        Close -> clearError)
+```
+
 ---
 
 ## 25. Licensing
