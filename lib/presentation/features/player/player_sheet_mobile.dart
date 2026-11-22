@@ -36,9 +36,6 @@ class PlayerSheetMobile extends ConsumerWidget {
   /// Gap between this card and the navigation bar.
   static const double dockGap = 8;
 
-  /// Space the shell reserves under page content while the card is showing.
-  static const double reservedHeight = height + dockGap;
-
   static const double _artSize = 44;
 
   @override

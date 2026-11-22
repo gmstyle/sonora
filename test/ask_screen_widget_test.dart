@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audio_service/audio_service.dart';
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,10 +19,12 @@ import 'package:sonora/domain/repositories/llm_chat_repository.dart';
 import 'package:sonora/domain/repositories/music_repository.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 import 'package:sonora/presentation/features/ask/ask_screen.dart';
+import 'package:sonora/presentation/features/ask/providers/ask_chat_provider.dart';
 import 'package:sonora/presentation/features/ask/widgets/ask_composer.dart';
 import 'package:sonora/presentation/features/ask/widgets/ask_drops_section.dart';
 import 'package:sonora/presentation/features/ask/widgets/ask_follow_up_chips.dart';
 import 'package:sonora/presentation/features/ask/widgets/ask_guided_actions.dart';
+import 'package:sonora/presentation/features/player/player_sheet_mobile.dart';
 import 'package:sonora/presentation/features/tv/layouts/tv_shell.dart';
 import 'package:sonora/presentation/features/tv/tv_metrics.dart';
 import 'package:sonora/presentation/providers/android_tv_provider.dart';
@@ -32,7 +35,9 @@ import 'package:sonora/presentation/providers/download_provider.dart';
 import 'package:sonora/presentation/providers/library_repository_provider.dart';
 import 'package:sonora/presentation/providers/music_repository_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
+import 'package:sonora/presentation/providers/playlist_import_job_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
+import 'package:sonora/presentation/shared/layouts/mobile_shell.dart';
 import 'package:sonora/presentation/shared/widgets/action_feedback_listener.dart';
 import 'package:sonora/presentation/shared/widgets/album_card.dart';
 import 'package:sonora/presentation/shared/widgets/artist_card.dart';
@@ -48,6 +53,18 @@ import 'package:sonora/presentation/shared/widgets/song_tile.dart';
 class _FakePlayer extends PlayerNotifier {
   @override
   PlayerState build() => const PlayerState();
+}
+
+class _FakePlayingPlayer extends PlayerNotifier {
+  @override
+  PlayerState build() => const PlayerState(
+    currentSong: MediaItem(
+      id: 'vid_mobile',
+      title: 'Midnight City',
+      artist: 'M83',
+      duration: Duration(minutes: 4),
+    ),
+  );
 }
 
 class _FakeLibraryRepo extends Fake implements LibraryRepository {
@@ -1370,6 +1387,93 @@ void main() {
     );
     expect(assistant.width, lessThanOrEqualTo(760));
   });
+
+  testWidgets(
+    'compact mobile shell keeps the Ask composer above the mini player',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final storage = _FakeAskStorageRepo();
+      addTearDown(storage.dispose);
+
+      final router = GoRouter(
+        initialLocation: '/ask',
+        routes: [
+          StatefulShellRoute.indexedStack(
+            builder: (_, _, shell) => MobileShell(navigationShell: shell),
+            branches: [
+              for (final path in const [
+                '/',
+                '/search',
+                '/library',
+                '/downloads',
+                '/ask',
+              ])
+                StatefulShellBranch(
+                  routes: [
+                    GoRoute(
+                      path: path,
+                      builder: (_, _) => path == '/ask'
+                          ? const AskScreen()
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            isOfflineProvider.overrideWithValue(false),
+            isAndroidTvProvider.overrideWithValue(false),
+            askCapabilitiesProvider.overrideWith(
+              (_) async => AskCapabilities(
+                backend: AskBackendMode.proxy,
+                isOffline: false,
+              ),
+            ),
+            askStorageRepositoryProvider.overrideWithValue(storage),
+            libraryRepositoryProvider.overrideWithValue(_FakeLibraryRepo()),
+            musicRepositoryProvider.overrideWithValue(_FakeWidgetMusicRepo()),
+            playerStateProvider.overrideWith(_FakePlayingPlayer.new),
+            askChatRepositoryProvider.overrideWithValue(
+              _CallbackChatRepo(
+                (_, _) async => const LlmChatResponse(content: 'Ok'),
+              ),
+            ),
+            downloadedIdsProvider.overrideWithValue(const {}),
+            askUnreadDropsCountProvider.overrideWithValue(0),
+            dockBannersVisibleProvider.overrideWithValue(false),
+          ],
+          child: MaterialApp.router(
+            locale: const Locale('en'),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final composer = tester.getRect(find.byType(AskComposer));
+      final miniPlayer = tester.getRect(find.byType(PlayerSheetMobile));
+      expect(miniPlayer.height, 60);
+      expect(composer.overlaps(miniPlayer), isFalse);
+      expect(composer.bottom, lessThanOrEqualTo(miniPlayer.top));
+    },
+  );
 
   testWidgets(
     'Retry button on failure retries without duplicating persisted user message',

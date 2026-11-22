@@ -39,13 +39,6 @@ class MobileShell extends ConsumerWidget {
 
     const double navBarIntrinsic = 64.0;
 
-    final mq = MediaQuery.of(context);
-    final childMq = mq.copyWith(
-      padding: mq.padding.copyWith(
-        bottom: mq.padding.bottom + (isKeyboardVisible ? 0.0 : navBarIntrinsic),
-      ),
-    );
-
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
@@ -105,21 +98,33 @@ class MobileShell extends ConsumerWidget {
 
     return Scaffold(
       extendBody: true,
-      body: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(
-              bottom: showPlayer ? PlayerSheetMobile.reservedHeight : 0.0,
-            ),
-            child: MediaQuery(
-              data: childMq,
-              child: BranchFadeTransition(navigationShell: navigationShell),
-            ),
-          ),
-          const PlayerErrorListener(),
-          const ActionFeedbackListener(),
-          const PlaylistImportJobHost(),
-        ],
+      body: Builder(
+        builder: (bodyContext) {
+          // Scaffold reports the measured dock height (nav bar, mini player,
+          // and dock banners) as the body's bottom padding. Reserve it once
+          // here and clear it for the page so screens that already add
+          // MediaQuery.padding.bottom keep a single, consistent inset.
+          final bodyMq = MediaQuery.of(bodyContext);
+          final dockHeight = bodyMq.padding.bottom;
+          final pageMq = bodyMq.copyWith(
+            padding: bodyMq.padding.copyWith(bottom: 0),
+            viewPadding: bodyMq.viewPadding.copyWith(bottom: 0),
+          );
+          return Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(bottom: dockHeight),
+                child: MediaQuery(
+                  data: pageMq,
+                  child: BranchFadeTransition(navigationShell: navigationShell),
+                ),
+              ),
+              const PlayerErrorListener(),
+              const ActionFeedbackListener(),
+              const PlaylistImportJobHost(),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: isKeyboardVisible ? null : dock,
     );

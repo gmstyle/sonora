@@ -135,6 +135,8 @@ Shell family selection matches `AppShell`: compact when `shortestSide < 600` (`i
 
 `MobileShell` keeps the `NavigationBar` (64) as the dock. The mini player is a separate card above it: 60 tall, inset `kCompactContentPadding`, with an 8 gap above the bar. Light fill is `surfaceContainerLowest` at 95%. Dark fill is `surfaceContainerLow` at 95% with `darkBorder`. Artwork is 44 at radius 12. Like and the gradient play control sit on the right. While the track is switching, that card keeps this row. The 80 shelf uses a three-zone skeleton: identity, transport, actions. The like stays in the identity zone, against the title. There is no master rail and no utility rail. The four families stay stacked and chip-driven.
 
+The shell measures the whole dock (bar, mini player, and dock banners) and reserves that height above the page area, so no list, entity screen, or docked input draws its last row under the chrome. Pages see no bottom chrome inset of their own and keep their usual 16–24 content padding.
+
 | Rule | Mobile (`shortestSide` &lt; 600) |
 |------|--------------------------------|
 | Horizontal pad | `kCompactContentPadding` (16) |
