@@ -1231,5 +1231,98 @@
   "askErrorFailed": "Couldn't get a reply right now — try again in a moment.",
   "askOpenSettings": "Open Ask settings",
   "askOpenFromSearch": "Ask Sonora",
-  "askThinkingStatus": "Digging through your library & catalog…"
+  "askThinkingStatus": "Digging through your library & catalog…",
+  "askStop": "Stop",
+  "askActionRetry": "Retry",
+  "askProgressReadingProfile": "Checking your listening taste…",
+  "askProgressReadingPlaylist": "Reading your playlist tracks…",
+  "askProgressSearchingCatalog": "Searching catalog & matches…",
+  "askProgressExploringSimilar": "Exploring related artists & sounds…",
+  "askProgressBuildingProposal": "Putting your interactive cards together…",
+  "askProgressFinalizing": "Wrapping up the reply…",
+  "askGuidedExpandPlaylistTitle": "Expand a playlist",
+  "askGuidedExpandPlaylistPrompt": "Pick one of my local playlists and propose fresh matching tracks to expand it without duplicates.",
+  "askExpandSheetTitle": "Expand a playlist",
+  "askExpandPickPlaylist": "Playlist",
+  "askExpandNoPlaylists": "You don't have any local playlists yet.",
+  "askExpandTargetLabel": "Target",
+  "askExpandTargetAdd15": "+15 tracks",
+  "askExpandTargetReach30": "Reach 30 tracks",
+  "askExpandTargetReach50": "Reach 50 tracks",
+  "askExpandMoodLabel": "Optional mood or direction",
+  "askExpandMoodHint": "e.g. warmer late-night vibes, more upbeat…",
+  "askExpandSubmit": "Propose new tracks",
+  "askExpandPromptAdd": "Expand my playlist \"{name}\" (id {id}) by adding {count} fitting new tracks without duplicates, and attach a playlist proposal card.",
+  "@askExpandPromptAdd": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "id": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
+  "askExpandPromptReach": "Expand my playlist \"{name}\" (id {id}) up to {total} total tracks without duplicates, and attach a playlist proposal card.",
+  "@askExpandPromptReach": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "id": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "askExpandPromptMoodSuffix": " Direction: {mood}.",
+  "@askExpandPromptMoodSuffix": {
+    "placeholders": {
+      "mood": {"type": "String"}
+    }
+  },
+  "askMixSheetTitle": "Build a tailored mix",
+  "askMixVibeLabel": "Vibe",
+  "askMixVibeChill": "Chill / Late-night",
+  "askMixVibeFocus": "Focus",
+  "askMixVibeEnergetic": "Energetic",
+  "askMixVibeWorkout": "Workout",
+  "askMixVibeSurprise": "Surprise me",
+  "askMixLengthLabel": "Length",
+  "askMixSourceLabel": "Starting point",
+  "askMixSourceTaste": "My listening",
+  "askMixSourceNowPlaying": "Now playing",
+  "askMixSourceDiscovery": "Fresh discoveries",
+  "askMixSubmit": "Generate mix",
+  "askTailoredMixPrompt": "Put together a {count}-track mix with a \"{vibe}\" vibe starting from \"{source}\", and attach the interactive mix card.",
+  "@askTailoredMixPrompt": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "vibe": {"type": "String"},
+      "source": {"type": "String"}
+    }
+  },
+  "askFollowUpExpand40": "Expand to 40 tracks",
+  "askFollowUpExpand40Prompt": "Expand the mix \"{title}\" up to 40 tracks while keeping the same vibe, and attach the updated mix card.",
+  "@askFollowUpExpand40Prompt": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "askFollowUpCalmer": "Make it calmer",
+  "askFollowUpCalmerPrompt": "Give me a calmer, warmer version of this mix as an interactive mix card.",
+  "askFollowUpEnergetic": "More energetic",
+  "askFollowUpEnergeticPrompt": "Give me a higher-energy twist on these recommendations with an interactive mix card.",
+  "askFollowUpAddMore15": "Add 15 more",
+  "askFollowUpAddMore15Prompt": "Propose 15 more fitting tracks to add to \"{name}\" without duplicating the tracks already suggested.",
+  "@askFollowUpAddMore15Prompt": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "askFollowUpMixArtists": "Mix with these artists",
+  "askFollowUpMixArtistsPrompt": "Create a 20-track mix blending the artists you just suggested and attach the interactive mix card.",
+  "askFollowUpBestAlbums": "Their best albums",
+  "askFollowUpBestAlbumsPrompt": "Show me the essential albums by the artists you just suggested in interactive album cards.",
+  "askFollowUpSimilarArtists": "Similar artists",
+  "askFollowUpSimilarArtistsPrompt": "Recommend 5 similar artists in interactive artist cards.",
+  "askFollowUpTurnIntoMix": "Turn into a mix",
+  "askFollowUpTurnIntoMixPrompt": "Turn these picks into a 20-track playable mix card with complementary songs.",
+  "askFollowUpMixThisMood": "Mix for this mood",
+  "askFollowUpMixThisMoodPrompt": "Build a 20-track interactive mix matching my listening profile described above.",
+  "askFollowUpMorePodcasts": "More like this",
+  "askFollowUpMorePodcastsPrompt": "Find more podcasts or episodes with a similar theme and present them as interactive cards."
 }

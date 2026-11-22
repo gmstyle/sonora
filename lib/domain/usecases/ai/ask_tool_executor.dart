@@ -69,6 +69,9 @@ class AskToolExecutor {
     'present_catalog_items',
   };
 
+  static bool isPresentationTool(String name) =>
+      _presentationToolNames.contains(name);
+
   List<LlmToolDefinition> get presentationDefinitions => definitions
       .where((d) => _presentationToolNames.contains(d.name))
       .toList(growable: false);

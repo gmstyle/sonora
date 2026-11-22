@@ -3,13 +3,23 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/app_localizations.dart';
 
+enum AskGuidedActionKind {
+  tailoredMix,
+  expandPlaylist,
+  discoverArtists,
+  buildPlaylist,
+  tasteVibe,
+}
+
 class AskGuidedAction {
   const AskGuidedAction({
+    required this.kind,
     required this.icon,
     required this.title,
     required this.prompt,
   });
 
+  final AskGuidedActionKind kind;
   final IconData icon;
   final String title;
   final String prompt;
@@ -17,21 +27,31 @@ class AskGuidedAction {
 
 List<AskGuidedAction> buildAskGuidedActions(AppLocalizations l10n) => [
   AskGuidedAction(
+    kind: AskGuidedActionKind.tailoredMix,
     icon: LucideIcons.listMusic,
     title: l10n.askGuidedMixTitle,
     prompt: l10n.askGuidedMixPrompt,
   ),
   AskGuidedAction(
+    kind: AskGuidedActionKind.expandPlaylist,
+    icon: LucideIcons.listPlus,
+    title: l10n.askGuidedExpandPlaylistTitle,
+    prompt: l10n.askGuidedExpandPlaylistPrompt,
+  ),
+  AskGuidedAction(
+    kind: AskGuidedActionKind.discoverArtists,
     icon: LucideIcons.compass,
     title: l10n.askGuidedDiscoverTitle,
     prompt: l10n.askGuidedDiscoverPrompt,
   ),
   AskGuidedAction(
-    icon: LucideIcons.listPlus,
+    kind: AskGuidedActionKind.buildPlaylist,
+    icon: LucideIcons.sparkles,
     title: l10n.askGuidedPlaylistTitle,
     prompt: l10n.askGuidedPlaylistPrompt,
   ),
   AskGuidedAction(
+    kind: AskGuidedActionKind.tasteVibe,
     icon: LucideIcons.trendingUp,
     title: l10n.askGuidedTasteTitle,
     prompt: l10n.askGuidedTastePrompt,
@@ -45,12 +65,27 @@ class AskGuidedActions extends StatelessWidget {
     super.key,
     required this.enabled,
     required this.onSelectPrompt,
+    this.onOpenMixBuilder,
+    this.onOpenExpandPlaylist,
     this.verticalList = false,
   });
 
   final bool enabled;
   final ValueChanged<String> onSelectPrompt;
+  final VoidCallback? onOpenMixBuilder;
+  final VoidCallback? onOpenExpandPlaylist;
   final bool verticalList;
+
+  VoidCallback? _onTapFor(AskGuidedAction action) {
+    if (!enabled) return null;
+    return switch (action.kind) {
+      AskGuidedActionKind.tailoredMix when onOpenMixBuilder != null =>
+        onOpenMixBuilder,
+      AskGuidedActionKind.expandPlaylist when onOpenExpandPlaylist != null =>
+        onOpenExpandPlaylist,
+      _ => () => onSelectPrompt(action.prompt),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,15 +120,15 @@ class AskGuidedActions extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              onTap: enabled ? () => onSelectPrompt(action.prompt) : null,
+              onTap: _onTapFor(action),
             ),
         ],
       );
     }
 
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         for (final action in actions)
           ActionChip(
@@ -103,7 +138,8 @@ class AskGuidedActions extends StatelessWidget {
               color: enabled ? cs.primary : cs.onSurfaceVariant,
             ),
             label: Text(action.title),
-            onPressed: enabled ? () => onSelectPrompt(action.prompt) : null,
+            visualDensity: VisualDensity.compact,
+            onPressed: _onTapFor(action),
           ),
       ],
     );

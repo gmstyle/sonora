@@ -17,7 +17,9 @@ import '../../providers/connectivity_provider.dart';
 import 'providers/ask_chat_provider.dart';
 import 'widgets/ask_composer.dart';
 import 'widgets/ask_drops_section.dart';
+import 'widgets/ask_follow_up_chips.dart';
 import 'widgets/ask_guided_actions.dart';
+import 'widgets/ask_guided_sheets.dart';
 import 'widgets/ask_rich_cards.dart';
 
 class AskScreen extends ConsumerStatefulWidget {
@@ -92,6 +94,17 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     super.dispose();
   }
 
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   Future<void> _sendPrompt([String? overrideText]) async {
     final text = (overrideText ?? _composerController.text).trim();
     if (text.isEmpty) return;
@@ -100,16 +113,25 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     }
     final locale = Localizations.localeOf(context).languageCode;
     await ref.read(askChatProvider.notifier).sendMessage(text, locale: locale);
-    if (mounted && _scrollController.hasClients) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_scrollController.hasClients) return;
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-        );
-      });
-    }
+    if (mounted) _scrollToBottom();
+  }
+
+  Future<void> _retryLastFailed() async {
+    final locale = Localizations.localeOf(context).languageCode;
+    await ref.read(askChatProvider.notifier).retryLastFailed(locale: locale);
+    if (mounted) _scrollToBottom();
+  }
+
+  Future<void> _openMixBuilder() async {
+    final prompt = await showAskTailoredMixSheet(context);
+    if (!mounted || prompt == null || prompt.trim().isEmpty) return;
+    await _sendPrompt(prompt);
+  }
+
+  Future<void> _openExpandPlaylist() async {
+    final prompt = await showAskExpandPlaylistSheet(context);
+    if (!mounted || prompt == null || prompt.trim().isEmpty) return;
+    await _sendPrompt(prompt);
   }
 
   @override
@@ -119,6 +141,13 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     final isCompact = isCompactShell(size);
     final isWide = !isCompact && size.width >= kExpandedBreakpoint;
     final showUtility = size.width >= kWideContentBreakpoint;
+
+    ref.listen<AskChatState>(askChatProvider, (prev, next) {
+      if (prev?.isSending != next.isSending ||
+          prev?.activeConversationId != next.activeConversationId) {
+        _scrollToBottom();
+      }
+    });
 
     final chatState = ref.watch(askChatProvider);
     final isOffline = ref.watch(isOfflineProvider);
@@ -135,15 +164,21 @@ class _AskScreenState extends ConsumerState<AskScreen> {
             limit: quota.limit <= 0 ? 30 : quota.limit,
             onDismiss: () => ref.read(askChatProvider.notifier).clearError(),
             onOpenSettings: () => context.push('/settings?section=ai'),
+            onRetry: (!isOffline && chatState.canRetry)
+                ? () => _retryLastFailed()
+                : null,
           ),
         Expanded(
           child: _AskConversationBody(
             conversationId: chatState.activeConversationId,
             scrollController: _scrollController,
             isSending: chatState.isSending,
+            progressPhase: chatState.progressPhase,
             canUseAsk: canUseAsk,
             showDropsAndActionsInBody: isCompact || !showUtility,
             onSelectPrompt: (prompt) => _sendPrompt(prompt),
+            onOpenMixBuilder: _openMixBuilder,
+            onOpenExpandPlaylist: _openExpandPlaylist,
             onOpenDrop: (drop) => ref
                 .read(askChatProvider.notifier)
                 .openDrop(drop, locale: locale),
@@ -157,6 +192,8 @@ class _AskScreenState extends ConsumerState<AskScreen> {
           onToggleWebSearch: () =>
               ref.read(askChatProvider.notifier).toggleWebSearch(),
           onSubmit: () => _sendPrompt(),
+          onStop: () =>
+              ref.read(askChatProvider.notifier).cancelActiveRequest(),
         ),
       ],
     );
@@ -187,6 +224,8 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     final leftRail = _AskSidebarRail(
       canUseAsk: canUseAsk,
       onSelectPrompt: (p) => _sendPrompt(p),
+      onOpenMixBuilder: _openMixBuilder,
+      onOpenExpandPlaylist: _openExpandPlaylist,
     );
 
     if (!isWide) {
@@ -360,10 +399,14 @@ class _AskSidebarRail extends ConsumerWidget {
   const _AskSidebarRail({
     required this.canUseAsk,
     required this.onSelectPrompt,
+    required this.onOpenMixBuilder,
+    required this.onOpenExpandPlaylist,
   });
 
   final bool canUseAsk;
   final ValueChanged<String> onSelectPrompt;
+  final VoidCallback onOpenMixBuilder;
+  final VoidCallback onOpenExpandPlaylist;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -385,6 +428,8 @@ class _AskSidebarRail extends ConsumerWidget {
           verticalList: true,
           enabled: canUseAsk,
           onSelectPrompt: onSelectPrompt,
+          onOpenMixBuilder: onOpenMixBuilder,
+          onOpenExpandPlaylist: onOpenExpandPlaylist,
         ),
         const Divider(height: 24),
         Padding(
@@ -456,18 +501,24 @@ class _AskConversationBody extends ConsumerWidget {
     required this.conversationId,
     required this.scrollController,
     required this.isSending,
+    required this.progressPhase,
     required this.canUseAsk,
     required this.showDropsAndActionsInBody,
     required this.onSelectPrompt,
+    required this.onOpenMixBuilder,
+    required this.onOpenExpandPlaylist,
     required this.onOpenDrop,
   });
 
   final String? conversationId;
   final ScrollController scrollController;
   final bool isSending;
+  final AskProgressPhase? progressPhase;
   final bool canUseAsk;
   final bool showDropsAndActionsInBody;
   final ValueChanged<String> onSelectPrompt;
+  final VoidCallback onOpenMixBuilder;
+  final VoidCallback onOpenExpandPlaylist;
   final ValueChanged<AskProactiveDrop> onOpenDrop;
 
   @override
@@ -514,6 +565,8 @@ class _AskConversationBody extends ConsumerWidget {
                   AskGuidedActions(
                     enabled: canUseAsk,
                     onSelectPrompt: onSelectPrompt,
+                    onOpenMixBuilder: onOpenMixBuilder,
+                    onOpenExpandPlaylist: onOpenExpandPlaylist,
                   ),
                 ],
               ),
@@ -548,15 +601,27 @@ class _AskConversationBody extends ConsumerWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     const SizedBox(width: 10),
-                    Text(
-                      l10n.askThinkingStatus,
-                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    Expanded(
+                      child: Text(
+                        _progressLabelFor(progressPhase, l10n),
+                        style: tt.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               );
             }
-            return _MessageBubble(message: messages[index]);
+            final message = messages[index];
+            final showFollowUps =
+                !isSending && index == messages.length - 1 && !message.isUser;
+            return _MessageBubble(
+              message: message,
+              showFollowUps: showFollowUps,
+              followUpsEnabled: canUseAsk && !isSending,
+              onSelectFollowUp: onSelectPrompt,
+            );
           },
         );
       },
@@ -564,10 +629,29 @@ class _AskConversationBody extends ConsumerWidget {
   }
 }
 
+String _progressLabelFor(AskProgressPhase? phase, AppLocalizations l10n) =>
+    switch (phase) {
+      AskProgressPhase.readingProfile => l10n.askProgressReadingProfile,
+      AskProgressPhase.readingPlaylist => l10n.askProgressReadingPlaylist,
+      AskProgressPhase.searchingCatalog => l10n.askProgressSearchingCatalog,
+      AskProgressPhase.exploringSimilar => l10n.askProgressExploringSimilar,
+      AskProgressPhase.buildingProposal => l10n.askProgressBuildingProposal,
+      AskProgressPhase.finalizing => l10n.askProgressFinalizing,
+      AskProgressPhase.thinking || null => l10n.askThinkingStatus,
+    };
+
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message});
+  const _MessageBubble({
+    required this.message,
+    this.showFollowUps = false,
+    this.followUpsEnabled = false,
+    this.onSelectFollowUp,
+  });
 
   final AskChatMessage message;
+  final bool showFollowUps;
+  final bool followUpsEnabled;
+  final ValueChanged<String>? onSelectFollowUp;
 
   @override
   Widget build(BuildContext context) {
@@ -644,6 +728,12 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ),
               AskRichAttachments(message: message),
+              if (showFollowUps && onSelectFollowUp != null)
+                AskFollowUpChips(
+                  message: message,
+                  enabled: followUpsEnabled,
+                  onSelectPrompt: onSelectFollowUp!,
+                ),
             ],
           ),
         ),
@@ -689,12 +779,14 @@ class _AskErrorBanner extends StatelessWidget {
     required this.limit,
     required this.onDismiss,
     required this.onOpenSettings,
+    this.onRetry,
   });
 
   final AskUiErrorKind kind;
   final int limit;
   final VoidCallback onDismiss;
   final VoidCallback onOpenSettings;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -731,9 +823,23 @@ class _AskErrorBanner extends StatelessWidget {
                     ?.copyWith(color: cs.onErrorContainer),
               ),
             ),
+            if (onRetry != null)
+              TextButton.icon(
+                onPressed: onRetry,
+                style: TextButton.styleFrom(
+                  foregroundColor: cs.onErrorContainer,
+                  visualDensity: VisualDensity.compact,
+                ),
+                icon: const Icon(LucideIcons.refreshCw, size: 14),
+                label: Text(l10n.askActionRetry),
+              ),
             if (showSettings)
               TextButton(
                 onPressed: onOpenSettings,
+                style: TextButton.styleFrom(
+                  foregroundColor: cs.onErrorContainer,
+                  visualDensity: VisualDensity.compact,
+                ),
                 child: Text(l10n.askOpenSettings),
               ),
             IconButton(

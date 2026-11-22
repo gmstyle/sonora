@@ -63,11 +63,27 @@ class AskAgentUseCase {
     List<AskChatMessage> history = const [],
     String locale = 'en',
     bool enableWebSearch = false,
+    void Function(AskProgressPhase phase)? onProgress,
+    bool Function()? isCancelled,
   }) async {
     final trimmed = userMessage.trim();
     if (trimmed.isEmpty) {
       return const AskAgentResult(assistantText: '');
     }
+
+    void checkCancelled() {
+      if (isCancelled?.call() == true) {
+        throw const AskCancelledException();
+      }
+    }
+
+    void reportPhase(AskProgressPhase phase) {
+      if (isCancelled?.call() == true) return;
+      onProgress?.call(phase);
+    }
+
+    checkCancelled();
+    reportPhase(AskProgressPhase.thinking);
 
     final turnId =
         'turn_${DateTime.now().millisecondsSinceEpoch}_${_random.nextInt(999999)}';
@@ -113,6 +129,7 @@ class AskAgentUseCase {
     LlmChatResponse response = const LlmChatResponse();
 
     for (var round = 0; round < kAskMaxToolRounds; round++) {
+      checkCancelled();
       response = await _chatRepository.completeChat(
         action: AskActionKind.chat,
         messages: wireMessages,
@@ -123,6 +140,7 @@ class AskAgentUseCase {
         maxOutputTokens: chatMaxTokens,
         turnId: turnId,
       );
+      checkCancelled();
       if (response.quota != null) latestQuota = response.quota;
       collectSources(response.sources);
 
@@ -159,6 +177,8 @@ class AskAgentUseCase {
             onQuota: (q) {
               if (q != null) latestQuota = q;
             },
+            checkCancelled: checkCancelled,
+            reportPhase: reportPhase,
           );
           final reply = proposalResponse.content.trim().isNotEmpty
               ? proposalResponse.content.trim()
@@ -194,9 +214,14 @@ class AskAgentUseCase {
         ),
       );
 
-      for (final call in batch) {
-        usedTools.add(call.name);
-        final res = await executor.execute(call);
+      final toolResults = await _executeBatch(
+        batch: batch,
+        executor: executor,
+        usedTools: usedTools,
+        checkCancelled: checkCancelled,
+        reportPhase: reportPhase,
+      );
+      for (final res in toolResults) {
         wireMessages.add(
           LlmChatMessage(
             role: 'tool',
@@ -207,6 +232,8 @@ class AskAgentUseCase {
         );
       }
     }
+
+    checkCancelled();
 
     // If rounds ended without any rich card yet, give the model one focused
     // proposal-only turn using presentation tools before closing with text.
@@ -225,8 +252,11 @@ class AskAgentUseCase {
         onQuota: (q) {
           if (q != null) latestQuota = q;
         },
+        checkCancelled: checkCancelled,
+        reportPhase: reportPhase,
       );
     } else {
+      reportPhase(AskProgressPhase.finalizing);
       finalResponse = await _chatRepository.completeChat(
         action: AskActionKind.chat,
         messages: wireMessages,
@@ -238,6 +268,7 @@ class AskAgentUseCase {
         maxOutputTokens: chatMaxTokens,
         turnId: turnId,
       );
+      checkCancelled();
       if (finalResponse.quota != null) latestQuota = finalResponse.quota;
       collectSources(finalResponse.sources);
     }
@@ -251,6 +282,84 @@ class AskAgentUseCase {
     );
   }
 
+  Future<List<AskToolResult>> _executeBatch({
+    required List<AskToolCall> batch,
+    required AskToolExecutor executor,
+    required List<String> usedTools,
+    required void Function() checkCancelled,
+    required void Function(AskProgressPhase phase) reportPhase,
+  }) async {
+    checkCancelled();
+    final results = List<AskToolResult?>.filled(batch.length, null);
+    final readIndices = <int>[];
+    final presentationIndices = <int>[];
+
+    for (var i = 0; i < batch.length; i++) {
+      usedTools.add(batch[i].name);
+      if (AskToolExecutor.isPresentationTool(batch[i].name)) {
+        presentationIndices.add(i);
+      } else {
+        readIndices.add(i);
+      }
+    }
+
+    if (readIndices.isNotEmpty) {
+      reportPhase(_phaseForReadTools(batch, readIndices));
+      var cursor = 0;
+      Future<void> worker() async {
+        while (true) {
+          checkCancelled();
+          if (cursor >= readIndices.length) return;
+          final batchIdx = readIndices[cursor++];
+          results[batchIdx] = await executor.execute(batch[batchIdx]);
+        }
+      }
+
+      final concurrency = min(4, readIndices.length);
+      await Future.wait([for (var w = 0; w < concurrency; w++) worker()]);
+      checkCancelled();
+    }
+
+    if (presentationIndices.isNotEmpty) {
+      checkCancelled();
+      reportPhase(AskProgressPhase.buildingProposal);
+      for (final batchIdx in presentationIndices) {
+        checkCancelled();
+        results[batchIdx] = await executor.execute(batch[batchIdx]);
+      }
+      checkCancelled();
+    }
+
+    return [for (final r in results) r!];
+  }
+
+  AskProgressPhase _phaseForReadTools(
+    List<AskToolCall> batch,
+    List<int> readIndices,
+  ) {
+    final names = {for (final i in readIndices) batch[i].name};
+    if (names.contains('get_local_playlist_tracks')) {
+      return AskProgressPhase.readingPlaylist;
+    }
+    if (names.contains('get_song_related') ||
+        names.contains('get_artist_info')) {
+      return AskProgressPhase.exploringSimilar;
+    }
+    if (names.contains('search_catalog') ||
+        names.contains('get_album_or_playlist') ||
+        names.contains('get_charts_or_moods') ||
+        names.contains('get_song_lyrics')) {
+      return AskProgressPhase.searchingCatalog;
+    }
+    if (names.contains('get_taste_profile') ||
+        names.contains('get_listening_history') ||
+        names.contains('search_local_library') ||
+        names.contains('get_now_playing')) {
+      return AskProgressPhase.readingProfile;
+    }
+    return AskProgressPhase.thinking;
+  }
+
   Future<LlmChatResponse> _runProposalOnlyWrapUp({
     required List<LlmChatMessage> wireMessages,
     required AskToolExecutor executor,
@@ -262,7 +371,11 @@ class AskAgentUseCase {
     required List<String> usedTools,
     required void Function(List<GroundedSource>) collectSources,
     required void Function(AskQuotaInfo?) onQuota,
+    required void Function() checkCancelled,
+    required void Function(AskProgressPhase phase) reportPhase,
   }) async {
+    checkCancelled();
+    reportPhase(AskProgressPhase.buildingProposal);
     final proposalTools = executor.presentationDefinitions;
     final proposalResponse = await _chatRepository.completeChat(
       action: AskActionKind.chat,
@@ -275,6 +388,7 @@ class AskAgentUseCase {
       maxOutputTokens: maxOutputTokens,
       turnId: turnId,
     );
+    checkCancelled();
     onQuota(proposalResponse.quota);
     collectSources(proposalResponse.sources);
 
@@ -297,9 +411,14 @@ class AskAgentUseCase {
         reasoningContent: proposalResponse.reasoningContent,
       ),
     );
-    for (final call in batch) {
-      usedTools.add(call.name);
-      final res = await executor.execute(call);
+    final toolResults = await _executeBatch(
+      batch: batch,
+      executor: executor,
+      usedTools: usedTools,
+      checkCancelled: checkCancelled,
+      reportPhase: reportPhase,
+    );
+    for (final res in toolResults) {
       wireMessages.add(
         LlmChatMessage(
           role: 'tool',
@@ -310,6 +429,8 @@ class AskAgentUseCase {
       );
     }
 
+    checkCancelled();
+    reportPhase(AskProgressPhase.finalizing);
     final summaryResponse = await _chatRepository.completeChat(
       action: AskActionKind.chat,
       messages: wireMessages,
@@ -321,6 +442,7 @@ class AskAgentUseCase {
       maxOutputTokens: maxOutputTokens,
       turnId: turnId,
     );
+    checkCancelled();
     onQuota(summaryResponse.quota);
     collectSources(summaryResponse.sources);
     return summaryResponse;

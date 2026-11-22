@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -12,10 +13,13 @@ import 'package:sonora/domain/models/ask_chat_models.dart';
 import 'package:sonora/domain/models/library_models.dart';
 import 'package:sonora/domain/repositories/ask_storage_repository.dart';
 import 'package:sonora/domain/repositories/library_repository.dart';
+import 'package:sonora/domain/repositories/llm_chat_repository.dart';
+import 'package:sonora/domain/repositories/music_repository.dart';
 import 'package:sonora/l10n/app_localizations.dart';
 import 'package:sonora/presentation/features/ask/ask_screen.dart';
 import 'package:sonora/presentation/features/ask/widgets/ask_composer.dart';
 import 'package:sonora/presentation/features/ask/widgets/ask_drops_section.dart';
+import 'package:sonora/presentation/features/ask/widgets/ask_follow_up_chips.dart';
 import 'package:sonora/presentation/features/ask/widgets/ask_guided_actions.dart';
 import 'package:sonora/presentation/features/tv/layouts/tv_shell.dart';
 import 'package:sonora/presentation/features/tv/tv_metrics.dart';
@@ -25,6 +29,7 @@ import 'package:sonora/presentation/providers/ask_storage_provider.dart';
 import 'package:sonora/presentation/providers/connectivity_provider.dart';
 import 'package:sonora/presentation/providers/download_provider.dart';
 import 'package:sonora/presentation/providers/library_repository_provider.dart';
+import 'package:sonora/presentation/providers/music_repository_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
 import 'package:sonora/presentation/shared/widgets/album_card.dart';
@@ -155,6 +160,29 @@ class _FakeAskStorageRepo extends Fake implements AskStorageRepository {
       List.unmodifiable(_conversations);
 
   @override
+  Future<void> upsertConversation(AskConversationSummary conversation) async {
+    final idx = _conversations.indexWhere((c) => c.id == conversation.id);
+    if (idx >= 0) {
+      _conversations[idx] = conversation;
+    } else {
+      _conversations.insert(0, conversation);
+    }
+    if (!_convCtrl.isClosed) {
+      _convCtrl.add(List.unmodifiable(_conversations));
+    }
+  }
+
+  @override
+  Future<void> insertMessage(AskChatMessage message) async {
+    final list = _messagesByConv.putIfAbsent(message.conversationId, () => []);
+    list.add(message);
+    final ctrl = _msgController(message.conversationId);
+    if (!ctrl.isClosed) {
+      ctrl.add(List.unmodifiable(list));
+    }
+  }
+
+  @override
   Stream<List<AskChatMessage>> watchMessages(String conversationId) async* {
     yield List.unmodifiable(_messagesByConv[conversationId] ?? const []);
     yield* _msgController(conversationId).stream;
@@ -203,12 +231,53 @@ class _FakeAskStorageRepo extends Fake implements AskStorageRepository {
       _messagesByConv[convId] ?? const [];
 }
 
+class _FakeWidgetMusicRepo extends Fake implements MusicRepository {
+  @override
+  Future<List<SongDetailed>> searchSongs(
+    String query, {
+    int limit = 20,
+  }) async => const [];
+}
+
+class _CallbackChatRepo implements LlmChatRepository {
+  _CallbackChatRepo(this.onComplete);
+
+  final Future<LlmChatResponse> Function(
+    int callIndex,
+    List<LlmChatMessage> messages,
+  )
+  onComplete;
+  int _calls = 0;
+
+  @override
+  Future<bool> isReady() async => true;
+
+  @override
+  Future<AskQuotaInfo?> fetchQuota() async => AskQuotaInfo.unlimited();
+
+  @override
+  Future<LlmChatResponse> completeChat({
+    required AskActionKind action,
+    required List<LlmChatMessage> messages,
+    String? systemInstruction,
+    String locale = 'en',
+    List<LlmToolDefinition> tools = const [],
+    String? toolChoice,
+    bool enableWebSearch = false,
+    bool jsonMode = false,
+    int maxOutputTokens = 900,
+    String? turnId,
+  }) => onComplete(_calls++, messages);
+}
+
 Future<AppLocalizations> _pumpAskScreen(
   WidgetTester tester, {
   required Size size,
   bool offline = false,
   _FakeAskStorageRepo? storage,
   _FakeLibraryRepo? library,
+  LlmChatRepository? chatRepo,
+  MusicRepository? musicRepo,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -220,6 +289,7 @@ Future<AppLocalizations> _pumpAskScreen(
   final fakeStorage = storage ?? _FakeAskStorageRepo();
   if (storage == null) addTearDown(fakeStorage.dispose);
   final fakeLib = library ?? _FakeLibraryRepo();
+  final fakeMusic = musicRepo ?? _FakeWidgetMusicRepo();
 
   await tester.pumpWidget(
     ProviderScope(
@@ -235,6 +305,10 @@ Future<AppLocalizations> _pumpAskScreen(
         ),
         askStorageRepositoryProvider.overrideWithValue(fakeStorage),
         libraryRepositoryProvider.overrideWithValue(fakeLib),
+        musicRepositoryProvider.overrideWithValue(fakeMusic),
+        playerStateProvider.overrideWith(_FakePlayer.new),
+        if (chatRepo != null)
+          askChatRepositoryProvider.overrideWithValue(chatRepo),
         downloadedIdsProvider.overrideWithValue(const {}),
       ],
       child: MaterialApp(
@@ -770,6 +844,276 @@ void main() {
           .map((h) => h.tag)
           .toList();
       expect(heroTags.toSet(), hasLength(heroTags.length));
+    },
+  );
+
+  testWidgets(
+    'AskFollowUpChips render contextually for Mix and Artists and disable when offline',
+    (tester) async {
+      const mix = AskMixAttachment(
+        title: 'Late Night R&B',
+        tracks: [
+          AskTrackRef(videoId: 'v1', title: 'Calls', artist: 'Tanerelle'),
+        ],
+      );
+      const artists = AskArtistsAttachment(
+        title: 'Artists',
+        artists: [AskArtistRef(artistId: 'UC_1', name: 'Tanerelle')],
+      );
+
+      _FakeAskStorageRepo buildStorage() => _FakeAskStorageRepo(
+        conversations: [
+          AskConversationSummary(
+            id: 'c_mix',
+            title: 'Mix Conv',
+            createdAt: DateTime(2026, 11, 22),
+            updatedAt: DateTime(2026, 11, 22),
+          ),
+          AskConversationSummary(
+            id: 'c_art',
+            title: 'Artists Conv',
+            createdAt: DateTime(2026, 11, 22),
+            updatedAt: DateTime(2026, 11, 22),
+          ),
+        ],
+        messagesByConv: {
+          'c_mix': [
+            AskChatMessage(
+              id: 'm1',
+              conversationId: 'c_mix',
+              role: 'assistant',
+              content: 'Here is your mix.',
+              attachments: const [mix],
+              createdAt: DateTime(2026, 11, 22),
+            ),
+          ],
+          'c_art': [
+            AskChatMessage(
+              id: 'm2',
+              conversationId: 'c_art',
+              role: 'assistant',
+              content: 'Check these artists.',
+              attachments: const [artists],
+              createdAt: DateTime(2026, 11, 22),
+            ),
+          ],
+        },
+      );
+
+      final onlineStorage = buildStorage();
+      addTearDown(onlineStorage.dispose);
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(1680, 900),
+        storage: onlineStorage,
+      );
+
+      await tester.tap(find.text('Mix Conv'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AskFollowUpChips), findsOneWidget);
+      expect(find.text(l10n.askFollowUpExpand40), findsOneWidget);
+      expect(find.text(l10n.askFollowUpCalmer), findsOneWidget);
+      expect(find.text(l10n.askFollowUpEnergetic), findsOneWidget);
+
+      await tester.tap(find.text('Artists Conv'));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.askFollowUpMixArtists), findsOneWidget);
+      expect(find.text(l10n.askFollowUpBestAlbums), findsOneWidget);
+      expect(find.text(l10n.askFollowUpSimilarArtists), findsOneWidget);
+
+      final offlineStorage = buildStorage();
+      addTearDown(offlineStorage.dispose);
+      await _pumpAskScreen(
+        tester,
+        size: const Size(1680, 900),
+        offline: true,
+        storage: offlineStorage,
+      );
+      await tester.tap(find.text('Mix Conv'));
+      await tester.pumpAndSettle();
+
+      final offlineChip = tester.widget<ActionChip>(
+        find.widgetWithText(ActionChip, l10n.askFollowUpExpand40),
+      );
+      expect(offlineChip.onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'live progressPhase label and Stop button cancel an in-flight turn cleanly',
+    (tester) async {
+      final round1Completer = Completer<LlmChatResponse>();
+      final chatRepo = _CallbackChatRepo((callIdx, messages) {
+        if (callIdx == 0) {
+          return Future.value(
+            const LlmChatResponse(
+              toolCalls: [
+                AskToolCall(
+                  id: 'tc_1',
+                  name: 'search_catalog',
+                  arguments: {'query': 'Tanerelle', 'type': 'songs'},
+                ),
+              ],
+            ),
+          );
+        }
+        return round1Completer.future;
+      });
+      final storage = _FakeAskStorageRepo();
+      addTearDown(storage.dispose);
+
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(400, 800),
+        storage: storage,
+        chatRepo: chatRepo,
+      );
+
+      await tester.enterText(find.byType(TextField), 'Mix per la sera');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text(l10n.askProgressSearchingCatalog), findsOneWidget);
+      expect(find.byTooltip(l10n.askStop), findsOneWidget);
+
+      await tester.tap(find.byTooltip(l10n.askStop));
+      await tester.pump();
+      round1Completer.complete(
+        const LlmChatResponse(content: 'Should not appear'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(l10n.askStop), findsNothing);
+      expect(find.text(l10n.askErrorFailed), findsNothing);
+      expect(find.text('Should not appear'), findsNothing);
+      final convId = (await storage.getConversations()).single.id;
+      final msgs = storage.messagesFor(convId);
+      expect(msgs.where((m) => m.isUser), hasLength(1));
+      expect(msgs.where((m) => !m.isUser), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'Retry button on failure retries without duplicating persisted user message',
+    (tester) async {
+      final chatRepo = _CallbackChatRepo((callIdx, messages) async {
+        if (callIdx == 0) {
+          throw StateError('Temporary failure');
+        }
+        return const LlmChatResponse(content: 'Ecco la risposta recuperata!');
+      });
+      final storage = _FakeAskStorageRepo();
+      addTearDown(storage.dispose);
+
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(400, 800),
+        storage: storage,
+        chatRepo: chatRepo,
+      );
+
+      await tester.enterText(find.byType(TextField), 'Consigliami brani chill');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.askErrorFailed), findsOneWidget);
+      expect(find.text(l10n.askActionRetry), findsOneWidget);
+      final convId = (await storage.getConversations()).single.id;
+      expect(storage.messagesFor(convId).where((m) => m.isUser), hasLength(1));
+
+      await tester.tap(find.text(l10n.askActionRetry));
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10n.askActionRetry), findsNothing);
+      expect(find.text('Ecco la risposta recuperata!'), findsOneWidget);
+      final msgs = storage.messagesFor(convId);
+      expect(msgs.where((m) => m.isUser), hasLength(1));
+      expect(msgs.where((m) => !m.isUser), hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'parametric guided sheets open in centered Dialog on wide layout and Expand Playlist sends playlist id and target',
+    (tester) async {
+      final library = _FakeLibraryRepo()
+        ..playlists.add(
+          LocalPlaylistModel(
+            id: 7,
+            name: 'R&B Notturno',
+            createdAt: DateTime(2026, 11, 21),
+          ),
+        );
+      final sentPrompts = <String>[];
+      final chatRepo = _CallbackChatRepo((callIdx, messages) async {
+        sentPrompts.add(messages.last.content ?? '');
+        return const LlmChatResponse(content: 'Ok!');
+      });
+
+      final wideStorage = _FakeAskStorageRepo();
+      addTearDown(wideStorage.dispose);
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(1680, 900),
+        storage: wideStorage,
+        library: library,
+        chatRepo: chatRepo,
+      );
+
+      await tester.tap(find.text(l10n.askGuidedMixTitle).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+      await tester.tap(find.byIcon(LucideIcons.x));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+
+      await tester.tap(find.text(l10n.askGuidedExpandPlaylistTitle).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.text('R&B Notturno'), findsOneWidget);
+
+      await tester.tap(find.text(l10n.askExpandTargetReach50));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.askExpandSubmit));
+      await tester.pumpAndSettle();
+
+      expect(sentPrompts.single, contains('R&B Notturno'));
+      expect(sentPrompts.single, contains('7'));
+      expect(sentPrompts.single, contains('50'));
+    },
+  );
+
+  testWidgets(
+    'parametric Tailored Mix sheet opens as BottomSheet on compact layout and submits vibe and length',
+    (tester) async {
+      final sentPrompts = <String>[];
+      final chatRepo = _CallbackChatRepo((callIdx, messages) async {
+        sentPrompts.add(messages.last.content ?? '');
+        return const LlmChatResponse(content: 'Ok!');
+      });
+
+      final compactStorage = _FakeAskStorageRepo();
+      addTearDown(compactStorage.dispose);
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(400, 800),
+        storage: compactStorage,
+        chatRepo: chatRepo,
+      );
+
+      await tester.tap(find.text(l10n.askGuidedMixTitle));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+
+      await tester.tap(find.text(l10n.askMixVibeFocus));
+      await tester.tap(find.text(l10n.askTracksCount(30)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l10n.askMixSubmit));
+      await tester.pumpAndSettle();
+
+      expect(sentPrompts.single, contains('30'));
+      expect(sentPrompts.single, contains(l10n.askMixVibeFocus));
     },
   );
 }

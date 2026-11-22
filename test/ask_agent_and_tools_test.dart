@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -286,6 +287,30 @@ class _FakeMusicRepo extends Fake implements MusicRepository {
             height: 226,
           ),
         ],
+      ),
+    ];
+  }
+}
+
+class _ConcurrencyTrackingMusicRepo extends _FakeMusicRepo {
+  int inFlight = 0;
+  int maxInFlight = 0;
+
+  @override
+  Future<List<SongDetailed>> searchSongs(String query, {int limit = 20}) async {
+    inFlight++;
+    maxInFlight = max(maxInFlight, inFlight);
+    await Future<void>.delayed(const Duration(milliseconds: 15));
+    inFlight--;
+    return [
+      SongDetailed(
+        type: 'SONG',
+        videoId: 'vid_$query',
+        name: 'Song $query',
+        artists: [ArtistBasic(name: 'HOME', artistId: 'UC_HOME')],
+        album: AlbumBasic(albumId: 'MPRE_RES', name: 'Odyssey'),
+        duration: 210,
+        thumbnails: const [],
       ),
     ];
   }
@@ -1113,6 +1138,168 @@ void main() {
       expect(assistantMsg.serverToolCalls, [
         {'type': 'web_search', 'query': 'Tanerelle biography'},
       ]);
+    });
+
+    test('executes read-only tools in parallel (capped at 4) before presentation tools and preserves tool_call_id order', () async {
+      final music = _ConcurrencyTrackingMusicRepo();
+      final executor = AskToolExecutor(
+        libraryRepository: _FakeLibraryRepo(),
+        musicRepository: music,
+      );
+      late List<LlmChatMessage> secondRoundMessages;
+      final repo = _FakeChatRepo((round, messages, turnId) {
+        if (round == 0) {
+          return const LlmChatResponse(
+            toolCalls: [
+              AskToolCall(
+                id: 'c0',
+                name: 'search_catalog',
+                arguments: {'query': 'q0', 'type': 'songs'},
+              ),
+              AskToolCall(
+                id: 'c1',
+                name: 'propose_mix',
+                arguments: {
+                  'title': 'Parallel Mix',
+                  'videoIds': ['vid_q0', 'vid_q3', 'vid_q6'],
+                },
+              ),
+              AskToolCall(
+                id: 'c2',
+                name: 'search_catalog',
+                arguments: {'query': 'q2', 'type': 'songs'},
+              ),
+              AskToolCall(
+                id: 'c3',
+                name: 'search_catalog',
+                arguments: {'query': 'q3', 'type': 'songs'},
+              ),
+              AskToolCall(
+                id: 'c4',
+                name: 'search_catalog',
+                arguments: {'query': 'q4', 'type': 'songs'},
+              ),
+              AskToolCall(
+                id: 'c5',
+                name: 'search_catalog',
+                arguments: {'query': 'q5', 'type': 'songs'},
+              ),
+              AskToolCall(
+                id: 'c6',
+                name: 'search_catalog',
+                arguments: {'query': 'q6', 'type': 'songs'},
+              ),
+            ],
+          );
+        }
+        secondRoundMessages = List.of(messages);
+        return const LlmChatResponse(content: 'Pronto!');
+      });
+
+      final res = await AskAgentUseCase(
+        repo,
+      ).execute(userMessage: 'fammi un mix', executor: executor, locale: 'it');
+
+      expect(music.maxInFlight, greaterThan(1));
+      expect(music.maxInFlight, lessThanOrEqualTo(4));
+      final mix = res.attachments.single as AskMixAttachment;
+      expect(mix.tracks.map((t) => t.videoId), ['vid_q0', 'vid_q3', 'vid_q6']);
+
+      final toolIds = secondRoundMessages
+          .where((m) => m.role == 'tool')
+          .map((m) => m.toolCallId)
+          .toList();
+      expect(toolIds, ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6']);
+    });
+
+    test('reports ordered AskProgressPhase transitions across search, proposal, and final wrap-up', () async {
+      final executor = AskToolExecutor(
+        libraryRepository: _FakeLibraryRepo(),
+        musicRepository: _FakeMusicRepo(),
+      );
+      final repo = _FakeChatRepo((round, messages, turnId) {
+        if (round < 5) {
+          return LlmChatResponse(
+            toolCalls: [
+              AskToolCall(
+                id: 's_$round',
+                name: 'search_catalog',
+                arguments: {'query': 'q$round', 'type': 'songs'},
+              ),
+            ],
+          );
+        }
+        if (round == 5) {
+          return const LlmChatResponse(
+            toolCalls: [
+              AskToolCall(
+                id: 'pm',
+                name: 'propose_mix',
+                arguments: {
+                  'title': 'Phased Mix',
+                  'videoIds': ['real_ytm_1'],
+                },
+              ),
+            ],
+          );
+        }
+        return const LlmChatResponse(content: 'Ecco il mix.');
+      });
+
+      final phases = <AskProgressPhase>[];
+      await AskAgentUseCase(repo).execute(
+        userMessage: 'fammi un mix',
+        executor: executor,
+        locale: 'it',
+        onProgress: (p) {
+          if (phases.isEmpty || phases.last != p) {
+            phases.add(p);
+          }
+        },
+      );
+
+      expect(phases, [
+        AskProgressPhase.thinking,
+        AskProgressPhase.searchingCatalog,
+        AskProgressPhase.buildingProposal,
+        AskProgressPhase.finalizing,
+      ]);
+    });
+
+    test('throws AskCancelledException and aborts before running subsequent tools or rounds', () async {
+      final music = _ConcurrencyTrackingMusicRepo();
+      final executor = AskToolExecutor(
+        libraryRepository: _FakeLibraryRepo(),
+        musicRepository: music,
+      );
+      var cancelled = false;
+      var repoCalls = 0;
+      final repo = _FakeChatRepo((round, messages, turnId) {
+        repoCalls++;
+        cancelled = true;
+        return const LlmChatResponse(
+          toolCalls: [
+            AskToolCall(
+              id: 'c1',
+              name: 'search_catalog',
+              arguments: {'query': 'abc', 'type': 'songs'},
+            ),
+          ],
+        );
+      });
+
+      await expectLater(
+        () => AskAgentUseCase(repo).execute(
+          userMessage: 'cerca qualcosa',
+          executor: executor,
+          locale: 'it',
+          isCancelled: () => cancelled,
+        ),
+        throwsA(isA<AskCancelledException>()),
+      );
+
+      expect(repoCalls, 1);
+      expect(music.maxInFlight, 0);
     });
   });
 }

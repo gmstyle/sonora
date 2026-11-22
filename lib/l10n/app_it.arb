@@ -1045,5 +1045,98 @@
   "askErrorFailed": "Non sono riuscito a rispondere al volo — riprova tra un attimo.",
   "askOpenSettings": "Apri impostazioni Ask",
   "askOpenFromSearch": "Chiedi ad Ask",
-  "askThinkingStatus": "Spulcio la tua libreria e il catalogo…"
+  "askThinkingStatus": "Spulcio la tua libreria e il catalogo…",
+  "askStop": "Interrompi",
+  "askActionRetry": "Riprova",
+  "askProgressReadingProfile": "Leggo i tuoi gusti d'ascolto…",
+  "askProgressReadingPlaylist": "Controllo i brani della tua playlist…",
+  "askProgressSearchingCatalog": "Cerco nel catalogo…",
+  "askProgressExploringSimilar": "Esploro artisti e sonorità simili…",
+  "askProgressBuildingProposal": "Preparo le schede interattive…",
+  "askProgressFinalizing": "Rifinisco la risposta…",
+  "askGuidedExpandPlaylistTitle": "Espandi una playlist",
+  "askGuidedExpandPlaylistPrompt": "Scegli una delle mie playlist locali e proponimi nuovi brani coerenti per espanderla senza duplicati.",
+  "askExpandSheetTitle": "Espandi una playlist",
+  "askExpandPickPlaylist": "Playlist",
+  "askExpandNoPlaylists": "Non hai ancora nessuna playlist locale.",
+  "askExpandTargetLabel": "Obiettivo",
+  "askExpandTargetAdd15": "+15 brani",
+  "askExpandTargetReach30": "Porta a 30 brani",
+  "askExpandTargetReach50": "Porta a 50 brani",
+  "askExpandMoodLabel": "Mood o direzione (opzionale)",
+  "askExpandMoodHint": "es. vibe notturne più calde, più ritmo…",
+  "askExpandSubmit": "Proponi nuovi brani",
+  "askExpandPromptAdd": "Espandi la mia playlist \"{name}\" (id {id}) aggiungendo {count} nuovi brani coerenti senza duplicati, e allega la scheda di proposta playlist.",
+  "@askExpandPromptAdd": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "id": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
+  "askExpandPromptReach": "Espandi la mia playlist \"{name}\" (id {id}) fino a raggiungere {total} brani totali senza duplicati, e allega la scheda di proposta playlist.",
+  "@askExpandPromptReach": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "id": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "askExpandPromptMoodSuffix": " Direzione: {mood}.",
+  "@askExpandPromptMoodSuffix": {
+    "placeholders": {
+      "mood": {"type": "String"}
+    }
+  },
+  "askMixSheetTitle": "Crea un mix su misura",
+  "askMixVibeLabel": "Atmosfera",
+  "askMixVibeChill": "Chill / Notturno",
+  "askMixVibeFocus": "Focus",
+  "askMixVibeEnergetic": "Energico",
+  "askMixVibeWorkout": "Allenamento",
+  "askMixVibeSurprise": "Sorprendimi",
+  "askMixLengthLabel": "Durata",
+  "askMixSourceLabel": "Punto di partenza",
+  "askMixSourceTaste": "I miei ascolti",
+  "askMixSourceNowPlaying": "In riproduzione",
+  "askMixSourceDiscovery": "Scoperte nuove",
+  "askMixSubmit": "Genera mix",
+  "askTailoredMixPrompt": "Preparami un mix da {count} brani con atmosfera \"{vibe}\" partendo da \"{source}\", e allega la scheda interattiva del mix.",
+  "@askTailoredMixPrompt": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "vibe": {"type": "String"},
+      "source": {"type": "String"}
+    }
+  },
+  "askFollowUpExpand40": "Portalo a 40 brani",
+  "askFollowUpExpand40Prompt": "Espandi il mix \"{title}\" fino a 40 brani mantenendo la stessa atmosfera e allega la scheda aggiornata.",
+  "@askFollowUpExpand40Prompt": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "askFollowUpCalmer": "Più calmo",
+  "askFollowUpCalmerPrompt": "Fammi una versione più calma e avvolgente di questo mix come scheda interattiva.",
+  "askFollowUpEnergetic": "Più energico",
+  "askFollowUpEnergeticPrompt": "Fammi una variante più energica su questi consigli con una scheda mix interattiva.",
+  "askFollowUpAddMore15": "Aggiungi altri 15 brani",
+  "askFollowUpAddMore15Prompt": "Proponi altri 15 brani coerenti da aggiungere a \"{name}\" senza ripetere quelli già suggeriti.",
+  "@askFollowUpAddMore15Prompt": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "askFollowUpMixArtists": "Mix con questi artisti",
+  "askFollowUpMixArtistsPrompt": "Crea un mix da 20 brani mescolando gli artisti che hai appena consigliato e allega la scheda del mix.",
+  "askFollowUpBestAlbums": "I loro album migliori",
+  "askFollowUpBestAlbumsPrompt": "Mostrami gli album essenziali degli artisti che hai appena consigliato nelle schede album interattive.",
+  "askFollowUpSimilarArtists": "Artisti simili",
+  "askFollowUpSimilarArtistsPrompt": "Consigliami 5 artisti simili mostrando le loro schede artista interattive.",
+  "askFollowUpTurnIntoMix": "Trasforma in un mix",
+  "askFollowUpTurnIntoMixPrompt": "Trasforma questi spunti in un mix riproducibile da 20 brani completandolo con tracce affini.",
+  "askFollowUpMixThisMood": "Mix su questo mood",
+  "askFollowUpMixThisMoodPrompt": "Crea un mix interattivo da 20 brani in linea con il profilo d'ascolto appena descritto.",
+  "askFollowUpMorePodcasts": "Altri simili",
+  "askFollowUpMorePodcastsPrompt": "Trovami altri podcast o episodi sullo stesso tema e mostrali nelle schede interattive."
 }

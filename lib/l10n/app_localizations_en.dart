@@ -2803,4 +2803,198 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get askThinkingStatus => 'Digging through your library & catalog…';
+
+  @override
+  String get askStop => 'Stop';
+
+  @override
+  String get askActionRetry => 'Retry';
+
+  @override
+  String get askProgressReadingProfile => 'Checking your listening taste…';
+
+  @override
+  String get askProgressReadingPlaylist => 'Reading your playlist tracks…';
+
+  @override
+  String get askProgressSearchingCatalog => 'Searching catalog & matches…';
+
+  @override
+  String get askProgressExploringSimilar =>
+      'Exploring related artists & sounds…';
+
+  @override
+  String get askProgressBuildingProposal =>
+      'Putting your interactive cards together…';
+
+  @override
+  String get askProgressFinalizing => 'Wrapping up the reply…';
+
+  @override
+  String get askGuidedExpandPlaylistTitle => 'Expand a playlist';
+
+  @override
+  String get askGuidedExpandPlaylistPrompt =>
+      'Pick one of my local playlists and propose fresh matching tracks to expand it without duplicates.';
+
+  @override
+  String get askExpandSheetTitle => 'Expand a playlist';
+
+  @override
+  String get askExpandPickPlaylist => 'Playlist';
+
+  @override
+  String get askExpandNoPlaylists => 'You don\'t have any local playlists yet.';
+
+  @override
+  String get askExpandTargetLabel => 'Target';
+
+  @override
+  String get askExpandTargetAdd15 => '+15 tracks';
+
+  @override
+  String get askExpandTargetReach30 => 'Reach 30 tracks';
+
+  @override
+  String get askExpandTargetReach50 => 'Reach 50 tracks';
+
+  @override
+  String get askExpandMoodLabel => 'Optional mood or direction';
+
+  @override
+  String get askExpandMoodHint => 'e.g. warmer late-night vibes, more upbeat…';
+
+  @override
+  String get askExpandSubmit => 'Propose new tracks';
+
+  @override
+  String askExpandPromptAdd(String name, int id, int count) {
+    return 'Expand my playlist \"$name\" (id $id) by adding $count fitting new tracks without duplicates, and attach a playlist proposal card.';
+  }
+
+  @override
+  String askExpandPromptReach(String name, int id, int total) {
+    return 'Expand my playlist \"$name\" (id $id) up to $total total tracks without duplicates, and attach a playlist proposal card.';
+  }
+
+  @override
+  String askExpandPromptMoodSuffix(String mood) {
+    return ' Direction: $mood.';
+  }
+
+  @override
+  String get askMixSheetTitle => 'Build a tailored mix';
+
+  @override
+  String get askMixVibeLabel => 'Vibe';
+
+  @override
+  String get askMixVibeChill => 'Chill / Late-night';
+
+  @override
+  String get askMixVibeFocus => 'Focus';
+
+  @override
+  String get askMixVibeEnergetic => 'Energetic';
+
+  @override
+  String get askMixVibeWorkout => 'Workout';
+
+  @override
+  String get askMixVibeSurprise => 'Surprise me';
+
+  @override
+  String get askMixLengthLabel => 'Length';
+
+  @override
+  String get askMixSourceLabel => 'Starting point';
+
+  @override
+  String get askMixSourceTaste => 'My listening';
+
+  @override
+  String get askMixSourceNowPlaying => 'Now playing';
+
+  @override
+  String get askMixSourceDiscovery => 'Fresh discoveries';
+
+  @override
+  String get askMixSubmit => 'Generate mix';
+
+  @override
+  String askTailoredMixPrompt(int count, String vibe, String source) {
+    return 'Put together a $count-track mix with a \"$vibe\" vibe starting from \"$source\", and attach the interactive mix card.';
+  }
+
+  @override
+  String get askFollowUpExpand40 => 'Expand to 40 tracks';
+
+  @override
+  String askFollowUpExpand40Prompt(String title) {
+    return 'Expand the mix \"$title\" up to 40 tracks while keeping the same vibe, and attach the updated mix card.';
+  }
+
+  @override
+  String get askFollowUpCalmer => 'Make it calmer';
+
+  @override
+  String get askFollowUpCalmerPrompt =>
+      'Give me a calmer, warmer version of this mix as an interactive mix card.';
+
+  @override
+  String get askFollowUpEnergetic => 'More energetic';
+
+  @override
+  String get askFollowUpEnergeticPrompt =>
+      'Give me a higher-energy twist on these recommendations with an interactive mix card.';
+
+  @override
+  String get askFollowUpAddMore15 => 'Add 15 more';
+
+  @override
+  String askFollowUpAddMore15Prompt(String name) {
+    return 'Propose 15 more fitting tracks to add to \"$name\" without duplicating the tracks already suggested.';
+  }
+
+  @override
+  String get askFollowUpMixArtists => 'Mix with these artists';
+
+  @override
+  String get askFollowUpMixArtistsPrompt =>
+      'Create a 20-track mix blending the artists you just suggested and attach the interactive mix card.';
+
+  @override
+  String get askFollowUpBestAlbums => 'Their best albums';
+
+  @override
+  String get askFollowUpBestAlbumsPrompt =>
+      'Show me the essential albums by the artists you just suggested in interactive album cards.';
+
+  @override
+  String get askFollowUpSimilarArtists => 'Similar artists';
+
+  @override
+  String get askFollowUpSimilarArtistsPrompt =>
+      'Recommend 5 similar artists in interactive artist cards.';
+
+  @override
+  String get askFollowUpTurnIntoMix => 'Turn into a mix';
+
+  @override
+  String get askFollowUpTurnIntoMixPrompt =>
+      'Turn these picks into a 20-track playable mix card with complementary songs.';
+
+  @override
+  String get askFollowUpMixThisMood => 'Mix for this mood';
+
+  @override
+  String get askFollowUpMixThisMoodPrompt =>
+      'Build a 20-track interactive mix matching my listening profile described above.';
+
+  @override
+  String get askFollowUpMorePodcasts => 'More like this';
+
+  @override
+  String get askFollowUpMorePodcastsPrompt =>
+      'Find more podcasts or episodes with a similar theme and present them as interactive cards.';
 }

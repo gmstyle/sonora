@@ -4856,6 +4856,348 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Digging through your library & catalog…'**
   String get askThinkingStatus;
+
+  /// No description provided for @askStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get askStop;
+
+  /// No description provided for @askActionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get askActionRetry;
+
+  /// No description provided for @askProgressReadingProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking your listening taste…'**
+  String get askProgressReadingProfile;
+
+  /// No description provided for @askProgressReadingPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your playlist tracks…'**
+  String get askProgressReadingPlaylist;
+
+  /// No description provided for @askProgressSearchingCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching catalog & matches…'**
+  String get askProgressSearchingCatalog;
+
+  /// No description provided for @askProgressExploringSimilar.
+  ///
+  /// In en, this message translates to:
+  /// **'Exploring related artists & sounds…'**
+  String get askProgressExploringSimilar;
+
+  /// No description provided for @askProgressBuildingProposal.
+  ///
+  /// In en, this message translates to:
+  /// **'Putting your interactive cards together…'**
+  String get askProgressBuildingProposal;
+
+  /// No description provided for @askProgressFinalizing.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrapping up the reply…'**
+  String get askProgressFinalizing;
+
+  /// No description provided for @askGuidedExpandPlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand a playlist'**
+  String get askGuidedExpandPlaylistTitle;
+
+  /// No description provided for @askGuidedExpandPlaylistPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick one of my local playlists and propose fresh matching tracks to expand it without duplicates.'**
+  String get askGuidedExpandPlaylistPrompt;
+
+  /// No description provided for @askExpandSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand a playlist'**
+  String get askExpandSheetTitle;
+
+  /// No description provided for @askExpandPickPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get askExpandPickPlaylist;
+
+  /// No description provided for @askExpandNoPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have any local playlists yet.'**
+  String get askExpandNoPlaylists;
+
+  /// No description provided for @askExpandTargetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get askExpandTargetLabel;
+
+  /// No description provided for @askExpandTargetAdd15.
+  ///
+  /// In en, this message translates to:
+  /// **'+15 tracks'**
+  String get askExpandTargetAdd15;
+
+  /// No description provided for @askExpandTargetReach30.
+  ///
+  /// In en, this message translates to:
+  /// **'Reach 30 tracks'**
+  String get askExpandTargetReach30;
+
+  /// No description provided for @askExpandTargetReach50.
+  ///
+  /// In en, this message translates to:
+  /// **'Reach 50 tracks'**
+  String get askExpandTargetReach50;
+
+  /// No description provided for @askExpandMoodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional mood or direction'**
+  String get askExpandMoodLabel;
+
+  /// No description provided for @askExpandMoodHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. warmer late-night vibes, more upbeat…'**
+  String get askExpandMoodHint;
+
+  /// No description provided for @askExpandSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose new tracks'**
+  String get askExpandSubmit;
+
+  /// No description provided for @askExpandPromptAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand my playlist \"{name}\" (id {id}) by adding {count} fitting new tracks without duplicates, and attach a playlist proposal card.'**
+  String askExpandPromptAdd(String name, int id, int count);
+
+  /// No description provided for @askExpandPromptReach.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand my playlist \"{name}\" (id {id}) up to {total} total tracks without duplicates, and attach a playlist proposal card.'**
+  String askExpandPromptReach(String name, int id, int total);
+
+  /// No description provided for @askExpandPromptMoodSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **' Direction: {mood}.'**
+  String askExpandPromptMoodSuffix(String mood);
+
+  /// No description provided for @askMixSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a tailored mix'**
+  String get askMixSheetTitle;
+
+  /// No description provided for @askMixVibeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibe'**
+  String get askMixVibeLabel;
+
+  /// No description provided for @askMixVibeChill.
+  ///
+  /// In en, this message translates to:
+  /// **'Chill / Late-night'**
+  String get askMixVibeChill;
+
+  /// No description provided for @askMixVibeFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Focus'**
+  String get askMixVibeFocus;
+
+  /// No description provided for @askMixVibeEnergetic.
+  ///
+  /// In en, this message translates to:
+  /// **'Energetic'**
+  String get askMixVibeEnergetic;
+
+  /// No description provided for @askMixVibeWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout'**
+  String get askMixVibeWorkout;
+
+  /// No description provided for @askMixVibeSurprise.
+  ///
+  /// In en, this message translates to:
+  /// **'Surprise me'**
+  String get askMixVibeSurprise;
+
+  /// No description provided for @askMixLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Length'**
+  String get askMixLengthLabel;
+
+  /// No description provided for @askMixSourceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting point'**
+  String get askMixSourceLabel;
+
+  /// No description provided for @askMixSourceTaste.
+  ///
+  /// In en, this message translates to:
+  /// **'My listening'**
+  String get askMixSourceTaste;
+
+  /// No description provided for @askMixSourceNowPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Now playing'**
+  String get askMixSourceNowPlaying;
+
+  /// No description provided for @askMixSourceDiscovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Fresh discoveries'**
+  String get askMixSourceDiscovery;
+
+  /// No description provided for @askMixSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate mix'**
+  String get askMixSubmit;
+
+  /// No description provided for @askTailoredMixPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Put together a {count}-track mix with a \"{vibe}\" vibe starting from \"{source}\", and attach the interactive mix card.'**
+  String askTailoredMixPrompt(int count, String vibe, String source);
+
+  /// No description provided for @askFollowUpExpand40.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand to 40 tracks'**
+  String get askFollowUpExpand40;
+
+  /// No description provided for @askFollowUpExpand40Prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand the mix \"{title}\" up to 40 tracks while keeping the same vibe, and attach the updated mix card.'**
+  String askFollowUpExpand40Prompt(String title);
+
+  /// No description provided for @askFollowUpCalmer.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it calmer'**
+  String get askFollowUpCalmer;
+
+  /// No description provided for @askFollowUpCalmerPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Give me a calmer, warmer version of this mix as an interactive mix card.'**
+  String get askFollowUpCalmerPrompt;
+
+  /// No description provided for @askFollowUpEnergetic.
+  ///
+  /// In en, this message translates to:
+  /// **'More energetic'**
+  String get askFollowUpEnergetic;
+
+  /// No description provided for @askFollowUpEnergeticPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Give me a higher-energy twist on these recommendations with an interactive mix card.'**
+  String get askFollowUpEnergeticPrompt;
+
+  /// No description provided for @askFollowUpAddMore15.
+  ///
+  /// In en, this message translates to:
+  /// **'Add 15 more'**
+  String get askFollowUpAddMore15;
+
+  /// No description provided for @askFollowUpAddMore15Prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Propose 15 more fitting tracks to add to \"{name}\" without duplicating the tracks already suggested.'**
+  String askFollowUpAddMore15Prompt(String name);
+
+  /// No description provided for @askFollowUpMixArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Mix with these artists'**
+  String get askFollowUpMixArtists;
+
+  /// No description provided for @askFollowUpMixArtistsPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a 20-track mix blending the artists you just suggested and attach the interactive mix card.'**
+  String get askFollowUpMixArtistsPrompt;
+
+  /// No description provided for @askFollowUpBestAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'Their best albums'**
+  String get askFollowUpBestAlbums;
+
+  /// No description provided for @askFollowUpBestAlbumsPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Show me the essential albums by the artists you just suggested in interactive album cards.'**
+  String get askFollowUpBestAlbumsPrompt;
+
+  /// No description provided for @askFollowUpSimilarArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar artists'**
+  String get askFollowUpSimilarArtists;
+
+  /// No description provided for @askFollowUpSimilarArtistsPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend 5 similar artists in interactive artist cards.'**
+  String get askFollowUpSimilarArtistsPrompt;
+
+  /// No description provided for @askFollowUpTurnIntoMix.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn into a mix'**
+  String get askFollowUpTurnIntoMix;
+
+  /// No description provided for @askFollowUpTurnIntoMixPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn these picks into a 20-track playable mix card with complementary songs.'**
+  String get askFollowUpTurnIntoMixPrompt;
+
+  /// No description provided for @askFollowUpMixThisMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Mix for this mood'**
+  String get askFollowUpMixThisMood;
+
+  /// No description provided for @askFollowUpMixThisMoodPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a 20-track interactive mix matching my listening profile described above.'**
+  String get askFollowUpMixThisMoodPrompt;
+
+  /// No description provided for @askFollowUpMorePodcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'More like this'**
+  String get askFollowUpMorePodcasts;
+
+  /// No description provided for @askFollowUpMorePodcastsPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Find more podcasts or episodes with a similar theme and present them as interactive cards.'**
+  String get askFollowUpMorePodcastsPrompt;
 }
 
 class _AppLocalizationsDelegate

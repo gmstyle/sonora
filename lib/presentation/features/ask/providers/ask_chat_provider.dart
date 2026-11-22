@@ -18,12 +18,20 @@ class AskChatState {
     this.isSending = false,
     this.enableWebSearch = false,
     this.errorKind,
+    this.progressPhase,
+    this.retryPrompt,
+    this.retryMessageId,
   });
 
   final String? activeConversationId;
   final bool isSending;
   final bool enableWebSearch;
   final AskUiErrorKind? errorKind;
+  final AskProgressPhase? progressPhase;
+  final String? retryPrompt;
+  final String? retryMessageId;
+
+  bool get canRetry => errorKind != null && retryPrompt != null && !isSending;
 
   AskChatState copyWith({
     String? activeConversationId,
@@ -32,6 +40,11 @@ class AskChatState {
     bool? enableWebSearch,
     AskUiErrorKind? errorKind,
     bool clearError = false,
+    AskProgressPhase? progressPhase,
+    bool clearProgress = false,
+    String? retryPrompt,
+    String? retryMessageId,
+    bool clearRetry = false,
   }) {
     return AskChatState(
       activeConversationId: clearConversation
@@ -40,24 +53,48 @@ class AskChatState {
       isSending: isSending ?? this.isSending,
       enableWebSearch: enableWebSearch ?? this.enableWebSearch,
       errorKind: clearError ? null : (errorKind ?? this.errorKind),
+      progressPhase: clearProgress
+          ? null
+          : (progressPhase ?? this.progressPhase),
+      retryPrompt: clearRetry ? null : (retryPrompt ?? this.retryPrompt),
+      retryMessageId: clearRetry
+          ? null
+          : (retryMessageId ?? this.retryMessageId),
     );
   }
 }
 
 class AskChatNotifier extends Notifier<AskChatState> {
   final Random _random = Random();
+  int _activeRequestId = 0;
 
   @override
-  AskChatState build() => const AskChatState();
+  AskChatState build() {
+    ref.onDispose(() {
+      _activeRequestId++;
+    });
+    return const AskChatState();
+  }
 
   void startNewConversation() {
-    state = state.copyWith(clearConversation: true, clearError: true);
+    _activeRequestId++;
+    state = state.copyWith(
+      clearConversation: true,
+      isSending: false,
+      clearProgress: true,
+      clearError: true,
+      clearRetry: true,
+    );
   }
 
   void selectConversation(String conversationId) {
+    _activeRequestId++;
     state = state.copyWith(
       activeConversationId: conversationId,
+      isSending: false,
+      clearProgress: true,
       clearError: true,
+      clearRetry: true,
     );
   }
 
@@ -65,9 +102,15 @@ class AskChatNotifier extends Notifier<AskChatState> {
     state = state.copyWith(enableWebSearch: !state.enableWebSearch);
   }
 
+  void cancelActiveRequest() {
+    if (!state.isSending) return;
+    _activeRequestId++;
+    state = state.copyWith(isSending: false, clearProgress: true);
+  }
+
   void clearError() {
-    if (state.errorKind == null) return;
-    state = state.copyWith(clearError: true);
+    if (state.errorKind == null && state.retryPrompt == null) return;
+    state = state.copyWith(clearError: true, clearRetry: true);
   }
 
   Future<void> deleteConversation(String conversationId) async {
@@ -75,13 +118,27 @@ class AskChatNotifier extends Notifier<AskChatState> {
         .read(askStorageRepositoryProvider)
         .deleteConversation(conversationId);
     if (state.activeConversationId == conversationId) {
-      state = state.copyWith(clearConversation: true, clearError: true);
+      _activeRequestId++;
+      state = state.copyWith(
+        clearConversation: true,
+        isSending: false,
+        clearProgress: true,
+        clearError: true,
+        clearRetry: true,
+      );
     }
   }
 
   Future<void> clearAllConversations() async {
+    _activeRequestId++;
     await ref.read(askStorageRepositoryProvider).clearAllConversations();
-    state = state.copyWith(clearConversation: true, clearError: true);
+    state = state.copyWith(
+      clearConversation: true,
+      isSending: false,
+      clearProgress: true,
+      clearError: true,
+      clearRetry: true,
+    );
   }
 
   Future<void> openDrop(AskProactiveDrop drop, {required String locale}) async {
@@ -90,24 +147,28 @@ class AskChatNotifier extends Notifier<AskChatState> {
     await sendMessage(drop.starterPrompt, locale: locale);
   }
 
-  Future<void> sendMessage(String rawText, {required String locale}) async {
-    final text = rawText.trim();
-    if (text.isEmpty || state.isSending) return;
-
+  Future<bool> _ensurePreflightReady() async {
     if (ref.read(isOfflineProvider)) {
       state = state.copyWith(errorKind: AskUiErrorKind.offline);
-      return;
+      return false;
     }
 
     final caps = await ref.read(askCapabilitiesProvider.future);
     if (!caps.isConfigured) {
       state = state.copyWith(errorKind: AskUiErrorKind.notConfigured);
-      return;
+      return false;
     }
     if (!caps.canUseAsk) {
       state = state.copyWith(errorKind: AskUiErrorKind.offline);
-      return;
+      return false;
     }
+    return true;
+  }
+
+  Future<void> sendMessage(String rawText, {required String locale}) async {
+    final text = rawText.trim();
+    if (text.isEmpty || state.isSending) return;
+    if (!await _ensurePreflightReady()) return;
 
     final storage = ref.read(askStorageRepositoryProvider);
     final now = DateTime.now();
@@ -145,8 +206,9 @@ class AskChatNotifier extends Notifier<AskChatState> {
     }
 
     final history = await storage.getMessages(convId);
+    final userMsgId = _newId('msg');
     final userMsg = AskChatMessage(
-      id: _newId('msg'),
+      id: userMsgId,
       conversationId: convId,
       role: 'user',
       content: text,
@@ -154,7 +216,52 @@ class AskChatNotifier extends Notifier<AskChatState> {
     );
     await storage.insertMessage(userMsg);
 
-    state = state.copyWith(isSending: true, clearError: true);
+    await _executeAgentTurn(
+      convId: convId,
+      userMessageId: userMsgId,
+      text: text,
+      history: history,
+      locale: locale,
+    );
+  }
+
+  Future<void> retryLastFailed({required String locale}) async {
+    final prompt = state.retryPrompt?.trim() ?? '';
+    final convId = state.activeConversationId;
+    if (prompt.isEmpty || convId == null || state.isSending) return;
+    if (!await _ensurePreflightReady()) return;
+
+    final storage = ref.read(askStorageRepositoryProvider);
+    final messages = await storage.getMessages(convId);
+    final retryMsgId = state.retryMessageId;
+    final history = retryMsgId == null
+        ? messages
+        : messages.where((m) => m.id != retryMsgId).toList(growable: false);
+
+    await _executeAgentTurn(
+      convId: convId,
+      userMessageId: retryMsgId,
+      text: prompt,
+      history: history,
+      locale: locale,
+    );
+  }
+
+  Future<void> _executeAgentTurn({
+    required String convId,
+    required String? userMessageId,
+    required String text,
+    required List<AskChatMessage> history,
+    required String locale,
+  }) async {
+    final storage = ref.read(askStorageRepositoryProvider);
+    final requestId = ++_activeRequestId;
+    state = state.copyWith(
+      isSending: true,
+      progressPhase: AskProgressPhase.thinking,
+      clearError: true,
+      clearRetry: true,
+    );
 
     try {
       final result = await ref
@@ -165,7 +272,14 @@ class AskChatNotifier extends Notifier<AskChatState> {
             history: history,
             locale: locale,
             enableWebSearch: state.enableWebSearch,
+            onProgress: (phase) {
+              if (_activeRequestId != requestId) return;
+              state = state.copyWith(progressPhase: phase);
+            },
+            isCancelled: () => _activeRequestId != requestId,
           );
+
+      if (_activeRequestId != requestId) return;
 
       final attachments = List<AskAttachment>.from(result.attachments);
       if (result.sources.isNotEmpty &&
@@ -182,7 +296,10 @@ class AskChatNotifier extends Notifier<AskChatState> {
       if (result.assistantText.trim().isEmpty && attachments.isEmpty) {
         state = state.copyWith(
           isSending: false,
+          clearProgress: true,
           errorKind: AskUiErrorKind.failed,
+          retryPrompt: text,
+          retryMessageId: userMessageId,
         );
         return;
       }
@@ -216,22 +333,44 @@ class AskChatNotifier extends Notifier<AskChatState> {
         );
       }
 
-      state = state.copyWith(isSending: false, clearError: true);
-    } on AskQuotaExceededException {
+      if (_activeRequestId != requestId) return;
       state = state.copyWith(
         isSending: false,
+        clearProgress: true,
+        clearError: true,
+        clearRetry: true,
+      );
+    } on AskCancelledException {
+      if (_activeRequestId == requestId) {
+        state = state.copyWith(isSending: false, clearProgress: true);
+      }
+    } on AskQuotaExceededException {
+      if (_activeRequestId != requestId) return;
+      state = state.copyWith(
+        isSending: false,
+        clearProgress: true,
         errorKind: AskUiErrorKind.quotaExceeded,
+        retryPrompt: text,
+        retryMessageId: userMessageId,
       );
     } on AskNotConfiguredException {
+      if (_activeRequestId != requestId) return;
       state = state.copyWith(
         isSending: false,
+        clearProgress: true,
         errorKind: AskUiErrorKind.notConfigured,
+        retryPrompt: text,
+        retryMessageId: userMessageId,
       );
     } catch (e) {
       debugPrint('Sonora Ask chat turn failed: $e');
+      if (_activeRequestId != requestId) return;
       state = state.copyWith(
         isSending: false,
+        clearProgress: true,
         errorKind: AskUiErrorKind.failed,
+        retryPrompt: text,
+        retryMessageId: userMessageId,
       );
     }
   }

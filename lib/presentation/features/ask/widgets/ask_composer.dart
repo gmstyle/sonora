@@ -12,6 +12,7 @@ class AskComposer extends StatelessWidget {
     required this.enableWebSearch,
     required this.onToggleWebSearch,
     required this.onSubmit,
+    this.onStop,
   });
 
   final TextEditingController controller;
@@ -20,6 +21,7 @@ class AskComposer extends StatelessWidget {
   final bool enableWebSearch;
   final VoidCallback onToggleWebSearch;
   final VoidCallback onSubmit;
+  final VoidCallback? onStop;
 
   @override
   Widget build(BuildContext context) {
@@ -58,23 +60,36 @@ class AskComposer extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  FilledButton(
-                    onPressed: enabled && !isSending ? onSubmit : null,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(42, 42),
-                      padding: EdgeInsets.zero,
+                  if (isSending && onStop != null)
+                    Tooltip(
+                      message: l10n.askStop,
+                      child: FilledButton.tonal(
+                        onPressed: onStop,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(42, 42),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: const Icon(LucideIcons.circleStop, size: 18),
+                      ),
+                    )
+                  else
+                    FilledButton(
+                      onPressed: enabled && !isSending ? onSubmit : null,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(42, 42),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: isSending
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: cs.onPrimary,
+                              ),
+                            )
+                          : const Icon(LucideIcons.arrowUp, size: 18),
                     ),
-                    child: isSending
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: cs.onPrimary,
-                            ),
-                          )
-                        : const Icon(LucideIcons.arrowUp, size: 18),
-                  ),
                 ],
               ),
               const SizedBox(height: 2),

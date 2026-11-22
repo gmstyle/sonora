@@ -847,3 +847,20 @@ class AskEmptyResponseException implements Exception {
   @override
   String toString() => message ?? 'AskEmptyResponseException()';
 }
+
+enum AskProgressPhase {
+  thinking,
+  readingProfile,
+  readingPlaylist,
+  searchingCatalog,
+  exploringSimilar,
+  buildingProposal,
+  finalizing,
+}
+
+class AskCancelledException implements Exception {
+  const AskCancelledException();
+
+  @override
+  String toString() => 'AskCancelledException';
+}
