@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.3+81] - 2026-11-22
+
+### Features
+
+- **android**: Rebuild launcher icon and TV banner from brand SVGs
+- **ask**: Refine chat layout, stop restore, and reply actions
+- **ask**: Polish Ask Hub, contextual entry points, pre-save editing, and shared error banner
+- **ask**: Parallel tools, live progress, stop/retry, follow-ups, and parametric sheets
+- **ask**: Native catalog widgets, proposal wrap-up, and web-search thinking mode
+- **ask**: Informal music-companion tone and new welcome copy
+- **ask**: Refactor Ask to dedicated hub backed by DeepSeek proxy
+- **update**: Add native Linux .deb/.rpm in-app updater
+
+### Bug Fixes
+
+- **entity**: Keep the last row above the system bar on tablet and wide
+- **shell**: Reserve the full mobile dock above page content
+- **ask**: Merge track metadata instead of overwriting on re-registration
+- **ask**: Carry artwork and metadata into now-playing track cards
+- **player**: Use uniform tinted background and refine glass app bar
+- **wrapped**: Render fullscreen story card with theme surfaces
+- **tv**: Resolve full artist songs list and shuffleId on TvArtistScreen
+
 ## [2.0.1+79] - 2026-11-20
 
 ### Bug Fixes
