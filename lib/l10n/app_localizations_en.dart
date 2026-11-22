@@ -2239,37 +2239,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Describe a vibe — Sonora builds a queue from your library and catalog';
 
   @override
-  String get momentMixPromptHint => 'Calm for the train, rock to focus…';
-
-  @override
-  String momentMixTrackCount(int count) {
-    return '$count tracks';
-  }
-
-  @override
-  String get momentMixInterpretFailed => 'Couldn’t understand that mix request';
-
-  @override
-  String get momentMixEmpty => 'No tracks matched this moment';
-
-  @override
-  String get momentMixOfflineYtm =>
-      'Catalog mixes need a connection — try a library vibe instead';
-
-  @override
-  String get momentMixOfflineNote =>
-      'Offline: mixes use your listening history only';
-
-  @override
   String get savePlaylist => 'Save playlist';
 
   @override
   String momentMixSaved(String playlistName) {
     return 'Saved as \"$playlistName\"';
   }
-
-  @override
-  String get momentMixSaveFailed => 'Couldn’t save this mix as a playlist';
 
   @override
   String get mixMoodCalm => 'Calm';
@@ -2997,4 +2972,38 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get askFollowUpMorePodcastsPrompt =>
       'Find more podcasts or episodes with a similar theme and present them as interactive cards.';
+
+  @override
+  String get askClearHistoryConfirmTitle => 'Clear all conversations?';
+
+  @override
+  String get askClearHistoryConfirmBody =>
+      'This will permanently remove your Ask chat history on this device.';
+
+  @override
+  String get askRemoveTrackFromCard => 'Remove track';
+
+  @override
+  String get askContextExpandPlaylist => 'Expand with Ask';
+
+  @override
+  String get askContextSimilarArtists => 'Ask Sonora for similar';
+
+  @override
+  String askContextSimilarArtistPrompt(String artist) {
+    return 'Recommend 5 artists similar to $artist and build a 15-track mix in the same vibe, attaching interactive artist and mix cards.';
+  }
+
+  @override
+  String get askContextSimilarSongs => 'Ask Sonora for similar';
+
+  @override
+  String askContextSimilarSongPrompt(String title, String artist) {
+    return 'Build a 15-track mix inspired by \"$title\" by $artist, with tracks that match its mood and style, and attach the interactive mix card.';
+  }
+
+  @override
+  String askContextSimilarSongPromptNoArtist(String title) {
+    return 'Build a 15-track mix inspired by \"$title\" with songs that match its mood and style, and attach the interactive mix card.';
+  }
 }

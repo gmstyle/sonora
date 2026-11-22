@@ -1012,17 +1012,6 @@
   "yourMixes": "Your Mixes",
   "mixForThisMoment": "Mix for this moment",
   "mixForThisMomentHint": "Describe a vibe — Sonora builds a queue from your library and catalog",
-  "momentMixPromptHint": "Calm for the train, rock to focus…",
-  "momentMixTrackCount": "{count} tracks",
-  "@momentMixTrackCount": {
-    "placeholders": {
-      "count": {"type": "int"}
-    }
-  },
-  "momentMixInterpretFailed": "Couldn’t understand that mix request",
-  "momentMixEmpty": "No tracks matched this moment",
-  "momentMixOfflineYtm": "Catalog mixes need a connection — try a library vibe instead",
-  "momentMixOfflineNote": "Offline: mixes use your listening history only",
   "savePlaylist": "Save playlist",
   "momentMixSaved": "Saved as \"{playlistName}\"",
   "@momentMixSaved": {
@@ -1030,7 +1019,6 @@
       "playlistName": {"type": "String"}
     }
   },
-  "momentMixSaveFailed": "Couldn’t save this mix as a playlist",
   "mixMoodCalm": "Calm",
   "mixMoodEnergetic": "Energetic",
   "mixMoodFocus": "Focus",
@@ -1324,5 +1312,30 @@
   "askFollowUpMixThisMood": "Mix for this mood",
   "askFollowUpMixThisMoodPrompt": "Build a 20-track interactive mix matching my listening profile described above.",
   "askFollowUpMorePodcasts": "More like this",
-  "askFollowUpMorePodcastsPrompt": "Find more podcasts or episodes with a similar theme and present them as interactive cards."
+  "askFollowUpMorePodcastsPrompt": "Find more podcasts or episodes with a similar theme and present them as interactive cards.",
+  "askClearHistoryConfirmTitle": "Clear all conversations?",
+  "askClearHistoryConfirmBody": "This will permanently remove your Ask chat history on this device.",
+  "askRemoveTrackFromCard": "Remove track",
+  "askContextExpandPlaylist": "Expand with Ask",
+  "askContextSimilarArtists": "Ask Sonora for similar",
+  "askContextSimilarArtistPrompt": "Recommend 5 artists similar to {artist} and build a 15-track mix in the same vibe, attaching interactive artist and mix cards.",
+  "@askContextSimilarArtistPrompt": {
+    "placeholders": {
+      "artist": {"type": "String"}
+    }
+  },
+  "askContextSimilarSongs": "Ask Sonora for similar",
+  "askContextSimilarSongPrompt": "Build a 15-track mix inspired by \"{title}\" by {artist}, with tracks that match its mood and style, and attach the interactive mix card.",
+  "@askContextSimilarSongPrompt": {
+    "placeholders": {
+      "title": {"type": "String"},
+      "artist": {"type": "String"}
+    }
+  },
+  "askContextSimilarSongPromptNoArtist": "Build a 15-track mix inspired by \"{title}\" with songs that match its mood and style, and attach the interactive mix card.",
+  "@askContextSimilarSongPromptNoArtist": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  }
 }

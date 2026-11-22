@@ -3795,42 +3795,6 @@ abstract class AppLocalizations {
   /// **'Describe a vibe — Sonora builds a queue from your library and catalog'**
   String get mixForThisMomentHint;
 
-  /// No description provided for @momentMixPromptHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Calm for the train, rock to focus…'**
-  String get momentMixPromptHint;
-
-  /// No description provided for @momentMixTrackCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} tracks'**
-  String momentMixTrackCount(int count);
-
-  /// No description provided for @momentMixInterpretFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn’t understand that mix request'**
-  String get momentMixInterpretFailed;
-
-  /// No description provided for @momentMixEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No tracks matched this moment'**
-  String get momentMixEmpty;
-
-  /// No description provided for @momentMixOfflineYtm.
-  ///
-  /// In en, this message translates to:
-  /// **'Catalog mixes need a connection — try a library vibe instead'**
-  String get momentMixOfflineYtm;
-
-  /// No description provided for @momentMixOfflineNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline: mixes use your listening history only'**
-  String get momentMixOfflineNote;
-
   /// No description provided for @savePlaylist.
   ///
   /// In en, this message translates to:
@@ -3842,12 +3806,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved as \"{playlistName}\"'**
   String momentMixSaved(String playlistName);
-
-  /// No description provided for @momentMixSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn’t save this mix as a playlist'**
-  String get momentMixSaveFailed;
 
   /// No description provided for @mixMoodCalm.
   ///
@@ -5198,6 +5156,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Find more podcasts or episodes with a similar theme and present them as interactive cards.'**
   String get askFollowUpMorePodcastsPrompt;
+
+  /// No description provided for @askClearHistoryConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all conversations?'**
+  String get askClearHistoryConfirmTitle;
+
+  /// No description provided for @askClearHistoryConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently remove your Ask chat history on this device.'**
+  String get askClearHistoryConfirmBody;
+
+  /// No description provided for @askRemoveTrackFromCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove track'**
+  String get askRemoveTrackFromCard;
+
+  /// No description provided for @askContextExpandPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand with Ask'**
+  String get askContextExpandPlaylist;
+
+  /// No description provided for @askContextSimilarArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Sonora for similar'**
+  String get askContextSimilarArtists;
+
+  /// No description provided for @askContextSimilarArtistPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend 5 artists similar to {artist} and build a 15-track mix in the same vibe, attaching interactive artist and mix cards.'**
+  String askContextSimilarArtistPrompt(String artist);
+
+  /// No description provided for @askContextSimilarSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Sonora for similar'**
+  String get askContextSimilarSongs;
+
+  /// No description provided for @askContextSimilarSongPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a 15-track mix inspired by \"{title}\" by {artist}, with tracks that match its mood and style, and attach the interactive mix card.'**
+  String askContextSimilarSongPrompt(String title, String artist);
+
+  /// No description provided for @askContextSimilarSongPromptNoArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a 15-track mix inspired by \"{title}\" with songs that match its mood and style, and attach the interactive mix card.'**
+  String askContextSimilarSongPromptNoArtist(String title);
 }
 
 class _AppLocalizationsDelegate

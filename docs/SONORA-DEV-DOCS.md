@@ -108,7 +108,7 @@ lib/
 │   │   └── stream_quality_selector.dart # audioOnly (tiered) / muxed (best bitrate)
 │   ├── models/
 │   │   ├── ask_capabilities.dart       # Feature gates resolved from DeepSeek backend + connectivity
-│   │   ├── ask_chat_models.dart        # Chat turns, attachments (mix/playlist_write/artists/insights), Pulse Drops
+│   │   ├── ask_chat_models.dart        # Chat turns, attachments (mix/playlist_write/artists/tracks/albums/playlists/podcasts/episodes/insights), Pulse Drops
 │   │   ├── library_models.dart         # PODO (LikedSong, FollowedArtist, LikedPodcast, LikedEpisode, History, …)
 │   │   ├── playlist_import.dart        # Spotify snapshot + PlaylistImportResult
 │   │   ├── queue_track.dart            # QueueTrack + contentType (song|video|episode) + podcastBrowseId
@@ -122,7 +122,7 @@ lib/
 │   │   ├── library_repository.dart
 │   │   └── queue_repository.dart
 │   └── usecases/
-│       ├── ai/                         # AskAgentUseCase, AskToolExecutor (13 tools), Pulse Drops, Safe Write, Spotify match
+│       ├── ai/                         # AskAgentUseCase, AskToolExecutor (18 tools), Pulse Drops, Safe Write, Spotify match
 │       ├── backup/
 │       │   ├── export_backup_use_case.dart   # backup JSON version 3
 │       │   ├── import_backup_use_case.dart
@@ -213,7 +213,7 @@ lib/
         │   ├── layouts/                  # library_mobile_layout.dart, library_split_layout.dart
         │   └── widgets/                  # Tab views + podcasts_tab, stats_tab, sonora_wrapped_view
         ├── downloads/                    # DownloadsScreen: active batches + completed groups (mobile accordion / tablet–wide split)
-        ├── ask/                          # AskScreen (/ask hub) + AskChatNotifier + Rich Cards + Pulse Drops (hidden on TV)
+        ├── ask/                          # AskScreen (/ask hub) + AskChatNotifier + Rich Cards + Guided Sheets + Follow-up Chips + Pulse Drops (hidden on TV)
         ├── settings/                     # SettingsScreen + 3 layouts + local_sync_panel + youtube_login_webview + device_link_*
         └── tv/                           # Android TV 10-foot UI (TvShell, TvYoutubeAccountDialog, dedicated TV screens & widgets)
 ```
@@ -1462,18 +1462,25 @@ Android TV is a **device shell** (`isAndroidTvProvider`, overridden in `main.dar
 Sonora Ask provides an integrated, music-scoped conversational hub at `/ask` alongside assisted playlist matching, track curiosity insights, lyrics translation, and Wrapped storytelling.
 
 - **Proxy & BYOK Transport ([`DeepSeekHttpDatasource`](../lib/data/datasources/ai/deepseek_http_datasource.dart))**:
-  - **Managed Cloudflare Proxy (`workers/ask-proxy/`)**: Default mode using `kAskProxyBaseUrl`. Accepts only the closed `AskActionKind` set (`chat`, `mix_intent`, `search_intent`, `track_insights`, `lyrics_translate`, `wrapped`, `spotify_match`, `pulse_drop`), attaches authoritative server-side prompts (`prompts.ts`), enforces per-device (`30/day`), per-IP (`90/day`), global (`10,000/day`), and weekly Pulse Drop (`3/week`) limits via Workers KV (`QUOTA_KV`), and authenticates to DeepSeek (`deepseek-flash`) with a Cloudflare Secrets Store binding (`DEEPSEEK_API_KEY`). Multi-round tool calls and batched Spotify chunks sharing a `turnId` consume a single daily credit.
+  - **Managed Cloudflare Proxy (`workers/ask-proxy/`)**: Default mode using `kAskProxyBaseUrl`. Accepts the closed `AskActionKind` set (`chat`, `mix_intent`, `search_intent`, `track_insights`, `lyrics_translate`, `wrapped`, `spotify_match`, `pulse_drop`), attaches authoritative server-side prompts (`prompts.ts`), enforces per-device (`30/day`), per-IP (`90/day`), global (`10,000/day`), and weekly Pulse Drop (`3/week`) limits via Workers KV (`QUOTA_KV`), and authenticates to DeepSeek (`deepseek-flash`) with a Cloudflare Secrets Store binding (`DEEPSEEK_API_KEY`). Multi-round tool calls and batched Spotify chunks sharing a `turnId` consume a single daily credit.
+  - **Quota Sync (`AskQuotaNotifier.refresh`)**: Both `AskScreen` and Settings → Ask trigger `GET /v1/quota` on open (when online and in proxy mode) so the credit badge reflects server usage immediately after restart.
+  - **Thinking Mode + Web Search + Client Tools**: Both the BYOK client path and the Cloudflare Worker enable DeepSeek thinking mode (`reasoning_effort: 'low'`, omitting custom `temperature`) and preserve `reasoning_content` across tool-call sub-turns whenever `deepseek_web_search` is combined with client tools.
   - **Personal BYOK Mode**: Setting `Settings.deepseekApiKey` switches `AskBackendMode` to `byok`, calling `https://api.deepseek.com/chat/completions` directly with unlimited device credits.
 - **Function Calling & Grounding ([`AskAgentUseCase`](../lib/domain/usecases/ai/ask_agent_use_case.dart), [`AskToolExecutor`](../lib/domain/usecases/ai/ask_tool_executor.dart))**:
-  - Exposes **13 verified tools** over Drift (`get_taste_profile`, `get_listening_history`, `search_local_library`, `get_local_playlist_tracks`, `get_now_playing`) and YouTube Music (`search_catalog`, `get_artist_info`, `get_song_related`, `get_album_or_playlist`, `get_charts_or_moods`, `get_song_lyrics`, `propose_mix`, `propose_playlist_write`), plus DeepSeek server-side `deepseek_web_search` for `track_insights` and opt-in `chat` web queries.
+  - Exposes **18 verified tools**: 17 read/emit tools — Drift library (`get_taste_profile`, `get_listening_history`, `search_local_library`, `get_local_playlist_tracks`, `get_now_playing`), YouTube Music (`search_catalog`, `get_artist_info`, `get_song_related`, `get_album_or_playlist`, `get_charts_or_moods`, `get_song_lyrics`), and rich attachment emitters (`propose_mix`, `attach_artists`, `attach_tracks`, `attach_albums`, `attach_playlists`, `attach_podcasts_or_episodes`) — plus `propose_playlist_write` (Safe Write) and opt-in server-side `deepseek_web_search`.
+  - Read-only tool calls within a round execute concurrently in batches of up to 4 (preserving result order and enforcing an iterative proposal wrap-up when approaching round budgets).
+  - `Settings.askUseTasteContext` strictly gates `get_taste_profile`, `get_listening_history`, `search_local_library`, `get_local_playlist_tracks`, and background Pulse Drop evaluation.
   - Chat system instructions enforce music/audio scope, ban fabricating catalog IDs/URLs, preserve Safe Write semantics, and keep responses conversational under the Sonora Ask persona.
-- **Safe Write Policy ([`ApplyAskPlaylistWriteUseCase`](../lib/domain/usecases/ai/apply_ask_playlist_write_use_case.dart))**:
-  - `propose_mix` and `propose_playlist_write` emit interactive attachment cards (`AskMixAttachment`, `AskPlaylistWriteProposal`) persisted inside `ask_messages.attachmentsJson`. No Drift playlist or library table is mutated until the user taps **Confirm & save** / **Save playlist** (or **Discard**).
-- **Hub UI & Markdown ([`AskScreen`](../lib/presentation/features/ask/ask_screen.dart))**:
-  - Adaptive layouts across mobile, tablet, and desktop (guided quick actions, conversation drawer/rail, Pulse Drops strip/utility rail, web-search toggle, credit badge). Android TV (`TvShell`) keeps 4 branches and does not expose Ask.
+- **Native Catalog Widgets & Safe Write Policy ([`ApplyAskPlaylistWriteUseCase`](../lib/domain/usecases/ai/apply_ask_playlist_write_use_case.dart))**:
+  - Rich cards (`AskMixAttachment`, `AskPlaylistWriteProposal`, `AskArtistsAttachment`, `AskTracksAttachment`, `AskAlbumsAttachment`, `AskPlaylistsAttachment`, `AskPodcastsAttachment`, `AskEpisodesAttachment`) are persisted inside `ask_messages.attachmentsJson` and render the app's native catalog widgets (`SongTile`, `ArtistCard`, `AlbumCard`, `PlaylistCard`, `PodcastTile`, `EpisodeTile`) so context menus and detail navigation work seamlessly.
+  - No Drift playlist or library table is mutated until the user taps **Confirm & save** / **Save playlist** (or **Discard**). Before saving an unsaved mix or pending proposal, users can remove individual unwanted tracks directly from the card, and persisted playlist entries preserve `track.isVideo`.
+- **Hub UI, Cancellation, Follow-ups & Entry Points ([`AskScreen`](../lib/presentation/features/ask/ask_screen.dart), [`openAskFromContextMenu`](../lib/presentation/shared/widgets/context_menu/context_menu_presenter.dart))**:
+  - Adaptive layouts across mobile, tablet, and desktop (guided quick actions, parametric `Expand Playlist` and `Tailored Mix` overlays, conversation drawer/rail with confirmation before clearing history, Pulse Drops strip/utility rail, web-search toggle, credit badge). Android TV (`TvShell`) keeps 4 branches and does not expose Ask.
+  - Displays live localized `AskProgressPhase` status while generating, supports cancelling an active turn (`AskCancelledException`), non-duplicating **Retry** on transient failures, and contextual `AskFollowUpChips` after assistant turns.
+  - Contextual Ask entry points launch a fresh `/ask?prompt=...` conversation from Search (`SearchOpenAskButton`), Song (`Ask Sonora for similar`), Artist (`Ask Sonora for similar`), and Local Playlist (`Expand with Ask`) context menus (disabled when offline, hidden on Android TV).
   - Assistant responses render via `gpt_markdown` (`SelectionArea` + `GptMarkdown`, `isStreaming: false`, `useDollarSignsForLatex: false`, theme-matched `GptMarkdownStyleSheet`, `http`/`https` link validation via `url_launcher`).
 - **Proactive Pulse Drops & Local Notifications ([`EvaluateProactiveDropsUseCase`](../lib/domain/usecases/ai/evaluate_proactive_drops_use_case.dart), [`AskNotificationService`](../lib/presentation/providers/ask_notification_service.dart))**:
-  - `_SonoraAppState` evaluates signals (`heavy_rotation`, `forgotten_favorites`, `taste_discovery`) in the background once every 24h when online and `!isAndroidTv`, respecting a 48h active-drop cooldown. When enabled, new drops post a local notification (`kAskDropPayloadPrefix` → `/ask?dropId=...`).
+  - `_SonoraAppState` evaluates signals (`heavy_rotation`, `forgotten_favorites`, `taste_discovery`) in the background once every 24h when online, `askDropsEnabled && askUseTasteContext`, and `!isAndroidTv`, respecting a 48h active-drop cooldown. When enabled, new drops post a local notification (`kAskDropPayloadPrefix` → `/ask?dropId=...`).
 
 ---
 

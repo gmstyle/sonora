@@ -826,17 +826,6 @@
   "yourMixes": "I tuoi Mix",
   "mixForThisMoment": "Mix per questo momento",
   "mixForThisMomentHint": "Descrivi un mood — Sonora crea una coda dalla tua libreria e dal catalogo",
-  "momentMixPromptHint": "Calmo per il treno, rock per concentrarmi…",
-  "momentMixTrackCount": "{count} brani",
-  "@momentMixTrackCount": {
-    "placeholders": {
-      "count": {"type": "int"}
-    }
-  },
-  "momentMixInterpretFailed": "Non sono riuscito a interpretare la richiesta",
-  "momentMixEmpty": "Nessun brano per questo momento",
-  "momentMixOfflineYtm": "I mix dal catalogo richiedono connessione — prova un mood dalla libreria",
-  "momentMixOfflineNote": "Offline: i mix usano solo la cronologia di ascolto",
   "savePlaylist": "Salva playlist",
   "momentMixSaved": "Salvata come \"{playlistName}\"",
   "@momentMixSaved": {
@@ -844,7 +833,6 @@
       "playlistName": {"type": "String"}
     }
   },
-  "momentMixSaveFailed": "Non sono riuscito a salvare il mix come playlist",
   "mixMoodCalm": "Calmo",
   "mixMoodEnergetic": "Energico",
   "mixMoodFocus": "Concentrazione",
@@ -1138,5 +1126,30 @@
   "askFollowUpMixThisMood": "Mix su questo mood",
   "askFollowUpMixThisMoodPrompt": "Crea un mix interattivo da 20 brani in linea con il profilo d'ascolto appena descritto.",
   "askFollowUpMorePodcasts": "Altri simili",
-  "askFollowUpMorePodcastsPrompt": "Trovami altri podcast o episodi sullo stesso tema e mostrali nelle schede interattive."
+  "askFollowUpMorePodcastsPrompt": "Trovami altri podcast o episodi sullo stesso tema e mostrali nelle schede interattive.",
+  "askClearHistoryConfirmTitle": "Cancellare tutte le conversazioni?",
+  "askClearHistoryConfirmBody": "Questo eliminerà definitivamente la cronologia di Ask su questo dispositivo.",
+  "askRemoveTrackFromCard": "Rimuovi brano",
+  "askContextExpandPlaylist": "Espandi con Ask",
+  "askContextSimilarArtists": "Chiedi simili a Sonora",
+  "askContextSimilarArtistPrompt": "Consigliami 5 artisti simili a {artist} e crea un mix da 15 brani sulla stessa atmosfera, allegando schede interattive di artisti e mix.",
+  "@askContextSimilarArtistPrompt": {
+    "placeholders": {
+      "artist": {"type": "String"}
+    }
+  },
+  "askContextSimilarSongs": "Chiedi simili a Sonora",
+  "askContextSimilarSongPrompt": "Crea un mix da 15 brani ispirato a \"{title}\" di {artist}, con brani affini per atmosfera e stile, allegando la scheda mix interattiva.",
+  "@askContextSimilarSongPrompt": {
+    "placeholders": {
+      "title": {"type": "String"},
+      "artist": {"type": "String"}
+    }
+  },
+  "askContextSimilarSongPromptNoArtist": "Crea un mix da 15 brani ispirato a \"{title}\" con brani affini per atmosfera e stile, allegando la scheda mix interattiva.",
+  "@askContextSimilarSongPromptNoArtist": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  }
 }

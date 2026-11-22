@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -714,6 +715,9 @@ class _AiSectionState extends ConsumerState<_AiSection> {
     _proxyUrlController = TextEditingController(
       text: settings.askProxyUrlOverride,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(ref.read(askQuotaProvider.notifier).refresh());
+    });
   }
 
   @override

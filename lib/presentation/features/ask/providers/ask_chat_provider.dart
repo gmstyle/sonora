@@ -431,6 +431,40 @@ class AskChatNotifier extends Notifier<AskChatState> {
     return savedId;
   }
 
+  Future<void> removeTrackFromAttachment({
+    required AskChatMessage message,
+    required int attachmentIndex,
+    required String videoId,
+  }) async {
+    if (attachmentIndex < 0 || attachmentIndex >= message.attachments.length) {
+      return;
+    }
+    final target = message.attachments[attachmentIndex];
+    final updated = List<AskAttachment>.from(message.attachments);
+    if (target is AskMixAttachment && target.savedPlaylistId == null) {
+      final remaining = target.tracks
+          .where((t) => t.videoId != videoId)
+          .toList(growable: false);
+      if (remaining.length == target.tracks.length || remaining.isEmpty) {
+        return;
+      }
+      updated[attachmentIndex] = target.copyWith(tracks: remaining);
+    } else if (target is AskPlaylistWriteProposal && target.isPending) {
+      final remaining = target.tracks
+          .where((t) => t.videoId != videoId)
+          .toList(growable: false);
+      if (remaining.length == target.tracks.length || remaining.isEmpty) {
+        return;
+      }
+      updated[attachmentIndex] = target.copyWith(tracks: remaining);
+    } else {
+      return;
+    }
+    await ref
+        .read(askStorageRepositoryProvider)
+        .updateMessageAttachments(message.id, updated);
+  }
+
   String _newId(String prefix) =>
       '${prefix}_${DateTime.now().microsecondsSinceEpoch}_${_random.nextInt(9999)}';
 }

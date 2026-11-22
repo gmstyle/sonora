@@ -183,6 +183,21 @@ void enqueueSingleTrackDownload({
   });
 }
 
+/// Closes the context menu (plus any imperative routes pushed above the
+/// shell such as playlist detail views) and opens Sonora Ask with [prompt].
+void openAskFromContextMenu(BuildContext context, String prompt) {
+  final router = GoRouter.maybeOf(context);
+  final rootNav = Navigator.of(context, rootNavigator: true);
+  final uri = Uri(path: '/ask', queryParameters: {'prompt': prompt}).toString();
+  if (Navigator.of(context).canPop()) {
+    Navigator.pop(context);
+  }
+  if (router != null) {
+    rootNav.popUntil((route) => route.isFirst);
+    router.go(uri);
+  }
+}
+
 /// Shared song-radio starter used by song and now-playing menus.
 Future<void> startSongRadio({
   required String videoId,

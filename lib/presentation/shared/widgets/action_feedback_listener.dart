@@ -17,8 +17,15 @@ class _ActionFeedbackListenerState
   @override
   Widget build(BuildContext context) {
     ref.listen<ActionFeedback?>(actionFeedbackProvider, (prev, next) {
-      if (next != null && prev?.message != next.message) {
-        FeedbackToast.show(context, next.message, kind: next.kind);
+      if (next != null) {
+        FeedbackToast.show(
+          context,
+          next.message,
+          kind: next.kind,
+          actionLabel: next.actionLabel,
+          onAction: next.onAction,
+          onDismissed: next.onDismiss,
+        );
         ref.read(actionFeedbackProvider.notifier).clear();
       }
     });

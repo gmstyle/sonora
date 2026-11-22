@@ -478,6 +478,7 @@ class AskToolExecutor {
   Future<Map<String, dynamic>> _searchLocalLibrary(
     Map<String, dynamic> args,
   ) async {
+    if (!useTasteContext) return {'disabledByUser': true};
     final query = (args['query']?.toString() ?? '').trim().toLowerCase();
     final scope = (args['scope']?.toString() ?? 'all').trim().toLowerCase();
     if (query.isEmpty) return {'error': 'empty_query'};
@@ -626,6 +627,7 @@ class AskToolExecutor {
   Future<Map<String, dynamic>> _getLocalPlaylistTracks(
     Map<String, dynamic> args,
   ) async {
+    if (!useTasteContext) return {'disabledByUser': true};
     var playlistId = (args['playlistId'] as num?)?.toInt();
     final playlistName = (args['playlistName']?.toString() ?? '').trim();
     LocalPlaylistModel? target;

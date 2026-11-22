@@ -321,6 +321,20 @@ class SongContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
+                  if (isPlayable && !ref.watch(isAndroidTvProvider))
+                    ActionTile(
+                      icon: LucideIcons.sparkles,
+                      label: AppLocalizations.of(context)!
+                          .askContextSimilarSongs,
+                      enabled: !isOffline,
+                      onTap: () {
+                        final l10n = AppLocalizations.of(context)!;
+                        final prompt = artist.trim().isEmpty
+                            ? l10n.askContextSimilarSongPromptNoArtist(title)
+                            : l10n.askContextSimilarSongPrompt(title, artist);
+                        openAskFromContextMenu(context, prompt);
+                      },
+                    ),
                   if (isPlayable)
                     ActionTile(
                       icon: LucideIcons.plus,

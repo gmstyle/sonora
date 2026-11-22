@@ -11,9 +11,11 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/layout_breakpoints.dart';
 import '../../../domain/models/ask_chat_models.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../providers/action_feedback_provider.dart';
 import '../../providers/ask_llm_provider.dart';
 import '../../providers/ask_storage_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../shared/widgets/feedback_toast.dart';
 import 'providers/ask_chat_provider.dart';
 import 'widgets/ask_composer.dart';
 import 'widgets/ask_drops_section.dart';
@@ -41,7 +43,11 @@ class _AskScreenState extends ConsumerState<AskScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _consumeInitialArgs());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(askQuotaProvider.notifier).refresh());
+      unawaited(_consumeInitialArgs());
+    });
   }
 
   @override
@@ -78,12 +84,26 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     }
 
     final prompt = widget.initialPrompt?.trim();
-    if (prompt != null && prompt.isNotEmpty && prompt != _lastHandledPrompt) {
+    if (prompt == null || prompt.isEmpty) {
+      _lastHandledPrompt = null;
+      return;
+    }
+    if (prompt != _lastHandledPrompt) {
       _lastHandledPrompt = prompt;
-      _composerController.text = prompt;
-      if (!ref.read(isOfflineProvider)) {
-        await _sendPrompt(prompt);
+      if (ref.read(isOfflineProvider)) {
+        _composerController.text = prompt;
+        return;
       }
+      ref.read(askChatProvider.notifier).startNewConversation();
+      _composerController.clear();
+      final router = GoRouter.maybeOf(context);
+      if (router != null) {
+        final uri = router.routerDelegate.currentConfiguration.uri;
+        if (uri.path == '/ask' && uri.queryParameters.isNotEmpty) {
+          router.go('/ask');
+        }
+      }
+      await _sendPrompt(prompt);
     }
   }
 
@@ -122,6 +142,52 @@ class _AskScreenState extends ConsumerState<AskScreen> {
     if (mounted) _scrollToBottom();
   }
 
+  void _reportErrorBanner(AskChatState chatState) {
+    final kind = chatState.errorKind;
+    if (kind == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final limit = ref.read(askQuotaProvider).limit;
+    final text = switch (kind) {
+      AskUiErrorKind.offline => l10n.askErrorOffline,
+      AskUiErrorKind.notConfigured => l10n.askErrorNotConfigured,
+      AskUiErrorKind.quotaExceeded => l10n.askErrorQuotaExceeded(
+        limit <= 0 ? 30 : limit,
+      ),
+      AskUiErrorKind.failed => l10n.askErrorFailed,
+    };
+    final showSettings =
+        kind == AskUiErrorKind.notConfigured ||
+        kind == AskUiErrorKind.quotaExceeded;
+    final canRetry = !ref.read(isOfflineProvider) && chatState.canRetry;
+    final String? actionLabel;
+    final VoidCallback? onAction;
+    if (showSettings) {
+      actionLabel = l10n.askOpenSettings;
+      onAction = () {
+        ref.read(askChatProvider.notifier).clearError();
+        if (mounted) context.push('/settings?section=ai');
+      };
+    } else if (canRetry) {
+      actionLabel = l10n.askActionRetry;
+      onAction = () => unawaited(_retryLastFailed());
+    } else {
+      actionLabel = null;
+      onAction = null;
+    }
+
+    ref
+        .read(actionFeedbackProvider.notifier)
+        .report(
+          text,
+          kind: FeedbackKind.error,
+          actionLabel: actionLabel,
+          onAction: onAction,
+          onDismiss: () {
+            if (mounted) ref.read(askChatProvider.notifier).clearError();
+          },
+        );
+  }
+
   Future<void> _openMixBuilder() async {
     final prompt = await showAskTailoredMixSheet(context);
     if (!mounted || prompt == null || prompt.trim().isEmpty) return;
@@ -147,6 +213,11 @@ class _AskScreenState extends ConsumerState<AskScreen> {
           prev?.activeConversationId != next.activeConversationId) {
         _scrollToBottom();
       }
+      if (next.errorKind != null && prev?.errorKind != next.errorKind) {
+        _reportErrorBanner(next);
+      } else if (prev?.errorKind != null && next.errorKind == null) {
+        FeedbackToast.dismissSticky();
+      }
     });
 
     final chatState = ref.watch(askChatProvider);
@@ -158,16 +229,6 @@ class _AskScreenState extends ConsumerState<AskScreen> {
 
     final chatColumn = Column(
       children: [
-        if (chatState.errorKind != null)
-          _AskErrorBanner(
-            kind: chatState.errorKind!,
-            limit: quota.limit <= 0 ? 30 : quota.limit,
-            onDismiss: () => ref.read(askChatProvider.notifier).clearError(),
-            onOpenSettings: () => context.push('/settings?section=ai'),
-            onRetry: (!isOffline && chatState.canRetry)
-                ? () => _retryLastFailed()
-                : null,
-          ),
         Expanded(
           child: _AskConversationBody(
             conversationId: chatState.activeConversationId,
@@ -340,12 +401,13 @@ class _AskScreenState extends ConsumerState<AskScreen> {
                         TextButton.icon(
                           icon: const Icon(LucideIcons.trash2, size: 16),
                           label: Text(l10n.askClearHistory),
-                          onPressed: () {
-                            sheetRef
-                                .read(askChatProvider.notifier)
-                                .clearAllConversations();
-                            Navigator.of(ctx).pop();
-                          },
+                          onPressed: () => unawaited(
+                            _confirmAndClearHistory(
+                              ctx,
+                              sheetRef,
+                              popCaller: true,
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -450,9 +512,8 @@ class _AskSidebarRail extends ConsumerWidget {
                   tooltip: l10n.askClearHistory,
                   icon: const Icon(LucideIcons.trash2, size: 15),
                   visualDensity: VisualDensity.compact,
-                  onPressed: () => ref
-                      .read(askChatProvider.notifier)
-                      .clearAllConversations(),
+                  onPressed: () =>
+                      unawaited(_confirmAndClearHistory(context, ref)),
                 ),
             ],
           ),
@@ -773,83 +834,38 @@ class _QuotaBadge extends StatelessWidget {
   }
 }
 
-class _AskErrorBanner extends StatelessWidget {
-  const _AskErrorBanner({
-    required this.kind,
-    required this.limit,
-    required this.onDismiss,
-    required this.onOpenSettings,
-    this.onRetry,
-  });
-
-  final AskUiErrorKind kind;
-  final int limit;
-  final VoidCallback onDismiss;
-  final VoidCallback onOpenSettings;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final cs = Theme.of(context).colorScheme;
-    final text = switch (kind) {
-      AskUiErrorKind.offline => l10n.askErrorOffline,
-      AskUiErrorKind.notConfigured => l10n.askErrorNotConfigured,
-      AskUiErrorKind.quotaExceeded => l10n.askErrorQuotaExceeded(limit),
-      AskUiErrorKind.failed => l10n.askErrorFailed,
-    };
-    final showSettings =
-        kind == AskUiErrorKind.notConfigured ||
-        kind == AskUiErrorKind.quotaExceeded;
-
-    return Material(
-      color: cs.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Icon(
-              kind == AskUiErrorKind.offline
-                  ? LucideIcons.wifiOff
-                  : LucideIcons.alertCircle,
-              size: 18,
-              color: cs.onErrorContainer,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                text,
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: cs.onErrorContainer),
-              ),
-            ),
-            if (onRetry != null)
-              TextButton.icon(
-                onPressed: onRetry,
-                style: TextButton.styleFrom(
-                  foregroundColor: cs.onErrorContainer,
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: const Icon(LucideIcons.refreshCw, size: 14),
-                label: Text(l10n.askActionRetry),
-              ),
-            if (showSettings)
-              TextButton(
-                onPressed: onOpenSettings,
-                style: TextButton.styleFrom(
-                  foregroundColor: cs.onErrorContainer,
-                  visualDensity: VisualDensity.compact,
-                ),
-                child: Text(l10n.askOpenSettings),
-              ),
-            IconButton(
-              icon: Icon(LucideIcons.x, size: 16, color: cs.onErrorContainer),
-              visualDensity: VisualDensity.compact,
-              onPressed: onDismiss,
-            ),
-          ],
+Future<void> _confirmAndClearHistory(
+  BuildContext context,
+  WidgetRef ref, {
+  bool popCaller = false,
+}) async {
+  final l10n = AppLocalizations.of(context)!;
+  final cs = Theme.of(context).colorScheme;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogCtx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(l10n.askClearHistoryConfirmTitle),
+      content: Text(l10n.askClearHistoryConfirmBody),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogCtx).pop(false),
+          child: Text(l10n.cancel),
         ),
-      ),
-    );
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: cs.error,
+            foregroundColor: cs.onError,
+          ),
+          onPressed: () => Navigator.of(dialogCtx).pop(true),
+          child: Text(l10n.askClearHistory),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+  await ref.read(askChatProvider.notifier).clearAllConversations();
+  if (popCaller && context.mounted) {
+    Navigator.of(context).pop();
   }
 }

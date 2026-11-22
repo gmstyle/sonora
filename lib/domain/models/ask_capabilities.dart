@@ -13,29 +13,7 @@ class AskCapabilities {
 
   bool get isByok => backend == AskBackendMode.byok;
 
-  bool get hasLlm => canUseAsk;
-
-  bool get canUseChat => canUseAsk;
-
-  bool get canUseSearch => canUseAsk;
-
-  bool get canInterpretSearch => canUseAsk;
-
-  bool get canUseMomentMix => canUseAsk;
-
-  bool get canMomentMix => canUseAsk;
-
-  bool get canUseSpotifyAssistant => canUseAsk;
-
-  bool get canRewriteImport => canUseAsk;
-
-  bool get canUseWrappedNarrative => canUseAsk;
-
   bool get canWrappedNarrative => canUseAsk;
-
-  bool get canUseTrackInsights => canUseAsk;
-
-  bool get canUseLyricsTranslation => canUseAsk;
 
   bool get canPlayerInsights => canUseAsk;
 }

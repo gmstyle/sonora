@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -44,6 +46,9 @@ class FeedbackToast {
     BuildContext context,
     String message, {
     FeedbackKind kind = FeedbackKind.confirm,
+    String? actionLabel,
+    VoidCallback? onAction,
+    VoidCallback? onDismissed,
   }) {
     _currentEntry?.remove();
     _currentEntry = null;
@@ -56,6 +61,9 @@ class FeedbackToast {
       builder: (_) => _FeedbackToastWidget(
         message: message,
         kind: kind,
+        actionLabel: actionLabel,
+        onAction: onAction,
+        onDismissed: onDismissed,
         onDismiss: () {
           entry.remove();
           if (_currentEntry == entry) {
@@ -80,11 +88,17 @@ class FeedbackToast {
 class _FeedbackToastWidget extends StatefulWidget {
   final String message;
   final FeedbackKind kind;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final VoidCallback? onDismissed;
   final VoidCallback onDismiss;
 
   const _FeedbackToastWidget({
     required this.message,
     required this.kind,
+    this.actionLabel,
+    this.onAction,
+    this.onDismissed,
     required this.onDismiss,
   });
 
@@ -100,6 +114,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
   final FocusNode _closeFocus = FocusNode(debugLabel: 'feedbackToastClose');
   FocusNode? _previousFocus;
   FocusScopeNode? _previousScope;
+  Timer? _autoDismissTimer;
   bool _closing = false;
   bool _focusRestored = false;
 
@@ -139,7 +154,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
         }
       });
     } else {
-      Future.delayed(const Duration(seconds: 5), () {
+      _autoDismissTimer = Timer(const Duration(seconds: 5), () {
         if (mounted) _dismiss();
       });
     }
@@ -221,9 +236,12 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     FocusManager.instance.rootScope.nextFocus();
   }
 
-  Future<void> _dismiss() async {
+  Future<void> _dismiss({bool notifyDismissed = true}) async {
     if (_closing || !mounted) return;
     _closing = true;
+    if (notifyDismissed) {
+      widget.onDismissed?.call();
+    }
     if (_sticky) {
       HardwareKeyboard.instance.removeHandler(_onGlobalKey);
       _restoreFocus();
@@ -256,6 +274,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
 
   @override
   void dispose() {
+    _autoDismissTimer?.cancel();
     if (_sticky) {
       HardwareKeyboard.instance.removeHandler(_onGlobalKey);
       if (!_focusRestored) {
@@ -289,6 +308,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
     final mark = widget.kind == FeedbackKind.error
         ? colorScheme.error
         : colorScheme.primaryContainer;
+    final hasAction = widget.actionLabel != null && widget.onAction != null;
 
     return Positioned(
       top: topPadding,
@@ -302,7 +322,7 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
             child: Material(
               color: Colors.transparent,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
+                constraints: BoxConstraints(maxWidth: hasAction ? 520 : 420),
                 child: Focus(
                   focusNode: _sticky ? _closeFocus : null,
                   autofocus: _sticky,
@@ -363,6 +383,26 @@ class _FeedbackToastWidgetState extends State<_FeedbackToastWidget>
                                 ),
                               ),
                             ),
+                            if (hasAction) ...[
+                              const SizedBox(width: 4),
+                              ExcludeFocus(
+                                child: TextButton(
+                                  onPressed: () {
+                                    final action = widget.onAction;
+                                    _dismiss(notifyDismissed: false);
+                                    action?.call();
+                                  },
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: colorScheme.primary,
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                  ),
+                                  child: Text(widget.actionLabel!),
+                                ),
+                              ),
+                            ],
                             if (_sticky) ...[
                               const SizedBox(width: 4),
                               // Touch/mouse still use the button; remote

@@ -32,9 +32,14 @@ import 'package:sonora/presentation/providers/library_repository_provider.dart';
 import 'package:sonora/presentation/providers/music_repository_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
+import 'package:sonora/presentation/shared/widgets/action_feedback_listener.dart';
 import 'package:sonora/presentation/shared/widgets/album_card.dart';
 import 'package:sonora/presentation/shared/widgets/artist_card.dart';
+import 'package:sonora/presentation/shared/widgets/context_menu/artist_context_menu.dart';
+import 'package:sonora/presentation/shared/widgets/context_menu/custom_playlist_context_menu.dart';
+import 'package:sonora/presentation/shared/widgets/context_menu/song_context_menu.dart';
 import 'package:sonora/presentation/shared/widgets/episode_tile.dart';
+import 'package:sonora/presentation/shared/widgets/feedback_toast.dart';
 import 'package:sonora/presentation/shared/widgets/playlist_card.dart';
 import 'package:sonora/presentation/shared/widgets/podcast_tile.dart';
 import 'package:sonora/presentation/shared/widgets/song_tile.dart';
@@ -116,6 +121,21 @@ class _FakeLibraryRepo extends Fake implements LibraryRepository {
     bool isVideo = false,
     bool isExplicit = false,
   }) async {}
+
+  @override
+  Stream<LikedSongModel?> watchLikedSong(String videoId) => Stream.value(null);
+
+  @override
+  Stream<FollowedArtistModel?> watchFollowedArtist(String artistId) =>
+      Stream.value(null);
+
+  @override
+  Future<void> updateLikedSongMetadata(
+    String videoId, {
+    String? artistId,
+    String? albumId,
+    String? artistsJson,
+  }) async {}
 }
 
 class _FakeAskStorageRepo extends Fake implements AskStorageRepository {
@@ -169,6 +189,15 @@ class _FakeAskStorageRepo extends Fake implements AskStorageRepository {
     }
     if (!_convCtrl.isClosed) {
       _convCtrl.add(List.unmodifiable(_conversations));
+    }
+  }
+
+  @override
+  Future<void> clearAllConversations() async {
+    _conversations.clear();
+    _messagesByConv.clear();
+    if (!_convCtrl.isClosed) {
+      _convCtrl.add(const []);
     }
   }
 
@@ -237,11 +266,29 @@ class _FakeWidgetMusicRepo extends Fake implements MusicRepository {
     String query, {
     int limit = 20,
   }) async => const [];
+
+  @override
+  Future<SongFull> getSong(String videoId) async {
+    return SongFull(
+      type: 'SONG',
+      videoId: videoId,
+      name: 'Midnight City',
+      artists: [ArtistBasic(artistId: 'UC_M83', name: 'M83')],
+      duration: 244,
+      thumbnails: const [],
+      formats: const [],
+      adaptiveFormats: const [],
+    );
+  }
 }
 
 class _CallbackChatRepo implements LlmChatRepository {
-  _CallbackChatRepo(this.onComplete);
+  _CallbackChatRepo(
+    this.onComplete, {
+    this.quota = const AskQuotaInfo(remaining: 30, limit: 30),
+  });
 
+  final AskQuotaInfo quota;
   final Future<LlmChatResponse> Function(
     int callIndex,
     List<LlmChatMessage> messages,
@@ -253,7 +300,7 @@ class _CallbackChatRepo implements LlmChatRepository {
   Future<bool> isReady() async => true;
 
   @override
-  Future<AskQuotaInfo?> fetchQuota() async => AskQuotaInfo.unlimited();
+  Future<AskQuotaInfo?> fetchQuota() async => quota;
 
   @override
   Future<LlmChatResponse> completeChat({
@@ -274,6 +321,7 @@ Future<AppLocalizations> _pumpAskScreen(
   WidgetTester tester, {
   required Size size,
   bool offline = false,
+  String? initialPrompt,
   _FakeAskStorageRepo? storage,
   _FakeLibraryRepo? library,
   LlmChatRepository? chatRepo,
@@ -283,6 +331,7 @@ Future<AppLocalizations> _pumpAskScreen(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  addTearDown(FeedbackToast.dismiss);
 
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -290,6 +339,9 @@ Future<AppLocalizations> _pumpAskScreen(
   if (storage == null) addTearDown(fakeStorage.dispose);
   final fakeLib = library ?? _FakeLibraryRepo();
   final fakeMusic = musicRepo ?? _FakeWidgetMusicRepo();
+  final effectiveChatRepo =
+      chatRepo ??
+      _CallbackChatRepo((_, _) async => const LlmChatResponse(content: 'Ok'));
 
   await tester.pumpWidget(
     ProviderScope(
@@ -307,8 +359,7 @@ Future<AppLocalizations> _pumpAskScreen(
         libraryRepositoryProvider.overrideWithValue(fakeLib),
         musicRepositoryProvider.overrideWithValue(fakeMusic),
         playerStateProvider.overrideWith(_FakePlayer.new),
-        if (chatRepo != null)
-          askChatRepositoryProvider.overrideWithValue(chatRepo),
+        askChatRepositoryProvider.overrideWithValue(effectiveChatRepo),
         downloadedIdsProvider.overrideWithValue(const {}),
       ],
       child: MaterialApp(
@@ -318,7 +369,12 @@ Future<AppLocalizations> _pumpAskScreen(
           ...GlobalMaterialLocalizations.delegates,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const AskScreen(),
+        home: Stack(
+          children: [
+            AskScreen(initialPrompt: initialPrompt),
+            const ActionFeedbackListener(),
+          ],
+        ),
       ),
     ),
   );
@@ -510,6 +566,9 @@ void main() {
           storage.messagesFor('conv_1').single.attachments[1]
               as AskPlaylistWriteProposal;
       expect(discardedAtt.status, 'discarded');
+
+      FeedbackToast.dismiss();
+      await tester.pump();
     },
   );
 
@@ -1019,6 +1078,13 @@ void main() {
 
       expect(find.text(l10n.askErrorFailed), findsOneWidget);
       expect(find.text(l10n.askActionRetry), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.text(l10n.askErrorFailed),
+          matching: find.byType(AskScreen),
+        ),
+        findsNothing,
+      );
       final convId = (await storage.getConversations()).single.id;
       expect(storage.messagesFor(convId).where((m) => m.isUser), hasLength(1));
 
@@ -1030,6 +1096,37 @@ void main() {
       final msgs = storage.messagesFor(convId);
       expect(msgs.where((m) => m.isUser), hasLength(1));
       expect(msgs.where((m) => !m.isUser), hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'dismissing sticky FeedbackToast error via close icon clears Ask error state',
+    (tester) async {
+      final chatRepo = _CallbackChatRepo(
+        (_, _) async => throw StateError('Failure'),
+      );
+      final storage = _FakeAskStorageRepo();
+      addTearDown(storage.dispose);
+
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(400, 800),
+        storage: storage,
+        chatRepo: chatRepo,
+      );
+
+      await tester.enterText(find.byType(TextField), 'Prova errore');
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      expect(FeedbackToast.isStickyVisible, isTrue);
+      expect(find.text(l10n.askErrorFailed), findsOneWidget);
+
+      await tester.tap(find.byTooltip(l10n.close));
+      await tester.pumpAndSettle();
+
+      expect(FeedbackToast.isStickyVisible, isFalse);
+      expect(find.text(l10n.askErrorFailed), findsNothing);
     },
   );
 
@@ -1116,4 +1213,475 @@ void main() {
       expect(sentPrompts.single, contains(l10n.askMixVibeFocus));
     },
   );
+
+  testWidgets('syncs server quota on AskScreen init in proxy mode', (
+    tester,
+  ) async {
+    final chatRepo = _CallbackChatRepo(
+      (_, _) async => const LlmChatResponse(content: 'Ok'),
+      quota: const AskQuotaInfo(remaining: 19, limit: 30),
+    );
+    final l10n = await _pumpAskScreen(
+      tester,
+      size: const Size(400, 800),
+      chatRepo: chatRepo,
+    );
+
+    expect(find.text(l10n.askQuotaBadge(19, 30)), findsOneWidget);
+  });
+
+  testWidgets('clear history shows confirmation dialog before wiping chats', (
+    tester,
+  ) async {
+    final storage = _FakeAskStorageRepo(
+      conversations: [
+        AskConversationSummary(
+          id: 'c_old',
+          title: 'Dream Pop Mix',
+          createdAt: DateTime(2026, 11, 21),
+          updatedAt: DateTime(2026, 11, 21),
+        ),
+      ],
+      messagesByConv: {
+        'c_old': [
+          AskChatMessage(
+            id: 'm1',
+            conversationId: 'c_old',
+            role: 'user',
+            content: 'Dream pop pls',
+            createdAt: DateTime(2026, 11, 21),
+          ),
+        ],
+      },
+    );
+    addTearDown(storage.dispose);
+
+    final l10n = await _pumpAskScreen(
+      tester,
+      size: const Size(1680, 900),
+      storage: storage,
+    );
+
+    expect(find.text('Dream Pop Mix'), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.askClearHistory));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.askClearHistoryConfirmTitle), findsOneWidget);
+
+    await tester.tap(find.text(l10n.cancel));
+    await tester.pumpAndSettle();
+    expect(await storage.getConversations(), hasLength(1));
+
+    await tester.tap(find.byTooltip(l10n.askClearHistory));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(l10n.askClearHistory),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(await storage.getConversations(), isEmpty);
+    expect(find.text(l10n.askHistoryEmpty), findsOneWidget);
+  });
+
+  testWidgets(
+    'navigating to /ask?prompt=... starts a fresh conversation instead of appending to active chat',
+    (tester) async {
+      tester.view.physicalSize = const Size(1680, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final storage = _FakeAskStorageRepo(
+        conversations: [
+          AskConversationSummary(
+            id: 'c_prev',
+            title: 'Old Ambient Chat',
+            createdAt: DateTime(2026, 11, 21),
+            updatedAt: DateTime(2026, 11, 21),
+          ),
+        ],
+        messagesByConv: {
+          'c_prev': [
+            AskChatMessage(
+              id: 'm_prev',
+              conversationId: 'c_prev',
+              role: 'assistant',
+              content: 'Existing ambient response',
+              createdAt: DateTime(2026, 11, 21),
+            ),
+          ],
+        },
+      );
+      addTearDown(storage.dispose);
+      final chatRepo = _CallbackChatRepo(
+        (_, _) async =>
+            const LlmChatResponse(content: 'Fresh synthwave answer'),
+      );
+
+      final router = GoRouter(
+        initialLocation: '/ask',
+        routes: [
+          GoRoute(
+            path: '/ask',
+            builder: (context, state) => AskScreen(
+              initialPrompt: state.uri.queryParameters['prompt'],
+              initialDropId: state.uri.queryParameters['dropId'],
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            isOfflineProvider.overrideWithValue(false),
+            isAndroidTvProvider.overrideWithValue(false),
+            askCapabilitiesProvider.overrideWith(
+              (_) async => const AskCapabilities(
+                backend: AskBackendMode.proxy,
+                isOffline: false,
+              ),
+            ),
+            askStorageRepositoryProvider.overrideWithValue(storage),
+            libraryRepositoryProvider.overrideWithValue(_FakeLibraryRepo()),
+            musicRepositoryProvider.overrideWithValue(_FakeWidgetMusicRepo()),
+            playerStateProvider.overrideWith(_FakePlayer.new),
+            askChatRepositoryProvider.overrideWithValue(chatRepo),
+            downloadedIdsProvider.overrideWithValue(const {}),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('en'),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Old Ambient Chat'));
+      await tester.pumpAndSettle();
+      expect(find.text('Existing ambient response'), findsOneWidget);
+
+      router.go(
+        Uri(
+          path: '/ask',
+          queryParameters: {'prompt': 'Play dreamy synthwave'},
+        ).toString(),
+      );
+      await tester.pumpAndSettle();
+
+      final convs = await storage.getConversations();
+      expect(convs, hasLength(2));
+      expect(storage.messagesFor('c_prev'), hasLength(1));
+      expect(find.text('Fresh synthwave answer'), findsOneWidget);
+      expect(find.text('Existing ambient response'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'allows removing individual tracks from unsaved AskMixCard and pending AskPlaylistProposalCard only',
+    (tester) async {
+      const tracks = [
+        AskTrackRef(videoId: 'v1', title: 'Track Alpha', artist: 'Artist A'),
+        AskTrackRef(videoId: 'v2', title: 'Track Beta', artist: 'Artist B'),
+      ];
+      final storage = _FakeAskStorageRepo(
+        conversations: [
+          AskConversationSummary(
+            id: 'c_edit',
+            title: 'Editable Cards',
+            createdAt: DateTime(2026, 11, 21),
+            updatedAt: DateTime(2026, 11, 21),
+          ),
+        ],
+        messagesByConv: {
+          'c_edit': [
+            AskChatMessage(
+              id: 'm_cards',
+              conversationId: 'c_edit',
+              role: 'assistant',
+              content: 'Here you go',
+              attachments: const [
+                AskMixAttachment(title: 'Editable Mix', tracks: tracks),
+                AskPlaylistWriteProposal(
+                  operation: 'create',
+                  playlistName: 'Pending Proposal',
+                  tracks: tracks,
+                ),
+                AskPlaylistWriteProposal(
+                  operation: 'create',
+                  playlistName: 'Saved Proposal',
+                  tracks: tracks,
+                  status: 'saved',
+                  savedPlaylistId: 9,
+                ),
+              ],
+              createdAt: DateTime(2026, 11, 21),
+            ),
+          ],
+        },
+      );
+      addTearDown(storage.dispose);
+
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(1680, 2600),
+        storage: storage,
+      );
+
+      await tester.tap(find.text('Editable Cards'));
+      await tester.pumpAndSettle();
+
+      // 2 editable cards (unsaved mix + pending proposal) * 2 tracks = 4 buttons;
+      // the saved proposal card has zero remove buttons.
+      expect(find.byTooltip(l10n.askRemoveTrackFromCard), findsNWidgets(4));
+
+      await tester.tap(find.byTooltip(l10n.askRemoveTrackFromCard).first);
+      await tester.pumpAndSettle();
+
+      // Removing 1 track from Editable Mix drops its count to 1 -> hides remaining
+      // remove icon on Editable Mix; 2 remain on Pending Proposal.
+      expect(find.byTooltip(l10n.askRemoveTrackFromCard), findsNWidgets(2));
+      final updatedMsg = storage.messagesFor('c_edit').single;
+      final mix = updatedMsg.attachments[0] as AskMixAttachment;
+      expect(mix.tracks.map((t) => t.videoId), ['v2']);
+      expect(find.text(l10n.askTracksCount(1)), findsOneWidget);
+
+      await tester.tap(find.byTooltip(l10n.askRemoveTrackFromCard).last);
+      await tester.pumpAndSettle();
+
+      final finalMsg = storage.messagesFor('c_edit').single;
+      final proposal = finalMsg.attachments[1] as AskPlaylistWriteProposal;
+      expect(proposal.tracks.map((t) => t.videoId), ['v1']);
+      expect(find.byTooltip(l10n.askRemoveTrackFromCard), findsNothing);
+    },
+  );
+
+  group('contextual Ask context menu entries', () {
+    Future<void> pumpContextMenu({
+      required WidgetTester tester,
+      required Widget sheet,
+      required bool offline,
+      required bool isTv,
+      List<String>? navigatedUris,
+    }) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, _) => Scaffold(
+              body: Column(
+                children: [
+                  Expanded(child: sheet),
+                  ElevatedButton(
+                    onPressed: () => showModalBottomSheet<void>(
+                      context: context,
+                      builder: (_) => sheet,
+                    ),
+                    child: const Text('open_modal'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/ask',
+            builder: (_, state) {
+              navigatedUris?.add(state.uri.toString());
+              return Scaffold(
+                body: Text('ASK:${state.uri.queryParameters['prompt']}'),
+              );
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            isOfflineProvider.overrideWithValue(offline),
+            isAndroidTvProvider.overrideWithValue(isTv),
+            libraryRepositoryProvider.overrideWithValue(_FakeLibraryRepo()),
+            musicRepositoryProvider.overrideWithValue(_FakeWidgetMusicRepo()),
+            playerStateProvider.overrideWith(_FakePlayer.new),
+            downloadedIdsProvider.overrideWithValue(const {}),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('en'),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'Song, Artist, and CustomPlaylist context menus show Ask actions online, disable offline, and hide on TV',
+      (tester) async {
+        final playlist = LocalPlaylistModel(
+          id: 42,
+          name: 'Night Drive',
+          createdAt: DateTime(2026, 11, 21),
+        );
+        const songSheet = SongContextMenuSheet(
+          videoId: 'vid_m83',
+          title: 'Midnight City',
+          artist: 'M83',
+          artistId: 'UC_M83',
+          albumId: 'MPRE_1',
+        );
+        const artistSheet = ArtistContextMenuSheet(
+          artistId: 'UC_M83',
+          name: 'M83',
+        );
+        final playlistSheet = CustomPlaylistContextMenuSheet(
+          playlist: playlist,
+          onUpdated: () {},
+        );
+
+        // Online non-TV: song menu navigates with prompt & pops modal.
+        final navUris = <String>[];
+        await pumpContextMenu(
+          tester: tester,
+          sheet: songSheet,
+          offline: false,
+          isTv: false,
+          navigatedUris: navUris,
+        );
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(SongContextMenuSheet)),
+        )!;
+        expect(find.text(l10n.askContextSimilarSongs), findsOneWidget);
+        await tester.tap(find.text('open_modal'));
+        await tester.pumpAndSettle();
+        final modalAskTile = find.descendant(
+          of: find.byType(BottomSheet),
+          matching: find.text(l10n.askContextSimilarSongs),
+        );
+        await tester.ensureVisible(modalAskTile);
+        await tester.tap(modalAskTile);
+        await tester.pumpAndSettle();
+        expect(navUris.single, startsWith('/ask?prompt='));
+        expect(find.textContaining('Midnight City'), findsOneWidget);
+
+        // Online non-TV: artist menu & custom playlist menu navigate with prompt.
+        final artistUris = <String>[];
+        await pumpContextMenu(
+          tester: tester,
+          sheet: artistSheet,
+          offline: false,
+          isTv: false,
+          navigatedUris: artistUris,
+        );
+        await tester.ensureVisible(find.text(l10n.askContextSimilarArtists));
+        await tester.tap(find.text(l10n.askContextSimilarArtists));
+        await tester.pumpAndSettle();
+        expect(artistUris.single, startsWith('/ask?prompt='));
+        expect(find.textContaining('M83'), findsOneWidget);
+
+        final plUris = <String>[];
+        await pumpContextMenu(
+          tester: tester,
+          sheet: playlistSheet,
+          offline: false,
+          isTv: false,
+          navigatedUris: plUris,
+        );
+        await tester.ensureVisible(find.text(l10n.askContextExpandPlaylist));
+        await tester.tap(find.text(l10n.askContextExpandPlaylist));
+        await tester.pumpAndSettle();
+        expect(plUris.single, startsWith('/ask?prompt='));
+        expect(find.textContaining('Night Drive'), findsOneWidget);
+
+        // Offline: actions visible but disabled.
+        await pumpContextMenu(
+          tester: tester,
+          sheet: songSheet,
+          offline: true,
+          isTv: false,
+        );
+        final songTile = tester.widget<ListTile>(
+          find.ancestor(
+            of: find.text(l10n.askContextSimilarSongs),
+            matching: find.byType(ListTile),
+          ),
+        );
+        expect(songTile.enabled, isFalse);
+
+        await pumpContextMenu(
+          tester: tester,
+          sheet: artistSheet,
+          offline: true,
+          isTv: false,
+        );
+        final artistTile = tester.widget<ListTile>(
+          find.ancestor(
+            of: find.text(l10n.askContextSimilarArtists),
+            matching: find.byType(ListTile),
+          ),
+        );
+        expect(artistTile.enabled, isFalse);
+
+        await pumpContextMenu(
+          tester: tester,
+          sheet: playlistSheet,
+          offline: true,
+          isTv: false,
+        );
+        final plTile = tester.widget<ListTile>(
+          find.ancestor(
+            of: find.text(l10n.askContextExpandPlaylist),
+            matching: find.byType(ListTile),
+          ),
+        );
+        expect(plTile.enabled, isFalse);
+
+        // Android TV: Ask entries completely hidden.
+        await pumpContextMenu(
+          tester: tester,
+          sheet: songSheet,
+          offline: false,
+          isTv: true,
+        );
+        expect(find.text(l10n.askContextSimilarSongs), findsNothing);
+
+        await pumpContextMenu(
+          tester: tester,
+          sheet: artistSheet,
+          offline: false,
+          isTv: true,
+        );
+        expect(find.text(l10n.askContextSimilarArtists), findsNothing);
+
+        await pumpContextMenu(
+          tester: tester,
+          sheet: playlistSheet,
+          offline: false,
+          isTv: true,
+        );
+        expect(find.text(l10n.askContextExpandPlaylist), findsNothing);
+      },
+    );
+  });
 }

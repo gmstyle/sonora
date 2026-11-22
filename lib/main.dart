@@ -392,7 +392,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       if (!mounted || ref.read(isAndroidTvProvider)) return;
       if (ref.read(isOfflineProvider)) return;
       final settings = ref.read(settingsProvider);
-      if (!settings.askDropsEnabled) return;
+      if (!settings.askDropsEnabled || !settings.askUseTasteContext) return;
 
       final prefs = ref.read(sharedPreferencesProvider);
       final lastEval = prefs.getInt(kLastAskDropEvalTimeKey) ?? 0;

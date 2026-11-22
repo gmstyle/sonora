@@ -224,4 +224,49 @@ void main() {
     );
     expect(lib.playlists[id2]?.name, 'Sonora Ask Mix');
   });
+
+  test(
+    'preserves isVideo across create, append, and saveMixAsPlaylist',
+    () async {
+      const videoTrack = AskTrackRef(
+        videoId: 'mv_1',
+        title: 'Around the World (Live)',
+        artist: 'Daft Punk',
+        isVideo: true,
+      );
+      final lib = _FakeLibraryRepo();
+      final useCase = ApplyAskPlaylistWriteUseCase(lib);
+
+      final createdId = await useCase.execute(
+        const AskPlaylistWriteProposal(
+          operation: 'create',
+          playlistName: 'Video Cuts',
+          tracks: [videoTrack],
+        ),
+      );
+      expect(lib.entries[createdId]!.single.isVideo, isTrue);
+
+      await useCase.execute(
+        const AskPlaylistWriteProposal(
+          operation: 'append',
+          targetPlaylistId: null,
+          playlistName: 'Video Cuts',
+          tracks: [
+            AskTrackRef(
+              videoId: 'mv_2',
+              title: 'One More Time',
+              artist: 'Daft Punk',
+              isVideo: true,
+            ),
+          ],
+        ),
+      );
+      expect(lib.entries[createdId]![1].isVideo, isTrue);
+
+      final mixId = await useCase.saveMixAsPlaylist(
+        const AskMixAttachment(title: 'Video Mix', tracks: [videoTrack]),
+      );
+      expect(lib.entries[mixId]!.single.isVideo, isTrue);
+    },
+  );
 }

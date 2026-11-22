@@ -402,9 +402,17 @@ void main() {
       expect(writeProp.tracks.map((t) => t.videoId), ['real_liked_1']);
     });
 
-    test('useTasteContext=false disables get_taste_profile and get_listening_history', () async {
+    test('useTasteContext=false disables get_taste_profile, get_listening_history, search_local_library and get_local_playlist_tracks', () async {
+      final lib = _FakeLibraryRepo()
+        ..playlists = [
+          LocalPlaylistModel(
+            id: 1,
+            name: 'Mix',
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        ];
       final executor = AskToolExecutor(
-        libraryRepository: _FakeLibraryRepo(),
+        libraryRepository: lib,
         musicRepository: _FakeMusicRepo(),
         useTasteContext: false,
       );
@@ -419,9 +427,25 @@ void main() {
           arguments: {},
         ),
       );
+      final res3 = await executor.execute(
+        const AskToolCall(
+          id: '3',
+          name: 'search_local_library',
+          arguments: {'query': 'daft'},
+        ),
+      );
+      final res4 = await executor.execute(
+        const AskToolCall(
+          id: '4',
+          name: 'get_local_playlist_tracks',
+          arguments: {'playlistId': 1},
+        ),
+      );
 
       expect(jsonDecode(res1.contentJson), {'disabledByUser': true});
       expect(jsonDecode(res2.contentJson), {'disabledByUser': true});
+      expect(jsonDecode(res3.contentJson), {'disabledByUser': true});
+      expect(jsonDecode(res4.contentJson), {'disabledByUser': true});
     });
 
     test('handles >24 wireMessages across multi-round parallel tool calls, sanitizes history, and sets maxOutputTokens=2048', () async {

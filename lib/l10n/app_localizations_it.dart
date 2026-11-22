@@ -2246,40 +2246,12 @@ class AppLocalizationsIt extends AppLocalizations {
       'Descrivi un mood — Sonora crea una coda dalla tua libreria e dal catalogo';
 
   @override
-  String get momentMixPromptHint =>
-      'Calmo per il treno, rock per concentrarmi…';
-
-  @override
-  String momentMixTrackCount(int count) {
-    return '$count brani';
-  }
-
-  @override
-  String get momentMixInterpretFailed =>
-      'Non sono riuscito a interpretare la richiesta';
-
-  @override
-  String get momentMixEmpty => 'Nessun brano per questo momento';
-
-  @override
-  String get momentMixOfflineYtm =>
-      'I mix dal catalogo richiedono connessione — prova un mood dalla libreria';
-
-  @override
-  String get momentMixOfflineNote =>
-      'Offline: i mix usano solo la cronologia di ascolto';
-
-  @override
   String get savePlaylist => 'Salva playlist';
 
   @override
   String momentMixSaved(String playlistName) {
     return 'Salvata come \"$playlistName\"';
   }
-
-  @override
-  String get momentMixSaveFailed =>
-      'Non sono riuscito a salvare il mix come playlist';
 
   @override
   String get mixMoodCalm => 'Calmo';
@@ -3012,4 +2984,39 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get askFollowUpMorePodcastsPrompt =>
       'Trovami altri podcast o episodi sullo stesso tema e mostrali nelle schede interattive.';
+
+  @override
+  String get askClearHistoryConfirmTitle =>
+      'Cancellare tutte le conversazioni?';
+
+  @override
+  String get askClearHistoryConfirmBody =>
+      'Questo eliminerà definitivamente la cronologia di Ask su questo dispositivo.';
+
+  @override
+  String get askRemoveTrackFromCard => 'Rimuovi brano';
+
+  @override
+  String get askContextExpandPlaylist => 'Espandi con Ask';
+
+  @override
+  String get askContextSimilarArtists => 'Chiedi simili a Sonora';
+
+  @override
+  String askContextSimilarArtistPrompt(String artist) {
+    return 'Consigliami 5 artisti simili a $artist e crea un mix da 15 brani sulla stessa atmosfera, allegando schede interattive di artisti e mix.';
+  }
+
+  @override
+  String get askContextSimilarSongs => 'Chiedi simili a Sonora';
+
+  @override
+  String askContextSimilarSongPrompt(String title, String artist) {
+    return 'Crea un mix da 15 brani ispirato a \"$title\" di $artist, con brani affini per atmosfera e stile, allegando la scheda mix interattiva.';
+  }
+
+  @override
+  String askContextSimilarSongPromptNoArtist(String title) {
+    return 'Crea un mix da 15 brani ispirato a \"$title\" con brani affini per atmosfera e stile, allegando la scheda mix interattiva.';
+  }
 }

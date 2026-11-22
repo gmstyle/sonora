@@ -420,10 +420,13 @@ class AskMixAttachment extends AskAttachment {
   @override
   String get type => 'mix';
 
-  AskMixAttachment copyWith({int? savedPlaylistId}) => AskMixAttachment(
+  AskMixAttachment copyWith({
+    List<AskTrackRef>? tracks,
+    int? savedPlaylistId,
+  }) => AskMixAttachment(
     title: title,
     subtitle: subtitle,
-    tracks: tracks,
+    tracks: tracks ?? this.tracks,
     savedPlaylistId: savedPlaylistId ?? this.savedPlaylistId,
   );
 
@@ -728,15 +731,18 @@ class AskPlaylistWriteProposal extends AskAttachment {
 
   bool get isPending => status == 'pending';
 
-  AskPlaylistWriteProposal copyWith({String? status, int? savedPlaylistId}) =>
-      AskPlaylistWriteProposal(
-        operation: operation,
-        targetPlaylistId: targetPlaylistId,
-        playlistName: playlistName,
-        tracks: tracks,
-        status: status ?? this.status,
-        savedPlaylistId: savedPlaylistId ?? this.savedPlaylistId,
-      );
+  AskPlaylistWriteProposal copyWith({
+    List<AskTrackRef>? tracks,
+    String? status,
+    int? savedPlaylistId,
+  }) => AskPlaylistWriteProposal(
+    operation: operation,
+    targetPlaylistId: targetPlaylistId,
+    playlistName: playlistName,
+    tracks: tracks ?? this.tracks,
+    status: status ?? this.status,
+    savedPlaylistId: savedPlaylistId ?? this.savedPlaylistId,
+  );
 
   @override
   Map<String, dynamic> toJson() => {

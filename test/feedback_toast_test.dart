@@ -83,4 +83,58 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Network error'), findsNothing);
   });
+
+  testWidgets(
+    'sticky error toast supports action button without calling onDismissed, while Escape calls onDismissed',
+    (tester) async {
+      var actionCount = 0;
+      var dismissCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => FeedbackToast.show(
+                      context,
+                      'Request failed',
+                      kind: FeedbackKind.error,
+                      actionLabel: 'Retry',
+                      onAction: () => actionCount++,
+                      onDismissed: () => dismissCount++,
+                    ),
+                    child: const Text('Trigger'),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Trigger'));
+      await tester.pumpAndSettle();
+      expect(find.text('Request failed'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(actionCount, 1);
+      expect(dismissCount, 0);
+      expect(find.text('Request failed'), findsNothing);
+
+      await tester.tap(find.text('Trigger'));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(actionCount, 1);
+      expect(dismissCount, 1);
+      expect(find.text('Request failed'), findsNothing);
+    },
+  );
 }

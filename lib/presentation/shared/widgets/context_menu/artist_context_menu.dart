@@ -216,6 +216,18 @@ class ArtistContextMenuSheet extends ConsumerWidget {
                         );
                       },
                     ),
+                  if (!ref.watch(isAndroidTvProvider))
+                    ActionTile(
+                      icon: LucideIcons.sparkles,
+                      label: AppLocalizations.of(context)!
+                          .askContextSimilarArtists,
+                      enabled: !isOffline,
+                      onTap: () => openAskFromContextMenu(
+                        context,
+                        AppLocalizations.of(context)!
+                            .askContextSimilarArtistPrompt(name),
+                      ),
+                    ),
                   if (showAction(omitActionIds, DetailActionId.share) &&
                       !ref.watch(isAndroidTvProvider))
                     ActionTile(

@@ -206,6 +206,16 @@ class CustomPlaylistContextMenuSheet extends ConsumerWidget {
                         },
                       ),
                   ],
+                  if (!ref.watch(isAndroidTvProvider))
+                    ActionTile(
+                      icon: LucideIcons.sparkles,
+                      label: l10n.askContextExpandPlaylist,
+                      enabled: !isOffline,
+                      onTap: () => openAskFromContextMenu(
+                        context,
+                        l10n.askExpandPromptAdd(playlist.name, playlist.id, 15),
+                      ),
+                    ),
                   ActionTile(
                     icon: LucideIcons.trash2,
                     label: l10n.deletePlaylist,

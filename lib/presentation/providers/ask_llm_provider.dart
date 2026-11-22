@@ -13,7 +13,6 @@ import '../../domain/usecases/ai/apply_ask_playlist_write_use_case.dart';
 import '../../domain/usecases/ai/ask_agent_use_case.dart';
 import '../../domain/usecases/ai/ask_tool_executor.dart';
 import '../../domain/usecases/ai/evaluate_proactive_drops_use_case.dart';
-import '../../domain/usecases/ai/interpret_search_query_use_case.dart';
 import '../../domain/usecases/ai/resolve_spotify_ambiguous_tracks_use_case.dart';
 import '../../domain/usecases/ai/rewrite_spotify_search_query_use_case.dart';
 import 'ask_storage_provider.dart';
@@ -51,10 +50,14 @@ class AskQuotaNotifier extends Notifier<AskQuotaInfo> {
   }
 
   Future<void> refresh() async {
-    final remote = await ref.read(askChatRepositoryProvider).fetchQuota();
-    if (remote != null) {
-      state = remote;
-    }
+    if (ref.read(isOfflineProvider)) return;
+    try {
+      final caps = await ref.read(askCapabilitiesProvider.future);
+      if (!ref.mounted || caps.backend != AskBackendMode.proxy) return;
+      final info = await ref.read(askChatRepositoryProvider).fetchQuota();
+      if (!ref.mounted) return;
+      if (info != null) state = info;
+    } catch (_) {}
   }
 }
 
@@ -119,11 +122,6 @@ final askLlmReadyProvider = FutureProvider<bool>((ref) async {
   final caps = await ref.watch(askCapabilitiesProvider.future);
   return caps.canUseAsk;
 });
-
-final interpretSearchQueryUseCaseProvider =
-    Provider<InterpretSearchQueryUseCase>((ref) {
-      return InterpretSearchQueryUseCase(ref.watch(askLlmRepositoryProvider));
-    });
 
 final rewriteSpotifySearchQueryUseCaseProvider =
     Provider<RewriteSpotifySearchQueryUseCase>((ref) {

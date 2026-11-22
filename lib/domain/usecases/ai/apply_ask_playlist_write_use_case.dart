@@ -45,7 +45,7 @@ class ApplyAskPlaylistWriteUseCase {
             artistsJson: track.artistsJson,
             thumbnailUrl: track.thumbnailUrl,
             duration: track.durationSec,
-            isVideo: false,
+            isVideo: track.isVideo,
             isExplicit: track.isExplicit,
           );
         }
@@ -67,7 +67,7 @@ class ApplyAskPlaylistWriteUseCase {
             artistsJson: track.artistsJson,
             thumbnailUrl: track.thumbnailUrl,
             duration: track.durationSec,
-            isVideo: false,
+            isVideo: track.isVideo,
             isExplicit: track.isExplicit,
           );
         }
@@ -101,7 +101,7 @@ class ApplyAskPlaylistWriteUseCase {
         artistsJson: track.artistsJson,
         thumbnailUrl: track.thumbnailUrl,
         duration: track.durationSec,
-        isVideo: false,
+        isVideo: track.isVideo,
         isExplicit: track.isExplicit,
       );
     }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -220,6 +222,17 @@ class _AskMixCardState extends ConsumerState<AskMixCard> {
                     _entriesFromRefs(mix.tracks),
                     startIndex: i,
                   ),
+              onRemoveTrack: !saved && mix.tracks.length > 1
+                  ? (track) => unawaited(
+                      ref
+                          .read(askChatProvider.notifier)
+                          .removeTrackFromAttachment(
+                            message: widget.message,
+                            attachmentIndex: widget.attachmentIndex,
+                            videoId: track.videoId,
+                          ),
+                    )
+                  : null,
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -263,7 +276,9 @@ class _AskMixCardState extends ConsumerState<AskMixCard> {
                   ),
                 ] else
                   OutlinedButton.icon(
-                    onPressed: _saving ? null : () => _confirmSave(context),
+                    onPressed: _saving || mix.tracks.isEmpty
+                        ? null
+                        : () => _confirmSave(context),
                     icon: const Icon(LucideIcons.save, size: 16),
                     label: Text(l10n.askActionSavePlaylist),
                   ),
@@ -400,6 +415,17 @@ class _AskPlaylistProposalCardState
               onPlayTrack: (i) => ref
                   .read(playerStateProvider.notifier)
                   .playLocalPlaylist(_entriesFromRefs(p.tracks), startIndex: i),
+              onRemoveTrack: p.isPending && p.tracks.length > 1
+                  ? (track) => unawaited(
+                      ref
+                          .read(askChatProvider.notifier)
+                          .removeTrackFromAttachment(
+                            message: widget.message,
+                            attachmentIndex: widget.attachmentIndex,
+                            videoId: track.videoId,
+                          ),
+                    )
+                  : null,
             ),
             const SizedBox(height: 10),
             if (p.isPending)
@@ -408,7 +434,7 @@ class _AskPlaylistProposalCardState
                 runSpacing: 8,
                 children: [
                   FilledButton.icon(
-                    onPressed: _busy
+                    onPressed: _busy || p.tracks.isEmpty
                         ? null
                         : () async {
                             setState(() => _busy = true);
@@ -957,11 +983,13 @@ class _AskExpandableSongList extends ConsumerStatefulWidget {
     required this.tracks,
     required this.isOffline,
     required this.onPlayTrack,
+    this.onRemoveTrack,
   });
 
   final List<AskTrackRef> tracks;
   final bool isOffline;
   final void Function(int index) onPlayTrack;
+  final ValueChanged<AskTrackRef>? onRemoveTrack;
 
   @override
   ConsumerState<_AskExpandableSongList> createState() =>
@@ -1030,6 +1058,19 @@ class _AskExpandableSongListState
         widget.onPlayTrack(index);
       },
       trailingActions: [
+        if (widget.onRemoveTrack != null)
+          IconButton(
+            tooltip: l10n.askRemoveTrackFromCard,
+            icon: Icon(
+              LucideIcons.x,
+              size: 16,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            onPressed: () => widget.onRemoveTrack!(track),
+          ),
         IconButton(
           icon: const Icon(LucideIcons.ellipsisVertical, size: 18),
           visualDensity: VisualDensity.compact,
