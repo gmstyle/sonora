@@ -17,7 +17,7 @@ export interface QuotaResult {
   reason?: string;
 }
 
-const MAX_TURN_CONTINUATIONS = 8;
+const MAX_TURN_CONTINUATIONS = 10;
 const DAY_TTL_SECONDS = 90_000;
 const TURN_TTL_SECONDS = 600;
 const WEEK_TTL_SECONDS = 691_200;

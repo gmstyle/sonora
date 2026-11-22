@@ -4683,6 +4683,12 @@ abstract class AppLocalizations {
   /// **'Play'**
   String get askActionPlay;
 
+  /// No description provided for @askActionQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to queue'**
+  String get askActionQueue;
+
   /// No description provided for @askActionSavePlaylist.
   ///
   /// In en, this message translates to:
@@ -4701,6 +4707,12 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get askActionDiscard;
 
+  /// No description provided for @askActionOpenPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Open playlist'**
+  String get askActionOpenPlaylist;
+
   /// No description provided for @askSavedStatus.
   ///
   /// In en, this message translates to:
@@ -4712,6 +4724,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discarded'**
   String get askDiscardedStatus;
+
+  /// No description provided for @askShowAllTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all {count} tracks'**
+  String askShowAllTracks(int count);
+
+  /// No description provided for @askShowLessTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Show fewer'**
+  String get askShowLessTracks;
+
+  /// No description provided for @askSectionArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists'**
+  String get askSectionArtists;
+
+  /// No description provided for @askSectionAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'Albums'**
+  String get askSectionAlbums;
+
+  /// No description provided for @askSectionPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get askSectionPlaylists;
+
+  /// No description provided for @askSectionTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks'**
+  String get askSectionTracks;
+
+  /// No description provided for @askSectionPodcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Podcasts'**
+  String get askSectionPodcasts;
+
+  /// No description provided for @askSectionEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes'**
+  String get askSectionEpisodes;
 
   /// No description provided for @askPlaylistOpCreate.
   ///

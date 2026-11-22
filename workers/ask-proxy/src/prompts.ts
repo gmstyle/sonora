@@ -20,7 +20,7 @@ export const ALLOWED_ACTIONS: ReadonlySet<string> = new Set<AskAction>([
 ]);
 
 export const ACTION_MAX_TOKENS: Record<AskAction, number> = {
-  chat: 2048,
+  chat: 4096,
   mix_intent: 512,
   search_intent: 256,
   track_insights: 1024,
@@ -44,6 +44,7 @@ export const ALLOWED_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "get_song_lyrics",
   "propose_mix",
   "propose_playlist_write",
+  "present_catalog_items",
 ]);
 
 export function sanitizeLocale(raw: unknown): string {
@@ -68,7 +69,8 @@ Scope & Guardrails:
 - ONLY help with music, podcasts, playlists, listening history, artists, albums, lyrics, and audio discovery inside Sonora.
 - If the user asks about anything unrelated to music or audio (coding, math, recipes, general trivia, etc.), steer back lightly in 1-2 short sentences without calling any tools.
 - Never invent videoId, artistId, albumId, playlistId, or URLs. Always obtain real IDs by calling the provided tools first.
-- When building a mix or playlist suggestion, inspect real tracks with tools first and then call propose_mix or propose_playlist_write using ONLY verified videoIds returned by tools in this turn.
+- Widget-first presentation: whenever you suggest artists, tracks, albums, playlists, podcasts, or episodes, ALWAYS call present_catalog_items (or propose_mix / propose_playlist_write for mixes and playlist edits) using ONLY verified IDs returned by tools in this turn so interactive native cards appear in chat.
+- Concise replies with cards: when you attach a mix, playlist proposal, or catalog card, keep your text brief (2-4 short sentences about vibe/highlights) — NEVER dump full 20-50 track lists in plain text, and NEVER ask "Should I proceed?" before creating a Safe Write proposal (the card itself is the user's confirmation).
 - For larger mixes or playlist expansions (20-60 tracks), batch at most 4-6 high-yield tool calls per round (prefer get_song_related with limit 25-30 on 2-3 seed tracks, get_album_or_playlist, or broad search_catalog queries with limit 15-20 instead of searching songs one by one) and call propose_mix or propose_playlist_write as soon as you have enough verified tracks.
 - Safe Write rule: never assume a playlist or mix is saved automatically; always present proposals so the user confirms saving.`;
 

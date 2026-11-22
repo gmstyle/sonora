@@ -27,6 +27,12 @@ import 'package:sonora/presentation/providers/download_provider.dart';
 import 'package:sonora/presentation/providers/library_repository_provider.dart';
 import 'package:sonora/presentation/providers/player_provider.dart';
 import 'package:sonora/presentation/providers/settings_provider.dart';
+import 'package:sonora/presentation/shared/widgets/album_card.dart';
+import 'package:sonora/presentation/shared/widgets/artist_card.dart';
+import 'package:sonora/presentation/shared/widgets/episode_tile.dart';
+import 'package:sonora/presentation/shared/widgets/playlist_card.dart';
+import 'package:sonora/presentation/shared/widgets/podcast_tile.dart';
+import 'package:sonora/presentation/shared/widgets/song_tile.dart';
 
 class _FakePlayer extends PlayerNotifier {
   @override
@@ -75,6 +81,22 @@ class _FakeLibraryRepo extends Fake implements LibraryRepository {
     );
     return id;
   }
+
+  @override
+  Future<LocalPlaylistModel?> getPlaylist(int id) async {
+    for (final p in playlists) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  @override
+  Future<List<PlaylistEntryModel>> getPlaylistEntries(int playlistId) async =>
+      const [];
+
+  @override
+  Stream<List<PlaylistEntryModel>> watchPlaylistEntries(int playlistId) =>
+      Stream.value(const []);
 
   @override
   Future<void> addEntry(
@@ -213,6 +235,7 @@ Future<AppLocalizations> _pumpAskScreen(
         ),
         askStorageRepositoryProvider.overrideWithValue(fakeStorage),
         libraryRepositoryProvider.overrideWithValue(fakeLib),
+        downloadedIdsProvider.overrideWithValue(const {}),
       ],
       child: MaterialApp(
         locale: const Locale('en'),
@@ -558,6 +581,195 @@ void main() {
         find.textContaining('### Listening', findRichText: true),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'AskMixCard and AskPlaylistProposalCard render expandable native SongTiles, menu button, and Open Playlist action',
+    (tester) async {
+      final lib = _FakeLibraryRepo();
+      final tracks = [
+        for (var i = 0; i < 8; i++)
+          AskTrackRef(
+            videoId: 'v_$i',
+            title: 'Song Title $i',
+            artist: 'Artist $i',
+            artistId: 'UC_$i',
+            albumId: 'MPRE_$i',
+            albumName: 'Album $i',
+          ),
+      ];
+      final storage = _FakeAskStorageRepo(
+        conversations: [
+          AskConversationSummary(
+            id: 'conv_expand',
+            title: 'Expand Mix',
+            createdAt: DateTime(2026, 11, 21),
+            updatedAt: DateTime(2026, 11, 21),
+          ),
+        ],
+        messagesByConv: {
+          'conv_expand': [
+            AskChatMessage(
+              id: 'msg_expand',
+              conversationId: 'conv_expand',
+              role: 'assistant',
+              content: 'Mix ready.',
+              attachments: [
+                AskMixAttachment(title: 'Deep Night Mix', tracks: tracks),
+                AskPlaylistWriteProposal(
+                  operation: 'create',
+                  playlistName: 'Saved Night Mix',
+                  tracks: [tracks.first],
+                  status: 'saved',
+                  savedPlaylistId: 40,
+                ),
+              ],
+              createdAt: DateTime(2026, 11, 21),
+            ),
+          ],
+        },
+      );
+      addTearDown(storage.dispose);
+
+      final l10n = await _pumpAskScreen(
+        tester,
+        size: const Size(1680, 900),
+        storage: storage,
+        library: lib,
+      );
+
+      await tester.tap(find.text('Expand Mix'));
+      await tester.pumpAndSettle();
+
+      // Mix shows first 6 + 1 saved proposal track = 7 SongTiles before expand.
+      expect(find.byType(SongTile), findsNWidgets(7));
+      expect(find.text('Song Title 7'), findsNothing);
+      expect(find.text(l10n.askShowAllTracks(8)), findsOneWidget);
+      expect(find.text(l10n.askActionQueue), findsOneWidget);
+      expect(find.text(l10n.askActionOpenPlaylist), findsOneWidget);
+      expect(find.byIcon(LucideIcons.ellipsisVertical), findsWidgets);
+
+      await tester.ensureVisible(find.text(l10n.askShowAllTracks(8)));
+      await tester.tap(find.text(l10n.askShowAllTracks(8)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Song Title 7'), findsOneWidget);
+      expect(find.byType(SongTile), findsNWidgets(9));
+      expect(find.text(l10n.askShowLessTracks), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'native ArtistCard, AlbumCard, PlaylistCard, PodcastTile and EpisodeTile render across multiple messages without Hero collision',
+    (tester) async {
+      const sharedArtist = AskArtistRef(
+        artistId: 'UC_TAN',
+        name: 'Tanerélle',
+        monthlyListeners: '800K',
+      );
+      const sharedAlbum = AskAlbumRef(
+        albumId: 'MPRE_1',
+        name: 'After Hours',
+        artist: 'The Weeknd',
+        year: 2020,
+      );
+      const sharedRemotePlaylist = AskPlaylistRef(
+        playlistId: 'RDCLAK_1',
+        name: 'Moody R&B',
+        artist: 'YouTube Music',
+      );
+      const sharedLocalPlaylist = AskPlaylistRef(
+        localPlaylistId: 40,
+        name: 'R&B Notturno',
+      );
+      const podcast = AskPodcastRef(
+        browseId: 'MPSP_1',
+        name: 'Song Exploder',
+        author: 'Hrishikesh Hirway',
+      );
+      const episode = AskEpisodeRef(
+        videoId: 'EP_1',
+        name: 'Behind the Beat',
+        podcastName: 'Song Exploder',
+        podcastBrowseId: 'MPSP_1',
+        date: '2026-10-01',
+      );
+
+      final storage = _FakeAskStorageRepo(
+        conversations: [
+          AskConversationSummary(
+            id: 'conv_native',
+            title: 'Catalog Widgets',
+            createdAt: DateTime(2026, 11, 21),
+            updatedAt: DateTime(2026, 11, 21),
+          ),
+        ],
+        messagesByConv: {
+          'conv_native': [
+            AskChatMessage(
+              id: 'msg_1',
+              conversationId: 'conv_native',
+              role: 'assistant',
+              content: 'First batch',
+              attachments: const [
+                AskArtistsAttachment(
+                  title: 'Artists 1',
+                  artists: [sharedArtist],
+                ),
+                AskAlbumsAttachment(title: 'Albums 1', albums: [sharedAlbum]),
+                AskPlaylistsAttachment(
+                  title: 'Playlists 1',
+                  playlists: [sharedRemotePlaylist, sharedLocalPlaylist],
+                ),
+              ],
+              createdAt: DateTime(2026, 11, 21, 10, 0),
+            ),
+            AskChatMessage(
+              id: 'msg_2',
+              conversationId: 'conv_native',
+              role: 'assistant',
+              content: 'Second batch',
+              attachments: const [
+                AskArtistsAttachment(
+                  title: 'Artists 2',
+                  artists: [sharedArtist],
+                ),
+                AskAlbumsAttachment(title: 'Albums 2', albums: [sharedAlbum]),
+                AskPlaylistsAttachment(
+                  title: 'Playlists 2',
+                  playlists: [sharedRemotePlaylist],
+                ),
+                AskPodcastsAttachment(title: 'Podcasts', podcasts: [podcast]),
+                AskEpisodesAttachment(title: 'Episodes', episodes: [episode]),
+              ],
+              createdAt: DateTime(2026, 11, 21, 10, 1),
+            ),
+          ],
+        },
+      );
+      addTearDown(storage.dispose);
+
+      await _pumpAskScreen(
+        tester,
+        size: const Size(1680, 2600),
+        storage: storage,
+      );
+
+      await tester.tap(find.text('Catalog Widgets'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ArtistCard), findsNWidgets(2));
+      expect(find.byType(AlbumCard), findsNWidgets(2));
+      expect(find.byType(PlaylistCard), findsNWidgets(3));
+      expect(find.byType(PodcastTile), findsOneWidget);
+      expect(find.byType(EpisodeTile), findsOneWidget);
+      final heroTags = tester
+          .widgetList<Hero>(find.byType(Hero))
+          .map((h) => h.tag)
+          .toList();
+      expect(heroTags.toSet(), hasLength(heroTags.length));
     },
   );
 }

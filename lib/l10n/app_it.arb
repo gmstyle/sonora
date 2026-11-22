@@ -1002,11 +1002,26 @@
   "askGuidedTasteTitle": "Leggi i miei gusti",
   "askGuidedTastePrompt": "Dai un'occhiata ai miei ascolti recenti e agli artisti più ascoltati e raccontami che profilo musicale ne esce.",
   "askActionPlay": "Riproduci",
+  "askActionQueue": "Aggiungi in coda",
   "askActionSavePlaylist": "Salva playlist",
   "askActionConfirmSave": "Conferma e salva",
   "askActionDiscard": "Scarta",
+  "askActionOpenPlaylist": "Apri playlist",
   "askSavedStatus": "Salvata",
   "askDiscardedStatus": "Scartata",
+  "askShowAllTracks": "Mostra tutti i {count} brani",
+  "@askShowAllTracks": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "askShowLessTracks": "Mostra meno",
+  "askSectionArtists": "Artisti",
+  "askSectionAlbums": "Album",
+  "askSectionPlaylists": "Playlist",
+  "askSectionTracks": "Brani",
+  "askSectionPodcasts": "Podcast",
+  "askSectionEpisodes": "Episodi",
   "askPlaylistOpCreate": "Proposta nuova playlist",
   "askPlaylistOpAppend": "Proposta aggiunta brani",
   "askPlaylistOpRemove": "Proposta rimozione brani",

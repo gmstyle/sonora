@@ -14,10 +14,12 @@ import '../../shared/widgets/album_tile.dart';
 import '../../shared/widgets/artist_card.dart';
 import '../../shared/widgets/artist_tile.dart';
 import '../../shared/widgets/empty_state_widget.dart';
+import '../../shared/widgets/episode_tile.dart';
 import '../../shared/widgets/error_retry_widget.dart';
 import '../../shared/widgets/filter_chip_bar.dart';
 import '../../shared/widgets/playlist_card.dart';
 import '../../shared/widgets/playlist_tile.dart';
+import '../../shared/widgets/podcast_tile.dart';
 import '../../shared/widgets/search_suggestion_tile.dart';
 import '../../shared/widgets/collection_shimmer.dart';
 import '../../shared/widgets/shimmer_loading.dart';
@@ -954,38 +956,25 @@ class _SearchResults extends ConsumerWidget {
       );
     }
     if (result is PodcastDetailed) {
-      return ListTile(
-        leading: ThumbnailWidget(
-          imageUrl: result.thumbnails.isNotEmpty
-              ? result.thumbnails.last.url
-              : null,
-          size: 48,
-          shape: ThumbnailShape.rounded,
-        ),
-        title: Text(result.name, overflow: TextOverflow.ellipsis),
-        subtitle: Text(
-          [
-            if (result.author != null && result.author!.isNotEmpty)
-              result.author!,
-            AppLocalizations.of(context)!.podcasts,
-          ].join(' · '),
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(LucideIcons.chevronRight),
-        onTap: () => context.push('/podcast/${result.browseId}'),
-      );
-    }
-    if (result is EpisodeDetailed) {
-      return SongTile(
-        videoId: result.videoId,
-        title: result.name,
-        artist: result.podcastName ?? AppLocalizations.of(context)!.episodes,
+      return PodcastTile(
+        browseId: result.browseId,
+        name: result.name,
+        author: result.author,
         thumbnailUrl: result.thumbnails.isNotEmpty
             ? result.thumbnails.last.url
             : null,
-        playCount: result.date,
-        isVideo: false,
-        onTap: () => context.push('/episode/${result.videoId}'),
+      );
+    }
+    if (result is EpisodeDetailed) {
+      return EpisodeTile(
+        videoId: result.videoId,
+        name: result.name,
+        podcastName: result.podcastName,
+        podcastBrowseId: result.podcastId,
+        thumbnailUrl: result.thumbnails.isNotEmpty
+            ? result.thumbnails.last.url
+            : null,
+        date: result.date,
       );
     }
     if (result is ProfileDetailed) {

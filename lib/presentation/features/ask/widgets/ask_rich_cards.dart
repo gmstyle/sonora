@@ -9,8 +9,18 @@ import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../providers/action_feedback_provider.dart';
 import '../../../providers/connectivity_provider.dart';
+import '../../../providers/play_local_playlist_use_case_provider.dart';
 import '../../../providers/player_provider.dart';
-import '../../../shared/widgets/thumbnail_widget.dart';
+import '../../../shared/widgets/album_card.dart';
+import '../../../shared/widgets/artist_card.dart';
+import '../../../shared/widgets/context_menu_sheet.dart';
+import '../../../shared/widgets/episode_tile.dart';
+import '../../../shared/widgets/hover_carousel_arrows.dart';
+import '../../../shared/widgets/playlist_card.dart';
+import '../../../shared/widgets/podcast_tile.dart';
+import '../../../shared/widgets/song_tile.dart';
+import '../../library/providers/library_provider.dart';
+import '../../library/widgets/playlist_detail_view.dart';
 import '../providers/ask_chat_provider.dart';
 
 List<PlaylistEntryModel> _entriesFromRefs(List<AskTrackRef> tracks) {
@@ -24,10 +34,55 @@ List<PlaylistEntryModel> _entriesFromRefs(List<AskTrackRef> tracks) {
         artist: tracks[i].artist,
         artistsJson: tracks[i].artistsJson,
         thumbnailUrl: tracks[i].thumbnailUrl,
+        isVideo: tracks[i].isVideo,
         duration: tracks[i].durationSec,
         isExplicit: tracks[i].isExplicit,
       ),
   ];
+}
+
+Future<void> _enqueueTracks(
+  BuildContext context,
+  WidgetRef ref,
+  List<AskTrackRef> tracks,
+) async {
+  final l10n = AppLocalizations.of(context)!;
+  final items = await ref
+      .read(playLocalPlaylistUseCaseProvider)
+      .execute(_entriesFromRefs(tracks), playIndex: -1);
+  if (!context.mounted || items.isEmpty) return;
+  await ref.read(playerStateProvider.notifier).addAllToQueue(items);
+  ref
+      .read(actionFeedbackProvider.notifier)
+      .report(l10n.addedToQueue(items.length));
+}
+
+void _openSavedPlaylist(
+  BuildContext context,
+  WidgetRef ref,
+  int playlistId,
+  String fallbackName,
+) {
+  final loaded = ref.read(playlistsProvider).asData?.value ?? const [];
+  final match = loaded.cast<LocalPlaylistModel?>().firstWhere(
+    (p) => p?.id == playlistId,
+    orElse: () => null,
+  );
+  final model =
+      match ??
+      LocalPlaylistModel(
+        id: playlistId,
+        name: fallbackName,
+        createdAt: DateTime.now(),
+      );
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => PlaylistDetailView(
+        playlist: model,
+        onUpdated: () => ref.invalidate(playlistsProvider),
+      ),
+    ),
+  );
 }
 
 class AskRichAttachments extends StatelessWidget {
@@ -54,8 +109,29 @@ class AskRichAttachments extends StatelessWidget {
               attachmentIndex: i,
               proposal: prop,
             ),
+            final AskTracksAttachment tracks => AskTracksCard(
+              attachment: tracks,
+            ),
             final AskArtistsAttachment artists => AskArtistsCard(
+              messageId: message.id,
+              attachmentIndex: i,
               attachment: artists,
+            ),
+            final AskAlbumsAttachment albums => AskAlbumsCard(
+              messageId: message.id,
+              attachmentIndex: i,
+              attachment: albums,
+            ),
+            final AskPlaylistsAttachment playlists => AskPlaylistsCard(
+              messageId: message.id,
+              attachmentIndex: i,
+              attachment: playlists,
+            ),
+            final AskPodcastsAttachment podcasts => AskPodcastsCard(
+              attachment: podcasts,
+            ),
+            final AskEpisodesAttachment episodes => AskEpisodesCard(
+              attachment: episodes,
             ),
             final AskInsightsAttachment insights => AskInsightsCard(
               attachment: insights,
@@ -134,19 +210,18 @@ class _AskMixCardState extends ConsumerState<AskMixCard> {
                 style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
               ),
             ],
-            const SizedBox(height: 12),
-            for (var i = 0; i < mix.tracks.length.clamp(0, 6); i++)
-              _TrackPreviewRow(
-                track: mix.tracks[i],
-                enabled: !isOffline,
-                onTap: () => ref
-                    .read(playerStateProvider.notifier)
-                    .playLocalPlaylist(
-                      _entriesFromRefs(mix.tracks),
-                      startIndex: i,
-                    ),
-              ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            _AskExpandableSongList(
+              tracks: mix.tracks,
+              isOffline: isOffline,
+              onPlayTrack: (i) => ref
+                  .read(playerStateProvider.notifier)
+                  .playLocalPlaylist(
+                    _entriesFromRefs(mix.tracks),
+                    startIndex: i,
+                  ),
+            ),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -160,7 +235,14 @@ class _AskMixCardState extends ConsumerState<AskMixCard> {
                   icon: const Icon(LucideIcons.play, size: 16),
                   label: Text(l10n.askActionPlay),
                 ),
-                if (saved)
+                OutlinedButton.icon(
+                  onPressed: isOffline || mix.tracks.isEmpty
+                      ? null
+                      : () => _enqueueTracks(context, ref, mix.tracks),
+                  icon: const Icon(LucideIcons.listEnd, size: 16),
+                  label: Text(l10n.askActionQueue),
+                ),
+                if (saved) ...[
                   Chip(
                     avatar: Icon(
                       LucideIcons.check,
@@ -168,8 +250,18 @@ class _AskMixCardState extends ConsumerState<AskMixCard> {
                       color: cs.primary,
                     ),
                     label: Text(l10n.askSavedStatus),
-                  )
-                else
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _openSavedPlaylist(
+                      context,
+                      ref,
+                      mix.savedPlaylistId!,
+                      mix.title,
+                    ),
+                    icon: const Icon(LucideIcons.folderOpen, size: 16),
+                    label: Text(l10n.askActionOpenPlaylist),
+                  ),
+                ] else
                   OutlinedButton.icon(
                     onPressed: _saving ? null : () => _confirmSave(context),
                     icon: const Icon(LucideIcons.save, size: 16),
@@ -265,6 +357,7 @@ class _AskPlaylistProposalCardState
       'remove' => l10n.askPlaylistOpRemove,
       _ => l10n.askPlaylistOpCreate,
     };
+    final openablePlaylistId = p.savedPlaylistId ?? p.targetPlaylistId;
 
     return Card(
       elevation: 0,
@@ -300,19 +393,15 @@ class _AskPlaylistProposalCardState
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            _AskExpandableSongList(
+              tracks: p.tracks,
+              isOffline: isOffline,
+              onPlayTrack: (i) => ref
+                  .read(playerStateProvider.notifier)
+                  .playLocalPlaylist(_entriesFromRefs(p.tracks), startIndex: i),
+            ),
             const SizedBox(height: 10),
-            for (var i = 0; i < p.tracks.length.clamp(0, 6); i++)
-              _TrackPreviewRow(
-                track: p.tracks[i],
-                enabled: !isOffline,
-                onTap: () => ref
-                    .read(playerStateProvider.notifier)
-                    .playLocalPlaylist(
-                      _entriesFromRefs(p.tracks),
-                      startIndex: i,
-                    ),
-              ),
-            const SizedBox(height: 12),
             if (p.isPending)
               Wrap(
                 spacing: 8,
@@ -356,20 +445,47 @@ class _AskPlaylistProposalCardState
                     icon: const Icon(LucideIcons.x, size: 16),
                     label: Text(l10n.askActionDiscard),
                   ),
+                  if (p.tracks.isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: isOffline
+                          ? null
+                          : () => _enqueueTracks(context, ref, p.tracks),
+                      icon: const Icon(LucideIcons.listEnd, size: 16),
+                      label: Text(l10n.askActionQueue),
+                    ),
                 ],
               )
             else
-              Chip(
-                avatar: Icon(
-                  p.status == 'saved' ? LucideIcons.check : LucideIcons.x,
-                  size: 16,
-                  color: p.status == 'saved' ? cs.primary : cs.onSurfaceVariant,
-                ),
-                label: Text(
-                  p.status == 'saved'
-                      ? l10n.askSavedStatus
-                      : l10n.askDiscardedStatus,
-                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Chip(
+                    avatar: Icon(
+                      p.status == 'saved' ? LucideIcons.check : LucideIcons.x,
+                      size: 16,
+                      color: p.status == 'saved'
+                          ? cs.primary
+                          : cs.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      p.status == 'saved'
+                          ? l10n.askSavedStatus
+                          : l10n.askDiscardedStatus,
+                    ),
+                  ),
+                  if (p.status == 'saved' && openablePlaylistId != null)
+                    TextButton.icon(
+                      onPressed: () => _openSavedPlaylist(
+                        context,
+                        ref,
+                        openablePlaylistId,
+                        p.playlistName,
+                      ),
+                      icon: const Icon(LucideIcons.folderOpen, size: 16),
+                      label: Text(l10n.askActionOpenPlaylist),
+                    ),
+                ],
               ),
           ],
         ),
@@ -378,15 +494,21 @@ class _AskPlaylistProposalCardState
   }
 }
 
-class AskArtistsCard extends StatelessWidget {
-  const AskArtistsCard({super.key, required this.attachment});
+class AskTracksCard extends ConsumerWidget {
+  const AskTracksCard({super.key, required this.attachment});
 
-  final AskArtistsAttachment attachment;
+  final AskTracksAttachment attachment;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final isOffline = ref.watch(isOfflineProvider);
+    final header = attachment.title.isNotEmpty
+        ? attachment.title
+        : l10n.askSectionTracks;
+
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -397,27 +519,366 @@ class AskArtistsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (attachment.title.isNotEmpty) ...[
-              Text(
-                attachment.title,
-                style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 10),
-            ],
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
-                for (final artist in attachment.artists)
-                  ActionChip(
-                    avatar: const Icon(LucideIcons.user, size: 16),
-                    label: Text(artist.name),
-                    onPressed: artist.artistId.isEmpty
-                        ? null
-                        : () => context.push('/artist/${artist.artistId}'),
+                Icon(LucideIcons.music, size: 16, color: cs.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    header,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                   ),
+                ),
+                Text(
+                  l10n.askTracksCount(attachment.tracks.length),
+                  style: tt.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+                ),
               ],
             ),
+            const SizedBox(height: 6),
+            _AskExpandableSongList(
+              tracks: attachment.tracks,
+              isOffline: isOffline,
+              onPlayTrack: (i) => ref
+                  .read(playerStateProvider.notifier)
+                  .playLocalPlaylist(
+                    _entriesFromRefs(attachment.tracks),
+                    startIndex: i,
+                  ),
+            ),
+            if (attachment.tracks.length > 1) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: isOffline
+                        ? null
+                        : () => ref
+                              .read(playerStateProvider.notifier)
+                              .playLocalPlaylist(
+                                _entriesFromRefs(attachment.tracks),
+                              ),
+                    icon: const Icon(LucideIcons.play, size: 16),
+                    label: Text(l10n.askActionPlay),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: isOffline
+                        ? null
+                        : () => _enqueueTracks(context, ref, attachment.tracks),
+                    icon: const Icon(LucideIcons.listEnd, size: 16),
+                    label: Text(l10n.askActionQueue),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AskArtistsCard extends StatelessWidget {
+  const AskArtistsCard({
+    super.key,
+    required this.messageId,
+    required this.attachmentIndex,
+    required this.attachment,
+  });
+
+  final String messageId;
+  final int attachmentIndex;
+  final AskArtistsAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final title = attachment.title.isNotEmpty
+        ? attachment.title
+        : l10n.askSectionArtists;
+
+    return _AskCarouselCard(
+      icon: LucideIcons.user,
+      title: title,
+      height: 178,
+      itemCount: attachment.artists.length,
+      itemBuilder: (context, index) {
+        final artist = attachment.artists[index];
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTap: () => ContextMenuSheet.showForArtist(
+            context,
+            artistId: artist.artistId,
+            name: artist.name,
+            thumbnailUrl: artist.thumbnailUrl,
+            monthlyListeners: artist.monthlyListeners,
+          ),
+          child: ArtistCard(
+            artistId: artist.artistId,
+            name: artist.name,
+            thumbnailUrl: artist.thumbnailUrl,
+            monthlyListeners: artist.monthlyListeners,
+            cardWidth: 124,
+            heroTag:
+                'ask_${messageId}_${attachmentIndex}_artist_${artist.artistId}_$index',
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AskAlbumsCard extends StatelessWidget {
+  const AskAlbumsCard({
+    super.key,
+    required this.messageId,
+    required this.attachmentIndex,
+    required this.attachment,
+  });
+
+  final String messageId;
+  final int attachmentIndex;
+  final AskAlbumsAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final title = attachment.title.isNotEmpty
+        ? attachment.title
+        : l10n.askSectionAlbums;
+
+    return _AskCarouselCard(
+      icon: LucideIcons.disc3,
+      title: title,
+      height: 214,
+      itemCount: attachment.albums.length,
+      itemBuilder: (context, index) {
+        final album = attachment.albums[index];
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTap: () => ContextMenuSheet.showForAlbum(
+            context,
+            albumId: album.albumId,
+            name: album.name,
+            artist: album.artist,
+            artistId: album.artistId,
+            thumbnailUrl: album.thumbnailUrl,
+            year: album.year,
+          ),
+          child: AlbumCard(
+            albumId: album.albumId,
+            name: album.name,
+            artist: album.artist,
+            artistId: album.artistId,
+            thumbnailUrl: album.thumbnailUrl,
+            year: album.year,
+            cardWidth: 144,
+            heroTag:
+                'ask_${messageId}_${attachmentIndex}_album_${album.albumId}_$index',
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AskPlaylistsCard extends ConsumerWidget {
+  const AskPlaylistsCard({
+    super.key,
+    required this.messageId,
+    required this.attachmentIndex,
+    required this.attachment,
+  });
+
+  final String messageId;
+  final int attachmentIndex;
+  final AskPlaylistsAttachment attachment;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final title = attachment.title.isNotEmpty
+        ? attachment.title
+        : l10n.askSectionPlaylists;
+
+    return _AskCarouselCard(
+      icon: LucideIcons.listMusic,
+      title: title,
+      height: 214,
+      itemCount: attachment.playlists.length,
+      itemBuilder: (context, index) {
+        final pl = attachment.playlists[index];
+        final tag =
+            'ask_${messageId}_${attachmentIndex}_pl_${pl.localPlaylistId ?? pl.playlistId}_$index';
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onSecondaryTap: () {
+            if (pl.isLocal) {
+              ContextMenuSheet.showForCustomPlaylist(
+                context,
+                playlist: LocalPlaylistModel(
+                  id: pl.localPlaylistId!,
+                  name: pl.name,
+                  description: pl.artist,
+                  createdAt: DateTime.now(),
+                ),
+                onUpdated: () => ref.invalidate(playlistsProvider),
+              );
+            } else if (pl.playlistId != null) {
+              ContextMenuSheet.showForPlaylist(
+                context,
+                playlistId: pl.playlistId!,
+                name: pl.name,
+                artist: pl.artist,
+                thumbnailUrl: pl.thumbnailUrl,
+              );
+            }
+          },
+          child: PlaylistCard(
+            playlistId: pl.playlistId,
+            localPlaylistId: pl.localPlaylistId,
+            name: pl.name,
+            artist: pl.artist,
+            thumbnailUrl: pl.thumbnailUrl,
+            cardWidth: 144,
+            heroTag: tag,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AskPodcastsCard extends StatelessWidget {
+  const AskPodcastsCard({super.key, required this.attachment});
+
+  final AskPodcastsAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final header = attachment.title.isNotEmpty
+        ? attachment.title
+        : l10n.askSectionPodcasts;
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: cs.surfaceContainer,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.podcast, size: 16, color: cs.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    header,
+                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            for (final podcast in attachment.podcasts)
+              PodcastTile(
+                browseId: podcast.browseId,
+                name: podcast.name,
+                author: podcast.author,
+                thumbnailUrl: podcast.thumbnailUrl,
+                trailingActions: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.ellipsisVertical, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => ContextMenuSheet.showForPodcast(
+                      context,
+                      browseId: podcast.browseId,
+                      name: podcast.name,
+                      author: podcast.author,
+                      thumbnailUrl: podcast.thumbnailUrl,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AskEpisodesCard extends StatelessWidget {
+  const AskEpisodesCard({super.key, required this.attachment});
+
+  final AskEpisodesAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final header = attachment.title.isNotEmpty
+        ? attachment.title
+        : l10n.askSectionEpisodes;
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: cs.surfaceContainer,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.mic, size: 16, color: cs.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    header,
+                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            for (final ep in attachment.episodes)
+              EpisodeTile(
+                videoId: ep.videoId,
+                name: ep.name,
+                podcastName: ep.podcastName,
+                podcastBrowseId: ep.podcastBrowseId,
+                thumbnailUrl: ep.thumbnailUrl,
+                date: ep.date,
+                trailingActions: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.ellipsisVertical, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => ContextMenuSheet.showForEpisode(
+                      context,
+                      videoId: ep.videoId,
+                      name: ep.name,
+                      podcastName: ep.podcastName,
+                      podcastBrowseId: ep.podcastBrowseId,
+                      thumbnailUrl: ep.thumbnailUrl,
+                      date: ep.date,
+                      onGoToPodcast: (id) => context.push('/podcast/$id'),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -491,55 +952,178 @@ class AskInsightsCard extends StatelessWidget {
   }
 }
 
-class _TrackPreviewRow extends StatelessWidget {
-  const _TrackPreviewRow({
-    required this.track,
-    required this.enabled,
-    required this.onTap,
+class _AskExpandableSongList extends ConsumerStatefulWidget {
+  const _AskExpandableSongList({
+    required this.tracks,
+    required this.isOffline,
+    required this.onPlayTrack,
   });
 
-  final AskTrackRef track;
-  final bool enabled;
-  final VoidCallback onTap;
+  final List<AskTrackRef> tracks;
+  final bool isOffline;
+  final void Function(int index) onPlayTrack;
+
+  @override
+  ConsumerState<_AskExpandableSongList> createState() =>
+      _AskExpandableSongListState();
+}
+
+class _AskExpandableSongListState
+    extends ConsumerState<_AskExpandableSongList> {
+  static const int _collapsedCount = 6;
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final tracks = widget.tracks;
+    final visibleCount = _expanded
+        ? tracks.length
+        : tracks.length.clamp(0, _collapsedCount);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < visibleCount; i++)
+          _buildTile(context, tracks[i], i),
+        if (tracks.length > _collapsedCount)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: TextButton.icon(
+              onPressed: () => setState(() => _expanded = !_expanded),
+              icon: Icon(
+                _expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+                size: 16,
+              ),
+              label: Text(
+                _expanded
+                    ? l10n.askShowLessTracks
+                    : l10n.askShowAllTracks(tracks.length),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTile(BuildContext context, AskTrackRef track, int index) {
+    final l10n = AppLocalizations.of(context)!;
+    return SongTile(
+      videoId: track.videoId,
+      title: track.title,
+      artist: track.artist,
+      thumbnailUrl: track.thumbnailUrl,
+      duration: track.durationSec,
+      isVideo: track.isVideo,
+      albumName: track.albumName,
+      artistId: track.artistId,
+      albumId: track.albumId,
+      artistsJson: track.artistsJson,
+      isExplicit: track.isExplicit,
+      onTap: () {
+        if (widget.isOffline) {
+          ref
+              .read(actionFeedbackProvider.notifier)
+              .report(l10n.askErrorOffline);
+          return;
+        }
+        widget.onPlayTrack(index);
+      },
+      trailingActions: [
+        IconButton(
+          icon: const Icon(LucideIcons.ellipsisVertical, size: 18),
+          visualDensity: VisualDensity.compact,
+          onPressed: () => ContextMenuSheet.showForSong(
+            context,
+            videoId: track.videoId,
+            title: track.title,
+            artist: track.artist,
+            thumbnailUrl: track.thumbnailUrl,
+            duration: track.durationSec,
+            isVideo: track.isVideo,
+            albumName: track.albumName,
+            artistId: track.artistId,
+            albumId: track.albumId,
+            artistsJson: track.artistsJson,
+            isExplicit: track.isExplicit,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AskCarouselCard extends StatefulWidget {
+  const _AskCarouselCard({
+    required this.icon,
+    required this.title,
+    required this.height,
+    required this.itemCount,
+    required this.itemBuilder,
+  });
+
+  final IconData icon;
+  final String title;
+  final double height;
+  final int itemCount;
+  final IndexedWidgetBuilder itemBuilder;
+
+  @override
+  State<_AskCarouselCard> createState() => _AskCarouselCardState();
+}
+
+class _AskCarouselCardState extends State<_AskCarouselCard> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: enabled ? onTap : null,
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: cs.surfaceContainer,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
-        child: Row(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ThumbnailWidget(
-              imageUrl: track.thumbnailUrl,
-              size: 38,
-              borderRadius: 8,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    track.title,
+            Row(
+              children: [
+                Icon(widget.icon, size: 16, color: cs.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: tt.bodyMedium,
+                    style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  if (track.artist.isNotEmpty)
-                    Text(
-                      track.artist,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-                    ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: widget.height,
+              child: HoverCarouselArrows(
+                controller: _controller,
+                child: ListView.separated(
+                  controller: _controller,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: widget.itemCount,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: widget.itemBuilder,
+                ),
               ),
             ),
-            Icon(LucideIcons.play, size: 16, color: cs.onSurfaceVariant),
           ],
         ),
       ),

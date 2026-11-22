@@ -96,9 +96,13 @@ class AskTrackRef {
     required this.title,
     required this.artist,
     this.artistsJson,
+    this.artistId,
+    this.albumId,
+    this.albumName,
     this.durationSec,
     this.thumbnailUrl,
     this.isExplicit = false,
+    this.isVideo = false,
   });
 
   factory AskTrackRef.fromJson(Map<String, dynamic> json) {
@@ -107,9 +111,13 @@ class AskTrackRef {
       title: json['title']?.toString() ?? '',
       artist: json['artist']?.toString() ?? '',
       artistsJson: json['artistsJson']?.toString(),
+      artistId: json['artistId']?.toString(),
+      albumId: json['albumId']?.toString(),
+      albumName: json['albumName']?.toString(),
       durationSec: (json['durationSec'] as num?)?.toInt(),
       thumbnailUrl: json['thumbnailUrl']?.toString(),
       isExplicit: json['isExplicit'] == true,
+      isVideo: json['isVideo'] == true,
     );
   }
 
@@ -117,18 +125,26 @@ class AskTrackRef {
   final String title;
   final String artist;
   final String? artistsJson;
+  final String? artistId;
+  final String? albumId;
+  final String? albumName;
   final int? durationSec;
   final String? thumbnailUrl;
   final bool isExplicit;
+  final bool isVideo;
 
   Map<String, dynamic> toJson() => {
     'videoId': videoId,
     'title': title,
     'artist': artist,
     if (artistsJson != null) 'artistsJson': artistsJson,
+    if (artistId != null) 'artistId': artistId,
+    if (albumId != null) 'albumId': albumId,
+    if (albumName != null) 'albumName': albumName,
     if (durationSec != null) 'durationSec': durationSec,
     if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
     'isExplicit': isExplicit,
+    if (isVideo) 'isVideo': true,
   };
 }
 
@@ -138,6 +154,7 @@ class AskArtistRef {
     required this.artistId,
     required this.name,
     this.thumbnailUrl,
+    this.monthlyListeners,
     this.reason,
   });
 
@@ -146,6 +163,7 @@ class AskArtistRef {
       artistId: json['artistId']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       thumbnailUrl: json['thumbnailUrl']?.toString(),
+      monthlyListeners: json['monthlyListeners']?.toString(),
       reason: json['reason']?.toString(),
     );
   }
@@ -153,13 +171,164 @@ class AskArtistRef {
   final String artistId;
   final String name;
   final String? thumbnailUrl;
+  final String? monthlyListeners;
   final String? reason;
 
   Map<String, dynamic> toJson() => {
     'artistId': artistId,
     'name': name,
     if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
+    if (monthlyListeners != null) 'monthlyListeners': monthlyListeners,
     if (reason != null) 'reason': reason,
+  };
+}
+
+/// Grounded album reference returned by tools and shown in Ask cards.
+class AskAlbumRef {
+  const AskAlbumRef({
+    required this.albumId,
+    required this.name,
+    required this.artist,
+    this.artistId,
+    this.thumbnailUrl,
+    this.year,
+  });
+
+  factory AskAlbumRef.fromJson(Map<String, dynamic> json) {
+    return AskAlbumRef(
+      albumId: json['albumId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      artist: json['artist']?.toString() ?? '',
+      artistId: json['artistId']?.toString(),
+      thumbnailUrl: json['thumbnailUrl']?.toString(),
+      year: (json['year'] as num?)?.toInt(),
+    );
+  }
+
+  final String albumId;
+  final String name;
+  final String artist;
+  final String? artistId;
+  final String? thumbnailUrl;
+  final int? year;
+
+  Map<String, dynamic> toJson() => {
+    'albumId': albumId,
+    'name': name,
+    'artist': artist,
+    if (artistId != null) 'artistId': artistId,
+    if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
+    if (year != null) 'year': year,
+  };
+}
+
+/// Grounded catalog or local playlist reference shown in Ask cards.
+class AskPlaylistRef {
+  const AskPlaylistRef({
+    this.playlistId,
+    this.localPlaylistId,
+    required this.name,
+    this.artist,
+    this.thumbnailUrl,
+  });
+
+  factory AskPlaylistRef.fromJson(Map<String, dynamic> json) {
+    return AskPlaylistRef(
+      playlistId: json['playlistId']?.toString(),
+      localPlaylistId: (json['localPlaylistId'] as num?)?.toInt(),
+      name: json['name']?.toString() ?? '',
+      artist: json['artist']?.toString(),
+      thumbnailUrl: json['thumbnailUrl']?.toString(),
+    );
+  }
+
+  final String? playlistId;
+  final int? localPlaylistId;
+  final String name;
+  final String? artist;
+  final String? thumbnailUrl;
+
+  bool get isLocal => localPlaylistId != null;
+
+  bool get hasId =>
+      localPlaylistId != null || (playlistId != null && playlistId!.isNotEmpty);
+
+  Map<String, dynamic> toJson() => {
+    if (playlistId != null) 'playlistId': playlistId,
+    if (localPlaylistId != null) 'localPlaylistId': localPlaylistId,
+    'name': name,
+    if (artist != null) 'artist': artist,
+    if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
+  };
+}
+
+/// Grounded podcast reference shown in Ask cards.
+class AskPodcastRef {
+  const AskPodcastRef({
+    required this.browseId,
+    required this.name,
+    this.author,
+    this.thumbnailUrl,
+  });
+
+  factory AskPodcastRef.fromJson(Map<String, dynamic> json) {
+    return AskPodcastRef(
+      browseId: json['browseId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      author: json['author']?.toString(),
+      thumbnailUrl: json['thumbnailUrl']?.toString(),
+    );
+  }
+
+  final String browseId;
+  final String name;
+  final String? author;
+  final String? thumbnailUrl;
+
+  Map<String, dynamic> toJson() => {
+    'browseId': browseId,
+    'name': name,
+    if (author != null) 'author': author,
+    if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
+  };
+}
+
+/// Grounded podcast episode reference shown in Ask cards.
+class AskEpisodeRef {
+  const AskEpisodeRef({
+    required this.videoId,
+    required this.name,
+    this.podcastName,
+    this.podcastBrowseId,
+    this.thumbnailUrl,
+    this.date,
+  });
+
+  factory AskEpisodeRef.fromJson(Map<String, dynamic> json) {
+    return AskEpisodeRef(
+      videoId: json['videoId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      podcastName: json['podcastName']?.toString(),
+      podcastBrowseId: json['podcastBrowseId']?.toString(),
+      thumbnailUrl: json['thumbnailUrl']?.toString(),
+      date: json['date']?.toString(),
+    );
+  }
+
+  final String videoId;
+  final String name;
+  final String? podcastName;
+  final String? podcastBrowseId;
+  final String? thumbnailUrl;
+  final String? date;
+
+  Map<String, dynamic> toJson() => {
+    'videoId': videoId,
+    'name': name,
+    if (podcastName != null) 'podcastName': podcastName,
+    if (podcastBrowseId != null) 'podcastBrowseId': podcastBrowseId,
+    if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
+    if (date != null) 'date': date,
   };
 }
 
@@ -176,8 +345,18 @@ sealed class AskAttachment {
     switch (type) {
       case 'mix':
         return AskMixAttachment.fromJson(json);
+      case 'tracks':
+        return AskTracksAttachment.fromJson(json);
       case 'artists':
         return AskArtistsAttachment.fromJson(json);
+      case 'albums':
+        return AskAlbumsAttachment.fromJson(json);
+      case 'playlists':
+        return AskPlaylistsAttachment.fromJson(json);
+      case 'podcasts':
+        return AskPodcastsAttachment.fromJson(json);
+      case 'episodes':
+        return AskEpisodesAttachment.fromJson(json);
       case 'insights':
         return AskInsightsAttachment.fromJson(json);
       case 'playlist_write':
@@ -287,6 +466,166 @@ class AskArtistsAttachment extends AskAttachment {
     'type': type,
     'title': title,
     'artists': artists.map((a) => a.toJson()).toList(growable: false),
+  };
+}
+
+class AskTracksAttachment extends AskAttachment {
+  const AskTracksAttachment({required this.title, required this.tracks});
+
+  factory AskTracksAttachment.fromJson(Map<String, dynamic> json) {
+    final raw = json['tracks'];
+    final tracks = raw is List
+        ? raw
+              .whereType<Map>()
+              .map((e) => AskTrackRef.fromJson(Map<String, dynamic>.from(e)))
+              .where((t) => t.videoId.isNotEmpty)
+              .toList(growable: false)
+        : const <AskTrackRef>[];
+    return AskTracksAttachment(
+      title: json['title']?.toString() ?? '',
+      tracks: tracks,
+    );
+  }
+
+  final String title;
+  final List<AskTrackRef> tracks;
+
+  @override
+  String get type => 'tracks';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'title': title,
+    'tracks': tracks.map((t) => t.toJson()).toList(growable: false),
+  };
+}
+
+class AskAlbumsAttachment extends AskAttachment {
+  const AskAlbumsAttachment({required this.title, required this.albums});
+
+  factory AskAlbumsAttachment.fromJson(Map<String, dynamic> json) {
+    final raw = json['albums'];
+    final albums = raw is List
+        ? raw
+              .whereType<Map>()
+              .map((e) => AskAlbumRef.fromJson(Map<String, dynamic>.from(e)))
+              .where((a) => a.albumId.isNotEmpty)
+              .toList(growable: false)
+        : const <AskAlbumRef>[];
+    return AskAlbumsAttachment(
+      title: json['title']?.toString() ?? '',
+      albums: albums,
+    );
+  }
+
+  final String title;
+  final List<AskAlbumRef> albums;
+
+  @override
+  String get type => 'albums';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'title': title,
+    'albums': albums.map((a) => a.toJson()).toList(growable: false),
+  };
+}
+
+class AskPlaylistsAttachment extends AskAttachment {
+  const AskPlaylistsAttachment({required this.title, required this.playlists});
+
+  factory AskPlaylistsAttachment.fromJson(Map<String, dynamic> json) {
+    final raw = json['playlists'];
+    final playlists = raw is List
+        ? raw
+              .whereType<Map>()
+              .map((e) => AskPlaylistRef.fromJson(Map<String, dynamic>.from(e)))
+              .where((p) => p.hasId)
+              .toList(growable: false)
+        : const <AskPlaylistRef>[];
+    return AskPlaylistsAttachment(
+      title: json['title']?.toString() ?? '',
+      playlists: playlists,
+    );
+  }
+
+  final String title;
+  final List<AskPlaylistRef> playlists;
+
+  @override
+  String get type => 'playlists';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'title': title,
+    'playlists': playlists.map((p) => p.toJson()).toList(growable: false),
+  };
+}
+
+class AskPodcastsAttachment extends AskAttachment {
+  const AskPodcastsAttachment({required this.title, required this.podcasts});
+
+  factory AskPodcastsAttachment.fromJson(Map<String, dynamic> json) {
+    final raw = json['podcasts'];
+    final podcasts = raw is List
+        ? raw
+              .whereType<Map>()
+              .map((e) => AskPodcastRef.fromJson(Map<String, dynamic>.from(e)))
+              .where((p) => p.browseId.isNotEmpty)
+              .toList(growable: false)
+        : const <AskPodcastRef>[];
+    return AskPodcastsAttachment(
+      title: json['title']?.toString() ?? '',
+      podcasts: podcasts,
+    );
+  }
+
+  final String title;
+  final List<AskPodcastRef> podcasts;
+
+  @override
+  String get type => 'podcasts';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'title': title,
+    'podcasts': podcasts.map((p) => p.toJson()).toList(growable: false),
+  };
+}
+
+class AskEpisodesAttachment extends AskAttachment {
+  const AskEpisodesAttachment({required this.title, required this.episodes});
+
+  factory AskEpisodesAttachment.fromJson(Map<String, dynamic> json) {
+    final raw = json['episodes'];
+    final episodes = raw is List
+        ? raw
+              .whereType<Map>()
+              .map((e) => AskEpisodeRef.fromJson(Map<String, dynamic>.from(e)))
+              .where((ep) => ep.videoId.isNotEmpty)
+              .toList(growable: false)
+        : const <AskEpisodeRef>[];
+    return AskEpisodesAttachment(
+      title: json['title']?.toString() ?? '',
+      episodes: episodes,
+    );
+  }
+
+  final String title;
+  final List<AskEpisodeRef> episodes;
+
+  @override
+  String get type => 'episodes';
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'title': title,
+    'episodes': episodes.map((e) => e.toJson()).toList(growable: false),
   };
 }
 
@@ -498,4 +837,13 @@ class AskNotConfiguredException implements Exception {
 
   @override
   String toString() => message ?? 'AskNotConfiguredException()';
+}
+
+class AskEmptyResponseException implements Exception {
+  const AskEmptyResponseException([this.message]);
+
+  final String? message;
+
+  @override
+  String toString() => message ?? 'AskEmptyResponseException()';
 }

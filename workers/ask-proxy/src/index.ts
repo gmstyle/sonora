@@ -193,6 +193,9 @@ function sanitizeMessages(raw: unknown): Record<string, unknown>[] | null {
       clean.content = null;
     }
     if (role === "assistant") {
+      if (typeof msg.reasoning_content === "string") {
+        clean.reasoning_content = msg.reasoning_content.slice(0, 32_000);
+      }
       if (
         Array.isArray(msg.server_tool_calls) &&
         msg.server_tool_calls.length > 0
@@ -363,6 +366,14 @@ export default {
       const enableWebSearch = body.enableWebSearch === true;
       const tools = buildTools(action, body.tools, enableWebSearch);
 
+      const hasClientTools =
+        Array.isArray(tools) &&
+        tools.some((t) => (t as { type?: unknown }).type === "function");
+      const hasWebSearch =
+        Array.isArray(tools) &&
+        tools.some((t) => (t as { type?: unknown }).type === "deepseek_web_search");
+      const enableThinking = hasClientTools && hasWebSearch;
+
       // DeepSeek API: do not combine response_format json_object with tools (e.g. deepseek_web_search).
       const forceJson = action !== "chat" && !tools;
 
@@ -372,9 +383,17 @@ export default {
           { role: "system", content: buildSystemPrompt(action, locale) },
           ...clientMessages,
         ],
-        thinking: { type: "disabled" },
+        thinking: { type: enableThinking ? "enabled" : "disabled" },
+        ...(enableThinking ? { reasoning_effort: "low" } : {}),
         max_tokens: requestedTokens,
-        temperature: action === "chat" || action === "wrapped" || action === "pulse_drop" ? 0.5 : 0.2,
+        ...(enableThinking
+          ? {}
+          : {
+              temperature:
+                action === "chat" || action === "wrapped" || action === "pulse_drop"
+                  ? 0.5
+                  : 0.2,
+            }),
         stream,
       };
 

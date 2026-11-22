@@ -179,6 +179,14 @@ class AskChatNotifier extends Notifier<AskChatState> {
         );
       }
 
+      if (result.assistantText.trim().isEmpty && attachments.isEmpty) {
+        state = state.copyWith(
+          isSending: false,
+          errorKind: AskUiErrorKind.failed,
+        );
+        return;
+      }
+
       final assistantTime = DateTime.now();
       await storage.insertMessage(
         AskChatMessage(

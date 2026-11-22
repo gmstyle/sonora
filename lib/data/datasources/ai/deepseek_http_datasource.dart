@@ -170,18 +170,24 @@ class DeepSeekHttpDatasource {
       wireMessages.add(msg.toOpenAiJson());
     }
 
+    final hasClientTools = tools.isNotEmpty;
+    final hasWebSearch =
+        enableWebSearch || action == AskActionKind.trackInsights;
+    final enableThinking = hasClientTools && hasWebSearch;
+
     final wireTools = <Map<String, dynamic>>[
       for (final tool in tools) tool.toOpenAiJson(),
-      if (enableWebSearch || action == AskActionKind.trackInsights)
+      if (hasWebSearch)
         {'type': 'deepseek_web_search', 'name': 'deepseek_web_search'},
     ];
 
     final payload = <String, dynamic>{
       'model': config.model.isEmpty ? kDeepSeekModelId : config.model,
       'messages': wireMessages,
-      'thinking': {'type': 'disabled'},
+      'thinking': {'type': enableThinking ? 'enabled' : 'disabled'},
+      if (enableThinking) 'reasoning_effort': 'low',
       'max_tokens': maxOutputTokens,
-      'temperature': _temperatureFor(action),
+      if (!enableThinking) 'temperature': _temperatureFor(action),
     };
     if (wireTools.isNotEmpty) {
       payload['tools'] = wireTools;
@@ -203,7 +209,9 @@ class DeepSeekHttpDatasource {
           'Authorization': 'Bearer ${config.byokApiKey.trim()}',
         },
         sendTimeout: kAskTimeout,
-        receiveTimeout: kAskTimeout,
+        receiveTimeout: enableThinking
+            ? const Duration(seconds: 75)
+            : kAskTimeout,
         validateStatus: (_) => true,
       ),
     );
@@ -260,7 +268,9 @@ class DeepSeekHttpDatasource {
           'X-Sonora-Install-Id': config.installId.trim(),
         },
         sendTimeout: kAskTimeout,
-        receiveTimeout: kAskTimeout,
+        receiveTimeout: (tools.isNotEmpty && enableWebSearch)
+            ? const Duration(seconds: 75)
+            : kAskTimeout,
         validateStatus: (_) => true,
       ),
     );
@@ -346,12 +356,16 @@ class DeepSeekHttpDatasource {
       }
     }
 
+    final rawReasoning = message['reasoning_content'];
+    final reasoningContent = rawReasoning is String ? rawReasoning : null;
+
     return LlmChatResponse(
       content: dsml.cleanContent,
       toolCalls: toolCalls,
       sources: extractGroundedSources(raw),
       quota: quota,
       serverToolCalls: serverToolCalls,
+      reasoningContent: reasoningContent,
     );
   }
 

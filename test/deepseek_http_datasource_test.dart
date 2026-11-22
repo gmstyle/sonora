@@ -424,6 +424,119 @@ void main() {
         expect(ids, everyElement(isNotEmpty));
       },
     );
+
+    test('BYOK mode enables thinking with reasoning_effort low when combining client tools and deepseek_web_search, and serializes reasoning_content', () async {
+      final adapter = _StubAdapter(
+        (_) async => _jsonResponse({
+          'choices': [
+            {
+              'message': {
+                'role': 'assistant',
+                'content': null,
+                'reasoning_content': 'Need to search artist and web.',
+                'server_tool_calls': [
+                  {'type': 'web_search', 'query': 'Tanerelle singer'},
+                ],
+                'tool_calls': [
+                  {
+                    'id': 'call_1',
+                    'type': 'function',
+                    'function': {
+                      'name': 'search_catalog',
+                      'arguments': '{"query":"Tanerelle"}',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      );
+      final ds = DeepSeekHttpDatasource(
+        dio: Dio()..httpClientAdapter = adapter,
+        readConfig: () => const DeepSeekEndpointConfig(byokApiKey: 'sk-key'),
+      );
+
+      final res = await ds.completeChat(
+        action: AskActionKind.chat,
+        enableWebSearch: true,
+        tools: const [
+          LlmToolDefinition(
+            name: 'search_catalog',
+            description: 'Search catalog',
+            parameters: {'type': 'object', 'properties': {}},
+          ),
+        ],
+        messages: const [
+          LlmChatMessage(role: 'user', content: 'Info su Tanerelle'),
+        ],
+      );
+
+      final req = adapter.captured.single;
+      expect(req.data!['thinking'], {'type': 'enabled'});
+      expect(req.data!['reasoning_effort'], 'low');
+      expect(req.data!.containsKey('temperature'), isFalse);
+      expect(req.data!['tools'], [
+        {
+          'type': 'function',
+          'function': {
+            'name': 'search_catalog',
+            'description': 'Search catalog',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+        },
+        {'type': 'deepseek_web_search', 'name': 'deepseek_web_search'},
+      ]);
+      expect(res.reasoningContent, 'Need to search artist and web.');
+      expect(res.serverToolCalls, [
+        {'type': 'web_search', 'query': 'Tanerelle singer'},
+      ]);
+
+      final echoedJson = LlmChatMessage(
+        role: 'assistant',
+        toolCalls: res.toolCalls,
+        reasoningContent: res.reasoningContent,
+        serverToolCalls: res.serverToolCalls,
+      ).toOpenAiJson();
+      expect(echoedJson['reasoning_content'], 'Need to search artist and web.');
+      expect(echoedJson['server_tool_calls'], [
+        {'type': 'web_search', 'query': 'Tanerelle singer'},
+      ]);
+    });
+
+    test('BYOK mode keeps thinking disabled when client tools run without web search', () async {
+      final adapter = _StubAdapter(
+        (_) async => _jsonResponse({
+          'choices': [
+            {
+              'message': {'role': 'assistant', 'content': 'Ecco fatto!'},
+            },
+          ],
+        }),
+      );
+      final ds = DeepSeekHttpDatasource(
+        dio: Dio()..httpClientAdapter = adapter,
+        readConfig: () => const DeepSeekEndpointConfig(byokApiKey: 'sk-key'),
+      );
+
+      await ds.completeChat(
+        action: AskActionKind.chat,
+        enableWebSearch: false,
+        tools: const [
+          LlmToolDefinition(
+            name: 'search_catalog',
+            description: 'Search catalog',
+            parameters: {'type': 'object', 'properties': {}},
+          ),
+        ],
+        messages: const [LlmChatMessage(role: 'user', content: 'Mix chill')],
+      );
+
+      final req = adapter.captured.single;
+      expect(req.data!['thinking'], {'type': 'disabled'});
+      expect(req.data!.containsKey('reasoning_effort'), isFalse);
+      expect(req.data!['temperature'], 0.5);
+    });
   });
 
   group('extractGroundedSources DeepSeek extensions', () {

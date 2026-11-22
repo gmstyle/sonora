@@ -47,7 +47,31 @@ class AskToolExecutor {
 
   final Map<String, AskTrackRef> seenTracks = {};
   final Map<String, AskArtistRef> seenArtists = {};
+  final Map<String, AskAlbumRef> seenAlbums = {};
+  final Map<String, AskPlaylistRef> seenPlaylists = {};
+  final Map<int, AskPlaylistRef> seenLocalPlaylists = {};
+  final Map<String, AskPodcastRef> seenPodcasts = {};
+  final Map<String, AskEpisodeRef> seenEpisodes = {};
   final List<AskAttachment> attachments = [];
+
+  bool get hasSeenCatalogEntities =>
+      seenTracks.isNotEmpty ||
+      seenArtists.isNotEmpty ||
+      seenAlbums.isNotEmpty ||
+      seenPlaylists.isNotEmpty ||
+      seenLocalPlaylists.isNotEmpty ||
+      seenPodcasts.isNotEmpty ||
+      seenEpisodes.isNotEmpty;
+
+  static const _presentationToolNames = {
+    'propose_mix',
+    'propose_playlist_write',
+    'present_catalog_items',
+  };
+
+  List<LlmToolDefinition> get presentationDefinitions => definitions
+      .where((d) => _presentationToolNames.contains(d.name))
+      .toList(growable: false);
 
   List<LlmToolDefinition> get definitions => const [
     LlmToolDefinition(
@@ -232,6 +256,44 @@ class AskToolExecutor {
         'required': ['operation', 'playlistName', 'videoIds'],
       },
     ),
+    LlmToolDefinition(
+      name: 'present_catalog_items',
+      description: 'Attach interactive native Sonora cards (artists, tracks, albums, playlists, podcasts, or episodes) using ONLY verified IDs returned earlier in this turn.',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'title': {'type': 'string'},
+          'artistIds': {
+            'type': 'array',
+            'items': {'type': 'string'},
+          },
+          'trackVideoIds': {
+            'type': 'array',
+            'items': {'type': 'string'},
+          },
+          'albumIds': {
+            'type': 'array',
+            'items': {'type': 'string'},
+          },
+          'playlistIds': {
+            'type': 'array',
+            'items': {'type': 'string'},
+          },
+          'localPlaylistIds': {
+            'type': 'array',
+            'items': {'type': 'integer'},
+          },
+          'podcastBrowseIds': {
+            'type': 'array',
+            'items': {'type': 'string'},
+          },
+          'episodeVideoIds': {
+            'type': 'array',
+            'items': {'type': 'string'},
+          },
+        },
+      },
+    ),
   ];
 
   Future<AskToolResult> execute(AskToolCall call) async {
@@ -283,6 +345,8 @@ class AskToolExecutor {
         return _proposeMix(args);
       case 'propose_playlist_write':
         return _proposePlaylistWrite(args);
+      case 'present_catalog_items':
+        return _presentCatalogItems(args);
       default:
         return {'error': 'unknown_tool', 'name': name};
     }
@@ -313,6 +377,7 @@ class AskToolExecutor {
           durationSec: h.duration,
           thumbnailUrl: h.thumbnailUrl,
           isExplicit: h.isExplicit,
+          isVideo: h.isVideo,
         ),
       );
     }
@@ -323,9 +388,12 @@ class AskToolExecutor {
           title: s.title,
           artist: s.artist,
           artistsJson: s.artistsJson,
+          artistId: s.artistId,
+          albumId: s.albumId,
           durationSec: s.duration,
           thumbnailUrl: s.thumbnailUrl,
           isExplicit: s.isExplicit,
+          isVideo: s.isVideo,
         ),
       );
     }
@@ -336,6 +404,16 @@ class AskToolExecutor {
           artistId: a.artistId,
           name: a.name,
           thumbnailUrl: a.thumbnailUrl,
+        ),
+      );
+    }
+    for (final p in playlists) {
+      seenLocalPlaylists.putIfAbsent(
+        p.id,
+        () => AskPlaylistRef(
+          localPlaylistId: p.id,
+          name: p.name,
+          artist: p.description,
         ),
       );
     }
@@ -382,6 +460,7 @@ class AskToolExecutor {
           durationSec: h.duration,
           thumbnailUrl: h.thumbnailUrl,
           isExplicit: h.isExplicit,
+          isVideo: h.isVideo,
         ),
       );
       out.add({
@@ -419,9 +498,12 @@ class AskToolExecutor {
             title: s.title,
             artist: s.artist,
             artistsJson: s.artistsJson,
+            artistId: s.artistId,
+            albumId: s.albumId,
             durationSec: s.duration,
             thumbnailUrl: s.thumbnailUrl,
             isExplicit: s.isExplicit,
+            isVideo: s.isVideo,
           ),
         );
       }
@@ -457,7 +539,21 @@ class AskToolExecutor {
                 a.name.toLowerCase().contains(query) ||
                 a.artistName.toLowerCase().contains(query),
           )
-          .take(12);
+          .take(12)
+          .toList();
+      for (final a in matches) {
+        seenAlbums.putIfAbsent(
+          a.albumId,
+          () => AskAlbumRef(
+            albumId: a.albumId,
+            name: a.name,
+            artist: a.artistName,
+            artistId: a.artistId,
+            thumbnailUrl: a.thumbnailUrl,
+            year: a.year,
+          ),
+        );
+      }
       out['albums'] = [
         for (final a in matches)
           {
@@ -473,7 +569,18 @@ class AskToolExecutor {
       final playlists = await _library.getAllPlaylists();
       final matches = playlists
           .where((p) => p.name.toLowerCase().contains(query))
-          .take(12);
+          .take(12)
+          .toList();
+      for (final p in matches) {
+        seenLocalPlaylists.putIfAbsent(
+          p.id,
+          () => AskPlaylistRef(
+            localPlaylistId: p.id,
+            name: p.name,
+            artist: p.description,
+          ),
+        );
+      }
       out['playlists'] = [
         for (final p in matches) {'id': p.id, 'name': p.name},
       ];
@@ -487,7 +594,19 @@ class AskToolExecutor {
                 p.name.toLowerCase().contains(query) ||
                 (p.authorName?.toLowerCase().contains(query) ?? false),
           )
-          .take(10);
+          .take(10)
+          .toList();
+      for (final p in matches) {
+        seenPodcasts.putIfAbsent(
+          p.browseId,
+          () => AskPodcastRef(
+            browseId: p.browseId,
+            name: p.name,
+            author: p.authorName,
+            thumbnailUrl: p.thumbnailUrl,
+          ),
+        );
+      }
       out['podcasts'] = [
         for (final p in matches)
           {
@@ -511,21 +630,19 @@ class AskToolExecutor {
     if (playlistId != null) {
       target = await _library.getPlaylist(playlistId);
     } else if (playlistName.isNotEmpty) {
-      final all = await _library.getAllPlaylists();
-      final lower = playlistName.toLowerCase();
-      for (final p in all) {
-        if (p.name.toLowerCase() == lower ||
-            p.name.toLowerCase().contains(lower)) {
-          target = p;
-          break;
-        }
-      }
+      target = await _findLocalPlaylistByName(playlistName);
       playlistId = target?.id;
     }
 
     if (target == null || playlistId == null) {
       return {'error': 'playlist_not_found'};
     }
+
+    seenLocalPlaylists[target.id] = AskPlaylistRef(
+      localPlaylistId: target.id,
+      name: target.name,
+      artist: target.description,
+    );
 
     final entries = await _library.getPlaylistEntries(playlistId);
     for (final e in entries) {
@@ -538,6 +655,7 @@ class AskToolExecutor {
           durationSec: e.duration,
           thumbnailUrl: e.thumbnailUrl,
           isExplicit: e.isExplicit,
+          isVideo: e.isVideo,
         ),
       );
     }
@@ -590,6 +708,7 @@ class AskToolExecutor {
             thumbnailUrl: a.thumbnails.isNotEmpty
                 ? a.thumbnails.last.url
                 : null,
+            monthlyListeners: a.monthlyListeners,
           );
         }
         return {
@@ -606,6 +725,18 @@ class AskToolExecutor {
 
       case 'albums':
         final albums = await _music.searchAlbums(query, limit: limit);
+        for (final a in albums) {
+          seenAlbums[a.albumId] = AskAlbumRef(
+            albumId: a.albumId,
+            name: a.name,
+            artist: displayArtists(a.artists),
+            artistId: primaryArtistId(a.artists),
+            thumbnailUrl: a.thumbnails.isNotEmpty
+                ? a.thumbnails.last.url
+                : null,
+            year: a.year,
+          );
+        }
         return {
           'albums': [
             for (final a in albums)
@@ -620,6 +751,16 @@ class AskToolExecutor {
 
       case 'playlists':
         final playlists = await _music.searchPlaylists(query, limit: limit);
+        for (final p in playlists) {
+          seenPlaylists[p.playlistId] = AskPlaylistRef(
+            playlistId: p.playlistId,
+            name: p.name,
+            artist: displayArtists(p.artists),
+            thumbnailUrl: p.thumbnails.isNotEmpty
+                ? p.thumbnails.last.url
+                : null,
+          );
+        }
         return {
           'playlists': [
             for (final p in playlists)
@@ -633,6 +774,16 @@ class AskToolExecutor {
 
       case 'podcasts':
         final podcasts = await _music.searchPodcasts(query, limit: limit);
+        for (final p in podcasts) {
+          seenPodcasts[p.browseId] = AskPodcastRef(
+            browseId: p.browseId,
+            name: p.name,
+            author: p.author,
+            thumbnailUrl: p.thumbnails.isNotEmpty
+                ? p.thumbnails.last.url
+                : null,
+          );
+        }
         return {
           'podcasts': [
             for (final p in podcasts)
@@ -646,6 +797,18 @@ class AskToolExecutor {
 
       case 'episodes':
         final episodes = await _music.searchEpisodes(query, limit: limit);
+        for (final e in episodes) {
+          seenEpisodes[e.videoId] = AskEpisodeRef(
+            videoId: e.videoId,
+            name: e.name,
+            podcastName: e.podcastName,
+            podcastBrowseId: e.podcastId,
+            thumbnailUrl: e.thumbnails.isNotEmpty
+                ? e.thumbnails.last.url
+                : null,
+            date: e.date,
+          );
+        }
         return {
           'episodes': [
             for (final e in episodes)
@@ -689,6 +852,7 @@ class AskToolExecutor {
       thumbnailUrl: artist.thumbnails.isNotEmpty
           ? artist.thumbnails.last.url
           : null,
+      monthlyListeners: artist.monthlyListeners,
     );
 
     final topSongsOut = <Map<String, dynamic>>[];
@@ -696,6 +860,18 @@ class AskToolExecutor {
       if (s.videoId.isEmpty || !s.isPlayable) continue;
       _registerSongDetailed(s);
       topSongsOut.add(_trackSummary(s.videoId));
+    }
+    for (final al in artist.topAlbums.take(12)) {
+      seenAlbums[al.albumId] = AskAlbumRef(
+        albumId: al.albumId,
+        name: al.name,
+        artist: displayArtists(al.artists).isNotEmpty
+            ? displayArtists(al.artists)
+            : artist.name,
+        artistId: primaryArtistId(al.artists) ?? artist.artistId,
+        thumbnailUrl: al.thumbnails.isNotEmpty ? al.thumbnails.last.url : null,
+        year: al.year,
+      );
     }
     final similarOut = <Map<String, dynamic>>[];
     for (final sim in artist.similarArtists.take(8)) {
@@ -798,6 +974,16 @@ class AskToolExecutor {
 
     if (kind == 'album') {
       final album = await _music.getAlbum(id);
+      seenAlbums[album.albumId] = AskAlbumRef(
+        albumId: album.albumId,
+        name: album.name,
+        artist: displayArtists(album.artists),
+        artistId: primaryArtistId(album.artists),
+        thumbnailUrl: album.thumbnails.isNotEmpty
+            ? album.thumbnails.last.url
+            : null,
+        year: album.year,
+      );
       final out = <Map<String, dynamic>>[];
       for (final s in album.songs.take(50)) {
         if (s.videoId.isEmpty || !s.isPlayable) continue;
@@ -813,6 +999,14 @@ class AskToolExecutor {
       };
     } else {
       final playlist = await _music.getPlaylist(id, limit: 60);
+      seenPlaylists[playlist.playlistId] = AskPlaylistRef(
+        playlistId: playlist.playlistId,
+        name: playlist.name,
+        artist: displayArtists(playlist.artists),
+        thumbnailUrl: playlist.thumbnails.isNotEmpty
+            ? playlist.thumbnails.last.url
+            : null,
+      );
       final out = <Map<String, dynamic>>[];
       for (final v in playlist.tracks.take(50)) {
         if (v.videoId.isEmpty || !v.isPlayable) continue;
@@ -849,6 +1043,22 @@ class AskToolExecutor {
     final charts = await _music.getCharts(
       country: country.isEmpty ? 'ZZ' : country,
     );
+    for (final a in charts.artists.take(12)) {
+      if (a.browseId.isEmpty) continue;
+      seenArtists[a.browseId] = AskArtistRef(
+        artistId: a.browseId,
+        name: a.title,
+        thumbnailUrl: a.thumbnails.isNotEmpty ? a.thumbnails.last.url : null,
+      );
+    }
+    for (final p in [...?charts.daily, ...?charts.weekly].take(8)) {
+      if (p.playlistId.isEmpty) continue;
+      seenPlaylists[p.playlistId] = AskPlaylistRef(
+        playlistId: p.playlistId,
+        name: p.title,
+        thumbnailUrl: p.thumbnails.isNotEmpty ? p.thumbnails.last.url : null,
+      );
+    }
     return {
       'country': charts.countries.selected,
       'topArtists': [
@@ -921,18 +1131,34 @@ class AskToolExecutor {
   Future<Map<String, dynamic>> _proposePlaylistWrite(
     Map<String, dynamic> args,
   ) async {
-    final operation = (args['operation']?.toString() ?? 'create')
+    final rawOp = (args['operation']?.toString() ?? 'create')
         .trim()
         .toLowerCase();
-    final playlistName = (args['playlistName']?.toString() ?? '').trim();
-    final targetPlaylistId = (args['targetPlaylistId'] as num?)?.toInt();
+    final operation = (rawOp == 'append' || rawOp == 'remove')
+        ? rawOp
+        : 'create';
+    var playlistName = (args['playlistName']?.toString() ?? '').trim();
+    var targetPlaylistId = (args['targetPlaylistId'] as num?)?.toInt();
     final rawIds = args['videoIds'];
     if (rawIds is! List) return {'error': 'invalid_video_ids'};
 
-    // For remove/append against an existing playlist, seed seenTracks with its entries.
+    if (targetPlaylistId == null &&
+        (operation == 'append' || operation == 'remove') &&
+        playlistName.isNotEmpty) {
+      final matched = await _findLocalPlaylistByName(playlistName);
+      if (matched != null) {
+        targetPlaylistId = matched.id;
+        playlistName = matched.name;
+      }
+    }
+
+    // For remove/append against an existing playlist, seed seenTracks and
+    // track existing videoIds so append proposals automatically deduplicate.
+    final existingIds = <String>{};
     if (targetPlaylistId != null) {
       final entries = await _library.getPlaylistEntries(targetPlaylistId);
       for (final e in entries) {
+        existingIds.add(e.videoId);
         _registerTrack(
           AskTrackRef(
             videoId: e.videoId,
@@ -942,6 +1168,7 @@ class AskToolExecutor {
             durationSec: e.duration,
             thumbnailUrl: e.thumbnailUrl,
             isExplicit: e.isExplicit,
+            isVideo: e.isVideo,
           ),
         );
       }
@@ -949,6 +1176,7 @@ class AskToolExecutor {
 
     final verified = <AskTrackRef>[];
     final rejected = <String>[];
+    var skippedAlreadyInPlaylist = 0;
     final dedup = <String>{};
     for (final rawId in rawIds) {
       final id = rawId.toString().trim();
@@ -956,6 +1184,8 @@ class AskToolExecutor {
       final track = seenTracks[id];
       if (track == null) {
         rejected.add(id);
+      } else if (operation == 'append' && existingIds.contains(id)) {
+        skippedAlreadyInPlaylist++;
       } else {
         verified.add(track);
       }
@@ -964,16 +1194,19 @@ class AskToolExecutor {
     if (verified.isEmpty) {
       return {
         'ok': false,
-        'error': 'no_verified_tracks_in_turn',
+        'error': skippedAlreadyInPlaylist > 0
+            ? 'all_tracks_already_in_playlist'
+            : 'no_verified_tracks_in_turn',
+        if (targetPlaylistId != null) 'existingCount': existingIds.length,
+        if (skippedAlreadyInPlaylist > 0)
+          'skippedAlreadyInPlaylist': skippedAlreadyInPlaylist,
         'rejectedCount': rejected.length,
       };
     }
 
     attachments.add(
       AskPlaylistWriteProposal(
-        operation: (operation == 'append' || operation == 'remove')
-            ? operation
-            : 'create',
+        operation: operation,
         targetPlaylistId: targetPlaylistId,
         playlistName: playlistName.isEmpty ? 'Sonora Playlist' : playlistName,
         tracks: verified,
@@ -983,9 +1216,116 @@ class AskToolExecutor {
     return {
       'ok': true,
       'awaitingUserConfirmation': true,
+      if (targetPlaylistId != null) 'existingCount': existingIds.length,
       'trackCount': verified.length,
+      'resultingTotalTracks': operation == 'append'
+          ? existingIds.length + verified.length
+          : verified.length,
+      if (skippedAlreadyInPlaylist > 0)
+        'skippedAlreadyInPlaylist': skippedAlreadyInPlaylist,
       'rejectedCount': rejected.length,
     };
+  }
+
+  Map<String, dynamic> _presentCatalogItems(Map<String, dynamic> args) {
+    final title = (args['title']?.toString() ?? '').trim();
+    var rejectedCount = 0;
+
+    List<T> collectString<T>(Object? rawList, Map<String, T> registry) {
+      if (rawList is! List) return const [];
+      final out = <T>[];
+      final seen = <String>{};
+      for (final raw in rawList) {
+        final id = raw.toString().trim();
+        if (id.isEmpty || !seen.add(id)) continue;
+        final item = registry[id];
+        if (item == null) {
+          rejectedCount++;
+        } else {
+          out.add(item);
+        }
+      }
+      return out;
+    }
+
+    final artists = collectString(args['artistIds'], seenArtists);
+    final tracks = collectString(args['trackVideoIds'], seenTracks);
+    final albums = collectString(args['albumIds'], seenAlbums);
+    final playlists = <AskPlaylistRef>[
+      ...collectString(args['playlistIds'], seenPlaylists),
+    ];
+    final rawLocalPlaylistIds = args['localPlaylistIds'];
+    if (rawLocalPlaylistIds is List) {
+      final seenLocal = <int>{};
+      for (final raw in rawLocalPlaylistIds) {
+        final id =
+            (raw as num?)?.toInt() ?? int.tryParse(raw.toString().trim());
+        if (id == null || !seenLocal.add(id)) continue;
+        final item = seenLocalPlaylists[id];
+        if (item == null) {
+          rejectedCount++;
+        } else {
+          playlists.add(item);
+        }
+      }
+    }
+    final podcasts = collectString(args['podcastBrowseIds'], seenPodcasts);
+    final episodes = collectString(args['episodeVideoIds'], seenEpisodes);
+
+    if (artists.isNotEmpty) {
+      attachments.add(AskArtistsAttachment(title: title, artists: artists));
+    }
+    if (tracks.isNotEmpty) {
+      attachments.add(AskTracksAttachment(title: title, tracks: tracks));
+    }
+    if (albums.isNotEmpty) {
+      attachments.add(AskAlbumsAttachment(title: title, albums: albums));
+    }
+    if (playlists.isNotEmpty) {
+      attachments.add(
+        AskPlaylistsAttachment(title: title, playlists: playlists),
+      );
+    }
+    if (podcasts.isNotEmpty) {
+      attachments.add(AskPodcastsAttachment(title: title, podcasts: podcasts));
+    }
+    if (episodes.isNotEmpty) {
+      attachments.add(AskEpisodesAttachment(title: title, episodes: episodes));
+    }
+
+    final attachedTotal =
+        artists.length +
+        tracks.length +
+        albums.length +
+        playlists.length +
+        podcasts.length +
+        episodes.length;
+
+    return {
+      'ok': attachedTotal > 0,
+      'attached': {
+        'artists': artists.length,
+        'tracks': tracks.length,
+        'albums': albums.length,
+        'playlists': playlists.length,
+        'podcasts': podcasts.length,
+        'episodes': episodes.length,
+      },
+      'rejectedCount': rejectedCount,
+    };
+  }
+
+  Future<LocalPlaylistModel?> _findLocalPlaylistByName(String rawName) async {
+    final lower = rawName.trim().toLowerCase();
+    if (lower.isEmpty) return null;
+    final all = await _library.getAllPlaylists();
+    for (final p in all) {
+      if (p.name.trim().toLowerCase() == lower) return p;
+    }
+    for (final p in all) {
+      if (p.name.toLowerCase().contains(lower)) return p;
+    }
+    return null;
   }
 
   void _registerSongDetailed(SongDetailed s) {
@@ -995,9 +1335,13 @@ class AskToolExecutor {
         title: s.name,
         artist: displayArtists(s.artists),
         artistsJson: encodeArtistsJson(s.artists),
+        artistId: primaryArtistId(s.artists),
+        albumId: s.album?.albumId,
+        albumName: s.album?.name,
         durationSec: s.duration,
         thumbnailUrl: s.thumbnails.isNotEmpty ? s.thumbnails.last.url : null,
         isExplicit: s.isExplicit,
+        isVideo: s.type == 'VIDEO',
       ),
     );
   }
@@ -1009,9 +1353,11 @@ class AskToolExecutor {
         title: v.name,
         artist: displayArtists(v.artists),
         artistsJson: encodeArtistsJson(v.artists),
+        artistId: primaryArtistId(v.artists),
         durationSec: v.duration,
         thumbnailUrl: v.thumbnails.isNotEmpty ? v.thumbnails.last.url : null,
         isExplicit: v.isExplicit,
+        isVideo: true,
       ),
     );
   }

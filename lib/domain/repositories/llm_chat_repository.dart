@@ -10,6 +10,7 @@ class LlmChatMessage {
     this.toolCallId,
     this.name,
     this.serverToolCalls = const [],
+    this.reasoningContent,
   });
 
   final String role;
@@ -21,6 +22,9 @@ class LlmChatMessage {
   /// DeepSeek extension field for multi-turn web search continuity.
   final List<Map<String, dynamic>> serverToolCalls;
 
+  /// DeepSeek extension field required when echoing thinking-mode tool calls.
+  final String? reasoningContent;
+
   Map<String, dynamic> toOpenAiJson() {
     final map = <String, dynamic>{'role': role};
     if (content != null || toolCalls.isNotEmpty) {
@@ -31,6 +35,9 @@ class LlmChatMessage {
     }
     if (serverToolCalls.isNotEmpty) {
       map['server_tool_calls'] = serverToolCalls;
+    }
+    if (reasoningContent != null) {
+      map['reasoning_content'] = reasoningContent;
     }
     if (role == 'tool') {
       if (toolCallId != null) map['tool_call_id'] = toolCallId;
@@ -69,6 +76,7 @@ class LlmChatResponse {
     this.sources = const [],
     this.quota,
     this.serverToolCalls = const [],
+    this.reasoningContent,
   });
 
   final String content;
@@ -76,6 +84,7 @@ class LlmChatResponse {
   final List<GroundedSource> sources;
   final AskQuotaInfo? quota;
   final List<Map<String, dynamic>> serverToolCalls;
+  final String? reasoningContent;
 }
 
 /// Multi-turn chat + Function Calling contract for Sonora Ask.

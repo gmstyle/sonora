@@ -2724,6 +2724,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get askActionPlay => 'Riproduci';
 
   @override
+  String get askActionQueue => 'Aggiungi in coda';
+
+  @override
   String get askActionSavePlaylist => 'Salva playlist';
 
   @override
@@ -2733,10 +2736,39 @@ class AppLocalizationsIt extends AppLocalizations {
   String get askActionDiscard => 'Scarta';
 
   @override
+  String get askActionOpenPlaylist => 'Apri playlist';
+
+  @override
   String get askSavedStatus => 'Salvata';
 
   @override
   String get askDiscardedStatus => 'Scartata';
+
+  @override
+  String askShowAllTracks(int count) {
+    return 'Mostra tutti i $count brani';
+  }
+
+  @override
+  String get askShowLessTracks => 'Mostra meno';
+
+  @override
+  String get askSectionArtists => 'Artisti';
+
+  @override
+  String get askSectionAlbums => 'Album';
+
+  @override
+  String get askSectionPlaylists => 'Playlist';
+
+  @override
+  String get askSectionTracks => 'Brani';
+
+  @override
+  String get askSectionPodcasts => 'Podcast';
+
+  @override
+  String get askSectionEpisodes => 'Episodi';
 
   @override
   String get askPlaylistOpCreate => 'Proposta nuova playlist';

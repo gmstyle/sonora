@@ -1188,11 +1188,26 @@
   "askGuidedTasteTitle": "Read my listening vibe",
   "askGuidedTastePrompt": "Take a look at my recent plays and top artists and tell me what my listening vibe looks like.",
   "askActionPlay": "Play",
+  "askActionQueue": "Add to queue",
   "askActionSavePlaylist": "Save playlist",
   "askActionConfirmSave": "Confirm & save",
   "askActionDiscard": "Discard",
+  "askActionOpenPlaylist": "Open playlist",
   "askSavedStatus": "Saved",
   "askDiscardedStatus": "Discarded",
+  "askShowAllTracks": "Show all {count} tracks",
+  "@askShowAllTracks": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "askShowLessTracks": "Show fewer",
+  "askSectionArtists": "Artists",
+  "askSectionAlbums": "Albums",
+  "askSectionPlaylists": "Playlists",
+  "askSectionTracks": "Tracks",
+  "askSectionPodcasts": "Podcasts",
+  "askSectionEpisodes": "Episodes",
   "askPlaylistOpCreate": "New playlist proposal",
   "askPlaylistOpAppend": "Add tracks proposal",
   "askPlaylistOpRemove": "Remove tracks proposal",
