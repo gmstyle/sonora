@@ -76,7 +76,9 @@ class UpNextCompanion extends ConsumerWidget {
         : ListView.separated(
             shrinkWrap: shrinkWrap,
             physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: shrinkWrap
+                ? const EdgeInsets.symmetric(vertical: 4)
+                : const EdgeInsets.fromLTRB(0, 4, 0, 16),
             itemCount: upcoming.length,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {

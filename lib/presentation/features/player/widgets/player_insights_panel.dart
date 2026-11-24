@@ -55,7 +55,7 @@ class PlayerInsightsCard extends ConsumerWidget {
     final track = current != null ? QueueTrack.fromMediaItem(current) : null;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, embeddedInSheet ? 8 : 12, 20, 8),
+      padding: EdgeInsets.fromLTRB(20, embeddedInSheet ? 8 : 12, 20, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -266,55 +266,51 @@ class _InsightsResult extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 420),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final bullet in bullets)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 7),
-                      child: Icon(
-                        LucideIcons.circle,
-                        size: 8,
-                        color: scheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(bullet)),
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final bullet in bullets)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 7),
+                  child: Icon(
+                    LucideIcons.circle,
+                    size: 8,
+                    color: scheme.primary,
+                  ),
                 ),
-              ),
-            if (sources.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                l10n.playerAskSources,
-                style: Theme.of(context).textTheme.labelLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final source in sources)
-                    ActionChip(
-                      avatar: const Icon(LucideIcons.externalLink, size: 14),
-                      label: Text(source.displayTitle),
-                      onPressed: () => _open(source.uri),
-                    ),
-                ],
-              ),
+                const SizedBox(width: 10),
+                Expanded(child: Text(bullet)),
+              ],
+            ),
+          ),
+        if (sources.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            l10n.playerAskSources,
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final source in sources)
+                ActionChip(
+                  avatar: const Icon(LucideIcons.externalLink, size: 14),
+                  label: Text(source.displayTitle),
+                  onPressed: () => _open(source.uri),
+                ),
             ],
-          ],
-        ),
-      ),
+          ),
+        ],
+      ],
     );
   }
 
