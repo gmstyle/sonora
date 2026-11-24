@@ -13,6 +13,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/constants/ai_constants.dart';
 import 'core/constants/app_constants.dart';
 import 'core/link/sonora_link_handler.dart';
 import 'core/utils/android_tv.dart';
@@ -20,6 +21,7 @@ import 'core/utils/linux_single_instance.dart';
 import 'core/utils/notification_utils.dart';
 import 'core/utils/platform_utils.dart';
 import 'core/utils/linux_tray_service.dart';
+import 'data/datasources/ai/deepseek_http_datasource.dart';
 import 'data/datasources/local/database_connection.dart';
 import 'data/datasources/local/daos/downloads_dao.dart';
 import 'data/datasources/local/daos/history_dao.dart';
@@ -27,6 +29,8 @@ import 'data/datasources/local/daos/library_dao.dart';
 import 'data/datasources/local/daos/playlists_dao.dart';
 import 'data/datasources/remote/stream_datasource.dart';
 import 'data/datasources/remote/ytmusic_datasource.dart';
+import 'data/repositories/ask_storage_repository_impl.dart';
+import 'data/repositories/deepseek_llm_repository_impl.dart';
 import 'data/repositories/library_repository_impl.dart';
 import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
@@ -163,6 +167,18 @@ Future<void> main() async {
   );
 
   final queueRepo = QueueRepositoryImpl(db);
+  final askStorageRepo = AskStorageRepositoryImpl(db);
+  final deepSeekDs = DeepSeekHttpDatasource(
+    readConfig: () {
+      final override = prefs.getString(kAskProxyUrlOverrideKey)?.trim() ?? '';
+      return DeepSeekEndpointConfig(
+        proxyBaseUrl: override.isNotEmpty ? override : kAskProxyBaseUrl.trim(),
+        byokApiKey: prefs.getString(kDeepSeekApiKeyKey)?.trim() ?? '',
+        installId: prefs.getString(kAskInstallIdKey)?.trim() ?? '',
+      );
+    },
+  );
+  final llmCompletionRepo = DeepSeekLlmRepositoryImpl(deepSeekDs);
 
   final handler = SonoraAudioHandler(
     musicRepo: musicRepo,
@@ -172,6 +188,8 @@ Future<void> main() async {
     prefs: prefs,
     queueRepo: queueRepo,
     proxyServer: proxyServer,
+    askStorageRepo: askStorageRepo,
+    llmCompletionRepo: llmCompletionRepo,
   );
 
   if (isAndroid || isLinux) {
@@ -185,8 +203,9 @@ Future<void> main() async {
         artDownscaleWidth: 256,
         artDownscaleHeight: 256,
         androidBrowsableRootExtras: {
+          'android.media.browse.CONTENT_STYLE_SUPPORTED': true,
           'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT': 2,
-          'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 2,
+          'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 1,
           'android.media.browse.SEARCH_SUPPORTED': true,
         },
       ),

@@ -18,7 +18,9 @@ import '../../../data/datasources/remote/stream_datasource.dart';
 import '../../../data/services/local_audio_proxy_server.dart';
 import '../../../data/services/media_cache_service.dart';
 import '../../../domain/models/library_models.dart';
+import '../../../domain/repositories/ask_storage_repository.dart';
 import '../../../domain/repositories/library_repository.dart';
+import '../../../domain/repositories/llm_completion_repository.dart';
 import '../../../domain/repositories/music_repository.dart';
 import '../../../domain/usecases/player/play_video_id_use_case.dart';
 import '../../../domain/usecases/player/start_radio_use_case.dart';
@@ -28,9 +30,11 @@ import 'package:dart_cast/dart_cast.dart';
 import '../../providers/cast_provider.dart';
 import '../../../data/services/cast_service.dart';
 
+import 'android_auto/aa_l10n.dart';
 import 'android_auto_browser_controller.dart';
 import 'cast_playback_controller.dart';
 import 'equalizer_controller.dart';
+import 'headless_session_coordinator.dart';
 import 'like_controller.dart';
 import 'play_error.dart';
 import 'player_media_controls.dart';
@@ -75,11 +79,15 @@ class SonoraAudioHandler extends BaseAudioHandler {
   late final PlaybackRestoreController _restoreController;
   late final PlaylistOpenCoordinator _playlistOpener;
   late final TrackTransitionCoordinator _transitions;
+  late final HeadlessSessionCoordinator _headlessCoordinator;
 
   final _uiPosition = StreamController<Duration>.broadcast();
   final _uiDuration = StreamController<Duration?>.broadcast();
   StreamSubscription<Duration>? _engineUiPosSub;
   StreamSubscription<Duration>? _engineUiDurSub;
+  StreamSubscription<PlayErrorEvent>? _headlessPlayErrorSub;
+  StreamSubscription<bool>? _headlessCompletedSub;
+  StreamSubscription<bool>? _headlessPlayingSub;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -238,6 +246,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
     required this._prefs,
     required this._queueRepo,
     this._proxyServer,
+    AskStorageRepository? askStorageRepo,
+    LlmCompletionRepository? llmCompletionRepo,
   }) : _playVideoIdUseCase = playVideoIdUseCase {
     _startRadioUseCase = StartRadioUseCase(musicRepo, playVideoIdUseCase);
 
@@ -275,11 +285,31 @@ class SonoraAudioHandler extends BaseAudioHandler {
       playVideoIdUseCase: playVideoIdUseCase,
       connectivity: _sharedConnectivity,
       isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
+      prefs: _prefs,
+      askStorageRepo: askStorageRepo,
+      llmCompletionRepo: llmCompletionRepo,
       userQueue: () => _queueController.userQueue,
       upNextQueue: () => _queueController.upNextQueue,
       currentMediaItem: () => mediaItem.valueOrNull,
       awaitReady: () => _restoreController.awaitReady(),
-      playNow: (items) => playNow(items),
+      playNow: (items, {int initialIndex = 0, bool Function()? shouldAbort}) =>
+          playNow(items, initialIndex: initialIndex, shouldAbort: shouldAbort),
+      resumePlayback: play,
+    );
+
+    _headlessCoordinator = HeadlessSessionCoordinator(
+      libraryRepo: libraryRepo,
+      startRadioUseCase: _startRadioUseCase,
+      prefs: _prefs,
+      isRestoring: () => _restoreController.isRestoring,
+      isOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
+      getQueue: () => queue.value,
+      getCurrentIndex: () => _engine.state.playlist.index,
+      getUpNextStartIndex: () => _queueController.upNextStartIndex,
+      getRepeatMode: () => playbackState.value.repeatMode,
+      appendUpNext: appendUpNext,
+      skipToQueueItem: skipToQueueItem,
+      play: play,
     );
 
     // Volume must be constructed before cast so CastPlaybackController can
@@ -306,6 +336,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
       isResolving: () => _queueController.isResolvingItem,
       savedPosition: () => _restoreController.savedPosition,
       isLiked: () => _likeController.isCurrentSongLiked,
+      isCurrentEpisode: () => _likeController.isCurrentEpisode,
+      isOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
       onBecameReady: () => _recoveryController.resetRetryCount(),
       isCastConnected: _isCastConnected,
       isCastSessionPlaying: () => _castController.isRemotePlaying,
@@ -469,16 +501,45 @@ class SonoraAudioHandler extends BaseAudioHandler {
           playbackState.value.shuffleMode == AudioServiceShuffleMode.all,
       isRepeatOne: () =>
           playbackState.value.repeatMode == AudioServiceRepeatMode.one,
+      isOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
       skipToNext: skipToNext,
       skipToQueueItem: skipToQueueItem,
       isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
       enforceForcedOfflineAt: _enforceForcedOfflineAt,
+      onTrackChanged: (item) =>
+          unawaited(_headlessCoordinator.onTrackChanged(item)),
     );
 
     unawaited(JustAudioPlaybackEngine.configureSession());
     unawaited(_castController.listenForAudioInterruptions());
     _transitions.setupListeners();
     _recoveryController.startListening();
+    _headlessPlayErrorSub = _recoveryController.onPlayError.listen((event) {
+      if (event.skippedToNext) return;
+      final l10n = resolveAaL10n();
+      final msg = event.kind == PlayErrorKind.network
+          ? l10n.aaErrorOffline
+          : l10n.aaErrorPlaybackFailed;
+      _statePublisher.updateState((s) => s.copyWith(errorMessage: msg));
+    });
+    _headlessPlayingSub = _engine.playingStream.listen((playing) {
+      if (playing &&
+          _statePublisher.getProcessingState() == AudioProcessingState.ready) {
+        unawaited(
+          _headlessCoordinator.maybePrefetchUpNext(mediaItem.valueOrNull),
+        );
+      }
+    });
+    _headlessCompletedSub = _engine.completedStream.listen((completed) {
+      if (!completed) return;
+      final idx = _engine.state.playlist.index;
+      final len = _engine.state.playlist.medias.length;
+      if (len > 0 && idx >= len - 1) {
+        unawaited(
+          _headlessCoordinator.fetchUpNextAndAdvance(mediaItem.valueOrNull),
+        );
+      }
+    });
     _engineUiPosSub = _engine.positionStream.listen((pos) {
       if (_isCastConnected()) return;
       if (!_uiPosition.isClosed) _uiPosition.add(pos);
@@ -968,12 +1029,28 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   static bool isUpNext(MediaItem item) => QueueController.isUpNext(item);
 
+  void invalidateBrowserCache() => _browserController.invalidateCache();
+
+  Future<void> ensureUpNextPrefetch() =>
+      _headlessCoordinator.maybePrefetchUpNext(mediaItem.valueOrNull);
+
+  Future<void> fetchUpNextAndAdvance() =>
+      _headlessCoordinator.fetchUpNextAndAdvance(mediaItem.valueOrNull);
+
+  @override
+  Future<void> setSpeed(double speed) async {
+    await _engine.setSpeed(speed);
+    _statePublisher.updateState((s) => s.copyWith(speed: speed));
+    _transitions.rebuildControls();
+  }
+
   Future<void> setQueue(
     List<MediaItem> items, {
     int initialIndex = 0,
     bool Function()? shouldAbort,
   }) {
     _urlResolver.resetSession();
+    _headlessCoordinator.resetSession();
     return _playlistOpener.setQueue(
       items,
       initialIndex: initialIndex,
@@ -987,6 +1064,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     bool Function()? shouldAbort,
   }) {
     _urlResolver.resetSession();
+    _headlessCoordinator.resetSession();
     // A new play session is an explicit play request — do not inherit a
     // prior "skip while paused" latch from offline enforce.
     _offlineSkipStayPaused = false;
@@ -1129,6 +1207,9 @@ class SonoraAudioHandler extends BaseAudioHandler {
     _restoreController.dispose();
     unawaited(_engineUiPosSub?.cancel());
     unawaited(_engineUiDurSub?.cancel());
+    unawaited(_headlessPlayErrorSub?.cancel());
+    unawaited(_headlessCompletedSub?.cancel());
+    unawaited(_headlessPlayingSub?.cancel());
     unawaited(_uiPosition.close());
     unawaited(_uiDuration.close());
     _engine.dispose();
@@ -1180,26 +1261,49 @@ class SonoraAudioHandler extends BaseAudioHandler {
   @override
   Future<void> setRating(Rating rating, [Map<String, dynamic>? extras]) async {
     if (!rating.hasHeart()) return;
+    await _toggleCurrentLike();
+  }
+
+  Future<void> _toggleCurrentLike() async {
+    final item = mediaItem.valueOrNull;
+    if (item == null) return;
+    final current = _queueController.currentQueue
+        .where((it) => it.id == item.id)
+        .firstOrNull;
+    final resolved = current ?? item;
+    final track = QueueTrack.fromMediaItem(resolved);
     _likeController.toggleOptimistic();
     try {
-      final current = _queueController.currentQueue
-          .where((item) => item.id == mediaItem.value?.id)
-          .firstOrNull;
-      final videoId = current?.id ?? (mediaItem.value?.id ?? '');
-      final track = current != null ? QueueTrack.fromMediaItem(current) : null;
-      await _likeController.toggleLikedSong(
-        LikedSongModel(
-          videoId: videoId,
-          title: current?.title ?? 'Unknown',
-          artist: current?.artist ?? 'Unknown Artist',
-          artistsJson: track?.artistsJson,
-          thumbnailUrl: current?.artUri?.toString(),
-          addedAt: DateTime.now(),
-          duration: current?.duration?.inSeconds,
-          isVideo: track?.isVideo ?? false,
-          isExplicit: track?.isExplicit ?? false,
-        ),
-      );
+      if (track.isEpisode) {
+        await _likeController.toggleLikedEpisode(
+          LikedEpisodeModel(
+            videoId: track.videoId,
+            name: resolved.title,
+            podcastName: resolved.artist ?? resolved.album,
+            podcastBrowseId: track.podcastBrowseId,
+            thumbnailUrl: resolved.artUri?.toString(),
+            durationSec: resolved.duration?.inSeconds,
+            date: track.publishDate,
+            addedAt: DateTime.now(),
+          ),
+        );
+      } else {
+        await _likeController.toggleLikedSong(
+          LikedSongModel(
+            videoId: track.videoId,
+            title: resolved.title,
+            artist: resolved.artist ?? 'Unknown Artist',
+            artistId: track.artistId,
+            albumId: track.albumId,
+            artistsJson: track.artistsJson,
+            thumbnailUrl: resolved.artUri?.toString(),
+            addedAt: DateTime.now(),
+            duration: resolved.duration?.inSeconds,
+            isVideo: track.isVideo,
+            isExplicit: track.isExplicit,
+          ),
+        );
+      }
     } catch (_) {}
   }
 
@@ -1234,23 +1338,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
         break;
 
       case PlayerMediaControls.actionLike:
-        final item = mediaItem.value;
-        if (item == null) return null;
-        _likeController.toggleOptimistic();
-        final track = QueueTrack.fromMediaItem(item);
-        await _likeController.toggleLikedSong(
-          LikedSongModel(
-            videoId: item.id,
-            title: item.title,
-            artist: item.artist ?? 'Unknown Artist',
-            artistsJson: track.artistsJson,
-            thumbnailUrl: item.artUri?.toString(),
-            addedAt: DateTime.now(),
-            duration: item.duration?.inSeconds,
-            isVideo: track.isVideo,
-            isExplicit: track.isExplicit,
-          ),
-        );
+        await _toggleCurrentLike();
         break;
 
       case PlayerMediaControls.actionStartRadio:
@@ -1258,6 +1346,25 @@ class SonoraAudioHandler extends BaseAudioHandler {
         if (item != null) {
           await startRadio(item.id);
         }
+        break;
+
+      case PlayerMediaControls.actionRewind10:
+        final rawBack = _engine.state.position - const Duration(seconds: 10);
+        await seek(rawBack.isNegative ? Duration.zero : rawBack);
+        break;
+
+      case PlayerMediaControls.actionForward30:
+        final dur = _engine.state.duration;
+        final rawFwd = _engine.state.position + const Duration(seconds: 30);
+        final clamped = dur > Duration.zero && rawFwd > dur ? dur : rawFwd;
+        await seek(clamped);
+        break;
+
+      case PlayerMediaControls.actionCycleSpeed:
+        final nextSpeed = PlayerMediaControls.nextPodcastSpeed(
+          _engine.state.rate,
+        );
+        await setSpeed(nextSpeed);
         break;
     }
     return null;

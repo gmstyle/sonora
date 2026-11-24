@@ -11,7 +11,6 @@ import '../../domain/models/library_models.dart';
 import '../../domain/models/queue_track.dart';
 import '../../core/utils/playable_tracks.dart';
 import '../features/player/audio_handler.dart';
-import 'library_notifier.dart';
 import 'play_video_id_use_case_provider.dart';
 import 'play_album_use_case_provider.dart';
 import 'play_playlist_use_case_provider.dart';
@@ -21,7 +20,6 @@ import 'play_smart_mix_use_case_provider.dart';
 import 'queue_use_case_provider.dart';
 import 'android_tv_provider.dart';
 import 'settings_provider.dart';
-import 'start_radio_use_case_provider.dart';
 
 // Re-export for convenience so UI layers don't need to import audio_handler.
 export '../features/player/audio_handler.dart'
@@ -505,22 +503,6 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
         } else {
           state = state.copyWith(currentSong: item);
         }
-        if (item != null && ref.read(settingsProvider).trackHistory) {
-          final track = QueueTrack.fromMediaItem(item);
-          ref
-              .read(libraryNotifierProvider.notifier)
-              .recordPlay(
-                track.videoId,
-                track.title,
-                track.artist ?? 'Unknown Artist',
-                thumbnailUrl: track.artUri?.toString(),
-                duration: track.duration?.inSeconds,
-                isVideo: track.isVideo,
-                isExplicit: track.isExplicit,
-                contentType: track.contentType,
-                podcastBrowseId: track.podcastBrowseId,
-              );
-        }
       });
 
       _queueSub = _handler.queue.listen((items) {
@@ -658,40 +640,7 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
   Future<void> _fetchAutoPlayUpNext() async {
     if (!ref.read(settingsProvider).autoPlayUpNext) return;
     try {
-      // If up-next items already exist in the queue ahead of the current
-      // position, skip directly to the first one instead of re-fetching.
-      final upNextIdx = state.upNextStartIndex;
-      if (upNextIdx != null && upNextIdx > state.currentIndex) {
-        final v = ++_operationVersion;
-        await _handler.skipToQueueItem(upNextIdx);
-        if (_operationVersion != v) return;
-        await _handler.play();
-        return;
-      }
-
-      final lastItem = state.currentSong;
-      if (lastItem == null) return;
-      final v = _operationVersion;
-
-      final radioUseCase = ref.read(startRadioUseCaseProvider);
-      final result = await radioUseCase.execute(lastItem.id);
-      if (_operationVersion != v) return;
-
-      final firstItem = result.firstItem;
-      final oldLength = state.queue.length;
-      await _handler.appendUpNext([firstItem]);
-      if (_operationVersion != v) return;
-
-      await _handler.skipToQueueItem(oldLength);
-      if (_operationVersion != v) return;
-
-      await _handler.play();
-
-      if (result.remaining.isNotEmpty) {
-        final pendingItems = radioUseCase.toPendingItems(result.remaining);
-        if (_operationVersion != v) return;
-        await _handler.appendUpNext(pendingItems);
-      }
+      await _handler.fetchUpNextAndAdvance();
     } catch (_) {
     } finally {
       _isFetchingUpNext = false;
@@ -703,31 +652,8 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
     if (state.queue.isEmpty || state.isRestoring || !state.isQueueSynced) {
       return;
     }
-    final upNextIdx = state.upNextStartIndex;
-    if (upNextIdx != null && upNextIdx > state.currentIndex) {
-      return;
-    }
     try {
-      final seedItem = state.currentSong;
-      if (seedItem == null) return;
-      final seedId = seedItem.id;
-      final v = _operationVersion;
-
-      final radioUseCase = ref.read(startRadioUseCaseProvider);
-      final result = await radioUseCase.execute(seedId, resolveFirstUrl: false);
-      if (_operationVersion != v) return;
-      if (state.currentSong?.id != seedId) return;
-
-      await _handler.appendUpNext([result.firstItem]);
-      if (_operationVersion != v) return;
-      if (state.currentSong?.id != seedId) return;
-
-      if (result.remaining.isNotEmpty) {
-        final pendingItems = radioUseCase.toPendingItems(result.remaining);
-        if (_operationVersion != v) return;
-        if (state.currentSong?.id != seedId) return;
-        await _handler.appendUpNext(pendingItems);
-      }
+      await _handler.ensureUpNextPrefetch();
     } catch (_) {
     } finally {
       _isFetchingUpNext = false;
