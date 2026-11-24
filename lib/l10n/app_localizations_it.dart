@@ -3031,4 +3031,121 @@ class AppLocalizationsIt extends AppLocalizations {
   String askContextSimilarSongPromptNoArtist(String title) {
     return 'Crea un mix da 15 brani ispirato a \"$title\" con brani affini per atmosfera e stile, allegando la scheda mix interattiva.';
   }
+
+  @override
+  String get aaForYouSubtitle => 'Per te';
+
+  @override
+  String get aaYourMusicSubtitle => 'La tua musica';
+
+  @override
+  String get aaExploreSubtitle => 'Scopri nuova musica';
+
+  @override
+  String get aaDownloadsSubtitle => 'Musica offline';
+
+  @override
+  String get aaContinueListening => 'Riprendi l\'ascolto';
+
+  @override
+  String get aaPulseAndMixes => 'Pulse Drops e Smart Mix';
+
+  @override
+  String get aaMoodsForDrive => 'Mood per il viaggio';
+
+  @override
+  String get aaSavedEpisodes => 'Episodi salvati';
+
+  @override
+  String get aaSavedEpisodesSubtitle => 'I tuoi episodi salvati';
+
+  @override
+  String get aaPodcastsAndEpisodes => 'Podcast ed Episodi';
+
+  @override
+  String get aaSubscribedPodcasts => 'Podcast seguiti';
+
+  @override
+  String get aaDownloadedAlbums => 'Album scaricati';
+
+  @override
+  String get aaDownloadedPlaylists => 'Playlist scaricate';
+
+  @override
+  String get aaDownloadedPodcasts => 'Podcast scaricati';
+
+  @override
+  String get aaDownloadedTracks => 'Brani scaricati';
+
+  @override
+  String get aaSingleTracks => 'Brani singoli';
+
+  @override
+  String get aaLocalLibraryMatches => 'Nella tua libreria';
+
+  @override
+  String get aaOfflineExploreTitle => 'Sei offline';
+
+  @override
+  String get aaOfflineExploreSubtitle =>
+      'Apri Download per ascoltare la musica salvata';
+
+  @override
+  String get aaLinkedSourceSpotify => 'Spotify';
+
+  @override
+  String get aaLinkedSourceYoutube => 'YouTube';
+
+  @override
+  String get aaLocalPlaylistSubtitle => 'Playlist locale';
+
+  @override
+  String get aaLikedPlaylistSubtitle => 'Playlist salvata';
+
+  @override
+  String get aaPulseDropSubtitle => 'Sonora Pulse Drop';
+
+  @override
+  String get aaAskMixSubtitle => 'Mix Sonora Ask';
+
+  @override
+  String get aaShuffleOn => 'Casuale attivo';
+
+  @override
+  String get aaRepeatAll => 'Ripeti tutto';
+
+  @override
+  String get aaRepeatOne => 'Ripeti uno';
+
+  @override
+  String get aaLike => 'Mi piace';
+
+  @override
+  String get aaUnlike => 'Rimuovi Mi piace';
+
+  @override
+  String get aaStartRadio => 'Avvia radio';
+
+  @override
+  String get aaRewind10 => 'Indietro 10s';
+
+  @override
+  String get aaForward30 => 'Avanti 30s';
+
+  @override
+  String get aaSaveEpisode => 'Salva episodio';
+
+  @override
+  String get aaUnsaveEpisode => 'Rimuovi episodio salvato';
+
+  @override
+  String aaPlaybackSpeed(String rate) {
+    return 'Velocità ${rate}x';
+  }
+
+  @override
+  String get aaErrorOffline => 'Nessuna connessione Internet';
+
+  @override
+  String get aaErrorPlaybackFailed => 'Impossibile riprodurre questo brano';
 }

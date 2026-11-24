@@ -5234,6 +5234,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Build a 15-track mix inspired by \"{title}\" with songs that match its mood and style, and attach the interactive mix card.'**
   String askContextSimilarSongPromptNoArtist(String title);
+
+  /// No description provided for @aaForYouSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'For you'**
+  String get aaForYouSubtitle;
+
+  /// No description provided for @aaYourMusicSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your music'**
+  String get aaYourMusicSubtitle;
+
+  /// No description provided for @aaExploreSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover new music'**
+  String get aaExploreSubtitle;
+
+  /// No description provided for @aaDownloadsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline music'**
+  String get aaDownloadsSubtitle;
+
+  /// No description provided for @aaContinueListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue listening'**
+  String get aaContinueListening;
+
+  /// No description provided for @aaPulseAndMixes.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulse Drops & Smart Mixes'**
+  String get aaPulseAndMixes;
+
+  /// No description provided for @aaMoodsForDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Moods for your drive'**
+  String get aaMoodsForDrive;
+
+  /// No description provided for @aaSavedEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved episodes'**
+  String get aaSavedEpisodes;
+
+  /// No description provided for @aaSavedEpisodesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your bookmarked episodes'**
+  String get aaSavedEpisodesSubtitle;
+
+  /// No description provided for @aaPodcastsAndEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Podcasts & Episodes'**
+  String get aaPodcastsAndEpisodes;
+
+  /// No description provided for @aaSubscribedPodcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribed podcasts'**
+  String get aaSubscribedPodcasts;
+
+  /// No description provided for @aaDownloadedAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded albums'**
+  String get aaDownloadedAlbums;
+
+  /// No description provided for @aaDownloadedPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded playlists'**
+  String get aaDownloadedPlaylists;
+
+  /// No description provided for @aaDownloadedPodcasts.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded podcasts'**
+  String get aaDownloadedPodcasts;
+
+  /// No description provided for @aaDownloadedTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded tracks'**
+  String get aaDownloadedTracks;
+
+  /// No description provided for @aaSingleTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Singles'**
+  String get aaSingleTracks;
+
+  /// No description provided for @aaLocalLibraryMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'In your library'**
+  String get aaLocalLibraryMatches;
+
+  /// No description provided for @aaOfflineExploreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline'**
+  String get aaOfflineExploreTitle;
+
+  /// No description provided for @aaOfflineExploreSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Downloads to play saved music'**
+  String get aaOfflineExploreSubtitle;
+
+  /// No description provided for @aaLinkedSourceSpotify.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotify'**
+  String get aaLinkedSourceSpotify;
+
+  /// No description provided for @aaLinkedSourceYoutube.
+  ///
+  /// In en, this message translates to:
+  /// **'YouTube'**
+  String get aaLinkedSourceYoutube;
+
+  /// No description provided for @aaLocalPlaylistSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Local playlist'**
+  String get aaLocalPlaylistSubtitle;
+
+  /// No description provided for @aaLikedPlaylistSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked playlist'**
+  String get aaLikedPlaylistSubtitle;
+
+  /// No description provided for @aaPulseDropSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonora Pulse Drop'**
+  String get aaPulseDropSubtitle;
+
+  /// No description provided for @aaAskMixSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sonora Ask Mix'**
+  String get aaAskMixSubtitle;
+
+  /// No description provided for @aaShuffleOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle on'**
+  String get aaShuffleOn;
+
+  /// No description provided for @aaRepeatAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat all'**
+  String get aaRepeatAll;
+
+  /// No description provided for @aaRepeatOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat one'**
+  String get aaRepeatOne;
+
+  /// No description provided for @aaLike.
+  ///
+  /// In en, this message translates to:
+  /// **'Like'**
+  String get aaLike;
+
+  /// No description provided for @aaUnlike.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlike'**
+  String get aaUnlike;
+
+  /// No description provided for @aaStartRadio.
+  ///
+  /// In en, this message translates to:
+  /// **'Start radio'**
+  String get aaStartRadio;
+
+  /// No description provided for @aaRewind10.
+  ///
+  /// In en, this message translates to:
+  /// **'Rewind 10s'**
+  String get aaRewind10;
+
+  /// No description provided for @aaForward30.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward 30s'**
+  String get aaForward30;
+
+  /// No description provided for @aaSaveEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Save episode'**
+  String get aaSaveEpisode;
+
+  /// No description provided for @aaUnsaveEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove saved episode'**
+  String get aaUnsaveEpisode;
+
+  /// No description provided for @aaPlaybackSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed {rate}x'**
+  String aaPlaybackSpeed(String rate);
+
+  /// No description provided for @aaErrorOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection'**
+  String get aaErrorOffline;
+
+  /// No description provided for @aaErrorPlaybackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to play this track'**
+  String get aaErrorPlaybackFailed;
 }
 
 class _AppLocalizationsDelegate

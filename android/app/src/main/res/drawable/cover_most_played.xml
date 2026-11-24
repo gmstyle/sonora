@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Gradient background -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#E53935"
-                android:endColor="#FFB300"
+                android:startColor="#0F1026"
+                android:centerColor="#1D1E34"
+                android:endColor="#00B4D8"
                 android:angle="315" />
         </shape>
     </item>
-    <!-- Centered icon -->
     <item
         android:drawable="@drawable/ic_play_arrow"
         android:width="24dp"

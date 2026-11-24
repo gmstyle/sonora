@@ -1155,5 +1155,48 @@
     "placeholders": {
       "title": {"type": "String"}
     }
-  }
+  },
+  "aaForYouSubtitle": "Per te",
+  "aaYourMusicSubtitle": "La tua musica",
+  "aaExploreSubtitle": "Scopri nuova musica",
+  "aaDownloadsSubtitle": "Musica offline",
+  "aaContinueListening": "Riprendi l'ascolto",
+  "aaPulseAndMixes": "Pulse Drops e Smart Mix",
+  "aaMoodsForDrive": "Mood per il viaggio",
+  "aaSavedEpisodes": "Episodi salvati",
+  "aaSavedEpisodesSubtitle": "I tuoi episodi salvati",
+  "aaPodcastsAndEpisodes": "Podcast ed Episodi",
+  "aaSubscribedPodcasts": "Podcast seguiti",
+  "aaDownloadedAlbums": "Album scaricati",
+  "aaDownloadedPlaylists": "Playlist scaricate",
+  "aaDownloadedPodcasts": "Podcast scaricati",
+  "aaDownloadedTracks": "Brani scaricati",
+  "aaSingleTracks": "Brani singoli",
+  "aaLocalLibraryMatches": "Nella tua libreria",
+  "aaOfflineExploreTitle": "Sei offline",
+  "aaOfflineExploreSubtitle": "Apri Download per ascoltare la musica salvata",
+  "aaLinkedSourceSpotify": "Spotify",
+  "aaLinkedSourceYoutube": "YouTube",
+  "aaLocalPlaylistSubtitle": "Playlist locale",
+  "aaLikedPlaylistSubtitle": "Playlist salvata",
+  "aaPulseDropSubtitle": "Sonora Pulse Drop",
+  "aaAskMixSubtitle": "Mix Sonora Ask",
+  "aaShuffleOn": "Casuale attivo",
+  "aaRepeatAll": "Ripeti tutto",
+  "aaRepeatOne": "Ripeti uno",
+  "aaLike": "Mi piace",
+  "aaUnlike": "Rimuovi Mi piace",
+  "aaStartRadio": "Avvia radio",
+  "aaRewind10": "Indietro 10s",
+  "aaForward30": "Avanti 30s",
+  "aaSaveEpisode": "Salva episodio",
+  "aaUnsaveEpisode": "Rimuovi episodio salvato",
+  "aaPlaybackSpeed": "Velocità {rate}x",
+  "@aaPlaybackSpeed": {
+    "placeholders": {
+      "rate": {"type": "String"}
+    }
+  },
+  "aaErrorOffline": "Nessuna connessione Internet",
+  "aaErrorPlaybackFailed": "Impossibile riprodurre questo brano"
 }

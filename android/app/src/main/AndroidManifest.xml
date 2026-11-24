@@ -67,6 +67,10 @@
                 <data android:scheme="sonora"/>
             </intent-filter>
             <intent-filter>
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+            <intent-filter>
                 <action android:name="com.android_package_installer.content.SESSION_API_PACKAGE_INSTALLED"/>
             </intent-filter>
         </activity>
@@ -78,13 +82,13 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
             <meta-data
-                android:name="android.media.CONTENT_STYLE_SUPPORTED"
+                android:name="android.media.browse.CONTENT_STYLE_SUPPORTED"
                 android:value="true" />
             <meta-data
-                android:name="android.media.CONTENT_STYLE_PLAYABLE_HINT"
+                android:name="android.media.browse.CONTENT_STYLE_PLAYABLE_HINT"
                 android:value="1" />
             <meta-data
-                android:name="android.media.CONTENT_STYLE_BROWSABLE_HINT"
+                android:name="android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
                 android:value="2" />
         </service>
         <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"

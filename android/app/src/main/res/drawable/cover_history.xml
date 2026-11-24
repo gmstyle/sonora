@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Gradient background -->
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#37474F"
-                android:endColor="#78909C"
+                android:startColor="#0B0C22"
+                android:centerColor="#1D1E34"
+                android:endColor="#2D2F54"
                 android:angle="315" />
         </shape>
     </item>
-    <!-- Centered icon -->
     <item
         android:drawable="@drawable/ic_timer"
         android:width="24dp"

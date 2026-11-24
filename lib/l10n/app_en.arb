@@ -1341,5 +1341,48 @@
     "placeholders": {
       "title": {"type": "String"}
     }
-  }
+  },
+  "aaForYouSubtitle": "For you",
+  "aaYourMusicSubtitle": "Your music",
+  "aaExploreSubtitle": "Discover new music",
+  "aaDownloadsSubtitle": "Offline music",
+  "aaContinueListening": "Continue listening",
+  "aaPulseAndMixes": "Pulse Drops & Smart Mixes",
+  "aaMoodsForDrive": "Moods for your drive",
+  "aaSavedEpisodes": "Saved episodes",
+  "aaSavedEpisodesSubtitle": "Your bookmarked episodes",
+  "aaPodcastsAndEpisodes": "Podcasts & Episodes",
+  "aaSubscribedPodcasts": "Subscribed podcasts",
+  "aaDownloadedAlbums": "Downloaded albums",
+  "aaDownloadedPlaylists": "Downloaded playlists",
+  "aaDownloadedPodcasts": "Downloaded podcasts",
+  "aaDownloadedTracks": "Downloaded tracks",
+  "aaSingleTracks": "Singles",
+  "aaLocalLibraryMatches": "In your library",
+  "aaOfflineExploreTitle": "You're offline",
+  "aaOfflineExploreSubtitle": "Open Downloads to play saved music",
+  "aaLinkedSourceSpotify": "Spotify",
+  "aaLinkedSourceYoutube": "YouTube",
+  "aaLocalPlaylistSubtitle": "Local playlist",
+  "aaLikedPlaylistSubtitle": "Liked playlist",
+  "aaPulseDropSubtitle": "Sonora Pulse Drop",
+  "aaAskMixSubtitle": "Sonora Ask Mix",
+  "aaShuffleOn": "Shuffle on",
+  "aaRepeatAll": "Repeat all",
+  "aaRepeatOne": "Repeat one",
+  "aaLike": "Like",
+  "aaUnlike": "Unlike",
+  "aaStartRadio": "Start radio",
+  "aaRewind10": "Rewind 10s",
+  "aaForward30": "Forward 30s",
+  "aaSaveEpisode": "Save episode",
+  "aaUnsaveEpisode": "Remove saved episode",
+  "aaPlaybackSpeed": "Speed {rate}x",
+  "@aaPlaybackSpeed": {
+    "placeholders": {
+      "rate": {"type": "String"}
+    }
+  },
+  "aaErrorOffline": "No internet connection",
+  "aaErrorPlaybackFailed": "Unable to play this track"
 }
