@@ -601,7 +601,7 @@ All playlist-rebuilding actions (`setQueue`, `playNow`) are serialized through a
 
 - `QueueSheet` renders two stacked sections with a header for each: "Playing Next" (user) with a `SliverReorderableList`, and "Up Next" with a non-reorderable `SliverList`. Drag reorder uses `ReorderableDelayedDragStartListener` (long-press to initiate). Shows `ShimmerVariant.queue` skeleton while `isQueueSynced` is false.
 - `UpNextCompanion` lists the tracks after the current one (user queue, then the radio section). The first row calls `skipToNext`. Later rows call `skipToIndex`. An empty list shows the autoplay state, with Enable disabled while offline. On mobile the disc and that card share the center slot; lyrics, queue, related, notes, and insights replace the whole slot, and the transport stays below it. Tablet (`tabletPlayerFrame`, `WidePlayerLayout.tablet`) uses that same page, including the previous and next covers (each carrying the title, artist, and explicit mark on a photo scrim), and `WideContextPanels(stacked: true)`. The tablet shelf shows the expand control (`openPlayer`). Lyrics and notes replace the scroll. The queue panel is 300. Curiosities take half the window, clamped to 320–420. Both are a `PlayerSurfaceCard` that slides in from the right. Wide (`widePlayerFrame`) scrolls a now-playing page as a pinned sliver: the current disc fills the first screen and collapses into a glass bar with the track title. The previous and next covers sit apart on either side, each carrying the title, artist, and explicit mark on a photo scrim. Below that, `WideContextPanels` gives artist and album the left column and `RelatedView(embedded: true)` the right. Both columns are `wideContextColumnHeight` (the viewport under the pinned bar) and the longer one scrolls inside itself. A drag past a column edge moves the page scroll. The wide action row hides the related toggle. Lyrics and notes replace that scroll. Curiosities open in the same right-hand card (`widePlayerFrame.insights`, 480 below `kWideContentBreakpoint` and 560 from that split) and close the queue panel while they are open. The card slides in from the right. `wideCanvasView` maps a related subview back to the scroll. The bottom bar is three equal zones: track info, then seek and transport, then the actions. `playerQueueDrawerProvider` opens the queue as a right drawer that can stay beside them (`wideQueueOpen`, `wideCanvasView`). Title, seek, and transport sit in the bottom bar. The drawer is 320 below `kWideContentBreakpoint` and 380 from that split.
-- Android Auto exposes the same split through two browse nodes under the root (`__queue__:user` and `__queue__:upnext`), using `userQueue`/`upNextQueue` callbacks injected into `AndroidAutoBrowserController` from `QueueController`.
+- Android Auto uses the native `MediaSession.queue` (synced by `QueueController` through `SonoraAudioHandler.queue`) and `skipToQueueItem` from Android Auto's built-in Now Playing queue button rather than exposing redundant browse tabs for live queue sections. Under-the-hood `userQueue`/`upNextQueue` getters still support `AndroidAutoBrowserController.resumptionChildrenFor` during MediaBrowser resumption queries.
 
 ### 6.5 Casting & Session Synchronization (`cast_playback_controller.dart`)
 
@@ -629,26 +629,27 @@ When a device is connected:
 **Alexa Support:**
 Since Echo devices often don't support open casting protocols reliably, Sonora provides a shortcut to **Bluetooth Settings** within the Cast Dialog to facilitate manual pairing for Alexa speakers.
 
-### 6.6 Android Auto Browse Engine (`android_auto_browser_controller.dart`)
+### 6.6 Android Auto Browse Engine & Modular Builders (`android_auto_browser_controller.dart`, `android_auto/`)
 
-`AndroidAutoBrowserController` owns Android Auto integration: the hierarchical music browsing tree and dashboard / voice actions. It does not depend on `SonoraAudioHandler`; the facade injects `userQueue` / `upNextQueue` getters and a `playNow` callback, and forwards `getChildren` / `playFromMediaId` / `search` / `playFromSearch`.
+`AndroidAutoBrowserController` is a thin facade delegating to modular builders and controllers under `lib/presentation/features/player/android_auto/` (`AaMediaId`, `AaContentStyles`, `AaL10n`, `AaBrowseCache`, `AaContentMapper`, `AaHomeBuilder`, `AaLibraryBuilder`, `AaExploreBuilder`, `AaDownloadsBuilder`, `AaSearchController`, `AaPlaybackDispatcher`). It does not depend on `SonoraAudioHandler`; the facade injects queue/item/playback callbacks and exposes `getChildren`, `getItem`, `playFromMediaId`, `search`, `playFromSearch`, `invalidateCache`, and `resumptionChildrenFor`.
 
-**Browse Tree Hierarchy:**
-It exposes root sections to the vehicle's dashboard:
+**Root & Browse Architecture:**
+Four fixed root tabs with vector icons (`ic_aa_home`, `ic_aa_library`, `ic_aa_explore`, `ic_aa_downloads`), grouped `Home` subsections via `EXTRA_CONTENT_STYLE_GROUP_TITLE_HINT`, `EXTRA_SUGGESTED` support, and TTL + `SharedPreferences`-backed cold-cache persistence (`AaBrowseCache`):
 
-- **Home**: Adapts based on network connectivity. Online: YouTube Music home sections + local history. Offline: history, playlists, followed artists, liked albums.
-- **Playing Next / Up Next**: Live queue sections (`__queue__:user` / `__queue__:upnext`).
-- **Mixes**: Local smart playlists ("Most Played", "Recently Played", "Forgotten Favorites").
-- **Library**: Favorites, artists, playlists, albums, **Podcasts** (`__podcasts__` → subscribed list → `__podcast__:{browseId}` episodes), history, downloads (capped to 100 items).
-- **Explore**: Online discovery — **Charts** (`__charts__`), **Moods & Genres** (`__moods__`), and New Releases.
+- **Home (`__home__`)**: Adapts cleanly to online vs offline. Online: in-progress podcasts, listening history, persisted Sonora Pulse Drops & Ask Mixes (`__drops__`), quick driving moods (`__drive_moods__`), personalized / YTMusic home shelves. Offline: downloads summary, local playlists, followed artists, and history.
+- **Library (`__library__`)**: Favorites, playlists (local + liked), followed artists (Top songs, Albums, Singles, Artist Radio, Follow), liked albums, Podcasts (`__podcasts__`) + Saved Episodes (`__saved_episodes__`), History, and Smart Mixes + Ask/Pulse Drops (`__mixes__`).
+- **Explore (`__explore__`)**: Charts (`__charts__` → Videos, Daily, Weekly, Genres, Languages, Top Artists), Moods & Genres (`__moods__`), and explicit offline state card when offline.
+- **Downloads (`__downloads__`)**: Grouped using shared `buildDownloadGroups` logic (Downloaded Albums, Playlists, Podcasts, Singles, plus All Downloads).
 
-Podcast actions on AA: play / shuffle / subscribe-unsubscribe (`__action__:play_podcast:`, `shuffle_podcast:`, `subscribe_podcast:`).
+**Voice Search & Hybrid Sonora Ask (`AaSearchController`):**
+Supports keyboard search and Google Assistant voice commands (`playFromSearch`):
 
-**Voice Search Integration:**
-Supports search via keyboard or Google Assistant voice commands (`playFromSearch`):
+- Structured voice focus extras (`EXTRA_MEDIA_FOCUS`) and short queries run parallel YTMusic + local download/library queries (including podcasts).
+- Descriptive natural-language queries (≥ 4 words, no structured `EXTRA_MEDIA_FOCUS`, online & Ask configured) invoke `AskActionKind.mixIntent` via `LlmCompletionRepository` to translate the request into catalog search terms + seed artists and play a cohesive mix immediately, falling back cleanly to normal search if anything fails.
+- Standard `playFromSearch` eagerly resolves and starts playing the first matching track to minimize startup latency while populating the rest of the queue behind it.
 
-- When a search is triggered, it performs parallel queries to resolve songs, videos, artists, and albums.
-- Eagerly resolves and starts playing the first matching song to minimize startup latency, while simultaneously populating the upcoming queue with the remaining search results.
+**Headless Coordination (`HeadlessSessionCoordinator`):**
+Because Android Auto runs even when the Flutter UI (`PlayerNotifier`) is unmounted, `SonoraAudioHandler` delegates listening history recording (`recordPlay`) and Up Next autoplay radio prefetch/advance directly to `HeadlessSessionCoordinator`.
 
 ### 6.7 Internet Connectivity & Offline Playback
 
@@ -910,66 +911,68 @@ extension StringX on String {
 
 ```
 / (root)
-├── Home
-│   └── [YTMusic home sections / offline fallbacks]
-├── Playing Next          (__queue__:user)
-├── Up Next               (__queue__:upnext)
-├── Mixes
-│   └── Most Played / Recently Played / Forgotten Favorites
-├── Library
-│   ├── Favorites
-│   ├── Artists
-│   ├── Playlists
-│   ├── Albums
-│   ├── Podcasts          (__podcasts__)
-│   │   └── {podcast}     (__podcast__:{browseId})
-│   │       └── episodes (playable) + play/shuffle/subscribe actions
-│   ├── History
-│   └── Downloads
-└── Explore
-    ├── Charts            (__charts__)
-    ├── Moods & Genres    (__moods__)
-    └── New Releases
+├── Home                  (__home__)            [4th-class root tab 1/4, list + grouped subsections]
+│   ├── Continue listening / Suggested           (in-progress episodes, history + EXTRA_SUGGESTED)
+│   ├── Pulse Drops & Smart Mixes (__drops__)   (persisted Pulse Drops + Ask Mixes + local Mixes)
+│   ├── Moods for your drive (__drive_moods__)  (Energy / Focus / Chill / Workout)
+│   └── Personalized / YTMusic home shelves (online) OR Offline fallback (Downloads, Playlists, Artists)
+├── Library               (__library__)         [root tab 2/4]
+│   ├── Favorites         (__favorites__)        (Play All + Shuffle + track list)
+│   ├── Playlists         (__playlists__)        (local & liked, Play/Shuffle/Like actions)
+│   ├── Artists           (__artists__)          (followed artists → Play/Radio/Shuffle/Follow + Top songs/Albums/Singles)
+│   ├── Albums            (__albums__)           (liked albums → Play/Shuffle/Like + tracks)
+│   ├── Podcasts & Episodes (__podcasts__)
+│   │   ├── Saved Episodes (__saved_episodes__) (bookmark-saved episodes with resume position)
+│   │   └── {podcast}     (__podcast__:{browseId}) (Play/Shuffle/Subscribe + episode list)
+│   ├── History           (__history__)          (Play/Shuffle + recently played)
+│   └── Smart Mixes       (__mixes__)            (Most Played, Recently Played, Forgotten Favorites, Ask/Pulse Drops)
+├── Explore               (__explore__)         [root tab 3/4, or offline banner state]
+│   ├── Charts            (__charts__)           (Videos, Daily, Weekly, Genres, Languages, Top Artists)
+│   └── Moods & Genres    (__moods__)            (categories → mood playlists)
+└── Downloads             (__downloads__)       [root tab 4/4, offline-first grouped tree]
+    ├── Downloaded Albums (__dl_album__:{id})
+    ├── Downloaded Playlists (__dl_playlist__:{id})
+    ├── Downloaded Podcasts (__dl_podcast__:{browseId})
+    └── Singles / All Downloads
 ```
 
+Playable items inside contextual shelves/albums/playlists/podcasts use encoded `AaMediaId.playTrack(...)` IDs (`__play__:{contextKind}:{contextId}:{index}:{videoId}`) so playback preserves the surrounding queue and starts at the tapped track's `initialIndex`. Entity actions use `__act__:{action}:{targetKind}:{targetId}` (and legacy `__action__:` IDs remain supported).
+
 ### 10.2 Custom Actions
+
+Now Playing actions are built adaptively in `PlayerMediaControls.build`:
+
+**Music mode:**
 
 | Action | ID | Function |
 |---|---|---|
 | Shuffle | `action_shuffle` | Toggle shuffle mode |
 | Repeat | `action_repeat` | Cycle repeat (none → all → one) |
-| Like | `action_like` | Toggle liked song (or saved episode when current item is an episode) |
-| Sleep Timer | `action_sleep_timer` | Start/stop timer |
-| Play Album | `action_play_album_{id}` | Play from album context |
-| Shuffle Album | `action_shuffle_album_{id}` | Shuffle album |
-| Like Album | `action_like_album_{id}` | Toggle liked album |
-| Play Artist | `action_play_artist_{id}` | Artist radio |
-| Shuffle Artist | `action_shuffle_artist_{id}` | Shuffle artist |
-| Follow Artist | `action_follow_artist_{id}` | Toggle follow |
-| Play Playlist | `action_play_playlist_{id}` | Play playlist |
-| Shuffle Playlist | `action_shuffle_playlist_{id}` | Shuffle playlist |
-| Like Playlist | `action_like_playlist_{id}` | Toggle liked playlist |
-| Play Podcast | `__action__:play_podcast:{browseId}` | Play subscribed / browsed podcast |
-| Shuffle Podcast | `__action__:shuffle_podcast:{browseId}` | Shuffle podcast episodes |
-| Subscribe Podcast | `__action__:subscribe_podcast:{browseId}` | Toggle `liked_podcasts` |
+| Like | `action_like` | Toggle liked song |
+| Start Radio | `action_start_radio` | Start dynamic radio from current track (hidden offline) |
 
-### 10.3 AudioService Config
+**Podcast Episode mode:**
 
-```dart
-AudioServiceConfig(
-  androidNotificationChannelId: 'com.sonora.music.channel',
-  androidNotificationChannelName: 'Sonora',
-  androidNotificationOngoing: false,
-  androidStopForegroundOnPause: false,
-  artDownscaleWidth: 256,
-  artDownscaleHeight: 256,
-  androidBrowsableRootExtras: {
-    'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT': 2,
-    'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 2,
-    'android.media.browse.SEARCH_SUPPORTED': true,
-  },
-)
-```
+| Action | ID | Function |
+|---|---|---|
+| Rewind 10s | `action_rewind_10` | Seek backward 10 seconds |
+| Forward 30s | `action_forward_30` | Seek forward 30 seconds |
+| Save Episode | `action_like` | Toggle `liked_episodes` bookmark |
+| Playback Speed | `action_cycle_speed` | Cycle playback rate `1.0x → 1.25x → 1.5x → 2.0x` |
+
+**In-tree Entity Actions (also parsed by `AaMediaId`):**
+
+- Album: `play` / `shuffle` / `affinity` (like)
+- Artist: `play` / `shuffle` / `radio` / `affinity` (follow)
+- Playlist / Local Playlist: `play` / `shuffle` / `affinity` (like YTM playlist)
+- Podcast: `play` / `shuffle` / `affinity` (subscribe)
+- Smart Mix / History / Favorites / Downloads / Pulse Drop / Ask Mix: `play` / `shuffle`
+
+### 10.3 AudioService & Manifest Config
+
+- `main.dart` sets `androidBrowsableRootExtras` and `AndroidManifest.xml` declares `AudioService` browse hints (`CONTENT_STYLE_SUPPORTED = true`, `CONTENT_STYLE_BROWSABLE_HINT = 2` grid default with per-item overrides, `CONTENT_STYLE_PLAYABLE_HINT = 1` list default) plus `MEDIA_PLAY_FROM_SEARCH` on `MainActivity`.
+- `PlayerMediaControls`, `AaL10n`, and `HeadlessSessionCoordinator` localize labels without `BuildContext` via `resolveAaL10n()` (`lookupAppLocalizations(PlatformDispatcher.instance.locale)`).
+- Headless sessions run without `PlayerNotifier` mounted: `HeadlessSessionCoordinator` records listening history and handles Up Next radio prefetch/advance, while transient `onPlayError` events surface localized `PlaybackState.errorMessage` values.
 
 ---
 
