@@ -28,6 +28,11 @@ class DeepSeekLlmRepositoryImpl
   }
 
   @override
+  Future<AskPulseRemoteConfig?> fetchPulseConfig({required String locale}) {
+    return _datasource.fetchPulseConfig(locale: locale);
+  }
+
+  @override
   Future<String> complete({
     required String systemInstruction,
     required String userMessage,

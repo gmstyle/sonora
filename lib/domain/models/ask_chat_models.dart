@@ -824,6 +824,126 @@ class AskProactiveDrop {
   bool get isRead => readAt != null;
 }
 
+class AskEditorialPulse {
+  const AskEditorialPulse({
+    required this.id,
+    required this.theme,
+    required this.hook,
+    this.moodKeywords = const [],
+    this.promptAngle = '',
+    this.generatedAt,
+  });
+
+  final String id;
+  final String theme;
+  final String hook;
+  final List<String> moodKeywords;
+  final String promptAngle;
+  final DateTime? generatedAt;
+
+  static AskEditorialPulse? tryFromJson(dynamic raw) {
+    if (raw is! Map) return null;
+    final id = raw['id']?.toString().trim() ?? '';
+    final theme = raw['theme']?.toString().trim() ?? '';
+    final hook = raw['hook']?.toString().trim() ?? '';
+    if (id.isEmpty || theme.isEmpty || hook.isEmpty) return null;
+    final keywords = <String>[];
+    final rawKeywords = raw['moodKeywords'];
+    if (rawKeywords is List) {
+      for (final item in rawKeywords) {
+        final s = item?.toString().trim() ?? '';
+        if (s.isNotEmpty) keywords.add(s);
+      }
+    }
+    return AskEditorialPulse(
+      id: id,
+      theme: theme,
+      hook: hook,
+      moodKeywords: keywords,
+      promptAngle: raw['promptAngle']?.toString().trim() ?? '',
+      generatedAt: DateTime.tryParse(raw['generatedAt']?.toString() ?? ''),
+    );
+  }
+}
+
+class AskPulseRemoteConfig {
+  const AskPulseRemoteConfig({
+    this.enabled = true,
+    this.cooldownHours = 48,
+    this.quietHoursStart = 22,
+    this.quietHoursEnd = 9,
+    this.weeklyRemaining = 3,
+    this.weeklyLimit = 3,
+    this.enabledTriggers = kDefaultPulseTriggers,
+    this.editorialPulse,
+  });
+
+  static const Set<String> kDefaultPulseTriggers = {
+    'new_release',
+    'new_podcast_episode',
+    'comeback_mix',
+    'weekly_recap',
+    'editorial_pulse',
+    'forgotten_favorites',
+    'heavy_rotation',
+    'taste_discovery',
+  };
+
+  factory AskPulseRemoteConfig.defaults() => const AskPulseRemoteConfig();
+
+  factory AskPulseRemoteConfig.fromJson(Map<String, dynamic> raw) {
+    final enabled = raw['enabled'] is bool ? raw['enabled'] as bool : true;
+    final cooldownRaw = (raw['cooldownHours'] as num?)?.toInt();
+    final quietStartRaw = (raw['quietHoursStart'] as num?)?.toInt();
+    final quietEndRaw = (raw['quietHoursEnd'] as num?)?.toInt();
+    final weeklyRemainingRaw = (raw['weeklyRemaining'] as num?)?.toInt();
+    final weeklyLimitRaw = (raw['weeklyLimit'] as num?)?.toInt();
+
+    final triggers = <String>{};
+    final rawTriggers = raw['enabledTriggers'];
+    if (rawTriggers is List) {
+      for (final item in rawTriggers) {
+        final s = item?.toString().trim() ?? '';
+        if (s.isNotEmpty) triggers.add(s);
+      }
+    }
+
+    return AskPulseRemoteConfig(
+      enabled: enabled,
+      cooldownHours: (cooldownRaw != null && cooldownRaw > 0)
+          ? cooldownRaw
+          : 48,
+      quietHoursStart:
+          (quietStartRaw != null && quietStartRaw >= 0 && quietStartRaw <= 23)
+          ? quietStartRaw
+          : 22,
+      quietHoursEnd:
+          (quietEndRaw != null && quietEndRaw >= 0 && quietEndRaw <= 23)
+          ? quietEndRaw
+          : 9,
+      weeklyRemaining: (weeklyRemainingRaw != null && weeklyRemainingRaw >= 0)
+          ? weeklyRemainingRaw
+          : 3,
+      weeklyLimit: (weeklyLimitRaw != null && weeklyLimitRaw > 0)
+          ? weeklyLimitRaw
+          : 3,
+      enabledTriggers: rawTriggers is List ? triggers : kDefaultPulseTriggers,
+      editorialPulse: AskEditorialPulse.tryFromJson(raw['editorialPulse']),
+    );
+  }
+
+  final bool enabled;
+  final int cooldownHours;
+  final int quietHoursStart;
+  final int quietHoursEnd;
+  final int weeklyRemaining;
+  final int weeklyLimit;
+  final Set<String> enabledTriggers;
+  final AskEditorialPulse? editorialPulse;
+
+  bool isTriggerEnabled(String kind) => enabledTriggers.contains(kind);
+}
+
 class AskQuotaExceededException implements Exception {
   const AskQuotaExceededException(this.quota, [this.message]);
 

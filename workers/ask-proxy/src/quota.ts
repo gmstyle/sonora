@@ -78,6 +78,19 @@ export async function readQuota(
   };
 }
 
+export async function readWeeklyDropsQuota(
+  env: QuotaEnv,
+  installId: string
+): Promise<{ remaining: number; limit: number }> {
+  const limit = parsePositiveInt(env.WEEKLY_DROPS_LIMIT, 3);
+  const weekKey = isoWeekKey();
+  const used = await readInt(env.QUOTA_KV, `drops:${weekKey}:${installId}`);
+  return {
+    remaining: Math.max(0, limit - used),
+    limit,
+  };
+}
+
 export async function checkAndConsumeQuota(
   env: QuotaEnv,
   params: {

@@ -93,6 +93,8 @@ abstract class LlmChatRepository {
 
   Future<AskQuotaInfo?> fetchQuota();
 
+  Future<AskPulseRemoteConfig?> fetchPulseConfig({required String locale});
+
   Future<LlmChatResponse> completeChat({
     required AskActionKind action,
     required List<LlmChatMessage> messages,

@@ -2573,7 +2573,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get aiNotificationsEnabledHint =>
-      'Avvisa quando un nuovo Pulse Drop è pronto';
+      'Ricevi segnalazioni musicali periodiche anche ad app chiusa (rispetta le ore silenziose)';
 
   @override
   String get aiDeepSeekApiKeyTitle =>

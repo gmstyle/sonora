@@ -109,6 +109,12 @@ class AskStorageRepositoryImpl implements AskStorageRepository {
   }
 
   @override
+  Future<List<AskProactiveDrop>> getRecentDrops({int limit = 100}) async {
+    final rows = await _dao.getRecentDrops(limit: limit);
+    return rows.map(_mapDrop).toList(growable: false);
+  }
+
+  @override
   Future<void> upsertDrop(AskProactiveDrop drop) {
     return _dao.upsertDrop(
       AskProactiveDropsCompanion(

@@ -4422,7 +4422,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiNotificationsEnabledHint.
   ///
   /// In en, this message translates to:
-  /// **'Notify when a new Pulse Drop is ready'**
+  /// **'Get periodic music highlights even when Sonora is closed (respects quiet hours)'**
   String get aiNotificationsEnabledHint;
 
   /// No description provided for @aiDeepSeekApiKeyTitle.

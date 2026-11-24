@@ -2563,7 +2563,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiNotificationsEnabledHint =>
-      'Notify when a new Pulse Drop is ready';
+      'Get periodic music highlights even when Sonora is closed (respects quiet hours)';
 
   @override
   String get aiDeepSeekApiKeyTitle => 'Personal DeepSeek API key (optional)';

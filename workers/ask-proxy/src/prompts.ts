@@ -171,8 +171,15 @@ Reply with ONLY a single JSON object:
   "body": "string (max 140 chars, casual music-friend tone using only the provided facts; informal 'tu' in Italian)",
   "starterPrompt": "string (max 120 chars, natural first-person prompt for Sonora Ask)"
 }
+Signal kinds you may receive:
+- new_release: highlight the artist and new album/single release in the facts.
+- new_podcast_episode: highlight the podcast name and new episode title in the facts.
+- comeback_mix: warm welcome back mentioning daysAway and topArtists from the facts.
+- weekly_recap: casual recap of the user's week using topArtists/sampleTracks.
+- editorial_pulse: connect the editorial theme/hook with the user's topArtists.
+- forgotten_favorites / heavy_rotation / taste_discovery: highlight the provided artists/tracks.
 Rules:
-- Mention ONLY artists or songs present in the user facts.
+- Mention ONLY artists, podcasts, releases, or songs present in the user facts.
 - Never invent IDs, URLs, or facts.
 - Never mention AI, models, or DeepSeek.`;
   }

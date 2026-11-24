@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -781,7 +782,19 @@ class _AiSectionState extends ConsumerState<_AiSection> {
           title: l10n.aiNotificationsEnabledTitle,
           subtitle: l10n.aiNotificationsEnabledHint,
           value: settings.askNotificationsEnabled,
-          onChanged: notifier.setAskNotificationsEnabled,
+          onChanged: (value) async {
+            if (value && isAndroid) {
+              try {
+                final status = await Permission.notification.status;
+                if (!status.isGranted) {
+                  await Permission.notification.request();
+                }
+              } catch (e) {
+                debugPrint('Notification permission request failed: $e');
+              }
+            }
+            await notifier.setAskNotificationsEnabled(value);
+          },
           icon: LucideIcons.bell,
         ),
         const Divider(height: 1),

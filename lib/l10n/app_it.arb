@@ -947,7 +947,7 @@
   "aiDropsEnabledTitle": "Pulse Drops proattivi",
   "aiDropsEnabledHint": "Mostra schede di scoperta musicale basate sui tuoi ascolti",
   "aiNotificationsEnabledTitle": "Notifiche locali di Ask",
-  "aiNotificationsEnabledHint": "Avvisa quando un nuovo Pulse Drop è pronto",
+  "aiNotificationsEnabledHint": "Ricevi segnalazioni musicali periodiche anche ad app chiusa (rispetta le ore silenziose)",
   "aiDeepSeekApiKeyTitle": "Chiave API DeepSeek personale (opzionale)",
   "aiDeepSeekApiKeyHint": "Supera il limite giornaliero di crediti. Salvata solo su questo dispositivo.",
   "aiDeepSeekApiKeySave": "Salva chiave",

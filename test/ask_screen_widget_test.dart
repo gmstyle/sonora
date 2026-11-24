@@ -348,6 +348,11 @@ class _CallbackChatRepo implements LlmChatRepository {
   Future<AskQuotaInfo?> fetchQuota() async => quota;
 
   @override
+  Future<AskPulseRemoteConfig?> fetchPulseConfig({
+    required String locale,
+  }) async => AskPulseRemoteConfig.defaults();
+
+  @override
   Future<LlmChatResponse> completeChat({
     required AskActionKind action,
     required List<LlmChatMessage> messages,

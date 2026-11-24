@@ -106,6 +106,41 @@ class DeepSeekHttpDatasource {
     }
   }
 
+  Future<AskPulseRemoteConfig?> fetchPulseConfig({
+    required String locale,
+  }) async {
+    final config = readConfig();
+    switch (config.mode) {
+      case AskBackendMode.byok:
+        return AskPulseRemoteConfig.defaults();
+      case AskBackendMode.unconfigured:
+        return null;
+      case AskBackendMode.proxy:
+        final installId = config.installId.trim();
+        if (installId.isEmpty) return null;
+        final cleanLocale = locale.trim().isEmpty ? 'en' : locale.trim();
+        try {
+          final response = await _dio.get<dynamic>(
+            '${config.normalizedProxyBaseUrl}/v1/pulse/config',
+            queryParameters: {'locale': cleanLocale},
+            options: Options(
+              headers: {'X-Sonora-Install-Id': installId},
+              sendTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 10),
+              validateStatus: (_) => true,
+            ),
+          );
+          final status = response.statusCode ?? 500;
+          if (status < 200 || status >= 300) return null;
+          final data = _asMap(response.data);
+          if (data.isEmpty) return null;
+          return AskPulseRemoteConfig.fromJson(data);
+        } catch (_) {
+          return null;
+        }
+    }
+  }
+
   Future<LlmChatResponse> completeChat({
     required AskActionKind action,
     required List<LlmChatMessage> messages,

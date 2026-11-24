@@ -15,6 +15,10 @@ QueryExecutor _openConnection() {
       databaseDirectory: Platform.isLinux
           ? getApplicationSupportDirectory
           : getApplicationDocumentsDirectory,
+      setup: (db) {
+        db.execute('PRAGMA journal_mode = WAL;');
+        db.execute('PRAGMA busy_timeout = 5000;');
+      },
     ),
   );
 }

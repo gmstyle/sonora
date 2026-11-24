@@ -1479,8 +1479,14 @@ Sonora Ask provides an integrated, music-scoped conversational hub at `/ask` alo
   - Displays live localized `AskProgressPhase` status while generating. Stopping a turn (`AskCancelledException`, Stop button or Esc on desktop) removes the discarded user message, restores the prompt in the composer and drops a conversation created by that turn. Non-duplicating **Retry** on transient failures, in-place **Regenerate** of the last reply, copy-answer, and contextual `AskFollowUpChips` after assistant turns.
   - Contextual Ask entry points launch a fresh `/ask?prompt=...` conversation from Search (`SearchOpenAskButton`), Song (`Ask Sonora for similar`), Artist (`Ask Sonora for similar`), and Local Playlist (`Expand with Ask`) context menus (disabled when offline, hidden on Android TV).
   - Assistant responses render via `gpt_markdown` (`SelectionArea` + `GptMarkdown`, `isStreaming: false`, `useDollarSignsForLatex: false`, theme-matched `GptMarkdownStyleSheet`, `http`/`https` link validation via `url_launcher`) as plain text in a centered reading column (760 max) with rich cards below; only the user turn uses a tinted chat bubble.
-- **Proactive Pulse Drops & Local Notifications ([`EvaluateProactiveDropsUseCase`](../lib/domain/usecases/ai/evaluate_proactive_drops_use_case.dart), [`AskNotificationService`](../lib/presentation/providers/ask_notification_service.dart))**:
-  - `_SonoraAppState` evaluates signals (`heavy_rotation`, `forgotten_favorites`, `taste_discovery`) in the background once every 24h when online, `askDropsEnabled && askUseTasteContext`, and `!isAndroidTv`, respecting a 48h active-drop cooldown. When enabled, new drops post a local notification (`kAskDropPayloadPrefix` → `/ask?dropId=...`).
+- **Proactive Pulse Drops, Background Execution & Cloudflare Stack ([`EvaluateProactiveDropsUseCase`](../lib/domain/usecases/ai/evaluate_proactive_drops_use_case.dart), [`AskBackgroundWorker`](../lib/data/services/ask_background_worker.dart), [`AskNotificationService`](../lib/presentation/providers/ask_notification_service.dart))**:
+  - **Prioritized Triggers**: Evaluates signals in priority order — `new_release` (round-robin batch of 5 followed/liked artists via `MusicRepository.getArtist`, with silent baseline seeding on first check via `AskPulseStateStore`), `new_podcast_episode` (round-robin batch of 4 liked podcasts), `comeback_mix` (after ≥ 5 days away), `weekly_recap` (Fri ≥ 15:00 / Sun ≥ 16:00 with ≥ 5 weekly plays), `editorial_pulse` (synced from Cloudflare Cron KV), `forgotten_favorites`, `heavy_rotation`, and `taste_discovery` — deduplicating against `getRecentDrops()` (including dismissed drops) and respecting a 48h cooldown (remotely tunable via KV).
+  - **Cloudflare Edge Stack (`workers/ask-proxy/`)**:
+    - **AI Gateway (`sonora-ask-gateway`)**: Observes and rate-limits both DeepSeek (`chat` / tools / insights) and Workers AI traffic with per-action `cf-aig-metadata`.
+    - **Workers AI (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`)**: Generates `pulse_drop` JSON payloads (with automatic fallback to DeepSeek on error) and runs on Mon/Fri `06:00 UTC` Cron Triggers (`scheduled()`) to publish seasonal `pulse:editorial:<locale>` sparks into `QUOTA_KV`.
+    - **KV Remote Config (`GET /v1/pulse/config`)**: Serves kill-switch (`enabled`), `cooldownHours`, `quietHoursStart`/`End`, `enabledTriggers`, `weeklyRemaining` (`WEEKLY_DROPS_LIMIT = 3`), and `editorialPulse`.
+  - **Android `workmanager` & Linux Tray**: On Android (non-TV), `AskBackgroundScheduler` registers a 12h periodic `WorkManager` job (`connected` + `requiresBatteryNotLow`) that executes in a headless isolate (with Drift WAL + `busy_timeout=5000`) even when Sonora has been closed for days; on Linux, an in-process 6h `Timer.periodic` evaluates drops while living in `LinuxTrayService`.
+  - **Quiet Hours & Cold-Start Routing**: Drops evaluated during quiet hours (`22:00–09:00` default) defer to `09:30` local time on Android via `zonedSchedule` (`AndroidScheduleMode.inexactAllowWhileIdle`) and stay in-app on Linux. `main.dart` inspects `getNotificationAppLaunchDetails()` so tapping a notification from a killed state routes straight to `/ask?dropId=...`.
 
 ### 24.1 Ask Turn Call Flow & Component Interaction
 
@@ -1508,8 +1514,9 @@ AskAgentUseCase  (1 shared turnId per user turn)                       │
   │      │  onQuotaUpdated ──► AskQuotaNotifier                        │
   │      ▼                                                             │
   │    DeepSeekHttpDatasource                                          │
-  │      ├── Proxy mode ─► workers/ask-proxy (/v1/chat, QUOTA_KV,      │
-  │      │                 prompts.ts, 1 credit/turnId) ─► DeepSeek    │
+  │      ├── Proxy mode ─► workers/ask-proxy (/v1/ask, QUOTA_KV,       │
+  │      │                 prompts.ts, 1 credit/turnId) ─► AI Gateway  │
+  │      │                 (sonora-ask-gateway) ─► DeepSeek            │
   │      └── BYOK mode  ─► Direct DeepSeek API (thinking + reasoning   │
   │                        forwarding when web search + tools combine) │
   │                                                                    │

@@ -6,15 +6,22 @@ import {
   sanitizeLocale,
   type AskAction,
 } from "./prompts";
-import { checkAndConsumeQuota, readQuota, type QuotaEnv } from "./quota";
+import { checkAndConsumeQuota, readQuota } from "./quota";
+import {
+  readPulseConfig,
+  refreshEditorialPulses,
+  runWorkersAiPulseDrop,
+  type PulseEnv,
+} from "./pulse";
 
 export interface SecretsStoreSecret {
   get(): Promise<string>;
 }
 
-export interface Env extends QuotaEnv {
+export interface Env extends PulseEnv {
   DEEPSEEK_API_KEY?: string | SecretsStoreSecret;
   DEEPSEEK_MODEL?: string;
+  CF_ACCOUNT_ID?: string;
 }
 
 async function resolveDeepSeekApiKey(env: Env): Promise<string> {
@@ -265,7 +272,10 @@ export default {
         return jsonResponse({
           ok: true,
           model: env.DEEPSEEK_MODEL || "deepseek-flash",
+          workersAiModel: env.WORKERS_AI_DROP_MODEL || null,
           hasApiKey: Boolean(apiKey),
+          hasWorkersAi: Boolean(env.AI),
+          aiGatewayId: env.AI_GATEWAY_ID || null,
         });
       }
 
@@ -289,13 +299,14 @@ export default {
         );
       }
 
-      if (request.method !== "POST" || url.pathname !== "/v1/ask") {
-        return jsonResponse({ error: "not_found" }, 404);
+      if (request.method === "GET" && url.pathname === "/v1/pulse/config") {
+        const locale = sanitizeLocale(url.searchParams.get("locale"));
+        const config = await readPulseConfig(env, installId, locale);
+        return jsonResponse(config, 200);
       }
 
-      const apiKey = await resolveDeepSeekApiKey(env);
-      if (!apiKey) {
-        return jsonResponse({ error: "proxy_not_configured" }, 503);
+      if (request.method !== "POST" || url.pathname !== "/v1/ask") {
+        return jsonResponse({ error: "not_found" }, 404);
       }
 
       const contentLength = Number.parseInt(
@@ -354,6 +365,39 @@ export default {
         );
       }
 
+      if (action === "pulse_drop" && env.AI) {
+        const dropJson = await runWorkersAiPulseDrop(
+          env,
+          locale,
+          clientMessages
+        );
+        if (dropJson) {
+          return jsonResponse(
+            {
+              id: `workers-ai-pulse-${Date.now()}`,
+              object: "chat.completion",
+              choices: [
+                {
+                  index: 0,
+                  message: {
+                    role: "assistant",
+                    content: dropJson,
+                  },
+                  finish_reason: "stop",
+                },
+              ],
+            },
+            200,
+            quotaHeaders(quota)
+          );
+        }
+      }
+
+      const apiKey = await resolveDeepSeekApiKey(env);
+      if (!apiKey) {
+        return jsonResponse({ error: "proxy_not_configured" }, 503);
+      }
+
       const capTokens = ACTION_MAX_TOKENS[action];
       const requestedTokens =
         typeof body.maxOutputTokens === "number" &&
@@ -407,14 +451,29 @@ export default {
         deepseekPayload.response_format = { type: "json_object" };
       }
 
-      const upstream = await fetch(DEEPSEEK_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(deepseekPayload),
-      });
+      const gatewayId = (env.AI_GATEWAY_ID || "").trim();
+      let upstream: Response;
+      if (env.AI && gatewayId) {
+        upstream = await env.AI.gateway(gatewayId).run({
+          provider: "deepseek",
+          endpoint: "chat/completions",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "cf-aig-metadata": { action, locale },
+          },
+          query: deepseekPayload,
+        });
+      } else {
+        upstream = await fetch(DEEPSEEK_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(deepseekPayload),
+        });
+      }
 
       const responseHeaders = new Headers({
         "Content-Type":
@@ -439,5 +498,13 @@ export default {
       );
       return jsonResponse({ error: "internal_error" }, 500);
     }
+  },
+
+  async scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext
+  ): Promise<void> {
+    ctx.waitUntil(refreshEditorialPulses(env));
   },
 };

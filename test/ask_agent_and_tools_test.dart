@@ -35,6 +35,11 @@ class _FakeChatRepo implements LlmChatRepository {
   Future<AskQuotaInfo?> fetchQuota() async => AskQuotaInfo.unlimited();
 
   @override
+  Future<AskPulseRemoteConfig?> fetchPulseConfig({
+    required String locale,
+  }) async => AskPulseRemoteConfig.defaults();
+
+  @override
   Future<LlmChatResponse> completeChat({
     required AskActionKind action,
     required List<LlmChatMessage> messages,

@@ -30,6 +30,7 @@ import 'data/datasources/remote/ytmusic_datasource.dart';
 import 'data/repositories/library_repository_impl.dart';
 import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
+import 'data/services/ask_background_scheduler.dart';
 import 'data/services/local_audio_proxy_server.dart';
 import 'data/services/sync_service.dart';
 import 'data/services/youtube_session_store.dart';
@@ -71,6 +72,9 @@ import 'package:go_router/go_router.dart';
 /// Cold-start `sonora://` URI from Linux argv (set before [runApp]).
 String? _linuxColdStartUri;
 
+/// Notification payload when the app was cold-started by tapping a notification.
+String? _pendingLaunchNotificationPayload;
+
 LinuxTrayService? _trayService;
 Window? _linuxWindow;
 ListenerId? _linuxWindowListenerId;
@@ -98,6 +102,14 @@ Future<void> main() async {
     onDidReceiveBackgroundNotificationResponse:
         handleDownloadNotificationResponseBackground,
   );
+  final launchDetails = await flutterLocalNotificationsPlugin
+      .getNotificationAppLaunchDetails();
+  if (launchDetails?.didNotificationLaunchApp ?? false) {
+    final payload = launchDetails?.notificationResponse?.payload;
+    if (payload != null && payload.isNotEmpty) {
+      _pendingLaunchNotificationPayload = payload;
+    }
+  }
 
   final prefs = await SharedPreferences.getInstance();
   await migrateLegacySettingsPrefs(prefs);
@@ -211,6 +223,19 @@ Future<void> main() async {
   await AndroidTv.debugLogDetection();
   debugPrint('[AndroidTv] isAndroidTv=$isAndroidTv');
 
+  await AskBackgroundScheduler.initialize(isAndroidTv: isAndroidTv);
+  await AskBackgroundScheduler.syncRegistration(
+    enabled: shouldRunAskBackgroundSync(
+      askDropsEnabled: prefs.getBool(kAskDropsEnabledKey) ?? true,
+      askNotificationsEnabled:
+          prefs.getBool(kAskNotificationsEnabledKey) ?? false,
+      askUseTasteContext: prefs.getBool(kAskUseTasteContextKey) ?? true,
+      offlineMode: prefs.getBool(kOfflineModeKey) ?? false,
+      isAndroidTv: isAndroidTv,
+    ),
+    isAndroidTv: isAndroidTv,
+  );
+
   // Sonora's own license is not part of the generated NOTICES asset.
   LicenseRegistry.addLicense(() async* {
     final text = await rootBundle.loadString('LICENSE');
@@ -285,6 +310,7 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
   late final SonoraLinkHandler _linkHandler;
   StreamSubscription<Uri>? _appLinksSub;
   StreamSubscription<String>? _linuxUriSub;
+  Timer? _linuxProactiveTimer;
 
   @override
   void initState() {
@@ -296,7 +322,14 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       _checkForUpdates();
       _requestNotificationPermission();
       _initDeepLinks();
+      _flushLaunchNotificationPayload();
       unawaited(_evaluateProactiveDrops());
+      if (isLinux) {
+        _linuxProactiveTimer = Timer.periodic(
+          const Duration(hours: 6),
+          (_) => unawaited(_evaluateProactiveDrops()),
+        );
+      }
     });
   }
 
@@ -308,12 +341,31 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
     if (askDropNotificationHandler == _onAskDropNotificationTap) {
       askDropNotificationHandler = null;
     }
+    _linuxProactiveTimer?.cancel();
     unawaited(_appLinksSub?.cancel());
     unawaited(_linuxUriSub?.cancel());
     if (isLinux && _linuxWindowListenerId != null) {
       _linuxWindow?.removeListener(_linuxWindowListenerId!);
     }
     super.dispose();
+  }
+
+  void _flushLaunchNotificationPayload() {
+    final payload = _pendingLaunchNotificationPayload;
+    if (payload == null || payload.isEmpty) return;
+    if (rootNavigatorKey.currentContext == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _flushLaunchNotificationPayload();
+      });
+      return;
+    }
+    _pendingLaunchNotificationPayload = null;
+    handleDownloadNotificationResponse(
+      NotificationResponse(
+        notificationResponseType: NotificationResponseType.selectedNotification,
+        payload: payload,
+      ),
+    );
   }
 
   Future<void> _initDeepLinks() async {
@@ -397,17 +449,28 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
       final prefs = ref.read(sharedPreferencesProvider);
       final lastEval = prefs.getInt(kLastAskDropEvalTimeKey) ?? 0;
       final now = DateTime.now().millisecondsSinceEpoch;
-      if (now - lastEval < const Duration(hours: 24).inMilliseconds) return;
+      if (now - lastEval < const Duration(hours: 6).inMilliseconds) return;
 
       final locale =
           WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+      final remoteConfig = await ref
+          .read(askChatRepositoryProvider)
+          .fetchPulseConfig(locale: locale);
+      if (!mounted) return;
+
       final drop = await ref
           .read(evaluateProactiveDropsUseCaseProvider)
-          .execute(locale: locale);
+          .execute(locale: locale, remoteConfig: remoteConfig);
       await prefs.setInt(kLastAskDropEvalTimeKey, now);
       if (!mounted || drop == null) return;
       if (settings.askNotificationsEnabled) {
-        await ref.read(askNotificationServiceProvider).showDrop(drop);
+        await ref
+            .read(askNotificationServiceProvider)
+            .showOrScheduleDrop(
+              drop,
+              quietStartHour: remoteConfig?.quietHoursStart ?? 22,
+              quietEndHour: remoteConfig?.quietHoursEnd ?? 9,
+            );
       }
     } catch (e) {
       debugPrint('Proactive drop evaluation failed: $e');
@@ -551,6 +614,32 @@ class _SonoraAppState extends ConsumerState<SonoraApp> {
     });
 
     final isTv = ref.watch(isAndroidTvProvider);
+
+    ref.listen(
+      settingsProvider.select(
+        (s) => (
+          s.askDropsEnabled,
+          s.askNotificationsEnabled,
+          s.askUseTasteContext,
+          s.offlineMode,
+        ),
+      ),
+      (_, next) {
+        unawaited(
+          AskBackgroundScheduler.syncRegistration(
+            enabled: shouldRunAskBackgroundSync(
+              askDropsEnabled: next.$1,
+              askNotificationsEnabled: next.$2,
+              askUseTasteContext: next.$3,
+              offlineMode: next.$4,
+              isAndroidTv: isTv,
+            ),
+            isAndroidTv: isTv,
+          ),
+        );
+      },
+    );
+
     final lightTheme = ref.watch(lightThemeProvider);
     final rawDarkTheme = ref.watch(darkThemeProvider);
     final darkTheme = isTv ? TvTheme.apply(rawDarkTheme) : rawDarkTheme;

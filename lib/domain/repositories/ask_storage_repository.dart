@@ -18,6 +18,7 @@ abstract class AskStorageRepository {
 
   Stream<List<AskProactiveDrop>> watchActiveDrops();
   Future<List<AskProactiveDrop>> getActiveDrops();
+  Future<List<AskProactiveDrop>> getRecentDrops({int limit = 100});
   Future<void> upsertDrop(AskProactiveDrop drop);
   Future<void> markDropRead(String dropId);
   Future<void> dismissDrop(String dropId);

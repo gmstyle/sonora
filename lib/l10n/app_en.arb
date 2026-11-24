@@ -1133,7 +1133,7 @@
   "aiDropsEnabledTitle": "Proactive Pulse Drops",
   "aiDropsEnabledHint": "Show music discovery cards based on listening trends",
   "aiNotificationsEnabledTitle": "Ask local notifications",
-  "aiNotificationsEnabledHint": "Notify when a new Pulse Drop is ready",
+  "aiNotificationsEnabledHint": "Get periodic music highlights even when Sonora is closed (respects quiet hours)",
   "aiDeepSeekApiKeyTitle": "Personal DeepSeek API key (optional)",
   "aiDeepSeekApiKeyHint": "Bypass daily credit limit. Stored locally on this device.",
   "aiDeepSeekApiKeySave": "Save key",

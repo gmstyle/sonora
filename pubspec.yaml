@@ -112,9 +112,11 @@ dependencies:
   # ── File Picker ──────────────────────────────────────────────
   file_picker: ^13.3.2
 
-  # ── Notifications ────────────────────────────────────────────────
+  # ── Notifications & Background ───────────────────────────────────
   flutter_local_notifications: ^23.0.0
   flutter_local_notifications_linux: ^9.0.0
+  timezone: ^0.11.2
+  workmanager: ^0.10.10
   
   # ── Local Synchronization ────────────────────────────────────────
   shelf: ^1.4.2

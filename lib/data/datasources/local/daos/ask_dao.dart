@@ -84,6 +84,13 @@ class AskDao extends DatabaseAccessor<AppDatabase> {
         .get();
   }
 
+  Future<List<AskProactiveDropRow>> getRecentDrops({int limit = 100}) {
+    return (select(db.askProactiveDrops)
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+          ..limit(limit))
+        .get();
+  }
+
   Future<void> upsertDrop(AskProactiveDropsCompanion entry) {
     return into(db.askProactiveDrops).insertOnConflictUpdate(entry);
   }

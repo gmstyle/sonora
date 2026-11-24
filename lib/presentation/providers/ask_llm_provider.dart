@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/ai_constants.dart';
 import '../../data/datasources/ai/deepseek_http_datasource.dart';
 import '../../data/repositories/deepseek_llm_repository_impl.dart';
+import '../../data/services/prefs_ask_pulse_state_store.dart';
 import '../../domain/models/ask_capabilities.dart';
 import '../../domain/models/ask_chat_models.dart';
 import '../../domain/models/queue_track.dart';
+import '../../domain/repositories/ask_pulse_state_store.dart';
 import '../../domain/repositories/grounded_llm_repository.dart';
 import '../../domain/repositories/llm_chat_repository.dart';
 import '../../domain/repositories/llm_completion_repository.dart';
@@ -146,12 +148,18 @@ final applyAskPlaylistWriteUseCaseProvider =
       return ApplyAskPlaylistWriteUseCase(ref.watch(libraryRepositoryProvider));
     });
 
+final askPulseStateStoreProvider = Provider<AskPulseStateStore>((ref) {
+  return PrefsAskPulseStateStore(ref.watch(sharedPreferencesProvider));
+});
+
 final evaluateProactiveDropsUseCaseProvider =
     Provider<EvaluateProactiveDropsUseCase>((ref) {
       return EvaluateProactiveDropsUseCase(
         ref.watch(libraryRepositoryProvider),
         ref.watch(askStorageRepositoryProvider),
         ref.watch(askChatRepositoryProvider),
+        musicRepository: ref.watch(musicRepositoryProvider),
+        stateStore: ref.watch(askPulseStateStoreProvider),
       );
     });
 
