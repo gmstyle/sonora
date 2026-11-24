@@ -4,7 +4,6 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 
 import '../../../../core/utils/artists_utils.dart';
 import '../../../../core/utils/playable_tracks.dart';
-import '../../../../domain/models/ask_chat_models.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../domain/models/queue_track.dart';
 import '../../../../domain/repositories/ask_storage_repository.dart';
@@ -93,6 +92,18 @@ class AaPlaybackDispatcher {
     await _playNow([item], shouldAbort: () => _operationVersion != v);
   }
 
+  int _resolveIndex<T>(
+    List<T> items,
+    String Function(T item) idOf,
+    AaPlayTarget target,
+  ) {
+    if (target.videoId.isNotEmpty) {
+      final byId = items.indexWhere((e) => idOf(e) == target.videoId);
+      if (byId >= 0) return byId;
+    }
+    return target.index.clamp(0, items.length - 1);
+  }
+
   Future<void> _playContextualTrack(AaPlayTarget target) async {
     final v = ++_operationVersion;
     bool aborted() => _operationVersion != v;
@@ -103,10 +114,15 @@ class AaPlaybackDispatcher {
         if (aborted()) return;
         final album = await _musicRepo.getAlbum(albumId);
         if (aborted()) return;
-        var leadIndex = 0;
+        final songs = playableSongs(album.songs)
+            .take(100)
+            .toList(growable: false);
+        if (songs.isEmpty) return;
+        final idx = _resolveIndex(songs, (s) => s.videoId, target);
+        var leadIndex = idx;
         final items = await _playAlbumUseCase.execute(
-          album.songs,
-          playIndex: target.index,
+          songs,
+          playIndex: idx,
           onResolvedLeadIndex: (i) => leadIndex = i,
         );
         if (aborted() || items.isEmpty) return;
@@ -117,12 +133,17 @@ class AaPlaybackDispatcher {
         );
 
       case AaMediaId.ctxPlaylist:
-        final videos = await _musicRepo.getPlaylistVideos(target.contextId);
+        final rawVideos = await _musicRepo.getPlaylistVideos(target.contextId);
         if (aborted()) return;
-        var leadIndex = 0;
+        final videos = playableVideos(rawVideos)
+            .take(100)
+            .toList(growable: false);
+        if (videos.isEmpty) return;
+        final idx = _resolveIndex(videos, (e) => e.videoId, target);
+        var leadIndex = idx;
         final items = await _playPlaylistUseCase.execute(
           videos,
-          playIndex: target.index,
+          playIndex: idx,
           onResolvedLeadIndex: (i) => leadIndex = i,
         );
         if (aborted() || items.isEmpty) return;
@@ -137,7 +158,7 @@ class AaPlaybackDispatcher {
         if (pid == null) return;
         final entries = await _libraryRepo.getPlaylistEntries(pid);
         if (aborted() || entries.isEmpty) return;
-        final idx = target.index.clamp(0, entries.length - 1);
+        final idx = _resolveIndex(entries, (e) => e.videoId, target);
         final items = await _playLocalPlaylistUseCase.execute(
           entries,
           playIndex: idx,
@@ -148,7 +169,7 @@ class AaPlaybackDispatcher {
       case AaMediaId.ctxFavorites:
         final songs = await _libraryBuilder.getSortedFavorites();
         if (aborted() || songs.isEmpty) return;
-        final idx = target.index.clamp(0, songs.length - 1);
+        final idx = _resolveIndex(songs, (s) => s.videoId, target);
         final items = await _playSmartMixUseCase.execute(
           songs: songs,
           playIndex: idx,
@@ -159,15 +180,24 @@ class AaPlaybackDispatcher {
       case AaMediaId.ctxHistory:
         final history = await _libraryRepo.getRecentHistory(limit: 50);
         if (aborted() || history.isEmpty) return;
-        final idx = target.index.clamp(0, history.length - 1);
-        final items = await _buildHistoryQueue(history, playIndex: idx);
+        final idx = _resolveIndex(history, (h) => h.videoId, target);
+        final items = await _resolveLeadAndMap(
+          history,
+          playIndex: idx,
+          videoIdOf: (h) => h.videoId,
+          toTrack: (h, url) => AaContentMapper.historyToQueueTrack(h, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, initialIndex: idx, shouldAbort: aborted);
 
       case AaMediaId.ctxMix:
         final songs = await _libraryBuilder.fetchMixSongs(target.contextId);
         if (aborted() || songs.isEmpty) return;
-        final idx = target.index.clamp(0, songs.length - 1);
+        final idx = _resolveIndex(
+          songs,
+          (s) => (s as dynamic).videoId as String,
+          target,
+        );
         final items = await _playSmartMixUseCase.execute(
           songs: songs,
           playIndex: idx,
@@ -176,20 +206,29 @@ class AaPlaybackDispatcher {
         await _playNow(items, initialIndex: idx, shouldAbort: aborted);
 
       case AaMediaId.ctxArtist:
-        var songs = playableSongs(
-          await _musicRepo.getArtistSongs(target.contextId),
-        );
+        final artist = await _musicRepo.getArtist(target.contextId);
         if (aborted()) return;
+        var songs = playableSongs(artist.topSongs);
         if (songs.isEmpty) {
           songs = playableSongs(
-            (await _musicRepo.getArtist(target.contextId)).topSongs,
+            await _musicRepo.getArtistSongs(target.contextId),
           );
+          if (aborted()) return;
         }
-        if (aborted() || songs.isEmpty) return;
-        final idx = target.index.clamp(0, songs.length - 1);
-        final items = await _playAlbumUseCase.execute(songs, playIndex: idx);
+        if (songs.isEmpty) return;
+        final idx = _resolveIndex(songs, (s) => s.videoId, target);
+        var leadIndex = idx;
+        final items = await _playAlbumUseCase.execute(
+          songs,
+          playIndex: idx,
+          onResolvedLeadIndex: (i) => leadIndex = i,
+        );
         if (aborted() || items.isEmpty) return;
-        await _playNow(items, initialIndex: idx, shouldAbort: aborted);
+        await _playNow(
+          items,
+          initialIndex: leadIndex.clamp(0, items.length - 1),
+          shouldAbort: aborted,
+        );
 
       case AaMediaId.ctxPodcast:
         final podcast = await _musicRepo.getPodcast(
@@ -199,9 +238,10 @@ class AaPlaybackDispatcher {
         if (aborted()) return;
         final playable = podcast.episodes
             .where((e) => e.videoId.isNotEmpty)
+            .take(100)
             .toList(growable: false);
         if (playable.isEmpty) return;
-        final idx = target.index.clamp(0, playable.length - 1);
+        final idx = _resolveIndex(playable, (e) => e.videoId, target);
         final items = await _playPodcastUseCase.execute(
           playable,
           podcastBrowseId: target.contextId,
@@ -216,8 +256,14 @@ class AaPlaybackDispatcher {
       case AaMediaId.ctxSavedEpisodes:
         final saved = await _libraryBuilder.getSortedSavedEpisodes();
         if (aborted() || saved.isEmpty) return;
-        final idx = target.index.clamp(0, saved.length - 1);
-        final items = await _buildSavedEpisodesQueue(saved, playIndex: idx);
+        final idx = _resolveIndex(saved, (e) => e.videoId, target);
+        final items = await _resolveLeadAndMap(
+          saved,
+          playIndex: idx,
+          videoIdOf: (e) => e.videoId,
+          toTrack: (e, url) =>
+              AaContentMapper.likedEpisodeToQueueTrack(e, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, initialIndex: idx, shouldAbort: aborted);
 
@@ -225,21 +271,33 @@ class AaPlaybackDispatcher {
         final group = await _downloadsBuilder.findGroup(target.contextId);
         if (aborted() || group == null || group.tracks.isEmpty) return;
         final tracks = AaDownloadsBuilder.sortGroupTracks(group);
-        final idx = target.index.clamp(0, tracks.length - 1);
-        final items = await _buildDownloadQueue(tracks, playIndex: idx);
+        final idx = _resolveIndex(tracks, (d) => d.videoId, target);
+        final items = await _resolveLeadAndMap(
+          tracks,
+          playIndex: idx,
+          videoIdOf: (d) => d.videoId,
+          toTrack: (d, url) =>
+              AaContentMapper.downloadToQueueTrack(d, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, initialIndex: idx, shouldAbort: aborted);
 
       case AaMediaId.ctxAskMix:
-        final sep = target.contextId.lastIndexOf(':');
-        if (sep <= 0) return;
-        final msgId = target.contextId.substring(0, sep);
-        final attIdx = int.tryParse(target.contextId.substring(sep + 1));
-        if (attIdx == null) return;
-        final mix = await _homeBuilder.findAskMix(msgId, attIdx);
+        final askRef = AaMediaId.tryParseAskMix(target.contextId);
+        if (askRef == null) return;
+        final mix = await _homeBuilder.findAskMix(
+          askRef.messageId,
+          askRef.attachmentIndex,
+        );
         if (aborted() || mix == null || mix.tracks.isEmpty) return;
-        final idx = target.index.clamp(0, mix.tracks.length - 1);
-        final items = await _buildAskMixQueue(mix.tracks, playIndex: idx);
+        final idx = _resolveIndex(mix.tracks, (t) => t.videoId, target);
+        final items = await _resolveLeadAndMap(
+          mix.tracks,
+          playIndex: idx,
+          videoIdOf: (t) => t.videoId,
+          toTrack: (t, url) =>
+              AaContentMapper.askTrackToQueueTrack(t, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, initialIndex: idx, shouldAbort: aborted);
 
@@ -420,7 +478,13 @@ class AaPlaybackDispatcher {
         var saved = await _libraryBuilder.getSortedSavedEpisodes();
         if (aborted() || saved.isEmpty) return;
         if (shuffle) saved = List<LikedEpisodeModel>.from(saved)..shuffle();
-        final items = await _buildSavedEpisodesQueue(saved, playIndex: 0);
+        final items = await _resolveLeadAndMap(
+          saved,
+          playIndex: 0,
+          videoIdOf: (e) => e.videoId,
+          toTrack: (e, url) =>
+              AaContentMapper.likedEpisodeToQueueTrack(e, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, shouldAbort: aborted);
 
@@ -436,7 +500,12 @@ class AaPlaybackDispatcher {
         var history = await _libraryRepo.getRecentHistory(limit: 50);
         if (aborted() || history.isEmpty) return;
         if (shuffle) history = List<HistoryModel>.from(history)..shuffle();
-        final items = await _buildHistoryQueue(history, playIndex: 0);
+        final items = await _resolveLeadAndMap(
+          history,
+          playIndex: 0,
+          videoIdOf: (h) => h.videoId,
+          toTrack: (h, url) => AaContentMapper.historyToQueueTrack(h, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, shouldAbort: aborted);
 
@@ -448,11 +517,17 @@ class AaPlaybackDispatcher {
         if (aborted() || items.isEmpty) return;
         await _playNow(items, shouldAbort: aborted);
 
-      case 'downloads':
+      case AaMediaId.ctxDownloads:
         var completed = await _downloadsBuilder.getCompletedDownloads();
         if (aborted() || completed.isEmpty) return;
         if (shuffle) completed = List<DownloadModel>.from(completed)..shuffle();
-        final items = await _buildDownloadQueue(completed, playIndex: 0);
+        final items = await _resolveLeadAndMap(
+          completed,
+          playIndex: 0,
+          videoIdOf: (d) => d.videoId,
+          toTrack: (d, url) =>
+              AaContentMapper.downloadToQueueTrack(d, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, shouldAbort: aborted);
 
@@ -461,20 +536,32 @@ class AaPlaybackDispatcher {
         if (aborted() || group == null || group.tracks.isEmpty) return;
         var tracks = AaDownloadsBuilder.sortGroupTracks(group);
         if (shuffle) tracks = List<DownloadModel>.from(tracks)..shuffle();
-        final items = await _buildDownloadQueue(tracks, playIndex: 0);
+        final items = await _resolveLeadAndMap(
+          tracks,
+          playIndex: 0,
+          videoIdOf: (d) => d.videoId,
+          toTrack: (d, url) =>
+              AaContentMapper.downloadToQueueTrack(d, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, shouldAbort: aborted);
 
       case AaMediaId.ctxAskMix:
-        final sep = action.targetId.lastIndexOf(':');
-        if (sep <= 0) return;
-        final msgId = action.targetId.substring(0, sep);
-        final attIdx = int.tryParse(action.targetId.substring(sep + 1));
-        if (attIdx == null) return;
-        final mix = await _homeBuilder.findAskMix(msgId, attIdx);
+        final askRef = AaMediaId.tryParseAskMix(action.targetId);
+        if (askRef == null) return;
+        final mix = await _homeBuilder.findAskMix(
+          askRef.messageId,
+          askRef.attachmentIndex,
+        );
         if (aborted() || mix == null || mix.tracks.isEmpty) return;
         final tracks = shuffle ? (List.of(mix.tracks)..shuffle()) : mix.tracks;
-        final items = await _buildAskMixQueue(tracks, playIndex: 0);
+        final items = await _resolveLeadAndMap(
+          tracks,
+          playIndex: 0,
+          videoIdOf: (t) => t.videoId,
+          toTrack: (t, url) =>
+              AaContentMapper.askTrackToQueueTrack(t, url: url),
+        );
         if (aborted() || items.isEmpty) return;
         await _playNow(items, shouldAbort: aborted);
     }
@@ -634,125 +721,18 @@ class AaPlaybackDispatcher {
     await _playFromSearch(drop.starterPrompt, null);
   }
 
-  Future<List<MediaItem>> _buildHistoryQueue(
-    List<HistoryModel> history, {
+  Future<List<MediaItem>> _resolveLeadAndMap<T>(
+    List<T> items, {
     required int playIndex,
+    required String Function(T item) videoIdOf,
+    required QueueTrack Function(T item, String? url) toTrack,
   }) async {
     final firstUrl = await _playVideoIdUseCase.resolveUrl(
-      history[playIndex].videoId,
+      videoIdOf(items[playIndex]),
     );
     return [
-      for (var i = 0; i < history.length; i++)
-        QueueTrack(
-          videoId: history[i].videoId,
-          url: i == playIndex ? firstUrl : null,
-          needsUrl: i != playIndex,
-          isVideo: history[i].isVideo,
-          isExplicit: history[i].isExplicit,
-          contentType: history[i].contentType,
-          podcastBrowseId: history[i].podcastBrowseId,
-          title: history[i].title,
-          artist: history[i].artist,
-          duration: history[i].duration != null
-              ? Duration(seconds: history[i].duration!)
-              : null,
-          artUri: history[i].thumbnailUrl != null
-              ? Uri.tryParse(history[i].thumbnailUrl!)
-              : null,
-        ).toFreshMediaItem(),
-    ];
-  }
-
-  Future<List<MediaItem>> _buildSavedEpisodesQueue(
-    List<LikedEpisodeModel> episodes, {
-    required int playIndex,
-  }) async {
-    final firstUrl = await _playVideoIdUseCase.resolveUrl(
-      episodes[playIndex].videoId,
-    );
-    return [
-      for (var i = 0; i < episodes.length; i++)
-        QueueTrack(
-          videoId: episodes[i].videoId,
-          url: i == playIndex ? firstUrl : null,
-          needsUrl: i != playIndex,
-          isVideo: false,
-          contentType: 'episode',
-          podcastBrowseId: episodes[i].podcastBrowseId,
-          title: episodes[i].name,
-          artist: episodes[i].podcastName ?? '',
-          album: episodes[i].podcastName,
-          publishDate: episodes[i].date,
-          duration: episodes[i].durationSec != null
-              ? Duration(seconds: episodes[i].durationSec!)
-              : null,
-          artUri: episodes[i].thumbnailUrl != null
-              ? Uri.tryParse(episodes[i].thumbnailUrl!)
-              : null,
-        ).toFreshMediaItem(),
-    ];
-  }
-
-  Future<List<MediaItem>> _buildDownloadQueue(
-    List<DownloadModel> downloads, {
-    required int playIndex,
-  }) async {
-    final firstUrl = await _playVideoIdUseCase.resolveUrl(
-      downloads[playIndex].videoId,
-    );
-    return [
-      for (var i = 0; i < downloads.length; i++)
-        QueueTrack(
-          videoId: downloads[i].videoId,
-          url: i == playIndex ? firstUrl : null,
-          needsUrl: i != playIndex,
-          isVideo: downloads[i].isVideo,
-          isExplicit: downloads[i].isExplicit,
-          artistsJson: downloads[i].artistsJson,
-          contentType: downloads[i].collectionType == 'podcast'
-              ? 'episode'
-              : 'song',
-          podcastBrowseId: downloads[i].collectionType == 'podcast'
-              ? downloads[i].collectionId
-              : null,
-          title: downloads[i].title,
-          artist: downloads[i].artist,
-          album: downloads[i].collectionName,
-          artUri: downloads[i].thumbnailUrl != null
-              ? Uri.tryParse(downloads[i].thumbnailUrl!)
-              : null,
-        ).toFreshMediaItem(),
-    ];
-  }
-
-  Future<List<MediaItem>> _buildAskMixQueue(
-    List<AskTrackRef> tracks, {
-    required int playIndex,
-  }) async {
-    final firstUrl = await _playVideoIdUseCase.resolveUrl(
-      tracks[playIndex].videoId,
-    );
-    return [
-      for (var i = 0; i < tracks.length; i++)
-        QueueTrack(
-          videoId: tracks[i].videoId,
-          url: i == playIndex ? firstUrl : null,
-          needsUrl: i != playIndex,
-          isVideo: tracks[i].isVideo,
-          isExplicit: tracks[i].isExplicit,
-          artistId: tracks[i].artistId,
-          albumId: tracks[i].albumId,
-          artistsJson: tracks[i].artistsJson,
-          title: tracks[i].title,
-          artist: tracks[i].artist,
-          album: tracks[i].albumName,
-          duration: tracks[i].durationSec != null
-              ? Duration(seconds: tracks[i].durationSec!)
-              : null,
-          artUri: tracks[i].thumbnailUrl != null
-              ? Uri.tryParse(tracks[i].thumbnailUrl!)
-              : null,
-        ).toFreshMediaItem(),
+      for (var i = 0; i < items.length; i++)
+        toTrack(items[i], i == playIndex ? firstUrl : null).toFreshMediaItem(),
     ];
   }
 

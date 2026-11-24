@@ -158,20 +158,18 @@ class AaSearchController {
     final items = <MediaItem>[];
     final seenVideoIds = <String>{};
 
-    for (var i = 0; i < downloads.length; i++) {
-      final d = downloads[i];
+    for (final d in downloads) {
       if (d.title.toLowerCase().contains(q) ||
           d.artist.toLowerCase().contains(q) ||
           (d.collectionName?.toLowerCase().contains(q) ?? false)) {
         if (seenVideoIds.add(d.videoId)) {
           items.add(
-            AaContentMapper.downloadToMediaItem(
-              d,
-              index: i,
-              groupKey: d.collectionId != null && d.collectionType != null
-                  ? '${d.collectionType}:${d.collectionId}'
-                  : 'singles',
-              groupTitle: l10n.aaLocalLibraryMatches,
+            AaContentMapper.downloadToQueueTrack(d).toFreshMediaItem(
+              additionalExtras: AaContentStyles.styleExtras(
+                playable: AaContentStyles.styleList,
+                groupTitle: l10n.aaLocalLibraryMatches,
+                isExplicit: d.isExplicit,
+              ),
             ),
           );
         }
@@ -179,16 +177,17 @@ class AaSearchController {
       if (items.length >= 6) break;
     }
 
-    for (var i = 0; i < likedSongs.length; i++) {
-      final s = likedSongs[i];
+    for (final s in likedSongs) {
       if (s.title.toLowerCase().contains(q) ||
           s.artist.toLowerCase().contains(q)) {
         if (seenVideoIds.add(s.videoId)) {
           items.add(
-            AaContentMapper.likedSongToMediaItem(
-              s,
-              index: i,
-              groupTitle: l10n.aaLocalLibraryMatches,
+            AaContentMapper.likedSongToQueueTrack(s).toFreshMediaItem(
+              additionalExtras: AaContentStyles.styleExtras(
+                playable: AaContentStyles.styleList,
+                groupTitle: l10n.aaLocalLibraryMatches,
+                isExplicit: s.isExplicit,
+              ),
             ),
           );
         }

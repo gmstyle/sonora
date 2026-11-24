@@ -149,7 +149,7 @@ class AaLibraryBuilder {
     if (songs.isEmpty) return const [];
     return [
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actPlay, 'favorites', 'all'),
+        id: AaMediaId.action(AaMediaId.actPlay, AaMediaId.ctxFavorites, 'all'),
         title: l10n.playAll,
         artUri: AaContentStyles.drawableUri('ic_play_arrow'),
         playable: true,
@@ -158,7 +158,11 @@ class AaLibraryBuilder {
         ),
       ),
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actShuffle, 'favorites', 'all'),
+        id: AaMediaId.action(
+          AaMediaId.actShuffle,
+          AaMediaId.ctxFavorites,
+          'all',
+        ),
         title: l10n.shufflePlay,
         artUri: AaContentStyles.drawableUri('ic_shuffle'),
         playable: true,
@@ -931,17 +935,16 @@ class AaLibraryBuilder {
     String parentMediaId,
     AppLocalizations l10n,
   ) async {
-    final rest = parentMediaId.substring(AaMediaId.askMixPrefix.length);
-    final sep = rest.lastIndexOf(':');
-    if (sep <= 0) return const [];
-    final messageId = rest.substring(0, sep);
-    final attIdx = int.tryParse(rest.substring(sep + 1));
-    if (attIdx == null) return const [];
+    final askRef = AaMediaId.tryParseAskMix(parentMediaId);
+    if (askRef == null) return const [];
 
-    final mix = await _homeBuilder.findAskMix(messageId, attIdx);
+    final mix = await _homeBuilder.findAskMix(
+      askRef.messageId,
+      askRef.attachmentIndex,
+    );
     if (mix == null || mix.tracks.isEmpty) return const [];
 
-    final ctxId = '$messageId:$attIdx';
+    final ctxId = askRef.contextId;
     return [
       MediaItem(
         id: AaMediaId.action(AaMediaId.actPlay, AaMediaId.ctxAskMix, ctxId),

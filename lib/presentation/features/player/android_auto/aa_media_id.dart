@@ -26,6 +26,16 @@ class AaActionTarget {
   });
 }
 
+/// Parsed Ask Mix reference (`messageId:attachmentIndex`).
+class AaAskMixRef {
+  final String messageId;
+  final int attachmentIndex;
+
+  const AaAskMixRef({required this.messageId, required this.attachmentIndex});
+
+  String get contextId => '$messageId:$attachmentIndex';
+}
+
 /// Typed codec for Android Auto browse node and playback media IDs.
 abstract final class AaMediaId {
   static const String root = '/';
@@ -84,8 +94,10 @@ abstract final class AaMediaId {
   static const String ctxHistory = 'history';
   static const String ctxMix = 'mix';
   static const String ctxDownloadGroup = 'dl_group';
+  static const String ctxDownloads = 'downloads';
   static const String ctxAskMix = 'ask_mix';
   static const String ctxHomeSection = 'home_section';
+  static const String ctxDrop = 'drop';
 
   // Action kinds
   static const String actPlay = 'play';
@@ -110,6 +122,18 @@ abstract final class AaMediaId {
       '$downloadGroupPrefix${Uri.encodeComponent(key)}';
   static String askMix(String messageId, int attachmentIndex) =>
       '$askMixPrefix$messageId:$attachmentIndex';
+
+  static AaAskMixRef? tryParseAskMix(String raw) {
+    final value = raw.startsWith(askMixPrefix)
+        ? raw.substring(askMixPrefix.length)
+        : raw;
+    final sep = value.lastIndexOf(':');
+    if (sep <= 0) return null;
+    final messageId = value.substring(0, sep);
+    final attIdx = int.tryParse(value.substring(sep + 1));
+    if (messageId.isEmpty || attIdx == null || attIdx < 0) return null;
+    return AaAskMixRef(messageId: messageId, attachmentIndex: attIdx);
+  }
 
   static String playTrack({
     required String contextKind,

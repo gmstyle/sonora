@@ -59,4 +59,28 @@ void main() {
       expect(AaMediaId.tryParseAction('not_an_action'), isNull);
     });
   });
+
+  group('AaMediaId.tryParseAskMix', () {
+    test('parses ask mix prefix and raw contextId with colons', () {
+      final fromPrefix = AaMediaId.tryParseAskMix(
+        AaMediaId.askMix('msg:123', 2),
+      );
+      expect(fromPrefix, isNotNull);
+      expect(fromPrefix!.messageId, 'msg:123');
+      expect(fromPrefix.attachmentIndex, 2);
+      expect(fromPrefix.contextId, 'msg:123:2');
+
+      final fromRaw = AaMediaId.tryParseAskMix('msg_abc:0');
+      expect(fromRaw, isNotNull);
+      expect(fromRaw!.messageId, 'msg_abc');
+      expect(fromRaw.attachmentIndex, 0);
+    });
+
+    test('returns null on invalid ask mix references', () {
+      expect(AaMediaId.tryParseAskMix('nocolon'), isNull);
+      expect(AaMediaId.tryParseAskMix(':0'), isNull);
+      expect(AaMediaId.tryParseAskMix('msg:notanint'), isNull);
+      expect(AaMediaId.tryParseAskMix('msg:-1'), isNull);
+    });
+  });
 }

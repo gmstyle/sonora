@@ -289,16 +289,11 @@ abstract final class AaContentMapper {
     );
   }
 
-  static MediaItem historyToMediaItem(
-    HistoryModel h, {
-    required int index,
-    String contextKind = AaMediaId.ctxHistory,
-    String contextId = 'all',
-    String? groupTitle,
-  }) {
-    final track = QueueTrack(
+  static QueueTrack historyToQueueTrack(HistoryModel h, {String? url}) {
+    return QueueTrack(
       videoId: h.videoId,
-      needsUrl: true,
+      url: url,
+      needsUrl: url == null,
       isVideo: h.isVideo,
       isExplicit: h.isExplicit,
       contentType: h.contentType,
@@ -308,6 +303,16 @@ abstract final class AaContentMapper {
       duration: h.duration != null ? Duration(seconds: h.duration!) : null,
       artUri: h.thumbnailUrl != null ? Uri.tryParse(h.thumbnailUrl!) : null,
     );
+  }
+
+  static MediaItem historyToMediaItem(
+    HistoryModel h, {
+    required int index,
+    String contextKind = AaMediaId.ctxHistory,
+    String contextId = 'all',
+    String? groupTitle,
+  }) {
+    final track = historyToQueueTrack(h);
     return track
         .toFreshMediaItem(
           additionalExtras: AaContentStyles.styleExtras(
@@ -326,16 +331,11 @@ abstract final class AaContentMapper {
         );
   }
 
-  static MediaItem likedSongToMediaItem(
-    LikedSongModel s, {
-    required int index,
-    String contextKind = AaMediaId.ctxFavorites,
-    String contextId = 'all',
-    String? groupTitle,
-  }) {
-    final track = QueueTrack(
+  static QueueTrack likedSongToQueueTrack(LikedSongModel s, {String? url}) {
+    return QueueTrack(
       videoId: s.videoId,
-      needsUrl: true,
+      url: url,
+      needsUrl: url == null,
       isVideo: s.isVideo,
       isExplicit: s.isExplicit,
       artistId: s.artistId,
@@ -346,6 +346,16 @@ abstract final class AaContentMapper {
       duration: s.duration != null ? Duration(seconds: s.duration!) : null,
       artUri: s.thumbnailUrl != null ? Uri.tryParse(s.thumbnailUrl!) : null,
     );
+  }
+
+  static MediaItem likedSongToMediaItem(
+    LikedSongModel s, {
+    required int index,
+    String contextKind = AaMediaId.ctxFavorites,
+    String contextId = 'all',
+    String? groupTitle,
+  }) {
+    final track = likedSongToQueueTrack(s);
     return track
         .toFreshMediaItem(
           additionalExtras: AaContentStyles.styleExtras(
@@ -364,16 +374,14 @@ abstract final class AaContentMapper {
         );
   }
 
-  static MediaItem likedEpisodeToMediaItem(
+  static QueueTrack likedEpisodeToQueueTrack(
     LikedEpisodeModel ep, {
-    required int index,
-    String contextKind = AaMediaId.ctxSavedEpisodes,
-    String contextId = 'all',
-    String? groupTitle,
+    String? url,
   }) {
-    final track = QueueTrack(
+    return QueueTrack(
       videoId: ep.videoId,
-      needsUrl: true,
+      url: url,
+      needsUrl: url == null,
       isVideo: false,
       contentType: 'episode',
       podcastBrowseId: ep.podcastBrowseId,
@@ -388,6 +396,16 @@ abstract final class AaContentMapper {
           ? Uri.tryParse(ep.thumbnailUrl!)
           : AaContentStyles.drawableUri('cover_saved_episodes'),
     );
+  }
+
+  static MediaItem likedEpisodeToMediaItem(
+    LikedEpisodeModel ep, {
+    required int index,
+    String contextKind = AaMediaId.ctxSavedEpisodes,
+    String contextId = 'all',
+    String? groupTitle,
+  }) {
+    final track = likedEpisodeToQueueTrack(ep);
     return track
         .toFreshMediaItem(
           additionalExtras: AaContentStyles.styleExtras(
@@ -405,16 +423,12 @@ abstract final class AaContentMapper {
         );
   }
 
-  static MediaItem downloadToMediaItem(
-    DownloadModel d, {
-    required int index,
-    required String groupKey,
-    String? groupTitle,
-  }) {
+  static QueueTrack downloadToQueueTrack(DownloadModel d, {String? url}) {
     final isPodcast = d.collectionType == 'podcast';
-    final track = QueueTrack(
+    return QueueTrack(
       videoId: d.videoId,
-      needsUrl: true,
+      url: url,
+      needsUrl: url == null,
       isVideo: d.isVideo,
       isExplicit: d.isExplicit,
       artistsJson: d.artistsJson,
@@ -425,6 +439,15 @@ abstract final class AaContentMapper {
       album: d.collectionName,
       artUri: d.thumbnailUrl != null ? Uri.tryParse(d.thumbnailUrl!) : null,
     );
+  }
+
+  static MediaItem downloadToMediaItem(
+    DownloadModel d, {
+    required int index,
+    required String groupKey,
+    String? groupTitle,
+  }) {
+    final track = downloadToQueueTrack(d);
     return track
         .toFreshMediaItem(
           additionalExtras: AaContentStyles.styleExtras(
@@ -443,15 +466,11 @@ abstract final class AaContentMapper {
         );
   }
 
-  static MediaItem askTrackToMediaItem(
-    AskTrackRef t, {
-    required String contextId,
-    required int index,
-    String? groupTitle,
-  }) {
-    final track = QueueTrack(
+  static QueueTrack askTrackToQueueTrack(AskTrackRef t, {String? url}) {
+    return QueueTrack(
       videoId: t.videoId,
-      needsUrl: true,
+      url: url,
+      needsUrl: url == null,
       isVideo: t.isVideo,
       isExplicit: t.isExplicit,
       artistId: t.artistId,
@@ -465,6 +484,15 @@ abstract final class AaContentMapper {
           : null,
       artUri: t.thumbnailUrl != null ? Uri.tryParse(t.thumbnailUrl!) : null,
     );
+  }
+
+  static MediaItem askTrackToMediaItem(
+    AskTrackRef t, {
+    required String contextId,
+    required int index,
+    String? groupTitle,
+  }) {
+    final track = askTrackToQueueTrack(t);
     return track
         .toFreshMediaItem(
           additionalExtras: AaContentStyles.styleExtras(

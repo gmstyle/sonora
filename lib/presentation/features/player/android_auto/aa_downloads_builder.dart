@@ -58,7 +58,7 @@ class AaDownloadsBuilder {
 
     final items = <MediaItem>[
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actPlay, 'downloads', 'all'),
+        id: AaMediaId.action(AaMediaId.actPlay, AaMediaId.ctxDownloads, 'all'),
         title: l10n.playAll,
         artUri: AaContentStyles.drawableUri('ic_play_arrow'),
         playable: true,
@@ -67,7 +67,11 @@ class AaDownloadsBuilder {
         ),
       ),
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actShuffle, 'downloads', 'all'),
+        id: AaMediaId.action(
+          AaMediaId.actShuffle,
+          AaMediaId.ctxDownloads,
+          'all',
+        ),
         title: l10n.shufflePlay,
         artUri: AaContentStyles.drawableUri('ic_shuffle'),
         playable: true,
@@ -139,7 +143,11 @@ class AaDownloadsBuilder {
     final tracks = sortGroupTracks(group);
     return [
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actPlay, 'dl_group', groupKey),
+        id: AaMediaId.action(
+          AaMediaId.actPlay,
+          AaMediaId.ctxDownloadGroup,
+          groupKey,
+        ),
         title: l10n.playAll,
         artUri: AaContentStyles.drawableUri('ic_play_arrow'),
         playable: true,
@@ -148,7 +156,11 @@ class AaDownloadsBuilder {
         ),
       ),
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actShuffle, 'dl_group', groupKey),
+        id: AaMediaId.action(
+          AaMediaId.actShuffle,
+          AaMediaId.ctxDownloadGroup,
+          groupKey,
+        ),
         title: l10n.shufflePlay,
         artUri: AaContentStyles.drawableUri('ic_shuffle'),
         playable: true,

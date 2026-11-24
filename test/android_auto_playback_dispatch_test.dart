@@ -45,6 +45,7 @@ class _FakePlayVideoIdUseCase extends Fake implements PlayVideoIdUseCase {
 
 class _FakeLibraryRepo extends Fake implements LibraryRepository {
   List<LikedSongModel> likedSongs = const [];
+  List<DownloadModel> downloads = const [];
   Completer<void>? favoritesGate;
 
   @override
@@ -56,7 +57,13 @@ class _FakeLibraryRepo extends Fake implements LibraryRepository {
   }
 
   @override
-  Future<List<DownloadModel>> getAllDownloads() async => const [];
+  Future<List<DownloadModel>> getAllDownloads() async => downloads;
+
+  @override
+  Future<LikedAlbumModel?> getLikedAlbum(String albumId) async => null;
+
+  @override
+  Future<FollowedArtistModel?> getFollowedArtist(String artistId) async => null;
 
   @override
   Future<List<LocalPlaylistModel>> getAllPlaylists() async => const [];
@@ -69,6 +76,22 @@ class _FakeMusicRepo extends Fake implements MusicRepository {
   final List<String> searchedQueries = [];
   List<SongDetailed> searchResults = const [];
   List<WatchTrack> watchTracks = const [];
+  AlbumFull? album;
+  ArtistFull? artist;
+  List<SongDetailed> artistSongs = const [];
+
+  @override
+  Future<String> resolveAlbumId(String albumId) async => albumId;
+
+  @override
+  Future<AlbumFull> getAlbum(String albumId) async => album!;
+
+  @override
+  Future<ArtistFull> getArtist(String artistId) async => artist!;
+
+  @override
+  Future<List<SongDetailed>> getArtistSongs(String artistId) async =>
+      artistSongs;
 
   @override
   Future<List<SongDetailed>> searchSongs(String query, {int limit = 20}) async {
@@ -241,6 +264,118 @@ void main() {
 
         expect(playCalls, hasLength(1));
         expect(playCalls.single.$1.single.id, 'directTrack');
+      },
+    );
+
+    test(
+      'ctxAlbum with unplayable row plays exact tapped playable track index',
+      () async {
+        musicRepo.album = AlbumFull(
+          type: 'Album',
+          albumId: 'alb1',
+          playlistId: 'OLAK_alb1',
+          name: 'Mixed Album',
+          artists: [ArtistBasic(name: 'Artist', artistId: 'UC1')],
+          thumbnails: const [],
+          songs: [
+            SongDetailed(
+              type: 'SONG',
+              videoId: 'grey0',
+              name: 'Unavailable Track',
+              artists: [ArtistBasic(name: 'Artist', artistId: 'UC1')],
+              album: AlbumBasic(albumId: 'alb1', name: 'Mixed Album'),
+              isPlayable: false,
+              thumbnails: const [],
+            ),
+            _song('p0', 'Playable 0'),
+            _song('p1', 'Playable 1'),
+          ],
+          relatedReleases: const [],
+        );
+
+        final children = await controller.getChildren(AaMediaId.album('alb1'));
+        final trackItems = children
+            .where((e) => AaMediaId.tryParsePlayTrack(e.id) != null)
+            .toList(growable: false);
+        expect(trackItems.map((e) => e.title).toList(), [
+          'Playable 0',
+          'Playable 1',
+        ]);
+
+        await controller.playFromMediaId(trackItems[1].id);
+        expect(playCalls, hasLength(1));
+        final (items, initialIndex) = playCalls.single;
+        expect(items.map((e) => e.id).toList(), ['p0', 'p1']);
+        expect(initialIndex, 1);
+      },
+    );
+
+    test(
+      'ctxArtist plays tapped topSong consistently with artist browse tree',
+      () async {
+        musicRepo.artist = ArtistFull(
+          artistId: 'UC1',
+          name: 'Artist',
+          type: 'Artist',
+          thumbnails: const [],
+          topSongs: [_song('top0', 'Top 0'), _song('top1', 'Top 1')],
+          topAlbums: const [],
+          topSingles: const [],
+          topVideos: const [],
+          featuredOn: const [],
+          similarArtists: const [],
+        );
+        musicRepo.artistSongs = [_song('other', 'Different Order Song')];
+
+        final children = await controller.getChildren(AaMediaId.artist('UC1'));
+        final tapped = children
+            .where((e) => AaMediaId.tryParsePlayTrack(e.id) != null)
+            .elementAt(1);
+        await controller.playFromMediaId(tapped.id);
+
+        expect(playCalls, hasLength(1));
+        final (items, initialIndex) = playCalls.single;
+        expect(items.map((e) => e.id).toList(), ['top0', 'top1']);
+        expect(initialIndex, 1);
+      },
+    );
+
+    test(
+      'offline search results for grouped downloads play exact tapped videoId',
+      () async {
+        libraryRepo.downloads = [
+          const DownloadModel(
+            videoId: 'd0',
+            title: 'Zebra',
+            artist: 'Artist',
+            localPath: '/tmp/d0.m4a',
+            status: 'completed',
+            collectionType: 'album',
+            collectionId: 'alb1',
+            collectionName: 'Album',
+            collectionIndex: 1,
+          ),
+          const DownloadModel(
+            videoId: 'd1',
+            title: 'Alpha Match',
+            artist: 'Artist',
+            localPath: '/tmp/d1.m4a',
+            status: 'completed',
+            collectionType: 'album',
+            collectionId: 'alb1',
+            collectionName: 'Album',
+            collectionIndex: 0,
+          ),
+        ];
+
+        final results = await controller.search('Alpha');
+        final downloadMatch = results.firstWhere(
+          (e) => e.title == 'Alpha Match',
+        );
+        await controller.playFromMediaId(downloadMatch.id);
+
+        expect(playCalls, hasLength(1));
+        expect(playCalls.single.$1.single.id, 'd1');
       },
     );
   });

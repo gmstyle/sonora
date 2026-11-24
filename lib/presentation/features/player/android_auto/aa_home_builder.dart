@@ -109,9 +109,13 @@ class AaHomeBuilder {
       }
     }
 
-    items.add(
+    items.addAll([
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actShuffle, 'favorites', 'all'),
+        id: AaMediaId.action(
+          AaMediaId.actShuffle,
+          AaMediaId.ctxFavorites,
+          'all',
+        ),
         title: '${l10n.favorites} · ${l10n.shuffle}',
         artUri: AaContentStyles.drawableUri('cover_favorites'),
         playable: true,
@@ -119,11 +123,12 @@ class AaHomeBuilder {
           playable: AaContentStyles.styleList,
         ),
       ),
-    );
-
-    items.add(
       MediaItem(
-        id: AaMediaId.action(AaMediaId.actPlay, 'mix', 'most_played'),
+        id: AaMediaId.action(
+          AaMediaId.actPlay,
+          AaMediaId.ctxMix,
+          'most_played',
+        ),
         title: l10n.mostPlayed,
         artUri: AaContentStyles.drawableUri('cover_most_played'),
         playable: true,
@@ -131,13 +136,17 @@ class AaHomeBuilder {
           playable: AaContentStyles.styleList,
         ),
       ),
-    );
+    ]);
 
     final downloads = await _downloadsBuilder.getCompletedDownloads();
     if (downloads.isNotEmpty) {
       items.add(
         MediaItem(
-          id: AaMediaId.action(AaMediaId.actPlay, 'downloads', 'all'),
+          id: AaMediaId.action(
+            AaMediaId.actPlay,
+            AaMediaId.ctxDownloads,
+            'all',
+          ),
           title: l10n.downloads,
           artUri: AaContentStyles.drawableUri('cover_downloads'),
           playable: true,
@@ -326,7 +335,7 @@ class AaHomeBuilder {
     String? groupTitle,
   }) {
     return MediaItem(
-      id: AaMediaId.action(AaMediaId.actPulseDrop, 'drop', drop.id),
+      id: AaMediaId.action(AaMediaId.actPulseDrop, AaMediaId.ctxDrop, drop.id),
       title: drop.title,
       displaySubtitle: drop.body,
       artUri: AaContentStyles.drawableUri('cover_pulse_drops'),
