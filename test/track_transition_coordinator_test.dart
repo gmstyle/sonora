@@ -90,8 +90,16 @@ class _FakeRecovery extends Fake implements PlaybackRecoveryController {
 
 class _FakeLike extends Fake implements LikeController {
   @override
-  Future<void> checkCurrentSongLiked(String videoId) async =>
-      steps.add('checkLiked');
+  bool get isCurrentSongLiked => false;
+
+  @override
+  bool get isCurrentEpisode => false;
+
+  @override
+  Future<void> checkCurrentSongLiked(
+    String videoId, {
+    bool isEpisode = false,
+  }) async => steps.add('checkLiked');
 }
 
 class _FakeCast extends Fake implements CastPlaybackController {

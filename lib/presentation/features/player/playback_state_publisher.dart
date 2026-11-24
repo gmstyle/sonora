@@ -18,6 +18,8 @@ class PlaybackStatePublisher {
   final bool Function() _isResolving;
   final Duration Function() _savedPosition;
   final bool Function() _isLiked;
+  final bool Function() _isCurrentEpisode;
+  final bool Function() _isOffline;
   final void Function() _onBecameReady;
   final bool Function() _isCastConnected;
   final bool Function() _isCastSessionPlaying;
@@ -37,11 +39,15 @@ class PlaybackStatePublisher {
     required this._isResolving,
     required this._savedPosition,
     required this._isLiked,
+    bool Function()? isCurrentEpisode,
+    bool Function()? isOffline,
     required this._onBecameReady,
     bool Function()? isCastConnected,
     bool Function()? isCastSessionPlaying,
     Duration? Function()? castPosition,
-  }) : _isCastConnected = isCastConnected ?? _alwaysFalse,
+  }) : _isCurrentEpisode = isCurrentEpisode ?? _alwaysFalse,
+       _isOffline = isOffline ?? _alwaysFalse,
+       _isCastConnected = isCastConnected ?? _alwaysFalse,
        _isCastSessionPlaying = isCastSessionPlaying ?? _alwaysFalse,
        _castPosition = castPosition ?? _alwaysNullDuration;
 
@@ -158,11 +164,37 @@ class PlaybackStatePublisher {
       androidCompactActionIndices: const [0, 1, 2],
     );
 
-    _setPlaybackState(
-      updatedState.copyWith(
-        controls: PlayerMediaControls.build(updatedState, isLiked: _isLiked()),
-      ),
+    final clearError =
+        processing == AudioProcessingState.ready &&
+        playing &&
+        current.errorMessage != null;
+    final nextControls = PlayerMediaControls.build(
+      updatedState,
+      isLiked: _isLiked(),
+      isEpisode: _isCurrentEpisode(),
+      isOffline: _isOffline(),
+      speed: _engine.state.rate,
     );
+    if (clearError) {
+      _setPlaybackState(
+        PlaybackState(
+          controls: nextControls,
+          androidCompactActionIndices: updatedState.androidCompactActionIndices,
+          systemActions: updatedState.systemActions,
+          processingState: updatedState.processingState,
+          playing: updatedState.playing,
+          updatePosition: updatedState.updatePosition,
+          bufferedPosition: updatedState.bufferedPosition,
+          speed: updatedState.speed,
+          repeatMode: updatedState.repeatMode,
+          shuffleMode: updatedState.shuffleMode,
+          captioningEnabled: updatedState.captioningEnabled,
+          queueIndex: updatedState.queueIndex,
+        ),
+      );
+    } else {
+      _setPlaybackState(updatedState.copyWith(controls: nextControls));
+    }
   }
 
   void updateState(
@@ -231,7 +263,13 @@ class PlaybackStatePublisher {
     _lastEmittedPlaying = false;
     _setPlaybackState(
       updated.copyWith(
-        controls: PlayerMediaControls.build(updated, isLiked: _isLiked()),
+        controls: PlayerMediaControls.build(
+          updated,
+          isLiked: _isLiked(),
+          isEpisode: _isCurrentEpisode(),
+          isOffline: _isOffline(),
+          speed: _engine.state.rate,
+        ),
       ),
     );
   }

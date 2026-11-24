@@ -77,10 +77,12 @@ class TrackTransitionCoordinator {
   final bool Function() _isRestoring;
   final bool Function() _isShuffleAll;
   final bool Function() _isRepeatOne;
+  final bool Function() _isOffline;
   final Future<void> Function()? _skipToNext;
   final Future<void> Function(int index)? _skipToQueueItem;
   final bool Function() _isForcedOffline;
   final Future<void> Function(int index)? _enforceForcedOfflineAt;
+  final void Function(MediaItem)? _onTrackChanged;
   int? _previousPlaylistIndex;
   bool _shuffleEndArmed = false;
 
@@ -102,12 +104,15 @@ class TrackTransitionCoordinator {
     required this._isRestoring,
     bool Function()? isShuffleAll,
     bool Function()? isRepeatOne,
+    bool Function()? isOffline,
     this._skipToNext,
     this._skipToQueueItem,
     bool Function()? isForcedOffline,
     this._enforceForcedOfflineAt,
+    this._onTrackChanged,
   }) : _isShuffleAll = isShuffleAll ?? (() => false),
        _isRepeatOne = isRepeatOne ?? (() => false),
+       _isOffline = isOffline ?? (() => false),
        _isForcedOffline = isForcedOffline ?? (() => false);
 
   /// Subscribes to engine streams. Called once from the handler constructor.
@@ -233,6 +238,9 @@ class TrackTransitionCoordinator {
         controls: PlayerMediaControls.build(
           s,
           isLiked: _likeController.isCurrentSongLiked,
+          isEpisode: _likeController.isCurrentEpisode,
+          isOffline: _isOffline(),
+          speed: _engine.state.rate,
         ),
       ),
     );
@@ -359,7 +367,11 @@ class TrackTransitionCoordinator {
     if (!trackChanged) return;
 
     _recoveryController().resetRetryCount();
-    _likeController.checkCurrentSongLiked(track.videoId);
+    _likeController.checkCurrentSongLiked(
+      track.videoId,
+      isEpisode: track.isEpisode,
+    );
+    _onTrackChanged?.call(item);
     _castCurrentTrack(item, track);
   }
 

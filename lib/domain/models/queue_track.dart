@@ -201,6 +201,7 @@ class QueueTrack {
       'videoId': videoId,
       'isVideo': isVideo,
       'isExplicit': isExplicit,
+      if (isExplicit) 'android.media.IS_EXPLICIT': 1,
       'contentType': contentType,
     };
 

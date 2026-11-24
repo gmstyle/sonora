@@ -168,6 +168,11 @@ class FakePlaybackEngine implements PlaybackEngine {
   }
 
   @override
+  Future<void> setSpeed(double speed) async {
+    rate = speed;
+  }
+
+  @override
   Future<void> setVolume(double volume) async {
     this.volume = volume;
   }

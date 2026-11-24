@@ -1,7 +1,7 @@
 import '../../../domain/models/library_models.dart';
 import '../../../domain/repositories/library_repository.dart';
 
-/// Tracks whether the current song is liked and persists like toggles.
+/// Tracks whether the current track or episode is liked/saved and persists toggles.
 ///
 /// Does not hold a back-reference to [SonoraAudioHandler]; [onLikeChanged]
 /// is invoked whenever the optimistic like state changes so the caller can
@@ -12,17 +12,26 @@ class LikeController {
 
   bool _isCurrentSongLiked = false;
   String? _currentVideoId;
+  bool _currentIsEpisode = false;
 
   LikeController({required this._libraryRepo, required this._onLikeChanged});
 
   bool get isCurrentSongLiked => _isCurrentSongLiked;
 
-  Future<void> checkCurrentSongLiked(String videoId) async {
+  bool get isCurrentEpisode => _currentIsEpisode;
+
+  Future<void> checkCurrentSongLiked(
+    String videoId, {
+    bool isEpisode = false,
+  }) async {
     _currentVideoId = videoId;
+    _currentIsEpisode = isEpisode;
     try {
-      final liked = await _libraryRepo.getLikedSong(videoId);
-      if (_currentVideoId == videoId) {
-        _isCurrentSongLiked = liked != null;
+      final isSaved = isEpisode
+          ? (await _libraryRepo.getLikedEpisode(videoId)) != null
+          : (await _libraryRepo.getLikedSong(videoId)) != null;
+      if (_currentVideoId == videoId && _currentIsEpisode == isEpisode) {
+        _isCurrentSongLiked = isSaved;
         _onLikeChanged();
       }
     } catch (_) {}
@@ -36,4 +45,7 @@ class LikeController {
 
   Future<void> toggleLikedSong(LikedSongModel song) =>
       _libraryRepo.toggleLikedSong(song);
+
+  Future<void> toggleLikedEpisode(LikedEpisodeModel episode) =>
+      _libraryRepo.toggleLikedEpisode(episode);
 }
