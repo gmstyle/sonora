@@ -20,6 +20,7 @@ import 'play_smart_mix_use_case_provider.dart';
 import 'queue_use_case_provider.dart';
 import 'android_tv_provider.dart';
 import 'settings_provider.dart';
+import 'youtube_account_provider.dart';
 
 // Re-export for convenience so UI layers don't need to import audio_handler.
 export '../features/player/audio_handler.dart'
@@ -376,6 +377,12 @@ class PlayerNotifier extends Notifier<PlayerState> with WidgetsBindingObserver {
       _sleepTimer?.cancel();
       _sleepTimerTick?.cancel();
       _playDebounceTimer?.cancel();
+    });
+
+    ref.listen(youtubeAccountProvider, (prev, next) {
+      if (prev?.sessionGeneration != next.sessionGeneration) {
+        _handler.invalidateBrowserCache();
+      }
     });
 
     // Defer stream subscriptions to a microtask so that any synchronous initial

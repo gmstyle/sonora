@@ -88,6 +88,8 @@ class SonoraAudioHandler extends BaseAudioHandler {
   StreamSubscription<PlayErrorEvent>? _headlessPlayErrorSub;
   StreamSubscription<bool>? _headlessCompletedSub;
   StreamSubscription<bool>? _headlessPlayingSub;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isNetworkDisconnected = false;
 
   /// Single [Connectivity] instance shared across the entire player module.
   /// Avoids multiple platform-channel registrations for the same signal.
@@ -111,6 +113,33 @@ class SonoraAudioHandler extends BaseAudioHandler {
   /// When true, [skipToQueueItem] landed on a track while the user was paused;
   /// [_enforceForcedOfflineAt] must not auto-resume.
   bool _offlineSkipStayPaused = false;
+
+  bool _isForcedOffline() => _prefs.getBool(kOfflineModeKey) ?? false;
+
+  bool _isOfflineEffective() => _isForcedOffline() || _isNetworkDisconnected;
+
+  Future<void> _initConnectivityTracking() async {
+    try {
+      final initial = await _sharedConnectivity.checkConnectivity();
+      _applyConnectivityResults(initial, rebuild: false);
+    } catch (_) {}
+    if (_isStopping) return;
+    _connectivitySub = _sharedConnectivity.onConnectivityChanged.listen(
+      (results) => _applyConnectivityResults(results, rebuild: true),
+    );
+  }
+
+  void _applyConnectivityResults(
+    List<ConnectivityResult> results, {
+    required bool rebuild,
+  }) {
+    final disconnected =
+        results.isEmpty ||
+        (results.length == 1 && results.contains(ConnectivityResult.none));
+    if (disconnected == _isNetworkDisconnected) return;
+    _isNetworkDisconnected = disconnected;
+    if (rebuild) _transitions.rebuildControls();
+  }
 
   /// Called when Settings offline mode turns on mid-session.
   ///
@@ -302,7 +331,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       startRadioUseCase: _startRadioUseCase,
       prefs: _prefs,
       isRestoring: () => _restoreController.isRestoring,
-      isOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
+      isOffline: _isOfflineEffective,
       getQueue: () => queue.value,
       getCurrentIndex: () => _engine.state.playlist.index,
       getUpNextStartIndex: () => _queueController.upNextStartIndex,
@@ -337,7 +366,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
       savedPosition: () => _restoreController.savedPosition,
       isLiked: () => _likeController.isCurrentSongLiked,
       isCurrentEpisode: () => _likeController.isCurrentEpisode,
-      isOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
+      isOffline: _isOfflineEffective,
       onBecameReady: () => _recoveryController.resetRetryCount(),
       isCastConnected: _isCastConnected,
       isCastSessionPlaying: () => _castController.isRemotePlaying,
@@ -501,15 +530,21 @@ class SonoraAudioHandler extends BaseAudioHandler {
           playbackState.value.shuffleMode == AudioServiceShuffleMode.all,
       isRepeatOne: () =>
           playbackState.value.repeatMode == AudioServiceRepeatMode.one,
-      isOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
+      isOffline: _isOfflineEffective,
       skipToNext: skipToNext,
       skipToQueueItem: skipToQueueItem,
-      isForcedOffline: () => _prefs.getBool(kOfflineModeKey) ?? false,
+      isForcedOffline: _isForcedOffline,
       enforceForcedOfflineAt: _enforceForcedOfflineAt,
-      onTrackChanged: (item) =>
-          unawaited(_headlessCoordinator.onTrackChanged(item)),
+      onTrackChanged: (item) {
+        if (!QueueTrack.fromMediaItem(item).isEpisode &&
+            _engine.state.rate != 1.0) {
+          unawaited(setSpeed(1.0));
+        }
+        unawaited(_headlessCoordinator.onTrackChanged(item));
+      },
     );
 
+    unawaited(_initConnectivityTracking());
     unawaited(JustAudioPlaybackEngine.configureSession());
     unawaited(_castController.listenForAudioInterruptions());
     _transitions.setupListeners();
@@ -1210,6 +1245,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
     unawaited(_headlessPlayErrorSub?.cancel());
     unawaited(_headlessCompletedSub?.cancel());
     unawaited(_headlessPlayingSub?.cancel());
+    unawaited(_connectivitySub?.cancel());
     unawaited(_uiPosition.close());
     unawaited(_uiDuration.close());
     _engine.dispose();
@@ -1371,7 +1407,7 @@ class SonoraAudioHandler extends BaseAudioHandler {
   }
 
   Future<void> startRadio(String videoId) async {
-    if (_prefs.getBool(kOfflineModeKey) ?? false) {
+    if (_isOfflineEffective()) {
       dev.log('[AudioHandler] startRadio blocked: offline mode');
       return;
     }

@@ -141,15 +141,21 @@ class PlaybackStatePublisher {
       _onBecameReady();
     }
 
+    final current = _getPlaybackState();
+    final clearError =
+        processing == AudioProcessingState.ready &&
+        playing &&
+        current.errorMessage != null;
+
     final stateUnchanged =
         processing == _lastEmittedProcessingState &&
-        playing == _lastEmittedPlaying;
+        playing == _lastEmittedPlaying &&
+        !clearError;
     if (stateUnchanged) return;
 
     _lastEmittedProcessingState = processing;
     _lastEmittedPlaying = playing;
 
-    final current = _getPlaybackState();
     final updatedState = current.copyWith(
       processingState: processing,
       playing: playing,
@@ -164,10 +170,6 @@ class PlaybackStatePublisher {
       androidCompactActionIndices: const [0, 1, 2],
     );
 
-    final clearError =
-        processing == AudioProcessingState.ready &&
-        playing &&
-        current.errorMessage != null;
     final nextControls = PlayerMediaControls.build(
       updatedState,
       isLiked: _isLiked(),
