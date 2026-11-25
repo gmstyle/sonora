@@ -6,12 +6,14 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../../core/errors/youtube_rate_limited_exception.dart';
 import '../../domain/models/media_quality.dart';
 import '../datasources/remote/stream_datasource.dart';
 import '../datasources/remote/youtube_client_policy.dart';
 import 'media_cache_service.dart';
+import 'sabr_proxy_session.dart';
 
 /// Local HTTP Proxy Server running on 127.0.0.1.
 ///
@@ -29,9 +31,12 @@ class LocalAudioProxyServer {
   /// [PlayVideoIdUseCase.streamUrlTimeout]) so media_kit does not hang.
   static const Duration streamResolveTimeout = Duration(seconds: 40);
 
+  static const int _maxSabrSessions = 2;
+
   final StreamDatasource _streamDatasource;
   final MediaCacheService _mediaCacheService;
   final bool Function() _isForcedOffline;
+  final Map<String, SabrProxySession> _sabrSessions = {};
 
   HttpServer? _server;
 
@@ -75,8 +80,13 @@ class LocalAudioProxyServer {
     }
   }
 
-  /// Stops the local HTTP server.
+  /// Stops the local HTTP server and disposes any active SABR sessions.
   Future<void> stop() async {
+    final sessions = _sabrSessions.values.toList();
+    _sabrSessions.clear();
+    for (final session in sessions) {
+      await session.dispose();
+    }
     if (_server == null) return;
     await _server?.close(force: true);
     _server = null;
@@ -225,12 +235,67 @@ class LocalAudioProxyServer {
       );
     }
 
+    final sabrStream = _streamDatasource.cachedSabrStream(
+      videoId,
+      audioQuality: audioQuality,
+    );
+    if (sabrStream != null) {
+      return _serveSabrStream(
+        videoId,
+        sabrStream,
+        rangeHeaderStr,
+        audioQuality: audioQuality,
+      );
+    }
+
     return await _proxyRemoteStream(
       videoId,
       streamUrl,
       rangeHeaderStr,
       audioQuality: audioQuality,
     );
+  }
+
+  Future<Response> _serveSabrStream(
+    String videoId,
+    SabrAudioStreamInfo sabrStream,
+    String? rangeHeaderStr, {
+    required MediaQuality audioQuality,
+  }) async {
+    final key = '$videoId|${audioQuality.storageValue}';
+    var session = _sabrSessions.remove(key);
+    if (session != null &&
+        (session.isDisposed || session.sabrStream.tag != sabrStream.tag)) {
+      unawaited(session.dispose());
+      session = null;
+    }
+
+    session ??= SabrProxySession(
+      videoId: videoId,
+      sabrStream: sabrStream,
+      mediaCacheService: _mediaCacheService,
+      openChunks: ({int initialPlayerTimeMs = 0}) => _streamDatasource
+          .openSabrStream(sabrStream, initialPlayerTimeMs: initialPlayerTimeMs)
+          .chunks(),
+      onAttestationFailure: () {
+        _streamDatasource.invalidatePoTokenSession();
+        final stale = _sabrSessions.remove(key);
+        if (stale != null) {
+          unawaited(stale.dispose());
+        }
+      },
+    );
+
+    _sabrSessions[key] = session;
+    while (_sabrSessions.length > _maxSabrSessions) {
+      final oldestKey = _sabrSessions.keys.first;
+      final evicted = _sabrSessions.remove(oldestKey);
+      if (evicted != null) {
+        unawaited(evicted.dispose());
+      }
+    }
+
+    return session.serveRange(rangeHeaderStr);
   }
 
   /// Serves a local disk file with full HTTP Range request support.

@@ -18,6 +18,7 @@ class YoutubeClientPolicy {
     'IOS',
     'ANDROID',
     'ANDROID_MUSIC',
+    'TVHTML5_SIMPLY',
   };
 
   /// Returns `true` when [clientName] must not receive browser cookies,
@@ -44,21 +45,9 @@ class YoutubeClientPolicy {
   /// Returns the `User-Agent` matching the `c=` parameter of [uri], falling
   /// back to [defaultBrowserUserAgent].
   static String userAgentForStreamUrl(Uri uri) {
-    return switch (streamClientName(uri)) {
-      'VISIONOS' => _uaFromClient(YoutubeApiClient.visionos),
-      'ANDROID_VR' => _uaFromClient(YoutubeApiClient.androidVr),
-      'IOS' => _uaFromClient(YoutubeApiClient.ios),
-      'ANDROID' => _uaFromClient(YoutubeApiClient.android),
-      'ANDROID_MUSIC' => _uaFromClient(YoutubeApiClient.androidMusic),
-      'TVHTML5' => _uaFromClient(YoutubeApiClient.tv),
-      _ => defaultBrowserUserAgent,
-    };
-  }
-
-  static String _uaFromClient(YoutubeApiClient client) {
-    final context = client.payload['context'] as Map<String, dynamic>?;
-    final clientMap = context?['client'] as Map<String, dynamic>?;
-    final ua = clientMap?['userAgent'] as String?;
-    return (ua != null && ua.isNotEmpty) ? ua : defaultBrowserUserAgent;
+    final name = streamClientName(uri);
+    final ua = YoutubeApiClient.userAgentForClientName(name);
+    if (ua != null && ua.isNotEmpty) return ua;
+    return defaultBrowserUserAgent;
   }
 }

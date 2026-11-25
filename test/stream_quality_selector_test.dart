@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http_parser/http_parser.dart';
@@ -98,6 +100,51 @@ void main() {
         () => selector.select(manifest, quality: MediaQuality.high),
         throwsStateError,
       );
+    });
+  });
+
+  group('StreamQualitySelector SABR fallback', () {
+    SabrAudioStreamInfo sabrAudio(int tag, int bitrate) {
+      final bootstrap = SabrBootstrap(
+        videoId: videoId.value,
+        serverAbrStreamingUrl: 'https://rr1.googlevideo.com/videoplayback?id=1',
+        videoPlaybackUstreamerConfig: Uint8List.fromList([1, 2]),
+        clientNameId: 101,
+        clientVersion: '1.02',
+        audioFormat: SabrFormatId(tag, lastModified: 1700000),
+        discardVideoFormat: const SabrFormatId(160, lastModified: 1700000),
+        discardVideoHeight: 144,
+        durationMs: 60000,
+        contentLengthBytes: 100000,
+        mimeType: 'audio/webm',
+      );
+      return SabrAudioStreamInfo(
+        videoId,
+        tag,
+        Uri.parse('https://rr1.googlevideo.com/videoplayback?id=1'),
+        StreamContainer.webM,
+        FileSize(100000),
+        Bitrate(bitrate),
+        'opus',
+        '${bitrate ~/ 1000}kbps',
+        const [],
+        MediaType('audio', 'webm'),
+        null,
+        bootstrap,
+        const Duration(seconds: 60),
+      );
+    }
+
+    test('selects sabrAudio by quality tier when audioOnly is empty', () {
+      final manifest = StreamManifest([
+        sabrAudio(249, 50000),
+        sabrAudio(250, 70000),
+        sabrAudio(251, 160000),
+      ]);
+
+      expect(selector.select(manifest, quality: MediaQuality.high).tag, 251);
+      expect(selector.select(manifest, quality: MediaQuality.mid).tag, 250);
+      expect(selector.select(manifest, quality: MediaQuality.low).tag, 249);
     });
   });
 }

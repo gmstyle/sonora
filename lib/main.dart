@@ -12,6 +12,8 @@ import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:youtube_explode_dart/js_challenge.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import 'core/constants/ai_constants.dart';
 import 'core/constants/app_constants.dart';
@@ -28,6 +30,7 @@ import 'data/datasources/local/daos/history_dao.dart';
 import 'data/datasources/local/daos/library_dao.dart';
 import 'data/datasources/local/daos/playlists_dao.dart';
 import 'data/datasources/remote/stream_datasource.dart';
+import 'data/datasources/remote/ytm_session_http_client.dart';
 import 'data/datasources/remote/ytmusic_datasource.dart';
 import 'data/repositories/ask_storage_repository_impl.dart';
 import 'data/repositories/deepseek_llm_repository_impl.dart';
@@ -35,6 +38,7 @@ import 'data/repositories/library_repository_impl.dart';
 import 'data/repositories/music_repository_impl.dart';
 import 'data/repositories/queue_repository_impl.dart';
 import 'data/services/ask_background_scheduler.dart';
+import 'data/services/js_runner_factory.dart';
 import 'data/services/local_audio_proxy_server.dart';
 import 'data/services/sync_service.dart';
 import 'data/services/youtube_session_store.dart';
@@ -140,7 +144,25 @@ Future<void> main() async {
   );
   // Persist SID/LOGIN_INFO rotation from the authenticated homepage scrape.
   await youtubeSessionStore.saveFrom(ytmusicDs.client);
+  final sharedStreamHttpClient = YoutubeHttpClient(YtmSessionHttpClient());
+  final jsRunner = await createPlatformJsRunner();
+  final poTokenProvider = jsRunner != null
+      ? BotGuardPoTokenProvider(
+          runner: jsRunner,
+          httpClient: sharedStreamHttpClient,
+          visitorDataProvider: () => ytmusicDs.client.config['VISITOR_DATA'],
+          sessionKeyProvider: () =>
+              ytmusicDs.client.config['USER_SESSION_ID'] ??
+              ytmusicDs.client.config['DATASYNC_ID'] ??
+              '',
+        )
+      : null;
+  final jsSolver = jsRunner != null ? RunnerEJSSolver(runner: jsRunner) : null;
   final streamDs = StreamDatasource(
+    httpClient: sharedStreamHttpClient,
+    poTokenProvider: poTokenProvider,
+    jsSolver: jsSolver,
+    onDispose: jsRunner?.dispose,
     getDefaultAudioQuality: () =>
         MediaQuality.fromStorage(readStreamAudioQualityPref(prefs)),
   );

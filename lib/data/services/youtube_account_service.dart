@@ -74,7 +74,7 @@ class YoutubeAccountService {
     store.cancelPendingSave();
     await WebViewCookieReader.clearCookies();
     await store.clear();
-    streams.clearUrlCache();
+    streams.invalidatePoTokenSession();
   }
 
   Future<void> _refreshClients() async {
@@ -83,6 +83,6 @@ class YoutubeAccountService {
     } catch (e) {
       debugPrint('YouTube session reinitialize failed: $e');
     }
-    streams.clearUrlCache();
+    streams.invalidatePoTokenSession();
   }
 }

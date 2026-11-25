@@ -56,7 +56,11 @@ class YtmSessionHttpClient extends http.BaseClient {
 
   static bool _isCookielessClientRequest(http.BaseRequest request) {
     final path = request.url.path;
-    if (path == '/sw.js_data' || path.endsWith('/youtubei/v1/visitor_id')) {
+    final host = request.url.host.toLowerCase();
+    if (host == 'www.google.com' ||
+        host == 'www.gstatic.com' ||
+        path == '/sw.js_data' ||
+        path.endsWith('/youtubei/v1/visitor_id')) {
       return true;
     }
     final clientName = _headerValueCaseInsensitive(

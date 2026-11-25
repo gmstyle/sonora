@@ -1910,12 +1910,17 @@ packages:
   youtube_explode_dart:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: "83ca40de4dd24ad5f32c0dabe482a7402e35bda4"
-      url: "https://github.com/gmstyle/youtube_explode_dart.git"
-    source: git
+      path: "../youtube_explode_dart"
+      relative: true
+    source: path
     version: "3.2.1"
+  youtube_explode_webview:
+    dependency: "direct main"
+    description:
+      path: "../youtube_explode_dart/packages/youtube_explode_webview"
+      relative: true
+    source: path
+    version: "0.1.0"
 sdks:
   dart: ">=3.14.0 <4.0.0"
   flutter: ">=3.50.0"

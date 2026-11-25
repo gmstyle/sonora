@@ -193,6 +193,36 @@ class MediaCacheService {
     }
   }
 
+  /// Copies a completed temporary media file (such as a finished SABR proxy
+  /// buffer) into the persistent audio cache without disturbing [sourceFile].
+  Future<void> promoteFileToCache({
+    required String videoId,
+    required String extension,
+    required File sourceFile,
+  }) async {
+    if (_activeDownloads.containsKey(videoId)) return;
+    if (await getCachedFileUri(videoId) != null) return;
+    if (!await sourceFile.exists()) return;
+
+    try {
+      final cacheDir = await _getCacheDir();
+      final ext = _sanitizeAudioExt(extension);
+      final tempFilePath = '${cacheDir.path}/$videoId.promote.tmp';
+      final finalFilePath = '${cacheDir.path}/$videoId.$ext';
+
+      final tempFile = File(tempFilePath);
+      await sourceFile.copy(tempFilePath);
+      if (await tempFile.exists()) {
+        await tempFile.rename(finalFilePath);
+        await _enforceSizeLimit();
+      }
+    } catch (e) {
+      debugPrint(
+        '[MediaCacheService] promoteFileToCache failed for $videoId: $e',
+      );
+    }
+  }
+
   /// Enforces the cache size limit by deleting the oldest files (LRU eviction).
   ///
   /// Pair rules: evicting audio-only also deletes the `{id}.v.*` sibling so a

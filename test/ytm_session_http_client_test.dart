@@ -206,7 +206,9 @@ void main() {
     expect(YoutubeClientPolicy.isCookielessClient('VISIONOS'), isTrue);
     expect(YoutubeClientPolicy.isCookielessClient('ANDROID_VR'), isTrue);
     expect(YoutubeClientPolicy.isCookielessClient('ANDROID_MUSIC'), isTrue);
+    expect(YoutubeClientPolicy.isCookielessClient('TVHTML5_SIMPLY'), isTrue);
     expect(YoutubeClientPolicy.isCookielessClient('TVHTML5'), isFalse);
+    expect(YoutubeClientPolicy.isCookielessClient('WEB_REMIX'), isFalse);
 
     final vrUri = Uri.parse(
       'https://rr1---sn.googlevideo.com/videoplayback?c=ANDROID_VR',
@@ -223,6 +225,31 @@ void main() {
       ),
       (YoutubeApiClient.tv.payload['context'] as Map)['client']['userAgent'],
     );
+    expect(
+      YoutubeClientPolicy.userAgentForStreamUrl(
+        Uri.parse('https://rr1---sn.googlevideo.com/videoplayback?c=WEB_REMIX'),
+      ),
+      (YoutubeApiClient.webRemix.payload['context']
+          as Map)['client']['userAgent'],
+    );
+  });
+
+  test('does not leak YouTube cookies to BotGuard interpreter hosts', () async {
+    late http.BaseRequest sent;
+    final inner = MockClient((req) async {
+      sent = req;
+      return http.Response('var bg = 1;', 200, request: req);
+    });
+    final client = YtmSessionHttpClient(inner: inner, ytmusic: yt);
+    await client.send(
+      http.Request(
+        'GET',
+        Uri.parse('https://www.google.com/js/th/abcdef1234567890123456.js'),
+      )..headers['Cookie'] = 'SAPISID=leak',
+    );
+    expect(sent.headers.containsKey('Cookie'), isFalse);
+    expect(sent.headers.containsKey('cookie'), isFalse);
+    expect(sent.headers.containsKey('Authorization'), isFalse);
   });
 
   test(

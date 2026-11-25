@@ -29,9 +29,12 @@ dependencies:
       url: https://github.com/gmstyle/dart_ytmusic_api.git
 
   youtube_explode_dart:
-    #path: ../youtube_explode_dart
-    git:
-      url: https://github.com/gmstyle/youtube_explode_dart.git
+    path: ../youtube_explode_dart
+    # git:
+    #   url: https://github.com/gmstyle/youtube_explode_dart.git
+
+  youtube_explode_webview:
+    path: ../youtube_explode_dart/packages/youtube_explode_webview
 
   # ── YouTube account sign-in ───────────────────────────────────
   webview_flutter: ^4.13.0

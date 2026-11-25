@@ -4,8 +4,8 @@ import '../models/media_quality.dart';
 
 /// Picks an audio stream from a [StreamManifest] for playback / download.
 ///
-/// Prefers [StreamManifest.audioOnly] tiered by [quality]. Falls back to the
-/// best muxed stream when audio-only is empty.
+/// Prefers [StreamManifest.audioOnly] tiered by [quality], then
+/// [StreamManifest.sabrAudio], and falls back to the best muxed stream.
 class StreamQualitySelector {
   const StreamQualitySelector();
 
@@ -15,6 +15,9 @@ class StreamQualitySelector {
   StreamInfo select(StreamManifest manifest, {required MediaQuality quality}) {
     final primary = _pickByBitrate(manifest.audioOnly, quality);
     if (primary != null) return primary;
+
+    final sabr = _pickByBitrate(manifest.sabrAudio, quality);
+    if (sabr != null) return sabr;
 
     final fallback = _pickBestMuxed(manifest.muxed);
     if (fallback != null) return fallback;

@@ -2,28 +2,36 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:io';
 
+import 'package:dart_ytmusic_api/dart_ytmusic_api.dart' as ytm;
 import 'package:dio/dio.dart';
+import 'package:youtube_explode_dart/js_challenge.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
+import '../../../core/errors/youtube_rate_limited_exception.dart';
 import '../../../core/utils/url_staleness.dart';
 import '../../../domain/media/stream_quality_selector.dart';
 import '../../../domain/models/media_quality.dart';
 import '../../services/media_cache_service.dart';
-import '../../../core/errors/youtube_rate_limited_exception.dart';
 import 'youtube_request_scheduler.dart';
 import 'ytm_session_http_client.dart';
 
-/// Cached URL for one videoId + audio quality combination.
+/// Cached stream selection for one videoId + audio quality combination.
 class PlaybackUrlPlan {
   final String primaryUrl;
+  final SabrAudioStreamInfo? sabrStream;
 
-  const PlaybackUrlPlan({required this.primaryUrl});
+  const PlaybackUrlPlan({required this.primaryUrl, this.sabrStream});
+
+  bool get isSabr => sabrStream != null;
 
   bool get isStale => UrlStaleness.isStale(primaryUrl);
 }
 
 class StreamDatasource {
   final YoutubeExplode _yt;
+  final BasePoTokenProvider? _poTokenProvider;
+  final Future<bool> Function() _isSignedIn;
+  final void Function()? _onDispose;
 
   /// Shared gate for every outbound request this datasource makes to
   /// YouTube (manifest fetches for both playback and downloads). See
@@ -39,15 +47,26 @@ class StreamDatasource {
 
   StreamDatasource({
     YoutubeExplode? youtubeExplode,
+    YoutubeHttpClient? httpClient,
+    BaseJSChallengeSolver? jsSolver,
+    BasePoTokenProvider? poTokenProvider,
+    Future<bool> Function()? isSignedIn,
+    this._onDispose,
     YoutubeRequestScheduler? scheduler,
     StreamQualitySelector? selector,
     MediaQuality Function()? getDefaultAudioQuality,
     @Deprecated('Use getDefaultAudioQuality')
     MediaQuality Function()? getDefaultQuality,
-  }) : _yt =
+  }) : _poTokenProvider = poTokenProvider,
+       _isSignedIn =
+           isSignedIn ?? (() => ytm.isSignedIn(ytm.YTMusic().cookieJar)),
+       _yt =
            youtubeExplode ??
            YoutubeExplode(
-             httpClient: YoutubeHttpClient(YtmSessionHttpClient()),
+             httpClient:
+                 httpClient ?? YoutubeHttpClient(YtmSessionHttpClient()),
+             jsSolver: jsSolver,
+             poTokenProvider: poTokenProvider,
            ),
        _scheduler = scheduler ?? YoutubeRequestScheduler.shared,
        _selector = selector ?? const StreamQualitySelector(),
@@ -97,7 +116,10 @@ class StreamDatasource {
       final selection = _selector.select(manifest, quality: resolvedAudio);
       final primaryUrl = selection.url.toString();
       _assertAbsoluteHttpUrl(primaryUrl, 'primary');
-      final plan = PlaybackUrlPlan(primaryUrl: primaryUrl);
+      final plan = PlaybackUrlPlan(
+        primaryUrl: primaryUrl,
+        sabrStream: selection is SabrAudioStreamInfo ? selection : null,
+      );
       _playbackCache[key] = plan;
       return plan;
     } on YoutubeRateLimitedException {
@@ -118,64 +140,110 @@ class StreamDatasource {
     }
   }
 
-  /// Resolves a [StreamManifest] without the library's automatic TV + watch
-  /// page cascade on the first pass (that `GET /watch` is what most often
-  /// returns HTTP 429 once the IP is warm).
   Future<StreamManifest> _fetchManifest(String videoId) {
     return _scheduler.schedule(() async {
-      try {
-        return await _yt.videos.streamsClient.getManifest(
-          videoId,
-          ytClients: const [
-            YoutubeApiClient.visionos,
-            YoutubeApiClient.androidVr,
-          ],
-          requireWatchPage: false,
-        );
-      } on RequestLimitExceededException {
-        _scheduler.enterCoolDown();
-        rethrow;
-      } catch (first, firstStack) {
-        dev.log(
-          '[StreamDatasource] visionos+androidVr failed for $videoId: $first',
-        );
-        // Prefer failing during cool-down over a second cascade.
-        if (_scheduler.isCoolingDown) {
-          Error.throwWithStackTrace(first, firstStack);
+      final signedIn = await _isSignedIn();
+      final hasPoProvider = _poTokenProvider != null;
+
+      final cascade =
+          <
+            ({
+              List<YoutubeApiClient> clients,
+              bool requireWatchPage,
+              String label,
+            })
+          >[
+            if (signedIn && hasPoProvider) ...[
+              (
+                clients: const [YoutubeApiClient.webRemix],
+                requireWatchPage: false,
+                label: 'webRemix',
+              ),
+              (
+                clients: const [YoutubeApiClient.visionosSabr],
+                requireWatchPage: false,
+                label: 'visionosSabr',
+              ),
+              (
+                clients: const [
+                  YoutubeApiClient.visionos,
+                  YoutubeApiClient.androidVr,
+                ],
+                requireWatchPage: false,
+                label: 'visionos+androidVr',
+              ),
+              (
+                clients: const [YoutubeApiClient.tv],
+                requireWatchPage: true,
+                label: 'tv',
+              ),
+              (
+                clients: const [YoutubeApiClient.androidMusic],
+                requireWatchPage: false,
+                label: 'androidMusic',
+              ),
+            ] else ...[
+              (
+                clients: const [
+                  YoutubeApiClient.visionosSabr,
+                  YoutubeApiClient.visionos,
+                ],
+                requireWatchPage: false,
+                label: 'visionosSabr+visionos',
+              ),
+              (
+                clients: const [YoutubeApiClient.androidVr],
+                requireWatchPage: false,
+                label: 'androidVr',
+              ),
+              if (hasPoProvider)
+                (
+                  clients: const [YoutubeApiClient.webRemix],
+                  requireWatchPage: false,
+                  label: 'webRemix',
+                ),
+              (
+                clients: const [YoutubeApiClient.tv],
+                requireWatchPage: true,
+                label: 'tv',
+              ),
+              (
+                clients: const [YoutubeApiClient.androidMusic],
+                requireWatchPage: false,
+                label: 'androidMusic',
+              ),
+            ],
+          ];
+
+      Object? firstError;
+      StackTrace? firstStack;
+
+      for (final step in cascade) {
+        if (_scheduler.isCoolingDown && firstError != null) {
+          Error.throwWithStackTrace(firstError, firstStack!);
         }
         try {
           return await _yt.videos.streamsClient.getManifest(
             videoId,
-            ytClients: const [YoutubeApiClient.tv],
-            requireWatchPage: true,
+            ytClients: step.clients,
+            requireWatchPage: step.requireWatchPage,
           );
         } on RequestLimitExceededException {
           _scheduler.enterCoolDown();
           rethrow;
-        } catch (tvError) {
-          dev.log('[StreamDatasource] tv failed for $videoId: $tvError');
-          if (_scheduler.isCoolingDown) {
-            Error.throwWithStackTrace(first, firstStack);
-          }
-          try {
-            return await _yt.videos.streamsClient.getManifest(
-              videoId,
-              ytClients: const [YoutubeApiClient.androidMusic],
-              requireWatchPage: false,
-            );
-          } on RequestLimitExceededException {
-            _scheduler.enterCoolDown();
-            rethrow;
-          } catch (musicError) {
-            dev.log(
-              '[StreamDatasource] androidMusic failed for $videoId: $musicError',
-            );
-            // Surface the first failure (usually LOGIN_REQUIRED / empty
-            // streams) rather than masking it with the TV/music fallback error.
-            Error.throwWithStackTrace(first, firstStack);
-          }
+        } catch (error, stackTrace) {
+          dev.log(
+            '[StreamDatasource] ${step.label} failed for $videoId: $error',
+          );
+          firstError ??= error;
+          firstStack ??= stackTrace;
         }
       }
+
+      if (firstError != null) {
+        Error.throwWithStackTrace(firstError, firstStack!);
+      }
+      throw VideoUnavailableException('No streams available for $videoId');
     });
   }
 
@@ -302,6 +370,39 @@ class StreamDatasource {
     }
   }
 
+  /// Returns a cached [SabrAudioStreamInfo] for [videoId] if resolved and
+  /// still valid.
+  SabrAudioStreamInfo? cachedSabrStream(
+    String videoId, {
+    MediaQuality? audioQuality,
+  }) {
+    final key = playbackKey(
+      videoId,
+      audioQuality: audioQuality ?? getDefaultAudioQuality(),
+    );
+    final cached = _playbackCache[key];
+    if (cached == null || cached.isStale) return null;
+    return cached.sabrStream;
+  }
+
+  /// Opens a controllable [SabrStream] for [stream].
+  SabrStream openSabrStream(
+    SabrAudioStreamInfo stream, {
+    int initialPlayerTimeMs = 0,
+    int Function()? playbackPositionMs,
+  }) => _yt.videos.streamsClient.openSabrStream(
+    stream,
+    initialPlayerTimeMs: initialPlayerTimeMs,
+    playbackPositionMs: playbackPositionMs,
+  );
+
+  /// Invalidates cached PO token session state (e.g. on account switch or
+  /// `StreamProtectionStatus = 3`) and clears the stream URL cache.
+  void invalidatePoTokenSession() {
+    _poTokenProvider?.invalidateSession();
+    clearUrlCache();
+  }
+
   /// Invalidates in-memory stream URL cache entries for [videoId]
   /// (all quality variants).
   void invalidateCache(String videoId) {
@@ -317,5 +418,6 @@ class StreamDatasource {
 
   void dispose() {
     _yt.close();
+    _onDispose?.call();
   }
 }
