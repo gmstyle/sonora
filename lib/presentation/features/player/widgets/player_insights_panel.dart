@@ -292,9 +292,8 @@ class _InsightsResult extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             l10n.playerAskSources,
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Wrap(
