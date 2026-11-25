@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.4+83] - 2026-11-25
+
+### Bug Fixes
+
+- **linux**: Guard getNotificationAppLaunchDetails on Android
+
 ## [2.0.4+82] - 2026-11-25
 
 ### Features
