@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.4+82] - 2026-11-25
+
+### Features
+
+- **android-auto**: Modularize browse tree and add Hybrid Ask voice search
+- **player**: Add adaptive AA controls, speed support, and headless coordinator
+- **android-auto**: Update manifest, Sonora Pulse drawables, and l10n
+- **ask**: Add proactive background drops with WorkManager and Cloudflare stack
+
+### Bug Fixes
+
+- **android-auto**: Align contextual playback indices, search dispatch, and mappers
+- **player**: Track network offline state, reset speed on music, and clear stale errors
+- **player**: Remove nested scroll in insights panel and pad bottom
+
 ## [2.0.3+81] - 2026-11-22
 
 ### Features
