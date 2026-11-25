@@ -106,12 +106,15 @@ Future<void> main() async {
     onDidReceiveBackgroundNotificationResponse:
         handleDownloadNotificationResponseBackground,
   );
-  final launchDetails = await flutterLocalNotificationsPlugin
-      .getNotificationAppLaunchDetails();
-  if (launchDetails?.didNotificationLaunchApp ?? false) {
-    final payload = launchDetails?.notificationResponse?.payload;
-    if (payload != null && payload.isNotEmpty) {
-      _pendingLaunchNotificationPayload = payload;
+  // flutter_local_notifications_linux does not implement getNotificationAppLaunchDetails().
+  if (isAndroid) {
+    final launchDetails = await flutterLocalNotificationsPlugin
+        .getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp ?? false) {
+      final payload = launchDetails?.notificationResponse?.payload;
+      if (payload != null && payload.isNotEmpty) {
+        _pendingLaunchNotificationPayload = payload;
+      }
     }
   }
 
