@@ -331,7 +331,7 @@ jobs:
       # the first .apk asset) get a package that installs on every device.
       # ABI-aware clients ignore order and pick the matching split.
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ needs.prepare.outputs.APP_VERSION }}+${{ needs.prepare.outputs.BUILD_NUMBER }}
           name: Release v${{ needs.prepare.outputs.APP_VERSION }} (${{ needs.prepare.outputs.BUILD_NUMBER }})
