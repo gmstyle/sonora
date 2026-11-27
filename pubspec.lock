@@ -1910,16 +1910,20 @@ packages:
   youtube_explode_dart:
     dependency: "direct main"
     description:
-      path: "../youtube_explode_dart"
-      relative: true
-    source: path
+      path: "."
+      ref: HEAD
+      resolved-ref: "6dfbdd3e2dc54aa17256bdf36eb89b0afbd685d0"
+      url: "https://github.com/gmstyle/youtube_explode_dart.git"
+    source: git
     version: "3.3.0"
   youtube_explode_webview:
     dependency: "direct main"
     description:
-      path: "../youtube_explode_dart/packages/youtube_explode_webview"
-      relative: true
-    source: path
+      path: "packages/youtube_explode_webview"
+      ref: HEAD
+      resolved-ref: "6dfbdd3e2dc54aa17256bdf36eb89b0afbd685d0"
+      url: "https://github.com/gmstyle/youtube_explode_dart.git"
+    source: git
     version: "0.1.0"
 sdks:
   dart: ">=3.14.0 <4.0.0"

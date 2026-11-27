@@ -228,8 +228,10 @@ class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
       flexibleSpace: trackScroll
           ? ValueListenableBuilder<double>(
               valueListenable: _scrollProgress,
-              builder: (context, progress, _) =>
-                  GlassAppBarBackground(opacity: progress, blur: !reduceEffects),
+              builder: (context, progress, _) => GlassAppBarBackground(
+                opacity: progress,
+                blur: !reduceEffects,
+              ),
             )
           : null,
       title: Row(

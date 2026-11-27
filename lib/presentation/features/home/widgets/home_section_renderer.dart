@@ -1979,13 +1979,11 @@ class AmbientBackground extends ConsumerWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        brandSpectrumOf(
-                          context,
-                        ).colors.first.withValues(alpha: 0.05),
+                        brandSpectrumOf(context).colors.first
+                            .withValues(alpha: 0.05),
                         scheme.surface,
-                        brandSpectrumOf(
-                          context,
-                        ).colors.last.withValues(alpha: 0.04),
+                        brandSpectrumOf(context).colors.last
+                            .withValues(alpha: 0.04),
                       ],
                       stops: const [0.0, 0.45, 1.0],
                     ),
