@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.5+84] - 2026-11-27
+
+### Features
+
+- **home**: Convert home header to SliverAppBar and unify background
+- **streams**: Integrate SABR proxy streaming, BotGuard PO tokens, and hidden WebView/CDP runner
+
+### Bug Fixes
+
+- **streams**: Harden SABR proxy seek/promotion, 403 fallback, Cast, CLI, and Linux shutdown
+
 ## [2.0.4+83] - 2026-11-25
 
 ### Bug Fixes
