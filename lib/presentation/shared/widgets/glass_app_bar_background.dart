@@ -29,7 +29,7 @@ class GlassAppBarBackground extends StatelessWidget {
     final surfaceColor = color ?? theme.colorScheme.surface;
     final tint = DecoratedBox(
       decoration: BoxDecoration(
-        color: surfaceColor.withValues(alpha: 0.80 * opacity),
+        color: surfaceColor.withValues(alpha: 0.94 * opacity),
         border: opacity > 0.05
             ? Border(
                 bottom: BorderSide(

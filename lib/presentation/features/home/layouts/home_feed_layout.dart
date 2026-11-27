@@ -1,5 +1,6 @@
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,15 +33,42 @@ class HomeFeedLayout extends ConsumerStatefulWidget {
 
 class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
   final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
 
   HomeLayoutMetrics get metrics => widget.metrics;
 
   HomeLayoutSize get size => metrics.size;
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _scrollProgress.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final progress = (_scrollController.offset / 20.0).clamp(0.0, 1.0);
+    if (progress == _scrollProgress.value) return;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+        final next = (_scrollController.offset / 20.0).clamp(0.0, 1.0);
+        if (next != _scrollProgress.value) {
+          _scrollProgress.value = next;
+        }
+      });
+      return;
+    }
+    _scrollProgress.value = progress;
   }
 
   @override
@@ -67,6 +95,98 @@ class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
             (baseResult.asData?.value.chips.isNotEmpty ?? false));
     final chipFeed = !isOffline && selectedChip != null;
     final l10n = AppLocalizations.of(context)!;
+    final reduceEffects = ref.watch(
+      settingsProvider.select((s) => s.reduceEffects),
+    );
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 16;
+
+    SliverAppBar buildAppBar({required bool trackScroll}) => _buildSliverAppBar(
+      context,
+      l10n,
+      showChipBar: showChipBar,
+      reduceEffects: reduceEffects,
+      trackScroll: trackScroll,
+    );
+
+    final Widget bodyScrollView;
+    if (isOffline) {
+      bodyScrollView = _buildScrollableFeed(
+        sliverAppBar: buildAppBar(trackScroll: true),
+        bottomPadding: bottomPadding,
+        onRefresh: () => _refreshOffline(ref),
+        children: [
+          _OfflineBanner(metrics: metrics),
+          ..._buildRiprendiZone(historyAsync: historyAsync),
+          ..._buildYourMusicZone(
+            l10n: l10n,
+            playlistsAsync: playlistsAsync,
+            artistsAsync: artistsAsync,
+            albumsAsync: albumsAsync,
+            similarArtistsAsync: similarArtistsAsync,
+            includeSimilarInMusicZone: false,
+          ),
+        ],
+      );
+    } else {
+      bodyScrollView = baseSectionsAsync.when(
+        loading: () => CustomScrollView(
+          slivers: [
+            buildAppBar(trackScroll: false),
+            SliverToBoxAdapter(
+              child: HomeShimmer(
+                metrics: metrics,
+                reserveChipBar: false,
+                reserveAppBar: false,
+              ),
+            ),
+          ],
+        ),
+        error: (_, _) => CustomScrollView(
+          slivers: [
+            buildAppBar(trackScroll: false),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: ErrorRetryWidget(
+                message: l10n.failedToLoadHomeFeed,
+                onRetry: () => ref.invalidate(homeBaseResultProvider),
+              ),
+            ),
+          ],
+        ),
+        data: (sections) => _buildScrollableFeed(
+          sliverAppBar: buildAppBar(trackScroll: true),
+          bottomPadding: bottomPadding,
+          onRefresh: () => _refreshHome(ref),
+          children: [
+            if (chipFeed)
+              HomeFeedShelves(metrics: metrics, chipFeed: true)
+            else ...[
+              ..._buildRiprendiZone(historyAsync: historyAsync),
+              HomeExplore(horizontalPadding: metrics.horizontalPadding),
+              ..._buildYourMusicZone(
+                l10n: l10n,
+                playlistsAsync: playlistsAsync,
+                artistsAsync: artistsAsync,
+                albumsAsync: albumsAsync,
+                similarArtistsAsync: similarArtistsAsync,
+                includeSimilarInMusicZone: metrics.useSideBySideArtists,
+              ),
+              ..._buildDiscoverZone(
+                context: context,
+                l10n: l10n,
+                sections: sections,
+                newReleasesAsync: newReleasesAsync,
+                discoverAsync: discoverAsync,
+                similarArtistsAsync: similarArtistsAsync,
+                showHero: true,
+                showSimilarArtists: !metrics.useSideBySideArtists,
+              ),
+              HomeFeedShelves(metrics: metrics),
+            ],
+          ],
+        ),
+      );
+    }
 
     // Desktop escape hatch: F5 / Ctrl+R / Cmd+R (pull-to-refresh covers touch).
     return CallbackShortcuts(
@@ -84,129 +204,94 @@ class _HomeFeedLayoutState extends ConsumerState<HomeFeedLayout> {
           // MobileShell already shrinks for the IME; resizing here leaves a
           // blank band under Moment Mix when the keyboard opens.
           resizeToAvoidBottomInset: false,
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            flexibleSpace: const GlassAppBarBackground(),
-            title: Row(
-              spacing: 8,
-              children: [
-                const SonoraLogo.icon(22),
-                Flexible(
-                  child: Text(
-                    _getGreeting(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ),
-              ],
-            ),
-            centerTitle: false,
-            bottom: showChipBar
-                ? HomeChipsBar(horizontalPadding: metrics.horizontalPadding)
-                : null,
-            actions: [
-              // Mobile only: on tablet and wide, account and settings live in the sidebar.
-              if (size == HomeLayoutSize.mobile) ...[
-                const YoutubeAccountIconButton(),
-                IconButton(
-                  icon: const Icon(LucideIcons.settings),
-                  tooltip: l10n.settingsLabel,
-                  onPressed: () => context.push('/settings'),
-                ),
-              ],
-            ],
-          ),
-          body: AmbientBackground(
-            child: isOffline
-                ? RefreshIndicator(
-                    onRefresh: () => _refreshOffline(ref),
-                    child: ListView(
-                      padding: _listPadding(context, showChipBar: false),
-                      children: [
-                        _OfflineBanner(metrics: metrics),
-                        ..._buildRiprendiZone(historyAsync: historyAsync),
-                        ..._buildYourMusicZone(
-                          l10n: l10n,
-                          playlistsAsync: playlistsAsync,
-                          artistsAsync: artistsAsync,
-                          albumsAsync: albumsAsync,
-                          similarArtistsAsync: similarArtistsAsync,
-                          includeSimilarInMusicZone: false,
-                        ),
-                      ],
-                    ),
-                  )
-                : baseSectionsAsync.when(
-                    loading: () => HomeShimmer(
-                      metrics: metrics,
-                      reserveChipBar: showChipBar,
-                    ),
-                    error: (_, _) => ErrorRetryWidget(
-                      message: l10n.failedToLoadHomeFeed,
-                      onRetry: () => ref.invalidate(homeBaseResultProvider),
-                    ),
-                    data: (sections) => RefreshIndicator(
-                      onRefresh: () => _refreshHome(ref),
-                      child: ListView(
-                        controller: _scrollController,
-                        padding: _listPadding(
-                          context,
-                          showChipBar: showChipBar,
-                        ),
-                        children: [
-                          if (chipFeed)
-                            HomeFeedShelves(metrics: metrics, chipFeed: true)
-                          else ...[
-                            ..._buildRiprendiZone(historyAsync: historyAsync),
-                            HomeExplore(
-                              horizontalPadding: metrics.horizontalPadding,
-                            ),
-                            ..._buildYourMusicZone(
-                              l10n: l10n,
-                              playlistsAsync: playlistsAsync,
-                              artistsAsync: artistsAsync,
-                              albumsAsync: albumsAsync,
-                              similarArtistsAsync: similarArtistsAsync,
-                              includeSimilarInMusicZone:
-                                  metrics.useSideBySideArtists,
-                            ),
-                            ..._buildDiscoverZone(
-                              context: context,
-                              l10n: l10n,
-                              sections: sections,
-                              newReleasesAsync: newReleasesAsync,
-                              discoverAsync: discoverAsync,
-                              similarArtistsAsync: similarArtistsAsync,
-                              showHero: true,
-                              showSimilarArtists: !metrics.useSideBySideArtists,
-                            ),
-                            HomeFeedShelves(metrics: metrics),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-          ),
+          body: AmbientBackground(child: bodyScrollView),
         ),
       ),
     );
   }
 
+  SliverAppBar _buildSliverAppBar(
+    BuildContext context,
+    AppLocalizations l10n, {
+    required bool showChipBar,
+    required bool reduceEffects,
+    required bool trackScroll,
+  }) {
+    return SliverAppBar(
+      pinned: true,
+      floating: true,
+      automaticallyImplyLeading: false,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      flexibleSpace: trackScroll
+          ? ValueListenableBuilder<double>(
+              valueListenable: _scrollProgress,
+              builder: (context, progress, _) =>
+                  GlassAppBarBackground(opacity: progress, blur: !reduceEffects),
+            )
+          : null,
+      title: Row(
+        spacing: 8,
+        children: [
+          const SonoraLogo.icon(22),
+          Flexible(
+            child: Text(
+              _getGreeting(context),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
+        ],
+      ),
+      centerTitle: false,
+      bottom: showChipBar
+          ? HomeChipsBar(horizontalPadding: metrics.horizontalPadding)
+          : null,
+      actions: [
+        // Mobile only: on tablet and wide, account and settings live in the sidebar.
+        if (size == HomeLayoutSize.mobile) ...[
+          const YoutubeAccountIconButton(),
+          IconButton(
+            icon: const Icon(LucideIcons.settings),
+            tooltip: l10n.settingsLabel,
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildScrollableFeed({
+    required SliverAppBar sliverAppBar,
+    required double bottomPadding,
+    required Future<void> Function() onRefresh,
+    required List<Widget> children,
+  }) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          sliverAppBar,
+          SliverPadding(
+            padding: EdgeInsets.only(top: 12, bottom: bottomPadding),
+            sliver: SliverList.list(children: children),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _scrollFeedToTop() {
+    _scrollProgress.value = 0.0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (!_scrollController.hasClients) return;
       _scrollController.jumpTo(0);
     });
-  }
-
-  EdgeInsets _listPadding(BuildContext context, {required bool showChipBar}) {
-    final chipBar = showChipBar ? HomeChipsBar.height : 0.0;
-    return EdgeInsets.only(
-      top: MediaQuery.of(context).padding.top + kToolbarHeight + chipBar + 8,
-      bottom: MediaQuery.of(context).padding.bottom + 16,
-    );
   }
 
   List<Widget> _buildRiprendiZone({required AsyncValue historyAsync}) {

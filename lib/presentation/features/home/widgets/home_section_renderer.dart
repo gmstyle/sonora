@@ -1,22 +1,16 @@
-import 'dart:ui' as ui;
-
 import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/player_colors.dart';
-import '../../../../core/theme/sonora_pulse_tokens.dart';
 import '../../../../domain/models/library_models.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../providers/home_provider.dart';
 import '../../library/providers/library_provider.dart';
 
-import '../../../providers/player_provider.dart';
-import '../../../providers/palette_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../shared/widgets/album_card.dart';
 import '../../../shared/widgets/release_card.dart';
@@ -58,10 +52,14 @@ class HomeShimmer extends StatelessWidget {
   /// Reserves the pinned chip row when it is showing in the app bar.
   final bool reserveChipBar;
 
+  /// Reserves top toolbar + status-bar padding when rendered outside a sliver.
+  final bool reserveAppBar;
+
   const HomeShimmer({
     super.key,
     required this.metrics,
     this.reserveChipBar = false,
+    this.reserveAppBar = true,
   });
 
   ShimmerLoading _homeShimmer(
@@ -94,8 +92,9 @@ class HomeShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chipBar = reserveChipBar ? HomeChipsBar.height : 0.0;
-    final topPadding =
-        MediaQuery.of(context).padding.top + kToolbarHeight + chipBar;
+    final topPadding = reserveAppBar
+        ? MediaQuery.of(context).padding.top + kToolbarHeight + chipBar
+        : 4.0;
     final editorialHeaderTop = metrics.zoneGap;
     final editorialHeaderBottom = metrics.zoneHeaderBottom;
     final artists = metrics.useSideBySideArtists
@@ -128,6 +127,8 @@ class HomeShimmer extends StatelessWidget {
             child: _homeShimmer(ShimmerVariant.artistShelf),
           );
     return ListView(
+      shrinkWrap: !reserveAppBar,
+      physics: reserveAppBar ? null : const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.only(top: topPadding + 8, bottom: 16),
       children: [
         KeyedSubtree(
@@ -1962,131 +1963,33 @@ class AmbientBackground extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final isThemeDark = scheme.brightness == Brightness.dark;
     final reduceEffects = ref.watch(
       settingsProvider.select((s) => s.reduceEffects),
     );
 
-    // Light Pulse is a studio canvas — no blurred YT photo / palette wash
-    // (they crush contrast on text and non-card chrome). Dark keeps atmosphere.
-    if (!isThemeDark) {
-      return Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              key: const ValueKey('light_studio_bg'),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                gradient: reduceEffects
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          brandSpectrumOf(context).colors.first
-                              .withValues(alpha: 0.05),
-                          scheme.surface,
-                          brandSpectrumOf(context).colors.last
-                              .withValues(alpha: 0.04),
-                        ],
-                        stops: const [0.0, 0.45, 1.0],
-                      ),
-              ),
-            ),
-          ),
-          Positioned.fill(child: child),
-        ],
-      );
-    }
-
-    final playerState = ref.watch(playerStateProvider);
-    final currentSong = playerState.currentSong;
-    final paletteMap = ref.watch(paletteNotifierProvider);
-    final homeResultAsync = ref.watch(homeBaseResultProvider);
-
-    final backgroundUrl = homeResultAsync.when(
-      data: (data) => data.backgroundUrl,
-      loading: () => null,
-      error: (_, _) => null,
-    );
-
-    Color dominantColor = scheme.surface;
-
-    if (currentSong != null) {
-      final videoId = currentSong.id;
-      final artUrl = currentSong.artUri?.toString();
-      if (artUrl != null && artUrl.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref
-              .read(paletteNotifierProvider.notifier)
-              .extractPalette(videoId, artUrl);
-        });
-
-        final paletteData = paletteMap[videoId];
-        if (paletteData != null) {
-          dominantColor = paletteData.dominantColor;
-        }
-      }
-    }
-
-    Widget backgroundWidget;
-
-    if (!reduceEffects && backgroundUrl != null && backgroundUrl.isNotEmpty) {
-      backgroundWidget = Align(
-        alignment: Alignment.topCenter,
-        child: Container(
-          key: const ValueKey('image_bg'),
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height,
-          foregroundDecoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                scheme.surface.withValues(alpha: 0.15),
-                scheme.surface.withValues(alpha: 0.75),
-                scheme.surface,
-              ],
-              stops: const [0.0, 0.6, 1.0],
-            ),
-          ),
-          child: ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: CachedNetworkImage(
-              imageUrl: backgroundUrl,
-              fit: BoxFit.cover,
-              errorWidget: (_, _, _) => const SizedBox.shrink(),
-            ),
-          ),
-        ),
-      );
-    } else if (!reduceEffects && currentSong != null) {
-      final ambientColor = dominantColor.withValues(alpha: 0.15);
-      backgroundWidget = AnimatedContainer(
-        key: const ValueKey('gradient_bg'),
-        duration: const Duration(milliseconds: 600),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [ambientColor, scheme.surface],
-            stops: const [0.0, 0.45],
-          ),
-        ),
-      );
-    } else {
-      backgroundWidget = const DecoratedBox(
-        key: ValueKey('empty_bg'),
-        decoration: BoxDecoration(gradient: SonoraPulseTokens.darkAtmosphere),
-      );
-    }
-
     return Stack(
       children: [
         Positioned.fill(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 600),
-            child: backgroundWidget,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              gradient: reduceEffects
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        brandSpectrumOf(
+                          context,
+                        ).colors.first.withValues(alpha: 0.05),
+                        scheme.surface,
+                        brandSpectrumOf(
+                          context,
+                        ).colors.last.withValues(alpha: 0.04),
+                      ],
+                      stops: const [0.0, 0.45, 1.0],
+                    ),
+            ),
           ),
         ),
         Positioned.fill(child: child),
