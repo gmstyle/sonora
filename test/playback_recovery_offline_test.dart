@@ -121,6 +121,7 @@ void main() {
           castMedia: ({
             required String url,
             required String title,
+            String? videoId,
             String? artist,
             String? album,
             String? artworkUrl,

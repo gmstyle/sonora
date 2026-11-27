@@ -52,6 +52,7 @@ class TrackUrlResolver {
   final Future<void> Function({
     required String url,
     required String title,
+    String? videoId,
     String? artist,
     String? album,
     String? artworkUrl,
@@ -304,6 +305,7 @@ class TrackUrlResolver {
           await _castMedia(
             url: url,
             title: updatedItem.title,
+            videoId: videoId,
             artist: updatedItem.artist,
             album: updatedItem.album,
             artworkUrl: updatedItem.artUri?.toString(),

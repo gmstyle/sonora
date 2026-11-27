@@ -15,7 +15,12 @@ import 'linux_single_instance.dart';
 class LinuxTrayService {
   static LinuxTrayService? _instance;
   static SonoraAudioHandler? _audioHandler;
+  static Future<void> Function()? _onQuit;
   static bool _isQuitRequested = false;
+
+  static void setOnQuit(Future<void> Function()? callback) {
+    _onQuit = callback;
+  }
 
   static bool get isQuitRequested => _isQuitRequested;
 
@@ -212,6 +217,13 @@ class LinuxTrayService {
   Future<void> _quit() async {
     if (_audioHandler != null) {
       await _audioHandler!.stop();
+    }
+    if (_onQuit != null) {
+      try {
+        await _onQuit!();
+      } catch (e) {
+        debugPrint('Linux tray quit hook failed: $e');
+      }
     }
     await LinuxSingleInstance.dispose();
     closeWindowForQuit();

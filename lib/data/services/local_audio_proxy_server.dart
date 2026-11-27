@@ -45,7 +45,13 @@ class LocalAudioProxyServer {
     MediaCacheService? mediaCacheService,
     bool Function()? isForcedOffline,
   }) : _mediaCacheService = mediaCacheService ?? MediaCacheService.instance,
-       _isForcedOffline = isForcedOffline ?? (() => false);
+       _isForcedOffline = isForcedOffline ?? (() => false) {
+    _streamDatasource.addSessionInvalidationListener(_onSessionInvalidated);
+  }
+
+  void _onSessionInvalidated() {
+    unawaited(clearSabrSessions());
+  }
 
   /// Active port allocated by the OS, or 0 if not running.
   int get port => _server?.port ?? 0;
@@ -80,13 +86,19 @@ class LocalAudioProxyServer {
     }
   }
 
-  /// Stops the local HTTP server and disposes any active SABR sessions.
-  Future<void> stop() async {
+  /// Disposes and clears all active SABR proxy sessions.
+  Future<void> clearSabrSessions() async {
     final sessions = _sabrSessions.values.toList();
     _sabrSessions.clear();
     for (final session in sessions) {
       await session.dispose();
     }
+  }
+
+  /// Stops the local HTTP server and disposes any active SABR sessions.
+  Future<void> stop() async {
+    _streamDatasource.removeSessionInvalidationListener(_onSessionInvalidated);
+    await clearSabrSessions();
     if (_server == null) return;
     await _server?.close(force: true);
     _server = null;
@@ -265,7 +277,9 @@ class LocalAudioProxyServer {
     final key = '$videoId|${audioQuality.storageValue}';
     var session = _sabrSessions.remove(key);
     if (session != null &&
-        (session.isDisposed || session.sabrStream.tag != sabrStream.tag)) {
+        (session.isDisposed ||
+            session.sabrStream.tag != sabrStream.tag ||
+            session.sabrStream.url != sabrStream.url)) {
       unawaited(session.dispose());
       session = null;
     }
@@ -284,6 +298,7 @@ class LocalAudioProxyServer {
           unawaited(stale.dispose());
         }
       },
+      onRateLimited: _streamDatasource.reportRateLimit,
     );
 
     _sabrSessions[key] = session;
@@ -405,6 +420,18 @@ class LocalAudioProxyServer {
             videoId,
             audioQuality: audioQuality,
           );
+          final sabrFallback = _streamDatasource.cachedSabrStream(
+            videoId,
+            audioQuality: audioQuality,
+          );
+          if (sabrFallback != null) {
+            return await _serveSabrStream(
+              videoId,
+              sabrFallback,
+              rangeHeaderStr,
+              audioQuality: audioQuality,
+            );
+          }
           continue;
         }
 
@@ -450,6 +477,18 @@ class LocalAudioProxyServer {
             videoId,
             audioQuality: audioQuality,
           );
+          final sabrFallback = _streamDatasource.cachedSabrStream(
+            videoId,
+            audioQuality: audioQuality,
+          );
+          if (sabrFallback != null) {
+            return await _serveSabrStream(
+              videoId,
+              sabrFallback,
+              rangeHeaderStr,
+              audioQuality: audioQuality,
+            );
+          }
         } catch (_) {}
       }
     }

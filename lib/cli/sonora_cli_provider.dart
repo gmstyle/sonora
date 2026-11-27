@@ -4,6 +4,9 @@ import 'package:dart_ytmusic_api/dart_ytmusic_api.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
+import 'package:youtube_explode_dart/js_challenge.dart';
+import 'package:youtube_explode_dart/solvers.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../data/datasources/local/database.dart';
 import '../data/datasources/local/daos/downloads_dao.dart';
@@ -11,6 +14,7 @@ import '../data/datasources/local/daos/history_dao.dart';
 import '../data/datasources/local/daos/library_dao.dart';
 import '../data/datasources/local/daos/playlists_dao.dart';
 import '../data/datasources/remote/stream_datasource.dart';
+import '../data/datasources/remote/ytm_session_http_client.dart';
 import '../data/datasources/remote/ytmusic_datasource.dart';
 import '../data/repositories/library_repository_impl.dart';
 import '../data/repositories/music_repository_impl.dart';
@@ -74,7 +78,33 @@ class SonoraCliProvider {
     await sessionStore.loadInto(YTMusic());
     await _ytmusicDs!.initialize();
     await sessionStore.saveFrom(YTMusic());
-    _streamDs = StreamDatasource();
+    final httpClient = YoutubeHttpClient(
+      YtmSessionHttpClient(ytmusic: _ytmusicDs!.client),
+    );
+    final jsRunner = Platform.isLinux
+        ? await ChromiumCdpJsRunner.tryCreate()
+        : null;
+    final poTokenProvider = jsRunner != null
+        ? BotGuardPoTokenProvider(
+            runner: jsRunner,
+            httpClient: httpClient,
+            visitorDataProvider: () =>
+                _ytmusicDs!.client.config['VISITOR_DATA'],
+            sessionKeyProvider: () =>
+                _ytmusicDs!.client.config['USER_SESSION_ID'] ??
+                _ytmusicDs!.client.config['DATASYNC_ID'] ??
+                '',
+          )
+        : null;
+    final jsSolver = jsRunner != null
+        ? RunnerEJSSolver(runner: jsRunner)
+        : null;
+    _streamDs = StreamDatasource(
+      httpClient: httpClient,
+      poTokenProvider: poTokenProvider,
+      jsSolver: jsSolver,
+      onDispose: jsRunner?.dispose,
+    );
     _musicRepo = MusicRepositoryImpl(_ytmusicDs!, _streamDs!);
     _dio = Dio();
     _remoteReady = true;

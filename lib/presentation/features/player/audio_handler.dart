@@ -97,6 +97,47 @@ class SonoraAudioHandler extends BaseAudioHandler {
 
   PlaybackEngine get engine => _engine;
 
+  Future<void> _castResolvedMedia({
+    required String url,
+    required String title,
+    String? videoId,
+    String? artist,
+    String? album,
+    String? artworkUrl,
+  }) async {
+    String? targetUrl;
+    if (videoId != null && videoId.isNotEmpty && _proxyServer != null) {
+      targetUrl = await _proxyServer.getCastStreamUrlForVideo(
+        videoId,
+        audioQuality: _queueController.streamAudioQuality,
+      );
+    }
+    if (targetUrl == null) {
+      final uri = Uri.tryParse(url);
+      final isRawSabr =
+          (uri != null &&
+              uri.path == '/videoplayback' &&
+              uri.queryParameters.containsKey('sabr')) ||
+          (videoId != null &&
+              _streamDatasource.cachedSabrStream(
+                    videoId,
+                    audioQuality: _queueController.streamAudioQuality,
+                  ) !=
+                  null);
+      if (!isRawSabr) {
+        targetUrl = url;
+      }
+    }
+    if (targetUrl == null || targetUrl.isEmpty) return;
+    await _castController.castService?.castMedia(
+      url: targetUrl,
+      title: title,
+      artist: artist,
+      album: album,
+      artworkUrl: artworkUrl,
+    );
+  }
+
   /// Syncs stream quality prefs used when building proxy URLs.
   /// Rebuilds in-memory sources when quality actually changes so the current
   /// playlist picks up new proxy URLs.
@@ -401,18 +442,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
           ({
             required String url,
             required String title,
+            String? videoId,
             String? artist,
             String? album,
             String? artworkUrl,
-          }) async {
-            await _castController.castService?.castMedia(
-              url: url,
-              title: title,
-              artist: artist,
-              album: album,
-              artworkUrl: artworkUrl,
-            );
-          },
+          }) => _castResolvedMedia(
+            url: url,
+            title: title,
+            videoId: videoId,
+            artist: artist,
+            album: album,
+            artworkUrl: artworkUrl,
+          ),
       waitForCastPlaying: () async {
         await _castController.waitForCastSessionState(
           _castController.castService!,
@@ -445,18 +486,18 @@ class SonoraAudioHandler extends BaseAudioHandler {
           ({
             required String url,
             required String title,
+            String? videoId,
             String? artist,
             String? album,
             String? artworkUrl,
-          }) async {
-            await _castController.castService?.castMedia(
-              url: url,
-              title: title,
-              artist: artist,
-              album: album,
-              artworkUrl: artworkUrl,
-            );
-          },
+          }) => _castResolvedMedia(
+            url: url,
+            title: title,
+            videoId: videoId,
+            artist: artist,
+            album: album,
+            artworkUrl: artworkUrl,
+          ),
       waitForCastPlaying: () async {
         await _castController.waitForCastSessionState(
           _castController.castService!,

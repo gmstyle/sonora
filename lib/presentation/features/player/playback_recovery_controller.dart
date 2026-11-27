@@ -47,6 +47,7 @@ class PlaybackRecoveryController {
   final Future<void> Function({
     required String url,
     required String title,
+    String? videoId,
     String? artist,
     String? album,
     String? artworkUrl,
@@ -324,6 +325,7 @@ class PlaybackRecoveryController {
               await _castMedia(
                 url: freshUrl,
                 title: updatedItem.title,
+                videoId: videoId,
                 artist: updatedItem.artist,
                 album: updatedItem.album,
                 artworkUrl: updatedItem.artUri?.toString(),

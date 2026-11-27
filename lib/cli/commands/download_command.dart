@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
+import '../../core/utils/artists_utils.dart';
+import '../../domain/media/stream_quality_selector.dart';
+import '../../domain/models/media_quality.dart';
 import '../cli_output.dart';
 import '../sonora_cli_provider.dart';
-import '../../core/utils/artists_utils.dart';
 
 class DownloadCommand {
   final SonoraCliProvider _provider;
@@ -45,24 +47,27 @@ class DownloadCommand {
       }
     }
 
-    stderr.writeln('Resolving stream URL...');
+    stderr.writeln('Resolving stream manifest...');
 
     try {
-      final url = await _provider.musicRepo.getStreamUrl(videoId);
+      final manifest = await _provider.streamDs.getManifest(videoId);
+      final stream = const StreamQualitySelector().select(
+        manifest,
+        quality: MediaQuality.high,
+      );
       final dir = outputDir ?? Directory.current.path;
       final safeName = resolvedTitle.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-      final ext =
-          Uri.tryParse(url)?.pathSegments.lastOrNull?.split('.').last ?? 'm4a';
+      final ext = stream.container.name;
       final filePath = p.join(dir, '$safeName-$videoId.$ext');
 
       stderr.writeln('Downloading "$resolvedTitle" — $resolvedArtist');
-      stderr.writeln('URL: $url');
+      stderr.writeln('Format: ${stream.tag} ($ext)');
       stderr.writeln('Saving to: $filePath');
 
-      await _provider.dio.download(
-        url,
+      await _provider.streamDs.downloadStreamToFile(
+        stream,
         filePath,
-        onReceiveProgress: (received, total) {
+        onProgress: (received, total) {
           if (total > 0) {
             final percent = (received / total * 100).toStringAsFixed(1);
             stderr.write('\rProgress: $percent%   ');

@@ -9,6 +9,22 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import 'media_cache_service.dart';
 
+class _SegmentTiming {
+  final int startByte;
+  final int endByteExclusive;
+  final int startMs;
+  final int durationMs;
+
+  const _SegmentTiming({
+    required this.startByte,
+    required this.endByteExclusive,
+    required this.startMs,
+    required this.durationMs,
+  });
+
+  int get endMs => startMs + durationMs;
+}
+
 class _ByteInterval {
   int start;
   int end;
@@ -63,9 +79,10 @@ class SabrProxySession {
   final MediaCacheService _mediaCacheService;
   final Directory? _tempDir;
   final void Function()? _onAttestationFailure;
+  final void Function()? _onRateLimited;
 
   final _WrittenRanges _ranges = _WrittenRanges();
-  final Map<int, int> _segmentRangeToMs = {};
+  final Map<int, _SegmentTiming> _segmentTimings = {};
   final StreamController<void> _updates = StreamController<void>.broadcast();
 
   File? _tempFile;
@@ -73,7 +90,9 @@ class SabrProxySession {
   Future<void> _ioSerial = Future<void>.value();
 
   StreamSubscription<SabrChunk>? _activeSub;
+  Future<void>? _promotionFuture;
   int _pumpGeneration = 0;
+  int _activePumpStartByte = 0;
   int? _activePumpCursor;
   bool _pumpDone = false;
   Object? _pumpError;
@@ -87,6 +106,7 @@ class SabrProxySession {
     MediaCacheService? mediaCacheService,
     this._tempDir,
     this._onAttestationFailure,
+    this._onRateLimited,
   }) : _mediaCacheService = mediaCacheService ?? MediaCacheService.instance;
 
   bool get isDisposed => _disposed;
@@ -119,7 +139,7 @@ class SabrProxySession {
     return raf;
   }
 
-  Future<void> _startPump(int initialPlayerTimeMs) async {
+  Future<void> _startPump(int initialPlayerTimeMs, {int startByte = 0}) async {
     await _activeSub?.cancel();
     _activeSub = null;
     if (_disposed) return;
@@ -130,6 +150,7 @@ class SabrProxySession {
     final gen = ++_pumpGeneration;
     _pumpDone = false;
     _pumpError = null;
+    _activePumpStartByte = startByte;
     _activePumpCursor = null;
 
     late final StreamSubscription<SabrChunk> sub;
@@ -144,7 +165,12 @@ class SabrProxySession {
           await raf.writeFrom(chunk.data);
           _ranges.addRange(chunk.startRange, chunk.endRangeExclusive);
           if (!chunk.isInitialization && chunk.startMs != null) {
-            _segmentRangeToMs[chunk.startRange] = chunk.startMs!;
+            _segmentTimings[chunk.startRange] = _SegmentTiming(
+              startByte: chunk.startRange,
+              endByteExclusive: chunk.endRangeExclusive,
+              startMs: chunk.startMs!,
+              durationMs: chunk.durationMs ?? 0,
+            );
           }
           _activePumpCursor = chunk.endRangeExclusive;
         }).then(
@@ -166,9 +192,14 @@ class SabrProxySession {
       onError: (Object error, StackTrace stackTrace) {
         if (_disposed || gen != _pumpGeneration) return;
         dev.log('[SabrProxySession] SABR error for $videoId: $error');
-        if (error is SabrProtocolException &&
-            error.kind == SabrFailureKind.attestationRequired) {
-          _onAttestationFailure?.call();
+        if (error is SabrProtocolException) {
+          if (error.kind == SabrFailureKind.attestationRequired) {
+            _onAttestationFailure?.call();
+          } else if (error.httpStatusCode == 429) {
+            _onRateLimited?.call();
+          }
+        } else if (error is RequestLimitExceededException) {
+          _onRateLimited?.call();
         }
         _pumpError = error;
         _pumpDone = true;
@@ -184,12 +215,10 @@ class SabrProxySession {
               _tempFile != null &&
               _ranges.isComplete(totalBytes)) {
             _promoted = true;
-            unawaited(
-              _mediaCacheService.promoteFileToCache(
-                videoId: videoId,
-                extension: sabrStream.container.name,
-                sourceFile: _tempFile!,
-              ),
+            _promotionFuture = _mediaCacheService.promoteFileToCache(
+              videoId: videoId,
+              extension: sabrStream.container.name,
+              sourceFile: _tempFile!,
             );
           }
         }).whenComplete(() {
@@ -214,16 +243,36 @@ class SabrProxySession {
     final durationMs = sabrStream.duration.inMilliseconds;
     if (durationMs <= 0 || totalBytes <= 0 || byteOffset <= 0) return 0;
 
-    int? bestRange;
-    int? bestMs;
-    for (final entry in _segmentRangeToMs.entries) {
-      if (entry.key <= byteOffset &&
-          (bestRange == null || entry.key > bestRange)) {
-        bestRange = entry.key;
-        bestMs = entry.value;
+    _SegmentTiming? prev;
+    _SegmentTiming? next;
+    for (final seg in _segmentTimings.values) {
+      if (seg.startByte <= byteOffset && byteOffset < seg.endByteExclusive) {
+        return seg.startMs;
+      }
+      if (seg.endByteExclusive <= byteOffset) {
+        if (prev == null || seg.startByte > prev.startByte) {
+          prev = seg;
+        }
+      } else if (seg.startByte > byteOffset) {
+        if (next == null || seg.startByte < next.startByte) {
+          next = seg;
+        }
       }
     }
-    if (bestMs != null) return bestMs;
+
+    if (prev != null &&
+        next != null &&
+        next.startByte > prev.endByteExclusive) {
+      final byteSpan = next.startByte - prev.endByteExclusive;
+      final msSpan = next.startMs - prev.endMs;
+      if (msSpan >= 0) {
+        final ratio = (byteOffset - prev.endByteExclusive) / byteSpan;
+        return (prev.endMs + (msSpan * ratio).round()).clamp(
+          0,
+          math.max(0, durationMs - 1000),
+        );
+      }
+    }
 
     final estimated = ((byteOffset * durationMs) / totalBytes).round();
     return estimated.clamp(0, math.max(0, durationMs - 1000));
@@ -293,21 +342,24 @@ class SabrProxySession {
 
   Stream<List<int>> _streamRange(int start, int end, int totalBytes) async* {
     if (_ranges.availableFrom(start) == 0) {
-      final activeCursor = _activePumpCursor;
+      final effectiveCursor =
+          _activePumpCursor ??
+          (_activeSub != null ? _activePumpStartByte : null);
       final needsRestart =
           _activeSub == null ||
           _pumpDone ||
-          (activeCursor != null &&
-              (start < activeCursor ||
-                  start > activeCursor + _seekJumpThresholdBytes));
+          (effectiveCursor != null &&
+              (start < effectiveCursor ||
+                  start > effectiveCursor + _seekJumpThresholdBytes));
       if (needsRestart) {
         final targetMs = _estimateTimeMsForOffset(start, totalBytes);
-        await _startPump(targetMs);
+        await _startPump(targetMs, startByte: start);
       }
     }
 
     var cursor = start;
-    var correctiveRestartUsed = false;
+    var restarts = 0;
+    const maxRestarts = 3;
 
     while (cursor <= end && !_disposed) {
       final available = _ranges.availableFrom(cursor);
@@ -323,6 +375,7 @@ class SabrProxySession {
           return raf.read(toRead);
         });
         if (chunk.isEmpty) {
+          if (_disposed) break;
           throw StateError('SABR temp file read returned 0 bytes at $cursor');
         }
         yield chunk;
@@ -333,20 +386,45 @@ class SabrProxySession {
       if (_pumpError != null) {
         throw _pumpError!;
       }
+
+      final effectiveCursor =
+          _activePumpCursor ??
+          (_activeSub != null ? _activePumpStartByte : null);
+      final pumpMovedAway =
+          effectiveCursor != null &&
+          (cursor < effectiveCursor ||
+              cursor > effectiveCursor + _seekJumpThresholdBytes);
+
       if (_pumpDone) {
-        if (!correctiveRestartUsed) {
-          correctiveRestartUsed = true;
+        if (restarts < maxRestarts) {
+          restarts++;
           final fallbackMs = math.max(
             0,
             _estimateTimeMsForOffset(cursor, totalBytes) - 2000,
           );
-          await _startPump(fallbackMs);
+          await _startPump(fallbackMs, startByte: cursor);
           continue;
         }
         throw StateError('SABR stream ended before byte $cursor');
       }
 
+      if (pumpMovedAway && restarts < maxRestarts) {
+        restarts++;
+        final targetMs = _estimateTimeMsForOffset(cursor, totalBytes);
+        await _startPump(targetMs, startByte: cursor);
+        continue;
+      }
+
+      await _waitForUpdate();
+    }
+  }
+
+  Future<void> _waitForUpdate() async {
+    if (_disposed || _updates.isClosed) return;
+    try {
       await _updates.stream.first.timeout(_waitTimeout);
+    } on StateError {
+      // Stream closed during dispose().
     }
   }
 
@@ -357,6 +435,16 @@ class SabrProxySession {
     await _activeSub?.cancel();
     _activeSub = null;
     await _updates.close();
+    await _withIo(() async {
+      await _raf?.flush();
+    });
+    final promotion = _promotionFuture;
+    _promotionFuture = null;
+    if (promotion != null) {
+      try {
+        await promotion;
+      } catch (_) {}
+    }
     await _withIo(() async {
       await _raf?.close();
       _raf = null;

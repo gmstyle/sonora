@@ -220,6 +220,13 @@ class MediaCacheService {
       debugPrint(
         '[MediaCacheService] promoteFileToCache failed for $videoId: $e',
       );
+      try {
+        final cacheDir = await _getCacheDir();
+        final tempFile = File('${cacheDir.path}/$videoId.promote.tmp');
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+        }
+      } catch (_) {}
     }
   }
 

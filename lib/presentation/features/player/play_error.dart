@@ -25,6 +25,14 @@ enum PlayErrorKind {
         error is RequestLimitExceededException) {
       return PlayErrorKind.rateLimited;
     }
+    if (error is SabrProtocolException) {
+      if (error.httpStatusCode == 429) {
+        return PlayErrorKind.rateLimited;
+      }
+      if (error.kind == SabrFailureKind.network) {
+        return PlayErrorKind.network;
+      }
+    }
     final s = error.toString().toLowerCase();
     if (s.contains('videounplayable') ||
         s.contains('videounavailable') ||

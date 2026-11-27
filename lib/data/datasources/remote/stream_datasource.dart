@@ -77,6 +77,17 @@ class StreamDatasource {
 
   /// In-memory playback plans: `videoId|audioQ` → URL.
   final Map<String, PlaybackUrlPlan> _playbackCache = {};
+  final List<void Function()> _sessionInvalidationListeners = [];
+
+  void addSessionInvalidationListener(void Function() listener) {
+    if (!_sessionInvalidationListeners.contains(listener)) {
+      _sessionInvalidationListeners.add(listener);
+    }
+  }
+
+  void removeSessionInvalidationListener(void Function() listener) {
+    _sessionInvalidationListeners.remove(listener);
+  }
 
   /// True while the shared scheduler is in a post-429 cool-down.
   bool get isRateLimited => _scheduler.isCoolingDown;
@@ -401,6 +412,11 @@ class StreamDatasource {
   void invalidatePoTokenSession() {
     _poTokenProvider?.invalidateSession();
     clearUrlCache();
+    for (final listener in List<void Function()>.of(
+      _sessionInvalidationListeners,
+    )) {
+      listener();
+    }
   }
 
   /// Invalidates in-memory stream URL cache entries for [videoId]

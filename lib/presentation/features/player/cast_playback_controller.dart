@@ -23,6 +23,9 @@ bool _urlReachableByCastDevice(String? url) {
   if (host == '127.0.0.1' || host == 'localhost' || host == '::1') {
     return false;
   }
+  if (uri.path == '/videoplayback' && uri.queryParameters.containsKey('sabr')) {
+    return false;
+  }
   return uri.scheme == 'http' || uri.scheme == 'https';
 }
 

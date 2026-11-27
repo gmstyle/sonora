@@ -20,6 +20,28 @@ void main() {
     );
   });
 
+  test('classifies SabrProtocolException 429 as rateLimited and network as network', () {
+    expect(
+      PlayErrorKind.classify(
+        SabrProtocolException(
+          'SABR request failed with HTTP 429',
+          kind: SabrFailureKind.network,
+          httpStatusCode: 429,
+        ),
+      ),
+      PlayErrorKind.rateLimited,
+    );
+    expect(
+      PlayErrorKind.classify(
+        SabrProtocolException(
+          'SABR network error',
+          kind: SabrFailureKind.network,
+        ),
+      ),
+      PlayErrorKind.network,
+    );
+  });
+
   test('legacy message helper detects rate-limit copy', () {
     expect(
       PlayErrorKind.messageLooksLikeRateLimit(

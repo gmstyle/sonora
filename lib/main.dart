@@ -261,6 +261,10 @@ Future<void> main() async {
     _trayService = LinuxTrayService();
     await _trayService!.init();
     LinuxTrayService.setAudioHandler(handler);
+    LinuxTrayService.setOnQuit(() async {
+      await proxyServer.stop();
+      streamDs.dispose();
+    });
   }
 
   final isAndroidTv = await AndroidTv.isAndroidTv();
@@ -306,6 +310,7 @@ Future<void> main() async {
             () => _shutdownLinuxForRestart(
               handler: handler,
               proxyServer: proxyServer,
+              streamDs: streamDs,
               youtubeSessionStore: youtubeSessionStore,
               ytmusicDs: ytmusicDs,
               db: db,
@@ -320,6 +325,7 @@ Future<void> main() async {
 Future<void> _shutdownLinuxForRestart({
   required SonoraAudioHandler handler,
   required LocalAudioProxyServer proxyServer,
+  required StreamDatasource streamDs,
   required YoutubeSessionStore youtubeSessionStore,
   required YtmusicDatasource ytmusicDs,
   required AppDatabase db,
@@ -335,6 +341,7 @@ Future<void> _shutdownLinuxForRestart({
 
   await runStep('audio', handler.stop);
   await runStep('proxy', proxyServer.stop);
+  await runStep('streams', streamDs.dispose);
   await runStep(
     'session',
     () => youtubeSessionStore.saveFrom(ytmusicDs.client),

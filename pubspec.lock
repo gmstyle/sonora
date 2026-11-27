@@ -1913,7 +1913,7 @@ packages:
       path: "../youtube_explode_dart"
       relative: true
     source: path
-    version: "3.2.1"
+    version: "3.3.0"
   youtube_explode_webview:
     dependency: "direct main"
     description:
