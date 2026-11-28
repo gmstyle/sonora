@@ -292,30 +292,10 @@ class _AskMixCardState extends ConsumerState<AskMixCard> {
 
   Future<void> _confirmSave(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController(text: widget.mix.title);
     final chosenName = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(l10n.askSaveDialogTitle),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: l10n.askPlaylistNameLabel),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: Text(l10n.askActionConfirmSave),
-          ),
-        ],
-      ),
+      builder: (_) => _SaveMixNameDialog(initialName: widget.mix.title),
     );
-    controller.dispose();
     if (chosenName == null || chosenName.isEmpty || !mounted) return;
 
     setState(() => _saving = true);
@@ -335,6 +315,51 @@ class _AskMixCardState extends ConsumerState<AskMixCard> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+}
+
+class _SaveMixNameDialog extends StatefulWidget {
+  const _SaveMixNameDialog({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_SaveMixNameDialog> createState() => _SaveMixNameDialogState();
+}
+
+class _SaveMixNameDialogState extends State<_SaveMixNameDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialName,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(l10n.askSaveDialogTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(labelText: l10n.askPlaylistNameLabel),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+          child: Text(l10n.askActionConfirmSave),
+        ),
+      ],
+    );
   }
 }
 

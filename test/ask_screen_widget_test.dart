@@ -840,6 +840,20 @@ void main() {
       expect(find.text('Song Title 7'), findsOneWidget);
       expect(find.byType(SongTile), findsNWidgets(9));
       expect(find.text(l10n.askShowLessTracks), findsOneWidget);
+
+      // Saving the mix opens and closes the name dialog without disposing
+      // the TextEditingController before the dialog exit animation completes.
+      await tester.ensureVisible(find.text(l10n.askActionSavePlaylist));
+      await tester.tap(find.text(l10n.askActionSavePlaylist));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.askSaveDialogTitle), findsOneWidget);
+
+      await tester.tap(find.text(l10n.askActionConfirmSave));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(lib.createdNames, contains('Deep Night Mix'));
     },
   );
 
