@@ -46,6 +46,7 @@ Sonora uses **YouTube Music** as its data source and runs on **Android** (phone 
 
 - Songs, albums, artists, playlists, music videos, podcasts and episodes from YouTube Music
 - Music videos play as audio; background playback with a media notification
+- Resilient audio streaming across direct and SABR/UMP streams (with PO token support), disk caching, and seeking
 - Crossfade, 5-band equalizer (Android; Linux uses the system EQ), sleep timer
 - Synced lyrics with optional translation
 - Unplayable lead tracks are skipped automatically when an album or playlist starts
@@ -116,6 +117,7 @@ Grab the latest build from [GitHub Releases](https://github.com/gmstyle/sonora/r
 
 - Flutter 3.47+ (stable channel)
 - Android Studio for Android builds
+- Chromium / Chrome in `PATH` (optional on Linux, used for PO tokens on signed-in sessions)
 
 <details>
 <summary>Linux build dependencies</summary>
