@@ -34,7 +34,7 @@ Three layers. Dependencies point inward.
 
 YouTube Music models (`SongDetailed`, `AlbumFull`, `PodcastFull`, …) are used as-is. Do not map them into a second DTO. Local rows stay the PODOs in `domain/models/library_models.dart`.
 
-`lib/data/datasources/local/database.dart` is pure Dart so the CLI can open it. The Flutter connection lives in `database_connection.dart`. Do not import Flutter or `drift_flutter` into `database.dart`.
+`lib/data/datasources/local/database.dart` and `lib/cli/` are pure Dart so `bin/sonora.dart` compiles without Flutter. The Flutter connection lives in `database_connection.dart`. Do not import Flutter, `drift_flutter`, or `youtube_explode_webview` into `database.dart` or `lib/cli/` (on Linux, the CLI uses `ChromiumCdpJsRunner` from `package:youtube_explode_dart/solvers.dart`).
 
 New comments are English. Imports inside `lib/` are relative. `analysis_options.yaml` is `package:flutter_lints`. Fix the files you touched; do not reformat an unrelated screen in the same change.
 
@@ -173,6 +173,9 @@ UI calls `PlayerNotifier`. It calls `SonoraAudioHandler`. The handler delegates 
 
 - Do not call `just_audio` from a widget. The engine is `JustAudioPlaybackEngine`.
 - Do not resolve a stream URL in a widget. `PlayVideoIdUseCase.resolveUrl` is the playback URL entry. Lookahead and the disk cache go through `TrackUrlResolver` and `MediaCacheService`. `LockCachingAudioSource` is not used.
+- Audio playback and Cast route through `LocalAudioProxyServer` (`SabrProxySession` bridges SABR/UMP chunks via a sparse temp file with HTTP `200`/`206` ranges, time-based seeks, and cache promotion on completion). Cast must resolve LAN proxy URLs (`getCastStreamUrlForVideo`) and never send raw `?sabr` URLs; downloads go through `StreamDatasource.getManifest` + `downloadStreamToFile` (never raw `Dio.download`).
+- Share a single `BaseWebJsRunner` (`WebViewJsRunner` lazily created on Android/ATV; `ChromiumCdpJsRunner` on Linux, disposed on tray quit and Linux restart) between `BotGuardPoTokenProvider` and `RunnerEJSSolver`. Call `StreamDatasource.invalidatePoTokenSession()` on sign-in, sign-out, remote `LOGIN_INFO` revocation, or `SabrFailureKind.attestationRequired` so both the BotGuard minter and active `SabrProxySession`s reset together.
+- Preserve cookieless isolation in `YtmSessionHttpClient` and `YoutubeClientPolicy`: strip cookies, `Authorization`, and web `Origin` headers on cookieless native clients (`VISIONOS`, `ANDROID_VR`, `IOS`, `ANDROID`, `ANDROID_MUSIC`) as well as `/youtubei/v1/visitor_id`, `/sw.js_data`, `www.google.com`, and `www.gstatic.com`.
 - Shuffle is `SkipNavigator`. `just_audio_media_kit` ignores `shuffleOrder`.
 - Queue sections are `extras['section']` of `'user'` or `'upnext'`. Retag only inside `QueueController`.
 - `contentType` is `song`, `video`, or `episode`. Episode likes, history, lyrics, and show notes branch on `QueueTrack.isEpisode`.
